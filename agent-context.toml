@@ -1,0 +1,4 @@
+[agent]
+repo_slug = "contra"
+planning_root = "~/Dropbox/Documents/PersonalNotes/Planning"
+project_tag = "contra"
