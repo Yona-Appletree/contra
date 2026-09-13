@@ -67,6 +67,7 @@ p.hint b{color:var(--ink);font-weight:600}
   <b>Round-2 rulings applied:</b> FF6-size people (24 px, real faces) and chibi dropped; LttP inward walls, grange floor and shadows as defaults; trails persist for a whole dance;
   <b>arms are puppets:</b> the body sprite has no arms, each hand is a point on the floor that both dancers compute from the same keyframe, and the arm is a two-segment line from the shoulder, so joined hands meet by construction in both renderers.
   Everything animated is canned keyframes for one 64-beat dance, not an engine; a small seam pass eases hands and facing across figure boundaries.</p>
+  <p class="hint"><b>Rulings after gate 2 (2026-09-13):</b> proof of concept passes: the hall reads as a dance with music, a band and a caller. Front-drawn view is <b>rejected</b> as the product face: the arms will be very hard to make sane. True overhead is the direction, with work to keep it out of the uncanny valley. Still reads low-res: the next spike bumps people about 1.5× and allows anti-aliasing so movement is less jumpy. Arms currently reach much further than humans can and dancers stand too far apart in lines and across the set; real dancers walk toward each other and then take hands, and the arms must animate into the hold, not snap. The card readout and the notation are keepers. Real contras switch tunes a few times during a dance; the public page should model that. <b>Next:</b> a smaller spike, two people top-down doing a couple of key figures, in <code>spikes/two-dancers/</code>.</p>
 </header>
 
 <section id="s0">
@@ -98,7 +99,7 @@ p.hint b{color:var(--ink);font-weight:600}
   <h2>1. View angle, with puppet arms</h2>
   <p class="hint">Same minor set, same keyframes, same clock, at 3×. Both renderers draw arms from the shoulder to a shared hand point, so watch whether the hands stay joined through the balance, the swing, the ring and the twirl. The front view is the one at risk: hands that reach "forward" in floor space become arms pointing up or down the screen.</p>
   <div class="row">
-    <div class="card"><h4>1a · front-drawn on a top-down floor</h4><canvas id="v1a" class="pix"></canvas><p>Shoulders sit on the sprite; the hand point is the floor point lifted by a hand height (waist for lines and rings, chest for swings, over the head for the twirl arch).</p></div>
+    <div class="card rejected"><h4>1a · front-drawn on a top-down floor (rejected at gate 2)</h4><canvas id="v1a" class="pix"></canvas><p>Shoulders sit on the sprite; the hand point is the floor point lifted by a hand height (waist for lines and rings, chest for swings, over the head for the twirl arch).</p></div>
     <div class="card"><h4>1b · true overhead</h4><canvas id="v1b" class="pix"></canvas><p>Body drawn per angle (32 steps), arms are lines to the floor point, elbows bend outward when there is slack.</p></div>
   </div>
 </section>
