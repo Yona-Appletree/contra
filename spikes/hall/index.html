@@ -8,23 +8,20 @@
 :root{
   --bg:#141110; --panel:#1e1917; --panel2:#272019; --ink:#ebdfcd; --muted:#a8977f;
   --accent:#e7b96b; --line:#3c3128; --dash:#6b5741;
-  --rose:#efa0a8; --green:#8fd19e; --blue:#9bb5dd; --gold:#f4c56b; --purple:#c4a4e9; --grey:#b9b0a3;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
 header,section{max-width:1040px;margin:0 auto;padding:18px 20px}
 h1{font-size:22px;margin:8px 0 6px;letter-spacing:.02em}
 h2{font-size:17px;margin:34px 0 6px;color:var(--accent);border-top:1px solid var(--line);padding-top:16px}
-h3{font-size:13px;margin:14px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 p.hint{color:var(--muted);margin:4px 0 10px;max-width:78ch}
 p.hint b{color:var(--ink);font-weight:600}
-code,kbd{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
 .controls{border:1px dashed var(--dash);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 12px;background:var(--panel)}
 .controls .grp{display:flex;align-items:center;gap:6px;font:12px ui-monospace,Menlo,monospace;color:var(--muted)}
 .controls .grp span.l{color:var(--accent)}
-.controls button,.controls label.tog{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 9px;font:12px ui-monospace,Menlo,monospace;cursor:pointer}
+.controls button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 9px;font:12px ui-monospace,Menlo,monospace;cursor:pointer}
 .controls button.primary{background:#3b2f1f;border-color:var(--accent);color:var(--accent)}
-.controls button.on,.controls label.tog.on{background:#4a3a24;border-color:var(--accent);color:var(--accent)}
+.controls button.on{background:#4a3a24;border-color:var(--accent);color:var(--accent)}
 .controls input[type=range]{width:110px}
 .pix{image-rendering:pixelated;image-rendering:crisp-edges;display:block;background:#0c0a09}
 .hallwrap{width:100%;background:#000;border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;justify-content:center;overflow:hidden}
@@ -56,43 +53,38 @@ code,kbd{font:12px ui-monospace,Menlo,monospace;color:var(--accent)}
 #notation{background:#f7f1e3;border-radius:6px;padding:6px 10px;color:#222;max-width:100%;overflow-x:auto}
 #notation svg{max-width:100%}
 #notation .cur *{fill:#c5461e;stroke:#c5461e}
-#notation .cur path{fill:#c5461e}
 .status{font:12px ui-monospace,Menlo,monospace;color:var(--muted)}
 .status.err{color:#e07a7a}
-table.q{border-collapse:collapse;font-size:13px;margin:8px 0}
-table.q td,table.q th{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
-table.q th{color:var(--muted);font-weight:600}
 .small{font-size:12px;color:var(--muted)}
+.rejected{opacity:.75}
 </style>
 </head>
 <body>
 <header>
   <h1>Hands Four · the hall</h1>
-  <p class="hint">UX spike for the simulator's look (vision: "The hall, rendered"; D13, D14, D15, D20, D21; Q4, Q5, Q6).
-  Thesis: a 16-bit hall drawn from above with front-drawn people, procedurally composed from parts, moving on the beat of a real tune,
-  reads as a contra dance and not as a diagram. <b>Rendering contract:</b> a real low-resolution mode (resolution derived from the
-  container and an integer zoom), positions held internally at 1/256 px, sprites blitted only at whole low-res pixels, no rotated or
-  sub-pixel-moving sprites; anti-aliasing is allowed on the low-res grid (traces, shadows) as if a strong sprite co-processor drew them.
-  Everything animated here is canned keyframes for one 64-beat dance, not an engine.</p>
-  <p class="hint"><b>Leans going in:</b> front-drawn people on a top-down floor (Q5); FF6-style tall people over LttP chibi (Yona's stated preference); FF6 facade walls; 8 facings for front-drawn sprites, 16 free for overhead; procedural composition with an outline pass rather than a hand-drawn sheet (Q4); worn-board traces in the hall and family-coloured glyphs for the grid; ABC via abcjs with the AudioContext as the master clock (Q6). Defaults on load reflect these leans; every alternative is one click away. Options can also be set in the URL, e.g. <code>?proto=chibi&amp;walls=lttp&amp;scale=3</code>.</p>
+  <p class="hint">UX spike for the simulator's look (vision: "The hall, rendered"; D13, D14, D15, D20, D21; Q4, Q5, Q6). Round 2 after the first gate.
+  <b>Rendering contract:</b> a fixed-size low-res world sized by the number of lines, shown at an integer zoom; positions held at 1/256 px; sprites and arm lines blitted at whole pixels; anti-aliasing allowed on the low-res grid for traces and shadows.
+  <b>Round-2 rulings applied:</b> FF6-size people (24 px, real faces) and chibi dropped; LttP inward walls, grange floor and shadows as defaults; trails persist for a whole dance;
+  <b>arms are puppets:</b> the body sprite has no arms, each hand is a point on the floor that both dancers compute from the same keyframe, and the arm is a two-segment line from the shoulder, so joined hands meet by construction in both renderers.
+  Everything animated is canned keyframes for one 64-beat dance, not an engine; a small seam pass eases hands and facing across figure boundaries.</p>
 </header>
 
 <section id="s0">
   <h2>0. The hall (the D21 test)</h2>
-  <p class="hint">On load the hall should already feel like an overhead video of a dance. Press <b>Play music</b> to hear the tune (a user gesture is required for audio; the tune joins at the current beat, and the animation clock then ticks off the audio clock). Two sets of unequal length, a waiting-out couple at each end who cross over and re-enter, a band on the stage, a caller at the mic, people sitting out on the sides.</p>
+  <p class="hint">Press <b>Play music</b> to hear the tune; the animation clock then ticks off the audio clock. The hall is a fixed world: two lines by default (phone-sized at 1×), add a line and the hall grows. Waiting-out couples at each end hold hands, cross over during the last eight beats and re-enter.</p>
   <div class="controls" id="ctl0">
     <div class="grp"><button class="primary" id="btnPlay">▶ Play music</button><button id="btnPause">⏸ Pause</button></div>
     <div class="grp"><span class="l">tempo</span><input type="range" id="tempo" min="96" max="126" value="112"><span id="tempoV">112</span></div>
-    <div class="grp"><span class="l">zoom</span><button data-k="scale" data-v="2" class="on">2×</button><button data-k="scale" data-v="3">3×</button><button data-k="scale" data-v="4">4×</button></div>
-    <div class="grp"><span class="l">people</span><button data-k="proto" data-v="tall" class="on">FF6 tall</button><button data-k="proto" data-v="chibi">LttP chibi</button></div>
-    <div class="grp"><span class="l">walls</span><button data-k="walls" data-v="ff6" class="on">FF6 facade</button><button data-k="walls" data-v="lttp">LttP inward</button></div>
+    <div class="grp"><span class="l">lines</span><button data-k="lines" data-v="1">1</button><button data-k="lines" data-v="2" class="on">2</button><button data-k="lines" data-v="3">3</button><button data-k="lines" data-v="4">4</button></div>
+    <div class="grp"><span class="l">zoom</span><button data-k="scale" data-v="0" class="on">auto</button><button data-k="scale" data-v="1">1×</button><button data-k="scale" data-v="2">2×</button><button data-k="scale" data-v="3">3×</button><button data-k="scale" data-v="4">4×</button></div>
     <div class="grp"><span class="l">view</span><button data-k="view" data-v="front" class="on">front-drawn</button><button data-k="view" data-v="over">true overhead</button></div>
+    <div class="grp"><span class="l">walls</span><button data-k="walls" data-v="lttp" class="on">LttP inward</button><button data-k="walls" data-v="ff6">FF6 facade</button></div>
     <div class="grp"><span class="l">facings</span><button data-k="facings" data-v="8" class="on">8</button><button data-k="facings" data-v="16">16</button></div>
-    <div class="grp"><span class="l">traces</span><button data-k="traces" data-v="off">off</button><button data-k="traces" data-v="worn" class="on">worn</button><button data-k="traces" data-v="trail">trails</button></div>
+    <div class="grp"><span class="l">traces</span><button data-k="traces" data-v="off">off</button><button data-k="traces" data-v="worn">worn</button><button data-k="traces" data-v="trail" class="on">trails</button></div>
     <div class="grp"><span class="l">floor</span><button data-k="hall" data-v="grange" class="on">grange</button><button data-k="hall" data-v="gym">gym</button><button data-k="hall" data-v="night">night</button></div>
     <div class="grp"><span class="l">outline</span><button data-k="outline" data-v="1" class="on">on</button><button data-k="outline" data-v="0">off</button></div>
     <div class="grp"><span class="l">role tint</span><button data-k="tint" data-v="0" class="on">none</button><button data-k="tint" data-v="1">armband</button></div>
-    <div class="grp"><span class="l">shadows</span><button data-k="shadow" data-v="1" class="on">on</button><button data-k="shadow" data-v="0">off</button></div>
+    <div class="grp"><span class="l">seams</span><button data-k="seam" data-v="1" class="on">eased</button><button data-k="seam" data-v="0">snap</button></div>
   </div>
   <div class="hallwrap" id="hallwrap"><canvas id="hall" class="pix"></canvas></div>
   <div class="readout" id="readout">—</div>
@@ -103,61 +95,53 @@ table.q th{color:var(--muted);font-weight:600}
 </section>
 
 <section id="s1">
-  <h2>1. View angle</h2>
-  <p class="hint">Same minor set, same keyframes, same clock. Left: floor from above, characters drawn from the front (the Link to the Past / FF6 convention). Right: true overhead, heads and shoulders only. Both keep trace geometry honest because the trace is drawn at the feet; the question is which reads as people. Traces are drawn under both so the geometry can be compared directly.</p>
+  <h2>1. View angle, with puppet arms</h2>
+  <p class="hint">Same minor set, same keyframes, same clock, at 3×. Both renderers draw arms from the shoulder to a shared hand point, so watch whether the hands stay joined through the balance, the swing, the ring and the twirl. The front view is the one at risk: hands that reach "forward" in floor space become arms pointing up or down the screen.</p>
   <div class="row">
-    <div class="card"><h4>1a · front-drawn on a top-down floor</h4><canvas id="v1a" class="pix"></canvas><p>Faces, arms, skirts. The feet are the floor position; the body stands "up" out of the map.</p></div>
-    <div class="card"><h4>1b · true overhead</h4><canvas id="v1b" class="pix"></canvas><p>Rotation is free (16 facings), lean and arms show as head and hand offsets, but no faces.</p></div>
-    <div class="card"><h4>1c · 3/4 squash (rejected)</h4><canvas id="v1c" class="pix"></canvas><p>Floor foreshortened 0.6 in y. Looks like a game room, but circles become ellipses and traces stop being a plan view.</p></div>
+    <div class="card"><h4>1a · front-drawn on a top-down floor</h4><canvas id="v1a" class="pix"></canvas><p>Shoulders sit on the sprite; the hand point is the floor point lifted by a hand height (waist for lines and rings, chest for swings, over the head for the twirl arch).</p></div>
+    <div class="card"><h4>1b · true overhead</h4><canvas id="v1b" class="pix"></canvas><p>Body drawn per angle (32 steps), arms are lines to the floor point, elbows bend outward when there is slack.</p></div>
   </div>
 </section>
 
 <section id="s2">
-  <h2>2. People</h2>
-  <p class="hint">Procedurally composed from parts (skin, hair style and colour, shirt, trousers or skirt, height, cap) with fixed poses. Columns are facings (S first, clockwise on screen). Rows: stand · walk A · walk B · balance rock (lean forward, weight on the right foot, arms trailing) · arms out · arms up (twirl) · swing hold. The 16-facing row differs from the 8-facing row only in head turn; judge whether that is worth doubling the pose set. <b>Robot test:</b> the crowd row below is 18 random people standing still; if they read as a crowd the composition is enough.</p>
+  <h2>2. People (FF6-size, 24 px)</h2>
+  <p class="hint">Composed from parts: skin, hair style and colour, shirt, trousers or skirt, height, cap. Columns are facings clockwise from S. Rows: the 8-facing set standing; then at 16 facings: stand · walk A · walk B · balance rock (lean, weight on the right foot, hands forward and low) · hands joined to the sides (long lines) · hands up (twirl) · swing hold (left hand out, right hand round the partner). Arms in the gallery use fixed hand points in sprite space.</p>
   <div class="controls">
     <div class="grp"><button id="reroll">another person</button></div>
-    <div class="grp"><span class="l">gallery outline</span><button data-g="outline" data-v="1" class="on">on</button><button data-g="outline" data-v="0">off</button></div>
-    <div class="grp"><span class="l">gallery zoom</span><button data-g="gz" data-v="3" class="on">3×</button><button data-g="gz" data-v="4">4×</button><button data-g="gz" data-v="5">5×</button></div>
+    <div class="grp"><span class="l">gallery zoom</span><button data-g="gz" data-v="2" class="on">2×</button><button data-g="gz" data-v="3">3×</button><button data-g="gz" data-v="4">4×</button></div>
   </div>
   <div class="row">
-    <div class="card"><h4>2a · FF6-style tall (16 rows)</h4><canvas id="galTall" class="pix"></canvas><p>Head 5 wide with a 3-wide face, 3-wide torso, 1-px legs. Taller, thinner, more adult.</p></div>
-    <div class="card"><h4>2b · LttP-style chibi (13 rows)</h4><canvas id="galChibi" class="pix"></canvas><p>Head is half the height, 2-px eyes, stubby legs. Cuter, more toy-like.</p></div>
+    <div class="card"><h4>2a · facings and poses</h4><canvas id="gal" class="pix"></canvas></div>
   </div>
   <div class="row" style="margin-top:14px">
-    <div class="card"><h4>2c · walk cycle and balance, animated on the beat</h4><canvas id="anim" class="pix"></canvas><p>Left to right: walking S, W, N, NE; balancing (rock on 1, back on 3); twirling; swinging pair. Tall then chibi.</p></div>
-    <div class="card"><h4>2d · hand-pixelled sprite vs composed</h4><canvas id="cmp" class="pix"></canvas><p>A hand-drawn 12×18 sprite with 2-tone shading (stand, walk, walk, balance) beside the composed tall person with outline. The gap is shading and silhouette, which composition can add as a pass.</p></div>
+    <div class="card"><h4>2b · animated on the beat</h4><canvas id="anim" class="pix"></canvas><p>Walking S, W, N, NE; a two-hand balance pair; a twirl; a swinging pair with joined hands; then the same four walkers overhead.</p></div>
+    <div class="card"><h4>2c · the crowd test (18 random people)</h4><canvas id="crowd" class="pix"></canvas><p>If they read as a crowd, part composition is enough.</p></div>
   </div>
   <div class="row" style="margin-top:14px">
-    <div class="card"><h4>2e · the crowd test (18 random people, standing)</h4><canvas id="crowd" class="pix"></canvas></div>
-    <div class="card"><h4>2f · true overhead, 16 facings × stand / walk / arms out / lean</h4><canvas id="galOver" class="pix"></canvas></div>
+    <div class="card"><h4>2d · overhead body, 32 angles × stand / walk / hands out / lean</h4><canvas id="galOver" class="pix"></canvas></div>
   </div>
 </section>
 
 <section id="s3">
   <h2>3. Traces on the floor</h2>
-  <p class="hint">One cycle of the four dancers of a minor set. <b>Worn:</b> every pass darkens the boards, so the swing is a dark disc and the lines are faint. <b>Chalk per dancer:</b> four colours, direction readable. <b>By figure family:</b> colours from the card taxonomy (swing rose, circle green, lines blue, allemande gold, twirl purple). The 24-px glyphs are the grid thumbnail candidates.</p>
+  <p class="hint">One cycle of the four dancers of a minor set. <b>Worn:</b> every pass darkens the boards. <b>Per dancer:</b> four colours (larks blue, robins rose, ones darker). <b>By figure family:</b> colours from the card taxonomy. The 24-px glyphs are the grid thumbnail candidates. The hall above uses per-dancer trails that persist for a full dance.</p>
   <div class="row" id="traceRow"></div>
 </section>
 
 <section id="s4">
   <h2>4. Hall furniture</h2>
-  <p class="hint">Live crops of the hall above at 4×: the stage with the band, the caller at the mic, the side line, and the bottom of the long set where the waiting couple crosses over during the last eight beats. Below: the same corner of the hall in both wall styles.</p>
+  <p class="hint">Live crops of the hall above at 3×: the stage with the band, the caller at the mic, the side line with sitters, and the bottom of the long line where the waiting couple crosses over during the last eight beats.</p>
   <div class="row">
     <div class="card"><h4>4a · stage and band</h4><canvas id="c4a" class="pix"></canvas></div>
     <div class="card"><h4>4b · caller</h4><canvas id="c4b" class="pix"></canvas></div>
     <div class="card"><h4>4c · side line</h4><canvas id="c4c" class="pix"></canvas></div>
-    <div class="card"><h4>4d · bottom of the long set</h4><canvas id="c4d" class="pix"></canvas></div>
-  </div>
-  <div class="row" style="margin-top:14px">
-    <div class="card"><h4>4e · FF6 facade walls</h4><canvas id="w4e" class="pix"></canvas><p>Back wall drawn as a face with windows and wainscot; side walls are thin edges; the front edge is open.</p></div>
-    <div class="card"><h4>4f · LttP inward walls</h4><canvas id="w4f" class="pix"></canvas><p>Thick walls on all four sides, each with a top face and an inner face.</p></div>
+    <div class="card"><h4>4d · bottom of the long line</h4><canvas id="c4d" class="pix"></canvas></div>
   </div>
 </section>
 
 <section id="s5">
   <h2>5. Beat indicator, driven by the tune</h2>
-  <p class="hint">The tune is an ABC transcription of Soldier's Joy rendered and synthesised by abcjs (MIT). AABB in the tune is A1 A2 B1 B2 in the dance. Four candidate indicators, all reading the same clock: a 64-cell strip (also under the hall), a card-style readout with the current figure filling, the notation with the current bar highlighted, and a lamp.</p>
+  <p class="hint">Soldier's Joy in ABC, rendered and synthesised by abcjs (MIT). AABB in the tune is A1 A2 B1 B2 in the dance. The strip under the hall, the card readout, the notation with the current bar, and a lamp all read the same clock.</p>
   <div class="row">
     <div class="card"><h4>5a · card readout</h4><div class="cardread" id="cardread"></div></div>
     <div class="card"><h4>5b · lamp</h4><div class="lamp" id="lamp">1</div><p>Beat 1 of the bar is bigger; phrase starts flash white.</p></div>
@@ -169,18 +153,21 @@ table.q th{color:var(--muted);font-weight:600}
 <script>
 'use strict';
 // ============================================================ utilities
-const TAU = Math.PI*2;
+const TAU=Math.PI*2;
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 function pick(rng,arr){return arr[Math.floor(rng()*arr.length)];}
 function hexToRgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
 function shade(h,f){const [r,g,b]=hexToRgb(h);const c=v=>Math.max(0,Math.min(255,Math.round(v*f)));return '#'+[c(r),c(g),c(b)].map(v=>v.toString(16).padStart(2,'0')).join('');}
 const ang=(x,y)=>Math.atan2(y,x)*180/Math.PI;
+const dirOf=a=>{const t=a*Math.PI/180;return [Math.cos(t),Math.sin(t)];};
+const leftOf=a=>{const d=dirOf(a);return [d[1],-d[0]];};   // dancer's left in floor coords (screen y down)
 const polar=(cx,cy,a,r)=>{const t=a*Math.PI/180;return [cx+r*Math.cos(t),cy+r*Math.sin(t)];};
 const lerp=(a,b,k)=>a+(b-a)*k;
 const clamp01=v=>v<0?0:v>1?1:v;
 const smooth=k=>{k=clamp01(k);return k*k*(3-2*k);};
-const q256=v=>Math.round(v*256);            // px -> 1/256 px fixed point
-const px=v=>v>>8;                            // fixed point -> whole low-res pixel
+const q256=v=>Math.round(v*256);
+const px=v=>v>>8;
+function bres(x0,y0,x1,y1,fn){let dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1,err=dx+dy;for(;;){fn(x0,y0);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx;}if(e2<=dx){err+=dx;y0+=sy;}}}
 
 // ============================================================ people
 const SKINS=['#f3cfae','#e6b48e','#d29a70','#b47a56','#8a5a3c','#5f3d28'];
@@ -192,208 +179,190 @@ const STYLES=['short','short','short','long','long','bob','curly','bald','cap','
 const DK='#1b1410', SHOE='#2b1d14';
 let personSeq=0;
 function makePerson(rng){
-  const p={id:personSeq++, skin:pick(rng,SKINS), hair:pick(rng,HAIRS), style:pick(rng,STYLES), shirt:pick(rng,SHIRTS), tall:rng()<0.35?1:0};
-  p.shirtDark=shade(p.shirt,0.72);
-  if(rng()<0.5){p.skirt=pick(rng,SKIRTS);p.skirtDark=shade(p.skirt,0.75);} else {p.pants=pick(rng,PANTS);}
+  const p={id:personSeq++,skin:pick(rng,SKINS),hair:pick(rng,HAIRS),style:pick(rng,STYLES),shirt:pick(rng,SHIRTS),tall:rng()<0.35?1:0};
+  p.shirtDark=shade(p.shirt,0.72);p.skinDark=shade(p.skin,0.8);
+  if(rng()<0.5){p.skirt=pick(rng,SKIRTS);p.skirtDark=shade(p.skirt,0.75);}else{p.pants=pick(rng,PANTS);}
   p.cap=pick(rng,['#8a2b2b','#2b4a8a','#3a3a3a','#6a8a3a']);
   return p;
 }
-
-// ---- proportions: 'tall' (FF6-ish) and 'chibi' (LttP-ish)
-const PROTO={
-  tall:{H:16, headRows:5, faceW:3, neck:1, torsoTop:6, torsoRows:5, torsoW:3, shoulderW:5, legTop:11, legRows:5, legW:1, eyeRows:1, cx:9, base:16, canvasW:18, canvasH:18},
-  chibi:{H:13, headRows:6, faceW:5, neck:0, torsoTop:6, torsoRows:4, torsoW:5, shoulderW:7, legTop:10, legRows:3, legW:2, eyeRows:2, cx:9, base:16, canvasW:18, canvasH:18},
-};
 // 16 facings: 0=S,1=SSW,2=SW,3=WSW,4=W,5=WNW,6=NW,7=NNW,8=N,9=NNE,10=NE,11=ENE,12=E,13=ESE,14=SE,15=SSE
 const HEAD16=[
   {view:'front',eyes:[-1,1]},{view:'front',eyes:[-2,0]},{view:'front',eyes:[-2,0],narrow:1},{view:'side',d:-1,tq:'toward'},
-  {view:'side',d:-1},{view:'side',d:-1,tq:'away'},{view:'back',cheek:-1,rows:2},{view:'back',cheek:-1,rows:1},
-  {view:'back'},{view:'back',cheek:1,rows:1},{view:'back',cheek:1,rows:2},{view:'side',d:1,tq:'away'},
+  {view:'side',d:-1},{view:'side',d:-1,tq:'away'},{view:'back',cheek:-1,rows:3},{view:'back',cheek:-1,rows:2},
+  {view:'back'},{view:'back',cheek:1,rows:2},{view:'back',cheek:1,rows:3},{view:'side',d:1,tq:'away'},
   {view:'side',d:1},{view:'side',d:1,tq:'toward'},{view:'front',eyes:[0,2],narrow:-1},{view:'front',eyes:[0,2]},
 ];
-const DIR16=[];for(let k=0;k<16;k++){const a=(90+k*22.5)*Math.PI/180;DIR16.push([Math.cos(a),Math.sin(a)]);}
+const DIR16=[];for(let k=0;k<16;k++){DIR16.push(dirOf(90+k*22.5));}
 function facingIndex(aDeg,n){const k=Math.round(((aDeg-90)/360)*n);return ((k%n)+n)%n*(16/n);}
 
-// paints a front-drawn person into g (18x18). feet centre at (cx, base). pose {arms, side, lean, step, sit}
-function paintFront(g,p,k,pose,proto,opt){
-  const pr=PROTO[proto]; const cx=pr.cx, base=pr.base; const t=p.tall; const H=pr.H+t; const top=base-H+1;
-  const R=r=>top+r; const hd=HEAD16[k]; const view=hd.view;
+// ---- front-drawn body sprite (no arms). canvas 22x28, feet centre at (11,26)
+const SPR={W:22,H:28,cx:11,base:26};
+function paintBody(g,p,k,pose,opt){
+  const cx=SPR.cx,base=SPR.base,t=p.tall,H=24+t,top=base-H+1;const R=r=>top+r;
+  const hd=HEAD16[k],view=hd.view;const [fdx,fdy]=DIR16[k];const lean=pose.lean||0;const ldx=Math.round(lean*fdx*2),ldy=Math.round(lean*fdy*1.2);
+  const step=pose.step||0,sit=!!pose.sit,twirl=!!pose.twirl;
   const P=(x,y,c)=>{g.fillStyle=c;g.fillRect(x,y,1,1);};
   const HL=(x0,x1,y,c)=>{if(x1<x0){const s=x0;x0=x1;x1=s;}g.fillStyle=c;g.fillRect(x0,y,x1-x0+1,1);};
   const VL=(x,y0,y1,c)=>{if(y1<y0){const s=y0;y0=y1;y1=s;}g.fillStyle=c;g.fillRect(x,y0,1,y1-y0+1);};
-  const [fdx,fdy]=DIR16[k]; const lean=pose.lean||0;
-  const ldx=Math.round(lean*fdx), ldy=Math.round(lean*fdy);
-  const tt=pr.torsoTop, tr=pr.torsoRows+t, L0=pr.legTop+t, LR=pr.legRows, arms=pose.arms||'down', side=pose.side||0, step=pose.step||0, sit=!!pose.sit;
-  const skirt=p.skirt, shoes=SHOE, shirt=p.shirt, shirtD=p.shirtDark, skin=p.skin, hair=p.hair;
-  const armCol=(pr.shoulderW-1)/2, halfT=(pr.torsoW-1)/2;
-  // ------------------------------------------------ legs
-  if(view==='front'||view==='back'){
-    const rightIsLeft=view==='front';
-    const fwd=step===1?(rightIsLeft?'L':'R'):step===2?(rightIsLeft?'R':'L'):null;
-    const lw=pr.legW; const legL=[cx-lw-(lw===1?0:0)-(lw===2?0:0),0]; // placeholder
-    const LL=lw===2?[cx-2,cx-1]:[cx-1,cx-1], LRr=lw===2?[cx+1,cx+2]:[cx+1,cx+1];
-    const legRows=sit?Math.ceil(LR/2)+1:LR; const shoeRow=R(L0+legRows-1);
-    if(skirt){
-      const wide=arms==='up'?1:0;
-      for(let r=0;r<legRows-1;r++){const w=(r===0?halfT:(halfT+1+(r>0?1:0)))+ (r>=1?wide:0); HL(cx-w,cx+w,R(L0+r),r===legRows-2?p.skirtDark:skirt);}
-      if(fwd==='L'){HL(LL[0],LL[1],shoeRow,shoes);P(LRr[1],shoeRow,shoes);}
-      else if(fwd==='R'){HL(LRr[0],LRr[1],shoeRow,shoes);P(LL[0],shoeRow,shoes);}
-      else {HL(LL[0],LL[1],shoeRow,shoes);HL(LRr[0],LRr[1],shoeRow,shoes);}
-    } else {
-      const drawLeg=(c,lifted)=>{const n=legRows-1-(lifted?1:0);for(let r=0;r<n;r++)HL(c[0],c[1],R(L0+r),p.pants);HL(c[0],c[1],R(L0+n),shoes);};
-      drawLeg(LL,fwd==='R'); drawLeg(LRr,fwd==='L');
-    }
-  } else {
-    const d=hd.d; const legRows=sit?Math.ceil(LR/2)+1:LR; const shoeRow=R(L0+legRows-1);
-    if(skirt){
-      for(let r=0;r<legRows-1;r++){const w=r===0?1:2;HL(cx-w,cx+w,R(L0+r),r===legRows-2?p.skirtDark:skirt);}
-      if(step===1){P(cx+d,shoeRow,shoes);P(cx+2*d,shoeRow,shoes);P(cx-d,shoeRow,shoes);}
-      else {HL(cx-d,cx+d,shoeRow,shoes);}
-    } else if(sit){
-      HL(cx-1,cx+2*d,R(L0),p.pants); VL(cx+2*d,R(L0+1),shoeRow-1,p.pants); HL(cx+2*d,cx+3*d,shoeRow,shoes);
-    } else {
-      if(step===1){VL(cx+d,R(L0),shoeRow-1,p.pants);HL(cx+d,cx+2*d,shoeRow,shoes);VL(cx-d,R(L0),shoeRow-1,p.pants);P(cx-d,shoeRow,shoes);}
-      else {VL(cx,R(L0),shoeRow-1,p.pants);VL(cx-d,R(L0),shoeRow-1,shade(p.pants,0.8));HL(cx-d,cx+d,shoeRow,shoes);}
-    }
-  }
-  // ------------------------------------------------ torso
-  if(view==='front'||view==='back'){
-    for(let r=0;r<tr;r++)HL(cx-halfT,cx+halfT,R(tt+r),shirt);
-    HL(cx-armCol,cx+armCol,R(tt),shirt);
-    if(opt.shading)VL(cx+halfT,R(tt+1),R(tt+tr-1),shirtD);
-    // arms
-    const armOut=(s)=>{HL(cx+s*armCol,cx+s*(armCol+3),R(tt),shirt);P(cx+s*(armCol+4),R(tt),skin);};
-    const armDown=(s)=>{VL(cx+s*armCol,R(tt+1),R(tt+tr-2),shirt);P(cx+s*armCol,R(tt+tr-1),skin);};
-    const armUp=(s)=>{VL(cx+s*armCol,R(2)+ldy,R(tt),shirt);P(cx+s*armCol,R(1)+ldy,skin);};
-    if(arms==='out'){armOut(-1);armOut(1);}
-    else if(arms==='up'){armUp(-1);armUp(1);}
-    else if(arms==='hold'){ if(side===0){HL(cx-armCol-1,cx-armCol,R(tt),shirt);HL(cx+armCol,cx+armCol+1,R(tt),shirt);P(cx-armCol-2,R(tt),skin);P(cx+armCol+2,R(tt),skin);} else {armOut(side);armDown(-side);} }
-    else if(arms==='fwd'){ [-1,1].forEach(s=>{VL(cx+s*armCol,R(tt+1),R(tt+2),shirt);P(cx+s*(armCol-1),R(tt+3),skin);}); }
-    else if(arms==='fwdback'){ [-1,1].forEach(s=>{VL(cx+s*armCol,R(tt+1),R(tt+2),shirt);P(cx+s*(armCol+1),R(tt+2),skin);}); }
-    else {armDown(-1);armDown(1);}
-    if(opt.tint&&p.role){P(cx-armCol,R(tt+1),p.role==='L'?'#4c7fc9':'#e06a86');P(cx+armCol,R(tt+1),p.role==='L'?'#4c7fc9':'#e06a86');}
-  } else {
-    const d=hd.d; const c0=pr.torsoW===5?cx-1:(d>0?cx:cx-1), c1=pr.torsoW===5?cx+1:(d>0?cx+1:cx);
-    for(let r=0;r<tr;r++)HL(c0,c1,R(tt+r),shirt);
-    if(opt.shading)VL(d>0?c0:c1,R(tt+1),R(tt+tr-1),shirtD);
-    const front=(x)=>cx+d*x;
-    if(arms==='out'){HL(front(2),front(4),R(tt),shirt);P(front(5),R(tt),skin);HL(front(-2),front(-4),R(tt),shirt);P(front(-5),R(tt),skin);}
-    else if(arms==='up'){VL(front(2),R(2)+ldy,R(tt),shirt);P(front(2),R(1)+ldy,skin);}
-    else if(arms==='hold'||arms==='fwd'){HL(front(2),front(4),R(tt+1),shirt);P(front(5),R(tt+1),skin);}
-    else if(arms==='fwdback'){HL(front(-2),front(-3),R(tt+2),shirt);P(front(-3),R(tt+3),skin);}
-    else {VL(cx,R(tt+1),R(tt+tr-2),shirtD);P(cx,R(tt+tr-1),skin);}
-    if(opt.tint&&p.role){P(cx,R(tt+1),p.role==='L'?'#4c7fc9':'#e06a86');}
-  }
-  // ------------------------------------------------ head (drawn last, shifted by lean)
-  const hr=r=>R(r)+ldy; const X=x=>x+ldx; const HR=pr.headRows;
-  if(pr.neck)HL(X(cx),X(cx),hr(HR),skin);
-  if(view==='front'||view==='back'){
-    const faceHalf=(pr.faceW-1)/2;
-    if(view==='front'){
-      // face
-      for(let r=2;r<HR;r++)HL(X(cx-faceHalf),X(cx+faceHalf),hr(r),skin);
-      if(pr.faceW===5){HL(X(cx-1),X(cx+1),hr(2),skin);}  // fringe row shows centre only
-      // hair
-      const st=p.style;
-      if(st==='bald'){HL(X(cx-1),X(cx+1),hr(0),skin);HL(X(cx-2),X(cx+2),hr(1),skin);P(X(cx-2),hr(2),hair);P(X(cx+2),hr(2),hair);P(X(cx-2),hr(3),hair);P(X(cx+2),hr(3),hair);}
-      else if(st==='cap'){HL(X(cx-2),X(cx+2),hr(0),p.cap);HL(X(cx-2),X(cx+2),hr(1),p.cap);HL(X(cx-3),X(cx+3),hr(2),shade(p.cap,0.7));}
-      else {
-        HL(X(cx-2),X(cx+2),hr(0),hair);HL(X(cx-2),X(cx+2),hr(1),hair);P(X(cx-2),hr(2),hair);P(X(cx+2),hr(2),hair);
-        if(pr.faceW===3){P(X(cx-2),hr(3),hair);P(X(cx+2),hr(3),hair);}
-        if(st==='long'){VL(X(cx-3),hr(2),hr(HR+2),hair);VL(X(cx+3),hr(2),hr(HR+2),hair);}
-        if(st==='bob'){VL(X(cx-3),hr(1),hr(HR-1),hair);VL(X(cx+3),hr(1),hr(HR-1),hair);}
-        if(st==='curly'){P(X(cx-3),hr(1),hair);P(X(cx+3),hr(1),hair);P(X(cx-3),hr(2),hair);P(X(cx+3),hr(2),hair);HL(X(cx-1),X(cx+1),hr(0)-1,hair);}
-        if(st==='bun'){HL(X(cx-1),X(cx+1),hr(0)-1,hair);}
+  const skin=p.skin,hair=p.hair,shirt=p.shirt,shirtD=p.shirtDark,st=p.style,capD=shade(p.cap,0.7);
+  const L0=17+t;
+  // ---------------- legs
+  if(view!=='side'){
+    const rightIsLeft=view==='front';const fwd=step===1?(rightIsLeft?'L':'R'):step===2?(rightIsLeft?'R':'L'):null;
+    const LL=[cx-2,cx-1],LR=[cx+1,cx+2];
+    if(p.skirt){
+      const ws=twirl?[2,3,4,5,5]:[2,3,3,4,4];const n=sit?3:5;
+      for(let r=0;r<n;r++)HL(cx-ws[r],cx+ws[r],R(L0+r),r===n-1?p.skirtDark:p.skirt);
+      const ankle=R(L0+n),shoe=R(L0+n+1);
+      if(sit){HL(LL[0],LL[1],ankle,SHOE);HL(LR[0],LR[1],ankle,SHOE);}
+      else{
+        if(fwd!=='R'){P(cx-1,ankle,skin);}if(fwd!=='L'){P(cx+1,ankle,skin);}
+        if(fwd==='L'){HL(LL[0],LL[1],shoe,SHOE);HL(LR[0],LR[1],ankle,SHOE);}
+        else if(fwd==='R'){HL(LR[0],LR[1],shoe,SHOE);HL(LL[0],LL[1],ankle,SHOE);}
+        else{HL(LL[0],LL[1],shoe,SHOE);HL(LR[0],LR[1],shoe,SHOE);}
       }
-      if(hd.narrow===1){VL(X(cx+2),hr(2),hr(HR-1),st==='bald'?skin:hair);}
-      if(hd.narrow===-1){VL(X(cx-2),hr(2),hr(HR-1),st==='bald'?skin:hair);}
-      // eyes
-      hd.eyes.forEach(e=>{for(let r=0;r<pr.eyeRows;r++)P(X(cx+e),hr(3+r),DK);});
-    } else {
-      const st=p.style;
-      const fill=(r0,r1,c)=>{for(let r=r0;r<=r1;r++)HL(X(cx-2),X(cx+2),hr(r),c);};
-      if(st==='bald'){fill(0,HR-1,skin);HL(X(cx-2),X(cx+2),hr(HR-2),hair);HL(X(cx-2),X(cx+2),hr(HR-3),hair);}
-      else if(st==='cap'){fill(0,2,p.cap);fill(3,HR-2,hair);HL(X(cx-1),X(cx+1),hr(HR-1),skin);}
-      else if(st==='long'){fill(0,HR+3,hair);}
-      else if(st==='bob'){fill(0,HR,hair);}
-      else {fill(0,HR-2,hair);HL(X(cx-1),X(cx+1),hr(HR-1),skin);if(st==='curly'){P(X(cx-3),hr(1),hair);P(X(cx+3),hr(1),hair);}if(st==='bun'){HL(X(cx-1),X(cx+1),hr(0)-1,hair);}}
-      if(hd.cheek){for(let r=0;r<hd.rows;r++)P(X(cx+hd.cheek*2),hr(3+r),skin);}
+    }else{
+      const n=sit?3:6;
+      const leg=(c,lift)=>{const m=n-(lift?2:0);for(let r=0;r<m;r++)HL(c[0],c[1],R(L0+r),p.pants);HL(c[0],c[1],R(L0+m),SHOE);};
+      leg(LL,fwd==='R');leg(LR,fwd==='L');
     }
-  } else {
-    const d=hd.d; const st=p.style;
-    let cols, faceCols, hairCols;
-    if(pr.faceW===5){cols=d>0?[cx-1,cx,cx+1,cx+2]:[cx-2,cx-1,cx,cx+1];faceCols=d>0?[cx+1,cx+2]:[cx-2,cx-1];hairCols=d>0?[cx-1,cx]:[cx,cx+1];}
-    else {cols=[cx-1,cx,cx+1];faceCols=d>0?[cx,cx+1]:[cx-1,cx];hairCols=d>0?[cx-1]:[cx+1];}
-    if(hd.tq==='toward'){faceCols=cols.slice();hairCols=[d>0?cols[0]:cols[cols.length-1]];}
-    if(hd.tq==='away'){faceCols=[d>0?cols[cols.length-1]:cols[0]];hairCols=cols.filter(c=>c!==faceCols[0]);}
-    const frontCol=d>0?cols[cols.length-1]:cols[0]; const backCol=d>0?cols[0]:cols[cols.length-1];
+  }else{
+    const d=hd.d;
+    if(sit){HL(cx-1,cx+3*d,R(L0),p.skirt||p.pants);HL(cx-1,cx+3*d,R(L0+1),p.skirt||p.pants);VL(cx+3*d,R(L0+2),R(L0+5),p.pants||p.skinDark);HL(cx+3*d,cx+5*d,R(L0+6),SHOE);}
+    else if(p.skirt){
+      const ws=twirl?[1,2,3,4,4]:[1,2,2,3,3];for(let r=0;r<5;r++)HL(cx-ws[r],cx+ws[r],R(L0+r),r===4?p.skirtDark:p.skirt);
+      const ankle=R(L0+5),shoe=R(L0+6);
+      if(step===1){P(cx+d,ankle,skin);P(cx-d,ankle,skin);HL(cx+d,cx+2*d,shoe,SHOE);P(cx-d,shoe,SHOE);}
+      else{P(cx,ankle,skin);HL(cx-1,cx+d,shoe,SHOE);}
+    }else{
+      const shoe=R(L0+6);
+      if(step===1){VL(cx+d,R(L0),R(L0+5),p.pants);VL(cx+2*d,R(L0),R(L0+5),p.pants);HL(cx+d,cx+3*d,shoe,SHOE);VL(cx-d,R(L0),R(L0+4),p.pants);VL(cx-2*d,R(L0),R(L0+4),shade(p.pants,0.8));HL(cx-2*d,cx-d,R(L0+5),SHOE);}
+      else{VL(cx-1,R(L0),R(L0+5),shade(p.pants,0.8));VL(cx,R(L0),R(L0+5),p.pants);VL(cx+1,R(L0),R(L0+5),p.pants);HL(cx-1,cx+2*d,shoe,SHOE);}
+    }
+  }
+  // ---------------- torso (rows 10..16+t), shoulders row 10
+  if(view!=='side'){
+    for(let r=0;r<7+t;r++)HL(cx-2,cx+2,R(10+r),shirt);HL(cx-3,cx+3,R(10),shirt);
+    VL(cx+2,R(11),R(16+t),shirtD);HL(cx-2,cx+2,R(16+t),shirtD);
+    if(opt.tint&&p.role){HL(cx-3,cx-2,R(11),p.role==='L'?'#4c7fc9':'#e06a86');HL(cx+2,cx+3,R(11),p.role==='L'?'#4c7fc9':'#e06a86');}
+  }else{
+    const d=hd.d;for(let r=0;r<7+t;r++)HL(cx-1,cx+1,R(10+r),shirt);VL(cx-d,R(11),R(16+t),shirtD);HL(cx-1,cx+1,R(16+t),shirtD);
+    if(opt.tint&&p.role){HL(cx-1,cx+1,R(11),p.role==='L'?'#4c7fc9':'#e06a86');}
+  }
+  // ---------------- head (rows 0..9), shifted by lean
+  const hr=r=>R(r)+ldy;const X=x=>x+ldx;
+  HL(X(cx-1),X(cx+1),hr(9),skin);  // neck
+  if(view==='front'){
+    for(let r=3;r<=8;r++)HL(X(cx-2),X(cx+2),hr(r),skin);HL(X(cx-1),X(cx+1),hr(8),skin);P(X(cx-2),hr(8),hair==='x'?skin:p.skinDark);P(X(cx+2),hr(8),p.skinDark);
+    const fringe=()=>{P(X(cx-3),hr(3),hair);P(X(cx+3),hr(3),hair);P(X(cx-2),hr(3),hair);P(X(cx+2),hr(3),hair);VL(X(cx-3),hr(4),hr(5),hair);VL(X(cx+3),hr(4),hr(5),hair);};
+    if(st==='bald'){HL(X(cx-1),X(cx+1),hr(0),skin);HL(X(cx-2),X(cx+2),hr(1),skin);HL(X(cx-2),X(cx+2),hr(2),skin);VL(X(cx-3),hr(3),hr(5),hair);VL(X(cx+3),hr(3),hr(5),hair);}
+    else if(st==='cap'){HL(X(cx-2),X(cx+2),hr(0),p.cap);HL(X(cx-3),X(cx+3),hr(1),p.cap);HL(X(cx-3),X(cx+3),hr(2),p.cap);HL(X(cx-4),X(cx+4),hr(3),capD);VL(X(cx-3),hr(4),hr(5),hair);VL(X(cx+3),hr(4),hr(5),hair);}
+    else{HL(X(cx-2),X(cx+2),hr(0),hair);HL(X(cx-2),X(cx+2),hr(1),hair);HL(X(cx-3),X(cx+3),hr(2),hair);fringe();
+      if(st==='long'){VL(X(cx-3),hr(6),hr(13),hair);VL(X(cx+3),hr(6),hr(13),hair);}
+      if(st==='bob'){VL(X(cx-3),hr(6),hr(8),hair);VL(X(cx+3),hr(6),hr(8),hair);}
+      if(st==='curly'){VL(X(cx-4),hr(2),hr(4),hair);VL(X(cx+4),hr(2),hr(4),hair);HL(X(cx-3),X(cx+3),hr(0),hair);HL(X(cx-1),X(cx+1),hr(-1),hair);}
+      if(st==='bun'){HL(X(cx-1),X(cx+1),hr(-1),hair);}}
+    if(hd.narrow===1)VL(X(cx+2),hr(3),hr(8),st==='bald'?skin:hair);
+    if(hd.narrow===-1)VL(X(cx-2),hr(3),hr(8),st==='bald'?skin:hair);
+    hd.eyes.forEach(e=>P(X(cx+e),hr(5),DK));
+    P(X(cx+(hd.eyes[0]+hd.eyes[1])/2),hr(7),p.skinDark);
+  }else if(view==='back'){
+    const fill=(r0,r1,w,c)=>{for(let r=r0;r<=r1;r++)HL(X(cx-w),X(cx+w),hr(r),c);};
+    if(st==='bald'){fill(0,0,1,skin);fill(1,7,2,skin);fill(2,7,3,skin);fill(4,7,3,hair);HL(X(cx-2),X(cx+2),hr(8),hair);}
+    else if(st==='cap'){fill(0,0,2,p.cap);fill(1,3,3,p.cap);fill(4,7,3,hair);fill(8,8,2,hair);}
+    else{fill(0,1,2,hair);fill(2,7,3,hair);fill(8,8,2,hair);
+      if(st==='long')fill(8,14,3,hair);if(st==='bob')fill(8,9,3,hair);if(st==='curly'){fill(0,0,3,hair);fill(-1,-1,1,hair);VL(X(cx-4),hr(2),hr(4),hair);VL(X(cx+4),hr(2),hr(4),hair);}if(st==='bun')fill(-1,-1,1,hair);}
+    if(hd.cheek){for(let r=0;r<hd.rows;r++)P(X(cx+hd.cheek*3),hr(4+r),skin);}
+  }else{
+    const d=hd.d;const cols=[cx-2,cx-1,cx,cx+1,cx+2];
+    let face=d>0?[cx,cx+1,cx+2]:[cx-2,cx-1,cx],hairC=d>0?[cx-2,cx-1]:[cx+1,cx+2];
+    if(hd.tq==='toward'){face=d>0?[cx-1,cx,cx+1,cx+2]:[cx-2,cx-1,cx,cx+1];hairC=[d>0?cx-2:cx+2];}
+    if(hd.tq==='away'){face=d>0?[cx+1,cx+2]:[cx-2,cx-1];hairC=cols.filter(c=>!face.includes(c));}
+    const frontCol=d>0?cx+2:cx-2,backCol=d>0?cx-2:cx+2;
     const topC=st==='bald'?skin:st==='cap'?p.cap:hair;
-    for(let r=0;r<2;r++)HL(cols[0],cols[cols.length-1],hr(r),topC);
-    for(let r=2;r<HR;r++){faceCols.forEach(c=>P(X(c),hr(r),skin));hairCols.forEach(c=>P(X(c),hr(r),st==='bald'?skin:hair));}
-    if(st==='cap'){P(X(frontCol+d),hr(1),shade(p.cap,0.7));P(X(frontCol+d),hr(2),shade(p.cap,0.7));}
-    if(st==='long'){VL(X(backCol),hr(2),hr(HR+3),hair);VL(X(backCol-d),hr(HR),hr(HR+2),hair);}
-    if(st==='bob'){VL(X(backCol),hr(2),hr(HR),hair);}
-    if(st==='curly'){P(X(backCol-d),hr(1),hair);P(X(backCol-d),hr(2),hair);}
-    if(st==='bun'){P(X(backCol-d),hr(1),hair);P(X(backCol-d),hr(2),hair);}
-    if(st==='bald'){hairCols.forEach(c=>{P(X(c),hr(3),hair);P(X(c),hr(4),hair);});}
-    // eye(s)
-    P(X(frontCol),hr(3),DK); if(hd.tq==='toward')P(X(frontCol-2*d),hr(3),DK);
+    HL(X(cx-1),X(cx+1),hr(0),topC);HL(X(cx-2),X(cx+2),hr(1),topC);HL(X(cx-2),X(cx+2),hr(2),topC);
+    for(let r=3;r<=8;r++){face.forEach(c=>P(X(c),hr(r),skin));hairC.forEach(c=>P(X(c),hr(r),st==='bald'?skin:hair));}
+    HL(X(cx-1),X(cx+1),hr(8),skin);P(X(frontCol),hr(8),p.skinDark);
+    if(st==='cap'){P(X(frontCol+d),hr(2),capD);P(X(frontCol+d),hr(3),capD);P(X(frontCol),hr(3),capD);}
+    if(st==='bald'){hairC.forEach(c=>{VL(X(c),hr(3),hr(6),hair);});for(let r=3;r<=8;r++)hairC.forEach(c=>{if(r>6)P(X(c),hr(r),skin);});}
+    if(st==='long'){VL(X(backCol),hr(3),hr(13),hair);VL(X(backCol-d),hr(9),hr(12),hair);}
+    if(st==='bob'){VL(X(backCol),hr(3),hr(9),hair);}
+    if(st==='curly'){VL(X(backCol-d),hr(1),hr(3),hair);HL(X(cx-1),X(cx+1),hr(-1),hair);}
+    if(st==='bun'){VL(X(backCol-d),hr(1),hr(2),hair);}
+    if(hd.tq==='toward'){P(X(cx+d),hr(5),DK);P(X(cx-d),hr(5),DK);}else{P(X(cx+d),hr(5),DK);}
+    P(X(frontCol),hr(7),p.skinDark);
   }
 }
-
-// paints an overhead person into g (16x16), centre (8,8). angle in degrees, quantised to 16.
-function paintOver(g,p,k,pose,opt){
-  const a=(90+k*22.5)*Math.PI/180; const dx=Math.cos(a),dy=Math.sin(a),pxv=-dy,pyv=dx;
-  const at=(u,v)=>[Math.round(8+dx*u+pxv*v),Math.round(8+dy*u+pyv*v)];
+// ---- overhead body sprite (no arms). canvas 20x20 centre (10,10). k = angle step of 32
+function paintOverBody(g,p,k,pose,opt){
+  const a=(90+k*11.25)*Math.PI/180;const dx=Math.cos(a),dy=Math.sin(a),pxv=-dy,pyv=dx;
+  const at=(u,v)=>[Math.round(10+dx*u+pxv*v),Math.round(10+dy*u+pyv*v)];
   const P=(uv,c)=>{g.fillStyle=c;g.fillRect(uv[0],uv[1],1,1);};
-  const arms=pose.arms||'down', side=pose.side||0, lean=pose.lean||0, step=pose.step||0;
-  const lu=lean*1.5;
-  // feet
-  if(step===1){P(at(2,1.5),SHOE);P(at(-1,-1.5),SHOE);} else if(step===2){P(at(-1,1.5),SHOE);P(at(2,-1.5),SHOE);} else {P(at(0,1.5),SHOE);P(at(0,-1.5),SHOE);}
-  // shoulders + arms
-  const sh=(u,v,c)=>{P(at(u,v),c);P(at(u-1,v),c);};
-  for(let v=-3;v<=3;v++)sh(0,v,p.shirt);
-  if(opt.tint&&p.role){P(at(0,-3),p.role==='L'?'#4c7fc9':'#e06a86');P(at(0,3),p.role==='L'?'#4c7fc9':'#e06a86');}
-  const armOut=(s)=>{for(let v=4;v<=6;v++)P(at(0,s*v),p.shirt);P(at(0,s*7),p.skin);};
-  if(arms==='out'){armOut(-1);armOut(1);}
-  else if(arms==='up'){P(at(1+lu,-2),p.skin);P(at(1+lu,2),p.skin);}
-  else if(arms==='hold'){if(side===0){[-1,1].forEach(s=>{P(at(1,s*3),p.shirt);P(at(2,s*3),p.skin);});}else{armOut(side);P(at(0,-side*4),p.skin);}}
-  else if(arms==='fwd'){[-1,1].forEach(s=>{for(let u=1;u<=3;u++)P(at(u,s*2),p.shirt);P(at(4,s*2),p.skin);});}
-  else if(arms==='fwdback'){[-1,1].forEach(s=>{P(at(-1,s*4),p.shirt);P(at(-2,s*4),p.skin);});}
-  else {P(at(0,-4),p.skin);P(at(0,4),p.skin);}
-  // head
+  const lean=pose.lean||0,step=pose.step||0;const lu=lean*2;
+  if(step===1){P(at(3,2),SHOE);P(at(2,2),SHOE);P(at(-2,-2),SHOE);P(at(-1,-2),SHOE);}else if(step===2){P(at(-2,2),SHOE);P(at(-1,2),SHOE);P(at(3,-2),SHOE);P(at(2,-2),SHOE);}else{P(at(0,2),SHOE);P(at(1,2),SHOE);P(at(0,-2),SHOE);P(at(1,-2),SHOE);}
+  for(let v=-4;v<=4;v++){P(at(0,v),p.shirt);P(at(-1,v),p.shirt);}
+  for(let v=-3;v<=3;v++){P(at(1,v),p.shirt);P(at(-2,v),p.shirtDark);}
+  if(opt.tint&&p.role){[-4,4].forEach(v=>{P(at(0,v),p.role==='L'?'#4c7fc9':'#e06a86');P(at(-1,v),p.role==='L'?'#4c7fc9':'#e06a86');});}
   const hc=p.style==='bald'?p.skin:p.style==='cap'?p.cap:p.hair;
-  for(let u=-2;u<=2;u++)for(let v=-2;v<=2;v++){if(Math.abs(u)+Math.abs(v)<=3)P(at(u+lu,v),hc);}
-  if(p.style==='long'){for(let u=-4;u<=-3;u++)for(let v=-1;v<=1;v++)P(at(u+lu,v),p.hair);}
-  if(p.style==='bald'){for(let v=-2;v<=2;v++)P(at(-2+lu,v),p.hair);}
-  if(p.style==='cap'){for(let v=-2;v<=2;v++)P(at(3+lu,v),shade(p.cap,0.7));}
-  // face crescent
-  for(let v=-1;v<=1;v++)P(at(2+lu,v),p.skin); P(at(3+lu,0),p.skin);
+  for(let u=-3;u<=3;u++)for(let v=-3;v<=3;v++){if(Math.abs(u)+Math.abs(v)<=4)P(at(u+lu,v),hc);}
+  if(p.style==='long'){for(let u=-6;u<=-4;u++)for(let v=-2;v<=2;v++)if(Math.abs(v)+(-4-u)<=3)P(at(u+lu,v),p.hair);}
+  if(p.style==='bob'){for(let v=-3;v<=3;v++)P(at(-4+lu,v),p.hair);}
+  if(p.style==='bald'){for(let v=-3;v<=3;v++){P(at(-3+lu,v),p.hair);if(Math.abs(v)>=2)P(at(-2+lu,v),p.hair);}}
+  if(p.style==='cap'){for(let v=-3;v<=3;v++)P(at(4+lu,v),shade(p.cap,0.7));}
+  for(let v=-1;v<=1;v++)P(at(3+lu,v),p.skin);P(at(4+lu,0),p.skin);P(at(2+lu,-2),p.skin);P(at(2+lu,2),p.skin);
 }
-
-// outline pass on a sprite canvas
 function outlinePass(cv){
-  const g=cv.getContext('2d'); const w=cv.width,h=cv.height; const id=g.getImageData(0,0,w,h); const d=id.data; const out=new Uint8Array(w*h);
+  const g=cv.getContext('2d');const w=cv.width,h=cv.height;const id=g.getImageData(0,0,w,h);const d=id.data;const out=new Uint8Array(w*h);
   const op=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&d[(y*w+x)*4+3]>0;
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(!op(x,y)&&(op(x-1,y)||op(x+1,y)||op(x,y-1)||op(x,y+1)))out[y*w+x]=1;}
   for(let i=0;i<w*h;i++)if(out[i]){d[i*4]=0x1b;d[i*4+1]=0x14;d[i*4+2]=0x10;d[i*4+3]=255;}
   g.putImageData(id,0,0);
 }
-
 const spriteCache=new Map();
-function sprite(kind,p,k,pose,proto,opt){
-  const key=kind+'|'+p.id+'|'+k+'|'+(pose.arms||'')+'|'+(pose.side||0)+'|'+(pose.lean||0)+'|'+(pose.step||0)+'|'+(pose.sit?1:0)+'|'+proto+'|'+opt.outline+opt.shading+opt.tint+'|'+(p.role||'');
-  let cv=spriteCache.get(key); if(cv)return cv;
-  cv=document.createElement('canvas'); cv.width=kind==='over'?16:18; cv.height=kind==='over'?16:18;
-  const g=cv.getContext('2d');
-  if(kind==='over')paintOver(g,p,k,pose,opt); else paintFront(g,p,k,pose,proto,opt);
-  if(opt.outline)outlinePass(cv);
-  spriteCache.set(key,cv); return cv;
+function bodySprite(kind,p,k,pose,opt){
+  const key=kind+'|'+p.id+'|'+k+'|'+(pose.lean||0)+'|'+(pose.step||0)+'|'+(pose.sit?1:0)+'|'+(pose.twirl?1:0)+'|'+opt.outline+opt.tint+'|'+(p.role||'');
+  let cv=spriteCache.get(key);if(cv)return cv;
+  cv=document.createElement('canvas');if(kind==='over'){cv.width=20;cv.height=20;}else{cv.width=SPR.W;cv.height=SPR.H;}
+  const g=cv.getContext('2d');if(kind==='over')paintOverBody(g,p,k,pose,opt);else paintBody(g,p,k,pose,opt);
+  if(opt.outline)outlinePass(cv);spriteCache.set(key,cv);return cv;
 }
-// blit a person at whole pixel (x,y) = floor position
-function blitPerson(ctx,kind,p,facingDeg,pose,proto,opt,x,y,bob){
-  if(kind==='over'){const k=facingIndex(facingDeg,16);ctx.drawImage(sprite('over',p,k,pose,proto,opt),x-8,y-8);}
-  else {const k=facingIndex(facingDeg,opt.facings);const cv=sprite('front',p,k,pose,proto,opt);ctx.drawImage(cv,x-PROTO[proto].cx,y-PROTO[proto].base+(bob||0));}
+
+// ---- arms: two-segment lines from shoulder to hand point
+function drawArm(ctx,sx,sy,hx,hy,col,skin,bend,L,outline){
+  sx=Math.round(sx);sy=Math.round(sy);hx=Math.round(hx);hy=Math.round(hy);if(![sx,sy,hx,hy].every(Number.isFinite))return;
+  const dx=hx-sx,dy=hy-sy;const dist=Math.hypot(dx,dy);let ex=(sx+hx)/2,ey=(sy+hy)/2;
+  if(dist<L&&dist>0.5){const b=Math.sqrt(L*L-dist*dist)/2;ex+=bend[0]*b;ey+=bend[1]*b;}
+  ex=Math.round(ex);ey=Math.round(ey);
+  const pts=[];bres(sx,sy,ex,ey,(x,y)=>pts.push([x,y]));bres(ex,ey,hx,hy,(x,y)=>pts.push([x,y]));
+  if(outline){ctx.fillStyle=DK;pts.forEach(([x,y])=>{ctx.fillRect(x-1,y,3,1);ctx.fillRect(x,y-1,1,3);});ctx.fillRect(hx-2,hy-2,4,4);}
+  ctx.fillStyle=col;pts.forEach(([x,y])=>ctx.fillRect(x,y,1,1));
+  ctx.fillStyle=skin;ctx.fillRect(hx-1,hy-1,2,2);
+}
+// hand spec: [wx,wy,h] world floor px + hand height | 'down' | 'up' | 'hip' | {scr:[dx,dy]}
+function drawPersonFront(ctx,p,a,pose,hands,x,y,bob,opt){
+  const k=facingIndex(a,opt.facings);const cv=bodySprite('front',p,k,pose,opt);ctx.drawImage(cv,x-SPR.cx,y-SPR.base+bob);
+  const left=leftOf(a);const d=dirOf(a);const shY=y-14-(p.tall||0)+bob;
+  const sh={L:[Math.round(x+left[0]*3),Math.round(shY+left[1]*1.5)],R:[Math.round(x-left[0]*3),Math.round(shY-left[1]*1.5)]};
+  ['L','R'].forEach(w=>{const S=sh[w];const spec=hands?hands[w]:'down';let out=w==='L'?Math.sign(left[0]):-Math.sign(left[0]);if(out===0)out=Math.sign(d[0])||(w==='L'?1:-1);
+    let H;if(Array.isArray(spec))H=[px(spec[0]),px(spec[1])-spec[2]];
+    else if(spec&&spec.scr)H=[x+spec.scr[0],y+spec.scr[1]+bob];
+    else if(spec==='up')H=[S[0]+out*2,y-27+bob];
+    else if(spec==='hip')H=[S[0]+out*1,y-11+bob];
+    else H=[S[0]+out*1,y-5+bob];
+    const bl=Math.hypot(out*0.35,1);drawArm(ctx,S[0],S[1],H[0],H[1],p.shirt,p.skin,[out*0.35/bl,1/bl],13,opt.outline);});
+}
+function drawPersonOver(ctx,p,a,pose,hands,x,y,opt){
+  const k=((Math.round((a-90)/11.25)%32)+32)%32;const cv=bodySprite('over',p,k,pose,opt);ctx.drawImage(cv,x-10,y-10);
+  const left=leftOf(a),d=dirOf(a);const lean=pose.lean||0;
+  const sh={L:[Math.round(x+left[0]*4),Math.round(y+left[1]*4)],R:[Math.round(x-left[0]*4),Math.round(y-left[1]*4)]};
+  ['L','R'].forEach(w=>{const S=sh[w];const s=w==='L'?1:-1;const spec=hands?hands[w]:'down';let H;
+    if(Array.isArray(spec))H=[px(spec[0]),px(spec[1])];
+    else if(spec&&spec.scr)H=[Math.round(x+d[0]*(-spec.scr[1]-12)*0.5+left[0]*spec.scr[0]*s*0+ spec.scr[0]*left[0]*0),Math.round(y+d[1]*(-spec.scr[1]-12)*0.5)];
+    else if(spec==='up')H=[Math.round(x+d[0]*2+left[0]*s*3+lean*d[0]),Math.round(y+d[1]*2+left[1]*s*3+lean*d[1])];
+    else if(spec==='hip')H=[Math.round(x+d[0]*1+left[0]*s*4),Math.round(y+d[1]*1+left[1]*s*4)];
+    else H=[Math.round(x-d[0]*1.5+left[0]*s*5),Math.round(y-d[1]*1.5+left[1]*s*5)];
+    if(spec&&spec.scr){H=[Math.round(x+d[0]*3+left[0]*s*3),Math.round(y+d[1]*3+left[1]*s*3)];}
+    drawArm(ctx,S[0],S[1],H[0],H[1],p.shirt,p.skin,[left[0]*s,left[1]*s],9,opt.outline);});
 }
 
 // ============================================================ choreography (one duple improper dance, 64 beats, verified to close)
@@ -401,48 +370,58 @@ const DT=0.125;
 const ROLES=['1L','1R','2L','2R'];
 const FAMILY_COLOR={balance:'#b9b0a3',swing:'#efa0a8',lines:'#9bb5dd',allemande:'#f4c56b',circle:'#8fd19e',twirl:'#c4a4e9'};
 function pairOf(r,pairs){for(const [a,b] of pairs){if(a===r)return b;if(b===r)return a;}return null;}
-function isRobin(r){return r.endsWith('R');}
-function figBalance(pairs,name,fam){return {name,family:fam||'balance',beats:4,fn:(r,t,s)=>{
-  const o=pairOf(r,pairs);const [x,y]=s[r],[ox,oy]=s[o];const L=Math.hypot(ox-x,oy-y);const ux=(ox-x)/L,uy=(oy-y)/L;
-  let k,lean;if(t<2){k=smooth(t/0.5);lean=1;}else{k=1-smooth((t-2)/0.5);lean=-1;}if(t>=4){k=0;lean=0;}
-  const amt=0.28*k;return {x:x+ux*amt,y:y+uy*amt,a:ang(ux,uy),arms:t<2?'fwdback':'fwd',lean,step:1,tx:ox,ty:oy,bob:(t%2>0.2&&t%2<0.7)?-1:0};
-}};}
-function figSwing(pairs,name,beats){return {name,family:'swing',beats:beats||12,fn:(r,t,s)=>{
-  const o=pairOf(r,pairs);const cx=(s[r][0]+s[o][0])/2,cy=(s[r][1]+s[o][1])/2;const a0=ang(s[r][0]-cx,s[r][1]-cy),r0=Math.hypot(s[r][0]-cx,s[r][1]-cy);
-  const dxF=-Math.sign(cx)||1;const rx=0,ry=dxF;const tg=isRobin(r)?[cx+0.5*rx,cy+0.5*ry]:[cx-0.5*rx,cy-0.5*ry];
-  const at=ang(tg[0]-cx,tg[1]-cy);const delta=((at-a0)%360+360)%360+720;const B=beats||12;
-  const a=a0+delta*t/B;const rad=lerp(r0,0.5,smooth(t/1.5));const [x,y]=polar(cx,cy,a,rad);
-  return {x,y,a:ang(cx-x,cy-y),arms:'hold',lean:-1,step:'walk',spb:2,tx:cx,ty:cy};
-}};}
-function figLines(name){return {name,family:'lines',beats:8,fn:(r,t,s)=>{
-  const [x,y]=s[r];const dx=-Math.sign(x);const amt=t<3?t/3:t<4?1:t<7?(7-t)/3:0;const moving=(t<3)||(t>4&&t<7);
-  return {x:x+dx*0.5*amt,y,a:ang(dx,0),arms:'out',lean:0,step:moving?'walk':0};
-}};}
-function figAllemande(roles,name,deg,rad2){return {name,family:'allemande',beats:8,fn:(r,t,s)=>{
-  if(!roles.includes(r)){const [x,y]=s[r];return {x,y,a:ang(-Math.sign(x),0),arms:'down',lean:0,step:0};}
-  const a0=ang(s[r][0],s[r][1]),r0=Math.hypot(s[r][0],s[r][1]);
-  const posAt=(tt)=>{const a=a0+deg*tt/8;let rad=rad2;if(tt<1.5)rad=lerp(r0,rad2,smooth(tt/1.5));else if(tt>6.5)rad=lerp(rad2,r0,smooth((tt-6.5)/1.5));return polar(0,0,a,rad);};
-  const [x,y]=posAt(t);const [x2,y2]=posAt(Math.min(t+0.05,8));
-  return {x,y,a:ang(x2-x,y2-y),arms:'hold',lean:0,step:'walk',tx:0,ty:0};
-}};}
-function figCircle(name,deg){return {name,family:'circle',beats:8,fn:(r,t,s)=>{
-  const a0=ang(s[r][0],s[r][1]);const snapped=Math.round((a0-45)/90)*90+45;const a=snapped+deg*t/8;
-  const [px2,py2]=polar(0,0,a,Math.SQRT2);const k=smooth(t/1.5);const x=lerp(s[r][0],px2,k),y=lerp(s[r][1],py2,k);
-  return {x,y,a:ang(-x,-y),arms:'out',lean:0,step:'walk'};
-}};}
-function figBalanceRing(name){return {name,family:'balance',beats:4,fn:(r,t,s)=>{
-  const [x,y]=s[r];const L=Math.hypot(x,y);const ux=-x/L,uy=-y/L;let k,lean;if(t<2){k=smooth(t/0.5);lean=1;}else{k=1-smooth((t-2)/0.5);lean=-1;}if(t>=4){k=0;lean=0;}
-  const amt=0.3*k;return {x:x+ux*amt,y:y+uy*amt,a:ang(ux,uy),arms:'out',lean,step:1,bob:(t%2>0.2&&t%2<0.7)?-1:0};
-}};}
-function figTwirl(pairs,name){return {name,family:'twirl',beats:4,fn:(r,t,s)=>{
-  const o=pairOf(r,pairs);const cx=(s[r][0]+s[o][0])/2,cy=(s[r][1]+s[o][1])/2;const a0=ang(s[r][0]-cx,s[r][1]-cy),r0=Math.hypot(s[r][0]-cx,s[r][1]-cy);
-  const posAt=(tt)=>polar(cx,cy,a0-180*tt/4,r0);const [x,y]=posAt(t);const [x2,y2]=posAt(Math.min(t+0.05,4));
-  const finalA=ang(cx,cy);  // away from the set centre
-  const robin=isRobin(r);
-  let a;if(t>=3.5)a=finalA;else if(robin){a=ang(-cx,-cy)-360*t/4;}else a=ang(x2-x,y2-y);
-  const oo=posAt(t);const op=polar(cx,cy,ang(s[o][0]-cx,s[o][1]-cy)-180*t/4,r0);
-  return {x,y,a,arms:robin?'up':'hold',lean:0,step:'walk',tx:op[0],ty:op[1]};
-}};}
+const isRobin=r=>r.endsWith('R');
+const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+const add=(a,v,k)=>[a[0]+v[0]*k,a[1]+v[1]*k];
+// ring hands: joined with angular neighbours around c; left hand to the neighbour on my left
+function ringHands(me,a,others,c,h){const left=leftOf(a);let L=null,R=null,bestL=1e9,bestR=1e9;
+  others.forEach(o=>{const v=[o[0]-me[0],o[1]-me[1]];const dist=Math.hypot(v[0],v[1]);const dot=v[0]*left[0]+v[1]*left[1];
+    if(dot>0&&dist<bestL){bestL=dist;L=o;}if(dot<0&&dist<bestR){bestR=dist;R=o;}});
+  return {L:L?[...mid(me,L),h]:'down',R:R?[...mid(me,R),h]:'down'};}
+function figBalance(pairs,name){
+  const pos=(r,t,s)=>{const o=pairOf(r,pairs);const [x,y]=s[r],[ox,oy]=s[o];const Ld=Math.hypot(ox-x,oy-y);const ux=(ox-x)/Ld,uy=(oy-y)/Ld;let k;if(t<2)k=smooth(t/0.5);else k=1-smooth((t-2)/0.5);if(t>=4)k=0;return [x+ux*0.28*k,y+uy*0.28*k];};
+  return {name,family:'balance',beats:4,fn:(r,t,s)=>{const o=pairOf(r,pairs);const me=pos(r,t,s),ot=pos(o,t,s);const a=ang(ot[0]-me[0],ot[1]-me[1]);const left=leftOf(a);const m=mid(me,ot);const lean=t<2?1:t<4?-1:0;
+    return {x:me[0],y:me[1],a,lean,step:1,bob:(t%2>0.2&&t%2<0.7)?-2:0,hands:{L:[...add(m,left,0.18),11],R:[...add(m,left,-0.18),11]}};}};
+}
+function figSwing(pairs,name,beats){const B=beats||12;
+  const geo=(r,s)=>{const o=pairOf(r,pairs);const c=mid(s[r],s[o]);const a0=ang(s[r][0]-c[0],s[r][1]-c[1]),r0=Math.hypot(s[r][0]-c[0],s[r][1]-c[1]);const dxF=-Math.sign(c[0])||1;const tg=isRobin(r)?[c[0],c[1]+0.5*dxF]:[c[0],c[1]-0.5*dxF];const at=ang(tg[0]-c[0],tg[1]-c[1]);const delta=((at-a0)%360+360)%360+720;return {c,a0,r0,delta};};
+  const pos=(r,t,s)=>{const g=geo(r,s);const a=g.a0+g.delta*t/B;const rad=lerp(g.r0,0.5,smooth(t/1.5));return polar(g.c[0],g.c[1],a,rad);};
+  return {name,family:'swing',beats:B,fn:(r,t,s)=>{const o=pairOf(r,pairs);const me=pos(r,t,s),ot=pos(o,t,s);const c=geo(r,s).c;const a=ang(c[0]-me[0],c[1]-me[1]);
+    const lark=isRobin(r)?ot:me,robin=isRobin(r)?me:ot;const larkA=ang(c[0]-lark[0],c[1]-lark[1]);const ll=leftOf(larkA);const joined=[...add(c,ll,0.5),13];
+    const hands=isRobin(r)?{L:[...add(lark,ll,-0.25),13],R:joined}:{L:joined,R:[...add(robin,ll,-0.25),13]};
+    return {x:me[0],y:me[1],a,lean:-1,step:'walk',spb:2,hands};}};
+}
+function figLines(name){
+  const pos=(r,t,s)=>{const [x,y]=s[r];const dx=-Math.sign(x);const amt=t<3?t/3:t<4?1:t<7?(7-t)/3:0;return [x+dx*0.5*amt,y];};
+  return {name,family:'lines',beats:8,fn:(r,t,s)=>{const me=pos(r,t,s);const a=ang(-Math.sign(s[r][0]),0);const left=leftOf(a);const moving=(t<3)||(t>4&&t<7);
+    const mates=ROLES.filter(o=>o!==r&&Math.sign(s[o][0])===Math.sign(s[r][0])).map(o=>pos(o,t,s));const cands=[];mates.forEach(m=>{cands.push(m);cands.push([m[0],m[1]+4]);cands.push([m[0],m[1]-4]);});
+    const h=ringHands(me,a,cands,null,10);
+    return {x:me[0],y:me[1],a,lean:0,step:moving?'walk':0,hands:h};}};
+}
+function figAllemande(roles,name,deg,rad2){
+  const pos=(r,t,s)=>{if(!roles.includes(r))return s[r].slice();const a0=ang(s[r][0],s[r][1]),r0=Math.hypot(s[r][0],s[r][1]);const a=a0+deg*t/8;let rad=rad2;if(t<1.5)rad=lerp(r0,rad2,smooth(t/1.5));else if(t>6.5)rad=lerp(rad2,r0,smooth((t-6.5)/1.5));return polar(0,0,a,rad);};
+  return {name,family:'allemande',beats:8,fn:(r,t,s)=>{const me=pos(r,t,s);
+    if(!roles.includes(r))return {x:me[0],y:me[1],a:ang(-Math.sign(me[0]),0),lean:0,step:0,hands:{L:'hip',R:'hip'}};
+    const nx=pos(r,Math.min(t+0.05,8),s);const a=ang(nx[0]-me[0],nx[1]-me[1]);
+    return {x:me[0],y:me[1],a,lean:0,step:'walk',hands:{L:[0,0,13],R:'down'}};}};
+}
+function figCircle(name,deg){
+  const pos=(r,t,s)=>{const a0=ang(s[r][0],s[r][1]);const sn=Math.round((a0-45)/90)*90+45;const a=sn+deg*t/8;const [qx,qy]=polar(0,0,a,Math.SQRT2);const k=smooth(t/1.5);return [lerp(s[r][0],qx,k),lerp(s[r][1],qy,k)];};
+  return {name,family:'circle',beats:8,fn:(r,t,s)=>{const me=pos(r,t,s);const a=ang(-me[0],-me[1]);const others=ROLES.filter(o=>o!==r).map(o=>pos(o,t,s));
+    return {x:me[0],y:me[1],a,lean:0,step:'walk',hands:ringHands(me,a,others,[0,0],10)};}};
+}
+function figBalanceRing(name){
+  const pos=(r,t,s)=>{const [x,y]=s[r];const Ld=Math.hypot(x,y);const ux=-x/Ld,uy=-y/Ld;let k;if(t<2)k=smooth(t/0.5);else k=1-smooth((t-2)/0.5);if(t>=4)k=0;return [x+ux*0.3*k,y+uy*0.3*k];};
+  return {name,family:'balance',beats:4,fn:(r,t,s)=>{const me=pos(r,t,s);const a=ang(-me[0],-me[1]);const lean=t<2?1:t<4?-1:0;const others=ROLES.filter(o=>o!==r).map(o=>pos(o,t,s));
+    return {x:me[0],y:me[1],a,lean,step:1,bob:(t%2>0.2&&t%2<0.7)?-2:0,hands:ringHands(me,a,others,[0,0],10)};}};
+}
+function figTwirl(pairs,name){
+  const pos=(r,t,s)=>{const o=pairOf(r,pairs);const c=mid(s[r],s[o]);const a0=ang(s[r][0]-c[0],s[r][1]-c[1]),r0=Math.hypot(s[r][0]-c[0],s[r][1]-c[1]);return polar(c[0],c[1],a0-180*t/4,r0);};
+  return {name,family:'twirl',beats:4,fn:(r,t,s)=>{const o=pairOf(r,pairs);const me=pos(r,t,s),ot=pos(o,t,s);const c=mid(s[r],s[o]);const finalA=ang(c[0],c[1]);const robin=isRobin(r);
+    let a;if(t>=3.5)a=finalA;else if(robin)a=ang(-c[0],-c[1])-360*t/4;else{const nx=pos(r,Math.min(t+0.05,4),s);a=ang(nx[0]-me[0],nx[1]-me[1]);}
+    const m=mid(me,ot);const h=t<3?22:11;const joined=[m[0],m[1],h];const hands=t>=3.6?{L:'down',R:'down'}:(robin?{L:'down',R:joined}:{L:joined,R:'down'});
+    return {x:me[0],y:me[1],a,lean:0,step:'walk',twirl:robin&&t<3.5,hands};}};
+}
 function buildChoreo(){
   const P={'1L':[1,-1],'1R':[-1,-1],'2L':[-1,1],'2R':[1,1]};
   const N=[['1L','2R'],['1R','2L']],PP=[['1L','1R'],['2L','2R']];
@@ -460,10 +439,22 @@ function buildChoreo(){
 const CH=buildChoreo();
 document.getElementById('closure').textContent='Closure check: after 64 beats the ones stand where the next set\'s ones start and the twos where the previous set\'s twos start; max error '+CH.closeErr.toFixed(4)+' units ('+(CH.closeErr<0.01?'closes':'DOES NOT CLOSE')+'). Sequence: '+CH.figures.map(f=>f.name+' ('+f.beats+')').join(' · ');
 function figureAt(t){for(let i=CH.figures.length-1;i>=0;i--)if(t>=CH.figures[i].start)return CH.figures[i];return CH.figures[0];}
+// sampled frame with seam easing: hands and facing ease across figure boundaries over SEAM beats
+const SEAM=0.75;
+function sampleRole(role,b,seam){
+  const t=((b%64)+64)%64;const F=CH.frames[role];const n=F.length;const fi=t/DT;const i0=Math.floor(fi)%n,i1=(i0+1)%n;const k=fi%1;const f=F[i0],nf=F[i1];
+  const same=f.fig===nf.fig;const x=lerp(f.x,same?nf.x:f.x,k),y=lerp(f.y,same?nf.y:f.y,k);
+  let a=f.a,hands=f.hands;
+  if(seam){const fig=CH.figures[f.fig];const into=t-fig.start;const prevEnd=(fig.start-DT+64)%64;const pf=F[Math.floor(prevEnd/DT)%n];
+    if(into<SEAM&&pf.fig!==f.fig){const w=smooth(into/SEAM);hands={L:blendHand(pf.hands.L,f.hands.L,w),R:blendHand(pf.hands.R,f.hands.R,w)};}
+    const nextFig=CH.figures[(f.fig+1)%CH.figures.length];const toEnd=fig.start+fig.beats-t;
+    if(toEnd<0.5&&!f.mv){const nfr=F[Math.floor(((fig.start+fig.beats)%64)/DT)%n];let da=((nfr.a-f.a)%360+360)%360;if(da>180)da-=360;a=f.a+da*smooth(1-toEnd/0.5);}}
+  return {x,y,a,f,hands};
+}
+function blendHand(h0,h1,w){if(Array.isArray(h0)&&Array.isArray(h1))return [lerp(h0[0],h1[0],w),lerp(h0[1],h1[1],w),lerp(h0[2],h1[2],w)];return w<0.5?h0:h1;}
 
 // ============================================================ options and clock
-const OPT={scale:2,proto:'tall',walls:'ff6',view:'front',facings:8,traces:'worn',hall:'grange',outline:1,tint:0,shadow:1,shading:1};
-new URLSearchParams(location.search).forEach((v,k)=>{if(k in OPT)OPT[k]=isNaN(+v)?v:+v;});
+const OPT={lines:2,scale:0,view:'front',walls:'lttp',facings:8,traces:'trail',hall:'grange',outline:1,tint:0,shadow:1,seam:1};
 const clock={mode:'perf',bpm:112,ref:performance.now()/1000,refBeat:0,paused:false,pausedBeat:0,
   now(){return this.mode==='audio'?audio.ctx.currentTime:performance.now()/1000;},
   beat(){if(this.paused)return this.pausedBeat;return this.refBeat+(this.now()-this.ref)*this.bpm/60;},
@@ -473,188 +464,146 @@ const clock={mode:'perf',bpm:112,ref:performance.now()/1000,refBeat:0,paused:fal
   resume(){if(!this.paused)return;this.paused=false;this.ref=this.now();this.refBeat=this.pausedBeat;}
 };
 
-// ============================================================ hall model
-const AX=8, AY=8; // px per unit across / along
+// ============================================================ hall model (fixed world sized by the lines)
+const AX=12,AY=10;     // px per unit across / along; minor set pitch 40 px
+const SET_PITCH=104, SIDE_W=30;
+const LENGTHS=[5,3,4,2];  // minor sets per line
 const HALLS={
   grange:{wall:'#5a4636',wallTop:'#75604c',wallIn:'#3d2d22',plaster:'#d9c6a2',wainscot:'#6b4a30',rail:'#4a3220',floorA:'#c9a06a',floorB:'#c2985f',seam:'#a77f4e',knot:'#9a7043',stageA:'#8a6238',stageB:'#7e5832',stageFront:'#4a3221',stageLip:'#a57a4a',curtain:'#7a2430',curtainD:'#5a1a24',glass:'#9fbad0',out:'#0c0a09'},
   gym:{wall:'#6c7a86',wallTop:'#8592a0',wallIn:'#4d5964',plaster:'#e2ded0',wainscot:'#8b8f96',rail:'#6a6f78',floorA:'#dccb9f',floorB:'#d6c599',seam:'#c9b88c',knot:'#c9b88c',stageA:'#8a6238',stageB:'#7e5832',stageFront:'#4a3221',stageLip:'#a57a4a',curtain:'#2c4a7a',curtainD:'#1e3556',glass:'#b8cad8',out:'#0c0a09',court:'#c48a5a'},
   night:{wall:'#2e2520',wallTop:'#3d312a',wallIn:'#1e1714',plaster:'#6d6152',wainscot:'#3a2a1c',rail:'#2a1c12',floorA:'#8f6a3f',floorB:'#866337',seam:'#6e4f2c',knot:'#5f4325',stageA:'#5e4326',stageB:'#553c22',stageFront:'#2e2014',stageLip:'#6b4c2c',curtain:'#4a1620',curtainD:'#35101a',glass:'#3a4a60',out:'#050403',lamps:1},
 };
-function buildWorld(W,H,seed){
+function buildWorld(nLines,seed){
   const rng=mulberry32(seed);
-  const facade=OPT.walls==='ff6';
-  const wallT=facade?2:6, backH=facade?22:8;
-  const stageH=38; const stageTop=backH; const stageBottom=stageTop+stageH; const stageX0=Math.round(W*0.16), stageX1=W-Math.round(W*0.16);
-  const floorTop=stageBottom+4; const floorBottom=H-(facade?4:wallT);
-  const setTop=floorTop+40; const avail=floorBottom-setTop-16;
-  const nA=Math.max(2,Math.min(9,Math.floor((avail-32)/32))); const nB=Math.max(2,nA-3);
-  const sets=[{cx:Math.round(W*0.36),top:setTop,n:nA},{cx:Math.round(W*0.66),top:setTop,n:nB}];
+  const facade=OPT.walls==='ff6';const wallT=facade?2:8,backH=facade?26:wallT;
+  const W=SIDE_W*2+SET_PITCH*nLines;
+  const stageH=58;const stageTop=backH;const stageBottom=stageTop+stageH;const stageX0=Math.max(wallT+22,Math.round(W*0.14)),stageX1=W-stageX0;
+  const floorTop=stageBottom+5;
+  const lens=LENGTHS.slice(0,nLines);const maxN=Math.max(...lens);
+  const setTop=floorTop+40;const floorBottom=setTop+maxN*40+40+22;const H=floorBottom+(facade?5:wallT);
+  const sets=lens.map((n,i)=>({cx:SIDE_W+SET_PITCH*i+SET_PITCH/2,top:setTop,n}));
   const dancers=[];
-  sets.forEach((s,si)=>{s.couples=[];
-    for(let m=-1;m<=s.n;m++){
-      const dirs=m===-1?[-1]:m===s.n?[1]:[1,-1];
-      dirs.forEach(dir=>{const c={set:s,m,dir};s.couples.push(c);
-        [true,false].forEach(isLark=>{const p=makePerson(rng);p.role=isLark?'L':'R';dancers.push({p,c,isLark,hist:[]});});});
-    }
-  });
-  // band, caller, sideliners
-  const band=[]; const mk=(x,y,facing,pose,extra)=>{const p=makePerson(rng);return Object.assign({p,x,y,facing,pose},extra||{});};
-  const bx=stageX0;
-  band.push(mk(Math.round(W*0.5)+34,stageTop+30,90,{arms:'hold',side:-1},{kind:'fiddle'}));
-  band.push(mk(Math.round(W*0.5)+62,stageTop+31,90,{arms:'fwd',sit:1},{kind:'guitar'}));
-  band.push(mk(stageX1-34,stageTop+24,270,{arms:'fwd'},{kind:'piano'}));
-  band.push(mk(Math.round(W*0.5)+8,stageTop+26,90,{arms:'hold',side:1},{kind:'bass'}));
-  const caller=mk(Math.round(W*0.5)-40,stageBottom-3,90,{arms:'down'},{kind:'caller'});
-  const side=[];
-  const chairs=[];
-  chairs.push({x:band[1].x-3,y:band[1].y-6,facing:0});
-  for(let y=floorTop+22;y<floorBottom-30;y+=12){chairs.push({x:wallT+4,y,facing:0});if(rng()<0.55)side.push(mk(wallT+7,y+2,0,{arms:'down',sit:1},{chair:1,tap:rng()<0.5}));}
-  for(let y=floorTop+22;y<floorBottom-30;y+=12){chairs.push({x:W-wallT-10,y,facing:180});if(rng()<0.45)side.push(mk(W-wallT-8,y+2,180,{arms:'down',sit:1},{chair:1,tap:rng()<0.5}));}
-  const table={x:W-wallT-40,y:floorBottom-16};
-  side.push(mk(table.x-6,table.y-2,60,{arms:'down'},{}));side.push(mk(table.x-14,table.y+1,20,{arms:'down'},{}));
-  side.push(mk(sets[1].cx+40,floorBottom-12,270,{arms:'down'},{}));
-  return {W,H,facade,wallT,backH,stageTop,stageBottom,stageX0,stageX1,floorTop,floorBottom,sets,dancers,band,caller,side,chairs,table,cycle:0,rng};
+  sets.forEach(s=>{s.couples=[];for(let m=-1;m<=s.n;m++){const dirs=m===-1?[-1]:m===s.n?[1]:[1,-1];dirs.forEach(dir=>{const c={set:s,m,dir};s.couples.push(c);[true,false].forEach(isLark=>{const p=makePerson(rng);p.role=isLark?'L':'R';dancers.push({p,c,isLark,hist:[]});});});}});
+  const mk=(x,y,facing,pose,extra)=>{const p=makePerson(rng);return Object.assign({p,x,y,facing,pose:pose||{},hands:{L:'down',R:'down'}},extra||{});};
+  const band=[];const mx=Math.round(W/2);
+  band.push(mk(mx+26,stageTop+42,90,{},{kind:'fiddle',hands:{L:{scr:[-7,-19]},R:{scr:[-1,-14]}}}));
+  band.push(mk(mx+58,stageTop+44,90,{sit:1},{kind:'guitar',hands:{L:{scr:[5,-13]},R:{scr:[-2,-11]}}}));
+  band.push(mk(stageX1-36,stageTop+34,270,{},{kind:'piano',hands:{L:{scr:[-4,-13]},R:{scr:[4,-13]}}}));
+  band.push(mk(mx-4,stageTop+38,90,{},{kind:'bass',hands:{L:{scr:[-4,-24]},R:{scr:[2,-13]}}}));
+  const caller=mk(mx-46,stageBottom-4,90,{},{kind:'caller'});
+  const side=[],chairs=[];
+  for(let y=floorTop+30;y<floorBottom-40;y+=20){chairs.push({x:wallT+4,y});if(rng()<0.55)side.push(mk(wallT+8,y+6,0,{sit:1},{tap:rng()<0.5,hands:{L:'hip',R:'hip'}}));}
+  for(let y=floorTop+30;y<floorBottom-40;y+=20){chairs.push({x:W-wallT-12,y});if(rng()<0.45)side.push(mk(W-wallT-8,y+6,180,{sit:1},{tap:rng()<0.5,hands:{L:'hip',R:'hip'}}));}
+  const table={x:W-wallT-46,y:floorBottom-20};
+  side.push(mk(table.x-8,table.y-2,60,{},{}));side.push(mk(table.x-20,table.y+2,20,{},{}));
+  return {W,H,facade,wallT,backH,stageTop,stageBottom,stageX0,stageX1,floorTop,floorBottom,sets,dancers,band,caller,side,chairs,table,cycle:0};
 }
-function setCenter(s,m){return [s.cx,s.top+16+m*32];}
-function advanceCouples(world){
-  world.sets.forEach(s=>s.couples.forEach(c=>{if(c.m===-1){c.m=0;c.dir=1;}else if(c.m===s.n){c.m=s.n-1;c.dir=-1;}else c.m+=c.dir;}));
-}
-// world-space state of a dancer at beat b -> {x,y (fixed), a, pose, bob, fam}
+function setCenter(s,m){return [s.cx,s.top+20+m*40];}
+function advanceCouples(world){world.sets.forEach(s=>s.couples.forEach(c=>{if(c.m===-1){c.m=0;c.dir=1;}else if(c.m===s.n){c.m=s.n-1;c.dir=-1;}else c.m+=c.dir;}));}
+function toWorld(hand,cx,cy){return Array.isArray(hand)?[q256(cx+hand[0]*AX),q256(cy+hand[1]*AY),hand[2]]:hand;}
 function dancerState(d,b){
-  const t=((b%64)+64)%64; const c=d.c, s=c.set; const waiting=c.m===-1||c.m===s.n;
-  const role=(c.dir>0?'1':'2')+(d.isLark?'L':'R'); const [cx,cy]=setCenter(s,c.m);
+  const t=((b%64)+64)%64;const c=d.c,s=c.set;const waiting=c.m===-1||c.m===s.n;const role=(c.dir>0?'1':'2')+(d.isLark?'L':'R');const [cx,cy]=setCenter(s,c.m);
   if(waiting){
-    const f0=CH.frames[role][0]; let ux=f0.x,uy=f0.y; let a=ang(-f0.x,0); let step=0,bob=0;
-    if(t>=56){const k=smooth((t-56)/8);ux=lerp(f0.x,-f0.x,k);a=ang(-f0.x*2,0)+ (k<0.5?0:0);step='walk';}
-    else if(t>=24&&t<28){/* small idle: shift weight */ bob=(t%2<1)?0:-1;}
-    const wx=q256(cx+ux*AX), wy=q256(cy+uy*AY);
-    return {x:wx,y:wy,a,pose:{arms:'down',lean:0,step:step==='walk'?(1+Math.floor(b)%2):0},bob:step==='walk'?((b%1)<0.5?-1:0):bob,fam:null,mv:step==='walk'};
+    const f0=CH.frames[role][0];let ux=f0.x,uy=f0.y;let a=ang(-f0.x,0);let walking=false;
+    const partnerX=-f0.x;const larkA=d.isLark?a:ang(f0.x,0);const ll=leftOf(larkA);const m=[0,uy];const joined=[...add(m,ll,0.2),10];
+    let hands=d.isLark?{L:joined,R:'down'}:{L:'down',R:joined};
+    if(t>=56){const k=smooth((t-56)/8);ux=lerp(f0.x,-f0.x,k);a=k<0.95?ang(-f0.x,0):ang(f0.x,0);walking=k<0.95;hands={L:'down',R:'down'};}
+    const wh={L:toWorld(hands.L,cx,cy),R:toWorld(hands.R,cx,cy)};
+    return {x:q256(cx+ux*AX),y:q256(cy+uy*AY),a,pose:{lean:0,step:walking?(1+Math.floor(b)%2):0},bob:walking?((b%1)<0.5?-1:0):0,hands:wh,fam:null,mv:walking};
   }
-  const F=CH.frames[role]; const idx=Math.floor(t/DT)%F.length; const f=F[idx]; const nf=F[(idx+1)%F.length]; const k=(t/DT)%1;
-  const ux=lerp(f.x,f.fig===nf.fig?nf.x:f.x,k), uy=lerp(f.y,f.fig===nf.fig?nf.y:f.y,k);
-  const wx=q256(cx+ux*AX), wy=q256(cy+uy*AY);
-  let step=0,bob=0;
-  if(f.step==='walk'){const spb=f.spb||1;step=1+Math.floor(b*spb)%2;bob=((b*spb)%1)<0.5?-1:0;}
-  else {step=f.step;bob=f.bob||0;}
-  let side=0;
-  if(f.arms==='hold'&&f.tx!==undefined){const tdx=(f.tx-ux)*AX,tdy=(f.ty-uy)*AY;
-    if(OPT.view==='over'){const a=f.a*Math.PI/180;const cr=Math.cos(a)*tdy-Math.sin(a)*tdx;side=Math.abs(cr)<0.5?0:Math.sign(cr);}
-    else side=Math.abs(tdx)<2?0:Math.sign(tdx);}
-  return {x:wx,y:wy,a:f.a,pose:{arms:f.arms,lean:f.lean,step,side},bob,fam:CH.figures[f.fig].family,mv:f.mv};
+  const sm=sampleRole(role,b,OPT.seam);const f=sm.f;
+  let step=0,bob=0;if(f.step==='walk'){const spb=f.spb||1;step=1+Math.floor(b*spb)%2;bob=((b*spb)%1)<0.5?-1:0;}else{step=f.step;bob=f.bob||0;}
+  const hands={L:toWorld(sm.hands.L,cx,cy),R:toWorld(sm.hands.R,cx,cy)};
+  return {x:q256(cx+sm.x*AX),y:q256(cy+sm.y*AY),a:sm.a,pose:{lean:f.lean,step,twirl:f.twirl},bob,hands,fam:CH.figures[f.fig].family,mv:f.mv};
 }
 
 // ============================================================ hall rendering
 const floorCache=new Map();
 function floorLayer(world){
-  const key=[world.W,world.H,OPT.hall,OPT.walls].join('|'); let cv=floorCache.get(key); if(cv)return cv;
-  cv=document.createElement('canvas');cv.width=world.W;cv.height=world.H;const g=cv.getContext('2d');const C=HALLS[OPT.hall];const {W,H,facade,wallT,backH,stageTop,stageBottom,stageX0,stageX1,floorTop,floorBottom}=world;
+  const key=[world.W,world.H,OPT.hall,OPT.walls].join('|');let cv=floorCache.get(key);if(cv)return cv;
+  cv=document.createElement('canvas');cv.width=world.W;cv.height=world.H;const g=cv.getContext('2d');const C=HALLS[OPT.hall];const {W,H,facade,wallT,backH,stageTop,stageBottom,stageX0,stageX1,floorTop,floorBottom}=world;const stageH=stageBottom-stageTop;
   const rng=mulberry32(7);
   g.fillStyle=C.out;g.fillRect(0,0,W,H);
-  // floor planks
   for(let y=0;y<H;y+=5){g.fillStyle=(y/5)%2?C.floorA:C.floorB;g.fillRect(0,y,W,5);
-    if(OPT.hall!=='gym'){const off=((y/5)*13)%37;for(let x=off;x<W;x+=37){g.fillStyle=C.seam;g.fillRect(x,y,1,5);if(rng()<0.15){g.fillStyle=C.knot;g.fillRect(x+Math.floor(rng()*30),y+2,2,1);}}g.fillStyle=C.seam;g.fillRect(0,y+4,W,1);}
-  }
+    if(OPT.hall!=='gym'){const off=((y/5)*13)%37;for(let x=off;x<W;x+=37){g.fillStyle=C.seam;g.fillRect(x,y,1,5);if(rng()<0.15){g.fillStyle=C.knot;g.fillRect(x+Math.floor(rng()*30),y+2,2,1);}}g.fillStyle=C.seam;g.fillRect(0,y+4,W,1);}}
   if(OPT.hall==='gym'){g.strokeStyle=C.court;g.globalAlpha=0.5;g.lineWidth=2;g.strokeRect(wallT+20,floorTop+20,W-2*wallT-40,floorBottom-floorTop-40);g.beginPath();g.arc(W/2,(floorTop+floorBottom)/2,30,0,TAU);g.stroke();g.globalAlpha=1;}
-  if(C.lamps){for(let i=0;i<3;i++){const lx=W*(0.25+0.25*i),ly=(floorTop+floorBottom)/2;const gr=g.createRadialGradient(lx,ly,10,lx,ly,120);gr.addColorStop(0,'rgba(255,220,150,0.28)');gr.addColorStop(1,'rgba(255,220,150,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);}}
-  // walls
+  if(C.lamps){for(let i=0;i<3;i++){const lx=W*(0.25+0.25*i),ly=(floorTop+floorBottom)/2;const gr=g.createRadialGradient(lx,ly,10,lx,ly,140);gr.addColorStop(0,'rgba(255,220,150,0.28)');gr.addColorStop(1,'rgba(255,220,150,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);}}
   if(facade){
-    g.fillStyle=C.plaster;g.fillRect(0,0,W,backH);g.fillStyle=C.wainscot;g.fillRect(0,backH-9,W,9);g.fillStyle=C.rail;g.fillRect(0,backH-10,W,1);g.fillRect(0,backH-1,W,1);
-    for(let x=14;x<W-14;x+=46){g.fillStyle=C.rail;g.fillRect(x,3,10,9);g.fillStyle=C.glass;g.fillRect(x+1,4,8,7);g.fillStyle=C.rail;g.fillRect(x+5,4,1,7);g.fillRect(x+1,7,8,1);}
-    g.fillStyle=C.wall;g.fillRect(0,0,wallT,H);g.fillRect(W-wallT,0,wallT,H);g.fillStyle=C.out;g.fillRect(0,H-4,W,4);g.fillStyle=C.wallIn;g.fillRect(0,H-5,W,1);
-  } else {
+    g.fillStyle=C.plaster;g.fillRect(0,0,W,backH);g.fillStyle=C.wainscot;g.fillRect(0,backH-10,W,10);g.fillStyle=C.rail;g.fillRect(0,backH-11,W,1);g.fillRect(0,backH-1,W,1);
+    for(let x=14;x<W-14;x+=52){g.fillStyle=C.rail;g.fillRect(x,3,12,11);g.fillStyle=C.glass;g.fillRect(x+1,4,10,9);g.fillStyle=C.rail;g.fillRect(x+6,4,1,9);g.fillRect(x+1,8,10,1);}
+    g.fillStyle=C.wall;g.fillRect(0,0,wallT,H);g.fillRect(W-wallT,0,wallT,H);g.fillStyle=C.out;g.fillRect(0,H-5,W,5);g.fillStyle=C.wallIn;g.fillRect(0,H-6,W,1);
+  }else{
     g.fillStyle=C.wallTop;g.fillRect(0,0,W,wallT);g.fillRect(0,H-wallT,W,wallT);g.fillRect(0,0,wallT,H);g.fillRect(W-wallT,0,wallT,H);
-    g.fillStyle=C.wallIn;g.fillRect(wallT,wallT,W-2*wallT,2);g.fillRect(wallT,H-wallT-2,W-2*wallT,2);g.fillRect(wallT,wallT,2,H-2*wallT);g.fillRect(W-wallT-2,wallT,2,H-2*wallT);
+    g.fillStyle=C.wallIn;g.fillRect(wallT,wallT,W-2*wallT,3);g.fillRect(wallT,H-wallT-3,W-2*wallT,3);g.fillRect(wallT,wallT,3,H-2*wallT);g.fillRect(W-wallT-3,wallT,3,H-2*wallT);
     g.fillStyle=C.wall;g.fillRect(0,0,wallT,wallT);g.fillRect(W-wallT,0,wallT,wallT);g.fillRect(0,H-wallT,wallT,wallT);g.fillRect(W-wallT,H-wallT,wallT,wallT);
-    for(let y=floorTop+10;y<floorBottom-20;y+=40){g.fillStyle=C.glass;g.fillRect(1,y,wallT-2,10);g.fillRect(W-wallT+1,y,wallT-2,10);}
-    // door gap bottom centre
-    g.fillStyle=C.out;g.fillRect(W/2-12,H-wallT,24,wallT);g.fillStyle=C.wallIn;g.fillRect(W/2-13,H-wallT,1,wallT);g.fillRect(W/2+12,H-wallT,1,wallT);
+    g.fillStyle=shade(C.wallTop,1.15);g.fillRect(0,0,W,1);g.fillRect(0,0,1,H);
+    for(let y=floorTop+14;y<floorBottom-24;y+=48){g.fillStyle=C.glass;g.fillRect(2,y,wallT-4,14);g.fillRect(W-wallT+2,y,wallT-4,14);g.fillStyle=C.wallIn;g.fillRect(2,y+7,wallT-4,1);g.fillRect(W-wallT+2,y+7,wallT-4,1);}
+    g.fillStyle=C.out;g.fillRect(W/2-14,H-wallT,28,wallT);g.fillStyle=C.wallIn;g.fillRect(W/2-15,H-wallT,1,wallT);g.fillRect(W/2+14,H-wallT,1,wallT);
   }
-  // stage
-  const sw=stageX1-stageX0; const stageH=stageBottom-stageTop;
+  const sw=stageX1-stageX0;
   for(let x=stageX0;x<stageX1;x+=6){g.fillStyle=((x-stageX0)/6)%2?C.stageA:C.stageB;g.fillRect(x,stageTop,6,stageH);}
-  g.fillStyle=C.stageLip;g.fillRect(stageX0,stageBottom,sw,1);g.fillStyle=C.stageFront;g.fillRect(stageX0,stageBottom+1,sw,3);
-  g.fillStyle='rgba(0,0,0,0.18)';g.fillRect(stageX0,stageBottom+4,sw,2);
-  // curtain valance along the back of the stage
-  for(let x=stageX0;x<stageX1;x+=4){g.fillStyle=((x-stageX0)/4)%2?C.curtain:C.curtainD;g.fillRect(x,stageTop,4,5);}
-  // stairs (left end)
-  for(let i=0;i<3;i++){g.fillStyle=i%2?C.stageA:C.stageB;g.fillRect(stageX0-8+i*3,stageBottom+4-i*2-2,8-i*3+3,2);}
-  // speakers
-  g.fillStyle='#1a1614';g.fillRect(stageX0+2,stageBottom+5,7,9);g.fillRect(stageX1-9,stageBottom+5,7,9);g.fillStyle='#3a3230';g.fillRect(stageX0+4,stageBottom+7,3,3);g.fillRect(stageX1-7,stageBottom+7,3,3);
-  // piano (upright, against the back of the stage)
-  const pxp=stageX1-46;g.fillStyle='#3a2416';g.fillRect(pxp,stageTop+6,26,12);g.fillStyle='#2a1a10';g.fillRect(pxp,stageTop+18,26,2);g.fillStyle='#efe6d0';g.fillRect(pxp+2,stageTop+15,22,2);for(let x=pxp+3;x<pxp+24;x+=3){g.fillStyle='#1a1410';g.fillRect(x,stageTop+15,1,1);}
-  g.fillStyle='#4a3220';g.fillRect(pxp+6,stageTop+26,14,3);  // bench
-  // chairs
-  world.chairs.forEach(ch=>{g.fillStyle='#5a3a22';g.fillRect(ch.x,ch.y,6,2);g.fillStyle='#7a5232';g.fillRect(ch.x,ch.y+2,6,4);g.fillStyle='#3a2416';g.fillRect(ch.x,ch.y+6,1,2);g.fillRect(ch.x+5,ch.y+6,1,2);});
-  // water table
-  const tb=world.table;g.fillStyle='#e8e2d6';g.fillRect(tb.x,tb.y,28,9);g.fillStyle='#c9c0b0';g.fillRect(tb.x,tb.y+9,28,2);g.fillStyle='#4c7fc9';g.fillRect(tb.x+3,tb.y+2,4,5);g.fillStyle='#fff';for(let i=0;i<5;i++)g.fillRect(tb.x+10+i*3,tb.y+3+(i%2),2,2);
-  // mic stand base marker drawn later with the caller
+  g.fillStyle=C.stageLip;g.fillRect(stageX0,stageBottom,sw,1);g.fillStyle=C.stageFront;g.fillRect(stageX0,stageBottom+1,sw,4);g.fillStyle='rgba(0,0,0,0.18)';g.fillRect(stageX0,stageBottom+5,sw,3);
+  for(let x=stageX0;x<stageX1;x+=4){g.fillStyle=((x-stageX0)/4)%2?C.curtain:C.curtainD;g.fillRect(x,stageTop,4,7);}
+  for(let i=0;i<3;i++){g.fillStyle=i%2?C.stageA:C.stageB;g.fillRect(stageX0-10+i*3,stageBottom+5-i*2-3,10-i*3+3,3);}
+  g.fillStyle='#1a1614';g.fillRect(stageX0+3,stageBottom+7,9,12);g.fillRect(stageX1-12,stageBottom+7,9,12);g.fillStyle='#3a3230';g.fillRect(stageX0+6,stageBottom+10,3,3);g.fillRect(stageX1-9,stageBottom+10,3,3);
+  const pxp=stageX1-54;g.fillStyle='#3a2416';g.fillRect(pxp,stageTop+8,34,16);g.fillStyle='#2a1a10';g.fillRect(pxp,stageTop+24,34,2);g.fillStyle='#efe6d0';g.fillRect(pxp+2,stageTop+21,30,3);for(let x=pxp+4;x<pxp+32;x+=3){g.fillStyle='#1a1410';g.fillRect(x,stageTop+21,1,2);}g.fillStyle='#4a3220';g.fillRect(pxp+8,stageTop+36,18,3);
+  world.chairs.forEach(ch=>{g.fillStyle='#5a3a22';g.fillRect(ch.x,ch.y,8,3);g.fillStyle='#7a5232';g.fillRect(ch.x,ch.y+3,8,5);g.fillStyle='#3a2416';g.fillRect(ch.x,ch.y+8,1,3);g.fillRect(ch.x+7,ch.y+8,1,3);});
+  const tb=world.table;g.fillStyle='#e8e2d6';g.fillRect(tb.x,tb.y,34,10);g.fillStyle='#c9c0b0';g.fillRect(tb.x,tb.y+10,34,3);g.fillStyle='#4c7fc9';g.fillRect(tb.x+3,tb.y+2,5,6);g.fillStyle='#fff';for(let i=0;i<6;i++)g.fillRect(tb.x+12+i*3,tb.y+3+(i%2),2,2);
   floorCache.set(key,cv);return cv;
 }
-function drawProp(g,kind,x,y,world){
-  if(kind==='bass'){g.fillStyle='#5a3418';g.fillRect(x+3,y-16,5,13);g.fillStyle='#3a2010';g.fillRect(x+5,y-24,1,9);g.fillStyle='#1a1410';g.fillRect(x+4,y-12,1,6);g.fillStyle='#8a5a30';g.fillRect(x+4,y-8,3,1);}
-  if(kind==='fiddle'){g.fillStyle='#8a4a22';g.fillRect(x-6,y-11,4,2);g.fillStyle='#5a3018';g.fillRect(x-9,y-11,3,1);}
-  if(kind==='guitar'){g.fillStyle='#b07a3a';g.fillRect(x-3,y-7,7,3);g.fillStyle='#3a2010';g.fillRect(x+4,y-8,5,1);g.fillStyle='#1a1410';g.fillRect(x-1,y-6,2,1);}
-  if(kind==='caller'){g.fillStyle='#2a2422';g.fillRect(x+6,y-14,1,14);g.fillRect(x+4,y-1,5,1);g.fillStyle='#4a4442';g.fillRect(x+5,y-16,3,3);}
+function drawProp(g,kind,x,y){
+  if(kind==='bass'){g.fillStyle='#5a3418';g.fillRect(x+3,y-20,7,16);g.fillStyle='#3a2010';g.fillRect(x+6,y-32,1,12);g.fillStyle='#1a1410';g.fillRect(x+5,y-15,1,8);g.fillStyle='#8a5a30';g.fillRect(x+4,y-10,5,1);}
+  if(kind==='fiddle'){g.fillStyle='#8a4a22';g.fillRect(x-7,y-16,5,3);g.fillStyle='#5a3018';g.fillRect(x-11,y-16,4,1);}
+  if(kind==='guitar'){g.fillStyle='#b07a3a';g.fillRect(x-3,y-11,8,4);g.fillStyle='#3a2010';g.fillRect(x+5,y-12,6,1);g.fillStyle='#1a1410';g.fillRect(x-1,y-10,2,2);}
+  if(kind==='caller'){g.fillStyle='#2a2422';g.fillRect(x+8,y-20,1,20);g.fillRect(x+6,y-1,5,1);g.fillStyle='#4a4442';g.fillRect(x+7,y-23,3,4);}
 }
+function drawPerson(ctx,p,a,pose,hands,x,y,bob,opt){if(opt.view==='over')drawPersonOver(ctx,p,a,pose,hands,x,y,opt);else drawPersonFront(ctx,p,a,pose,hands,x,y,bob,opt);}
 function renderHall(ctx,world,b,layers){
-  const {W,H}=world;const C=HALLS[OPT.hall];
-  ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(floorLayer(world),0,0);
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(floorLayer(world),0,0);
   const states=world.dancers.map(d=>({d,st:dancerState(d,b)}));
-  // traces
-  if(OPT.traces==='worn'&&layers.worn){ctx.drawImage(layers.worn,0,0);}
-  if(OPT.traces==='trail'){ctx.lineWidth=1;states.forEach(({d,st})=>{const h=d.hist;if(h.length<2)return;const col=d.isLark?'76,127,201':'224,106,134';for(let i=1;i<h.length;i++){ctx.strokeStyle='rgba('+col+','+(i/h.length*0.9).toFixed(2)+')';ctx.beginPath();ctx.moveTo(px(h[i-1][0])+0.5,px(h[i-1][1])+0.5);ctx.lineTo(px(h[i][0])+0.5,px(h[i][1])+0.5);ctx.stroke();}});}
-  // shadows
-  const kind=OPT.view==='over'?'over':'front';
+  if(OPT.traces==='worn'&&layers.worn)ctx.drawImage(layers.worn,0,0);
+  if(OPT.traces==='trail'){const cols={'1L':'#3f6fb8','1R':'#d04f70','2L':'#8cc0ec','2R':'#f4a8bc'};ctx.lineWidth=1;ctx.globalAlpha=0.55;states.forEach(({d})=>{const h=d.hist;if(h.length<2)return;const role=(d.c.dir>0?'1':'2')+(d.isLark?'L':'R');ctx.strokeStyle=cols[role];ctx.beginPath();ctx.moveTo(px(h[0][0])+0.5,px(h[0][1])+0.5);for(let i=1;i<h.length;i++){if(h[i][2]-h[i-1][2]>1){ctx.moveTo(px(h[i][0])+0.5,px(h[i][1])+0.5);continue;}ctx.lineTo(px(h[i][0])+0.5,px(h[i][1])+0.5);}ctx.stroke();});ctx.globalAlpha=1;}
   const list=[];
-  states.forEach(({d,st})=>list.push({y:px(st.y),draw:()=>blitPerson(ctx,kind,d.p,st.a,st.pose,OPT.proto,OPT,px(st.x),px(st.y),st.bob),x:px(st.x)}));
-  const ph=Math.floor(b/16), pb=b%16;
-  world.band.forEach(m=>{const bob=(m.kind==='fiddle'&&(b%1)<0.5)?-1:0;const lean=m.kind==='bass'?(Math.floor(b/2)%2?1:-1)*0:0;const pose=Object.assign({},m.pose,{lean});
-    list.push({y:m.y,x:m.x,draw:()=>{if(m.kind==='guitar'){}blitPerson(ctx,kind,m.p,m.facing,pose,OPT.proto,OPT,m.x,m.y,bob);drawProp(ctx,m.kind,m.x,m.y,world);}});});
-  const cl=world.caller;const callerPose=(pb<2)?{arms:'hold',side:1}:{arms:'down'};
-  list.push({y:cl.y,x:cl.x,draw:()=>{blitPerson(ctx,kind,cl.p,cl.facing,callerPose,OPT.proto,OPT,cl.x,cl.y,0);drawProp(ctx,'caller',cl.x,cl.y,world);}});
-  world.side.forEach(m=>{const bob=(m.tap&&(b%2)<0.5)?-1:0;list.push({y:m.y,x:m.x,draw:()=>blitPerson(ctx,kind,m.p,m.facing,m.pose,OPT.proto,OPT,m.x,m.y,bob)});});
-  if(OPT.shadow&&kind==='front'){ctx.fillStyle='rgba(0,0,0,0.22)';list.forEach(o=>{ctx.fillRect(o.x-2,o.y-1,5,2);});}
+  states.forEach(({d,st})=>list.push({y:px(st.y),x:px(st.x),draw:()=>drawPerson(ctx,d.p,st.a,st.pose,st.hands,px(st.x),px(st.y),st.bob,OPT)}));
+  const pb=b%16;
+  world.band.forEach(m=>{const bob=(m.kind==='fiddle'&&(b%1)<0.5)?-1:0;const lean=m.kind==='bass'?(Math.floor(b/2)%2?1:-1)*0:0;list.push({y:m.y,x:m.x,draw:()=>{drawPerson(ctx,m.p,m.facing,Object.assign({},m.pose,{lean}),m.hands,m.x,m.y,bob,OPT);drawProp(ctx,m.kind,m.x,m.y);}});});
+  const cl=world.caller;const callerHands=(pb<2)?{L:'down',R:{scr:[9,-29]}}:{L:'down',R:'down'};
+  list.push({y:cl.y,x:cl.x,draw:()=>{drawPerson(ctx,cl.p,cl.facing,cl.pose,callerHands,cl.x,cl.y,0,OPT);drawProp(ctx,'caller',cl.x,cl.y);}});
+  world.side.forEach(m=>{const bob=(m.tap&&(b%2)<0.5)?-1:0;list.push({y:m.y,x:m.x,draw:()=>drawPerson(ctx,m.p,m.facing,m.pose,m.hands,m.x,m.y,bob,OPT)});});
+  if(OPT.shadow&&OPT.view!=='over'){ctx.fillStyle='rgba(0,0,0,0.22)';list.forEach(o=>ctx.fillRect(o.x-3,o.y-1,7,2));}
   list.sort((a,b2)=>a.y-b2.y).forEach(o=>o.draw());
   return states;
 }
 
 // ============================================================ hero setup
 const hallCv=document.getElementById('hall');const hallCtx=hallCv.getContext('2d');
-let world=null, wornLayer=null;
+let world=null,wornLayer=null;
+function fitScale(){const cw=document.getElementById('hallwrap').clientWidth-14;return Math.max(1,Math.min(4,Math.floor(cw/world.W)));}
+function applyScale(){const s=OPT.scale||fitScale();hallCv.style.width=(world.W*s)+'px';hallCv.style.height=(world.H*s)+'px';}
 function rebuildHero(){
-  const wrap=document.getElementById('hallwrap');const cw=wrap.clientWidth-14;
-  const W=Math.max(200,Math.floor(cw/OPT.scale)); const H=Math.round(W*0.72);
-  hallCv.width=W;hallCv.height=H;hallCv.style.width=(W*OPT.scale)+'px';hallCv.style.height=(H*OPT.scale)+'px';
-  const cyc=world?world.cycle:0;
-  personSeq=0; world=buildWorld(W,H,42); world.cycle=cyc;
-  wornLayer=document.createElement('canvas');wornLayer.width=W;wornLayer.height=H;
-  floorCache.clear(); spriteCache.clear();
+  const cyc=world?world.cycle:0;personSeq=0;world=buildWorld(OPT.lines,42);world.cycle=cyc;
+  hallCv.width=world.W;hallCv.height=world.H;applyScale();
+  wornLayer=document.createElement('canvas');wornLayer.width=world.W;wornLayer.height=world.H;floorCache.clear();
 }
-new ResizeObserver(()=>rebuildHero()).observe(document.getElementById('hallwrap'));
+new ResizeObserver(()=>{if(world)applyScale();}).observe(document.getElementById('hallwrap'));
 rebuildHero();
-// initial cycle alignment: advance couples by the cycles elapsed
-function syncCycle(b){const c=Math.floor(b/64);while(world.cycle<c){advanceCouples(world);world.cycle++;}}
-
-// reflect OPT (possibly from the URL) in the buttons
-document.querySelectorAll('#ctl0 button[data-k]').forEach(b2=>b2.classList.toggle('on',String(OPT[b2.dataset.k])===b2.dataset.v));
-// controls
+function syncCycle(w,b){const c=Math.floor(b/64);while(w.cycle<c){advanceCouples(w);w.cycle++;}}
 document.querySelectorAll('#ctl0 button[data-k]').forEach(btn=>btn.addEventListener('click',()=>{
-  const k=btn.dataset.k;let v=btn.dataset.v;if(['scale','facings','outline','tint','shadow'].includes(k))v=+v;OPT[k]=v;
+  const k=btn.dataset.k;let v=btn.dataset.v;if(['scale','facings','outline','tint','shadow','lines','seam'].includes(k))v=+v;OPT[k]=v;
   document.querySelectorAll('#ctl0 button[data-k="'+k+'"]').forEach(b2=>b2.classList.toggle('on',b2===btn));
-  if(k==='scale'||k==='walls')rebuildHero(); else {floorCache.clear();spriteCache.clear();}
+  if(k==='lines'||k==='walls')rebuildHero();else if(k==='scale')applyScale();else{floorCache.clear();spriteCache.clear();}
+  if(k==='traces')world.dancers.forEach(d=>d.hist=[]);
 }));
 const tempoEl=document.getElementById('tempo');tempoEl.addEventListener('input',()=>{document.getElementById('tempoV').textContent=tempoEl.value;clock.setTempo(+tempoEl.value);if(audio.playing)restartAudio();});
 document.getElementById('btnPause').addEventListener('click',(e)=>{if(clock.paused){clock.resume();e.target.textContent='⏸ Pause';if(audio.playing)restartAudio();}else{clock.pause();e.target.textContent='▶ Resume';stopSource();}});
 
-// beat strip
+// beat strip + readouts
 const strip=document.getElementById('strip');const cells=[];for(let i=0;i<64;i++){const d=document.createElement('div');if(i%16===0)d.classList.add('phr');else if(i%2===0)d.classList.add('bar');strip.appendChild(d);cells.push(d);}
 const cardread=document.getElementById('cardread');cardread.innerHTML='<div class="t">Spike dance · improper · 64 beats</div>'+['A1','A2','B1','B2'].map((ph,i)=>{const figs=CH.figures.filter(f=>Math.floor(f.start/16)===i);return '<div class="ph" data-i="'+i+'"><div class="fill"></div><div class="lab">'+ph+'</div><div>'+figs.map(f=>'<span class="fig" data-s="'+f.start+'">('+f.beats+') '+f.name+'</span>').join('<br>')+'</div></div>';}).join('');
-const lamp=document.getElementById('lamp');
-let lastBeatInt=-1,lastBar=-1;
+const lamp=document.getElementById('lamp');let lastBeatInt=-1,lastBar=-1;
 function updateIndicators(b){
   const t=((b%64)+64)%64;const bi=Math.floor(t);const fig=figureAt(t);
-  document.getElementById('readout').textContent=['A1','A2','B1','B2'][Math.floor(t/16)]+' · beat '+(Math.floor(t%16)+1)+' of 16 · bar '+(Math.floor(t/2)%32+1)+' · '+fig.name+' · cycle '+Math.floor(b/64);
+  document.getElementById('readout').textContent=['A1','A2','B1','B2'][Math.floor(t/16)]+' · beat '+(Math.floor(t%16)+1)+' of 16 · bar '+(Math.floor(t/2)%32+1)+' · '+fig.name+' · cycle '+Math.floor(b/64)+' · hall '+world.W+'×'+world.H+' @'+(OPT.scale||fitScale())+'×';
   if(bi!==lastBeatInt){
     if(lastBeatInt>=0)cells[lastBeatInt].className=cells[lastBeatInt].className.replace(/ ?on( one)?/,'');
     cells[bi].classList.add('on');if(bi%16===0)cells[bi].classList.add('one');
@@ -665,100 +614,86 @@ function updateIndicators(b){
     cardread.querySelectorAll('.fig').forEach(el=>el.classList.toggle('on',+el.dataset.s===fig.start));
     lastBeatInt=bi;
   }
-  const bar=Math.floor(t/2);if(bar!==lastBar){lastBar=bar;const line=bar<16?0:1;const m=bar%8;
-    document.querySelectorAll('#notation .cur').forEach(e=>e.classList.remove('cur'));
-    document.querySelectorAll('#notation .abcjs-l'+line+'.abcjs-m'+m).forEach(e=>e.classList.add('cur'));}
+  const bar=Math.floor(t/2);if(bar!==lastBar){lastBar=bar;const line=bar<16?0:1;const m=bar%8;document.querySelectorAll('#notation .cur').forEach(e=>e.classList.remove('cur'));document.querySelectorAll('#notation .abcjs-l'+line+'.abcjs-m'+m).forEach(e=>e.classList.add('cur'));}
 }
 
 // ============================================================ section canvases
 function mkCanvas(id,w,h,z){const c=document.getElementById(id);c.width=w;c.height=h;c.style.width=(w*z)+'px';c.style.height=(h*z)+'px';const g=c.getContext('2d');g.imageSmoothingEnabled=false;return g;}
-const g1a=mkCanvas('v1a',64,64,4),g1b=mkCanvas('v1b',64,64,4),g1c=mkCanvas('v1c',64,64,4);
+const g1a=mkCanvas('v1a',104,104,3),g1b=mkCanvas('v1b',104,104,3);
 const setPeople=[];{const rng=mulberry32(9);for(let i=0;i<4;i++){const p=makePerson(rng);p.role=ROLES[i].slice(1);setPeople.push(p);}}
-function minorSetStates(b){const t=((b%64)+64)%64;return ROLES.map((r,i)=>{const F=CH.frames[r];const idx=Math.floor(t/DT)%F.length;const f=F[idx];const nf=F[(idx+1)%F.length];const k=(t/DT)%1;const ux=lerp(f.x,f.fig===nf.fig?nf.x:f.x,k),uy=lerp(f.y,f.fig===nf.fig?nf.y:f.y,k);let step=0,bob=0;if(f.step==='walk'){const spb=f.spb||1;step=1+Math.floor(b*spb)%2;bob=((b*spb)%1)<0.5?-1:0;}else{step=f.step;bob=f.bob||0;}let side=0;if(f.arms==='hold'&&f.tx!==undefined){const tdx=(f.tx-ux)*AX,tdy=(f.ty-uy)*AY;const a=f.a*Math.PI/180;const cr=Math.cos(a)*tdy-Math.sin(a)*tdx;side={over:Math.abs(cr)<0.5?0:Math.sign(cr),front:Math.abs(tdx)<2?0:Math.sign(tdx)};}return {p:setPeople[i],ux,uy,a:f.a,arms:f.arms,lean:f.lean,step,bob,side,fam:CH.figures[f.fig].family};});}
-function drawFloorSwatch(g,w,h,sy){const C=HALLS[OPT.hall];for(let y=0;y<h;y+=5){g.fillStyle=(y/5)%2?C.floorA:C.floorB;g.fillRect(0,y,w,5);g.fillStyle=C.seam;g.fillRect(0,y+4,w,1);for(let x=((y/5)*13)%37;x<w;x+=37){g.fillRect(x,y,1,5);}}}
+function drawFloorSwatch(g,w,h){const C=HALLS[OPT.hall];for(let y=0;y<h;y+=5){g.fillStyle=(y/5)%2?C.floorA:C.floorB;g.fillRect(0,y,w,5);g.fillStyle=C.seam;g.fillRect(0,y+4,w,1);for(let x=((y/5)*13)%37;x<w;x+=37){g.fillRect(x,y,1,5);}}}
 function drawTracePaths(g,style,cx,cy,ax,ay,lineW){
-  const cols={'1L':'#4c7fc9','1R':'#e06a86','2L':'#7fb3e0','2R':'#f0a0b4'};
-  g.lineCap='round';g.lineJoin='round';
+  const cols={'1L':'#3f6fb8','1R':'#d04f70','2L':'#8cc0ec','2R':'#f4a8bc'};g.lineCap='round';g.lineJoin='round';
   ROLES.forEach(r=>{const F=CH.frames[r];
-    if(style==='worn'){g.strokeStyle='rgba(60,35,12,0.06)';g.lineWidth=lineW*2.2;g.beginPath();for(let i=0;i<F.length;i++){const x=cx+F[i].x*ax,y=cy+F[i].y*ay;if(i===0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();
-      // second pass thinner darker for accumulation
-      g.strokeStyle='rgba(60,35,12,0.09)';g.lineWidth=lineW;g.stroke();}
+    if(style==='worn'){g.strokeStyle='rgba(60,35,12,0.06)';g.lineWidth=lineW*2.2;g.beginPath();for(let i=0;i<F.length;i++){const x=cx+F[i].x*ax,y=cy+F[i].y*ay;if(i===0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();g.strokeStyle='rgba(60,35,12,0.09)';g.lineWidth=lineW;g.stroke();}
     else if(style==='chalk'){g.strokeStyle=cols[r];g.lineWidth=lineW;g.beginPath();for(let i=0;i<F.length;i++){const x=cx+F[i].x*ax,y=cy+F[i].y*ay;if(i===0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();}
-    else {for(let i=1;i<F.length;i++){if(F[i].fig!==F[i-1].fig)continue;g.strokeStyle=FAMILY_COLOR[CH.figures[F[i].fig].family];g.lineWidth=lineW;g.beginPath();g.moveTo(cx+F[i-1].x*ax,cy+F[i-1].y*ay);g.lineTo(cx+F[i].x*ax,cy+F[i].y*ay);g.stroke();}}
-  });
+    else{for(let i=1;i<F.length;i++){if(F[i].fig!==F[i-1].fig)continue;g.strokeStyle=FAMILY_COLOR[CH.figures[F[i].fig].family];g.lineWidth=lineW;g.beginPath();g.moveTo(cx+F[i-1].x*ax,cy+F[i-1].y*ay);g.lineTo(cx+F[i].x*ax,cy+F[i].y*ay);g.stroke();}}});
 }
-function renderMinorSet(g,mode,b,opts){
-  const w=64,h=64;drawFloorSwatch(g,w,h);const cx=32,cy=mode==='squash'?30:34;const ax=opts.ax||AX,ay=mode==='squash'?Math.round(AY*0.6):(opts.ay||AY);
-  if(opts.traces)drawTracePaths(g,'worn',cx,cy,ax,ay,2);
-  const sts=minorSetStates(b);
-  const list=sts.map(s=>{const x=Math.floor(cx+s.ux*ax),y=Math.floor(cy+s.uy*ay);return {y,x,s};});
-  if(mode==='front'||mode==='squash'){if(OPT.shadow){g.fillStyle='rgba(0,0,0,0.22)';list.forEach(o=>g.fillRect(o.x-2,o.y-1,5,2));}list.sort((a,b2)=>a.y-b2.y).forEach(o=>blitPerson(g,'front',o.s.p,o.s.a,{arms:o.s.arms,lean:o.s.lean,step:o.s.step,side:o.s.side?o.s.side.front:0},OPT.proto,OPT,o.x,o.y,o.s.bob));}
-  else list.forEach(o=>blitPerson(g,'over',o.s.p,o.s.a,{arms:o.s.arms,lean:o.s.lean,step:o.s.step,side:o.s.side?o.s.side.over:0},OPT.proto,OPT,o.x,o.y,0));
+function renderMinorSet(g,mode,b){
+  const w=104,h=104;drawFloorSwatch(g,w,h);const cx=52,cy=56;
+  drawTracePaths(g,'worn',cx,cy,AX,AY,2);
+  const opt=Object.assign({},OPT,{view:mode});
+  const list=ROLES.map((r,i)=>{const sm=sampleRole(r,b,OPT.seam);const f=sm.f;let step=0,bob=0;if(f.step==='walk'){const spb=f.spb||1;step=1+Math.floor(b*spb)%2;bob=((b*spb)%1)<0.5?-1:0;}else{step=f.step;bob=f.bob||0;}
+    const x=q256(cx+sm.x*AX),y=q256(cy+sm.y*AY);const hands={L:toWorld(sm.hands.L,cx,cy),R:toWorld(sm.hands.R,cx,cy)};return {x:px(x),y:px(y),p:setPeople[i],a:sm.a,pose:{lean:f.lean,step,twirl:f.twirl},hands,bob};});
+  if(mode==='front'&&OPT.shadow){g.fillStyle='rgba(0,0,0,0.22)';list.forEach(o=>g.fillRect(o.x-3,o.y-1,7,2));}
+  list.sort((a,b2)=>a.y-b2.y).forEach(o=>drawPerson(g,o.p,o.a,o.pose,o.hands,o.x,o.y,o.bob,opt));
 }
 // ---- traces section
-{const row=document.getElementById('traceRow');const defs=[['worn','Worn boards'],['chalk','Chalk per dancer'],['family','By figure family']];
-  defs.forEach(([style,label])=>{const card=document.createElement('div');card.className='card';card.innerHTML='<h4>3'+String.fromCharCode(97+defs.findIndex(d=>d[0]===style))+' · '+label+'</h4><canvas class="pix big"></canvas><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><canvas class="pix thumb"></canvas><canvas class="pix thumb2"></canvas><span class="small">24 px glyphs, floor and paper</span></div>';row.appendChild(card);
+{const row=document.getElementById('traceRow');const defs=[['worn','Worn boards'],['chalk','Per dancer'],['family','By figure family']];
+  defs.forEach(([style,label],di)=>{const card=document.createElement('div');card.className='card';card.innerHTML='<h4>3'+String.fromCharCode(97+di)+' · '+label+'</h4><canvas class="pix big"></canvas><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><canvas class="pix thumb"></canvas><canvas class="pix thumb2"></canvas><span class="small">24 px glyphs, floor and paper</span></div>';row.appendChild(card);
     const big=card.querySelector('.big');big.width=80;big.height=80;big.style.width='320px';big.style.height='320px';const g=big.getContext('2d');drawFloorSwatch(g,80,80);drawTracePaths(g,style,40,40,12,10,2.5);
     const th=card.querySelector('.thumb');th.width=24;th.height=24;th.style.width='72px';th.style.height='72px';const gt=th.getContext('2d');drawFloorSwatch(gt,24,24);drawTracePaths(gt,style,12,12,4,3.4,1.2);
-    const th2=card.querySelector('.thumb2');th2.width=24;th2.height=24;th2.style.width='72px';th2.style.height='72px';const gt2=th2.getContext('2d');gt2.fillStyle='#f3e9d2';gt2.fillRect(0,0,24,24);drawTracePaths(gt2,style==='worn'?'worn':style,12,12,4,3.4,1.2);
-  });}
+    const th2=card.querySelector('.thumb2');th2.width=24;th2.height=24;th2.style.width='72px';th2.style.height='72px';const gt2=th2.getContext('2d');gt2.fillStyle='#f3e9d2';gt2.fillRect(0,0,24,24);drawTracePaths(gt2,style,12,12,4,3.4,1.2);});}
 
 // ---- people gallery
-const GOPT={outline:1,gz:3};
+const GOPT={gz:2};
 let galleryPerson=null;{const rng=mulberry32(Date.now()&0xffff);galleryPerson=makePerson(rng);}
-const POSES=[{arms:'down',step:0},{arms:'down',step:1},{arms:'down',step:2},{arms:'fwdback',step:1,lean:1},{arms:'out',step:0},{arms:'up',step:0},{arms:'hold',step:1,side:1}];
-function drawGallery(id,proto){const cw=20,chh=22;const cols=16,rows=POSES.length+1;const g=mkCanvas(id,cols*cw,rows*chh,GOPT.gz);drawFloorSwatch(g,cols*cw,rows*chh);
-  const opt=Object.assign({},OPT,{outline:GOPT.outline});
-  // row 0: 8 facings (even columns only), rows 1..: 16 facings per pose
-  for(let k=0;k<16;k+=2){const cv=sprite('front',galleryPerson,k,POSES[0],proto,opt);g.drawImage(cv,k*cw+1,3);}
+const POSES=[
+  {pose:{step:0},hands:{L:'down',R:'down'}},
+  {pose:{step:1},hands:{L:'down',R:'down'}},
+  {pose:{step:2},hands:{L:'down',R:'down'}},
+  {pose:{step:1,lean:1},hands:{L:{scr:[3,-12]},R:{scr:[-3,-12]}}},
+  {pose:{step:0},hands:{L:{scr:[11,-13]},R:{scr:[-11,-13]}}},
+  {pose:{step:0,twirl:1},hands:{L:'up',R:'up'}},
+  {pose:{step:1,lean:-1},hands:{L:{scr:[12,-16]},R:{scr:[-6,-15]}}},
+];
+function drawGallery(){const cw=28,chh=34;const cols=16,rows=POSES.length+1;const g=mkCanvas('gal',cols*cw,rows*chh,GOPT.gz);g.fillStyle='#3a2f28';g.fillRect(0,0,cols*cw,rows*chh);
+  const opt=Object.assign({},OPT,{view:'front',facings:8});
+  for(let k=0;k<16;k+=2){drawPersonFront(g,galleryPerson,90+k*22.5,POSES[0].pose,POSES[0].hands,k*cw+14,30,0,opt);}
   g.fillStyle='rgba(255,255,255,0.08)';g.fillRect(0,chh-1,cols*cw,1);
-  POSES.forEach((pose,pi)=>{for(let k=0;k<16;k++){const cv=sprite('front',galleryPerson,k,pose,proto,opt);g.drawImage(cv,k*cw+1,(pi+1)*chh+3);}});
+  const opt16=Object.assign({},OPT,{view:'front',facings:16});
+  POSES.forEach((ps,pi)=>{for(let k=0;k<16;k++){drawPersonFront(g,galleryPerson,90+k*22.5,ps.pose,ps.hands,k*cw+14,(pi+1)*chh+30,0,opt16);}});
 }
-function drawGalleries(){spriteCache.clear();drawGallery('galTall','tall');drawGallery('galChibi','chibi');drawCrowd();drawOverGallery();drawCompare();}
+const crowdPeople=[];{const rng=mulberry32(1234);for(let i=0;i<18;i++)crowdPeople.push(makePerson(rng));}
+function drawCrowd(){const g=mkCanvas('crowd',18*24+8,34,GOPT.gz);g.fillStyle='#3a2f28';g.fillRect(0,0,18*24+8,34);const opt=Object.assign({},OPT,{view:'front'});crowdPeople.forEach((p,i)=>drawPersonFront(g,p,90,{},{L:'down',R:'down'},14+i*24,30,0,opt));}
+function drawOverGallery(){const g=mkCanvas('galOver',32*22,4*22,GOPT.gz);g.fillStyle='#3a2f28';g.fillRect(0,0,32*22,4*22);const opt=Object.assign({},OPT,{view:'over'});
+  [[{step:0},{L:'down',R:'down'}],[{step:1},{L:'down',R:'down'}],[{step:0},{L:{scr:[0,0]},R:{scr:[0,0]}}],[{step:1,lean:1},{L:'hip',R:'hip'}]].forEach(([pose,hands],pi)=>{for(let k=0;k<32;k++){drawPersonOver(g,galleryPerson,90+k*11.25,pose,hands,k*22+11,pi*22+11,opt);}});}
+function drawGalleries(){spriteCache.clear();drawGallery();drawCrowd();drawOverGallery();}
 document.getElementById('reroll').addEventListener('click',()=>{const rng=mulberry32(Math.floor(Math.random()*1e9));galleryPerson=makePerson(rng);drawGalleries();});
 document.querySelectorAll('#s2 button[data-g]').forEach(btn=>btn.addEventListener('click',()=>{GOPT[btn.dataset.g]=+btn.dataset.v;document.querySelectorAll('#s2 button[data-g="'+btn.dataset.g+'"]').forEach(b2=>b2.classList.toggle('on',b2===btn));drawGalleries();}));
-const crowdPeople=[];{const rng=mulberry32(1234);for(let i=0;i<18;i++)crowdPeople.push(makePerson(rng));}
-function drawCrowd(){const g=mkCanvas('crowd',18*16+8,2*22,4);drawFloorSwatch(g,18*16+8,44);crowdPeople.forEach((p,i)=>{blitPerson(g,'front',p,90,{arms:'down'},'tall',Object.assign({},OPT,{outline:GOPT.outline}),8+i*16,20,0);blitPerson(g,'front',p,90,{arms:'down'},'chibi',Object.assign({},OPT,{outline:GOPT.outline}),8+i*16,42,0);});}
-function drawOverGallery(){const g=mkCanvas('galOver',16*18,4*18,4);drawFloorSwatch(g,16*18,4*18);const opt=Object.assign({},OPT,{outline:GOPT.outline});[{arms:'down',step:0},{arms:'down',step:1},{arms:'out',step:0},{arms:'fwdback',step:1,lean:1}].forEach((pose,pi)=>{for(let k=0;k<16;k++){g.drawImage(sprite('over',galleryPerson,k,pose,'tall',opt),k*18+1,pi*18+1);}});}
-// hand-pixelled comparison sprite (12x18)
-const HAND={O:'#1b1410',H:'#4a2e1b',h:'#6a4426',S:'#e8b58f',s:'#c48c66',E:'#1b1410',T:'#4c7fc9',t:'#35609e',P:'#2e2b46',p:'#3d3a5c',B:'#2b1d14',b:'#3d2a1e'};
-const HAND_FRAMES=[
-["....OOOO....","...OHHHHO...","..OHhHHHhO..","..OHHHHHHO..","..OSSSSSsO..","..OSESSEsO..","..OSSSSssO..","...OSSssO...","..OOTTTTOO..",".OTTTTTTttO.",".OTOTTTTtOO.",".OSOTTTTtOsO","..O.PPPPtO..","....OPPpO...","...OPPOpPO..","...OPPOpPO..","...OBBOBbO..","...OOO.OOO.."],
-["....OOOO....","...OHHHHO...","..OHhHHHhO..","..OHHHHHHO..","..OSSSSSsO..","..OSESSEsO..","..OSSSSssO..","...OSSssO...","..OOTTTTOO..",".OTTTTTTttO.",".OTOTTTTtOO.",".OSOTTTTtOsO","..O.PPPPtO..","....OPPpO...","...OPPOpPO..","...OPPO.OO..","...OBBO.....","...OOO......"],
-["....OOOO....","...OHHHHO...","..OHhHHHhO..","..OHHHHHHO..","..OSSSSSsO..","..OSESSEsO..","..OSSSSssO..","...OSSssO...","..OOTTTTOO..",".OTTTTTTttO.",".OTOTTTTtOO.",".OSOTTTTtOsO","..O.PPPPtO..","....OPPpO...","...OPPOpPO..","...OO.OpPO..","......OBbO..","......OOO..."],
-["....OOOO....","...OHHHHO...","..OHhHHHhO..","..OHHHHHHO..","..OSSSSSsO..","..OSESSEsO..","..OSSSSssO..","...OSSssO...","OOOOTTTTOOOO","STTTTTTTtttS","OOOOTTTTtOOO","...OTTTTtO..","..O.PPPPtO..","....OPPpO...","...OPPOpPO..","...OPPOpPO..","...OBBOBbO..","...OOO.OOO.."],
-];
-function drawCompare(){const g=mkCanvas('cmp',4*16+8+4*20,28,6);drawFloorSwatch(g,g.canvas.width,28);
-  HAND_FRAMES.forEach((fr,i)=>{fr.forEach((row,y)=>{for(let x=0;x<row.length;x++){const c=HAND[row[x]];if(c){g.fillStyle=c;g.fillRect(4+i*16+x,5+y,1,1);}}});});
-  const opt=Object.assign({},OPT,{outline:1});const cp=crowdPeople[3];const ox=4*16+12;
-  [{arms:'down',step:0},{arms:'down',step:1},{arms:'down',step:2},{arms:'out',step:0}].forEach((pose,i)=>blitPerson(g,'front',cp,90,pose,'tall',opt,ox+i*20+9,23,0));
-}
 drawGalleries();
 
 // ---- animated people row
-const gAnim=mkCanvas('anim',12*22,2*26,5);
+const gAnim=mkCanvas('anim',13*30,44,3);
 const animPeople=[];{const rng=mulberry32(77);for(let i=0;i<8;i++)animPeople.push(makePerson(rng));}
-function drawAnim(b){const w=12*22,h=2*26;drawFloorSwatch(gAnim,w,h);
-  ['tall','chibi'].forEach((proto,row)=>{const y=row*26+22;const step=1+Math.floor(b)%2,bob=(b%1)<0.5?-1:0;
-    [90,180,270,315].forEach((a,i)=>blitPerson(gAnim,'front',animPeople[i],a,{arms:'down',step},proto,OPT,12+i*22,y,bob));
-    const t=b%4;let k,lean;if(t<2){k=smooth(t/0.5);lean=1;}else{k=1-smooth((t-2)/0.5);lean=-1;}
-    blitPerson(gAnim,'front',animPeople[4],180,{arms:t<2?'fwdback':'fwd',step:1,lean},proto,OPT,12+4*22+Math.round(-k*3),y,(t%2>0.2&&t%2<0.7)?-1:0);
-    blitPerson(gAnim,'front',animPeople[5],(b*90)%360,{arms:'up',step:1+Math.floor(b*2)%2},proto,OPT,12+5*22,y,0);
-    // swinging pair: orbit
-    const cx=12+7*22,cy=y-3;const a0=b*120;const [x1,y1]=polar(cx,cy,a0,4),[x2,y2]=polar(cx,cy,a0+180,4);
-    const pr=[[animPeople[6],x1,y1,ang(cx-x1,cy-y1)],[animPeople[7],x2,y2,ang(cx-x2,cy-y2)]].sort((p,q)=>p[2]-q[2]);
-    pr.forEach(([p,x,yy,a])=>blitPerson(gAnim,'front',p,a,{arms:'hold',lean:-1,step:1+Math.floor(b*2)%2,side:Math.abs(cx-x)<2?0:Math.sign(cx-x)},proto,OPT,Math.floor(x),Math.floor(yy)+3,((b*2)%1)<0.5?-1:0));
-    [90,180,270,315].forEach((a,i)=>blitPerson(gAnim,'over',animPeople[i],a,{arms:'down',step},proto,OPT,12+(i+8)*22,y-8,0));
-  });}
+function drawAnim(b){const w=13*30,h=44;gAnim.fillStyle='#3a2f28';gAnim.fillRect(0,0,w,h);const y=36;const step=1+Math.floor(b)%2,bob=(b%1)<0.5?-1:0;const opt=Object.assign({},OPT,{view:'front'});const optO=Object.assign({},OPT,{view:'over'});
+  [90,180,270,315].forEach((a,i)=>drawPersonFront(gAnim,animPeople[i],a,{step},{L:'down',R:'down'},16+i*30,y,bob,opt));
+  // balance pair (two-hand hold), facing each other E/W
+  {const t=b%4;let k,lean;if(t<2){k=smooth(t/0.5);lean=1;}else{k=1-smooth((t-2)/0.5);lean=-1;}const cx=16+4*30+14;const ax=Math.round(cx-9+k*3),bx=Math.round(cx+9-k*3);
+    const hL=[q256(cx),q256(y-1),11],hR=[q256(cx),q256(y+1),11];
+    drawPersonFront(gAnim,animPeople[4],0,{step:1,lean},{L:hR,R:hL},ax,y,(t%2>0.2&&t%2<0.7)?-2:0,opt);drawPersonFront(gAnim,animPeople[5],180,{step:1,lean},{L:hL,R:hR},bx,y,(t%2>0.2&&t%2<0.7)?-2:0,opt);}
+  drawPersonFront(gAnim,animPeople[6],(b*90)%360,{step:1+Math.floor(b*2)%2,twirl:1},{L:'up',R:'up'},16+6*30+14,y,0,opt);
+  // swinging pair
+  {const cx=16+8*30+8,cy=y-4;const a0=b*120;const [x1,y1]=polar(cx,cy,a0,5),[x2,y2]=polar(cx,cy,a0+180,5);const lark=[x1,y1],robin=[x2,y2];const larkA=ang(cx-x1,cy-y1);const ll=leftOf(larkA);
+    const joined=[q256(cx+ll[0]*7),q256(cy+ll[1]*7),13];const lh={L:joined,R:[q256(robin[0]-ll[0]*3),q256(robin[1]-ll[1]*3),13]};const rh={R:joined,L:[q256(lark[0]-ll[0]*3),q256(lark[1]-ll[1]*3),13]};
+    const pr=[[animPeople[7],lark,larkA,lh],[animPeople[3],robin,ang(cx-x2,cy-y2),rh]].sort((p,q)=>p[1][1]-q[1][1]);
+    pr.forEach(([p,pos,a,hands])=>drawPersonFront(gAnim,p,a,{step:1+Math.floor(b*2)%2,lean:-1},hands,Math.floor(pos[0]),Math.floor(pos[1])+4,((b*2)%1)<0.5?-1:0,opt));}
+  [90,180,270,315].forEach((a,i)=>drawPersonOver(gAnim,animPeople[i],a,{step},{L:'down',R:'down'},16+(i+9)*30,y-12,optO));
+}
 
-// ---- furniture crops and wall comparison
+// ---- furniture crops
 const g4a=document.getElementById('c4a').getContext('2d'),g4b=document.getElementById('c4b').getContext('2d'),g4c=document.getElementById('c4c').getContext('2d'),g4d=document.getElementById('c4d').getContext('2d');
-function crop(g,sx,sy,sw,sh,z){const c=g.canvas;if(c.width!==sw||c.height!==sh){c.width=sw;c.height=sh;c.style.width=(sw*z)+'px';c.style.height=(sh*z)+'px';}g.imageSmoothingEnabled=false;g.drawImage(hallCv,sx,sy,sw,sh,0,0,sw,sh);}
-const wallWorlds={};
-function wallCompare(b){['ff6','lttp'].forEach((ws,i)=>{const id=i?'w4f':'w4e';const c=document.getElementById(id);const W=200,H=110;if(c.width!==W){c.width=W;c.height=H;c.style.width=(W*3)+'px';c.style.height=(H*3)+'px';}
-  const saved=OPT.walls;OPT.walls=ws;if(!wallWorlds[ws]){personSeq=5000+i*1000;wallWorlds[ws]=buildWorld(320,236,5);}const wv=wallWorlds[ws];syncCycleFor(wv,b);
-  const g=c.getContext('2d');g.imageSmoothingEnabled=false;const off=document.createElement('canvas');off.width=320;off.height=236;const og=off.getContext('2d');renderHall(og,wv,b,{});g.drawImage(off,0,0,W,H,0,0,W,H);OPT.walls=saved;});}
-function syncCycleFor(w,b){const c=Math.floor(b/64);while(w.cycle<c){advanceCouples(w);w.cycle++;}}
+function crop(g,sx,sy,sw,sh,z){const c=g.canvas;if(c.width!==sw||c.height!==sh){c.width=sw;c.height=sh;c.style.width=(sw*z)+'px';c.style.height=(sh*z)+'px';}g.imageSmoothingEnabled=false;g.clearRect(0,0,sw,sh);g.drawImage(hallCv,sx,sy,sw,sh,0,0,sw,sh);}
 
 // ============================================================ audio (abcjs)
 const ABC=`X:1
@@ -773,29 +708,21 @@ K:D
 |:"D"a2fa a2fa|"G"b2gb b2gb|"D"a2fa a2fa|"A"e2ge e2fg|"D"a2fa a2fa|"G"b2gb b2gb|"A"e2ga fedc|"D"d2f2 d2fg:|
 `;
 const tuneObj=ABCJS.renderAbc('notation',ABC,{responsive:'resize',add_classes:true,staffwidth:900,paddingtop:0,paddingbottom:0,scale:0.9})[0];
-const audio={ctx:null,synth:null,buffer:null,src:null,playing:false,priming:false,bpmPrimed:0};
+const audio={ctx:null,synth:null,buffer:null,src:null,playing:false,bpmPrimed:0};
 const statusEl=document.getElementById('audioStatus');
 function stopSource(){if(audio.src){try{audio.src.stop();}catch(e){}audio.src.disconnect();audio.src=null;}}
-async function prime(){
-  const bpm=clock.bpm;if(audio.bpmPrimed===bpm&&audio.buffer)return;
-  audio.priming=true;statusEl.textContent='audio: loading instruments and rendering the tune at '+bpm+' bpm…';
+async function prime(){const bpm=clock.bpm;if(audio.bpmPrimed===bpm&&audio.buffer)return;statusEl.textContent='audio: loading instruments and rendering the tune at '+bpm+' bpm…';
   if(!audio.synth)audio.synth=new ABCJS.synth.CreateSynth();
-  await audio.synth.init({audioContext:audio.ctx,visualObj:tuneObj,millisecondsPerMeasure:2*60000/bpm,options:{}});
-  await audio.synth.prime();
-  audio.buffer=audio.synth.getAudioBuffer();audio.bpmPrimed=bpm;audio.priming=false;
-}
-function startSource(){
-  stopSource();const bpm=clock.bpm;const loopSec=64*60/bpm;const bNow=clock.beat();const cyc=Math.floor(bNow/64);const off=(bNow-cyc*64)*60/bpm;
+  await audio.synth.init({audioContext:audio.ctx,visualObj:tuneObj,millisecondsPerMeasure:2*60000/bpm,options:{}});await audio.synth.prime();
+  audio.buffer=audio.synth.getAudioBuffer();audio.bpmPrimed=bpm;}
+function startSource(){stopSource();const bpm=clock.bpm;const loopSec=64*60/bpm;const bNow=clock.beat();const cyc=Math.floor(bNow/64);const off=(bNow-cyc*64)*60/bpm;
   const src=audio.ctx.createBufferSource();src.buffer=audio.buffer;src.loop=true;src.loopStart=0;src.loopEnd=Math.min(loopSec,audio.buffer.duration);
-  const when=audio.ctx.currentTime+0.06;src.connect(audio.ctx.destination);src.start(when,off);audio.src=src;audio.playing=true;
-  clock.rebase('audio',when-off,cyc*64);
-  statusEl.textContent='audio: playing · buffer '+audio.buffer.duration.toFixed(2)+' s, musical loop '+loopSec.toFixed(2)+' s · animation clock = AudioContext.currentTime';
-}
+  const when=audio.ctx.currentTime+0.06;src.connect(audio.ctx.destination);src.start(when,off);audio.src=src;audio.playing=true;clock.rebase('audio',when-off,cyc*64);
+  statusEl.textContent='audio: playing · buffer '+audio.buffer.duration.toFixed(2)+' s, musical loop '+loopSec.toFixed(2)+' s · animation clock = AudioContext.currentTime';}
 async function restartAudio(){stopSource();try{await prime();if(!clock.paused)startSource();}catch(e){statusEl.textContent='audio: '+e;statusEl.classList.add('err');}}
 document.getElementById('btnPlay').addEventListener('click',async(e)=>{
   if(audio.playing){stopSource();audio.playing=false;e.target.textContent='▶ Play music';statusEl.textContent='audio: muted · clock still on the audio context';return;}
-  try{if(!audio.ctx){audio.ctx=new (window.AudioContext||window.webkitAudioContext)();}await audio.ctx.resume();
-    // move the clock onto the audio context before priming so nothing jumps
+  try{if(!audio.ctx)audio.ctx=new (window.AudioContext||window.webkitAudioContext)();await audio.ctx.resume();
     if(clock.mode!=='audio'){const b=clock.beat();clock.rebase('audio',audio.ctx.currentTime,b);}
     await prime();startSource();e.target.textContent='🔇 Mute';}
   catch(err){statusEl.textContent='audio: failed ('+(err&&err.message||err)+'). Soundfont loads from the network; the animation keeps its own clock.';statusEl.classList.add('err');console.error(err);}
@@ -804,20 +731,18 @@ document.getElementById('btnPlay').addEventListener('click',async(e)=>{
 // ============================================================ main loop
 let frameN=0;
 function loop(){
-  const b=clock.beat();syncCycle(b);
+  const b=clock.beat();syncCycle(world,b);
   const states=renderHall(hallCtx,world,b,{worn:wornLayer});
-  // traces accumulation
   if(OPT.traces==='worn'){const wg=wornLayer.getContext('2d');wg.fillStyle='rgba(60,35,12,0.035)';states.forEach(({st})=>{if(st.mv)wg.fillRect(px(st.x)-1,px(st.y)-1,3,2);});}
-  if(OPT.traces==='trail'&&frameN%2===0){states.forEach(({d,st})=>{d.hist.push([st.x,st.y]);if(d.hist.length>40)d.hist.shift();});}
+  if(OPT.traces==='trail'&&frameN%2===0){states.forEach(({d,st})=>{const h=d.hist;if(st.mv||h.length===0)h.push([st.x,st.y,b]);while(h.length&&h[0][2]<b-64)h.shift();});}
   updateIndicators(b);
-  renderMinorSet(g1a,'front',b,{traces:true});renderMinorSet(g1b,'over',b,{traces:true});renderMinorSet(g1c,'squash',b,{traces:true});
+  renderMinorSet(g1a,'front',b);renderMinorSet(g1b,'over',b);
   drawAnim(b);
-  if(frameN%2===0){const W=world.W,H=world.H;
-    crop(g4a,world.stageX0-10,0,Math.min(240,W-2*world.stageX0+20),world.stageBottom+16,4);
-    crop(g4b,world.caller.x-24,world.stageBottom-30,48,40,6);
-    crop(g4c,0,world.floorTop+14,44,70,4);
-    const s=world.sets[0];const [cx,cy]=setCenter(s,s.n);crop(g4d,cx-30,cy-38,60,48,5);
-    wallCompare(b);}
+  if(frameN%2===0){
+    crop(g4a,world.stageX0-12,0,Math.min(300,world.stageX1-world.stageX0+24),world.stageBottom+22,3);
+    crop(g4b,world.caller.x-30,world.stageBottom-42,60,52,5);
+    crop(g4c,0,world.floorTop+20,56,96,3);
+    const s=world.sets[0];const [cx,cy]=setCenter(s,s.n);crop(g4d,cx-44,cy-54,88,72,4);}
   frameN++;requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
