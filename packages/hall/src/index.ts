@@ -53,6 +53,21 @@ export {
 export { mulberry32, pick } from "./appearance/mulberry32.js";
 export { hexToRgb, shade } from "./appearance/shade.js";
 
+// the bitmap font and the text drawn in it
+export type { Font } from "./font/Font.js";
+export { FONT, textHeight, textWidth } from "./font/Font.js";
+export {
+  CHAR_ADVANCE_PX,
+  GLYPHS,
+  GLYPH_H,
+  GLYPH_W,
+  LETTER_SPACING_PX,
+  LINE_ADVANCE_PX,
+  LINE_SPACING_PX,
+  MISSING_GLYPH,
+} from "./font/glyphs.js";
+export { drawText } from "./font/drawText.js";
+
 // trails
 export type { TrailUpdate, Trails } from "./trails/Trails.js";
 export {
