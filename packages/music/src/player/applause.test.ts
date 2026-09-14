@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { APPLAUSE_DEFAULTS, renderApplause } from "./applause.js";
 
 /**
@@ -32,7 +32,12 @@ const rmsOver = (buffer: Float32Array, from: number, to: number): number => {
 };
 
 describe("the applause is the right shape", () => {
-  const applause = renderApplause(RATE);
+  // Rendered once in `beforeAll` and shared by every `it` below, rather than
+  // re-rendering the same ~150k-sample buffer per test.
+  let applause: Float32Array;
+  beforeAll(() => {
+    applause = renderApplause(RATE);
+  });
 
   it("lasts the seconds it says it does", () => {
     expect(applause.length).toBe(Math.round(RATE * APPLAUSE_DEFAULTS.seconds));
@@ -43,7 +48,21 @@ describe("the applause is the right shape", () => {
 
   it("never clips: the loudest sample is exactly the peak asked for", () => {
     expect(peakOver(applause, 0, APPLAUSE_DEFAULTS.seconds)).toBeCloseTo(APPLAUSE_DEFAULTS.peak, 5);
-    for (const s of applause) expect(Math.abs(s)).toBeLessThanOrEqual(1);
+    // A per-sample `expect()` over ~150k samples was the actual cost here —
+    // assertion overhead, not the render — and what pushed this test past
+    // its timeout on slower CI hardware. A single assertion on the running
+    // maximum checks the identical property (every sample's magnitude is at
+    // most 1) without paying per-sample assertion overhead.
+    let loudest = 0;
+    let loudestAt = 0;
+    for (let i = 0; i < applause.length; i++) {
+      const abs = Math.abs(applause[i]!);
+      if (abs > loudest) {
+        loudest = abs;
+        loudestAt = i;
+      }
+    }
+    expect(loudest, `at sample ${loudestAt}`).toBeLessThanOrEqual(1);
   });
 
   it("swells in and dies away rather than starting and stopping flat", () => {
