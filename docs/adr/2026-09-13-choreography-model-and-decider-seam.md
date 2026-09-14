@@ -134,6 +134,65 @@ station, …)` cannot resolve a station's place or stack a joined hand
   closed-up hold takes the two within 8 px, AC6). The crossing itself is the
   spike's station-to-station move over the last eight beats.
 
+## Amendment, 2026-09-14 (M10 cleanup): reconciled against the merges since
+
+This ADR's five layers, timeline-as-seam, pure-figure contract and form-neutral
+fixture are all still exactly true — nothing below is a reversal of the
+Decision above. Five things merged after this ADR was written extend it in
+ways worth recording here rather than leaving only in milestone reports:
+
+- **`Dance` carries two more, optional, still-data fields**:
+  `startPlaces?: Record<StationId, EndPose>` (where every station's dancer
+  stands at beat 0 of _every_ time through, when it differs from the
+  formation's own stations — a becket dance whose first figure is the
+  progression needs this) and `waitOut?: object` (parameters for the `wait-out`
+  a waiting couple is given, for a dance whose progression is fast enough that
+  the figure's own defaults would put two couples inside AC6's 8 px). Both are
+  read by `packages/choreo/src/decider/createScriptDecider.ts`; the "no
+  functions, survives `JSON.parse(JSON.stringify(...))`" rule this ADR states
+  for `Dance` is unchanged by either — see `Dance.ts`'s own doc comments for
+  each field's full reasoning, and `docs/adr/2026-09-14-dances-as-files.md` for
+  why a dance can carry them as plain JSON.
+- **Becket's odd-couple handling** (an odd becket set holds a second waiting
+  place beyond the bottom) is implemented in `packages/contra/src/formation/becket.ts`
+  and exercised by its own fixtures; it is a consequence of the "waiting couple
+  is not the spike's" point above, worked out concretely once a real becket
+  dance (not just the fixture) needed it.
+- **`SetState` gained a `spec`** (S1): the set's own seating record — which
+  physical dancer sits where before the first dance starts — so the hall can
+  seat couples once, deterministically, and every dance after the first reads
+  its start positions off the set rather than off each formation's default
+  layout. This does not change anything the Decision section says about a
+  `Group` or a `Frame`; it is what feeds `startPlaces` above from the hall's
+  own side of the seam.
+- **The decider grew a between-dances interval** (`lineUpCalls`, B1): the
+  eight-beat line-up between two dances is no longer a silent walk to the next
+  formation — `Decider`'s program contract now carries `lineUpCalls` (what the
+  caller says while everybody gets into position, per `Formation.lineUpCalls`),
+  `applauseCalls` and a `readyCall`, all threaded through the same
+  `TimelineEvent`-producing seam this ADR already describes. Nothing above the
+  timeline seam had to change to host it.
+- **A figure's held hands can now survive a figure boundary without being let
+  go and retaken** (`carried`, F3c): `FigureDef`'s params gain a `carried`
+  field alongside `from`, threaded by `chainCalls` exactly the way `from`
+  always was — a figure that inherits a `carried` hand skips its own take
+  animation for that hand and a figure that hands one off skips its own
+  release. This is additive to "flourishes are parameters" above, not a
+  change to it.
+- **Groups are now formed per figure call, not once per time through**
+  (`groupsFor`, `tags(selector)`, `groupFor`, cross-set M1 and M2): this is a
+  large enough change to `Formation`'s own contract that it has its own ADR,
+  `docs/adr/2026-09-14-per-call-group-selection.md`, which supersedes this
+  ADR's line "As well as `group(n)` and `progression` it has `groups(set)`,
+  `start(spec)` and `tags(n)`" specifically — read that ADR for the current
+  contract. Everything else this ADR says about a `Formation`'s role in the
+  five-layer model (contra knowledge stays out of `choreo`, a formation
+  answers structural questions about itself) still holds.
+
+None of the above needed a superseding ADR of its own — each is additive to a
+contract this ADR already describes, and the two big enough to need their own
+explanation (`groupsFor`, and the JSON dance-file format) already have one.
+
 ## Alternatives considered
 
 - **Keeping the spikes' keyframe tables.** Rejected: a table cannot close to

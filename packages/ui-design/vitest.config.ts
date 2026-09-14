@@ -4,7 +4,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 // default include glob would otherwise pick those up too, double-running (and
 // possibly running a stale copy of) every test after a build. Only `src/`
 // holds tests worth running. Every package in this workspace repeats this
-// same `exclude`, made uniform by M10 (cleanup).
+// same `exclude`, kept uniform by M10 (cleanup).
 export default defineConfig({
   test: { exclude: [...configDefaults.exclude, "**/dist/**"] },
 });

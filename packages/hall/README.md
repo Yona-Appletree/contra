@@ -249,5 +249,7 @@ the spikes and retyped.
   brings every band member to 12.6–14.4 px, without touching a dancer's own
   numbers. The pianist's hands also needed to reach the keyboard — 6+ px
   forward left no reach to spare, so `layoutHall.ts`'s `stage.piano` moved
-  5 px toward the bench instead, which is the one place this milestone
-  touched a prop position.
+  toward the bench instead (`stageTop + 8` to `stageTop + 15`, 7 px — the
+  milestone's own report said 5 px, which the shipped code's own comment
+  does not match; corrected here in M10 cleanup, code left untouched), which
+  is the one place this milestone touched a prop position.
