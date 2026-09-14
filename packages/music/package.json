@@ -14,9 +14,16 @@
     "test:golden": "exit 0"
   },
   "dependencies": {
-    "@caller/core": "workspace:*"
+    "abcjs": "^6.7.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "jsdom": "^30.0.1",
     "typescript": "^5.7.2",
     "vitest": "^4.0.0"
   }
