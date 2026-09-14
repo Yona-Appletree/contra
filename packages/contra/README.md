@@ -421,3 +421,40 @@ starts on a whole beat — neither moves a pixel.
 - **Both dancers flare.** The spike gave the skirt flare to the robin only;
   flare comes from turning, so both get it. Invisible in the demo's default
   look, where nobody wears a skirt.
+
+## The figure primitive language — `src/figures/language/`
+
+A figure can be **data** instead of code. `compileFigureSpec(spec)` returns
+the same `ContraFigure` `contraFigure({ plan })` returns, so a compiled figure
+and a coded one are the same thing to the registry, the decider, `chainCalls`,
+the three oracles and the renderer. See
+[`docs/adr/2026-09-14-figure-primitive-language.md`](../../docs/adr/2026-09-14-figure-primitive-language.md)
+for why the language is an expression calculus rather than flat JSON, and
+what changed shape on contact with this code.
+
+The short version: a hand join round a ring is the midpoint of two dancers'
+shoulders **at the beat being drawn** (`ringHands(ctx, ring, (id) =>
+placeAt(id, t), …)`), so a figure language with no cross-references cannot
+express a figure this library already ships. `{ point: "live", station }` is
+the minimum that can, and it makes the interpreter a three-pass evaluator —
+ends, then every station's place at `t`, then hands against that — rather
+than a template.
+
+`language/expr.ts` holds the calculus (`NumberExpr`, `AngleExpr`,
+`StationExpr`, `PointExpr` and their evaluators), `language/figureSpec.ts`
+the data shape (`FigureSpec`, the `ringWalk` segment, the `down`/`joined`/
+`carried` hand primitive), and `language/compileFigureSpec.ts` the
+interpreter. Specs live in `src/figures/specs/`.
+
+`specs/circleSpec.ts` is `circle` written in it. The coded `circle.ts` and
+`CONTRA_FIGURES` are untouched — coexistence is the default, and the
+compiled figure carries its own id, `circle-data`. Its test is the proof:
+the identical `PoseSample` at every 1/8 beat in both formations across five
+parameter sets, identical `ends`/`moves`/joins and probe numbers, and both
+sequences dancing to identical closure, reach and collision reports with the
+compiled figure swapped in through `createContraRegistry`'s `extra` array.
+
+M1 lands one segment kind (`ringWalk`) and one segment per track. `walk`,
+`orbitPair` and `oscillate`, segment sequencing, `carried` holds, dance-local
+figures and the `describe`/`assertions` fields are later milestones; the
+compiler names the milestone when it meets one.
