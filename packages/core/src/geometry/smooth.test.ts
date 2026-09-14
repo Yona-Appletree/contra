@@ -47,4 +47,15 @@ describe("clamp01 / mix / ramp", () => {
     expect(ramp(3, 2, 3)).toBe(1);
     expect(ramp(99, 2, 3)).toBe(1);
   });
+
+  it("makes a window of no length a step, never NaN", () => {
+    // F3a's finding: `balance` asks for a zero-length release and this was
+    // `smooth(0 / 0)`, so both of its hands were NaN at its last beat and both
+    // arms were drawn as nothing for the 0.4 beats after every balance.
+    for (const t of [-1, 0, 3, 3.9999]) expect(ramp(t, 4, 4)).toBe(0);
+    expect(ramp(4, 4, 4)).toBe(0);
+    expect(ramp(4.0001, 4, 4)).toBe(1);
+    expect(ramp(99, 4, 4)).toBe(1);
+    for (const t of [0, 2, 4, 8]) expect(Number.isNaN(ramp(t, 4, 4))).toBe(false);
+  });
 });
