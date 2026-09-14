@@ -1,6 +1,7 @@
 import type { Beat, Hand, PoseSample, Vec2 } from "@caller/core";
 import { bodyPoint, dirOf, leftOf } from "@caller/core";
 import type { BlitCtx2D } from "../floor/drawFloor.js";
+import type { DrawOptions } from "../person/drawPerson.js";
 import { drawArms, drawBody, drawHead } from "../person/drawPerson.js";
 import { layoutDancer } from "../person/layoutDancer.js";
 import type { Ctx2D } from "../renderer/Ctx2D.js";
@@ -19,6 +20,17 @@ const TAU = Math.PI * 2;
  * shape to carry some of it.
  */
 export const BAND_MOTION_PX = 1;
+
+/** What {@link drawFurniture} takes beyond the hall and the beat. */
+export interface FurnitureOptions {
+  /**
+   * Draw skirts on the band, the caller and the sitters who have one. Default
+   * false, and true only where the dancers' own skirts are drawn — the Stage.
+   * These people are painted into the floor layer rather than the dancer layer,
+   * so the renderer's own `skirts` option cannot reach them.
+   */
+  skirts?: boolean;
+}
 
 /** How far below shoulder height an instrument is held. */
 const INSTRUMENT_DROP_PX = 14;
@@ -83,19 +95,25 @@ const MIC_HEAD = "#4a4442";
  * Like the dancers, the people here are drawn on a supersampled layer and
  * downsampled, so the band and the dance floor are the same kind of pixels.
  */
-export function drawFurniture(g: BlitCtx2D, hall: HallWorld, beat: Beat): void {
+export function drawFurniture(
+  g: BlitCtx2D,
+  hall: HallWorld,
+  beat: Beat,
+  opts: FurnitureOptions = {},
+): void {
   const people: HallPerson[] = [...hall.band, hall.callerPerson, ...hall.sideLines];
   const layer = superLayer(hall);
+  const draw: DrawOptions = { skirts: opts.skirts ?? false };
 
   if (layer === null) {
-    withWorldOrigin(g, hall, 1, () => paintPeople(g, people, beat));
+    withWorldOrigin(g, hall, 1, () => paintPeople(g, people, beat, draw));
     return;
   }
 
   const { canvas, ctx } = layer;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  withWorldOrigin(ctx, hall, SUPERSAMPLE, () => paintPeople(ctx, people, beat));
+  withWorldOrigin(ctx, hall, SUPERSAMPLE, () => paintPeople(ctx, people, beat, draw));
 
   g.save();
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -132,14 +150,14 @@ function withWorldOrigin(g: Ctx2D, hall: HallWorld, scale: number, paint: () => 
   g.restore();
 }
 
-function paintPeople(g: Ctx2D, people: readonly HallPerson[], beat: Beat): void {
+function paintPeople(g: Ctx2D, people: readonly HallPerson[], beat: Beat, draw: DrawOptions): void {
   const sorted = [...people].sort((a, b) => a.p[1] - b.p[1]);
   for (const who of sorted) {
     const pose = posture(who, beat);
     const layout = layoutDancer({ person: who.person, pose }, beat);
-    drawBody(g, layout);
-    drawArms(g, layout);
-    drawHead(g, layout);
+    drawBody(g, layout, draw);
+    drawArms(g, layout, draw);
+    drawHead(g, layout, draw);
     if (who.prop !== undefined) drawProp(g, who.prop, who.p, who.facing, beat);
   }
 }

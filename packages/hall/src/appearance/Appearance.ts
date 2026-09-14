@@ -1,10 +1,12 @@
 import { mulberry32, pick } from "./mulberry32.js";
+import { roleShirtColour } from "./roleColours.js";
 import { shade } from "./shade.js";
 
 /**
- * Everything about how one dancer looks, as flat colours. Nothing here knows
- * about roles or dancing: a role set decides which shirt palette a person draws
- * from, and the renderer only reads these fields.
+ * Everything about how one dancer looks, as flat colours. Nothing here decides
+ * anything about dancing: a caller hands `createAppearance` a role colour to
+ * dress a dancer in, or a palette to dress a non-dancer from, and the renderer
+ * only reads these fields.
  */
 export interface Appearance {
   skin: string;
@@ -16,11 +18,23 @@ export interface Appearance {
   shirt: string;
   shirtDark: string;
   shirtLite: string;
-  /** Set when this person is not wearing a skirt. */
-  pants?: string;
-  /** Set when this person is wearing a skirt; `skirtDark` comes with it. */
-  skirt?: string;
-  skirtDark?: string;
+  /**
+   * Always decided; never drawn, because a true overhead view of a standing
+   * dancer shows two shoes and no legs. Kept so a lower camera is one renderer
+   * away and so the seed already answers the question.
+   */
+  pants: string;
+  /** The skirt and its shadow, always decided — see {@link Appearance.wearsSkirt}. */
+  skirt: string;
+  skirtDark: string;
+  /**
+   * Whether this person wears their skirt. Decided by the seed alone, never by
+   * role (a user ruling of 2026-09-14), and only obeyed where the renderer is
+   * drawing skirts at all — `DrawOptions.skirts`, which the hall turns on and
+   * every other surface leaves off. Both the skirt and the trousers are always
+   * decided, so the same person is the same person in both.
+   */
+  wearsSkirt: boolean;
   /** Only drawn when `hairStyle` is `"cap"`, but always decided, so a cap is one seed away. */
   cap: string;
   capDark: string;
@@ -73,9 +87,13 @@ export const SKIN_TONES: readonly string[] = [
 ];
 
 /**
- * Sixteen shirt colours, the spikes' own palette (director ruling DD13),
- * ordered eight cool then eight warm so a role set can dress one role from
- * each half.
+ * Sixteen shirt colours, the spikes' own palette (director ruling DD13).
+ *
+ * These dress everybody who is **not** dancing a role: the band, the caller,
+ * the sitters along the wall. A dancer's shirt comes from their role colour
+ * instead (`roleShirtColour`), so the palette's old cool/warm halves — which
+ * used to dress larks from one and robins from the other — are gone with the
+ * blue-and-pink they encoded.
  */
 export const SHIRT_COLOURS: readonly string[] = [
   "#4c7fc9",
@@ -95,12 +113,6 @@ export const SHIRT_COLOURS: readonly string[] = [
   "#e0a56a",
   "#e8e2d6",
 ];
-
-/** The cool half of {@link SHIRT_COLOURS} — the two-dancers spike's lark look. */
-export const COOL_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(0, 8);
-
-/** The warm half of {@link SHIRT_COLOURS} — the two-dancers spike's robin look. */
-export const WARM_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(8);
 
 export const HAIR_COLOURS: readonly string[] = [
   "#2a1a11",
@@ -124,6 +136,11 @@ export const PANTS_COLOURS: readonly string[] = [
   "#1f2a3a",
 ];
 
+/**
+ * Ten skirt colours. Drawn from by seed alone, never by role: a skirt is not a
+ * role and never encodes one (a user ruling of 2026-09-14), which is why this
+ * palette keeps its rose and its violet where the role colours could not.
+ */
 export const SKIRT_COLOURS: readonly string[] = [
   "#c95c9e",
   "#7a5cc9",
@@ -142,8 +159,18 @@ export const SHOE_COLOUR = "#2b1d14";
 
 /** Options that let a role set steer the seed without replacing it. */
 export interface AppearanceOptions {
-  /** Force a skirt on or off. Left out, the seed decides, half and half. */
+  /**
+   * Force `wearsSkirt` on or off. Left out, the seed decides, half and half.
+   * Whether the skirt is ever *drawn* is the renderer's `skirts` option, not
+   * this one.
+   */
   skirt?: boolean;
+  /**
+   * Dress this person in `role`'s colour with a per-person spread, rather than
+   * from a flat palette. This is what every dancer gets; the palette is for
+   * everybody else. See `roleColours.ts`.
+   */
+  roleShirt?: string;
   /** Shirt palette to draw from. Defaults to all of {@link SHIRT_COLOURS}. */
   shirts?: readonly string[];
   /** Trail colour. Defaults to the shirt. */
@@ -159,10 +186,15 @@ export function createAppearance(seed: number, opts: AppearanceOptions = {}): Ap
   const skin = pick(rng, SKIN_TONES);
   const hair = pick(rng, HAIR_COLOURS);
   const hairStyle = pick(rng, HAIR_STYLE_BAG);
-  const shirt = pick(rng, opts.shirts ?? SHIRT_COLOURS);
+  const shirt =
+    opts.roleShirt === undefined
+      ? pick(rng, opts.shirts ?? SHIRT_COLOURS)
+      : roleShirtColour(opts.roleShirt, rng);
+  // Both are always drawn, and always from the same two draws, so that turning
+  // the renderer's skirts on or off changes what is drawn and nothing else.
   const wearsSkirt = opts.skirt ?? rng() < 0.5;
-  const skirt = wearsSkirt ? pick(rng, SKIRT_COLOURS) : undefined;
-  const pants = wearsSkirt ? undefined : pick(rng, PANTS_COLOURS);
+  const skirt = pick(rng, SKIRT_COLOURS);
+  const pants = pick(rng, PANTS_COLOURS);
   const cap = pick(rng, ["#8a2b2b", "#2b4a8a", "#3a3a3a", "#6a8a3a"]);
 
   return {
@@ -175,8 +207,10 @@ export function createAppearance(seed: number, opts: AppearanceOptions = {}): Ap
     shirt,
     shirtDark: shade(shirt, 0.72),
     shirtLite: shade(shirt, 1.18),
-    ...(pants === undefined ? {} : { pants }),
-    ...(skirt === undefined ? {} : { skirt, skirtDark: shade(skirt, 0.75) }),
+    pants,
+    skirt,
+    skirtDark: shade(skirt, 0.75),
+    wearsSkirt,
     cap,
     capDark: shade(cap, 0.7),
     trailColour: opts.trailColour ?? shirt,

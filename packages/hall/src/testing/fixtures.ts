@@ -32,6 +32,12 @@ export interface Fixture {
   world: World;
   frame: Frame;
   /**
+   * Draw skirts on the dancers who have one. Default false: skirts are the big
+   * hall's look (a user ruling of 2026-09-14), and the pair fixtures are move
+   * examples, which show the clothes colours alone.
+   */
+  skirts?: boolean;
+  /**
    * Paint the floor layer before the frame is drawn. The dancer fixtures leave
    * it empty and sit on the backdrop; the hall fixtures paint the boards, the
    * walls, the band and the caller's bubble into it, which is the only thing
@@ -95,8 +101,10 @@ function facingsFixture(): Fixture {
   }
   return {
     name: "facings",
-    description: "One dancer at each of the eight facings, 45° apart.",
+    description: "One dancer at each of the eight facings, 45° apart, four in skirts.",
     world: { ...DEFAULT_WORLD },
+    // The one fixture that exercises the skirt: alternate dancers wear one.
+    skirts: true,
     frame: { beat: 0, people, roleSet: CONTRA_ROLE_SET },
   };
 }
@@ -126,8 +134,8 @@ function twoHandHoldFixture(): Fixture {
         id: role,
         role,
         seed,
-        skirt: role === "robin",
-        roleShirts: CONTRA_ROLE_SET,
+        skirt: false,
+        roleShirts: true,
       }),
       pose: restingPose(p, facing, facing, { hands }),
     };
@@ -176,7 +184,7 @@ function swingFixture(): Fixture {
         role: "lark",
         seed: 601,
         skirt: false,
-        roleShirts: CONTRA_ROLE_SET,
+        roleShirts: true,
       }),
       pose: restingPose(larkP, larkA, robinA + 180, {
         hands: { L: outside, R: larkRight },
@@ -190,10 +198,8 @@ function swingFixture(): Fixture {
         id: "robin",
         role: "robin",
         seed: 707,
-        // No skirt: a flared skirt at this radius covers the lark, and the
-        // point of this fixture is the arms. `facings` exercises skirts.
         skirt: false,
-        roleShirts: CONTRA_ROLE_SET,
+        roleShirts: true,
       }),
       pose: restingPose(robinP, robinA, larkA + 180, {
         hands: { L: robinLeft, R: outside },
@@ -225,6 +231,7 @@ function emptyHallFixture(): Fixture {
     name: "hall-empty-2-lines",
     description: "Two lines, five couples and four, with nobody dancing yet.",
     world: { ...DEMO_HALL.world },
+    skirts: true,
     frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
     paint: (renderer) => paintHall(renderer, false),
   };
@@ -236,6 +243,7 @@ function hallBubbleFixture(): Fixture {
     name: "hall-bubble",
     description: `The caller calling "${BUBBLE_CALL}" in the bitmap font.`,
     world: { ...DEMO_HALL.world },
+    skirts: true,
     frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
     paint: (renderer) => paintHall(renderer, true),
   };
@@ -245,7 +253,7 @@ function paintHall(renderer: Renderer, bubble: boolean): void {
   const g = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
   if (g === null) return;
   drawFloor(g, DEMO_HALL, "grange");
-  drawFurniture(g, DEMO_HALL, 0);
+  drawFurniture(g, DEMO_HALL, 0, { skirts: true });
   if (bubble) {
     // Anchored on the caller's head, which is where the tail has to land.
     drawBubble(g, FONT, BUBBLE_CALL, DEMO_HALL.caller, { world: DEMO_HALL.world });

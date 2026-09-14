@@ -29,7 +29,11 @@ function FixtureFrame({
     const canvas = ref.current;
     if (canvas === null) return;
     const f = fixture(name);
-    const renderer = createRenderer(canvas, { world: { ...f.world, zoom }, aa });
+    const renderer = createRenderer(canvas, {
+      world: { ...f.world, zoom },
+      aa,
+      skirts: f.skirts ?? false,
+    });
     if (floor !== "") {
       const g = renderer.layers.floor.getContext("2d");
       if (g !== null) {

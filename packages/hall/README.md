@@ -108,15 +108,31 @@ clears it within a dance — `clearTrails()` is for the gap between dances.
 `FrameDancer.trail` is the list of points to add this frame (omitted: the
 dancer's current position); a gap longer than `TRAIL_BREAK_PX` starts a new
 stroke rather than drawing a line across the hall after a seek. Colours are the
-hall spike's: larks blue, robins rose, the ones darker (`roleTrailColour`).
+role colours, the ones darker (`roleTrailColour`) — the same two hues the trace
+pens draw with, so a dancer and their own ink match.
 
 ### Appearance
 
 `createPerson({ id, role, seed })` is a pure function of the seed: six skin
-tones, sixteen shirt colours, seven hair styles (short, long, bob, curly, bald,
-cap, bun), a skirt or trousers. `roleShirts` puts the role set's `top` role in
-the warm half of the palette and everyone else in the cool half — the
-two-dancers spike's default look — but dress is not role, so it is opt-in.
+tones, seven hair styles (short, long, bob, curly, bald, cap, bun), a skirt and
+a pair of trousers, and a shirt.
+
+`roleShirts: true` — every dancer — dresses that shirt in the **role colour**
+(`appearance/roleColours.ts`: larks gold, robins red, everybody else a warm
+neutral) with a per-person spread of hue ±8°, saturation ×0.90–1.18 and
+lightness ×0.74–1.10, so a hall of thirty is thirty shirts and every one of
+them still reads gold or red from above at 1×. Without it a person is dressed
+from `SHIRT_COLOURS`, the spikes' sixteen, which is what the band, the caller
+and the sitters get: they are not dancing a role. `ROLE_COLOURS` is a user
+ruling of 2026-09-14 and a rendering-contract invariant — see
+[`docs/role-colours.md`](../../docs/role-colours.md), and
+`appearance/roleColours.test.ts`, which is the ruling written as a test.
+
+**A skirt is never role.** `wearsSkirt` comes from the seed alone, and both a
+skirt colour and a trousers colour are always decided, so turning skirts on or
+off changes what is drawn and nothing else. They are only drawn where the
+renderer's `skirts` option says so: the Stage sets it, the Moves tiles, the
+pair page, the strips and the trace views do not, and the default is false.
 
 ## The hall: world, floor, furniture
 
@@ -217,10 +233,10 @@ same shape in both directions.
 **`ROLE_COLOURS` is larks gold and robins red**, the ones darker than the twos
 (a user ruling of 2026-09-14, replacing the blue-and-pink of the exploration
 post, which read as a claim about gender that contra's role names exist to
-avoid). It is one exported constant so that anything else that colours by role
-uses the same two hues. `TRAIL_COLOURS` in `person/Person.ts` is the older
-blue-and-rose trail palette, still what the golden frames pin; moving it onto
-these two is a renderer change and belongs to whichever milestone owns it.
+avoid). It lives in `appearance/roleColours.ts`, not here, because it is one
+exported constant for everything that colours by role: `penColour` shades it by
+rank for the plates, `roleTrailColour` shades it the same way for the floor,
+and `roleShirtColour` spreads it per person for the clothes.
 
 Two things the post's plates could not do, both from community feedback on it:
 each pen's whole path is nudged a couple of pixels along a **diagonal**, so the

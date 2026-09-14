@@ -87,9 +87,26 @@ From `plan.md` AC2 and AC3 — any change to these numbers is a reversal
 - Shoulders **11 px**, arm reach **15 px**, hold spacing **14 px**, the two
   lines **18 px** further apart than a single pair's spacing, **4 cm per
   px**.
-- All of the above are unit tests in `@caller/core`, not just numbers in
-  this file. Gate G1 confirms the pair against the two-dancers spike; gate
-  G2 confirms the hall against the hall spike.
+- **Role colours are lark = gold `#e0a32e`, robin = red `#c8362f`.** Nothing
+  that distinguishes the roles may be blue-ish for larks or pink-ish for
+  robins — in any renderer, view, trace, chart, card or document. One
+  exported constant carries the two (`ROLE_COLOURS` in
+  `packages/hall/src/appearance/roleColours.ts`) and every renderer reads
+  it: the dancers' clothes, their floor trails, the trace pens, the
+  legends. A user ruling of 2026-09-14; see [docs/role-colours.md](./docs/role-colours.md).
+  The blue-and-pink it replaced read as a claim about gender, which is
+  exactly what contra's role names exist to avoid. Written as a test —
+  blue is hue 190°–270°, pink 290°–350°, in
+  `packages/hall/src/appearance/roleColours.test.ts` — so it cannot
+  regress.
+- **Dress is never role.** A skirt is decided by a dancer's seed alone, and
+  is drawn only where the renderer's `skirts` option says so: the Stage,
+  and nowhere else. A move example — the Moves tiles, the pair page, the
+  strips, the trace views — shows the clothes colours and the move.
+- All of the above are unit tests in `@caller/core` (and, for the role
+  colours, in `@caller/hall`), not just numbers in this file. Gate G1
+  confirms the pair against the two-dancers spike; gate G2 confirms the
+  hall against the hall spike.
 
 ## Validation
 

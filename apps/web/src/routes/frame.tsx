@@ -28,7 +28,11 @@ export function FramePage({ params }: { params: URLSearchParams }): JSX.Element 
     try {
       const f = fixture(name);
       frame = f.frame;
-      renderer = createRenderer(canvas, { world: { ...f.world, zoom }, aa });
+      renderer = createRenderer(canvas, {
+        world: { ...f.world, zoom },
+        aa,
+        skirts: f.skirts ?? false,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return;

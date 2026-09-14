@@ -36,7 +36,6 @@ export { HEAD_TURN_LIMIT_DEG, HEAD_TURN_RELEASE_DEG, headLook } from "./person/h
 // appearance
 export type { Appearance, AppearanceOptions, HairStyle } from "./appearance/Appearance.js";
 export {
-  COOL_SHIRTS,
   HAIR_COLOURS,
   HAIR_STYLES,
   HAIR_STYLE_BAG,
@@ -45,11 +44,25 @@ export {
   SHOE_COLOUR,
   SKIN_TONES,
   SKIRT_COLOURS,
-  WARM_SHIRTS,
   createAppearance,
 } from "./appearance/Appearance.js";
 export { mulberry32, pick } from "./appearance/mulberry32.js";
-export { hexToRgb, shade } from "./appearance/shade.js";
+export { hexToHsl, hexToRgb, hslToHex, rgbToHex, shade } from "./appearance/shade.js";
+
+// the two role colours, and the rule that says what they may not be
+export {
+  FORBIDDEN_ROLE_HUE_BANDS,
+  ONES_SHADE,
+  ROLE_COLOURS,
+  SHIRT_HUE_SPREAD_DEG,
+  SHIRT_LIGHTNESS_SPREAD,
+  SHIRT_SATURATION_SPREAD,
+  TWOS_SHADE,
+  forbiddenRoleHue,
+  rankShade,
+  roleColour,
+  roleShirtColour,
+} from "./appearance/roleColours.js";
 
 // the hall itself: where everything stands, and what it is painted in
 export type {
@@ -77,6 +90,7 @@ export {
 } from "./world/layoutHall.js";
 export type { BlitCtx2D, HallPalette, HallTheme } from "./floor/drawFloor.js";
 export { HALL_THEMES, clearFloorCache, drawFloor } from "./floor/drawFloor.js";
+export type { FurnitureOptions } from "./furniture/drawFurniture.js";
 export {
   BAND_MOTION_PX,
   clearFurnitureLayer,
@@ -135,11 +149,8 @@ export type {
   TraceViewSpan,
 } from "./traces/TraceView.js";
 export {
-  ONES_SHADE,
-  ROLE_COLOURS,
   TRACE_FAMILY_COLOURS,
   TRACE_PALETTE,
-  TWOS_SHADE,
   familyColour,
   penColour,
 } from "./traces/TraceView.js";

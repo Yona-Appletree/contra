@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  COOL_SHIRTS,
   HAIR_STYLES,
   HAIR_STYLE_BAG,
   SHIRT_COLOURS,
   SKIN_TONES,
-  WARM_SHIRTS,
+  SKIRT_COLOURS,
   createAppearance,
 } from "./Appearance.js";
 import { mulberry32 } from "./mulberry32.js";
-import { hexToRgb, shade } from "./shade.js";
+import { hexToHsl, hexToRgb, hslToHex, shade } from "./shade.js";
 
 describe("createAppearance", () => {
   it("is a pure function of the seed", () => {
@@ -37,20 +36,25 @@ describe("createAppearance", () => {
     expect(seen.style.size).toBe(7);
   });
 
-  it("puts every dancer in either a skirt or trousers, never both or neither", () => {
+  it("dresses every dancer in both a skirt and trousers, and says which they wear", () => {
+    const wearing = new Set<boolean>();
     for (let seed = 0; seed < 200; seed++) {
       const a = createAppearance(seed);
-      expect((a.skirt === undefined) !== (a.pants === undefined)).toBe(true);
-      if (a.skirt !== undefined) expect(a.skirtDark).toBeDefined();
+      expect(SKIRT_COLOURS).toContain(a.skirt);
+      expect(a.skirtDark).not.toBe(a.skirt);
+      expect(a.pants).toBeDefined();
+      wearing.add(a.wearsSkirt);
     }
+    // Roughly half and half, from the seed alone.
+    expect(wearing).toEqual(new Set([true, false]));
   });
 
   it("honours a forced skirt and a restricted shirt palette", () => {
-    expect(createAppearance(5, { skirt: true }).skirt).toBeDefined();
-    expect(createAppearance(5, { skirt: false }).skirt).toBeUndefined();
+    expect(createAppearance(5, { skirt: true }).wearsSkirt).toBe(true);
+    expect(createAppearance(5, { skirt: false }).wearsSkirt).toBe(false);
+    const half = SHIRT_COLOURS.slice(0, 8);
     for (let seed = 0; seed < 50; seed++) {
-      expect(COOL_SHIRTS).toContain(createAppearance(seed, { shirts: COOL_SHIRTS }).shirt);
-      expect(WARM_SHIRTS).toContain(createAppearance(seed, { shirts: WARM_SHIRTS }).shirt);
+      expect(half).toContain(createAppearance(seed, { shirts: half }).shirt);
     }
   });
 
@@ -79,6 +83,27 @@ describe("shade", () => {
     expect(shade("#ffffff", 2)).toBe("#ffffff");
     expect(shade("#804020", 0)).toBe("#000000");
     expect(() => shade("red", 1)).toThrow();
+  });
+});
+
+describe("hexToHsl and hslToHex", () => {
+  it("round-trip every palette colour to within one channel step", () => {
+    for (const hex of [...SHIRT_COLOURS, ...SKIRT_COLOURS, "#000000", "#ffffff", "#808080"]) {
+      const [h, s, l] = hexToHsl(hex);
+      const back = hslToHex(h, s, l);
+      const [r0, g0, b0] = hexToRgb(hex);
+      const [r1, g1, b1] = hexToRgb(back);
+      expect(Math.max(Math.abs(r1 - r0), Math.abs(g1 - g0), Math.abs(b1 - b0))).toBeLessThanOrEqual(
+        1,
+      );
+    }
+  });
+
+  it("puts the grey axis at zero saturation and the primaries on their hues", () => {
+    expect(hexToHsl("#808080")[1]).toBe(0);
+    expect(hexToHsl("#ff0000")[0]).toBe(0);
+    expect(hexToHsl("#00ff00")[0]).toBe(120);
+    expect(hexToHsl("#0000ff")[0]).toBe(240);
   });
 });
 
