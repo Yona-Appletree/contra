@@ -41,6 +41,14 @@ interface Player {
 }
 function createPlayer(ctx?: AudioContext): Player;
 
+// The applause between two dances, src/player/applause.ts
+function renderApplause(sampleRate: number, options?: Partial<ApplauseOptions>): Float32Array;
+function playApplause(
+  ctx: AudioContext,
+  when?: number,
+  options?: Partial<ApplauseOptions>,
+): AudioBufferSourceNode;
+
 // React components, src/ui/
 function Notation(props: { tune: Tune; beat: Beat }): JSX.Element;
 function Card(props: CardProps): JSX.Element;
@@ -56,6 +64,21 @@ interface CardFigure {
   call?: string | undefined;
 }
 ```
+
+### The applause
+
+`renderApplause` writes 3.2 seconds of a hall clapping into a `Float32Array`,
+sample by sample: fourteen clappers, each at its own rate between 2.6 and 4.6
+claps a second with a fifteen per cent jitter on every clap so no two of them
+stay in phase, each clap a burst of white noise under a two-part exponential
+decay (a 6 ms transient and a 35 ms body), one-pole-filtered at that clapper's
+own brightness, all of it under a swell that rises over 0.2 s and dies away
+over the last second, and the sum normalised so the peak does not depend on how
+many people are clapping. It is plain arithmetic, so it is pure, seeded and
+testable with no `AudioContext` at all; `playApplause` is the three lines that
+copy it into a buffer and start it. **No sample file and no new dependency** —
+which is the point, and why it is written out rather than synthesised through a
+graph of `AudioNode`s.
 
 `CardProps["dance"]` is structural, and `@caller/choreo`'s `Dance` satisfies
 it exactly — so the card draws a real dance with no shim and no conversion

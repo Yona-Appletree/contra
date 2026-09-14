@@ -103,16 +103,20 @@ test("play primes the tune and starts the audio clock (AC4, DD12)", async ({ pag
 });
 
 /**
- * The line-up is silent, and the next tune comes in at its own beat 0.
+ * The between-dances interval is silent, and the next tune comes in at its own
+ * beat 0.
  *
- * A programme item is 136 beats — over a minute of wall clock — so the page's
- * `seek` hook jumps to four beats before the end of the first dance's last time
- * through and the switch is watched from there. What this proves that the unit
- * test cannot is that the page's own hand-over runs: the tune is the clock, it
- * stops, the silent clock carries the eight line-up beats, and the tune takes
- * over again without the evening's beat going backwards.
+ * A programme item is 164 beats — nearly a minute and a half of wall clock — so
+ * the page's `seek` hook jumps to four beats before the end of the first dance's
+ * last time through and the switch is watched from there. What this proves that
+ * the unit test cannot is that the page's own hand-over runs: the tune is the
+ * clock, it stops, the silent clock carries the whole 36-beat interval, the
+ * hall's applause fires at the moment it stops, and the tune takes over again
+ * without the evening's beat going backwards.
  */
-test("the eight-beat line-up is silent and the next tune starts at beat 0", async ({ page }) => {
+test("the between-dances interval is silent, claps, and the next tune starts at beat 0", async ({
+  page,
+}) => {
   await page.goto(`#/dance/${FIRST_DANCE}`);
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
   await page.getByTestId("hall-play").click();
@@ -123,7 +127,8 @@ test("the eight-beat line-up is silent and the next tune starts at beat 0", asyn
     timeout: 20_000,
   });
 
-  // Two times through of 64 beats, then the eight-beat line-up.
+  // Two times through of 64 beats, then the 36-beat interval.
+  expect(await page.evaluate(() => window.hallDemo?.applause())).toBe(0);
   await page.evaluate(() => window.hallDemo?.seek(124));
   const before = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
   // A shade under 124: `Player.play` schedules its buffer `START_LATENCY`
@@ -138,21 +143,86 @@ test("the eight-beat line-up is silent and the next tune starts at beat 0", asyn
   });
   const lineUp = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
   expect(lineUp).toBeGreaterThanOrEqual(128);
-  expect(lineUp).toBeLessThan(136 + 2);
+  expect(lineUp).toBeLessThan(164 + 2);
 
-  // And comes back in with the next dance.
+  // And the hall applauds, once, at that moment. Nothing headless can hear it
+  // (DD12); that it fired exactly once is as far as this can go.
+  expect(await page.evaluate(() => window.hallDemo?.applause())).toBe(1);
+
+  // The silent clock carries the interval on its own, with nothing playing.
+  await page.waitForTimeout(400);
+  const carried = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  expect(carried).toBeGreaterThan(lineUp);
+  expect(carried).toBeLessThan(164);
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(false);
+
+  // Thirty-six silent beats is nineteen seconds of wall clock, which is longer
+  // than a Playwright test should sit and watch, so the last six of them are
+  // what is actually watched: still inside the interval, still silent, and the
+  // page notices the next dance for itself from there.
+  await page.evaluate(() => window.hallDemo?.seek(158));
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(false);
+
+  // And the tune comes back in with the next dance.
   await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
     timeout: 20_000,
   });
   const after = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
-  // The second dance starts at 136 and the tune comes back with it, never
+  // The second dance starts at 164 and the tune comes back with it, never
   // before it and never in the dance after. How far into it the frame loop
   // happens to notice depends on how long a headless frame took; the *phase*
   // is exact by construction, and `musicClock.test.ts` is where that is
   // measured.
-  expect(after).toBeGreaterThanOrEqual(136);
-  expect(after).toBeLessThan(136 + 128);
+  expect(after).toBeGreaterThanOrEqual(164);
+  expect(after).toBeLessThan(164 + 128);
   expect(await page.evaluate(() => window.hallDemo?.audioState())).toBe("running");
+});
+
+/**
+ * What the caller says between two dances (B1).
+ *
+ * The bubble is pixels on a canvas, so what is read here is the string the page
+ * drew into it — `window.hallDemo.call(beat)`, the same function `draw` uses.
+ * Airpants leads the programme and Butter is next, so this is the becket
+ * announcement: the title and author, then the user's own three lines. The
+ * page is frozen at the end of the interval so the decider has produced the
+ * whole of it.
+ */
+test("the caller announces the next dance, and says the becket lines for a becket one", async ({
+  page,
+}) => {
+  await openHall(page, { dance: FIRST_DANCE, beat: 164, zoom: 2 });
+  const said = await page.evaluate(() => {
+    const call = (beat: number): string | undefined => window.hallDemo?.call(beat);
+    return {
+      // 128 is where the dancing stops: eight beats of applause.
+      thanks: call(130),
+      band: call(134),
+      // 136 is where the announcement starts: four bubbles, four beats each.
+      title: call(138),
+      handsFour: call(142),
+      turn: call(146),
+      side: call(150),
+      // 152 walks, 160 stands ready.
+      walking: call(155),
+      ready: call(161),
+    };
+  });
+
+  expect(said.thanks).toBe("THANK YOUR PARTNER");
+  expect(said.band).toBe("THANK THE BAND");
+  expect(said.title).toBe("NEXT: BUTTER, BY GENE HUBERT");
+  expect(said.handsFour).toBe("TAKE HANDS FOUR");
+  expect(said.turn).toBe("TURN ONE PLACE TO YOUR LEFT");
+  expect(said.side).toBe("PARTNER BESIDE YOU ON THE SIDE OF THE SET");
+  // Nothing new is said over the walk, so the last announcement bubble stays up.
+  expect(said.walking).toBe("PARTNER BESIDE YOU ON THE SIDE OF THE SET");
+  expect(said.ready).toBe("HERE WE GO");
+});
+
+test("the card says which part of the interval the hall is in", async ({ page }) => {
+  await openHall(page, { dance: FIRST_DANCE, beat: 140, zoom: 2 });
+  await expect(page.getByTestId("hall-status")).toHaveText("The caller announces Butter");
 });
 
 test("the trails toggle and the zoom buttons change the canvas", async ({ page }) => {
@@ -187,6 +257,7 @@ declare global {
       primed: () => boolean;
       beat: () => number;
       musicOn: () => boolean;
+      applause: () => number;
       seek: (to: number) => void;
       call: (at?: number) => string;
       bench: (frames: number) => number[];

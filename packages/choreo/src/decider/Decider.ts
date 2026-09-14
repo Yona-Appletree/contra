@@ -65,22 +65,68 @@ export interface ScriptPosition {
   beat: Beat;
 }
 
-/** Tuning for {@link import('./createScriptDecider.js').createScriptDecider}. */
+/**
+ * Tuning for {@link import('./createScriptDecider.js').createScriptDecider}.
+ *
+ * The four `*Beats` numbers are the between-dances interval, in that order:
+ * the music stops on the tune's last bar, the hall applauds, the caller
+ * announces the next dance, everybody walks to their new places, and then they
+ * stand ready for a phrase while the caller says "here we go". Nothing plays
+ * through any of it — see `apps/web/src/program.ts`.
+ */
 export interface ScriptDeciderOptions {
-  /** Beats between dances, spent walking to the new dance's start stations. */
-  lineUpBeats: Beat;
-  /** Beats before the end of the last time through that the next dance is announced. */
+  /** Beats the hall claps for at the end of a dance, before anything is said. */
+  applauseBeats: Beat;
+  /** Beats the caller spends announcing the next dance, standing still. */
   announceBeats: Beat;
+  /** Beats spent walking to the new dance's start places, after the announcement. */
+  lineUpBeats: Beat;
+  /** Beats everybody stands in their new places before the next tune starts. */
+  readyBeats: Beat;
+  /** What the caller says over the applause, one bubble each. */
+  applauseCalls: readonly string[];
+  /**
+   * What the caller says to get the hall into a formation that names no words
+   * of its own ({@link import('../formation/Formation.js').Formation.lineUpCalls}).
+   */
+  lineUpCalls: readonly string[];
+  /** What the caller says over the last beats before the tune comes in. */
+  readyCall: string;
   /** Beats a call keeps being said after its figure starts. */
   utteranceTailBeats: Beat;
   /** The beat the program starts on. */
   startBeat: Beat;
 }
 
+/** What the caller says once everybody has lined up for a new dance. */
+export const HANDS_FOUR = "HANDS FOUR FROM THE TOP";
+
+/** What the caller says over the last beats before the tune comes back in. */
+export const HERE_WE_GO = "HERE WE GO";
+
+/** What the caller says over the applause, one bubble each. */
+export const APPLAUSE_CALLS: readonly string[] = ["THANK YOUR PARTNER", "THANK THE BAND"];
+
 /** The pacing the demo uses, all overridable. */
 export const SCRIPT_DECIDER_DEFAULTS: ScriptDeciderOptions = {
+  applauseBeats: 8,
+  announceBeats: 16,
   lineUpBeats: 8,
-  announceBeats: 8,
+  readyBeats: 4,
+  applauseCalls: APPLAUSE_CALLS,
+  lineUpCalls: [HANDS_FOUR],
+  readyCall: HERE_WE_GO,
   utteranceTailBeats: 2,
   startBeat: 0,
 };
+
+/**
+ * How long the whole gap between two dances is, in beats.
+ *
+ * Read from the options rather than written down twice: `apps/web`'s programme
+ * arithmetic (`ITEM_BEATS`, `musicBeatOf`, `programBeatOf`) has to agree with
+ * the decider exactly or the tune drifts against the dance, and the only way
+ * to keep two numbers equal is to have one.
+ */
+export const betweenDancesBeats = (opts: ScriptDeciderOptions): Beat =>
+  opts.applauseBeats + opts.announceBeats + opts.lineUpBeats + opts.readyBeats;

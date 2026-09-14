@@ -10,8 +10,15 @@ import { SQUARE } from "../testing/square.js";
 import { coverageProblems } from "../testing/oracles.js";
 import { poseAt } from "../timeline/poseAt.js";
 import type { FigureEvent, UtteranceEvent } from "../timeline/Timeline.js";
-import { createLibrary } from "./Decider.js";
-import { HANDS_FOUR, createScriptDecider } from "./createScriptDecider.js";
+import {
+  APPLAUSE_CALLS,
+  HANDS_FOUR,
+  HERE_WE_GO,
+  SCRIPT_DECIDER_DEFAULTS,
+  betweenDancesBeats,
+  createLibrary,
+} from "./Decider.js";
+import { createScriptDecider } from "./createScriptDecider.js";
 
 const PHRASES: readonly PhraseName[] = ["A1", "A2", "B1", "B2"];
 
@@ -127,52 +134,90 @@ describe("switching dances", () => {
     ],
   };
 
-  it("announces the next dance over the last eight beats of the last time through", () => {
-    const { timeline } = run(program, 64);
-    const announce = timeline.utterances().find((u) => u.text.startsWith("NEXT DANCE"))!;
-    expect(announce.text).toBe("NEXT DANCE: SECOND DANCE BY ANOTHER CALLER");
-    // Two times through of a 64-beat dance ends at 128.
-    expect(announce.start).toBe(120);
-    expect(announce.end).toBe(128);
-  });
+  /** Two times through of a 64-beat dance ends here, and the gap starts. */
+  const GAP = 128;
+  const { applauseBeats, announceBeats, lineUpBeats, readyBeats } = SCRIPT_DECIDER_DEFAULTS;
+  const ANNOUNCE = GAP + applauseBeats;
+  const WALK = ANNOUNCE + announceBeats;
+  const READY = WALK + lineUpBeats;
+  const NEXT = READY + readyBeats;
 
-  it("leaves an eight-beat line-up gap and then calls hands four", () => {
-    const { timeline } = run(program, 140);
-    const handsFour = timeline.utterances().find((u) => u.text === HANDS_FOUR)!;
-    expect(handsFour.start).toBe(132);
-    expect(handsFour.end).toBe(136);
-
+  it("applauds first, where the dancing stopped, before anything is announced", () => {
+    const { timeline } = run(program, GAP + 4);
     const lark = timeline.dancers().find((d) => d.endsWith("c0/lark"))!;
-    const gap = timeline.figuresOf(lark).find((f) => f.start === 128)!;
-    expect(gap.figure).toBe("walk-to-station");
-    expect(gap.end).toBe(136);
+    const clap = timeline.figuresOf(lark).find((f) => f.start === GAP)!;
+    expect(clap.figure).toBe("applaud");
+    expect(clap.end).toBe(ANNOUNCE);
+
+    const said = timeline
+      .utterances()
+      .filter((u) => u.start >= GAP && u.start < ANNOUNCE)
+      .map((u) => u.text);
+    expect(said).toEqual([...APPLAUSE_CALLS]);
   });
 
-  it("starts the new dance after the gap", () => {
-    const { timeline } = run(program, 200);
+  it("announces the next dance after the applause, then how to stand for it", () => {
+    const { timeline } = run(program, ANNOUNCE + 4);
+    const announced = timeline.utterances().filter((u) => u.start >= ANNOUNCE && u.start < WALK);
+    expect(announced.map((u) => u.text)).toEqual([
+      "NEXT: SECOND DANCE, BY ANOTHER CALLER",
+      // SQUARE names no words of its own, so the decider's default is said.
+      HANDS_FOUR,
+    ]);
+    expect(announced[0]!.start).toBe(ANNOUNCE);
+    expect(announced[1]!.end).toBe(WALK);
+  });
+
+  it("stands still through the announcement and walks only after it", () => {
+    const { timeline } = run(program, WALK + 4);
+    const lark = timeline.dancers().find((d) => d.endsWith("c0/lark"))!;
+    const stand = timeline.figuresOf(lark).find((f) => f.start === ANNOUNCE)!;
+    expect(stand.figure).toBe("walk-to-station");
+    expect(stand.end).toBe(WALK);
+
+    const walk = timeline.figuresOf(lark).find((f) => f.start === WALK)!;
+    expect(walk.figure).toBe("walk-to-station");
+    expect(walk.end).toBe(READY);
+  });
+
+  it("stands ready and says here we go over the last beats of the gap", () => {
+    const { timeline } = run(program, NEXT);
+    const ready = timeline.utterances().find((u) => u.text === HERE_WE_GO)!;
+    expect(ready.start).toBe(READY);
+    expect(ready.end).toBe(NEXT);
+  });
+
+  it("leaves no gap and no overlap for anybody across the whole interval", () => {
+    const { timeline } = run(program, NEXT + 16);
+    expect(coverageProblems(timeline, GAP - 4, NEXT + 4)).toEqual([]);
+  });
+
+  it("starts the new dance after the whole interval", () => {
+    const { timeline } = run(program, 300);
+    expect(betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS)).toBe(NEXT - GAP);
     const said = timeline.utterances().filter((u) => u.text.startsWith("A1 OF SECOND DANCE"));
-    expect(said[0]!.start).toBe(136 - WALK_TO_STATION.lead);
+    expect(said[0]!.start).toBe(NEXT - WALK_TO_STATION.lead);
   });
 
   it("loops the program, so the demo cycles with nobody touching it", () => {
-    const { timeline } = run(program, 400);
+    const { timeline } = run(program, 3 * (GAP + (NEXT - GAP)));
     const announced = timeline
       .utterances()
-      .filter((u) => u.text.startsWith("NEXT DANCE"))
+      .filter((u) => u.text.startsWith("NEXT:"))
       .map((u) => u.text);
     expect(announced).toEqual([
-      "NEXT DANCE: SECOND DANCE BY ANOTHER CALLER",
-      "NEXT DANCE: FIRST DANCE BY A CALLER",
-      "NEXT DANCE: SECOND DANCE BY ANOTHER CALLER",
+      "NEXT: SECOND DANCE, BY ANOTHER CALLER",
+      "NEXT: FIRST DANCE, BY A CALLER",
+      "NEXT: SECOND DANCE, BY ANOTHER CALLER",
     ]);
   });
 
-  it("does not announce or line up when the next item is the same dance", () => {
+  it("does not applaud, announce or line up when the next item is the same dance", () => {
     const { timeline } = run(
       { slug: "p", items: [{ dance: "one", medley: "m", timesThrough: 1 }] },
       200,
     );
-    expect(timeline.utterances().some((u) => u.text.startsWith("NEXT DANCE"))).toBe(false);
+    expect(timeline.utterances().some((u) => u.text.startsWith("NEXT:"))).toBe(false);
     expect(figures(timeline.figures()).every((f) => f.end - f.start === 16)).toBe(true);
   });
 });

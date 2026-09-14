@@ -44,16 +44,27 @@ A four-line hash router (`src/routes/hashRoute.ts`).
   player clock — a linear function of `AudioContext.currentTime` — while a
   tune is playing (plan AC4). Nothing else reads a timer.
 
-  **The line-up is silent.** A dance is two times through of 64 beats and the
-  medley switches tune every 64; the line-up between two dances is 8. If the
-  tune kept looping through the line-up, every dance switch would put the
-  music eight beats out of phase with the dance, and after eight switches the
-  drift would be a whole time through — which is what M9 measured. So the
-  player stops at the end of the last time through, the silent clock carries
-  the eight line-up beats, and the next tune starts at **its own beat 0**
-  exactly as the next dance does. The page's beat is the tune's beat read back
-  through `programBeatOf` while the tune is the clock, so the notation, the
-  card and the dancers all still read one clock.
+  **The dance stops between dances, and the gap is silent.** A dance is two
+  times through of 64 beats and the medley switches tune every 64; the gap
+  between two dances is 36 — 8 beats of applause, 16 of the caller announcing
+  the next dance, 8 walking to places and 4 standing ready. If the tune kept
+  looping through it, every dance switch would put the music 36 beats out of
+  phase with the dance and two switches would be more than a whole time
+  through — which is the drift M9 measured, only worse. So the player stops at
+  the end of the last time through, the silent clock carries the whole
+  interval, and the next tune starts at **its own beat 0** exactly as the next
+  dance does. The page's beat is the tune's beat read back through
+  `programBeatOf` while the tune is the clock, so the notation, the card and
+  the dancers all still read one clock.
+
+  The interval's lengths are not written down here: `program.ts` reads them off
+  `SCRIPT_DECIDER_DEFAULTS` (`betweenDancesBeats`), because the page's
+  arithmetic and the decider's have to agree exactly or the tune drifts.
+
+  **The applause is a sound as well as a pose.** At the beat the tune stops the
+  page fires `@caller/music`'s `playApplause` on the same `AudioContext` —
+  noise rendered sample by sample, no sample file, no new dependency — and the
+  dancers dance `@caller/choreo`'s `applaud`.
 
 - `src/hall.css` — the rules for `@caller/music`'s card and notation, which
   shipped with class names and no stylesheet because nothing had put them on
@@ -62,8 +73,8 @@ A four-line hash router (`src/routes/hashRoute.ts`).
 ## Tests
 
 `e2e/hall.spec.ts` (the front page: it draws, the caller's calls, the dance
-selector, the audio clock, the silent line-up, and the two front-page
-goldens),
+selector, the audio clock, the silent between-dances interval, what the caller
+announces over it, and the two front-page goldens),
 `e2e/frame.spec.ts` (the M3/M4 fixture goldens), `e2e/perf.spec.ts` (AC7,
 both halves), `e2e/pair.spec.ts` (three pair goldens, the page's controls,
 and the per-figure strips). Unit tests: `src/musicClock.test.ts` (the tune

@@ -120,6 +120,20 @@ export interface Progression {
 export interface Formation {
   id: string;
   roleSet: RoleSet;
+  /**
+   * What the caller says between two dances to get the hall standing in this
+   * formation, one speech bubble at a time.
+   *
+   * A hall does not walk into a becket line off the same words that make a
+   * duple improper one — "hands four from the top" leaves a becket hall facing
+   * the wrong way — so the words belong to the formation rather than to the
+   * decider, which knows nothing about either. Left out, the decider says its
+   * own default (`ScriptDeciderOptions.lineUpCalls`).
+   *
+   * Each entry is one bubble; the decider shares the announcement's beats out
+   * between them, so three short lines read better than one long one.
+   */
+  lineUpCalls?: readonly string[];
   /** The layout of a group of `n` dancers, in frame-local px. */
   group(n: number): Station[];
   progression: Progression;

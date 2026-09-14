@@ -122,12 +122,13 @@ interface FigureDef<P extends FigureParams> {
 renderer per frame. Tuning values are parameters, which is what makes a
 flourish data rather than a variant figure.
 
-Two built-in figures live here, because the decider itself needs them:
+Three built-in figures live here, because the decider itself needs them:
 
 | Figure            | What it does                                                                                                            |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `wait-out`        | The couple with nobody to dance with steps together, holds hands, lets go, and crosses over during the last eight beats |
 | `walk-to-station` | Everyone walks from one station to another, or stands; also the "who is left out" stand and the between-dance line-up   |
+| `applaud`         | The hall stops where it is, turns to the band and claps — the applause at the end of every dance                        |
 
 The contra figure library is M8's; these two are the engine's own.
 
@@ -148,8 +149,8 @@ first two beats dances the rest of the time through with the couple it
 shifted to, so the minor set a time through runs in is the one the shift
 makes and everybody begins one couple place back along their own line.
 Closure (AC5) is then measured against these places in the progressed set
-rather than against the stations. Two things read it: the eight-beat line-up
-walks people here instead of to the stations, and a waiting couple's
+rather than against the stations. Two things read it: the line-up walk
+between two dances walks people here instead of to the stations, and a waiting couple's
 `wait-out` reckons its crossing from here — it slid off the end of the line
 with everybody else and has to land one place short of the waiting place,
 ready to slide in again. The dance's own figures are told where they start by

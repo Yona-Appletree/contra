@@ -2,9 +2,9 @@ import { medleys } from "@caller/music";
 import { describe, expect, it } from "vitest";
 import { tuneAt } from "./routes/hall.js";
 import {
+  BETWEEN_DANCES_BEATS,
   CYCLE_BEATS,
   ITEM_BEATS,
-  LINE_UP_BEATS,
   MUSIC_BEATS_PER_ITEM,
   TIMES_THROUGH,
   lineUpStartOf,
@@ -15,13 +15,16 @@ import {
 } from "./program.js";
 
 /**
- * The line-up is silent, and the next tune starts at its own beat 0.
+ * The gap between two dances is silent, and the next tune starts at its own
+ * beat 0.
  *
  * M9's page looped the tune through the eight-beat line-up, so every dance
  * switch put the music eight beats out of phase with the dance; after eight
  * switches the drift was a whole time through, and the tune changed in the
- * middle of the last dance. The arithmetic below is what the page now runs on:
- * the music counts dancing beats only.
+ * middle of the last dance. B1 made the gap a real between-dances interval —
+ * applause, announcement, walk, ready — which is 36 beats and would drift four
+ * and a half times as fast. The arithmetic below is what the page runs on
+ * instead: the music counts dancing beats only, whatever the gap is.
  */
 
 /** Four dances, so the programme makes three switches. */
@@ -37,13 +40,15 @@ describe("the tune starts at its own beat 0 at every dance start", () => {
     }
   });
 
-  it("is the drift the old arithmetic had, eight beats a switch", () => {
+  it("is the drift the old arithmetic had, one whole interval a switch", () => {
     // The number this test exists to remove: with the tune looping through the
-    // line-up, the programme beat itself was the tune's beat, and a dance start
-    // fell 8, 16, 24 … beats into a 64-beat tune cycle.
+    // gap, the programme beat itself was the tune's beat, and each dance start
+    // fell another `BETWEEN_DANCES_BEATS` further into a 64-beat tune cycle.
     const drift = starts.map((s) => s % CYCLE_BEATS);
-    expect(drift).toEqual([0, 8, 16, 24]);
-    expect(LINE_UP_BEATS).toBe(8);
+    expect(drift).toEqual(starts.map((_, i) => (i * BETWEEN_DANCES_BEATS) % CYCLE_BEATS));
+    expect(BETWEEN_DANCES_BEATS).toBe(36);
+    // Two switches would already be more than a whole time through.
+    expect(2 * BETWEEN_DANCES_BEATS).toBeGreaterThan(CYCLE_BEATS);
   });
 
   it("reads back to the same beat of the evening", () => {

@@ -15,7 +15,7 @@ import {
   layoutHall,
 } from "@caller/hall";
 import type { Medley, Player, Tune } from "@caller/music";
-import { Card, Notation, createPlayer, medleys, tunes } from "@caller/music";
+import { Card, Notation, createPlayer, medleys, playApplause, tunes } from "@caller/music";
 import {
   Button,
   Select,
@@ -32,6 +32,7 @@ import {
   LOOKAHEAD_BEATS,
   MUSIC_BEATS_PER_ITEM,
   TIMES_THROUGH,
+  betweenDancesStatus,
   createDemoProgram,
   lineUpStartOf,
   musicBeatOf,
@@ -259,6 +260,29 @@ export function HallPage({
     [silent],
   );
 
+  /**
+   * How many times the hall has applauded, so a headless test can tell that it
+   * did. Nobody can hear it from a Playwright run (DD12), so the proxy is the
+   * count and the beat it happened on.
+   */
+  const applauseRef = useRef(0);
+
+  /**
+   * Clap: the synthesised applause, fired once at the moment a dance ends.
+   *
+   * `@caller/music` renders it from noise — no sample, no dependency — so this
+   * is one buffer on the same `AudioContext` the tune was using, started the
+   * instant the tune stops. Nothing happens before the first click on play,
+   * because there is no context until then and a silent hall should stay
+   * silent.
+   */
+  const applaud = useCallback((): void => {
+    const ctx = ctxRef.current;
+    if (ctx === null || ctx.state !== "running") return;
+    applauseRef.current += 1;
+    playApplause(ctx);
+  }, []);
+
   /** Start the next tune at its own beat 0 and let it be the clock again. */
   const goMusic = useCallback((musicBeat: Beat): void => {
     const player = playerRef.current;
@@ -362,14 +386,18 @@ export function HallPage({
     let lastShown = -1;
     const tick = (): void => {
       if (!running) return;
-      // The tune stops at the end of the dance's last time through, the eight
-      // line-up beats run on the silent clock, and the next tune starts at its
-      // own beat 0 exactly as the next dance does. Without this the tune would
-      // loop through the line-up and put the music eight beats out of phase
-      // with the dance at every switch.
+      // The tune stops at the end of the dance's last time through, the whole
+      // between-dances interval runs on the silent clock, and the next tune
+      // starts at its own beat 0 exactly as the next dance does. Without this
+      // the tune would loop through the interval and put the music 36 beats
+      // out of phase with the dance at every switch.
       if (wantsMusicRef.current && primedRef.current) {
         if (musicOnRef.current) {
-          if (clockRef.current.beat() >= musicEndRef.current) goSilent(lineUpAtRef.current);
+          if (clockRef.current.beat() >= musicEndRef.current) {
+            goSilent(lineUpAtRef.current);
+            // The tune has just ended: this is the moment the hall claps.
+            applaud();
+          }
         } else {
           const next = musicBeatOf(clockRef.current.beat());
           if (next !== null) goMusic(next);
@@ -388,7 +416,7 @@ export function HallPage({
     return () => {
       running = false;
     };
-  }, [draw, frozen, beatNow, goMusic, goSilent]);
+  }, [draw, frozen, beatNow, goMusic, goSilent, applaud]);
 
   // Keep the address bar on the dance that is actually playing. "Shuffle"
   // does not round-trip through `?tune=` — it is the default, so leaving it
@@ -443,10 +471,13 @@ export function HallPage({
       // Whether a tune is the clock right now: false through every line-up,
       // which is what makes the line-up silent.
       musicOn: () => musicOnRef.current,
+      // How many times the hall has applauded. Nothing can be heard headlessly,
+      // so this is the proxy for "the clap fired, once, at the right moment".
+      applause: () => applauseRef.current,
       // Jump the evening to a beat, keeping whichever clock should be running
-      // there. A programme item is 136 beats, which is over a minute of
-      // wall clock, so this is the only way a headless test can watch a dance
-      // switch happen.
+      // there. A programme item is 164 beats, which is nearly a minute and a
+      // half of wall clock, so this is the only way a headless test can watch a
+      // dance switch happen.
       seek: (to: Beat) => {
         const musicBeat = wantsMusicRef.current ? musicBeatOf(to) : null;
         if (musicBeat === null) goSilent(to);
@@ -537,10 +568,14 @@ export function HallPage({
               </div>
             </Card>
           </div>
+          {/*
+           * Which part of the evening this is: the time through while the hall
+           * is dancing, and which stretch of the between-dances interval
+           * otherwise — the applause, the announcement, the walk or the wait
+           * for the tune (B1).
+           */}
           <p className="text-xs text-muted-foreground" data-testid="hall-status">
-            {position.liningUp
-              ? `Lining up for ${position.next.title}`
-              : `Time through ${String(position.timeThrough + 1)} of 2`}
+            {betweenDancesStatus(position)}
           </p>
         </aside>
       </div>
@@ -758,6 +793,7 @@ declare global {
       primed: () => boolean;
       beat: () => Beat;
       musicOn: () => boolean;
+      applause: () => number;
       seek: (to: Beat) => void;
       call: (at?: Beat) => string;
       bench: (frames: number) => number[];

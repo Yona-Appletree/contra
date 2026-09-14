@@ -1,10 +1,13 @@
 import type { Dance, Program } from "@caller/choreo";
 import {
+  SCRIPT_DECIDER_DEFAULTS,
+  betweenDancesBeats,
   closureReport,
   createHall,
   createLibrary,
   createScriptDecider,
   danceBeats,
+  nextDanceCall,
   validateDance,
 } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
@@ -96,6 +99,9 @@ describe("a programme of every dance, danced end to end", () => {
     items: DEMO_DANCES.map((d) => ({ dance: d.slug, medley: "reel-set", timesThrough: 2 })),
   };
 
+  /** Two times through of 64 beats, plus the whole between-dances interval. */
+  const ITEM_BEATS = 2 * 64 + betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
+
   it("switches from each dance to the next without anybody jumping", () => {
     const formations = [DUPLE_IMPROPER, BECKET];
     const registry = createContraRegistry();
@@ -106,8 +112,8 @@ describe("a programme of every dance, danced end to end", () => {
       hall,
       createLibrary([...DEMO_DANCES], formations),
     );
-    // Two times through each, plus an eight-beat line-up between dances.
-    decider.advance(DEMO_DANCES.length * (2 * 64 + 8) + 64);
+    // Two times through each, plus the between-dances interval after each.
+    decider.advance(DEMO_DANCES.length * ITEM_BEATS + 64);
     const report = closureReport(decider.timeline());
     expect(report.seams).toBeGreaterThan(0);
     expect(report.maxPositionError, JSON.stringify(report.worst)).toBeLessThan(CLOSURE_PX);
@@ -122,15 +128,13 @@ describe("a programme of every dance, danced end to end", () => {
       hall,
       createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET]),
     );
-    decider.advance(DEMO_DANCES.length * (2 * 64 + 8));
+    decider.advance(DEMO_DANCES.length * ITEM_BEATS);
     const announced = decider
       .timeline()
       .utterances()
-      .filter((u) => u.text.startsWith("NEXT DANCE"))
+      .filter((u) => u.text.startsWith("NEXT:"))
       .map((u) => u.text);
     expect(announced.length).toBeGreaterThanOrEqual(DEMO_DANCES.length - 1);
-    expect(announced[0]).toBe(
-      `NEXT DANCE: ${DEMO_DANCES[1]!.title.toUpperCase()} BY ${DEMO_DANCES[1]!.author.toUpperCase()}`,
-    );
+    expect(announced[0]).toBe(nextDanceCall(DEMO_DANCES[1]!));
   });
 });

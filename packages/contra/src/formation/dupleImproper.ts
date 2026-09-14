@@ -33,6 +33,13 @@ export const PLACE_PITCH_PX = 20;
 const HALF_ACROSS = ACROSS_PX / 2;
 const HALF_ALONG = PLACE_PITCH_PX / 2;
 
+/**
+ * What the caller says between two dances to get a hall standing in duple
+ * improper: the one line every contra caller says, and the one the hall has
+ * been hearing since M7.
+ */
+export const DUPLE_IMPROPER_LINE_UP_CALLS: readonly string[] = ["HANDS FOUR FROM THE TOP"];
+
 /** Down the hall in frame-local degrees; the ones face this way. */
 const DOWN = 90;
 /** Up the hall in frame-local degrees; the twos face this way. */
@@ -104,6 +111,7 @@ const at = (set: SetState, place: number): Frame =>
 export const DUPLE_IMPROPER: Formation = {
   id: "duple-improper",
   roleSet: CONTRA_ROLES,
+  lineUpCalls: DUPLE_IMPROPER_LINE_UP_CALLS,
 
   group(n: number): Station[] {
     if (n === 4) return DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));
