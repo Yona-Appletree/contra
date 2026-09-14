@@ -1,7 +1,7 @@
 import type { Angle, Hand, PoseSample, Vec2 } from "@caller/core";
 import { FOOT_REST_FORWARD_PX, FOOT_REST_LATERAL_PX } from "@caller/core";
-import type { PairRole } from "../pair/PairFrame.js";
-import { lookAtPartner, norm360 } from "../pair/PairFrame.js";
+import type { PairRole } from "./PairFrame.js";
+import { lookAtPartner, norm360 } from "./PairFrame.js";
 
 /** What a figure says about one dancer; everything else has a sensible default. */
 export interface RolePose {

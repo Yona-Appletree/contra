@@ -1,13 +1,13 @@
 import type { Beat, Vec2 } from "@caller/core";
 import { addScaled, dirOf, lerpFeet, lerpHand, mix, ramp, smooth } from "@caller/core";
-import type { PairFrame, PairRole } from "../pair/PairFrame.js";
+import type { PairFrame, PairRole } from "./PairFrame.js";
 import {
   HOLD_DROP_PX,
   HOLD_LATERAL_PX,
   handDown,
   pairPlace,
   twoHandHold,
-} from "../pair/PairFrame.js";
+} from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import type { PairPose, RolePose } from "./pairPose.js";
 import { REST_FEET, pairPose } from "./pairPose.js";

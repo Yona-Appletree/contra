@@ -22,7 +22,7 @@ import {
   ramp,
   rightOf,
 } from "@caller/core";
-import type { PairFrame, PairRole } from "../pair/PairFrame.js";
+import type { PairFrame, PairRole } from "./PairFrame.js";
 import {
   HOLD_DROP_PX,
   HOLD_LATERAL_PX,
@@ -30,7 +30,7 @@ import {
   handDown,
   insideHand,
   norm360,
-} from "../pair/PairFrame.js";
+} from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import { SAMPLE_DT } from "./FigureDef.js";
 import type { PairPose, RolePose } from "./pairPose.js";

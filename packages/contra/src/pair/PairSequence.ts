@@ -1,13 +1,13 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
 import { SEAM_BEATS, easeSeam, seamProgress } from "@caller/core";
-import type { PairCall } from "../figures/FigureDef.js";
-import { SAMPLE_DT, pairCall } from "../figures/FigureDef.js";
-import { allemande } from "../figures/allemande.js";
-import { balance } from "../figures/balance.js";
-import { doSiDo } from "../figures/do-si-do.js";
-import { fallBack } from "../figures/fall-back.js";
-import { swing } from "../figures/swing.js";
-import { walkIn } from "../figures/walk-in.js";
+import type { PairCall } from "./FigureDef.js";
+import { SAMPLE_DT, pairCall } from "./FigureDef.js";
+import { allemande } from "./allemande.js";
+import { balance } from "./balance.js";
+import { doSiDo } from "./do-si-do.js";
+import { fallBack } from "./fall-back.js";
+import { swing } from "./swing.js";
+import { walkIn } from "./walk-in.js";
 import type { PairFrame, PairRole } from "./PairFrame.js";
 import { DEFAULT_PAIR_FRAME } from "./PairFrame.js";
 

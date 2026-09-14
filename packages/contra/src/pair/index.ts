@@ -1,6 +1,10 @@
-// The minimal two-dancer frame a pair figure runs in, and the demo sequence
-// the pair page plays. M7's choreo engine replaces both; M8 re-hosts the
-// figures on it.
+// The two-dancer system M5 built for gate G1: the minimal `PairFrame` a pair
+// figure runs in, the six figures over it, and the demo sequence the pair page
+// plays. M8's library in `../figures/` is the same dancing on `@caller/choreo`'s
+// group contract; this stays as the pair page's own model, unchanged, because
+// the G1 goldens and strips are pixel comparisons against it.
+
+export * from "./figures.js";
 
 export type { PairFrame, PairPlace, PairRole, TwoHandHold } from "./PairFrame.js";
 export {

@@ -1,7 +1,7 @@
 import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
 import { addScaled, angleLerp, dirOf, lerpHand, mix, ramp } from "@caller/core";
-import type { PairFrame, PairRole } from "../pair/PairFrame.js";
-import { OPEN_PAIR_HALF_PX, centreHand, handDown, insideHand, norm360 } from "../pair/PairFrame.js";
+import type { PairFrame, PairRole } from "./PairFrame.js";
+import { OPEN_PAIR_HALF_PX, centreHand, handDown, insideHand, norm360 } from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import type { PairPose, RolePose } from "./pairPose.js";
 import { pairPose } from "./pairPose.js";

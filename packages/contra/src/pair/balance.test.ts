@@ -1,6 +1,6 @@
 import { HOLD_SPACING_PX, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME } from "../pair/PairFrame.js";
+import { DEFAULT_PAIR_FRAME } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balance, balanceRock } from "./balance.js";
 import { REST_FEET } from "./pairPose.js";

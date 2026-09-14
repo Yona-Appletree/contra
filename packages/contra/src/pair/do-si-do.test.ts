@@ -1,6 +1,6 @@
 import { HOLD_SPACING_PX, angleDiff, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME, pairPlace } from "../pair/PairFrame.js";
+import { DEFAULT_PAIR_FRAME, pairPlace } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { doSiDo } from "./do-si-do.js";
 

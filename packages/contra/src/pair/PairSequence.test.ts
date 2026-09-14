@@ -1,7 +1,7 @@
 import { dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { armShortfall } from "../figures/armShortfall.js";
-import { poseGap } from "../figures/poseGap.js";
+import { armShortfall } from "./armShortfall.js";
+import { poseGap } from "./poseGap.js";
 import type { PairRole } from "./PairFrame.js";
 import { PAIR_ROLES } from "./PairFrame.js";
 import { DEMO_PAIR_SEQUENCE } from "./PairSequence.js";

@@ -1,6 +1,6 @@
 import { angleDiff, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME, OPEN_PAIR_HALF_PX, norm360 } from "../pair/PairFrame.js";
+import { DEFAULT_PAIR_FRAME, OPEN_PAIR_HALF_PX, norm360 } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { resolveParams } from "./FigureDef.js";
 import type { SwingParams } from "./swing.js";

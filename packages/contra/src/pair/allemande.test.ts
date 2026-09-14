@@ -1,6 +1,6 @@
 import { HOLD_SPACING_PX, angleDiff, angleOf, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { CENTRE_DROP_PX, DEFAULT_PAIR_FRAME, norm360 } from "../pair/PairFrame.js";
+import { CENTRE_DROP_PX, DEFAULT_PAIR_FRAME, norm360 } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { resolveParams } from "./FigureDef.js";
 import type { AllemandeParams } from "./allemande.js";
