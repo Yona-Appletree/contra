@@ -11,21 +11,44 @@ import type { HallPerson, HallWorld, PropKind } from "../world/layoutHall.js";
 const TAU = Math.PI * 2;
 
 /**
- * How far anything in the band moves on the beat. The band is alive but not
+ * How far most things in the band move on the beat. The band is alive but not
  * dancing: a bow, a strum, a nod and a lean, one px each, on the same sine the
- * dancers' quiet motion uses.
+ * dancers' quiet motion uses. The pianist's hands move on their own, larger
+ * constant ({@link PIANO_HAND_MOTION_PX}) — sliding along the keys is the
+ * whole of what says they are playing, where the others have an instrument
+ * shape to carry some of it.
  */
 export const BAND_MOTION_PX = 1;
 
 /** How far below shoulder height an instrument is held. */
-const INSTRUMENT_DROP_PX = 8;
+const INSTRUMENT_DROP_PX = 14;
 
 /** Forward and lateral offsets of a hand on an instrument, body-local. */
-const INSTRUMENT_FORWARD_PX = 3;
-const INSTRUMENT_LATERAL_PX = 3;
+const INSTRUMENT_FORWARD_PX = 2.5;
+const INSTRUMENT_LATERAL_PX = 2.5;
 
-/** How far below shoulder height a seated player holds their instrument. */
-const SITTING_DROP_PX = 10;
+/**
+ * How far forward of the pianist's body the keyboard sits — far enough that
+ * both hands land on the keys `layoutHall.ts` draws (H1's ruling: "the piano
+ * player isn't touching the keyboard, looks silly"), close enough that the
+ * arm stays inside its 15 px reach at every point in the hands' motion.
+ */
+const PIANO_HAND_FORWARD_PX = 4.5;
+
+/** How far apart the pianist's two hands sit on the keyboard, either side of centre. */
+const PIANO_HAND_LATERAL_PX = 1.2;
+
+/**
+ * How far each hand slides along the keys on the beat. Nothing in this world
+ * bounces vertically (AGENTS.md's rendering contract), so the "lift and drop"
+ * of playing reads as motion along the keyboard instead of off the canvas —
+ * the two hands a quarter beat out of phase, so one leads while the other
+ * lags rather than both sliding together.
+ */
+const PIANO_HAND_MOTION_PX = 1.2;
+
+/** How far below shoulder height the pianist's hands sit on the keys. */
+const PIANO_HAND_DROP_PX = 12;
 
 /**
  * A sitter who is not playing rests their hands on their knees: forward of the
@@ -123,15 +146,14 @@ function paintPeople(g: Ctx2D, people: readonly HallPerson[], beat: Beat): void 
 
 /**
  * What one non-dancer is doing at this beat: where their hands are, and the
- * one px of bow, strum, nod or lean that says they are playing.
+ * bow, strum, nod, lean or keyboard slide that says they are playing.
  */
 export function posture(who: HallPerson, beat: Beat): PoseSample {
   const sn = Math.sin(TAU * beat);
   const bow = BAND_MOTION_PX * sn;
   const seated = who.seated === true;
-  const drop = seated ? SITTING_DROP_PX : INSTRUMENT_DROP_PX;
 
-  const held = (forward: number, lateral: number): Hand => ({
+  const held = (forward: number, lateral: number, drop = INSTRUMENT_DROP_PX): Hand => ({
     p: bodyPoint(who.p, who.facing, forward, lateral),
     drop,
   });
@@ -161,13 +183,25 @@ export function posture(who: HallPerson, beat: Beat): PoseSample {
       };
       lean = 2 * BAND_MOTION_PX * sn;
       break;
-    case "piano":
+    case "piano": {
+      // Both hands rest on the keys and slide a couple of px along them, a
+      // quarter beat apart, so they alternate rather than moving as one.
+      const csn = Math.sin(TAU * beat + Math.PI / 2);
       hands = {
-        L: held(INSTRUMENT_FORWARD_PX + 1, -INSTRUMENT_LATERAL_PX),
-        R: held(INSTRUMENT_FORWARD_PX + 1, INSTRUMENT_LATERAL_PX),
+        L: held(
+          PIANO_HAND_FORWARD_PX,
+          -PIANO_HAND_LATERAL_PX + PIANO_HAND_MOTION_PX * sn,
+          PIANO_HAND_DROP_PX,
+        ),
+        R: held(
+          PIANO_HAND_FORWARD_PX,
+          PIANO_HAND_LATERAL_PX + PIANO_HAND_MOTION_PX * csn,
+          PIANO_HAND_DROP_PX,
+        ),
       };
       lean = 2 * BAND_MOTION_PX * sn;
       break;
+    }
     default:
       if (who.prop === "mic") {
         // The caller holds the mic in front of them with one hand.

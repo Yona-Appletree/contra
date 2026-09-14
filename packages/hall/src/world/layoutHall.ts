@@ -179,7 +179,12 @@ export function layoutHall(layout: HallLayout): HallWorld {
     bottom: cy(stageBottom),
     x0: cx(stageX0),
     x1: cx(stageX1),
-    piano: { x: cx(stageX1 - 38), y: cy(stageTop + 8), w: 34, h: 18 },
+    // `stageTop + 15`, not `+ 8`: the pianist's hands have to reach the keys
+    // (H1's ruling), and the old gap of 8 px between the keyboard and the
+    // bench left them hanging in the air in front of it. 15 brings the near
+    // edge to 1 px off the bench, close enough that both hands reach the
+    // keys without the arm ever exceeding its 15 px reach.
+    piano: { x: cx(stageX1 - 38), y: cy(stageTop + 15), w: 34, h: 18 },
   };
 
   const sets: SetGeometry[] = couplesPerLine.map((couples, index) => {
