@@ -3,13 +3,6 @@ import { useEffect, useRef } from "react";
 import type { Beat } from "../clock/Clock.js";
 import type { Tune } from "../tunes/Tune.js";
 
-export interface NotationProps {
-  tune: Tune;
-  beat: Beat;
-}
-
-const CURRENT_MEASURE_CLASS = "caller-music-current-measure";
-
 /**
  * The tune's notation, rendered by abcjs, with the current measure
  * highlighted. Every bundled tune is written as four source lines of 8
@@ -47,3 +40,10 @@ export function Notation({ tune, beat }: NotationProps) {
 
   return <div className="caller-music-notation" ref={containerRef} />;
 }
+
+export interface NotationProps {
+  tune: Tune;
+  beat: Beat;
+}
+
+const CURRENT_MEASURE_CLASS = "caller-music-current-measure";

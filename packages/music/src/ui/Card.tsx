@@ -1,24 +1,6 @@
 import type { Beat } from "../clock/Clock.js";
 import type { CardDance, CardPhrase } from "./CardDance.js";
 
-export interface CardProps {
-  dance: CardDance;
-  beat: Beat;
-}
-
-const BEATS_PER_PHRASE = 16;
-
-/** Cumulative start beat of each figure within its phrase. */
-function figureStarts(phrase: CardPhrase): number[] {
-  const starts: number[] = [];
-  let cursor = 0;
-  for (const figure of phrase.figures) {
-    starts.push(cursor);
-    cursor += figure.beats;
-  }
-  return starts;
-}
-
 /** The dance card readout: A1/A2/B1/B2 rows, a fill bar, current figure bold. */
 export function Card({ dance, beat }: CardProps) {
   const cycleBeats = BEATS_PER_PHRASE * dance.phrases.length;
@@ -70,4 +52,22 @@ export function Card({ dance, beat }: CardProps) {
       })}
     </div>
   );
+}
+
+export interface CardProps {
+  dance: CardDance;
+  beat: Beat;
+}
+
+const BEATS_PER_PHRASE = 16;
+
+/** Cumulative start beat of each figure within its phrase. */
+function figureStarts(phrase: CardPhrase): number[] {
+  const starts: number[] = [];
+  let cursor = 0;
+  for (const figure of phrase.figures) {
+    starts.push(cursor);
+    cursor += figure.beats;
+  }
+  return starts;
 }

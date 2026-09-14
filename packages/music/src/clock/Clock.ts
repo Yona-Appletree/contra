@@ -16,6 +16,19 @@
  * `@caller/core`'s `createClock` once M2 merges.
  */
 
+export interface Clock {
+  /** The current beat. Linear in `now()` between calls to `rebase`. */
+  beat(): Beat;
+  /** Re-anchor the clock: at time `now`, the beat is `beat`, and the tempo is `bpm`. */
+  rebase(now: number, beat: Beat, bpm: number): void;
+  /** Change tempo without a jump: the beat `beat()` returns right now keeps its value. */
+  setTempo(bpm: number): void;
+  /** Freeze `beat()` at its current value. */
+  pause(): void;
+  /** Unfreeze: `beat()` continues from where it was paused, no jump. */
+  resume(): void;
+}
+
 /** A beat is a plain number: fractional beats are valid (mid-beat positions). */
 export type Beat = number;
 
@@ -30,19 +43,6 @@ export type Beat = number;
 export interface Meter {
   beatsPerBar: number;
   barsPerPhrase: number;
-}
-
-export interface Clock {
-  /** The current beat. Linear in `now()` between calls to `rebase`. */
-  beat(): Beat;
-  /** Re-anchor the clock: at time `now`, the beat is `beat`, and the tempo is `bpm`. */
-  rebase(now: number, beat: Beat, bpm: number): void;
-  /** Change tempo without a jump: the beat `beat()` returns right now keeps its value. */
-  setTempo(bpm: number): void;
-  /** Freeze `beat()` at its current value. */
-  pause(): void;
-  /** Unfreeze: `beat()` continues from where it was paused, no jump. */
-  resume(): void;
 }
 
 /**

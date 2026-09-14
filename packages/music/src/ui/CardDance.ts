@@ -10,9 +10,9 @@
  * figures; a figure's `beats` is its duration within the phrase, and `call`
  * is the text a caller would say for it.
  */
-export interface CardFigure {
-  beats: number;
-  call: string;
+export interface CardDance {
+  title: string;
+  phrases: CardPhrase[];
 }
 
 export interface CardPhrase {
@@ -20,7 +20,7 @@ export interface CardPhrase {
   figures: CardFigure[];
 }
 
-export interface CardDance {
-  title: string;
-  phrases: CardPhrase[];
+export interface CardFigure {
+  beats: number;
+  call: string;
 }
