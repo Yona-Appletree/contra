@@ -1,0 +1,98 @@
+# AGENTS.md
+
+Doctrine and checklist for agents working in this repository. Read this,
+then [README.md](./README.md), then the ADRs in [docs/adr/](./docs/adr/) —
+start with
+[2026-09-13-versioning-and-pages-deploy.md](./docs/adr/2026-09-13-versioning-and-pages-deploy.md).
+
+## Where code goes
+
+| Kind of code                                              | Package / path              | Filename                                    |
+| ----------------------------------------------------------- | ---------------------------- | -------------------------------------------- |
+| Clock, pose sample, arm solver, stacking, seam easing, style | `packages/core/src/`         | `<Name>.ts`, co-located `<Name>.test.ts`     |
+| Formation, group, figure def, progression, timeline, decider | `packages/choreo/src/`       | `<Name>.ts`, co-located `<Name>.test.ts`     |
+| Contra role set, contra figures, contra dances               | `packages/contra/src/`       | `<Name>.ts`, co-located `<Name>.test.ts`     |
+| The pixel-hall renderer: world, bodies, z-order, bubble       | `packages/hall/src/`         | `<Name>.ts`, co-located `<Name>.test.ts`     |
+| Audio clock, tunes, medleys, notation cursor                  | `packages/music/src/`        | `<Name>.ts`, co-located `<Name>.test.ts`     |
+| Design tokens, theme, CSS variables                           | `packages/ui-design/src/`    | `theme.css`                                  |
+| Primitive component (no app knowledge)                        | `packages/ui-base/src/components/ui/` | `<name>.tsx` (shadcn layout)         |
+| App screens, layout, routing, composition root                | `apps/web/src/`              | `<Name>.tsx`                                 |
+| Full-tree stories                                              | `apps/storybook/src/`        | `<Name>.stories.tsx`                         |
+| Visual spikes (never imported by production code)             | `spikes/<name>/`             | `index.html` + vendored assets               |
+
+A package may keep a local file at any layer when it needs one; the table
+names the default home, not a prohibition.
+
+## The dependency rule
+
+Arrows mean "may import". Enforced by `scripts/check-deps.mjs`
+(`pnpm check:deps`, part of `pnpm validate`): a workspace-wide scan of
+import specifiers against this table, failing on any edge not listed and on
+any import from `spikes/`.
+
+```text
+core ← choreo ← contra          (form-neutral model; contra is one form)
+core ← hall                     (renderer reads pose samples and the timeline)
+core ← music                    (clock, tunes, medleys)
+ui-design ← ui-base             (theme tokens, shadcn primitives)
+apps/web → core, choreo, contra, hall, music, ui-design, ui-base
+apps/storybook → everything
+```
+
+- Production code (`packages/*`, `apps/*`) never imports from `spikes/`.
+  Spikes stay in the repo as the visual record and are served at
+  `/spikes/` on the deployed site, unchanged.
+- `@caller/core` knows nothing about dancing; `@caller/choreo` is
+  form-neutral (its tests include a square formation, not only contra);
+  lark and robin are role names from the contra role set, not core
+  concepts.
+
+## Naming
+
+- No classes: factory functions returning plain objects, or plain
+  functions/constants for data and pure logic.
+- The primary export is the first declaration after imports; filenames
+  match the primary export (`Clock.ts` exports `Clock`).
+- Tests are co-located (`<Name>.test.ts` beside `<Name>.ts`) and run with
+  `vitest`. Stories are co-located in app/component packages; the M1
+  scaffold's one smoke story lives in `apps/storybook/src` because
+  `ui-base` has no story convention of its own yet.
+- Conventional commits: `feat(hall): …`, `fix(core): …`, `spike(hall): …`.
+  Squash merges to `main`.
+- ADRs: `docs/adr/YYYY-MM-DD-<slug>.md`.
+- Every package has a `README.md` stating its purpose and its allowed
+  imports (the edges from the table above that apply to it).
+
+## Invariants (rendering contract)
+
+From `plan.md` AC2 and AC3 — any change to these numbers is a reversal
+(director rubric E-look), even by a pixel:
+
+- Arms are two fixed **7.5 px** bones in three dimensions.
+- Joined hands are **one shared floor point** that both dancers compute
+  from the same figure frame.
+- The **robin's hand stacks on top**, the lark's underneath; the robin's
+  arms draw over the lark's.
+- Foot swing **±2.6 px**, torso sway **1.5°**, both on the beat, with
+  **no vertical bounce**.
+- Shoulders **11 px**, arm reach **15 px**, hold spacing **14 px**, the two
+  lines **18 px** further apart than a single pair's spacing, **4 cm per
+  px**.
+- All of the above are unit tests in `@caller/core`, not just numbers in
+  this file. Gate G1 confirms the pair against the two-dancers spike; gate
+  G2 confirms the hall against the hall spike.
+
+## Validation
+
+```bash
+pnpm validate                  # what CI runs: format:check, check:deps, lint, typecheck, test, build, test:golden
+pnpm --filter @caller/<pkg> test
+pnpm --filter @caller/web build && ls apps/web/dist/spikes/hall/index.html
+pnpm fix                       # prettier + eslint --fix
+```
+
+CI (`ci.yml`, job `CI`) runs `pnpm validate` on every pull request and on
+`main`. `main-push.yml` runs on push to `main`: it tags the commit
+`vYYYY.MM.DD-N` and deploys `apps/web`'s build (with the two spikes copied
+into `dist/spikes/`) to GitHub Pages. Do not suppress warnings, skip tests,
+or loosen `tsconfig` to get green; report the problem instead.
