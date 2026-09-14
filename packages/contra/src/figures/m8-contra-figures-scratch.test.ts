@@ -16,6 +16,7 @@ import { californiaTwirl } from "./california-twirl.js";
 import { rollAway } from "./roll-away.js";
 import { rightAndLeftThrough } from "./right-and-left-through.js";
 import { robinsChain } from "./robins-chain.js";
+import { hey } from "./hey.js";
 
 const show = (name: string, probe: ReturnType<typeof probeFigure>): void => {
   // eslint-disable-next-line no-console
@@ -91,6 +92,9 @@ describe("scratch", () => {
       "right and left through (becket)",
       probeFigure(rightAndLeftThrough, {}, { group: be, contacts: P }),
     );
+    show("hey full (di)", probeFigure(hey, {}, { group: di }));
+    show("hey half (di)", probeFigure(hey, { half: true, beats: 8 }, { group: di }));
+    show("hey full (becket)", probeFigure(hey, {}, { group: be }));
     show("robins chain (becket)", probeFigure(robinsChain, {}, { group: be, contacts: P }));
   });
 });

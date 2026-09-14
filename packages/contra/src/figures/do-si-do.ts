@@ -7,7 +7,7 @@ import type { Pairing } from "./pairing.js";
 import { pairsOf } from "./pairing.js";
 import { handDown } from "../pair/PairFrame.js";
 import { trapezoid } from "../pair/trapezoid.js";
-import { stationHalf } from "./swing.js";
+import { placeHalf } from "./swing.js";
 
 /** {@link doSiDo}'s parameters. */
 export interface DoSiDoParams extends ContraParams {
@@ -49,7 +49,10 @@ export const doSiDo = contraFigure<DoSiDoParams>({
     const centres = pairsOf(params.pairs).map(([a, b]) => midpoint(ctx.spot(a).p, ctx.spot(b).p));
     pairsOf(params.pairs).forEach(([a, b], index) => {
       const centre = centres[index]!;
-      const half = params.endHalf ?? stationHalf(ctx.stations, a, b);
+      const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
+      const half =
+        params.endHalf ??
+        placeHalf(ctx.stations, centre, bearing(ctx.spot(a).p, ctx.spot(b).p) + 90, separation);
       // As big a circle as the pair's own places allow, tightened — swell
       // first, then the radius — until the pair beside them has room.
       const allowed = orbitRadius(Number.POSITIVE_INFINITY, centre, centres);

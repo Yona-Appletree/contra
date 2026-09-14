@@ -15,7 +15,7 @@ import { pairsOf } from "./pairing.js";
 import { handDown } from "../pair/PairFrame.js";
 import { TURN_RADIUS_PX } from "../pair/allemande.js";
 import { trapezoid } from "../pair/trapezoid.js";
-import { stationHalf } from "./swing.js";
+import { placeHalf } from "./swing.js";
 
 /** {@link allemande}'s parameters. */
 export interface AllemandeParams extends ContraParams {
@@ -73,7 +73,10 @@ export const allemande = contraFigure<AllemandeParams>({
     );
     pairsOf(params.pairs).forEach(([a, b], index) => {
       const centre = centres[index]!;
-      const half = params.endHalf ?? stationHalf(ctx.stations, a, b);
+      const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
+      const half =
+        params.endHalf ??
+        placeHalf(ctx.stations, centre, bearing(ctx.spot(a).p, ctx.spot(b).p) + 90, separation);
       const pair: TurnPair = {
         centre,
         half,

@@ -124,7 +124,9 @@ export const swing = contraFigure<SwingParams>({
       const robin = lark === a ? b : a;
       const centre = midpoint(ctx.spot(a).p, ctx.spot(b).p);
       const facing = endFacingOf(params.endFacing, ctx.spot(a).p, ctx.spot(b).p, centre);
-      const half = params.endHalf ?? stationHalf(ctx.stations, a, b);
+      const half =
+        params.endHalf ??
+        placeHalf(ctx.stations, centre, facing, dist(ctx.spot(a).p, ctx.spot(b).p) / 2);
       const pair: SwingPair = {
         lark,
         robin,
@@ -262,12 +264,46 @@ interface SwingPair {
 const SAMPLE_DT: Beat = 0.05;
 
 /** Half the distance between the two stations a pair belongs to. */
-export function stationHalf(
-  stations: readonly Station[],
-  a: StationId,
-  b: StationId,
-): number {
+export function stationHalf(stations: readonly Station[], a: StationId, b: StationId): number {
   return dist(stationById(stations, a).p, stationById(stations, b).p) / 2;
+}
+
+/**
+ * How far from `centre` a figure for two should leave its dancers, so that it
+ * leaves them on the formation's own places.
+ *
+ * A pair that has closed up to balance, or come together to turn, must open out
+ * on to places the next figure can start from — and those are the stations, not
+ * whatever spacing the pair happens to be at. This looks for the pair of
+ * stations that lies square across `facing` with its midpoint nearest `centre`,
+ * and answers half the distance between them; with nothing suitable it falls
+ * back to `fallback`, the pair's own separation.
+ */
+export function placeHalf(
+  stations: readonly Station[],
+  centre: Vec2,
+  facing: Angle,
+  fallback: number,
+): number {
+  const axis = dirOf(facing + 90);
+  let best = fallback;
+  let bestGap = Infinity;
+  for (let i = 0; i < stations.length; i++) {
+    for (let j = i + 1; j < stations.length; j++) {
+      const a = stations[i]!.p;
+      const b = stations[j]!.p;
+      const span = dist(a, b);
+      if (span < 1e-9) continue;
+      const unit: Vec2 = [(b[0] - a[0]) / span, (b[1] - a[1]) / span];
+      if (Math.abs(unit[0] * axis[0] + unit[1] * axis[1]) < 0.99) continue;
+      const gap = dist([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], centre);
+      if (gap < bestGap) {
+        bestGap = gap;
+        best = span / 2;
+      }
+    }
+  }
+  return best;
 }
 
 /**

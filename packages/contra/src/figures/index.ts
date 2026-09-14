@@ -59,7 +59,7 @@ export type { BalanceParams } from "./balance.js";
 export { balance, balanceRing } from "./balance.js";
 
 export type { EndFacing, SwingParams } from "./swing.js";
-export { endFacingOf, stationHalf, swing } from "./swing.js";
+export { endFacingOf, placeHalf, stationHalf, swing } from "./swing.js";
 
 export type { AllemandeParams } from "./allemande.js";
 export { allemande } from "./allemande.js";
@@ -81,3 +81,24 @@ export { rightAndLeftThrough } from "./right-and-left-through.js";
 
 export type { RobinsChainParams } from "./robins-chain.js";
 export { robinsChain } from "./robins-chain.js";
+
+export type { HeyParams, Lane } from "./hey.js";
+export { hey, laneAt, laneOf } from "./hey.js";
+
+export type { ContraFigureId } from "./registry.js";
+export {
+  CONTRA_FIGURES,
+  CONTRA_FIGURE_IDS,
+  contraFigureList,
+  contraFigureOf,
+  createContraRegistry,
+} from "./registry.js";
+
+export type { ContraCall, ContraDanceSpec, ContraPhrase } from "./chain.js";
+export { chainCalls, contraDance, danceEnds } from "./chain.js";
+
+export type { Contacts, FigureProbe as ContraFigureProbe } from "./testing.js";
+export { PROBE_FRAME, PROBE_STEP, probeFigure, probeGroup } from "./testing.js";
+
+export type { ContraWaitOutParams } from "./wait-out.js";
+export { crossingOf, waitOut } from "./wait-out.js";
