@@ -126,8 +126,14 @@ export function createScriptDecider(
 
     for (const { group, plan } of planGroups()) {
       if (plan.kind === "wait") {
-        const params = withDefaults(WAIT_OUT, undefined, cycle);
-        emitFigure(into, group, WAIT_OUT, params, Object.keys(group.members), start);
+        // The registry's `wait-out`, not the built-in: a form may register its
+        // own under the same id (contra does, to choose the crossing from the
+        // formation), and taking the definition from the import would sample
+        // one figure and record the other's `ends` — which the eight-beat
+        // line-up between two dances then walks to, 51 px out.
+        const def = registry.get(WAIT_OUT.id);
+        const params = withDefaults(def, undefined, cycle);
+        emitFigure(into, group, def, params, Object.keys(group.members), start);
         continue;
       }
       for (const { call, start: offset } of schedule) {
