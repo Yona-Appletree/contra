@@ -30,9 +30,16 @@ import { BECKET } from "../formation/becket.js";
 /** How far past one time through a seam-row run reads, to catch the wrap. */
 const WRAP_BUFFER: Beat = SEAM_BEATS;
 
-/** Every demo dance that calls this figure at least once, in programme order. */
-export function dancesUsingFigure(id: string): Dance[] {
-  return DEMO_DANCES.filter((dance) =>
+/**
+ * Every dance that calls this figure at least once, in programme order.
+ *
+ * `dances` defaults to the demo's own {@link DEMO_DANCES} — the only corpus
+ * `pnpm figure` ever passes — and is otherwise there so a test can hand this
+ * (and {@link figureLabReport}, which threads it through) a small fixture
+ * instead of running the sweep below over the whole real corpus.
+ */
+export function dancesUsingFigure(id: string, dances: readonly Dance[] = DEMO_DANCES): Dance[] {
+  return dances.filter((dance) =>
     dance.phrases.some((phrase) => phrase.figures.some((call) => call.figure === id)),
   );
 }
@@ -204,13 +211,22 @@ export interface FigureLabReport {
  * dance (restricted further from "the dances that call this figure", not
  * instead of it — a dance that does not call the figure at all yields no rows
  * either way).
+ *
+ * `demoDances` is the corpus `dance` and the seam/oracle sweep run over; it
+ * defaults to {@link DEMO_DANCES} (what `pnpm figure` always passes) and
+ * exists otherwise so a test can substitute a small fixture rather than
+ * paying for the sweep over every real demo dance.
  */
-export function figureLabReport(id: string, dance?: string): FigureLabReport {
+export function figureLabReport(
+  id: string,
+  dance?: string,
+  demoDances: readonly Dance[] = DEMO_DANCES,
+): FigureLabReport {
   const registry = createContraRegistry();
   const known = registry.has(id);
   const def = known ? registry.get(id) : undefined;
 
-  const usedDances = dancesUsingFigure(id);
+  const usedDances = dancesUsingFigure(id, demoDances);
   const scoped = dance === undefined ? usedDances : usedDances.filter((d) => d.slug === dance);
   const becketUsed = usedDances.some((d) => d.formation === BECKET.id);
 

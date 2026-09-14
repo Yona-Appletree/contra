@@ -1,4 +1,6 @@
+import type { Dance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
+import { contraDance } from "./chain.js";
 import {
   dancesUsingFigure,
   figureAloneRow,
@@ -9,6 +11,56 @@ import {
   seamKeysFor,
 } from "./figureLab.js";
 import { danceBySlug } from "../dances/index.js";
+import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+
+/**
+ * Two small stand-ins for a real demo dance, built the same way
+ * `packages/contra/src/dances/loadDances.ts` builds one from its JSON file —
+ * `contraDance` over real figures — but deliberately not added to
+ * `DEMO_DANCES`: one time through, four couples, two or three figures, so a
+ * `figureSeamRows`/`figureLabReport` case here runs the decider once or twice
+ * over ~16-24 beats instead of sweeping every real dance that calls a figure
+ * through it at full length, which is exactly the per-sample cost the repo's
+ * briefs forbid inside one vitest case.
+ *
+ * A's calls put `long-lines` in the middle: `circle → long-lines` and
+ * `long-lines → star` both touch it, and the wrap `star → circle` does not —
+ * enough to exercise `figureSeamRows`'s filter both ways. B also calls
+ * `long-lines`, so restricting `figureLabReport` to one dance (A) can be
+ * shown to actually narrow the report against a corpus of two.
+ */
+const FIXTURE_DANCE_A: Dance = contraDance({
+  slug: "figure-lab-fixture-a",
+  title: "Figure Lab Fixture A",
+  author: "figureLab.test.ts",
+  formation: DUPLE_IMPROPER,
+  phrases: [
+    {
+      name: "A1",
+      figures: [
+        { figure: "circle", beats: 8 },
+        { figure: "long-lines", beats: 8 },
+        { figure: "star", beats: 8 },
+      ],
+    },
+  ],
+});
+
+const FIXTURE_DANCE_B: Dance = contraDance({
+  slug: "figure-lab-fixture-b",
+  title: "Figure Lab Fixture B",
+  author: "figureLab.test.ts",
+  formation: DUPLE_IMPROPER,
+  phrases: [
+    {
+      name: "A1",
+      figures: [
+        { figure: "long-lines", beats: 8 },
+        { figure: "do-si-do", beats: 8 },
+      ],
+    },
+  ],
+});
 
 describe("dancesUsingFigure", () => {
   it("finds every dance that calls the figure, and only those", () => {
@@ -66,13 +118,15 @@ describe("figureAloneRow", () => {
 
 describe("figureSeamRows", () => {
   it("only reports seams that touch the figure, over the dances that call it", () => {
-    const dances = dancesUsingFigure("robins-chain");
-    const rows = figureSeamRows("robins-chain", dances);
-    expect(rows.length).toBeGreaterThan(0);
+    // Fixture A: circle → long-lines → star, wrap star → circle. The two
+    // seams either side of `long-lines` should come back; the wrap, which
+    // touches neither, should not.
+    const rows = figureSeamRows("long-lines", [FIXTURE_DANCE_A]);
+    expect(rows.map((row) => row.key).sort()).toEqual(
+      ["circle → long-lines", "long-lines → star"].sort(),
+    );
     for (const row of rows) {
-      expect(row.key.startsWith("robins-chain → ") || row.key.endsWith(" → robins-chain")).toBe(
-        true,
-      );
+      expect(row.key.startsWith("long-lines → ") || row.key.endsWith(" → long-lines")).toBe(true);
     }
   });
 
@@ -105,7 +159,15 @@ describe("figureOracles", () => {
 
 describe("figureLabReport", () => {
   it("is green for a real figure, on the library's current, all-fixed state", () => {
-    const report = figureLabReport("hey");
+    // A real-corpus smoke test, restricted to `jubilation` (duple-improper,
+    // four couples) so it still runs the decider on real data — the fixtures
+    // above only stand in for the dance-scoping test below — without
+    // sweeping every "hey" dance in the demo corpus (including becket's six
+    // couples) through it in one case. The unrestricted sweep (every dance
+    // `hey` is called by) is still exercised by `pnpm figure hey` itself;
+    // `apps/web/e2e/figureLab.spec.ts` only covers the pictures, not this
+    // text report.
+    const report = figureLabReport("hey", "jubilation");
     expect(report.id).toBe("hey");
     expect(report.ok).toBe(true);
     expect(report.text).toContain("HEY FOR FOUR");
@@ -116,9 +178,13 @@ describe("figureLabReport", () => {
   });
 
   it("restricts seams and oracles to one dance with `dance`", () => {
-    const all = figureLabReport("robins-chain");
-    const one = figureLabReport("robins-chain", "butter");
-    expect(one.text).toContain("`butter`");
+    // Both fixtures call `long-lines`; passing them as the corpus (instead of
+    // the real, ten-dance `DEMO_DANCES`) keeps this to two short decider runs
+    // instead of a sweep over every real dance that calls the figure.
+    const fixtures = [FIXTURE_DANCE_A, FIXTURE_DANCE_B];
+    const all = figureLabReport("long-lines", undefined, fixtures);
+    const one = figureLabReport("long-lines", "figure-lab-fixture-a", fixtures);
+    expect(one.text).toContain("`figure-lab-fixture-a`");
     expect(one.text.length).toBeLessThan(all.text.length);
   });
 
