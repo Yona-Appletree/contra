@@ -12,13 +12,10 @@ import type { JSX } from "react";
  */
 export function DancesPage(): JSX.Element {
   return (
-    <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-4">
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-2xl font-semibold">Dances</h1>
-        <p className="text-sm text-muted-foreground">
-          The evening&rsquo;s programme. Tap a card to dance it on the stage.
-        </p>
-      </header>
+    <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 p-3 lg:p-4">
+      <p className="text-sm text-muted-foreground">
+        The evening&rsquo;s programme. Tap a card to dance it on the stage.
+      </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {DEMO_DANCES.map((dance) => (
@@ -27,12 +24,17 @@ export function DancesPage(): JSX.Element {
             href={`#/dance/${dance.slug}`}
             data-testid="dance-card"
             data-slug={dance.slug}
-            className="flex flex-col gap-2 rounded-lg border p-3 no-underline hover:border-current"
+            className="block no-underline"
           >
-            <Card dance={dance} beat={0} />
-            <p className="text-xs text-muted-foreground">
-              {dance.author} &middot; {dance.formation}
-            </p>
+            {/*
+             * The card carries its own frame now (U1: it is a note card), so
+             * the link is a bare wrapper rather than a second box around it.
+             * The formation goes on the card, under the phrases, where the
+             * Stage tab puts the tune.
+             */}
+            <Card dance={dance} beat={0}>
+              <span className="caller-music-card-caption">{dance.formation}</span>
+            </Card>
           </a>
         ))}
       </div>

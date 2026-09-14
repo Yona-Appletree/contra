@@ -99,7 +99,7 @@ function Tabbed({
             href={t.href}
             data-testid={`tab-${t.id}`}
             aria-current={t.id === tab ? "page" : undefined}
-            className={`px-3 py-2 no-underline ${
+            className={`px-3 py-1.5 no-underline ${
               t.id === tab
                 ? "border-b-2 border-current font-semibold"
                 : "border-b-2 border-transparent opacity-60"

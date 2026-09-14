@@ -8,6 +8,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
+  --color-card: var(--card);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
 
@@ -34,6 +36,14 @@
 
   --background: oklch(0.98 0.008 70);
   --foreground: oklch(0.22 0.02 50);
+
+  /*
+   * Paper. The page ground is already a warm near-white, so a card that is to
+   * read as a card on top of it has to be lighter than the page, not darker —
+   * a note card's own stock, with the separation carried by its shadow. U1
+   * added it: nothing in the palette was white.
+   */
+  --card: oklch(0.995 0.004 90);
 
   --primary: oklch(0.6 0.14 45);
   --primary-foreground: oklch(0.98 0.008 70);

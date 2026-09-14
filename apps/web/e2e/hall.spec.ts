@@ -26,7 +26,7 @@ test("the hall draws, with the band, the lines and the caller", async ({ page })
   // 268 × 282 world px at 2×, in device pixels.
   const box = await canvas.evaluate((el: HTMLCanvasElement) => ({ w: el.width, h: el.height }));
   expect(box).toEqual({ w: 536, h: 564 });
-  await expect(page.getByTestId("hall-dance-title")).toContainText("Airpants");
+  await expect(page.getByTestId("hall-card")).toContainText("Airpants");
   await expect(page.getByTestId("hall-version")).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -60,13 +60,13 @@ test("every figure of the first dance gets its call said before it starts", asyn
 
 test("choosing a dance changes the URL and the card", async ({ page }) => {
   await openHall(page, { beat: 0, zoom: 2 });
-  await expect(page.getByTestId("hall-dance-title")).toContainText("Airpants");
+  await expect(page.getByTestId("hall-card")).toContainText("Airpants");
 
   await page.getByTestId("hall-dance-select").click();
   await page.getByRole("option", { name: "Kitchen Stomp" }).click();
 
-  await expect(page.getByTestId("hall-dance-title")).toContainText("Kitchen Stomp");
-  await expect(page.getByTestId("hall-dance-title")).toContainText("Becky Hill");
+  await expect(page.getByTestId("hall-card")).toContainText("Kitchen Stomp");
+  await expect(page.getByTestId("hall-card")).toContainText("Becky Hill");
   await expect(page).toHaveURL(/#\/dance\/kitchen-stomp/);
 });
 
