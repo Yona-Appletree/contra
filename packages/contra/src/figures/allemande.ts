@@ -55,7 +55,7 @@ export const allemande = contraFigure<AllemandeParams>({
     pairs: "neighbors",
     hand: "L",
     amount: 1,
-    inward: 20,
+    inward: 45,
     holdDrop: 2,
     endHalf: null,
   },

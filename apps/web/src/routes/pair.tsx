@@ -10,8 +10,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 /** The tempo the spike ran at; M9 hands the clock to the tune instead. */
 const BPM = 112;
 
-/** The zooms the page offers. */
-const ZOOMS = [4, 6, 8] as const;
+/** The zooms the page offers. 6x is the upper bound the user asked for. */
+const ZOOMS = [1, 2, 3, 4, 6] as const;
+
+/** The zoom the page opens at: "2x is pretty good honestly" (user, gate G1). */
+const DEFAULT_ZOOM = 2;
 
 /** The world the pair dances in: the renderer's default, at the chosen zoom. */
 const PAIR_WORLD: Omit<World, "zoom"> = { w: 128, h: 88 };
@@ -122,6 +125,7 @@ export function PairPage({ params }: { params: URLSearchParams }): JSX.Element {
               type="button"
               onClick={() => setZoom(z)}
               aria-pressed={z === zoom}
+              data-testid={`pair-zoom-${String(z)}`}
               className={`rounded border px-2 py-1 ${z === zoom ? "border-current font-semibold" : "opacity-60"}`}
             >
               {z}&times;
@@ -361,7 +365,7 @@ function amountText(amount: unknown): string {
 
 function zoomFrom(raw: string | null): number {
   const n = Number(raw);
-  return ZOOMS.some((z) => z === n) ? n : 6;
+  return ZOOMS.some((z) => z === n) ? n : DEFAULT_ZOOM;
 }
 
 /**

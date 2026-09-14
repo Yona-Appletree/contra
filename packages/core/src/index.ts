@@ -3,7 +3,7 @@
 
 // kinematics
 export type { ArmSolution, Arm3dSolution } from "./kinematics/Arm.js";
-export { planarReach, solveArm, solveArm3d } from "./kinematics/Arm.js";
+export { POLE_OUTWARD, planarReach, solveArm, solveArm3d } from "./kinematics/Arm.js";
 export type { Hand, PoseSample, Side, Style } from "./kinematics/PoseSample.js";
 export { NEUTRAL_STYLE, lerpHand } from "./kinematics/PoseSample.js";
 export { shoulders, shouldersAt } from "./kinematics/shoulders.js";

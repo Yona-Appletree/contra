@@ -182,6 +182,13 @@ the fixtures test the solver and not this package's 11 px shoulder constant.
 - **`ArmSolution` is exactly the four declared fields.** `solveArm3d` returns
   the heights as well, because the bone-length invariant is only checkable in
   three dimensions and the renderer shades by hand and elbow height.
+- **`solveArm3d` takes an optional floor-plane elbow pole** (F1, gate G1). The
+  default is `outward × POLE_OUTWARD` and is unchanged; nothing in `core`
+  passes one. A near-vertical arm cancels the pole's downward part, so whatever
+  is left in the floor plane is the whole of it and the elbow swings all the way
+  there — which is why `@caller/hall` has to be able to say "back, not out" for
+  a hand that hangs. It is an argument rather than a rule here because where an
+  elbow _looks_ right is the renderer's judgement, not the solver's.
 - **The degenerate branch is normalised.** When the hand is within 0.05 px of
   the shoulder the spike returns an elbow 7.517 px away; here the same
   down-and-outward direction is scaled to exactly 7.5 px, so the bone invariant

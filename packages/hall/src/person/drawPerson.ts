@@ -1,4 +1,4 @@
-import type { PoseSample, Vec2 } from "@caller/core";
+import type { Arm3dSolution, PoseSample, Vec2 } from "@caller/core";
 import { UPPER_ARM_PX, bodyPoint, q256Vec2 } from "@caller/core";
 import { SHOE_COLOUR } from "../appearance/Appearance.js";
 import { shade } from "../appearance/shade.js";
@@ -24,6 +24,14 @@ export const HAND_STACK_RADIUS_PX: Record<HandStack, number> = {
 
 /** The soft dark ellipse under every dancer. */
 export const SHADOW_COLOUR = "rgba(0,0,0,0.22)";
+
+/**
+ * The torso ellipse seen from above: half its depth front to back, and half
+ * its width side to side. The width is the shoulders' own half-width, which is
+ * what a resting hand hangs beside — see `HAND_HANG_LATERAL_PX`.
+ */
+export const TORSO_HALF_DEPTH_PX = 3.6;
+export const TORSO_HALF_WIDTH_PX = 5.6;
 
 export interface DrawOptions {
   /** Draw the near-black outline around every body part. Default true. */
@@ -103,7 +111,7 @@ export function drawBody(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
 
   const lean = layout.pose.lean;
   const t = bodyPoint(p, angle, lean * 0.5, 0);
-  ell(g, t[0], t[1], 3.6, 5.6, rad, a.shirtDark, outline);
+  ell(g, t[0], t[1], TORSO_HALF_DEPTH_PX, TORSO_HALF_WIDTH_PX, rad, a.shirtDark, outline);
   ell(g, t[0], t[1], 2.5, 4.3, rad, a.shirt, false);
   const hl = bodyPoint(p, angle, lean * 0.5 + 0.6, -1.2);
   ell(g, hl[0], hl[1], 1.2, 2.0, rad, a.shirtLite, false);
@@ -113,6 +121,20 @@ export function drawBody(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
  * Both arms: upper arm in the shirt colour, forearm and hand in skin. A hand
  * higher off the floor is drawn a little larger and a steeply sloped upper arm
  * a little darker, which is the only depth cue a true overhead view gets.
+ *
+ * The two segments of one arm are ordered by height, because from directly
+ * above the nearer one is the one on top: an arm that hangs puts the elbow
+ * below the shoulder and the hand below the elbow, so the **sleeve draws over
+ * the forearm**, and an arm that reaches up puts the hand above the elbow, so
+ * the forearm draws over the sleeve. Drawing the forearm on top either way —
+ * which is what the spike and M3 did — reads as a skin-coloured forearm lying
+ * across the shirt, which is gate G1's "the forearm renders _over_ the upper
+ * arm which is usually wrong". The outlines are still laid down first, as one
+ * silhouette under the whole arm, so neither segment's outline cuts across the
+ * other's fill.
+ *
+ * The robin-over-lark rule between two dancers is `sceneOrder`'s and is
+ * untouched (plan AC2).
  */
 export function drawArms(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {}): void {
   const snap = opts.snap ?? IDENTITY;
@@ -136,15 +158,37 @@ export function drawArms(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
       seg(g, e, h, 3.2, OUTLINE_COLOUR);
       circ(g, h[0], h[1], radius + 0.7, OUTLINE_COLOUR, false);
     }
-    seg(g, s, e, 2.4, a.shirt);
-    if (upperFraction < 0.9) {
-      g.globalAlpha = (1 - upperFraction) * 0.4;
-      seg(g, s, e, 2.4, OUTLINE_COLOUR);
-      g.globalAlpha = 1;
+
+    const sleeve = (): void => {
+      seg(g, s, e, 2.4, a.shirt);
+      if (upperFraction < 0.9) {
+        g.globalAlpha = (1 - upperFraction) * 0.4;
+        seg(g, s, e, 2.4, OUTLINE_COLOUR);
+        g.globalAlpha = 1;
+      }
+    };
+    const forearm = (): void => {
+      seg(g, e, h, 1.9, a.skin);
+      circ(g, h[0], h[1], radius, a.skin, false);
+    };
+
+    if (forearmOverSleeve(arm)) {
+      sleeve();
+      forearm();
+    } else {
+      forearm();
+      sleeve();
     }
-    seg(g, e, h, 1.9, a.skin);
-    circ(g, h[0], h[1], radius, a.skin, false);
   }
+}
+
+/**
+ * Whether this arm's forearm is nearer the camera than its upper arm — true
+ * when the hand is raised above the elbow, false for a hand that hangs below
+ * it. Both heights come straight from `solveArm3d`.
+ */
+export function forearmOverSleeve(arm: Arm3dSolution): boolean {
+  return arm.handZ > arm.elbowZ;
 }
 
 /** How far ahead of the body centre the head sits. */

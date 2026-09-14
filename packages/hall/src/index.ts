@@ -17,10 +17,14 @@ export type { Person, PersonSpec } from "./person/Person.js";
 export { TRAIL_COLOURS, createPerson, roleTrailColour } from "./person/Person.js";
 export type { ArmPair, DancerLayout } from "./person/layoutDancer.js";
 export {
+  ELBOW_TUCK_DROP_PX,
+  ELBOW_TUCK_PLANAR_PX,
+  ELBOW_TUCK_SPLAY_DEG,
   HAND_HANG_DROP_PX,
   HAND_HANG_FORWARD_PX,
   HAND_HANG_LATERAL_PX,
   HAND_HANG_SWING_PX,
+  elbowPole,
   hangingHand,
   layoutDancer,
 } from "./person/layoutDancer.js";
@@ -30,10 +34,13 @@ export {
   HEAD_FORWARD_PX,
   HEAD_LEAN_FOLLOW,
   SHADOW_COLOUR,
+  TORSO_HALF_DEPTH_PX,
+  TORSO_HALF_WIDTH_PX,
   drawArms,
   drawBody,
   drawHead,
   drawPerson,
+  forearmOverSleeve,
 } from "./person/drawPerson.js";
 export { HEAD_TURN_LIMIT_DEG, HEAD_TURN_RELEASE_DEG, headLook } from "./person/headLook.js";
 

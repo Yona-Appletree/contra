@@ -94,6 +94,6 @@ export const allemande: FigureDef<AllemandeParams> = {
   lead: 4,
   beats: 8,
   params: ["hand", "amount", "inward", "startFacing"],
-  defaults: { hand: "L", amount: 1, inward: 20, startFacing: null },
+  defaults: { hand: "L", amount: 1, inward: 45, startFacing: null },
   sample: (frame, role, t, params) => allemandePair(frame, t, params)[role],
 };

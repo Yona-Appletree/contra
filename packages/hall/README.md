@@ -62,6 +62,30 @@ Within one dancer the order is shadow, feet, skirt, torso, arms, head.
 `drawPerson` does all of that for a lone dancer in one call; the scene renderer
 interleaves the passes instead, which is identical for one dancer.
 
+Within one **arm**, the two bones are ordered by height, because from directly
+above the nearer one is on top: an arm that hangs has the hand below the elbow,
+so the shirt-coloured upper arm draws over the skin-coloured forearm, and an
+arm that reaches up has the hand above the elbow, so the forearm draws over.
+`forearmOverSleeve` is the test (`handZ > elbowZ`, both from `solveArm3d`). The
+outlines of both bones and the hand go down first, as one silhouette, so
+neither bone's outline cuts across the other's fill. Gate G1: "it looks like
+the forearm renders _over_ the upper arm which is usually wrong."
+
+### The resting arm
+
+A hand the figure leaves `'down'` hangs at `HAND_HANG_LATERAL_PX` (5.6 px —
+the torso ellipse's own half-width, so the hand is beside the hip) and
+`HAND_HANG_DROP_PX` (14.5 px, nearly the whole 15 px reach), swinging
+`HAND_HANG_SWING_PX` forward and back with the step. `elbowPole` then swings
+`core`'s elbow pole from outward to backward as a hand comes to hang under its
+shoulder: a near-vertical arm cancels the pole's downward part, so the outward
+part would otherwise be the whole of it and the elbow would wing out about 3 px
+past the shoulder. The rule is a function of where the hand is, not of whether
+the figure said `'down'`, so a figure that places a hand at the dancer's side
+draws the same as one the renderer hangs there. A standing dancer measures
+12.05 px across arms and all, against 11 px of shoulder. Gate G1: "you can't
+see much arm when someone is just standing there."
+
 ### Joined hands and z-order
 
 `sceneOrder` finds every pair of hands within `JOIN_EPSILON_PX` (0.1 px) of each
@@ -175,7 +199,7 @@ the spikes and retyped.
 | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `drawBody`, `drawArms`, `drawHead`                  | `spikes/two-dancers`'s `drawBody` / `drawArms` / `drawHead`, radius for radius        |
 | the supersample-and-downsample pipeline             | its `renderLayer`: `SS = 4`, `imageSmoothingQuality = 'high'`, the alpha threshold    |
-| `hangingHand`                                       | its `hang(P, a, side, ph, amp)`                                                       |
+| `hangingHand`                                       | its `hang(P, a, side, ph, amp)`, retuned at gate G1 (5.6 px out, 14.5 px down)        |
 | `HAND_STACK_RADIUS_PX`, the joined-hand hand radius | its `drawArms`'s `hr` and `under` flag                                                |
 | `headLook`                                          | its `sampleAt` head-turn block: ±55°, fading to 0 by 115°                             |
 | `mulberry32`, `shade`, the palettes                 | its people block                                                                      |

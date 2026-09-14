@@ -2,6 +2,7 @@ import { HOLD_SPACING_PX, angleDiff, angleOf, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { CENTRE_DROP_PX, DEFAULT_PAIR_FRAME, norm360 } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
+import { handForwardAngle } from "./forwardAngle.js";
 import { resolveParams } from "./FigureDef.js";
 import type { AllemandeParams } from "./allemande.js";
 import { allemande } from "./allemande.js";
@@ -16,12 +17,12 @@ const at = (t: number, over: Partial<AllemandeParams> = {}) => {
 };
 
 describe("allemande", () => {
-  it("is eight beats, left hand, once round, 20 degrees in", () => {
+  it("is eight beats, left hand, once round, 45 degrees in", () => {
     expect(allemande.beats).toBe(8);
     expect(allemande.defaults).toEqual({
       hand: "L",
       amount: 1,
-      inward: 20,
+      inward: 45,
       startFacing: null,
     });
   });
@@ -83,5 +84,56 @@ describe("allemande", () => {
         expect(worstShortfall(allemande, frame, { amount, hand }).short).toBe(0);
       }
     }
+  });
+
+  /**
+   * Gate G1: "The allemande is way off still. The torso should be rotated
+   * towards the other person so the arm is angled _forward_ not back. As drawn
+   * it would be _very_ uncomfy. We rotate our torsos a decent amount towards
+   * the other person."
+   *
+   * The joined hand has to stay forward of the shoulder line by at least 30°
+   * for the whole of the turn — from the moment the hand is taken (the take
+   * ends at beat 1.3) to the moment it is let go (the release starts at
+   * `beats − 0.9`). Outside that window the hand is not joined: it is the
+   * inside hand a swing left behind the pair, or a hand already hanging.
+   */
+  it("keeps the joined arm forward of the shoulder line all the way round", () => {
+    for (const amount of [1, 1.5, 2]) {
+      for (const hand of ["L", "R"] as const) {
+        const p = resolveParams(allemande, { amount, hand });
+        for (let n = Math.ceil(1.3 * 8); n <= (allemande.beats - 0.9) * 8; n++) {
+          const t = n / 8;
+          for (const role of ["lark", "robin"] as const) {
+            const forward = handForwardAngle(allemande.sample(frame, role, t, p), hand);
+            expect(forward, `${role} ${hand} at t=${t}`).not.toBeNull();
+            expect(forward ?? 0, `${role} ${hand} at t=${t}`).toBeGreaterThanOrEqual(30);
+          }
+        }
+      }
+    }
+  });
+
+  it("turns the torso a decent amount toward the partner, and 20 degrees was not enough", () => {
+    const worst = (inward: number): number => {
+      let least = Infinity;
+      const p = resolveParams(allemande, { inward });
+      for (let n = Math.ceil(1.3 * 8); n <= (allemande.beats - 0.9) * 8; n++) {
+        for (const role of ["lark", "robin"] as const) {
+          const forward = handForwardAngle(allemande.sample(frame, role, n / 8, p), "L");
+          if (forward !== null) least = Math.min(least, forward);
+        }
+      }
+      return least;
+    };
+    // The old 20° default already cleared the 30° bar measured from the
+    // shoulder (43.2°), which is why it needed an eye rather than a number to
+    // catch: measured from the body centre — the line the eye actually reads
+    // at this scale — 20° of torso turn leaves the arm 20° forward of the
+    // shoulder line and 45° leaves it 45°. The new default has 70° of margin
+    // on the shoulder measure rather than 13°.
+    expect(worst(20)).toBeCloseTo(43.2, 1);
+    expect(worst(45)).toBeGreaterThan(worst(20));
+    expect(worst(45)).toBeGreaterThanOrEqual(70);
   });
 });

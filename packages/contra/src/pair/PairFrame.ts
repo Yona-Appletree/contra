@@ -88,15 +88,18 @@ export const lookAtPartner = (self: Vec2, partner: Vec2): Angle =>
  * with the step.
  *
  * These four numbers are `@caller/hall`'s `HAND_HANG_*`, which came from the
- * same two-dancers spike. A figure needs them because every take and release is
- * animated and the animation has to start somewhere; `@caller/contra` cannot
- * import `@caller/hall`, so they are restated here. Keeping them in step is a
- * known duplication — see `packages/contra/README.md`.
+ * same two-dancers spike and were re-tuned at gate G1 so a resting arm is
+ * almost hidden by the torso from above. A figure needs them because every take
+ * and release is animated and the animation has to start somewhere;
+ * `@caller/contra` cannot import `@caller/hall`, so they are restated here.
+ * Keeping them in step is a known duplication — `apps/web`, which depends on
+ * both packages, has the test that says the two sets agree. See
+ * `packages/contra/README.md`.
  */
-export const HAND_DOWN_DROP_PX = 14;
-export const HAND_DOWN_LATERAL_PX = 6.2;
+export const HAND_DOWN_DROP_PX = 14.5;
+export const HAND_DOWN_LATERAL_PX = 5.6;
 export const HAND_DOWN_FORWARD_PX = 0.4;
-export const HAND_DOWN_SWING_PX = 0.8;
+export const HAND_DOWN_SWING_PX = 0.6;
 
 /**
  * The hand of a dancer at `p` facing `facing`, hanging at the dancer's side.

@@ -66,9 +66,36 @@ export function solveArm(shoulder: Vec2, hand: Hand, side: Side, facing: Angle):
   return { shoulder: s, elbow, hand: h, short };
 }
 
-/** {@link solveArm} keeping the heights the renderer shades by. */
-export function solveArm3d(shoulder: Vec2, hand: Hand, side: Side, facing: Angle): Arm3dSolution {
+/**
+ * How far out to the side the default elbow pole leans, against a downward
+ * component of 1. Only the direction matters, but the ratio is what decides how
+ * far round the elbow swings for an arm that is neither straight down nor
+ * straight out.
+ */
+export const POLE_OUTWARD = 0.55;
+
+/**
+ * {@link solveArm} keeping the heights the renderer shades by.
+ *
+ * `poleXY` overrides the floor-plane part of the elbow pole, which is
+ * `outward × {@link POLE_OUTWARD}` by default. A near-vertical arm has the
+ * pole's downward part cancelled by the shoulder-hand line, so whatever is left
+ * in the floor plane is the whole of it and the elbow swings all the way there:
+ * that is why a renderer that wants a hanging arm's elbow tucked behind the
+ * body rather than winged out to the side has to say so here. The default is
+ * unchanged, and nothing in `core` passes one.
+ */
+export function solveArm3d(
+  shoulder: Vec2,
+  hand: Hand,
+  side: Side,
+  facing: Angle,
+  poleXY?: Vec2,
+): Arm3dSolution {
   const outward = side === "L" ? leftOf(facing) : rightOf(facing);
+  const pole: Vec2 = poleXY ?? [outward[0] * POLE_OUTWARD, outward[1] * POLE_OUTWARD];
+  const poleLen = Math.hypot(pole[0], pole[1]) || 1;
+  const poleDir: Vec2 = [pole[0] / poleLen, pole[1] / poleLen];
   const l1 = UPPER_ARM_PX;
   const l2 = FOREARM_PX;
   const total = l1 + l2;
@@ -98,12 +125,12 @@ export function solveArm3d(shoulder: Vec2, hand: Hand, side: Side, facing: Angle
   if (d < DEGENERATE_PX) {
     // Hand effectively at the shoulder: any elbow 7.5 px from the shoulder
     // satisfies both bones. Take the pole direction, down and a little out.
-    const pl = Math.hypot(outward[0] * 0.5, outward[1] * 0.5, l1);
+    const pl = Math.hypot(0.5, l1);
     return {
       shoulder,
       elbow: [
-        shoulder[0] + (outward[0] * 0.5 * l1) / pl,
-        shoulder[1] + (outward[1] * 0.5 * l1) / pl,
+        shoulder[0] + (poleDir[0] * 0.5 * l1) / pl,
+        shoulder[1] + (poleDir[1] * 0.5 * l1) / pl,
       ],
       hand: [hx, hy],
       short,
@@ -121,9 +148,10 @@ export function solveArm3d(shoulder: Vec2, hand: Hand, side: Side, facing: Angle
   const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
   const hh = Math.sqrt(Math.max(0, l1 * l1 - a * a));
 
-  // Pole: down and outward, made perpendicular to the shoulder-hand line.
-  let px = outward[0] * 0.55;
-  let py = outward[1] * 0.55;
+  // Pole: down and (by default) outward, made perpendicular to the
+  // shoulder-hand line.
+  let px = pole[0];
+  let py = pole[1];
   let pz = -1.0;
   let dot = px * ux + py * uy + pz * uz;
   px -= dot * ux;
@@ -131,9 +159,10 @@ export function solveArm3d(shoulder: Vec2, hand: Hand, side: Side, facing: Angle
   pz -= dot * uz;
   let pl = Math.hypot(px, py, pz);
   if (pl < 1e-4) {
-    // The arm points straight down the pole; fall back to purely outward.
-    px = outward[0];
-    py = outward[1];
+    // The arm points straight down the pole; fall back to the pole's own
+    // floor-plane direction.
+    px = poleDir[0];
+    py = poleDir[1];
     pz = 0;
     dot = px * ux + py * uy;
     px -= dot * ux;

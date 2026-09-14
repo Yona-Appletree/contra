@@ -90,7 +90,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1         |
 | `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6                                                                              |
 | `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees), `endHalf` `null` |
-| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 20°, `holdDrop` 2, `endHalf` `null`                                |
+| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2, `endHalf` `null`                                |
 | `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `swellPx` 2.5, `endHalf` `null`                                                           |
 | `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                     |
 | `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                       |
@@ -312,7 +312,7 @@ a figure to a frame and erases `P`, which is what a sequence holds.
 | `walk-in`   | 4     | none                                                       | From the lines, `LINE_OFFSET_PX` further apart, in to the hold; the take is animated over the last beat and a bit.                             |
 | `balance`   | 4     | `rock` 1.0 px, `takeHands` false                           | Rock forward then back with two hands joined, feet planted. `takeHands` is for a balance that follows a figure with the hands down.            |
 | `swing`     | 8     | `turns` 2, `handOffset` 5 px, `beats` 8, `endFacing` null  | Ballroom hold, buzz step, open out with the lark on the left. `handOffset` is how far in from the joined shoulders the outstretched hands sit. |
-| `allemande` | 8     | `hand` `"L"`, `amount` 1, `inward` 20°, `startFacing` null | One hand at the centre; each body turns `inward` degrees toward that centre so the arm has something to pull against.                          |
+| `allemande` | 8     | `hand` `"L"`, `amount` 1, `inward` 45°, `startFacing` null | One hand at the centre; each body turns `inward` degrees toward that centre so the arm has something to pull against.                          |
 | `do-si-do`  | 8     | none                                                       | Round back to back with the hands down and the facing kept; only the head follows.                                                             |
 | `fall-back` | 8     | `release` true                                             | Let the hands go and walk back to the lines.                                                                                                   |
 
@@ -337,8 +337,12 @@ shoulders were not restored.
   balance the two head centres are 9.2 px apart instead of 8.0 — a gap of
   3.4 px between a 2.9 px skull and its partner's, where the spike had 2.2 px
   (2.8 and 1.6 for the wider `bob` and `curly` heads). Gate G1 question 2.
-- **`swing.handOffset` is 5 px** and **`allemande.inward` is 20°**, the two
-  gate-3 tweaks, now parameters. Gate G1 question 3.
+- **`swing.handOffset` is 5 px** and **`allemande.inward` is 45°**, the two
+  gate-3 tweaks, now parameters. The allemande's was 20° at gate G1 and the
+  user rejected it — "the torso should be rotated towards the other person so
+  the arm is angled _forward_ not back" — so 45° is F1's answer. `handForwardAngle`
+  measures it: the joined hand stays 70° forward of the shoulder line for the
+  whole of the turn, against 43.2° at 20°.
 
 ### The invariants these hold
 
@@ -365,9 +369,12 @@ starts on a whole beat — neither moves a pixel.
   the dancer's side rather than `'down'`, because `easeSeam` cannot
   interpolate `'down'` (it switches at the midpoint of the seam) and because
   every take and release has to animate out of somewhere. `handDown` restates
-  `@caller/hall`'s `HAND_HANG_*` numbers, which came from the same spike;
-  **that is a duplication to watch**, and the tidy fix is to move the hanging
-  hand into `@caller/core`.
+  `@caller/hall`'s `HAND_HANG_*` numbers, which came from the same spike and
+  were retuned at gate G1 (5.6 px out, 14.5 px down, 0.6 px of swing, so a
+  resting arm is nearly hidden by the torso from above); **that is a
+  duplication to watch**, and the tidy fix is to move the hanging hand into
+  `@caller/core`. `apps/web` depends on both packages and has the test that
+  says the two sets still agree.
 - **The arm swing starts and ends at zero.** The spike's `walk-in` opened with
   the arms already swinging while `fall-back` closed with them still, so the
   hanging hands jumped up to 0.8 px at three seams and the seam ease hid it.
