@@ -1,5 +1,5 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { shade } from "../appearance/shade.js";
+import { rankShade, roleColour } from "../appearance/roleColours.js";
 
 /**
  * What the four trace drawings read: one pen per dancer, a window of beats, and
@@ -50,41 +50,16 @@ export interface TraceViewCell {
 }
 
 /**
- * The two role colours, and what everybody else gets.
- *
- * **Larks gold, robins red** — a user ruling of 2026-09-14, replacing the
- * blue-and-pink of the exploration post, which read as a claim about gender
- * that contra's role names exist precisely to avoid. One constant, so the
- * milestone that puts role colour on the dancers' clothes uses the same two
- * hues as the pens. (`TRAIL_COLOURS` in `person/Person.ts` is the hall's older
- * blue-and-rose trail palette and still has the pixels the goldens pin; moving
- * it onto these two is a renderer change, and belongs to that milestone.)
- */
-export const ROLE_COLOURS = {
-  lark: "#e0a32e",
-  robin: "#c8362f",
-  other: "#9c8f7a",
-} as const;
-
-/** How much darker the ones' ink is than the base role colour. */
-export const ONES_SHADE = 0.72;
-/** How much lighter the twos' ink is. */
-export const TWOS_SHADE = 1.24;
-
-/**
  * The ink one pen draws in: its role's colour, the ones darker and the twos
  * lighter, exactly as the post's plates read ones and twos apart.
+ *
+ * The two colours themselves — larks gold, robins red — live in
+ * `appearance/roleColours.ts`, where the dancers' clothes and their floor
+ * trails read the same constant. A pen and the dancer who drew it are the same
+ * colour on purpose.
  */
 export function penColour(role: string, rank = 0): string {
-  const base =
-    role === "lark"
-      ? ROLE_COLOURS.lark
-      : role === "robin"
-        ? ROLE_COLOURS.robin
-        : ROLE_COLOURS.other;
-  if (rank === 1) return shade(base, ONES_SHADE);
-  if (rank >= 2) return shade(base, TWOS_SHADE);
-  return base;
+  return rankShade(roleColour(role), rank);
 }
 
 /**

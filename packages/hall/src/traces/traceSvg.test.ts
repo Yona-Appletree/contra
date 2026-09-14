@@ -5,7 +5,8 @@ import { marchSvg } from "./marchSvg.js";
 import { penPlotSvg } from "./penPlotSvg.js";
 import { seismographSvg } from "./seismographSvg.js";
 import type { TraceView, TraceViewPen } from "./TraceView.js";
-import { ROLE_COLOURS, TRACE_FAMILY_COLOURS, familyColour, penColour } from "./TraceView.js";
+import { TRACE_FAMILY_COLOURS, familyColour, penColour } from "./TraceView.js";
+import { ROLE_COLOURS } from "../appearance/roleColours.js";
 import { inkRuns, num, spreadOffset, traceDraw } from "./traceSvg.js";
 
 /**

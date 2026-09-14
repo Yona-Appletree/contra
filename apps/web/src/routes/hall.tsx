@@ -340,7 +340,10 @@ export function HallPage({
     if (canvas === null) return;
     clearFloorCache();
     clearFurnitureLayer();
-    setRenderer(createRenderer(canvas, { world: { ...world.world, zoom } }));
+    // The Stage is the one surface that draws skirts (a user ruling of
+    // 2026-09-14): they are the big hall's look, and a move example is about
+    // the move, not the wardrobe.
+    setRenderer(createRenderer(canvas, { world: { ...world.world, zoom }, skirts: true }));
     previousRef.current = undefined;
     return () => {
       setRenderer(null);

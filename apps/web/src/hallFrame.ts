@@ -39,7 +39,7 @@ export function createHallPeople(hall: HallState): Map<DancerId, Person> {
         // The ones travel down and get the darker trail; in a duple improper
         // line the even-numbered couples start as the ones.
         ones: couple % 2 === 0,
-        roleShirts: CONTRA_ROLES,
+        roleShirts: true,
       }),
     );
   }

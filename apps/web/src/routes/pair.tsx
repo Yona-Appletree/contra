@@ -207,7 +207,7 @@ function PairCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
-    const renderer = createRenderer(canvas, { world: { ...PAIR_WORLD, zoom } });
+    const renderer = createRenderer(canvas, { world: { ...PAIR_WORLD, zoom }, skirts: false });
     paintFloor(renderer);
     rendererRef.current = renderer;
     return () => {
@@ -268,7 +268,7 @@ function StripCell({
     const canvas = canvasRef.current;
     if (canvas === null) return;
     delete canvas.dataset["ready"];
-    const renderer = createRenderer(canvas, { world: { ...STRIP_WORLD, zoom } });
+    const renderer = createRenderer(canvas, { world: { ...STRIP_WORLD, zoom }, skirts: false });
     paintFloor(renderer);
     renderer.render(frameOf(sequence.sampleAt(beat), people, beat));
     // The strip tests wait for every cell to have drawn before screenshotting.
@@ -284,10 +284,12 @@ function StripCell({
 }
 
 /**
- * The two dancers. Fixed seeds, so a golden and a strip are reproducible: seed
- * 13 dresses the lark in the palette's plain blue and 15 the robin in its rose,
- * which is as close to the two-dancers spike's own pair as the seeded
- * appearance gets.
+ * The two dancers. Fixed seeds (the two-dancers spike's own 63 and 91), so a
+ * golden and a strip are reproducible. The lark is gold and the robin red — the
+ * role colours, a user ruling of 2026-09-14 — each with their own seeded shade
+ * of it; the seeds no longer choose the hue, only how far off the role's colour
+ * this particular dancer's shirt sits. No skirts here: this page is a move
+ * example, and a move example shows the clothes and the move.
  */
 function usePair(): { lark: Person; robin: Person } {
   return useMemo(
@@ -297,14 +299,14 @@ function usePair(): { lark: Person; robin: Person } {
         role: "lark",
         seed: 63,
         skirt: false,
-        roleShirts: CONTRA_ROLES,
+        roleShirts: true,
       }),
       robin: createPerson({
         id: "robin",
         role: "robin",
         seed: 91,
         skirt: false,
-        roleShirts: CONTRA_ROLES,
+        roleShirts: true,
       }),
     }),
     [],

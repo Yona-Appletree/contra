@@ -29,6 +29,12 @@ export interface RendererOptions {
   outline?: boolean;
   /** Draw the shadow under each torso. Default true. */
   shadow?: boolean;
+  /**
+   * Draw skirts on the dancers whose seed gave them one. **Default false** —
+   * the Stage sets it true and every other surface leaves it. See
+   * `DrawOptions.skirts` for the ruling behind that.
+   */
+  skirts?: boolean;
 }
 
 /**
@@ -62,6 +68,7 @@ export function createRenderer(canvas: HTMLCanvasElement, opts: RendererOptions 
   const drawOpts = {
     outline: opts.outline ?? true,
     shadow: opts.shadow ?? true,
+    skirts: opts.skirts ?? false,
     snap: aa ? q256Vec2 : roundVec2,
   };
 

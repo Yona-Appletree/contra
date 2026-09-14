@@ -38,6 +38,16 @@ export interface DrawOptions {
   outline?: boolean;
   /** Draw the shadow under the torso. Default true. */
   shadow?: boolean;
+  /**
+   * Draw skirts on the dancers whose seed gave them one. **Default false.**
+   *
+   * A user ruling of 2026-09-14: skirts are the big hall's look and belong
+   * nowhere else. The Stage turns them on; the Moves tiles, the pair page, the
+   * strips and the trace views leave them off and show the clothes colours
+   * alone, so that what a move example shows is the move. Who wears one is
+   * `Appearance.wearsSkirt`, which the seed decides and the role never does.
+   */
+  skirts?: boolean;
   /** Snap each drawn point to a whole px — the `aa: false` look. Default identity. */
   snap?: (v: Vec2) => Vec2;
   /** Which of this dancer's hands are joined, and how they stack. */
@@ -82,6 +92,7 @@ export function drawBody(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
   const rad = (angle * Math.PI) / 180;
   const flare = layout.pose.flare;
   const outline = opts.outline ?? true;
+  const skirt = (opts.skirts ?? false) && a.wearsSkirt;
 
   if (opts.shadow ?? true) {
     const q = bodyPoint(p, angle, -0.2, 0);
@@ -89,8 +100,8 @@ export function drawBody(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
       g,
       q[0] + 1,
       q[1] + 1.3,
-      a.skirt ? 6.6 + flare : 4.6,
-      a.skirt ? 7 + flare : 6.2,
+      skirt ? 6.6 + flare : 4.6,
+      skirt ? 7 + flare : 6.2,
       rad,
       SHADOW_COLOUR,
       false,
@@ -103,7 +114,7 @@ export function drawBody(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
     ell(g, q[0], q[1], 1.8, 1.1, rad, SHOE_COLOUR, outline);
   }
 
-  if (a.skirt !== undefined && a.skirtDark !== undefined) {
+  if (skirt) {
     const q = bodyPoint(p, angle, -0.4, 0);
     ell(g, q[0], q[1], 6.2 + flare, 6.8 + flare, rad, a.skirt, outline);
     ell(g, q[0], q[1], 4.6 + flare * 0.5, 5.2 + flare * 0.5, rad, a.skirtDark, false);

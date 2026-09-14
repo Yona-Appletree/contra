@@ -1,7 +1,6 @@
 import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
 import type { DancerId, Group } from "@caller/choreo";
-import { CONTRA_ROLES } from "@caller/contra";
 import type { Person, Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, createPerson, createRenderer, drawText } from "@caller/hall";
 import type { CSSProperties, JSX } from "react";
@@ -512,7 +511,7 @@ function TileCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
-    const renderer = createRenderer(canvas, { world: { ...tile.world, zoom } });
+    const renderer = createRenderer(canvas, { world: { ...tile.world, zoom }, skirts: false });
     paintFloor(renderer);
     rendererRef.current = renderer;
     previousRef.current = undefined;
@@ -609,7 +608,7 @@ function StripCell({
     const canvas = canvasRef.current;
     if (canvas === null) return;
     delete canvas.dataset["ready"];
-    const renderer = createRenderer(canvas, { world: { ...tile.world, zoom } });
+    const renderer = createRenderer(canvas, { world: { ...tile.world, zoom }, skirts: false });
     paintFloor(renderer, cell.label);
     renderer.render(hallFrame(tile.timeline, people, cell.at, { trails: false }).frame);
     canvas.dataset["ready"] = "1";
@@ -632,7 +631,7 @@ function peopleOf(group: Group): Map<DancerId, Person> {
         seed: seedOf(id),
         // The ones travel down and get the darker trail, as in the hall.
         ones: station.id.startsWith("1"),
-        roleShirts: CONTRA_ROLES,
+        roleShirts: true,
       }),
     );
   }
