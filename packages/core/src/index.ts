@@ -43,7 +43,7 @@ export {
 export type { Beat, Clock } from "./time/Clock.js";
 export { DEFAULT_BPM, createClock } from "./time/Clock.js";
 export type { Meter } from "./time/Meter.js";
-export { REEL, beatInPhrase, beatsPerPhrase, phraseOf } from "./time/Meter.js";
+export { JIG, REEL, beatInPhrase, beatsPerPhrase, phraseOf } from "./time/Meter.js";
 
 // geometry
 export type { Vec2 } from "./geometry/Vec2.js";

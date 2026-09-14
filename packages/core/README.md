@@ -28,7 +28,7 @@ type Beat = number;
 interface Meter {
   beatsPerBar: number;
   barsPerPhrase: number;
-} // REEL is 4, 2
+} // REEL and JIG are 2, 8 — the dance count: a bar is 2 beats, a phrase is 8 bars (16 beats)
 interface Clock {
   beat(): Beat;
   rebase(now: number, beat: Beat, bpm: number): void;
