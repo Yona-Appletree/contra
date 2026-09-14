@@ -74,12 +74,10 @@ for (const golden of GOLDENS) {
       await test
         .info()
         .attach(`${golden.file}-actual.png`, { body: actual, contentType: "image/png" });
-      await test
-        .info()
-        .attach(`${golden.file}-diff.png`, {
-          body: PNG.sync.write(diff),
-          contentType: "image/png",
-        });
+      await test.info().attach(`${golden.file}-diff.png`, {
+        body: PNG.sync.write(diff),
+        contentType: "image/png",
+      });
     }
     expect(
       fraction,
