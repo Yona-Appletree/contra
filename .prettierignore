@@ -1,0 +1,8 @@
+spikes/
+dist/
+storybook-static/
+node_modules/
+.turbo/
+test-results/
+playwright-report/
+pnpm-lock.yaml
