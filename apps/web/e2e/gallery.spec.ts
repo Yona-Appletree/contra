@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -11,11 +11,36 @@ import { fileURLToPath } from "node:url";
  * under each frame in the hall's own bitmap font — and they are written on
  * every run like M5's pair strips are, committed, never compared. Nothing here
  * touches a golden.
+ *
+ * `STRIPS_FIGURE` (O1, set by `pnpm strips --figure <id>`) narrows the strip
+ * write below to that one figure's tile and the seam tiles either side of it,
+ * and skips the directory wipe and the index rewrite — only a full,
+ * unflagged run can get either of those right. `STRIPS_OUT` points the
+ * filtered write at a directory (e.g. the committed `strips/` itself, to
+ * update just that figure's files there); left unset it goes to
+ * `data/local/figure-lab/<id>/strips/`, gitignored. Neither variable does
+ * anything to this test when unset, which is how the default, unflagged
+ * `playwright test` run stays byte-identical to before O1.
  */
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STRIP_DIR = join(HERE, "strips");
 const FIGURE_DIR = join(STRIP_DIR, "figures");
 const SEAM_DIR = join(STRIP_DIR, "seams");
+
+const FIGURE_FILTER = process.env.STRIPS_FIGURE;
+
+/** Where a filtered run writes: `STRIPS_OUT`, or the local scratch default. */
+function filteredStripDir(id: string): string {
+  const override = process.env.STRIPS_OUT;
+  if (override !== undefined) return resolve(override);
+  return resolve(HERE, "../../..", "data/local/figure-lab", id, "strips");
+}
+
+/** Whether one tile is the figure itself, or a seam either side of it. */
+function touchesFigure(tile: TileInfo, id: string): boolean {
+  if (tile.kind === "figure") return tile.key === id;
+  return tile.key.startsWith(`${id}--`) || tile.key.endsWith(`--${id}`);
+}
 
 /** The brief's step: a seam is two beats, and one frame per beat misses it. */
 const STEP = 0.5;
@@ -104,13 +129,21 @@ test.describe("the move gallery", () => {
     test.setTimeout(20 * 60 * 1000);
     await page.setViewportSize({ width: 1280, height: 900 });
 
-    const tiles = await tileList(page);
-    expect(tiles.length).toBeGreaterThan(40);
+    const all = await tileList(page);
+    expect(all.length).toBeGreaterThan(40);
 
-    rmSync(FIGURE_DIR, { recursive: true, force: true });
-    rmSync(SEAM_DIR, { recursive: true, force: true });
-    mkdirSync(FIGURE_DIR, { recursive: true });
-    mkdirSync(SEAM_DIR, { recursive: true });
+    const filtered = FIGURE_FILTER !== undefined;
+    const tiles = filtered ? all.filter((tile) => touchesFigure(tile, FIGURE_FILTER!)) : all;
+    if (filtered) expect(tiles.length).toBeGreaterThan(0);
+
+    const figureDir = filtered ? join(filteredStripDir(FIGURE_FILTER!), "figures") : FIGURE_DIR;
+    const seamDir = filtered ? join(filteredStripDir(FIGURE_FILTER!), "seams") : SEAM_DIR;
+    if (!filtered) {
+      rmSync(FIGURE_DIR, { recursive: true, force: true });
+      rmSync(SEAM_DIR, { recursive: true, force: true });
+    }
+    mkdirSync(figureDir, { recursive: true });
+    mkdirSync(seamDir, { recursive: true });
 
     const rows: string[][] = [];
     for (const tile of tiles) {
@@ -121,12 +154,14 @@ test.describe("the move gallery", () => {
       const cells = Number(await strip.getAttribute("data-cells"));
       await expect(strip.locator('canvas[data-ready="1"]')).toHaveCount(cells);
       const png = await strip.screenshot();
-      const dir = tile.kind === "seam" ? SEAM_DIR : FIGURE_DIR;
+      const dir = tile.kind === "seam" ? seamDir : figureDir;
       writeFileSync(join(dir, `${tile.key}.png`), png);
       rows.push(indexRow(tile, cells, link));
     }
 
-    writeFileSync(join(STRIP_DIR, "README.md"), indexPage(rows));
+    // Only a full, unfiltered run can get the index right: it lists every
+    // tile, and a filtered run only ever wrote a few of them.
+    if (!filtered) writeFileSync(join(STRIP_DIR, "README.md"), indexPage(rows));
   });
 });
 
