@@ -27,7 +27,17 @@ import type { JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
-import { LOOKAHEAD_BEATS, createDemoProgram, positionAt } from "../program.js";
+import {
+  LOOKAHEAD_BEATS,
+  MUSIC_BEATS_PER_ITEM,
+  createDemoProgram,
+  lineUpStartOf,
+  musicBeatOf,
+  musicItemEnd,
+  positionAt,
+  programBeatOf,
+  shownMusicBeat,
+} from "../program.js";
 import { setHallUrl } from "../state/hallUrl.js";
 
 /** The demo hall: two lines, five couples and four (plan Q16). */
@@ -116,8 +126,10 @@ export function HallPage({
   // Which tune is playing is arithmetic on the beat rather than something the
   // player tells us, so the notation follows the silent clock too: the medley
   // plays each tune `timesThroughEach` times through and then moves on, which
-  // is exactly how `Player` chooses its own buffers.
-  const tune = tuneAt(medley, beat);
+  // is exactly how `Player` chooses its own buffers. It is the *music* beat —
+  // the count of dancing beats, with the silent line-ups left out — so a tune
+  // always changes between two dances rather than eight beats into one.
+  const tune = tuneAt(medley, shownMusicBeat(beat));
 
   const zoom = zoomChoice === "auto" ? fitZoom : zoomChoice;
 
@@ -136,10 +148,69 @@ export function HallPage({
     [program],
   );
   const clockRef = useRef<Clock>(silent);
+  /** True while the tune is the clock, so its beat is a music beat (AC4). */
+  const musicOnRef = useRef(false);
+  /** True while the page wants a tune, whether or not one is sounding. */
+  const wantsMusicRef = useRef(false);
   useEffect(() => {
     clockRef.current = silent;
+    musicOnRef.current = false;
     previousRef.current = undefined;
   }, [silent]);
+
+  /**
+   * What beat of the evening it is.
+   *
+   * One clock, always — but while a tune plays that clock counts the tune's own
+   * beats, which leave the silent line-ups out, so the evening's beat is that
+   * count read back through `programBeatOf`. It is still a linear function of
+   * `AudioContext.currentTime` (AC4); it is the same line with a step in it
+   * where the music stopped.
+   */
+  const beatNow = useCallback(
+    (): Beat =>
+      musicOnRef.current
+        ? // `Player.play` schedules its first buffer `START_LATENCY` ahead and
+          // rebases the clock to match, so for a tenth of a beat after a tune
+          // starts its beat is a shade negative. At the start of an item that
+          // would read as the *previous* dance's last beat and draw one frame of
+          // it, so the evening never goes back past the dance that is playing.
+          Math.max(itemStartRef.current, programBeatOf(clockRef.current.beat()))
+        : clockRef.current.beat(),
+    [],
+  );
+
+  /** Where the tune this player is on stops, in its own beats, and in the evening's. */
+  const musicEndRef = useRef(0);
+  const lineUpAtRef = useRef(0);
+  /** Where the dance this tune belongs to starts, in the evening's beats. */
+  const itemStartRef = useRef(0);
+
+  /** Stop the tune and hand the evening back to the silent clock at `at`. */
+  const goSilent = useCallback(
+    (at: Beat): void => {
+      playerRef.current?.stop();
+      silent.setBeat(at);
+      silent.resume();
+      clockRef.current = silent;
+      musicOnRef.current = false;
+      previousRef.current = undefined;
+    },
+    [silent],
+  );
+
+  /** Start the next tune at its own beat 0 and let it be the clock again. */
+  const goMusic = useCallback((musicBeat: Beat): void => {
+    const player = playerRef.current;
+    if (player === null || !primedRef.current) return;
+    musicEndRef.current = musicItemEnd(musicBeat);
+    lineUpAtRef.current = lineUpStartOf(musicBeat);
+    itemStartRef.current = lineUpStartOf(musicBeat) - MUSIC_BEATS_PER_ITEM;
+    player.play(musicBeat);
+    clockRef.current = player.clock;
+    musicOnRef.current = true;
+    previousRef.current = undefined;
+  }, []);
 
   // Auto zoom: the biggest of 1× and 2× that fits the space the hall has.
   useEffect(() => {
@@ -218,7 +289,20 @@ export function HallPage({
     let lastShown = -1;
     const tick = (): void => {
       if (!running) return;
-      const now = clockRef.current.beat();
+      // The tune stops at the end of the dance's last time through, the eight
+      // line-up beats run on the silent clock, and the next tune starts at its
+      // own beat 0 exactly as the next dance does. Without this the tune would
+      // loop through the line-up and put the music eight beats out of phase
+      // with the dance at every switch.
+      if (wantsMusicRef.current && primedRef.current) {
+        if (musicOnRef.current) {
+          if (clockRef.current.beat() >= musicEndRef.current) goSilent(lineUpAtRef.current);
+        } else {
+          const next = musicBeatOf(clockRef.current.beat());
+          if (next !== null) goMusic(next);
+        }
+      }
+      const now = beatNow();
       draw(now);
       // The card and the notation cursor do not need sixty updates a second.
       if (Math.abs(now - lastShown) >= 1 / 4) {
@@ -231,7 +315,7 @@ export function HallPage({
     return () => {
       running = false;
     };
-  }, [draw, frozen]);
+  }, [draw, frozen, beatNow, goMusic, goSilent]);
 
   // Keep the address bar on the dance that is actually playing.
   const position = positionAt(program, beat);
@@ -252,29 +336,27 @@ export function HallPage({
     await player.load(medley);
     primedRef.current = true;
     player.setTempo(tempo);
-    const from = clockRef.current.beat();
-    player.play(from);
+    wantsMusicRef.current = true;
+    const from = beatNow();
+    const musicBeat = musicBeatOf(from);
     // From here the beat is a linear function of `AudioContext.currentTime`
-    // and nothing reads a wall clock (AC4).
-    clockRef.current = player.clock;
-    previousRef.current = undefined;
+    // and nothing reads a wall clock (AC4) — unless the click landed in a
+    // line-up, in which case the silent clock finishes it and the tune comes
+    // in at the next dance's own beat 0.
+    if (musicBeat === null) goSilent(from);
+    else goMusic(musicBeat);
     setPlaying(true);
-  }, [medley, tempo]);
+  }, [medley, tempo, beatNow, goMusic, goSilent]);
 
   const pause = useCallback((): void => {
-    const player = playerRef.current;
-    const at = clockRef.current.beat();
-    player?.stop();
-    silent.setBeat(at);
-    silent.resume();
-    clockRef.current = silent;
-    previousRef.current = undefined;
+    wantsMusicRef.current = false;
+    goSilent(beatNow());
     setPlaying(false);
-  }, [silent]);
+  }, [beatNow, goSilent]);
 
   useEffect(() => {
+    silent.setTempo(tempo);
     if (playing) playerRef.current?.setTempo(tempo);
-    else silent.setTempo(tempo);
   }, [tempo, playing, silent]);
 
   // What a headless test can ask about, since it cannot hear anything (DD12).
@@ -282,7 +364,19 @@ export function HallPage({
     window.hallDemo = {
       audioState: () => ctxRef.current?.state ?? null,
       primed: () => primedRef.current,
-      beat: () => clockRef.current.beat(),
+      beat: () => beatNow(),
+      // Whether a tune is the clock right now: false through every line-up,
+      // which is what makes the line-up silent.
+      musicOn: () => musicOnRef.current,
+      // Jump the evening to a beat, keeping whichever clock should be running
+      // there. A programme item is 136 beats, which is over a minute of
+      // wall clock, so this is the only way a headless test can watch a dance
+      // switch happen.
+      seek: (to: Beat) => {
+        const musicBeat = wantsMusicRef.current ? musicBeatOf(to) : null;
+        if (musicBeat === null) goSilent(to);
+        else goMusic(musicBeat);
+      },
       // The bubble is pixels on a canvas, so a test cannot read it; this is
       // the string that was drawn into it.
       call: (at?: Beat) => callAt(program, at ?? clockRef.current.beat()),
@@ -301,7 +395,7 @@ export function HallPage({
     return () => {
       delete window.hallDemo;
     };
-  }, [draw, program]);
+  }, [draw, program, beatNow, goMusic, goSilent]);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-4 p-4">
@@ -325,6 +419,8 @@ export function HallPage({
               setDanceSlug(slug);
               setBeat(0);
               setPlaying(false);
+              wantsMusicRef.current = false;
+              musicOnRef.current = false;
               playerRef.current?.stop();
             }}
             medley={medleySlug}
@@ -560,6 +656,8 @@ declare global {
       audioState: () => string | null;
       primed: () => boolean;
       beat: () => Beat;
+      musicOn: () => boolean;
+      seek: (to: Beat) => void;
       call: (at?: Beat) => string;
       bench: (frames: number) => number[];
     };

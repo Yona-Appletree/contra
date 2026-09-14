@@ -8,7 +8,7 @@ import type {
   StationId,
   WaitOutParams,
 } from "@caller/choreo";
-import { WAIT_OUT, groupStationPose, standing } from "@caller/choreo";
+import { WAIT_OUT, groupStationPose, standing, waitOutStart } from "@caller/choreo";
 
 /**
  * {@link waitOut}'s parameters: the engine's, less `crossTo`, which is read off
@@ -45,7 +45,7 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
     if (engine.crossTo !== "mirror" || t < crossStart) {
       return WAIT_OUT.sample(group, station, t, engine);
     }
-    return crossTogether(group, station, t - crossStart, params.crossBeats);
+    return crossTogether(group, station, t - crossStart, params.crossBeats, engine);
   },
 
   ends(group: Group, params: ContraWaitOutParams): Record<StationId, EndPose> {
@@ -86,7 +86,13 @@ const MIRROR_BOW_PX = 10;
  * the same two places, because a point reflection *is* a half turn, and keeps
  * the two dancers their own width apart the whole way.
  */
-function crossTogether(group: Group, station: StationId, t: Beat, beats: Beat): PoseSample {
+function crossTogether(
+  group: Group,
+  station: StationId,
+  t: Beat,
+  beats: Beat,
+  params: WaitOutParams,
+): PoseSample {
   const home = groupStationPose(group, station);
   const other = group.stations.find((s) => s.id !== station);
   if (!other) throw new Error(`wait-out: "${station}" has nobody to cross with`);
@@ -94,6 +100,13 @@ function crossTogether(group: Group, station: StationId, t: Beat, beats: Beat): 
   const centre = group.frame.centre;
   const mid: Vec2 = [(home.p[0] + mate.p[0]) / 2, (home.p[1] + mate.p[1]) / 2];
   const offset: Vec2 = [home.p[0] - mid[0], home.p[1] - mid[1]];
+  // The couple lands opposite where it *started* the figure, which is the
+  // waiting place unless the dance progressed in its own first figure and the
+  // couple slid into the waiting place from one place back. `wait-out`'s own
+  // `ends` say the same thing, and the two have to agree to 0.01 px.
+  const from = waitOutStart(group, params, station);
+  const fromMate = waitOutStart(group, params, other.id);
+  const midFrom: Vec2 = [(from.p[0] + fromMate.p[0]) / 2, (from.p[1] + fromMate.p[1]) / 2];
 
   const k = smooth(t / beats);
   const turn = (180 * k * Math.PI) / 180;
@@ -104,9 +117,10 @@ function crossTogether(group: Group, station: StationId, t: Beat, beats: Beat): 
   // share a lane, and pass 3.8 px apart.
   const away = dirOf(group.frame.axis + 180);
   const bow = MIRROR_BOW_PX * Math.sin(Math.PI * k);
+  const travel: Vec2 = [2 * centre[0] - midFrom[0] - mid[0], 2 * centre[1] - midFrom[1] - mid[1]];
   const here: Vec2 = [
-    mid[0] + (2 * centre[0] - 2 * mid[0]) * k + offset[0] * cos - offset[1] * sin + away[0] * bow,
-    mid[1] + (2 * centre[1] - 2 * mid[1]) * k + offset[0] * sin + offset[1] * cos + away[1] * bow,
+    mid[0] + travel[0] * k + offset[0] * cos - offset[1] * sin + away[0] * bow,
+    mid[1] + travel[1] * k + offset[0] * sin + offset[1] * cos + away[1] * bow,
   ];
   const moving = t > 0 && t < beats;
   return {

@@ -33,8 +33,14 @@ export const COLLISION_PX = 8;
 
 /** The line lengths a duple improper dance is checked at (the plan's 2 to 6). */
 export const DUPLE_LINES = [2, 3, 4, 5, 6] as const;
-/** A becket set holds `2 × places + 2` couples, so its lengths are 4 to 12. */
-export const BECKET_LINES = [4, 6, 8, 10, 12] as const;
+/**
+ * A becket set holds `2 × places + 2` couples, so its lengths are 4 to 12.
+ *
+ * Five is in the list because the demo hall's longer line is five couples and
+ * an odd becket set is a different shape — the odd couple out takes a second
+ * waiting place — so it is worth measuring rather than assuming.
+ */
+export const BECKET_LINES = [4, 5, 6, 8, 10, 12] as const;
 
 /** The formation a dance's `formation` id names. */
 export function formationFor(dance: Dance): Formation {
@@ -97,7 +103,15 @@ export function oraclesFor(dance: Dance, couples: number, until = 128): DanceOra
     for (const station of plan.stations) {
       const dancer = plan.members[station.id];
       if (dancer === undefined) continue;
-      const want = stationPose(plan.frame, station).p;
+      // AC5's "progressed start position" is the dance's *own* first place in
+      // the progressed set, which is the station for every dance that
+      // progresses at the end of its cycle and one couple place back along the
+      // line for one that progresses in its first figure.
+      const place = dance.startPlaces?.[station.id];
+      const want = stationPose(
+        plan.frame,
+        place === undefined ? station : { ...station, p: place.p, facing: place.facing },
+      ).p;
       progressedPx = Math.max(progressedPx, dist(poseAt(timeline, dancer, 64).p, want));
     }
   }

@@ -1,6 +1,7 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
 import { angleOfVec, norm, shouldersAt, sub } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
+import { frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
 import { groupStation, groupStationPose } from "../group/Group.js";
 import type { EndPose, FigureDef, FigureParams } from "./FigureDef.js";
@@ -25,6 +26,19 @@ export type CrossOver = "swap" | "mirror";
 export interface WaitOutParams extends FigureParams {
   /** How the couple gets to where the next time through wants it. */
   crossTo: CrossOver;
+  /**
+   * Station → where its dancer stands when the figure starts, in the group
+   * frame's **own axes**. Empty — the default — means the waiting places.
+   *
+   * A dance whose first figure is the progression starts everybody one place
+   * off the stations, the waiting couple included: it slides off the end of the
+   * line with everybody else. The crossing is then reckoned from where the
+   * couple *started*, not from the waiting place, which is what puts it down on
+   * the place the next time through begins from. With the default it is the
+   * waiting place either way, so nothing moves for a dance that progresses at
+   * the end.
+   */
+  startPlaces: Record<StationId, EndPose>;
   /** Beats spent stepping together to take hands. */
   joinBeats: Beat;
   /** Beats spent letting go and stepping back out, just before the crossing. */
@@ -68,6 +82,7 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
   beats: 64,
   defaults: {
     crossTo: "swap",
+    startPlaces: {},
     joinBeats: 4,
     partBeats: 2,
     crossBeats: 8,
@@ -81,7 +96,7 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     const self = g.side(station);
 
     if (t < g.joinBeats) {
-      const step = walkStep(self.home, self.hold, t, g.joinBeats, 0);
+      const step = walkStep(self.start, self.hold, t, g.joinBeats, 0);
       return standing(step.p, step.facing);
     }
     if (t >= g.partStart && t < g.crossStart) {
@@ -129,9 +144,25 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
 };
 
 interface WaitSide {
+  /** Where the dancer stands when the figure starts; the waiting place by default. */
+  start: EndPose;
+  /** The waiting place itself, which is where the crossing sets off from. */
   home: EndPose;
   hold: EndPose;
   inside: "L" | "R";
+}
+
+/**
+ * Where a waiting couple's two dancers stand when the figure starts, in world
+ * px: `startPlaces` when the dance gave one, the waiting places otherwise.
+ *
+ * Exported because a form may replace the crossing (contra does, to walk the
+ * couple across as a couple) and has to reckon it from the same two places.
+ */
+export function waitOutStart(group: Group, params: WaitOutParams, station: StationId): EndPose {
+  const local = params.startPlaces[station];
+  if (local === undefined) return groupStationPose(group, station);
+  return { p: framePoint(group.frame, local.p), facing: frameAngle(group.frame, local.facing) };
 }
 
 function geometry(group: Group, params: WaitOutParams) {
@@ -142,6 +173,8 @@ function geometry(group: Group, params: WaitOutParams) {
   const b = group.stations[1]!;
   const homeA = groupStationPose(group, a.id);
   const homeB = groupStationPose(group, b.id);
+  const startA = waitOutStart(group, params, a.id);
+  const startB = waitOutStart(group, params, b.id);
   const half = group.frame.spacing / 2;
   const u = norm(sub(homeA.p, homeB.p));
   const mid: Vec2 = [(homeA.p[0] + homeB.p[0]) / 2, (homeA.p[1] + homeB.p[1]) / 2];
@@ -157,8 +190,8 @@ function geometry(group: Group, params: WaitOutParams) {
   const joinPoint: Vec2 = [(shA[0] + shB[0]) / 2, (shA[1] + shB[1]) / 2];
 
   const sides: Record<StationId, WaitSide> = {
-    [a.id]: { home: homeA, hold: { p: holdA, facing: faceA }, inside: "L" },
-    [b.id]: { home: homeB, hold: { p: holdB, facing: faceB }, inside: "R" },
+    [a.id]: { start: startA, home: homeA, hold: { p: holdA, facing: faceA }, inside: "L" },
+    [b.id]: { start: startB, home: homeB, hold: { p: holdB, facing: faceB }, inside: "R" },
   };
 
   const joinBeats = Math.min(params.joinBeats, params.beats);
@@ -182,19 +215,26 @@ function geometry(group: Group, params: WaitOutParams) {
     joinPoint,
     side,
     otherId,
-    /** Where this station's dancer stands once the crossing is done. */
+    /**
+     * Where this station's dancer stands once the crossing is done.
+     *
+     * Reckoned from where the couple *started*, not from the waiting place. The
+     * two are the same unless the dance progresses in its own first figure, in
+     * which case the waiting couple slid into the waiting place with everybody
+     * else and has to land one place short of it, ready to slide again.
+     */
     target(id: StationId): EndPose {
       if (params.crossTo === "mirror") {
-        const home = side(id).home;
+        const from = side(id).start;
         return {
-          p: [2 * centre[0] - home.p[0], 2 * centre[1] - home.p[1]],
-          facing: home.facing + 180,
+          p: [2 * centre[0] - from.p[0], 2 * centre[1] - from.p[1]],
+          facing: from.facing + 180,
         };
       }
       // A swap leaves both dancers facing along the frame's own axis, which is
       // turned end for end for the couple waiting at the other end of the set,
       // so one figure serves both ends.
-      return { p: side(otherId(id)).home.p, facing: group.frame.axis };
+      return { p: side(otherId(id)).start.p, facing: group.frame.axis };
     },
   };
 }

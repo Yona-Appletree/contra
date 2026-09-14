@@ -62,6 +62,28 @@ comes back in on the other line, one place along: that crossing is
 `wait-out`'s `'mirror'`, in a frame centred halfway between the two places,
 so the one built-in figure does becket's end effect and duple improper's.
 
+**An odd number of couples** cannot fill a becket set — two couples stand at
+every dancing place, one from each line — so the odd one out takes a second
+waiting place beyond the bottom end. The set then alternates between `places`
+dancing places and `places − 1`, which is what a real line of five couples
+does: somebody is always out, and never the same couple twice running. The
+oracle checks five couples as well as the even lengths, because the demo
+hall's longer line is five.
+
+**Where a becket set sits.** `SetSpec.centre` is where a line's _first_ dancer
+stands, which is what it means for a duple improper set, and a hall hands the
+same point to both formations. A becket set's first dancer is at place `-1`,
+so `BECKET.start` puts the frame `BECKET_TOP_OFFSET_PX` (one waiting place
+plus half a couple, 50 px) down the hall from it. Without that a becket line
+in the demo hall would start 50 px above the top of the dance floor, on the
+stage.
+
+**A dance that progresses in its first figure** — Butter shifts left in its
+first two beats — begins on {@link BECKET_BEFORE_SLIDE} rather than on the
+stations: every dancer, the waiting couple included, is one couple place back
+along their own line and slides in. That is `Dance.startPlaces`; see
+`@caller/choreo`'s README.
+
 Becket's closure is proved the same way duple improper's is, by a sequence in
 `src/figures/sequences.ts` that the script decider dances: everything in it
 returns to the places it started on, and `slide-left` at the end is the
@@ -172,12 +194,15 @@ reaches exactly the same two places, because a point reflection _is_ a half
 turn, and it loops 10 px beyond the end of the set so it does not share a lane
 with the couple sliding out of the place it is coming back to.
 
-**Still owed by the engine:** the decider records the _engine's_ `ends` for a
-waiting couple, not the registry's, because it holds `WAIT_OUT` directly rather
-than looking the id up. Nothing in a single-dance program reads those, but the
-eight-beat line-up between two dances does, so a program that switches into or
-out of a becket dance will start the line-up from the wrong place until
-`createScriptDecider` uses `registry.get(WAIT_OUT.id)`.
+Since F2 the crossing is reckoned from where the couple _started_ the figure
+rather than from the waiting place, so a becket dance that progresses in its
+own first figure — the waiting couple slides off the end of the line with
+everybody else — lands one place short of the waiting place, ready to slide in
+again. With no `startPlaces` the two are the same point and nothing moves.
+
+(M9 closed the engine's other debt here: `createScriptDecider` now takes
+`wait-out` from the registry, so the wrapper's `ends` are the ones the
+between-dance line-up walks from.)
 
 ### What the tests hold every figure to
 
@@ -216,6 +241,13 @@ Closure, reach and collisions over eight times through, at every line length:
 | -------------- | ------- | -------------- | ------- | ------------------ |
 | duple improper | 2–6     | 1.8 × 10⁻¹⁴ px | 0       | 9.516 px           |
 | becket         | 4–12    | 3.4 × 10⁻¹⁴ px | 0       | 10.000 px          |
+
+`src/dances/` holds the encoded dances, each sourced from its own page on The
+Caller's Box; `dances.test.ts` runs every one of them through the same three
+oracles at every line length its formation is checked at. **Butter** (Gene
+Hubert, becket) is the one that progresses in its own first figure: closure
+≤ 2.9 × 10⁻¹⁴ px, `short` 0, min torso distance 10.000 px, at 4, 5, 6, 8, 10
+and 12 couples.
 
 ### Where the library is a model rather than a transcription
 

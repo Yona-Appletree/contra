@@ -47,7 +47,7 @@ export { standing, walking } from "./figure/standing.js";
 export type { WalkStep } from "./figure/walkPath.js";
 export { DEFAULT_BOW_PX, walkStep } from "./figure/walkPath.js";
 export type { CrossOver, WaitOutParams } from "./figure/waitOut.js";
-export { WAIT_OUT } from "./figure/waitOut.js";
+export { WAIT_OUT, waitOutStart } from "./figure/waitOut.js";
 export type { WalkToStationParams } from "./figure/walkToStation.js";
 export { WALK_TO_STATION } from "./figure/walkToStation.js";
 

@@ -1,4 +1,5 @@
 import type { Beat } from "@caller/core";
+import type { EndPose } from "../figure/FigureDef.js";
 import type { StationId } from "../formation/Formation.js";
 
 /**
@@ -51,6 +52,37 @@ export interface Dance {
   formation: string;
   phrases: DancePhrase[];
   notes?: string;
+  /**
+   * Where each station's dancer stands at beat 0 of **every** time through, in
+   * the group frame's own axes. Left out — the usual case — means the
+   * formation's own stations.
+   *
+   * A dance whose first figure is the progression starts somewhere else. A
+   * becket dance that shifts left in its first two beats dances the rest of the
+   * time through with the couple it shifted *to*, so the minor set a time
+   * through runs in is the one the shift makes, and the dancers begin one
+   * couple place back along their own line. The stations stay the formation's;
+   * this says where the dance picks people up from and, by the same token,
+   * where it has to leave them — closure (AC5) is measured against these places
+   * in the progressed set, not against the stations.
+   *
+   * Two things read it: the eight-beat line-up walks people here rather than to
+   * the stations, and a waiting couple's `wait-out` crosses over from here. The
+   * dance's own figures are told by their own parameters, which is what
+   * `chainCalls` threads.
+   */
+  startPlaces?: Record<StationId, EndPose>;
+  /**
+   * Parameters for the figure a waiting couple is given (`wait-out`), for the
+   * dances that need to say something about it. Left out is the figure's own
+   * defaults, which is every dance so far bar one.
+   *
+   * A becket dance that shifts left in two beats needs its waiting couple to
+   * slide off the end of the line in the same two beats: `wait-out` takes four
+   * to step together by default, and a couple still sliding at beat 2 is 0.06 px
+   * from the couple sliding into the place it is leaving (AC6 wants 8).
+   */
+  waitOut?: object;
 }
 
 /** One dance in a program, with the medley it is danced to. */
