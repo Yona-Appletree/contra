@@ -18,6 +18,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "fix": "pnpm format && eslint --fix .",
+    "report:motion": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/writeMotionReport.mjs",
     "check:deps": "node scripts/check-deps.mjs"
   },
   "devDependencies": {

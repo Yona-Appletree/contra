@@ -126,8 +126,13 @@ export interface ContraFigure<P extends ContraParams = ContraParams> extends Fig
 export interface ContraFigureSpec<P extends ContraParams> {
   id: string;
   call: string;
-  /** What the dancers do, in a caller's words. See {@link FigureDef.describe}. */
-  describe: string;
+  /**
+   * What the dancers do, in a caller's words. See {@link FigureDef.describe}.
+   *
+   * Optional on the spec so a figure compiled from data can leave it out; the
+   * registry test insists every figure in `createContraRegistry()` has one.
+   */
+  describe?: string;
   lead: Beat;
   beats: Beat;
   defaults: Omit<P, "beats">;

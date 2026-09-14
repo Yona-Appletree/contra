@@ -1,5 +1,5 @@
 import type { Beat, PoseSample, Side, Vec2 } from "@caller/core";
-import { dirOf, dist } from "@caller/core";
+import { dirOf, dist, leftOf } from "@caller/core";
 
 /**
  * Trajectory assertions: what a figure's dancers actually did, checked against
@@ -212,55 +212,95 @@ export function passes(
 }
 
 /**
- * `id` walks backward: their velocity opposes the way they face, all the way
- * through the window.
+ * `id` walks backward over the window: they travel, and what they travel is
+ * behind them.
  *
  * A courtesy turn is a lark walking backward while the robin walks forward
- * round him. A lark who turns to face the way he is going is doing something
- * else, and this is what says so.
+ * round him. A lark who stands still, or who turns to face the way he is
+ * going, is doing something else, and this is what says so.
+ *
+ * The measurement is the *net* displacement over the window projected on the
+ * facing at the middle of it, rather than the instantaneous velocity at every
+ * sample: a courtesy turn is a curve, and at the two ends of one the dancer is
+ * barely moving, where an instantaneous direction is numerical noise.
+ * `minTravelPx` is what separates walking from standing still — a dancer who
+ * covers less than a pixel over a beat is not walking anywhere.
  */
 export function walksBackward(
   track: Track,
   id: string,
   window: BeatWindow,
-  minSpeed = 0.5,
+  minTravelPx = 1,
 ): TrajectoryResult {
   const label = `${id} walks backward from beat ${window.from} to ${window.to}`;
   const { first, last } = windowOf(track, window);
-  let worstDot = -1;
-  let beat = track.beats[first] ?? 0;
-  let moved = false;
-  for (let i = first; i <= last; i++) {
-    const pose = track.pose(id, i);
-    const v = velocity(track, id, i);
-    const speed = Math.hypot(v[0], v[1]);
-    if (speed < minSpeed) continue;
-    moved = true;
-    const face = dirOf(pose.facing);
-    const dot = (v[0] * face[0] + v[1] * face[1]) / speed;
-    if (dot > worstDot) {
-      worstDot = dot;
-      beat = track.beats[i] ?? 0;
-    }
-  }
-  if (!moved) {
-    return fail(label, `they never move faster than ${minSpeed} px per beat`, beat, 0, "px/beat");
-  }
-  if (worstDot > 0) {
+  const start = track.pose(id, first);
+  const end = track.pose(id, last);
+  const mid = track.pose(id, Math.round((first + last) / 2));
+  const beat = track.beats[last] ?? 0;
+
+  const moved: Vec2 = [end.p[0] - start.p[0], end.p[1] - start.p[1]];
+  const travelled = Math.hypot(moved[0], moved[1]);
+  if (travelled < minTravelPx) {
     return fail(
       label,
-      `they walk forward instead: velocity agrees with facing (dot ${worstDot.toFixed(3)})`,
+      `they do not walk anywhere: ${travelled.toFixed(3)} px over the whole window`,
       beat,
-      worstDot,
-      "dot",
+      travelled,
+      "px",
+    );
+  }
+  const face = dirOf(mid.facing);
+  const along = moved[0] * face[0] + moved[1] * face[1];
+  if (along > -minTravelPx) {
+    return fail(
+      label,
+      `only ${(-along + 0).toFixed(3)} px of the ${travelled.toFixed(3)} px they travel is behind them`,
+      beat,
+      along,
+      "px",
     );
   }
   return {
     label,
     pass: true,
-    note: `their velocity never agrees with their facing (worst dot ${worstDot.toFixed(3)})`,
-    worst: { beat, value: worstDot, unit: "dot" },
+    note: `they travel ${travelled.toFixed(2)} px, ${(-along).toFixed(2)} px of it behind them`,
+    worst: { beat, value: along, unit: "px" },
   };
+}
+
+/**
+ * The span of beats over which a figure *declares* two named hands joined.
+ *
+ * `handsJoined` needs a window, and the honest one to give it is the figure's
+ * own: a take that runs longer than the caller of the assertion guessed is not
+ * a defect, and a window picked by hand turns into a tuning knob. Returns
+ * `undefined` when the figure never declares this join at all, which is itself
+ * worth reporting.
+ */
+export function joinWindow(
+  track: Track,
+  a: string,
+  aSide: Side,
+  b: string,
+  bSide: Side,
+): BeatWindow | undefined {
+  const declares = (i: number): boolean =>
+    track
+      .joins(i)
+      .some(
+        (j) =>
+          (j.a === a && j.aSide === aSide && j.b === b && j.bSide === bSide) ||
+          (j.a === b && j.aSide === bSide && j.b === a && j.bSide === aSide),
+      );
+  let from: Beat | undefined;
+  let to: Beat | undefined;
+  for (let i = 0; i < track.beats.length; i++) {
+    if (!declares(i)) continue;
+    from ??= track.beats[i];
+    to = track.beats[i];
+  }
+  return from === undefined || to === undefined ? undefined : { from, to };
 }
 
 /**
@@ -418,12 +458,10 @@ export function endsOn(
 
 /** Which of `pose`'s shoulders the point `p` lies on. */
 export function shoulderOf(pose: PoseSample, p: Vec2): Side {
-  const face = dirOf(pose.facing);
+  const left = leftOf(pose.facing);
   const dx = p[0] - pose.p[0];
   const dy = p[1] - pose.p[1];
-  // Cross product of facing with the offset. With y down, a positive cross
-  // puts the point to the dancer's left.
-  return face[0] * dy - face[1] * dx > 0 ? "L" : "R";
+  return left[0] * dx + left[1] * dy > 0 ? "L" : "R";
 }
 
 /** The floor velocity of `id` at a sample, px per beat, by central difference. */

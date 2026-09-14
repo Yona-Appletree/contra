@@ -111,6 +111,7 @@ export {
   endsOn,
   handsJoined,
   handsStill,
+  joinWindow,
   passes,
   sampleTrack,
   shoulderOf,
