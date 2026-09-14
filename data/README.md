@@ -92,6 +92,20 @@ public content from a `.ts` file to a `.json` file changes nothing about
 its clearance. A dance's figures reach `data/dances/` only after that gate,
 never before it — see "Permission note" below, which is about `corpus/`.
 
+## `local/corpus-raw/callers-box/` (never committed)
+
+`scripts/corpus/crawl-callers-box.mjs` (see `docs/corpus-crawl.md`) walks
+The Caller's Box's dance ids upward, one JSON export per id at one request
+every two seconds (ibiblio's own robots `Crawl-delay`), and writes each
+hit's raw JSON byte-for-byte plus a `manifest.jsonl` provenance line per id
+attempted (hit, miss, or error) under `data/local/corpus-raw/callers-box/`
+— gitignored, resumable, and idempotent. This is a research cache, not
+corpus data: nothing here is transformed, normalised, or published: a
+dance's figures still need the same author-clearance gate `corpus/` and
+`dances/` above already require, and a dance marked non-`"full"` there
+stays unpublished for now regardless of anything cached locally, per the
+user's own ruling recorded in `docs/corpus-crawl.md`.
+
 ## Permission note
 
 The source spreadsheet (`Portland Contra Programs - Portland.csv`) is
