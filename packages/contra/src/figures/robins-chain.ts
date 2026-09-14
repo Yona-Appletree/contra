@@ -76,7 +76,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, passing right shoulders. Each robin then gives her left hand to the opposite lark, who catches it with his left and puts his right behind her back; he walks backward while she walks forward round him — the courtesy turn — and the two of them end as a couple facing across. The larks never leave their places: the whole effect of a chain is that the robins have traded and each couple has a new robin.",
+    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at steps out to meet her, catches her left hand in his left, and walks backward onto his own place while she walks forward round him and opens out onto hers — the courtesy turn, or as the user has it, the scoop. He ends where he started, facing the way he already faced, and she is beside him: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead of scooping her, and this only scoops; the lark's right hand belongs on her back and hangs at his side instead, which is the drawn arm's business and not the figure's.)",
   lead: 4,
   beats: 8,
   defaults: {

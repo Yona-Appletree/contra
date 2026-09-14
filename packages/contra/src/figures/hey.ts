@@ -1,5 +1,5 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleLerp, angleOfVec, ramp } from "@caller/core";
+import { angleDiff, angleOfVec, ramp } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
 import { centreOf, contraFigure } from "./ContraFigure.js";
@@ -163,9 +163,39 @@ export const hey = contraFigure<HeyParams>({
       offEnd[id] = offOf(landing[id]!, psi(id, beats));
     }
 
+    /**
+     * Which way the weave is going `t` beats in, as a frame-local facing.
+     *
+     * A chord a quarter beat long rather than a derivative, and a raw
+     * `atan2`: it wraps through ±180° like any other bearing, which is fine
+     * because everything downstream reads it as a direction. What it must not
+     * do is be *lerped toward* — see the turn each dancer keeps below.
+     */
+    const travelAt = (station: StationId, t: Beat): Angle => {
+      const on = weaveAt(psi(station, t));
+      const ahead = weaveAt(psi(station, t) - 360 * amount * (LOOK_BEATS / beats));
+      const step: Vec2 = [ahead[0] - on[0], ahead[1] - on[1]];
+      return angleOfVec([step[0] * cos - step[1] * sin, step[0] * sin + step[1] * cos]);
+    };
+
+    /**
+     * How far each dancer's own facing is off the weave's, at each end.
+     *
+     * Held as a constant turn added to the weave's own direction rather than
+     * as `angleLerp(place, travel, …)`: lerping *toward a moving angle* flips
+     * the way round it goes at the instant the target passes the antipode of
+     * the place's facing, and a dancer whose previous figure left them facing
+     * the other way down the hall snapped 61° in one sample when it did. F3a's
+     * oracle caught it as 201 px/beat of hand speed inside `butter`'s hey.
+     */
+    const turnIn: Record<StationId, number> = {};
+    const turnOut: Record<StationId, number> = {};
+    for (const id of ctx.ids) {
+      turnIn[id] = angleDiff(travelAt(id, 0), ctx.spot(id).facing);
+      turnOut[id] = angleDiff(travelAt(id, beats), (ends[id] ?? ctx.spot(id)).facing);
+    }
+
     const placeAt = (station: StationId, t: Beat): Spot => {
-      const start = ctx.spot(station);
-      const end = ends[station] ?? start;
       const here = psi(station, t);
       const on = weaveAt(here);
       // Step on to the weave over the first beats and off it at the end, so
@@ -182,16 +212,13 @@ export const hey = contraFigure<HeyParams>({
         on[0] + from[0] * leaving + to[0] * arriving,
         on[1] + from[1] * leaving + to[1] * arriving,
       ];
-      // Facing is the way the weave is going, turned into and out of the two
-      // places' own facings over the same beats.
-      const ahead = weaveAt(here - 360 * amount * (LOOK_BEATS / beats));
-      const step: Vec2 = [ahead[0] - on[0], ahead[1] - on[1]];
-      const travel = angleOfVec([step[0] * cos - step[1] * sin, step[0] * sin + step[1] * cos]);
-      const facing = angleLerp(
-        angleLerp(start.facing, travel, ramp(t, 0, params.joinBeats)),
-        end.facing,
-        arriving,
-      );
+      // Facing is the way the weave is going, plus the turn that takes it on to
+      // the place's own facing at either end — eased, because a body turning is
+      // the one thing in the figure that should not start at full speed.
+      const facing =
+        travelAt(station, t) +
+        turnIn[station]! * (1 - ramp(t, 0, params.joinBeats)) +
+        turnOut[station]! * ramp(t, beats - params.joinBeats, beats);
       return { p: toFrame(q), facing };
     };
 
