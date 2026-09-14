@@ -2,7 +2,7 @@
 // Workspace-wide scan of import specifiers against the allowed-imports table
 // in AGENTS.md / m01-scaffold.md. Fails on any edge not listed and on any
 // import from spikes/.
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 

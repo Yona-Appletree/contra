@@ -44,6 +44,48 @@ particularly sensitive.
   director/user checking gate G2 before the hall demo goes public with a
   named choreographer's work in it.
 
+## Amendment, 2026-09-14 (DD31): publication policy for a bulk-crawled corpus
+
+C1 added a resumable crawler (`scripts/corpus/crawl-callers-box.mjs`,
+`docs/corpus-crawl.md`) that walks The Caller's Box id space and caches every
+dance's raw JSON, whatever its `Permission` field says, under `data/local/`
+(gitignored, per this ADR's own rule that source/raw corpus data never enters
+git). That cache is wider than the 12-then-10 demo dances this ADR was written
+about, so the publication question needed a ruling of its own. The user, asked
+directly:
+
+> "as a general rule, in the contra community, dances are public. even the
+> ones marked 'private' on callers box are shared freely among callers, and
+> since there are youtube videos of them, they aren't actually private in any
+> meaningful way. that being said, I think we should not publish the text of
+> a dance marked private on callers box for now just out of respect and
+> caution. its notable that many of those dances _are_ on contradb in a
+> readable form."
+
+**Decision:** a dance whose Caller's Box `Permission` field reads `"full"` is
+publishable **with the user's explicit per-dance clearance** — the field is
+necessary, never sufficient, exactly as this ADR already required for the
+demo dances. A dance whose `Permission` is anything else (a "private" tier, or
+any non-`"full"` value) is **held in `data/local/` only, and not published,
+for now** — not because the community treats it as truly confidential (it
+does not, per the user's own framing above), but out of the project's own
+respect and caution, independent of whatever ContraDB or a YouTube video
+already shows of the same dance. This binds _publication_, not the crawl
+itself: fetching and caching a non-`"full"` dance's JSON is unaffected, and its
+`permission` field is recorded verbatim in the manifest precisely so this rule
+can be applied correctly later.
+
+This is consistent with, and extends rather than revises, this ADR's existing
+rule that a dance's figures reach `data/dances/` only after author clearance:
+`Permission: full` plus clearance is now the concrete two-part gate for
+anything drawn from the wider crawled cache, where the original text only had
+the ten-then-twelve dances' own page-by-page check to describe.
+
+`docs/corpus-crawl.md` states the same rule (its own "publication rule
+(DD31)" section) and the crawl rate ruling this ADR does not cover (DD32: the
+crawler honors ibiblio's `robots.txt` `Crawl-delay: 2` as a floor) — the two
+documents agree as of this amendment.
+
 ## Consequences
 
 - `data/corpus/portland-programs.json` is regenerable by anyone with their

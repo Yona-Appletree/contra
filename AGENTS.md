@@ -105,3 +105,24 @@ CI (`ci.yml`, job `CI`) runs `pnpm validate` on every pull request and on
 `vYYYY.MM.DD-N` and deploys `apps/web`'s build (with the two spikes copied
 into `dist/spikes/`) to GitHub Pages. Do not suppress warnings, skip tests,
 or loosen `tsconfig` to get green; report the problem instead.
+
+`pnpm validate`'s `lint` task is per package (turbo runs each workspace
+package's own scoped `eslint .`); root-level tooling under `scripts/` sits
+outside every workspace package (`pnpm-workspace.yaml` lists only
+`packages/*` and `apps/*`) and is therefore not reached by it, or by
+`check:deps`'s package-table scan. `pnpm fix` (a repo-root `eslint --fix .`,
+which does cover `scripts/`) is the way to catch a lint problem there — run
+it before committing a change under `scripts/`. M10 (cleanup) considered
+adding a dedicated root-level lint task to `validate` and chose not to: the
+exact task list in the command above is quoted verbatim by every milestone's
+own "Final check" instruction across this whole plan run, and widening it is
+a bigger, more cross-cutting change than a cleanup milestone should make
+unilaterally. `pnpm exec eslint scripts/` reaches the same files directly in
+the meantime.
+
+Every package's `vitest.config.ts` excludes `**/dist/**` (`tsc`'s build emits
+compiled `*.test.js` there, which vitest's default include glob would
+otherwise pick up too, double-running — and possibly running a stale copy
+of — every test after a local build). M10 made this uniform across every
+package that has one; a package with no test script (`apps/storybook`) needs
+none.

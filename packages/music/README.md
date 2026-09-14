@@ -119,16 +119,28 @@ ever needed a different beats-per-bar).
 
 ## Tunes
 
-Three traditional public-domain tunes, typed as ABC from the agent's own
-memory (not copied from any transcription site — see each tune file's
-provenance comment for a confidence note):
+Thirteen traditional public-domain tunes (nine reels, four jigs), typed as
+ABC from the agent's own memory (not copied from any transcription site —
+see each tune file's own provenance comment for a confidence note). The
+first three are M6's; T1 added the other ten so a whole evening does not
+repeat the same reel:
 
-- `soldiersJoy.ts` — Soldier's Joy (reel, D). High confidence.
-- `stAnnesReel.ts` — St. Anne's Reel (reel, D). Moderate confidence on the
-  exact notes (my own transcription of its driving, repeated-note
-  character); high confidence it's a genuine traditional public-domain
-  reel.
-- `hasteToTheWedding.ts` — Haste to the Wedding (jig, D). High confidence.
+- `soldiersJoy.ts`, `stAnnesReel.ts` — reels (D). M6, high/moderate
+  confidence.
+- `hasteToTheWedding.ts` — jig (D). M6, high confidence.
+- `arkansasTraveler.ts`, `oldJoeClark.ts`, `goldenSlippers.ts`,
+  `fishersHornpipe.ts`, `whiskeyBeforeBreakfast.ts`, `mississippiSawyer.ts` —
+  reels. T1, moderate-to-high confidence each; see each file's own provenance
+  comment.
+- `swallowtailJig.ts`, `irishWasherwoman.ts`, `keshJig.ts`,
+  `morrisonsJig.ts` — jigs. T1, moderate-to-high confidence each.
+
+T1 dropped several of its own candidate list (Reel de Montréal, Red Haired
+Boy, Liberty, Ragtime Annie, Salt Creek, Angeline the Baker, The Girl I Left
+Behind Me, Flowers of Edinburgh, Rakes of Mallow, Off to California) rather
+than transcribe a tune it was not confident it remembered correctly, or (Reel
+de Montréal) whose pre-1900 public-domain status it could not confirm — see
+`t01-tunes.md`'s Implementation Result for the reasoning per tune.
 
 Each tune is written out in full — AABB, 32 bars, four source lines of 8
 bars each (one line per phrase) — rather than with `|: :|` repeat signs.
@@ -138,11 +150,33 @@ depending on how abcjs expands repeats for the synth's audio buffer, and
 `beat -> .abcjs-l{0-3}.abcjs-m{0-7}` with plain arithmetic (see
 `ui/Notation.tsx`), instead of guessing line-wrap points the way the hall
 spike did (`bar<16?0:1`, tuned to one specific `staffwidth`).
+`tunes.test.ts` checks all thirteen parse, have exactly 32 bars of the
+declared meter, and have exactly eight bars on each of their four source
+lines.
 
 ## Medleys
 
-`reelMedley` (Soldier's Joy, St. Anne's Reel, twice through each) and
-`jigMedley` (Haste to the Wedding, twice through).
+Six, all `timesThroughEach: 2` (a whole number of 64-beat cycles per dance):
+`reelMedley` (`reel-set`: Soldier's Joy, St. Anne's Reel), `jigMedley`
+(`jig-set`: Haste to the Wedding, Irish Washerwoman), `arkansasSet`
+(Arkansas Traveler, Golden Slippers, Fisher's Hornpipe), `mississippiSet`
+(Mississippi Sawyer, Old Joe Clark, Whiskey Before Breakfast), `keshSet`
+(The Kesh Jig, Morrison's Jig), `swallowtailSet` (Swallowtail Jig, Irish
+Washerwoman). `medleys: Medley[]` in `medleys.ts` lists all six, which is
+what a shuffle (below) draws from.
+
+### The shuffle
+
+The shuffle itself is **not** in this package: `apps/web/src/program.ts`'s
+`shuffleMedleyAssignment`/`shuffleProgramme` assign one of these six medleys
+to every dance in the programme's circular order, seeded from `?seed=<n>` in
+the hall URL (or the date), so no two adjacent dances repeat a medley and
+every medley is heard once before any repeats. What this package contributes
+is `medleys` (the list to shuffle over) and the fact that `Player.load`/
+`play`/`setTempo` already worked as a plain function of whichever `Medley` is
+handed to them — the shuffle needed no change to `Player` at all, only to
+which `Medley` `apps/web` calls `load` with. See `apps/web/README.md` and
+`docs/adr/`'s milestone notes for the shuffle rule itself.
 
 ## Deviations from the contract text
 
@@ -157,3 +191,35 @@ spike did (`bar<16?0:1`, tuned to one specific `staffwidth`).
   dependencies this milestone was authorized to add to `packages/music`,
   and adding it would have broken `typecheck` without it. See the M6
   Implementation Result in `m06-music.md` for the full note.
+
+## A known, left-alone rebase quirk: `play()`'s first 0.06 s
+
+`play(atBeat)` schedules the first audio buffer `START_LATENCY` (0.06 s)
+ahead of `ctx.currentTime` and rebases `clock` to that future instant, so
+`clock.beat()` briefly reports a beat slightly behind `atBeat` — by up to
+`START_LATENCY × beatsPerSecond`, well under a tenth of a beat at 112 bpm —
+until real time catches up to the scheduled start, after which the beat and
+the audio agree exactly for the rest of playback (this is what AC4's steady-
+state rate, verified live on the deployed page, measures). Rebasing the
+clock immediately at call time instead (to `ctx.currentTime`) would remove
+the transient but decouple the reported beat from the actual audio start by
+that same 0.06 s in the other direction — a real behaviour change to a
+number the plan's own acceptance criteria are read from, not a pure
+refactor. M10 (cleanup) identified this, confirmed B1 did not touch it, and
+left it rather than change any observable timing: recorded here as a known,
+bounded quirk rather than fixed silently.
+
+## `Player.onCycle` has no caller today, and is kept anyway
+
+`apps/web`'s hall route reads `player.clock` and calls `play`/`load`/
+`setTempo`/`stop` directly; nothing subscribes to `onCycle`. It is not dead
+in the sense of unreachable code — it is the only observable window onto
+`fireCycle`/`lastFiredCycle`/`tuneAt`, the internal bookkeeping that decides
+which tune plays each 64-beat cycle, and `Player.test.ts`'s cycle-boundary
+and mid-medley tests exercise that bookkeeping entirely through it. It is
+also part of the milestone-plan's own `Player` contract (`onCycle` was
+specified, not added speculatively), and a natural hook for a future "now
+playing" indicator the demo does not have yet. M10 (cleanup) considered
+removing it as unused API surface and chose to keep and document it instead,
+since removing it would mean either deleting the only tests of the internal
+cycle-selection logic or rewriting them against private state.

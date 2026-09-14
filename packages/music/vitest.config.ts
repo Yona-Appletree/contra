@@ -1,12 +1,12 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
-// tsc's build emits compiled *.test.js files into dist/ alongside the real
-// source (this package's package.json "exports" points at ./src, not
-// dist/, so that's harmless for consumers — but vitest's default include
-// glob would otherwise pick up both, double-running every test whenever
-// dist/ happens to exist locally). Scope discovery to src/ explicitly.
+// `tsc -p tsconfig.json` emits the compiled tests into `dist/`, and vitest's
+// default include glob would otherwise pick those up too, double-running (and
+// possibly running a stale copy of) every test after a build. Only `src/`
+// holds tests worth running. Every package in this workspace repeats this
+// same `exclude`, made uniform by M10 (cleanup) — this file used a narrower
+// `include` before, which had the same effect but not the same shape as
+// every other package's config.
 export default defineConfig({
-  test: {
-    include: ["src/**/*.test.{ts,tsx}"],
-  },
+  test: { exclude: [...configDefaults.exclude, "**/dist/**"] },
 });

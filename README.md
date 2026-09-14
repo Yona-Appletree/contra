@@ -23,6 +23,21 @@ apps/storybook        Storybook over the whole component tree
 spikes/                visual spikes, served at /spikes/, never imported by production code
 ```
 
+Five layers do the actual work, each a package boundary a dependency arrow
+only ever points down through: `@caller/core` is a form-neutral clock,
+geometry and arm solver that knows nothing about dancing; `@caller/choreo`
+builds a form-neutral choreography model on top of it — formations, groups,
+figures, dances and the script decider that turns a program into a timeline
+of poses; `@caller/contra` is one form on that model — the lark/robin role
+set, the contra figure library (coded and, increasingly, written as data) and
+the ten demo dances; `@caller/hall` is the pixel renderer that turns a
+timeline into a Canvas 2D hall of procedural dancers, a band, a caller and a
+speech bubble, all overhead-view pixel art at an integer zoom; and
+`@caller/music` is the audio clock — `AudioContext.currentTime` made linear,
+thirteen public-domain tunes across six medleys, a seeded shuffle, and the
+applause between dances. `apps/web` is the app that wires all five together
+behind three tabs (Stage, Moves, Dances) at `/contra/`.
+
 ## Getting started
 
 ```bash

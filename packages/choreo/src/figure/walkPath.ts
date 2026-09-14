@@ -13,8 +13,11 @@ export interface WalkStep {
 /**
  * How far to one side a walking dancer bows so two dancers swapping places pass
  * each other instead of walking through each other. Both bow to their own
- * right, so they pass right shoulder to right shoulder and end up
- * `2 × bow` apart at the crossing.
+ * right, so — in this coordinate system (y down, angles from +x toward +y) —
+ * they pass **left** shoulder to left shoulder and end up `2 × bow` apart at
+ * the crossing. A figure that wants the contra convention of right-shoulder
+ * passing bows to the dancer's own **left** instead (see `@caller/contra`'s
+ * `passRight`, which negates this bow for exactly that reason).
  */
 export const DEFAULT_BOW_PX = 5;
 
