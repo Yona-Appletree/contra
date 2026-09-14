@@ -25,21 +25,19 @@ const PACKAGES = {
   },
   storybook: {
     dir: "apps/storybook",
-    allows: new Set([
-      "core",
-      "choreo",
-      "contra",
-      "hall",
-      "music",
-      "ui-design",
-      "ui-base",
-      "web",
-    ]),
+    allows: new Set(["core", "choreo", "contra", "hall", "music", "ui-design", "ui-base", "web"]),
   },
 };
 
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
-const SKIP_DIRS = new Set(["node_modules", "dist", ".turbo", "storybook-static", "test-results", "playwright-report"]);
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  ".turbo",
+  "storybook-static",
+  "test-results",
+  "playwright-report",
+]);
 
 /** @returns {string[]} absolute file paths */
 function walk(dir) {
@@ -63,7 +61,8 @@ function walk(dir) {
   return files;
 }
 
-const IMPORT_RE = /\b(?:import|export)\s+(?:[^'"]*?\bfrom\s+)?['"]([^'"]+)['"]|\brequire\(\s*['"]([^'"]+)['"]\s*\)|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
+const IMPORT_RE =
+  /\b(?:import|export)\s+(?:[^'"]*?\bfrom\s+)?['"]([^'"]+)['"]|\brequire\(\s*['"]([^'"]+)['"]\s*\)|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /** @param {string} source */
 function extractSpecifiers(source) {
@@ -89,14 +88,18 @@ for (const [pkgName, pkg] of Object.entries(PACKAGES)) {
     for (const spec of specifiers) {
       // Any import that touches spikes/ is always forbidden in production code.
       if (spec.includes("/spikes/") || spec.startsWith("spikes/")) {
-        console.error(`check-deps: ${relative(root, file)} imports from spikes/ ("${spec}") — forbidden`);
+        console.error(
+          `check-deps: ${relative(root, file)} imports from spikes/ ("${spec}") — forbidden`,
+        );
         errors++;
         continue;
       }
       if (spec.startsWith(".") || spec.startsWith("/")) {
         const resolved = resolve(file, "..", spec);
         if (resolved.includes(`${resolve(root, "spikes")}`)) {
-          console.error(`check-deps: ${relative(root, file)} imports from spikes/ ("${spec}") — forbidden`);
+          console.error(
+            `check-deps: ${relative(root, file)} imports from spikes/ ("${spec}") — forbidden`,
+          );
           errors++;
         }
         continue;
