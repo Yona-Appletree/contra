@@ -1,18 +1,3 @@
-const LEADING_NUMBER_RE = /^\s*\d+\.\s*/;
-
-function collapseWhitespace(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-/**
- * Strips a leading "N. " program-order prefix baked into some Portland
- * spreadsheet titles (e.g. "2. Sorry, Erik"), so the same dance programmed
- * at different positions in a night's list still counts as one title.
- */
-function stripLeadingNumber(value: string): string {
-  return value.replace(LEADING_NUMBER_RE, "");
-}
-
 /**
  * Normalises a raw dance title for display: strips a leading program-order
  * number, trims the ends, and collapses internal whitespace runs to a
@@ -37,4 +22,19 @@ export function normaliseTitle(raw: string): string {
  */
 export function titleKey(raw: string): string {
   return normaliseTitle(raw).toLowerCase();
+}
+
+const LEADING_NUMBER_RE = /^\s*\d+\.\s*/;
+
+/**
+ * Strips a leading "N. " program-order prefix baked into some Portland
+ * spreadsheet titles (e.g. "2. Sorry, Erik"), so the same dance programmed
+ * at different positions in a night's list still counts as one title.
+ */
+function stripLeadingNumber(value: string): string {
+  return value.replace(LEADING_NUMBER_RE, "");
+}
+
+function collapseWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
