@@ -1,5 +1,16 @@
-import type { Beat } from "../clock/Clock.js";
-import type { CardDance, CardPhrase } from "./CardDance.js";
+import type { Beat } from "@caller/core";
+
+/** One phrase of a dance, as much of it as the card reads. */
+export interface CardPhrase {
+  name: string;
+  figures: readonly CardFigure[];
+}
+
+/** One figure of a phrase, as much of it as the card reads. */
+export interface CardFigure {
+  beats: number;
+  call?: string | undefined;
+}
 
 /** The dance card readout: A1/A2/B1/B2 rows, a fill bar, current figure bold. */
 export function Card({ dance, beat }: CardProps) {
@@ -42,7 +53,7 @@ export function Card({ dance, beat }: CardProps) {
                     style={isOn ? { fontWeight: "bold" } : undefined}
                     data-figure-on={isOn}
                   >
-                    {figure.call}
+                    {figure.call ?? ""}
                   </span>
                 );
               })}
@@ -55,7 +66,20 @@ export function Card({ dance, beat }: CardProps) {
 }
 
 export interface CardProps {
-  dance: CardDance;
+  /**
+   * The dance being called.
+   *
+   * Structural on purpose: `@caller/choreo`'s `Dance` satisfies this exactly,
+   * so the card reads a real dance with no shim and no conversion — but
+   * `scripts/check-deps.mjs` gives `music` one edge, to `core`, and importing
+   * `@caller/choreo` here would have been a change to that table. The shape is
+   * the part of a `Dance` the card draws: its title, its phrases, and each
+   * figure's duration and call text.
+   */
+  dance: {
+    title: string;
+    phrases: readonly CardPhrase[];
+  };
   beat: Beat;
 }
 

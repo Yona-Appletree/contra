@@ -14,9 +14,11 @@
     "test:golden:update": "UPDATE_GOLDENS=1 playwright test"
   },
   "dependencies": {
+    "@caller/choreo": "workspace:*",
     "@caller/contra": "workspace:*",
     "@caller/core": "workspace:*",
     "@caller/hall": "workspace:*",
+    "@caller/music": "workspace:*",
     "@caller/ui-base": "workspace:*",
     "@caller/ui-design": "workspace:*",
     "react": "^19.0.0",

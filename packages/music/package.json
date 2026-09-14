@@ -14,6 +14,7 @@
     "test:golden": "exit 0"
   },
   "dependencies": {
+    "@caller/core": "workspace:*",
     "abcjs": "^6.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

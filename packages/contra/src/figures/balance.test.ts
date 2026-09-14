@@ -3,7 +3,18 @@ import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { balance, balanceRing } from "./balance.js";
-import { figureMoves, figureProblems, probeFigure, probeGroup } from "./testing.js";
+import { withDefaults } from "@caller/choreo";
+import { CONTRA_ROLES } from "../roles.js";
+import type { Spot } from "./ContraFigure.js";
+import { planContext } from "./ContraFigure.js";
+import {
+  figureMoves,
+  figureProblems,
+  probeFigure,
+  probeGroup,
+  spotError,
+  stationSpot,
+} from "./testing.js";
 
 describe("balance", () => {
   for (const formation of [DUPLE_IMPROPER, BECKET]) {
@@ -39,12 +50,55 @@ describe("balance", () => {
     );
   });
 
-  it("rocks the ring in and out and leaves everybody on it", () => {
-    const ends = figureMoves(balanceRing);
-    const centre = [0, 0];
-    const radii = Object.values(ends).map((spot) => dist(spot.p, centre as [number, number]));
+  it("closes the ring to a hold spacing between neighbours while it rocks", () => {
+    // Mid-figure, which is what AC1 has to hold for: everybody on one ring,
+    // neighbours exactly a hold spacing apart.
+    // `rock: 0` takes the ±1 px rock out, so the number under test is the ring.
+    const ring = ringSpotsAt(2, { rock: 0 });
+    const radii = Object.values(ring).map((spot) => dist(spot.p, CENTRE));
     for (const r of radii) expect(r).toBeCloseTo(radii[0]!, 9);
-    // Four dancers on a ring with neighbours a hold spacing apart.
+    expect(radii[0]!).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 9);
+  });
+
+  it("steps back out to the places it started from", () => {
+    // M9: "balance the ring and petronella" puts a dancer on the next place of
+    // the *set*, and a dance ending on a ring figure has to be back on its
+    // places for the progression to land. So the ring balance ends where it
+    // began, facing the middle.
+    const ends = figureMoves(balanceRing);
+    for (const station of DUPLE_IMPROPER.group(4)) {
+      expect(spotError(ends[station.id]!, stationSpot(DUPLE_IMPROPER, station.id))).toBeCloseTo(
+        0,
+        9,
+      );
+    }
+  });
+
+  it("leaves everybody closed up when it is told not to open out", () => {
+    // A balance for two keeps this shape, because the swing that follows wants
+    // the pair closed; `balance-ring` only differs in its default.
+    const ends = figureMoves(balanceRing, { openOut: false });
+    const radii = Object.values(ends).map((spot) => dist(spot.p, CENTRE));
+    for (const r of radii) expect(r).toBeCloseTo(radii[0]!, 9);
     expect(radii[0]!).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 9);
   });
 });
+
+/** The middle of a duple improper minor set, frame-local. */
+const CENTRE: [number, number] = [0, 0];
+
+/** Where the ring balance puts everybody `t` beats in. */
+function ringSpotsAt(t: number, params: { rock?: number } = {}): Record<string, Spot> {
+  const stations = DUPLE_IMPROPER.group(4);
+  const resolved = withDefaults(balanceRing, params, balanceRing.beats);
+  const plan = balanceRing.plan(
+    planContext(stations, CONTRA_ROLES, HOLD_SPACING_PX, resolved.from),
+    resolved,
+  );
+  return Object.fromEntries(
+    stations.map((s) => {
+      const sample = plan.at(s.id, t);
+      return [s.id, { p: sample.p, facing: sample.facing }];
+    }),
+  );
+}

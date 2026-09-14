@@ -2,7 +2,14 @@ import type { Beat, Vec2 } from "@caller/core";
 import { dist, mix, ramp } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
-import { bearing, contraFigure, midpoint, orbitRadius, polar } from "./ContraFigure.js";
+import {
+  CLEARANCE_PX,
+  bearing,
+  contraFigure,
+  midpoint,
+  orbitRadius,
+  polar,
+} from "./ContraFigure.js";
 import type { Pairing } from "./pairing.js";
 import { pairsOf } from "./pairing.js";
 import { handDown } from "../pair/PairFrame.js";
@@ -47,6 +54,17 @@ export const doSiDo = contraFigure<DoSiDoParams>({
     const ends: Spots = {};
 
     const centres = pairsOf(params.pairs).map(([a, b]) => midpoint(ctx.spot(a).p, ctx.spot(b).p));
+    // Whoever this pairing leaves out stands still while the circle goes round
+    // them. "Robins right shoulder round once and a half" across a duple
+    // improper set is the case: the two robins are 32 px apart, so a circle
+    // through both of them has radius 16, and the two larks standing at the
+    // corners are 18.87 px from the same centre — 2.9 px outside it, which
+    // AC6's 8 px does not allow. The pair therefore walks in and goes round a
+    // tighter circle, which is what the dancers do.
+    const idle = ctx.ids
+      .filter((id) => !pairsOf(params.pairs).some(([a, b]) => a === id || b === id))
+      .map((id) => ctx.spot(id).p);
+
     pairsOf(params.pairs).forEach(([a, b], index) => {
       const centre = centres[index]!;
       const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
@@ -54,8 +72,12 @@ export const doSiDo = contraFigure<DoSiDoParams>({
         params.endHalf ??
         placeHalf(ctx.stations, centre, bearing(ctx.spot(a).p, ctx.spot(b).p) + 90, separation);
       // As big a circle as the pair's own places allow, tightened — swell
-      // first, then the radius — until the pair beside them has room.
-      const allowed = orbitRadius(Number.POSITIVE_INFINITY, centre, centres);
+      // first, then the radius — until the pair beside them, and anybody
+      // standing still, has room.
+      const allowed = Math.min(
+        orbitRadius(Number.POSITIVE_INFINITY, centre, centres),
+        ...idle.map((p) => dist(centre, p) - CLEARANCE_PX),
+      );
       const radius = Math.min(dist(ctx.spot(a).p, ctx.spot(b).p) / 2, allowed);
       const pair: DoSiDoPair = {
         centre,

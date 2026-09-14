@@ -39,6 +39,18 @@ export interface BalanceParams extends ContraParams {
   holdDrop: number;
   /** How much higher the robin's hand sits, px. */
   stackPx: number;
+  /**
+   * Whether the dancers let go and step back out to where they started.
+   *
+   * A balance for two does not: the swing that almost always follows wants the
+   * pair closed up, which is M5's and M8's shape. A balance of the ring
+   * usually does — "balance the ring and petronella" puts a dancer on the next
+   * *place of the set*, not on the next place of the closed-up ring, and a
+   * dance that ends on a ring figure has to be back on its places for the
+   * progression to land. So `balance` defaults to `false` and `balance-ring`
+   * to `true`.
+   */
+  openOut: boolean;
 }
 
 /** At full forward rock the joined hands spread this much wider and drop this much lower. */
@@ -50,6 +62,8 @@ const HAND_RISE_PX = 1;
 /** Beats spent closing to the hold, and the window the hands are up. */
 const CLOSE_BEATS = 1.2;
 const TAKE_TO = 1.4;
+/** Beats spent letting go and stepping back out, when `openOut` is set. */
+const OPEN_BEATS = 1.2;
 
 /**
  * Balance: take hands, rock forward and rock back.
@@ -76,6 +90,7 @@ export const balance: ContraFigure<BalanceParams> = contraFigure<BalanceParams>(
     pairs: "neighbors",
     holdDrop: 5,
     stackPx: 1,
+    openOut: false,
   },
   plan: balancePlan,
 });
@@ -94,6 +109,7 @@ export const balanceRing: ContraFigure<BalanceParams> = contraFigure<BalancePara
     pairs: "neighbors",
     holdDrop: 6,
     stackPx: 1,
+    openOut: true,
   },
   plan: balancePlan,
 });
@@ -218,23 +234,37 @@ function spreadPoint(p: Vec2, self: Vec2, other: Vec2, spread: number, side: Sid
 /** A balance of the ring: everybody in, everybody out, hands joined round. */
 function ringBalance(ctx: PlanContext, params: BalanceParams): FigurePlan {
   const beats = params.beats;
-  const window = holdWindow(beats, TAKE_TO, 0);
+  const window = holdWindow(beats, TAKE_TO, params.openOut ? OPEN_BEATS : 0);
   const ring = ringFor(ctx);
 
-  const ends: Spots = {};
+  /** Where each dancer stands while the ring is closed up. */
+  const onRing: Spots = {};
   for (const id of ctx.ids) {
     const at = ring.angle[id];
     if (at === undefined) throw new Error(`balance-ring: "${id}" is not on the ring`);
     const p = addScaled(ring.centre, dirOf(at), ring.radius);
-    ends[id] = { p, facing: at + 180 };
+    onRing[id] = { p, facing: at + 180 };
+  }
+
+  const ends: Spots = {};
+  for (const id of ctx.ids) {
+    // Opening out means ending on the place you started from, turned to face
+    // the middle — which is where the next figure's ring, star or petronella
+    // expects to find you.
+    ends[id] = params.openOut ? { p: ctx.spot(id).p, facing: onRing[id]!.facing } : onRing[id]!;
   }
 
   const placeAt = (id: StationId, t: Beat): Spot => {
     const start = ctx.spot(id);
+    const closed = onRing[id] ?? start;
     const end = ends[id] ?? start;
-    const k = ramp(t, 0, CLOSE_BEATS);
-    const facing = angleLerp(start.facing, end.facing, k);
-    const p = lerp(start.p, end.p, k);
+    const inK = ramp(t, 0, CLOSE_BEATS);
+    const outK = params.openOut ? ramp(t, beats - OPEN_BEATS, beats) : 0;
+    const from = outK > 0 ? closed : start;
+    const to = outK > 0 ? end : closed;
+    const k = outK > 0 ? outK : inK;
+    const facing = angleLerp(from.facing, to.facing, k);
+    const p = lerp(from.p, to.p, k);
     // The rock runs along the radius: in toward the middle and back out.
     return { p: addScaled(p, dirOf(facing), rockAt(t, params.rock)), facing };
   };

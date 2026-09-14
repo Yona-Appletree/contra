@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@caller/ui-design/theme.css";
+import "./hall.css";
 import { App } from "./App.js";
 
 const container = document.getElementById("root");

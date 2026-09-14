@@ -24,6 +24,32 @@ export {
 export * from "./figures/index.js";
 export * from "./pair/index.js";
 
+export {
+  DEMO_DANCES,
+  DEMO_DANCE_SLUGS,
+  danceBySlug,
+  afterTheSolstice,
+  airpants,
+  contraCockaigne,
+  jubilation,
+  kitchenStomp,
+  neighborNeighborOnTheWall,
+  thanksToTheGene,
+  theBabyRose,
+  theCarousel,
+  LARKS,
+  ROBINS,
+  BECKET_LINES,
+  CLOSURE_PX,
+  COLLISION_PX,
+  DUPLE_LINES,
+  danceAlone,
+  formationFor,
+  linesFor,
+  oraclesFor,
+  type DanceOracles,
+} from "./dances/index.js";
+
 export { normaliseTitle, titleKey } from "./corpus/normaliseTitle.js";
 
 /** Package identity, kept from the M1 scaffold smoke test. */
