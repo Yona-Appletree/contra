@@ -110,3 +110,6 @@ export { PROBE_FRAME, PROBE_STEP, probeFigure, probeGroup } from "./testing.js";
 
 export type { ContraWaitOutParams } from "./wait-out.js";
 export { crossingOf, waitOut } from "./wait-out.js";
+
+export * from "./language/index.js";
+export { circleData, circleSpec } from "./specs/circleSpec.js";
