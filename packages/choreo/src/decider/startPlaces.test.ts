@@ -11,12 +11,13 @@ import type {
   CoupleState,
   Formation,
   GroupPlan,
+  GroupSelector,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "../formation/Formation.js";
-import { createHall } from "../formation/Formation.js";
+import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
 import { frame, frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
 import { closureReport, coverageProblems } from "../testing/oracles.js";
@@ -66,6 +67,11 @@ const TRADING: Formation = {
     return STATIONS.map((s) => ({ ...s }));
   },
 
+  groupFor(selector: GroupSelector): Station[] {
+    onlyHandsFour(selector);
+    return STATIONS.map((s) => ({ ...s }));
+  },
+
   progression: {
     next: (set: SetState): SetState => ({
       ...set,
@@ -76,7 +82,8 @@ const TRADING: Formation = {
     }),
   },
 
-  groups(set: SetState): GroupPlan[] {
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    onlyHandsFour(selector);
     return set.couples.map((couple): GroupPlan => {
       const lark = couple.dancers["lark"]!;
       const robin = couple.dancers["robin"]!;
@@ -113,11 +120,18 @@ const TRADING: Formation = {
     };
   },
 
-  tags(n: number): Record<string, StationId[]> {
-    if (n !== 2) throw new Error(`the trading fixture dances in twos, not ${n}`);
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    onlyHandsFour(selector);
     return { all: ["A", "B"], larks: ["A"], robins: ["B"] };
   },
 };
+
+/** The trading fixture defines the one built-in selector and no other. */
+function onlyHandsFour(selector: GroupSelector): void {
+  if (selector !== HANDS_FOUR_GROUP) {
+    throw new Error(`the trading fixture has no group selector "${selector}"`);
+  }
+}
 
 /** Where the trading dance picks its dancers up: each on the other's place. */
 const TRADE_START: Record<StationId, EndPose> = {
@@ -206,7 +220,7 @@ describe("a dance that progresses in its own first figure", () => {
     const progressed = TRADING.progression.next(hall.sets[0]!);
     let worst = 0;
     let worstTurn = 0;
-    for (const plan of TRADING.groups(progressed)) {
+    for (const plan of TRADING.groupsFor(HANDS_FOUR_GROUP, progressed)) {
       for (const station of plan.stations) {
         const place = TRADE.startPlaces?.[station.id] ?? { p: station.p, facing: station.facing };
         const pose = poseAt(timeline, plan.members[station.id]!, 64);

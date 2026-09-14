@@ -1,6 +1,6 @@
 import type { Beat } from "@caller/core";
 import type { EndPose } from "../figure/FigureDef.js";
-import type { StationId } from "../formation/Formation.js";
+import type { GroupSelector, StationId } from "../formation/Formation.js";
 
 /**
  * The tags contra formations happen to define, named for the sake of editor
@@ -30,6 +30,17 @@ export interface FigureCall {
   beats: Beat;
   params?: object;
   who?: Selector;
+  /**
+   * How wide this call draws its dancers from — which partition of the whole set
+   * it runs in ({@link Formation.groupsFor}). Left out is `"hands-four"`, the
+   * ordinary minor set, which is every call written so far.
+   *
+   * `who` picks dancers *within* a group; this picks the group. A figure that
+   * reaches past the minor set — a shadow allemande, a diagonal chain, long
+   * lines that sweep the couple standing out — says so here, and `who` then
+   * names its dancers in the wider layout exactly as it does in the narrow one.
+   */
+  group?: GroupSelector;
   /** Overrides the figure's own call text for this dance. */
   call?: string;
 }

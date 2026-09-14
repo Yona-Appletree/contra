@@ -3,13 +3,22 @@ import type {
   DancerId,
   Formation,
   Frame,
+  GroupKind,
   GroupPlan,
+  GroupSelector,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "@caller/choreo";
-import { HOLD_SPACING_PX, LINE_OFFSET_PX, frame, framePoint, reverseFrame } from "@caller/choreo";
+import {
+  HANDS_FOUR_GROUP,
+  HOLD_SPACING_PX,
+  LINE_OFFSET_PX,
+  frame,
+  framePoint,
+  reverseFrame,
+} from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 
 /**
@@ -65,11 +74,31 @@ export const DUPLE_IMPROPER_WAIT_STATIONS: readonly Station[] = [
   { id: "WR", role: "robin", facing: 180, p: [HALF_ACROSS, 0] },
 ];
 
-/** One part of a set for one time through: a minor set, or a couple waiting. */
+/** One part of a set for one time through: a minor set, or a couple standing out. */
 interface Part {
-  kind: "set" | "wait";
+  kind: GroupKind;
   couples: CoupleState[];
 }
+
+/**
+ * Which end of the line a couple with nobody to dance with is standing out at.
+ *
+ * Its own travelling direction says so, and says so for free: the scan below
+ * pairs a couple travelling down with the couple travelling up *below* it, so
+ * the only couple travelling up that can be left over is the one at the top
+ * with nobody above it, and the only couple travelling down that can be left
+ * over is the one at the bottom with nobody below. It is the same signal the
+ * group's frame is already turned by — the bottom out's frame is reversed, so
+ * one wait layout serves both ends — surfaced rather than derived twice.
+ *
+ * A set built by hand rather than by {@link DUPLE_IMPROPER}'s own `start` and
+ * progression can put a leftover couple in the middle of the line (everybody
+ * travelling the same way, say). There is no top or bottom to such a couple;
+ * it is read as the end its direction names, and a formation asked to partition
+ * a set it never produces gets an answer of the same quality as the question.
+ */
+const waitKindOf = (couple: CoupleState): GroupKind =>
+  couple.direction === 1 ? "wait-bottom" : "wait-top";
 
 /**
  * Hands four from the top: scan down the line, pair each couple travelling
@@ -77,8 +106,9 @@ interface Part {
  *
  * With an even number of couples this alternates between pairing from place 0
  * and pairing from place 1, so a couple waits at each end every other time
- * through; with an odd number one couple waits every time through. Both fall
- * out of the scan, which is why there is no special case for either.
+ * through; with an odd number one couple waits every time through, and it is
+ * the other end each time. Both fall out of the scan, which is why there is no
+ * special case for either.
  */
 export function partitionDupleImproper(set: SetState): Part[] {
   const ordered = [...set.couples].sort((a, b) => a.place - b.place);
@@ -91,7 +121,7 @@ export function partitionDupleImproper(set: SetState): Part[] {
       parts.push({ kind: "set", couples: [ones, twos] });
       i += 2;
     } else {
-      parts.push({ kind: "wait", couples: [ones] });
+      parts.push({ kind: waitKindOf(ones), couples: [ones] });
       i += 1;
     }
   }
@@ -119,7 +149,13 @@ export const DUPLE_IMPROPER: Formation = {
     throw new Error(`duple improper dances in fours, or waits in twos, not ${n}`);
   },
 
-  groups(set: SetState): GroupPlan[] {
+  groupFor(selector: GroupSelector): Station[] {
+    onlyHandsFour(selector);
+    return DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));
+  },
+
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    onlyHandsFour(selector);
     return partitionDupleImproper(set).map((part): GroupPlan => {
       if (part.kind === "set") {
         const [ones, twos] = part.couples as [CoupleState, CoupleState];
@@ -141,7 +177,7 @@ export const DUPLE_IMPROPER: Formation = {
       const base = at(set, couple.place);
       return {
         id: `${set.id}/w${couple.place}`,
-        kind: "wait",
+        kind: part.kind,
         // A couple waiting at the bottom is a ones; turning its frame end for
         // end puts its lark back on the +x line and leaves it facing up the
         // hall when the crossing is done.
@@ -189,26 +225,35 @@ export const DUPLE_IMPROPER: Formation = {
     };
   },
 
-  tags(n: number): Record<string, StationId[]> {
-    if (n === 4) {
-      const all = DUPLE_IMPROPER_STATIONS.map((s) => s.id);
-      return {
-        all,
-        larks: ["1L", "2L"],
-        robins: ["1R", "2R"],
-        ones: ["1L", "1R"],
-        twos: ["2L", "2R"],
-        // Pairing tags name who you dance it with, not who dances: everybody in
-        // the minor set has a neighbour and a partner. Which of them a figure
-        // takes is a figure parameter, which is M8's business.
-        neighbors: all,
-        partners: all,
-      };
-    }
-    if (n === 2) {
-      const all = DUPLE_IMPROPER_WAIT_STATIONS.map((s) => s.id);
-      return { all, larks: ["WL"], robins: ["WR"], partners: all, neighbors: all };
-    }
-    throw new Error(`duple improper dances in fours, or waits in twos, not ${n}`);
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    onlyHandsFour(selector);
+    const all = DUPLE_IMPROPER_STATIONS.map((s) => s.id);
+    return {
+      all,
+      larks: ["1L", "2L"],
+      robins: ["1R", "2R"],
+      ones: ["1L", "1R"],
+      twos: ["2L", "2R"],
+      // Pairing tags name who you dance it with, not who dances: everybody in
+      // the minor set has a neighbour and a partner. Which of them a figure
+      // takes is a figure parameter, which is M8's business.
+      neighbors: all,
+      partners: all,
+    };
   },
 };
+
+/**
+ * The one group selector duple improper defines so far.
+ *
+ * A selector it does not know is an error, not an empty group: the wider
+ * partitions — the seam a shadow figure runs in, the line a `long-lines` call
+ * sweeps the outs into — are real and are simply not built yet, and a dance
+ * that asks for one should say so rather than quietly dancing in fours.
+ */
+function onlyHandsFour(selector: GroupSelector): void {
+  if (selector === HANDS_FOUR_GROUP) return;
+  throw new Error(
+    `duple improper has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}")`,
+  );
+}

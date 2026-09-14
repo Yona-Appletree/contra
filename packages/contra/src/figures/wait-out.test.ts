@@ -11,7 +11,7 @@ const waitGroup = (formation: Formation, axis = 90) => {
   return createGroup(
     {
       id: "w",
-      kind: "wait",
+      kind: "wait-top",
       frame: frame([0, 0], axis),
       stations,
       members: Object.fromEntries(stations.map((s) => [s.id, `w/${s.id}`])),

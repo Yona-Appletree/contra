@@ -1,6 +1,7 @@
 import type { Dance, Decider, Program, SetState, StationId } from "@caller/choreo";
 import {
   ARM_REACH_PX,
+  HANDS_FOUR_GROUP,
   HOLD_SPACING_PX,
   LINE_OFFSET_PX,
   WAIT_OUT,
@@ -146,14 +147,14 @@ describe("hands four from the top", () => {
 
   it("leaves the bottom couple waiting when the line is odd", () => {
     const parts = partitionDupleImproper(set(5));
-    expect(parts.map((p) => p.kind)).toEqual(["set", "set", "wait"]);
+    expect(parts.map((p) => p.kind)).toEqual(["set", "set", "wait-bottom"]);
     expect(parts[2]!.couples[0]!.place).toBe(4);
   });
 
   it("moves the sets down one place the next time through, leaving both ends out", () => {
     const after = DUPLE_IMPROPER.progression.next(set(6));
     const parts = partitionDupleImproper(after);
-    expect(parts.map((p) => p.kind)).toEqual(["wait", "set", "set", "wait"]);
+    expect(parts.map((p) => p.kind)).toEqual(["wait-top", "set", "set", "wait-bottom"]);
     expect(parts[0]!.couples[0]!.place).toBe(0);
     expect(parts[3]!.couples[0]!.place).toBe(5);
   });
@@ -253,7 +254,7 @@ describe("AC5 — closure, at every line length from 2 to 6", () => {
 
     // Where the progressed set says each dancer should stand.
     const expected = new Map<string, readonly [number, number]>();
-    for (const plan of DUPLE_IMPROPER.groups(progressed)) {
+    for (const plan of DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, progressed)) {
       for (const station of plan.stations) {
         const dancer = plan.members[station.id]!;
         expected.set(dancer, stationPose(plan.frame, station).p);

@@ -5,11 +5,12 @@ import type {
   DancePhrase,
   FigureCall,
   Formation,
+  GroupSelector,
   PhraseName,
   Selector,
   Station,
 } from "@caller/choreo";
-import { resolveSelector, validateDance, withDefaults } from "@caller/choreo";
+import { HANDS_FOUR_GROUP, resolveSelector, validateDance, withDefaults } from "@caller/choreo";
 import type { Carried, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
 import { contraFigureOf } from "./registry.js";
 
@@ -25,6 +26,17 @@ export interface ContraCall {
   beats: Beat;
   params?: object;
   who?: Selector;
+  /**
+   * How wide this call draws its dancers from; see `FigureCall.group`. Left out
+   * is `"hands-four"`, the ordinary minor set, which is every call so far.
+   *
+   * Carried through to the threaded `FigureCall` and used here to resolve `who`
+   * against the right tag table. The authoring template a call is threaded
+   * against is still the dance-wide `group(4)`: widening `places` to the union
+   * of every template a dance's calls use is the work that lands with the first
+   * selector that needs it.
+   */
+  group?: GroupSelector;
   call?: string;
 }
 
@@ -96,7 +108,7 @@ export function chainCalls(
     const from = places;
     const params = withDefaults<ContraParams>(def, { ...(call.params ?? {}), from }, call.beats);
     const ends = def.moves(params, stations, spacing);
-    const selected = resolveSelector(call.who, formation, stations);
+    const selected = resolveSelector(call.who, formation, call.group ?? HANDS_FOUR_GROUP, stations);
     const next: Spots = { ...places };
     for (const id of selected) {
       const end = ends[id];
@@ -110,6 +122,7 @@ export function chainCalls(
       beats: call.beats,
       params: { ...(call.params ?? {}), from },
       ...(call.who === undefined ? {} : { who: call.who }),
+      ...(call.group === undefined ? {} : { group: call.group }),
       ...(call.call === undefined ? {} : { call: call.call }),
     });
   }

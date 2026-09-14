@@ -12,6 +12,7 @@ import type {
   Timeline,
 } from "@caller/choreo";
 import {
+  HANDS_FOUR_GROUP,
   WALK_TO_STATION,
   complementOf,
   createGroup,
@@ -360,7 +361,12 @@ function buildTimeline(group: Group, formation: Formation, calls: readonly Figur
   let at: Beat = 0;
   for (const call of calls) {
     const def = registry.get(call.figure);
-    const selected = resolveSelector(call.who, formation, group.stations);
+    const selected = resolveSelector(
+      call.who,
+      formation,
+      call.group ?? HANDS_FOUR_GROUP,
+      group.stations,
+    );
     addEvent(timeline, group, def, withDefaults(def, call.params, call.beats), selected, at);
 
     const resting = complementOf(group.stations, selected);

@@ -10,7 +10,7 @@ import type {
   SetState,
   StationId,
 } from "../formation/Formation.js";
-import { createHall } from "../formation/Formation.js";
+import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
 import type { AnyFigureDef, EndPose, FigureRegistry } from "../figure/FigureDef.js";
 import { withDefaults } from "../figure/FigureDef.js";
 import { APPLAUD } from "../figure/applaud.js";
@@ -27,11 +27,13 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
 /**
  * The script decider: it dances the program as written.
  *
- * Every time through, it asks the formation for the groups, plays the dance's
- * figure calls into each of them, gives every waiting couple the built-in
- * `wait-out`, says each call `lead` beats early, and then asks the formation's
- * progression what the set looks like next. The program loops, so the demo
- * cycles without anyone touching it.
+ * Every time through, it asks the formation — **call by call** — how the set
+ * divides up for that call (`Formation.groupsFor`, a partition of the whole
+ * set), plays the figure into each group that dances it, fills whatever beats
+ * nobody claimed for the couples standing out with `wait-out`, says each call
+ * `lead` beats early, and then asks the formation's progression what the set
+ * looks like next. The program loops, so the demo cycles without anyone
+ * touching it.
  *
  * **Between two dances** the dancing stops and a real interval runs, in four
  * stretches whose lengths are {@link ScriptDeciderOptions}': the hall applauds
@@ -80,9 +82,9 @@ export function createScriptDecider(
   // caught by the line-up between two dances (`emitLineUp`), but the first
   // dance has no line-up before it — and a hall seated in one formation and
   // partitioned by another does not throw: it silently finds a set's couples
-  // in the wrong places and puts every one of them in a `"wait"` group, so the
-  // whole hall dances `wait-out` for the length of the dance and nothing that
-  // was called is danced at all.
+  // in the wrong places and calls every one of them an out, so the whole hall
+  // dances `wait-out` for the length of the dance and nothing that was called
+  // is danced at all.
   let state: HallState = createHall(formation, specs);
   const at: ScriptPosition = { itemIndex: 0, timeThrough: 0, beat: opts.startBeat };
   /** Where the last figure emitted leaves each dancer. */
@@ -136,14 +138,26 @@ export function createScriptDecider(
     into.push(event);
   };
 
-  /** The groups of the whole hall for one time through, registered on the timeline. */
+  /** A fresh instance of one plan, registered on the timeline. */
+  const mintGroup = (plan: GroupPlan): Group => {
+    const group = createGroup({ ...plan, id: `${plan.id}#${groupSeq++}` }, formation.roleSet);
+    timeline.addGroup(group);
+    return group;
+  };
+
+  /**
+   * The whole hall's ordinary minor-set partition, registered on the timeline.
+   *
+   * What everything *between* two dances runs in — the applause, the standing
+   * about, the walk to the next dance's places. Those are not figure calls and
+   * have no selector of their own: everybody is in the group they would dance
+   * the next time through in.
+   */
   const planGroups = (): Array<{ set: SetState; plan: GroupPlan; group: Group }> => {
     const out: Array<{ set: SetState; plan: GroupPlan; group: Group }> = [];
     for (const set of state.sets) {
-      for (const plan of formation.groups(set)) {
-        const group = createGroup({ ...plan, id: `${plan.id}#${groupSeq++}` }, formation.roleSet);
-        timeline.addGroup(group);
-        out.push({ set, plan, group });
+      for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+        out.push({ set, plan, group: mintGroup(plan) });
       }
     }
     return out;
@@ -171,48 +185,91 @@ export function createScriptDecider(
     texts.forEach((text, i) => say(into, text, start + i * each, start + (i + 1) * each));
   };
 
-  /** One time through of `dance`, starting at `at.beat`. */
+  /**
+   * One time through of `dance`, starting at `at.beat`.
+   *
+   * Every call resolves its own groups — `formation.groupsFor(call.group, set)`
+   * against the *whole* set, not against one pre-selected group — so two calls
+   * of the same dance may draw their dancers from different widths. Today every
+   * call says `"hands-four"` and every partition is therefore the same one, but
+   * it is computed call by call rather than once, because that is the shape a
+   * call that reaches past its own four needs.
+   *
+   * Couples standing out go through the same loop as everybody else. A call
+   * whose partition includes them dances them, exactly like a dancing couple;
+   * whatever of their time through nothing claims is filled with `wait-out`
+   * afterwards. With only `"hands-four"` to resolve, nothing ever claims them
+   * and the fill is the whole cycle — one `wait-out`, the way it has always
+   * been — but by the general path rather than a special case.
+   */
   const emitCycle = (into: TimelineEvent[], dance: Dance): Beat => {
     const cycle = danceBeats(dance);
     const start = at.beat;
     const schedule = danceSchedule(dance);
+    /** Which beats of this cycle each dancer has already been given a figure for. */
+    const claimed = new Map<DancerId, Span[]>();
+    const claim = (dancers: Iterable<DancerId>, from: Beat, to: Beat): void => {
+      for (const dancer of dancers) {
+        const spans = claimed.get(dancer) ?? [];
+        spans.push([from, to]);
+        claimed.set(dancer, spans);
+      }
+    };
 
-    for (const { group, plan } of planGroups()) {
-      if (plan.kind === "wait") {
+    for (const { call, start: offset } of schedule) {
+      const selector = call.group ?? HANDS_FOUR_GROUP;
+      for (const set of state.sets) {
+        for (const plan of formation.groupsFor(selector, set)) {
+          // A group this call's partition left standing out: nobody dances the
+          // call here, and the beats go to the fill below.
+          if (plan.kind !== "set") continue;
+          const group = mintGroup(plan);
+          const def = registry.get(call.figure);
+          const params = withDefaults(def, call.params, call.beats);
+          const selected = resolveSelector(call.who, formation, selector, group.stations);
+          emitFigure(into, group, def, params, selected, start + offset);
+
+          const resting = complementOf(group.stations, selected);
+          if (resting.length > 0) {
+            const origins: Record<StationId, EndPose> = {};
+            for (const id of resting) {
+              const here = standingAt.get(group.members[id]!);
+              if (here) origins[id] = here;
+            }
+            const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
+            emitFigure(into, group, WALK_TO_STATION, stand, resting, start + offset);
+          }
+          claim(Object.values(group.members), offset, offset + call.beats);
+        }
+      }
+    }
+
+    // Whatever the schedule did not claim: the outs wait it out, in their own
+    // resting group. `Timeline.add()` will not have a dancer in two figures at
+    // once, so what is left has to be the *gaps* — never the whole cycle laid
+    // over a call that swept them in.
+    for (const set of state.sets) {
+      for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+        if (plan.kind === "set") continue;
+        const group = mintGroup(plan);
         // The registry's `wait-out`, not the built-in: a form may register its
         // own under the same id (contra does, to choose the crossing from the
         // formation), and taking the definition from the import would sample
         // one figure and record the other's `ends` — which the eight-beat
         // line-up between two dances then walks to, 51 px out.
         const def = registry.get(WAIT_OUT.id);
-        // `startPlaces` matters only for a dance that progresses in its own
-        // first figure: the waiting couple slides off the end of the line with
-        // everybody else, so its crossing has to be reckoned from the place it
-        // slid out of. Empty — every other dance — is the waiting place, which
-        // is what `wait-out` did before there was a parameter at all.
-        const params = withDefaults(
-          def,
-          { startPlaces: dance.startPlaces ?? {}, ...(dance.waitOut ?? {}) },
-          cycle,
-        );
-        emitFigure(into, group, def, params, Object.keys(group.members), start);
-        continue;
-      }
-      for (const { call, start: offset } of schedule) {
-        const def = registry.get(call.figure);
-        const params = withDefaults(def, call.params, call.beats);
-        const selected = resolveSelector(call.who, formation, group.stations);
-        emitFigure(into, group, def, params, selected, start + offset);
-
-        const resting = complementOf(group.stations, selected);
-        if (resting.length > 0) {
-          const origins: Record<StationId, EndPose> = {};
-          for (const id of resting) {
-            const here = standingAt.get(group.members[id]!);
-            if (here) origins[id] = here;
-          }
-          const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
-          emitFigure(into, group, WALK_TO_STATION, stand, resting, start + offset);
+        for (const [from, to] of gapsIn(cycle, Object.values(group.members), claimed)) {
+          // `startPlaces` matters only for a dance that progresses in its own
+          // first figure: the waiting couple slides off the end of the line with
+          // everybody else, so its crossing has to be reckoned from the place it
+          // slid out of. Empty — every other dance — is the waiting place, which
+          // is what `wait-out` did before there was a parameter at all.
+          const params = withDefaults(
+            def,
+            { startPlaces: dance.startPlaces ?? {}, ...(dance.waitOut ?? {}) },
+            to - from,
+          );
+          emitFigure(into, group, def, params, Object.keys(group.members), start + from);
         }
       }
     }
@@ -367,6 +424,37 @@ export const nextDanceCall = (next: Dance): string =>
 
 /** A runaway guard: no program needs this many times through to reach a beat. */
 const MAX_CYCLES = 10_000;
+
+/** A half-open run of beats, measured from the start of a time through. */
+type Span = readonly [Beat, Beat];
+
+/**
+ * The beats of `[0, cycle]` that no call gave any of `dancers` a figure for.
+ *
+ * A group whose dancers nothing claimed gets one gap, the whole cycle, which is
+ * what every waiting couple has always had. A group a call swept in for part of
+ * the time through gets the leading and trailing remainders instead — never an
+ * overlap, which `Timeline.add()` would throw on anyway.
+ *
+ * The claims of a group's dancers are pooled: a call takes a whole group or
+ * none of it, so they agree, and pooling means a couple whose two dancers were
+ * somehow claimed differently produces a gap neither of them can dance rather
+ * than a silent overlap for one of them.
+ */
+function gapsIn(cycle: Beat, dancers: readonly DancerId[], claimed: Map<DancerId, Span[]>): Span[] {
+  const spans: Span[] = [];
+  for (const dancer of dancers) spans.push(...(claimed.get(dancer) ?? []));
+  if (spans.length === 0) return [[0, cycle]];
+
+  const gaps: Span[] = [];
+  let at: Beat = 0;
+  for (const [from, to] of [...spans].sort((a, b) => a[0] - b[0])) {
+    if (from > at) gaps.push([at, from]);
+    at = Math.max(at, to);
+  }
+  if (at < cycle) gaps.push([at, cycle]);
+  return gaps;
+}
 
 /**
  * The specs a hall's sets were built from, so a formation change can re-seed

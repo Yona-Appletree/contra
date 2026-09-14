@@ -177,8 +177,9 @@ describe("the square, which is not a contra", () => {
   });
 
   it("names its own station subsets, and knows nothing of ones and twos", () => {
-    expect(SQUARE.tags(8).heads).toEqual(SQUARE_HEADS);
-    expect(SQUARE.tags(8).ones).toBeUndefined();
+    expect(SQUARE.tags("hands-four").heads).toEqual(SQUARE_HEADS);
+    expect(SQUARE.tags("hands-four").ones).toBeUndefined();
+    expect(() => SQUARE.tags("shadow-pair")).toThrow(/no group selector/);
   });
 });
 

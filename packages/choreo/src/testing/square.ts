@@ -3,13 +3,15 @@ import type {
   CoupleState,
   Formation,
   GroupPlan,
+  GroupSelector,
   RoleSet,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "../formation/Formation.js";
-import { frame } from "../formation/Frame.js";
+import { HANDS_FOUR_GROUP } from "../formation/Formation.js";
+import { frame, framePoint, reverseFrame } from "../formation/Frame.js";
 
 /**
  * A square: four couples on the sides of a square, facing the middle.
@@ -34,6 +36,42 @@ export const SQUARE_HALF_COUPLE_PX = 10;
 export const SQUARE_HEADS = ["1L", "1R", "3L", "3R"];
 /** Couples 2 and 4. */
 export const SQUARE_SIDES = ["2L", "2R", "4L", "4R"];
+
+/** How many couples fit in the square itself; anybody else stands out. */
+export const SQUARE_PLACES = 4;
+/** Half the distance between the two dancers of a couple standing out, in px. */
+export const SQUARE_WAIT_HALF_PX = 16;
+
+/**
+ * The two stations of a couple with no place in the square, standing out beyond
+ * one end of the set's own axis and facing each other across it.
+ *
+ * A square does not really have couples standing out — this is the fixture
+ * doing on purpose what a longways set does by accident, so that the engine's
+ * two outs, its waiting groups and `wait-out` are all exercised by something
+ * that is not a contra. `wait-out` swaps the two, and the fixture's own
+ * progression turns the frame end for end each time through so the swap lands
+ * them back on their own stations.
+ */
+export const SQUARE_WAIT_STATIONS: readonly Station[] = [
+  { id: "WL", role: "lark", facing: 0, p: [-SQUARE_WAIT_HALF_PX, 0] },
+  { id: "WR", role: "robin", facing: 180, p: [SQUARE_WAIT_HALF_PX, 0] },
+];
+
+/**
+ * Which end of the set a couple standing out is at.
+ *
+ * The square's signal is its `place`: below the square's own four places is the
+ * top of the set, beyond them the bottom. (A longways formation reads the same
+ * thing off a waiting couple's own progression direction instead; the interface
+ * asks for the answer, not for how it was reached.) `undefined` is a couple
+ * with a place in the square, which is not standing out at all.
+ */
+export const squareWaitKind = (place: number): "wait-top" | "wait-bottom" | undefined => {
+  if (place < 0) return "wait-top";
+  if (place >= SQUARE_PLACES) return "wait-bottom";
+  return undefined;
+};
 
 /** The eight stations, couple 1 at local −y and the rest a quarter-turn apart. */
 export function squareStations(): Station[] {
@@ -67,52 +105,120 @@ export function squareStations(): Station[] {
   return stations;
 }
 
-/** The square formation. A square dance ends where it began, so nothing progresses. */
+const dancerOn = (couple: CoupleState, role: string): string => {
+  const dancer = couple.dancers[role];
+  if (dancer === undefined) throw new Error(`couple "${couple.id}" has no ${role}`);
+  return dancer;
+};
+
+/** The frame a couple standing out at `place` waits in. */
+const waitFrame = (set: SetState, couple: CoupleState) => {
+  const base = frame(
+    framePoint(set.frame, [0, couple.place * set.pitch]),
+    set.frame.axis,
+    set.frame.spacing,
+  );
+  // Turned end for end every other time through, so `wait-out`'s swap puts each
+  // dancer down where the next time through picks them up — the same trick a
+  // longways formation plays on the couple waiting at the far end of the line.
+  return couple.direction === 1 ? base : reverseFrame(base);
+};
+
+/**
+ * The square formation. A square dance ends where it began, so nothing
+ * progresses — except a couple standing out, which turns over so it can cross.
+ */
 export const SQUARE: Formation = {
   id: "square",
   roleSet: SQUARE_ROLES,
 
   group(n: number): Station[] {
-    if (n !== 8) throw new Error(`a square dances in groups of eight, not ${n}`);
+    if (n === 8) return squareStations();
+    if (n === 2) return SQUARE_WAIT_STATIONS.map((s) => ({ ...s }));
+    throw new Error(`a square dances in groups of eight, or waits in twos, not ${n}`);
+  },
+
+  groupFor(selector: GroupSelector): Station[] {
+    if (selector !== HANDS_FOUR_GROUP) {
+      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
+    }
     return squareStations();
   },
 
-  progression: { next: (set: SetState): SetState => set },
+  progression: {
+    next(set: SetState): SetState {
+      // Nobody standing out: the square really does end where it began, and the
+      // very same object comes back.
+      if (set.couples.every((c) => squareWaitKind(c.place) === undefined)) return set;
+      return {
+        ...set,
+        couples: set.couples.map((couple) =>
+          squareWaitKind(couple.place) === undefined
+            ? couple
+            : { ...couple, direction: couple.direction === 1 ? -1 : 1 },
+        ),
+      };
+    },
+  },
 
-  groups(set: SetState): GroupPlan[] {
-    if (set.couples.length !== 4) {
-      throw new Error(`a square has four couples, not ${set.couples.length}`);
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    if (selector !== HANDS_FOUR_GROUP) {
+      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
     }
-    const stations = squareStations();
+    const ordered = [...set.couples].sort((a, b) => a.place - b.place);
+    const dancing = ordered.filter((c) => squareWaitKind(c.place) === undefined);
+    if (dancing.length !== SQUARE_PLACES) {
+      throw new Error(`a square has four couples in it, not ${dancing.length}`);
+    }
     const members: Record<StationId, string> = {};
-    for (const couple of set.couples) {
+    for (const couple of dancing) {
       const number = couple.place + 1;
       for (const role of SQUARE_ROLES.roles) {
-        const dancer = couple.dancers[role];
-        if (dancer === undefined) throw new Error(`couple "${couple.id}" has no ${role}`);
-        members[`${number}${role === "lark" ? "L" : "R"}`] = dancer;
+        members[`${number}${role === "lark" ? "L" : "R"}`] = dancerOn(couple, role);
       }
     }
-    return [
-      {
-        id: `${set.id}/square`,
-        kind: "set",
-        frame: set.frame,
-        stations,
-        members,
-        couples: set.couples.map((c) => c.id),
-      },
-    ];
+    const square: GroupPlan = {
+      id: `${set.id}/square`,
+      kind: "set",
+      frame: set.frame,
+      stations: squareStations(),
+      members,
+      couples: dancing.map((c) => c.id),
+    };
+
+    // In place order down the set, so the whole partition reads top to bottom.
+    const plans: GroupPlan[] = [];
+    for (const couple of ordered) {
+      const kind = squareWaitKind(couple.place);
+      if (kind === undefined) {
+        if (!plans.includes(square)) plans.push(square);
+        continue;
+      }
+      plans.push({
+        id: `${set.id}/w${couple.place}`,
+        kind,
+        frame: waitFrame(set, couple),
+        stations: SQUARE_WAIT_STATIONS.map((s) => ({ ...s })),
+        members: { WL: dancerOn(couple, "lark"), WR: dancerOn(couple, "robin") },
+        couples: [couple.id],
+      });
+    }
+    return plans;
   },
 
   start(spec: SetSpec): SetState {
-    if (spec.couples !== 4) throw new Error(`a square needs four couples, not ${spec.couples}`);
+    if (spec.couples < SQUARE_PLACES) {
+      throw new Error(`a square needs at least four couples, not ${spec.couples}`);
+    }
     const couples: CoupleState[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < spec.couples; i++) {
       couples.push({
         id: `${spec.id}/c${i}`,
         dancers: { lark: `${spec.id}/c${i}/lark`, robin: `${spec.id}/c${i}/robin` },
-        place: i,
+        // The first four fill the square; a fifth couple stands out beyond the
+        // bottom of the set, a sixth beyond the top, and there is no room for a
+        // seventh. An odd-couple set is what gives the fixture its two outs.
+        place: i < SQUARE_PLACES ? i : extraPlace(i - SQUARE_PLACES, spec.couples),
         direction: 1,
       });
     }
@@ -124,8 +230,10 @@ export const SQUARE: Formation = {
     };
   },
 
-  tags(n: number): Record<string, StationId[]> {
-    if (n !== 8) throw new Error(`a square dances in groups of eight, not ${n}`);
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    if (selector !== HANDS_FOUR_GROUP) {
+      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
+    }
     const stations = squareStations().map((s) => s.id);
     return {
       all: stations,
@@ -136,3 +244,10 @@ export const SQUARE: Formation = {
     };
   },
 };
+
+/** Where the `n`th couple with no place in the square stands: bottom, then top. */
+function extraPlace(n: number, couples: number): number {
+  if (n === 0) return SQUARE_PLACES;
+  if (n === 1) return -1;
+  throw new Error(`a square seats four, five or six couples, not ${couples}`);
+}

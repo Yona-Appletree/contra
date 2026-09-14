@@ -4,13 +4,15 @@ import type {
   DancerId,
   Formation,
   Frame,
+  GroupKind,
   GroupPlan,
+  GroupSelector,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "@caller/choreo";
-import { HOLD_SPACING_PX, frame, framePoint, reverseFrame } from "@caller/choreo";
+import { HANDS_FOUR_GROUP, HOLD_SPACING_PX, frame, framePoint, reverseFrame } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
 
@@ -129,9 +131,23 @@ export const BECKET_BEFORE_SLIDE: Record<StationId, { p: Vec2; facing: Angle }> 
 
 /** One part of a becket set for one time through. */
 interface Part {
-  kind: "set" | "wait";
+  kind: GroupKind;
   couples: CoupleState[];
 }
+
+/**
+ * Which end of the set a becket couple with nowhere to slide is standing out at.
+ *
+ * Its own slide direction says so: a dancing couple slides to `place -
+ * direction`, so the couple that has run out of line travelling toward the top
+ * is the one beyond the top, and the couple travelling the other way is the one
+ * beyond the bottom. (An odd-couple set puts two couples beyond the bottom, and
+ * both read as `wait-bottom`, which is where they are.) It is the same signal
+ * the wait frame is already turned by — reversed at the bottom, so one layout
+ * serves both ends — surfaced rather than derived twice.
+ */
+const waitKindOf = (couple: CoupleState): GroupKind =>
+  couple.direction === 1 ? "wait-top" : "wait-bottom";
 
 /** Group the couples at each place: two facing each other, or one waiting. */
 export function partitionBecket(set: SetState): Part[] {
@@ -145,7 +161,7 @@ export function partitionBecket(set: SetState): Part[] {
   for (const place of [...byPlace.keys()].sort((a, b) => a - b)) {
     const here = byPlace.get(place)!;
     if (here.length === 1) {
-      parts.push({ kind: "wait", couples: here });
+      parts.push({ kind: waitKindOf(here[0]!), couples: here });
       continue;
     }
     if (here.length !== 2) {
@@ -181,7 +197,13 @@ export const BECKET: Formation = {
     throw new Error(`becket dances in fours, or waits in twos, not ${n}`);
   },
 
-  groups(set: SetState): GroupPlan[] {
+  groupFor(selector: GroupSelector): Station[] {
+    onlyHandsFour(selector);
+    return BECKET_STATIONS.map((s) => ({ ...s }));
+  },
+
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    onlyHandsFour(selector);
     return partitionBecket(set).map((part): GroupPlan => {
       if (part.kind === "set") {
         const [a, b] = part.couples as [CoupleState, CoupleState];
@@ -204,7 +226,7 @@ export const BECKET: Formation = {
       const base = at(set, couple.place + couple.direction / 2);
       return {
         id: `${set.id}/w${couple.place}`,
-        kind: "wait",
+        kind: part.kind,
         frame: couple.direction === 1 ? base : reverseFrame(base),
         stations: BECKET_WAIT_STATIONS.map((s) => ({ ...s })),
         members: { WL: dancerOn(couple, "lark"), WR: dancerOn(couple, "robin") },
@@ -281,23 +303,23 @@ export const BECKET: Formation = {
     };
   },
 
-  tags(n: number): Record<string, StationId[]> {
-    if (n === 4) {
-      const all = BECKET_STATIONS.map((s) => s.id);
-      return {
-        all,
-        larks: ["1L", "2L"],
-        robins: ["1R", "2R"],
-        ones: ["1L", "1R"],
-        twos: ["2L", "2R"],
-        neighbors: all,
-        partners: all,
-      };
-    }
-    if (n === 2) {
-      const all = BECKET_WAIT_STATIONS.map((s) => s.id);
-      return { all, larks: ["WL"], robins: ["WR"], partners: all, neighbors: all };
-    }
-    throw new Error(`becket dances in fours, or waits in twos, not ${n}`);
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    onlyHandsFour(selector);
+    const all = BECKET_STATIONS.map((s) => s.id);
+    return {
+      all,
+      larks: ["1L", "2L"],
+      robins: ["1R", "2R"],
+      ones: ["1L", "1R"],
+      twos: ["2L", "2R"],
+      neighbors: all,
+      partners: all,
+    };
   },
 };
+
+/** The one group selector becket defines so far; see duple improper's own note. */
+function onlyHandsFour(selector: GroupSelector): void {
+  if (selector === HANDS_FOUR_GROUP) return;
+  throw new Error(`becket has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}")`);
+}

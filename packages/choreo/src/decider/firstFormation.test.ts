@@ -7,13 +7,15 @@ import { WALK_TO_STATION } from "../figure/walkToStation.js";
 import type {
   CoupleState,
   Formation,
+  GroupKind,
   GroupPlan,
+  GroupSelector,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "../formation/Formation.js";
-import { createHall } from "../formation/Formation.js";
+import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
 import { frame } from "../formation/Frame.js";
 import { coverageProblems } from "../testing/oracles.js";
 import { poseAt } from "../timeline/poseAt.js";
@@ -93,7 +95,10 @@ function pairingGroups(set: SetState): GroupPlan[] {
     }
     plans.push({
       id: `${set.id}/w${down.place}`,
-      kind: "wait",
+      // The fixture's outs are read the way a longways formation reads its own:
+      // a couple travelling down with nobody below it is out at the bottom, one
+      // travelling up with nobody above it is out at the top.
+      kind: waitKindOf(down),
       frame: placeFrame(set, down.place),
       stations: WAITING.map((s) => ({ ...s })),
       members: { WL: dancerOn(down, "lark"), WR: dancerOn(down, "robin") },
@@ -104,6 +109,17 @@ function pairingGroups(set: SetState): GroupPlan[] {
   return plans;
 }
 
+/** Which end of the line a leftover couple is out at, from its own direction. */
+const waitKindOf = (couple: CoupleState): GroupKind =>
+  couple.direction === 1 ? "wait-bottom" : "wait-top";
+
+/** The fixtures define the one built-in selector and no other. */
+function onlyHandsFour(selector: GroupSelector): void {
+  if (selector !== HANDS_FOUR_GROUP) {
+    throw new Error(`the fixture has no group selector "${selector}"`);
+  }
+}
+
 const shared = {
   roleSet: ROLES,
   group(n: number): Station[] {
@@ -111,11 +127,18 @@ const shared = {
     if (n === 2) return WAITING.map((s) => ({ ...s }));
     throw new Error(`the fixture dances in fours, or waits in twos, not ${n}`);
   },
-  groups: pairingGroups,
+  groupFor(selector: GroupSelector): Station[] {
+    onlyHandsFour(selector);
+    return FOURS.map((s) => ({ ...s }));
+  },
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    onlyHandsFour(selector);
+    return pairingGroups(set);
+  },
   progression: { next: (set: SetState): SetState => set },
-  tags(n: number): Record<string, StationId[]> {
-    if (n === 4) return { all: FOURS.map((s) => s.id), larks: ["1L", "2L"], robins: ["1R", "2R"] };
-    return { all: WAITING.map((s) => s.id), larks: ["WL"], robins: ["WR"] };
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    onlyHandsFour(selector);
+    return { all: FOURS.map((s) => s.id), larks: ["1L", "2L"], robins: ["1R", "2R"] };
   },
 };
 

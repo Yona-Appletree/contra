@@ -1,5 +1,12 @@
 import type { DancerId, SetState, Vec2 } from "@caller/choreo";
-import { WAIT_OUT, createGroup, dist, stationPose, withDefaults } from "@caller/choreo";
+import {
+  HANDS_FOUR_GROUP,
+  WAIT_OUT,
+  createGroup,
+  dist,
+  stationPose,
+  withDefaults,
+} from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import {
   BECKET,
@@ -21,7 +28,7 @@ const set = (couples: number): SetState =>
 /** Where every dancer of a set stands, as its own groups place them. */
 function places(state: SetState): Map<DancerId, Vec2> {
   const out = new Map<DancerId, Vec2>();
-  for (const plan of BECKET.groups(state)) {
+  for (const plan of BECKET.groupsFor(HANDS_FOUR_GROUP, state)) {
     for (const station of plan.stations) {
       out.set(plan.members[station.id]!, stationPose(plan.frame, station).p);
     }
@@ -73,8 +80,8 @@ describe("a becket set", () => {
   it("lays a hall out as full places with one waiting couple beyond each end", () => {
     const state = set(8);
     expect(state.couples).toHaveLength(8);
-    const parts = BECKET.groups(state);
-    expect(parts.map((p) => p.kind)).toEqual(["wait", "set", "set", "set", "wait"]);
+    const parts = BECKET.groupsFor(HANDS_FOUR_GROUP, state);
+    expect(parts.map((p) => p.kind)).toEqual(["wait-top", "set", "set", "set", "wait-bottom"]);
     expect(state.couples.filter((c) => c.place === -1)).toHaveLength(1);
     expect(state.couples.filter((c) => c.place === 3)).toHaveLength(1);
   });
@@ -90,12 +97,19 @@ describe("a becket set", () => {
     // places and two — somebody is always out, never the same couple twice.
     const state = set(5);
     expect(state.couples).toHaveLength(5);
-    expect(BECKET.groups(state).map((p) => p.kind)).toEqual(["wait", "set", "wait", "wait"]);
+    expect(BECKET.groupsFor(HANDS_FOUR_GROUP, state).map((p) => p.kind)).toEqual([
+      "wait-top",
+      "set",
+      "wait-bottom",
+      "wait-bottom",
+    ]);
     let next = state;
     for (let cycle = 0; cycle < 6; cycle++) {
       next = BECKET.progression.next(next);
       expect(next.couples).toHaveLength(5);
-      expect(BECKET.groups(next).filter((p) => p.kind === "set").length).toBeGreaterThan(0);
+      expect(
+        BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind === "set").length,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -109,7 +123,7 @@ describe("a becket set", () => {
 
   it("keeps the same shape every time through", () => {
     let state = set(10);
-    const shape = (s: SetState) => BECKET.groups(s).map((p) => p.kind);
+    const shape = (s: SetState) => BECKET.groupsFor(HANDS_FOUR_GROUP, s).map((p) => p.kind);
     const first = shape(state);
     for (let cycle = 0; cycle < 6; cycle++) {
       state = BECKET.progression.next(state);
@@ -138,7 +152,7 @@ describe("a becket set", () => {
   it("stands a waiting couple on its own line, a place apart, beyond the end", () => {
     const state = set(8);
     const standing = places(state);
-    for (const plan of BECKET.groups(state).filter((p) => p.kind === "wait")) {
+    for (const plan of BECKET.groupsFor(HANDS_FOUR_GROUP, state).filter((p) => p.kind !== "set")) {
       const couple = state.couples.find((c) => c.id === plan.couples[0])!;
       const points = plan.stations.map((s) => standing.get(plan.members[s.id]!)!);
       for (const p of points) {
@@ -158,7 +172,7 @@ describe("the becket end effect closes", () => {
     const next = places(BECKET.progression.next(state));
     let worst = 0;
     let checked = 0;
-    for (const plan of BECKET.groups(state).filter((p) => p.kind === "wait")) {
+    for (const plan of BECKET.groupsFor(HANDS_FOUR_GROUP, state).filter((p) => p.kind !== "set")) {
       const group = createGroup(plan, BECKET.roleSet);
       const params = withDefaults(WAIT_OUT, { crossTo: "mirror" }, 64);
       for (const [station, end] of Object.entries(WAIT_OUT.ends(group, params))) {
@@ -172,7 +186,7 @@ describe("the becket end effect closes", () => {
 
   it("turns the waiting couple round to face the other way", () => {
     const state = set(8);
-    const plan = BECKET.groups(state).find((p) => p.kind === "wait")!;
+    const plan = BECKET.groupsFor(HANDS_FOUR_GROUP, state).find((p) => p.kind !== "set")!;
     const group = createGroup(plan, BECKET.roleSet);
     const params = withDefaults(WAIT_OUT, { crossTo: "mirror" }, 64);
     const ends = WAIT_OUT.ends(group, params);
