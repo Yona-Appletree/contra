@@ -73,6 +73,7 @@ p.hint code{color:var(--accent);font:13px ui-monospace,Menlo,monospace}
 
 <section id="s0">
   <h2>0. The pair</h2>
+  <p class="hint"><b>Rulings at gate 3 (2026-09-13):</b> passes, move on to the plan. Arms as fixed-length 3D bones are the answer to the arm problem; joined hands stack robin on top, lark underneath, always; contra movement is smooth, only a little motion with the beat. Tweaks applied after the gate: the swing's outstretched hands sit closer to the pair, and the allemande turns each body about 20° toward the partner rather than a straight line, since arms cannot take pressure coplanar with the torso. Later: the balance's forward rock still crowds the heads; extending the bones model to head and shoulders for shading is open.</p>
   <p class="hint">Press <b>Play music</b> to hear Soldier's Joy; the animation clock then ticks off the audio clock. The sequence is A1 walk in and take two hands, balance, swing (8) · A2 allemande left 1½, do-si-do · B1 balance, swing (12) · B2 allemande left once, fall back to lines, so it closes on itself. Click a figure to jump to it; <b>loop figure</b> holds one figure on repeat (the music keeps going, so it drifts from the tune while looping).</p>
   <div class="controls" id="ctl0">
     <div class="grp"><button class="primary" id="btnPlay">▶ Play music</button><button id="btnPause">⏸ Pause</button><button id="btnRestart" title="back to beat 0">⏮</button></div>
@@ -208,7 +209,7 @@ function figSwing(side,B,K){return {name:'Swing',family:'swing',beats:B,fn(t,G){
   let PL=mix(larkHold,larkSw,into),PR=mix(robHold,robSw,into);PL=mix(PL,[-6,0],open);PR=mix(PR,[6,0],open);
   let aL=psi-30*into,aR=psi+180-30*into;aL=alerp(aL,270,open);aR=alerp(aR,270,open);
   const shLL=bodyPt(PL,aL,0.3,-SHW),shRR=bodyPt(PR,aR,0.3,SHW);
-  const J1hold={p:add(G.C,lp,LAT),d:HOLD_D},J1sw={p:add(mix(shLL,shRR,0.5),lp,7.5),d:1};const J1=mixHand(J1hold,J1sw,into);
+  const J1hold={p:add(G.C,lp,LAT),d:HOLD_D},J1sw={p:add(mix(shLL,shRR,0.5),lp,5),d:1};const J1=mixHand(J1hold,J1sw,into);
   const J2hold={p:add(G.C,lp,-LAT),d:HOLD_D};const larkRsw={p:bodyPt(PR,aR,-1.5,-2.5),d:1};const robLsw={p:bodyPt(PL,aL,0,SHW-0.5),d:0};
   const inside={p:[0,1],d:7};const buzz=into*(1-open);
   return {L:{P:PL,a:aL,lean:-0.6*buzz,flare:0,stepRate:2,buzz,hands:{L:mixHand(J1,hang(PL,aL,-1,G.b,0),open),R:mixHand(mixHand(J2hold,larkRsw,into),inside,open)}},
@@ -217,7 +218,7 @@ function figAllemande(B,K){return {name:'Allemande left '+(K===1?'once':'1½'),f
   const f=trapInt(t,0.8,1.8,B-1.6,B-0.6);const thL=180-360*K*f;const rIn=ramp(t,0,1.3),rOut=ramp(t,B-1.1,B);const r=lerp(lerp(6,9,rIn),G.S/2,rOut);
   const k1=ramp(t,0.1,0.9),k2=ramp(t,0.9,1.9),k3=ramp(t,B-1.2,B-0.2);const take=ramp(t,0.4,1.3),rel=ramp(t,B-0.9,B-0.1),dropR=ramp(t,0,0.8);const out={};
   [['L',thL],['R',thL+180]].forEach(([role,th])=>{const P=add(G.C,dirOf(th),r);
-    let a=alerp(270,th+180,k1);a=alerp(a,th-90,k2);a=alerp(a,th+180,k3);          // face partner, then left shoulder in, then face partner again
+    let a=alerp(270,th+180,k1);a=alerp(a,th-70,k2);a=alerp(a,th+180,k3);          // face partner, then left shoulder in but still turned ~20° toward the partner, then face partner again
     const inside={p:[0,1],d:7},centre={p:G.C.slice(),d:2};
     const hL0=role==='L'?hang(P,a,-1,G.b,0):inside;
     const hL=mixHand(mixHand(hL0,centre,take),hang(P,a,-1,G.b,0),rel);
