@@ -23,17 +23,32 @@ So: measure the worst take the registry actually contains, then guard at **3×**
 | --- | ---: | ---: |
 | hand floor speed | 26.8129 px/beat | **80.4388** |
 | elbow floor speed | 68.1629 px/beat | **204.4888** |
+| elbow speed ÷ hand speed, per sample | 3.2552× | **9.7655** |
 | hand height rate | 21.7217 px/beat | **65.1650** |
 | out-and-back inside one beat | 1.2000 px | **3.6000** |
 
 The dip bound comes from the one out-and-back the model asks for: a hanging hand
 swings forward and back once a beat, `2 × HAND_HANG_SWING_PX` = 1.2 px.
 
-**The elbow bound is useless, and that is a finding.** A straight take moves the elbow at **2.542×**
-the hand's speed, because a hanging hand sits 0.14 px from its own shoulder on the
-floor — the elbow's azimuth is very nearly undefined there, so the smallest movement
-of the hand swings it a long way. Three times that is 750 px/beat, which nothing
-will ever trip. Read the elbow column against the hand column instead.
+**The elbow bound F3a derived was useless, and F3c found out why.** A take moved the
+elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat, a number
+nothing would ever trip. That was not the elbow being unbounded by construction: it
+was the elbow **pole lining up with the arm** part way through the take, and the elbow
+flipping through 180° as it crossed. With the pole capped
+(`ELBOW_POLE_ALONG_FRACTION` in `@caller/core`) the same take moves the elbow at 68.2
+px/beat, **2.542×** the hand, and the guard means something again.
+
+The **ratio** is the column that discriminates, and it is derived the same way: the
+worst per-sample `elbow speed ÷ hand speed` an honest take produces, with the hand
+floored at `STILL_HAND_PX` (2π × `HAND_HANG_SWING_PX` = 3.77 px/beat, the fastest a
+hand moves while its dancer stands still) so an elbow that swings while the hand is
+stationary is still counted against it.
+
+The **jump** column is the distance a hand moved in the step where its state flipped
+between placed and hanging. A flip is not itself a defect — a hand a figure placed and
+the next figure leaves `'down'` really does stop being placed — but before F3c the seam
+switched the two at its midpoint and the hand jumped the whole way between them. It is
+marked against one step of the hand's own bound.
 
 These are **guards**, not tuning targets: at 1.05× they would flake on the first
 figure anybody re-tuned. `motionBounds.test.ts` re-derives every number above and
