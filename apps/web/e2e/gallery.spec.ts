@@ -82,9 +82,12 @@ test.describe("the move gallery", () => {
     await expect(page.getByTestId("moves-tile")).toHaveCount(1);
     await expect(page.getByTestId("moves-zoom-4")).toHaveAttribute("aria-pressed", "true");
 
-    await page.goto("#/moves/seam/balance--swing");
+    await page.goto("#/moves/seam/long-lines--robins-chain");
     await expect(page.getByTestId("moves-tile")).toHaveCount(1);
-    await expect(page.getByTestId("moves-tile")).toHaveAttribute("data-key", "balance--swing");
+    await expect(page.getByTestId("moves-tile")).toHaveAttribute(
+      "data-key",
+      "long-lines--robins-chain",
+    );
 
     await page.goto("#/moves/not-a-figure");
     await expect(page.getByTestId("moves-missing")).toBeVisible();

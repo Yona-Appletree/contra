@@ -14,7 +14,7 @@ import { matchGolden, openHall } from "./golden.js";
 
 /** The first dance of the programme, and its first call. */
 const FIRST_DANCE = "airpants";
-const FIRST_CALL = "NEIGHBOR BALANCE";
+const FIRST_CALL = "NEIGHBOR BALANCE AND SWING";
 
 test("the hall draws, with the band, the lines and the caller", async ({ page }) => {
   const errors: string[] = [];
