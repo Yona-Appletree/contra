@@ -15,8 +15,9 @@ describe("the figure tiles", () => {
     expect(figures.map((t) => t.key).sort()).toEqual(createContraRegistry().ids());
   });
 
-  test("show the middle of three instances, or the middle of a standing bracket", () => {
-    for (const tile of figures) {
+  test.each(figures)(
+    "show the middle of three instances, or the middle of a standing bracket: $key",
+    (tile) => {
       // Whatever the bracket, the window is exactly one instance of the figure
       // and there is timeline on both sides of it unless the tile says why not.
       const events = tile.timeline.figures();
@@ -27,8 +28,8 @@ describe("the figure tiles", () => {
       if (tile.key !== "wait-out") {
         expect(tile.window.start, `${tile.key}: nothing runs before the window`).toBeGreaterThan(0);
       }
-    }
-  });
+    },
+  );
 });
 
 describe("the seam tiles", () => {
@@ -43,11 +44,9 @@ describe("the seam tiles", () => {
     expect(new Set(seams.map((t) => t.key))).toEqual(wanted);
   });
 
-  test("put the seam where the first figure ends", () => {
-    for (const tile of seams) {
-      expect(tile.seamAt, tile.key).toBe(tile.calls[0]!.beats);
-      expect(tile.window.beats, tile.key).toBe(tile.calls[0]!.beats + tile.calls[1]!.beats);
-    }
+  test.each(seams)("put the seam where the first figure ends: $key", (tile) => {
+    expect(tile.seamAt, tile.key).toBe(tile.calls[0]!.beats);
+    expect(tile.window.beats, tile.key).toBe(tile.calls[0]!.beats + tile.calls[1]!.beats);
   });
 });
 
@@ -58,8 +57,8 @@ describe("every tile", () => {
     expect(new Set(tiles.map((t) => t.key)).size).toBe(tiles.length);
   });
 
-  test("can be looked up by that key", () => {
-    for (const tile of tiles) expect(tileByKey(tiles, tile.key)).toBe(tile);
+  test.each(tiles)("can be looked up by that key: $key", (tile) => {
+    expect(tileByKey(tiles, tile.key)).toBe(tile);
   });
 
   // One case per tile rather than one loop over all of them: `poseAt` plans
@@ -77,15 +76,15 @@ describe("every tile", () => {
     }
   });
 
-  test("is drawn on a world its dancers stay inside", () => {
-    for (const tile of tiles) {
-      const limit = [tile.world.w / 2 - TILE_MARGIN_PX, tile.world.h / 2 - TILE_MARGIN_PX];
-      for (const dancer of tile.timeline.dancers()) {
-        for (const t of window(tile)) {
-          const p = poseAt(tile.timeline, dancer, t).p;
-          expect(Math.abs(p[0]), `${tile.key} x @ ${t}`).toBeLessThanOrEqual(limit[0]! + 1e-6);
-          expect(Math.abs(p[1]), `${tile.key} y @ ${t}`).toBeLessThanOrEqual(limit[1]! + 1e-6);
-        }
+  // Same reasoning as the pose-coverage case above: one case per tile so a
+  // slow CI runner isn't budgeted against all ~52 tiles in a single 5s case.
+  test.each(tiles)("is drawn on a world its dancers stay inside: $key", (tile) => {
+    const limit = [tile.world.w / 2 - TILE_MARGIN_PX, tile.world.h / 2 - TILE_MARGIN_PX];
+    for (const dancer of tile.timeline.dancers()) {
+      for (const t of window(tile)) {
+        const p = poseAt(tile.timeline, dancer, t).p;
+        expect(Math.abs(p[0]), `${tile.key} x @ ${t}`).toBeLessThanOrEqual(limit[0]! + 1e-6);
+        expect(Math.abs(p[1]), `${tile.key} y @ ${t}`).toBeLessThanOrEqual(limit[1]! + 1e-6);
       }
     }
   });
