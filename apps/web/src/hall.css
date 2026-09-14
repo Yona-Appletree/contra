@@ -21,7 +21,9 @@
 .caller-stage-strip {
   display: flex;
   justify-content: center;
-  background: #0c0a09;
+  /* The page sets this to the hall's own wall colour; the renderer's backdrop
+     is the fallback, for anything that draws before the palette is read. */
+  background: var(--stage-backdrop, #0c0a09);
 }
 
 .caller-stage-strip canvas {
@@ -142,6 +144,7 @@
 
 /* The tune, drawn by abcjs: fit the column and mark the current bar. */
 .caller-music-notation svg {
+  display: block;
   width: 100%;
   height: auto;
   max-width: 100%;

@@ -5,6 +5,7 @@ import { DEMO_DANCES } from "@caller/contra";
 import type { BlitCtx2D, HallWorld, Person, Renderer } from "@caller/hall";
 import {
   FONT,
+  HALL_THEMES,
   clearFloorCache,
   clearFurnitureLayer,
   createRenderer,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@caller/ui-base";
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
@@ -65,6 +66,14 @@ const WIDE_QUERY = "(min-width: 1024px)";
  */
 const CARD_MIN_PX = 420;
 const COLUMN_GAP_PX = 24;
+
+/**
+ * What sits above and below the hall in the window's own height: the tab bar,
+ * the control bar and the gaps between them. "Auto" fits the hall in what is
+ * left, so the thing you press play with is never below the fold — a hall two
+ * screenfuls tall is not a bigger hall, it is a hall you have to scroll.
+ */
+const HALL_CHROME_PX = 72;
 
 /**
  * How wide the caller's bubble may get, in characters.
@@ -272,14 +281,13 @@ export function HallPage({
     if (row === null) return;
     const media = window.matchMedia(WIDE_QUERY);
     const measure = (): void => {
-      const available = media.matches
-        ? row.clientWidth - CARD_MIN_PX - COLUMN_GAP_PX
-        : row.clientWidth;
-      // 1× always wins if nothing fits: a hall too wide for the page is
+      const wide = media.matches ? row.clientWidth - CARD_MIN_PX - COLUMN_GAP_PX : row.clientWidth;
+      const tall = window.innerHeight - HALL_CHROME_PX;
+      // 1× always wins if nothing fits: a hall too big for the page is
       // scrolled, never shrunk off its pixel grid.
       let best: number = ZOOMS[0];
       for (const z of ZOOMS) {
-        if (world.world.w * z <= available) best = z;
+        if (world.world.w * z <= wide && world.world.h * z <= tall) best = z;
       }
       setFitZoom(best);
     };
@@ -287,9 +295,11 @@ export function HallPage({
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     media.addEventListener("change", measure);
+    window.addEventListener("resize", measure);
     return () => {
       observer.disconnect();
       media.removeEventListener("change", measure);
+      window.removeEventListener("resize", measure);
     };
   }, [world]);
 
@@ -476,7 +486,17 @@ export function HallPage({
         ref={rowRef}
       >
         <div className="flex min-w-0 flex-col gap-2 lg:flex-none">
-          <div className="caller-stage-strip lg:rounded">
+          {/*
+           * Edge to edge on a phone: the strip runs the full width of the
+           * viewport painted in the hall's own wall colour, so on a screen too
+           * narrow for the next zoom up the wall carries on to both edges
+           * instead of the page's paper showing beside it. On a laptop there
+           * is no edge to run to, so the strip hugs the canvas instead.
+           */}
+          <div
+            className="caller-stage-strip lg:w-fit lg:rounded"
+            style={{ "--stage-backdrop": HALL_THEMES[THEME].wallTop } as CSSProperties}
+          >
             <canvas ref={canvasRef} data-testid="hall-canvas" />
           </div>
           <ControlBar
@@ -513,7 +533,7 @@ export function HallPage({
                 <span className="caller-music-card-caption" data-testid="hall-tune">
                   {tune.title}
                 </span>
-                <Notation tune={tune} beat={beat} />
+                <Notation tune={tune} beat={beat} showTitle={false} />
               </div>
             </Card>
           </div>
