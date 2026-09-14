@@ -38,8 +38,16 @@ function walkInPair(frame: PairFrame, t: Beat): PairPose {
       facing,
       amp: quiet,
       hands: {
-        L: lerpHand(handDown(p, facing, "L", t, handSwing), role === "lark" ? hold.a : hold.b, take),
-        R: lerpHand(handDown(p, facing, "R", t, handSwing), role === "lark" ? hold.b : hold.a, take),
+        L: lerpHand(
+          handDown(p, facing, "L", t, handSwing),
+          role === "lark" ? hold.a : hold.b,
+          take,
+        ),
+        R: lerpHand(
+          handDown(p, facing, "R", t, handSwing),
+          role === "lark" ? hold.b : hold.a,
+          take,
+        ),
       },
     };
   };

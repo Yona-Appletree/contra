@@ -150,6 +150,13 @@ export function twoHandHold(
   };
 }
 
+/**
+ * How far from the centre a pair stands once a swing has opened out, and how
+ * far from the centre a turn starts. The two figures share the number, which
+ * is what makes the seam between a swing and an allemande close exactly.
+ */
+export const OPEN_PAIR_HALF_PX = 6;
+
 /** How far below shoulder height the inside hands of a ballroom swing rest. */
 export const INSIDE_DROP_PX = 7;
 

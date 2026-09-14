@@ -25,6 +25,11 @@ export interface FigureDef<P extends object> {
   /** The value of every parameter when a call does not say. */
   readonly defaults: P;
   /**
+   * How long the figure lasts with these parameters, when a parameter decides
+   * it (a swing is 8 or 12 beats). Absent means `beats` always.
+   */
+  beatsOf?(params: P): Beat;
+  /**
    * One dancer's pose `t` beats into the figure. `t` runs from 0 to `beats`
    * inclusive; `sample(frame, role, beats, params)` is the end pose, which is
    * the next figure's start pose.
@@ -68,7 +73,7 @@ export function pairCall<P extends object>(
     id: def.id,
     call: def.call,
     lead: def.lead,
-    beats: def.beats,
+    beats: def.beatsOf === undefined ? def.beats : def.beatsOf(resolved),
     frame,
     params: resolved as Readonly<Record<string, unknown>>,
     sample: (role, t) => def.sample(frame, role, t, resolved),
