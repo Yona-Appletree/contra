@@ -85,8 +85,8 @@ hall spike's: larks blue, robins rose, the ones darker (`roleTrailColour`).
 
 ### Appearance
 
-`createPerson({ id, role, seed })` is a pure function of the seed: three skin
-tones, eight shirt colours, seven hair styles (short, long, bob, curly, bald,
+`createPerson({ id, role, seed })` is a pure function of the seed: six skin
+tones, sixteen shirt colours, seven hair styles (short, long, bob, curly, bald,
 cap, bun), a skirt or trousers. `roleShirts` puts the role set's `top` role in
 the warm half of the palette and everyone else in the cool half — the
 two-dancers spike's default look — but dress is not role, so it is opt-in.
