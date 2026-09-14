@@ -58,26 +58,49 @@ export const HAIR_STYLE_BAG: readonly HairStyle[] = [
   "bun",
 ];
 
-/** Three skin tones, per the milestone contract. */
-export const SKIN_TONES: readonly string[] = ["#f3cfae", "#d29a70", "#8a5a3c"];
+/**
+ * Six skin tones, the spikes' own palette. The milestone contract said three;
+ * the director ruled (DD13) that a hall of thirty-six dancers drawn from three
+ * skins reads as repetitive, and that the spikes' six are the look.
+ */
+export const SKIN_TONES: readonly string[] = [
+  "#f3cfae",
+  "#e6b48e",
+  "#d29a70",
+  "#b47a56",
+  "#8a5a3c",
+  "#5f3d28",
+];
 
-/** Eight shirt colours, per the milestone contract: four cool, then four warm. */
+/**
+ * Sixteen shirt colours, the spikes' own palette (director ruling DD13),
+ * ordered eight cool then eight warm so a role set can dress one role from
+ * each half.
+ */
 export const SHIRT_COLOURS: readonly string[] = [
   "#4c7fc9",
   "#2e5d8a",
   "#3f8f8f",
   "#6aa84f",
+  "#5fb0a0",
+  "#5c8a3f",
+  "#7a5cc9",
+  "#8c8c8c",
   "#c94c4c",
   "#d97a3a",
   "#d9b23a",
   "#c95c9e",
+  "#a33f5c",
+  "#8a5c3f",
+  "#e0a56a",
+  "#e8e2d6",
 ];
 
 /** The cool half of {@link SHIRT_COLOURS} — the two-dancers spike's lark look. */
-export const COOL_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(0, 4);
+export const COOL_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(0, 8);
 
 /** The warm half of {@link SHIRT_COLOURS} — the two-dancers spike's robin look. */
-export const WARM_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(4);
+export const WARM_SHIRTS: readonly string[] = SHIRT_COLOURS.slice(8);
 
 export const HAIR_COLOURS: readonly string[] = [
   "#2a1a11",

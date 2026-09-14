@@ -17,9 +17,9 @@ describe("createAppearance", () => {
     expect(createAppearance(1234)).not.toEqual(createAppearance(1235));
   });
 
-  it("draws from the contract's palettes: three skin tones, eight shirts, seven hair styles", () => {
-    expect(SKIN_TONES).toHaveLength(3);
-    expect(SHIRT_COLOURS).toHaveLength(8);
+  it("draws from the spikes' palettes: six skin tones, sixteen shirts, seven hair styles", () => {
+    expect(SKIN_TONES).toHaveLength(6);
+    expect(SHIRT_COLOURS).toHaveLength(16);
     expect(HAIR_STYLES).toHaveLength(7);
     expect(new Set(HAIR_STYLE_BAG)).toEqual(new Set(HAIR_STYLES));
 
@@ -32,8 +32,8 @@ describe("createAppearance", () => {
       expect(SKIN_TONES).toContain(a.skin);
       expect(SHIRT_COLOURS).toContain(a.shirt);
     }
-    expect(seen.skin.size).toBe(3);
-    expect(seen.shirt.size).toBe(8);
+    expect(seen.skin.size).toBe(6);
+    expect(seen.shirt.size).toBe(16);
     expect(seen.style.size).toBe(7);
   });
 

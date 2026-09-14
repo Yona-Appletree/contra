@@ -34,6 +34,9 @@ export function FramePage({ params }: { params: URLSearchParams }): JSX.Element 
       return;
     }
 
+    // A hall fixture paints its own floor layer — boards, walls, band, bubble —
+    // before the frame is drawn. A dancer fixture has nothing to paint.
+    fixture(name).paint?.(renderer);
     renderer.render(frame);
     window.hallBench = (frames: number) => {
       const times: number[] = [];

@@ -5,8 +5,14 @@ import { sceneOrder } from "../renderer/sceneOrder.js";
 import { FIXTURES, FIXTURE_NAMES, fixture } from "./fixtures.js";
 
 describe("fixtures", () => {
-  it("has the three the milestone asks for", () => {
-    expect(FIXTURE_NAMES).toEqual(["facings", "two-hand-hold", "swing"]);
+  it("has the three dancer frames and the two hall frames", () => {
+    expect(FIXTURE_NAMES).toEqual([
+      "facings",
+      "two-hand-hold",
+      "swing",
+      "hall-empty-2-lines",
+      "hall-bubble",
+    ]);
     expect(() => fixture("nope")).toThrow(/no fixture named/);
   });
 
@@ -14,6 +20,16 @@ describe("fixtures", () => {
     for (const name of FIXTURE_NAMES) {
       expect(JSON.stringify(fixture(name))).toBe(JSON.stringify(FIXTURES[name]));
     }
+  });
+
+  it("gives the hall frames a floor to paint and no dancers", () => {
+    for (const name of ["hall-empty-2-lines", "hall-bubble"]) {
+      const f = fixture(name);
+      expect(f.frame.people).toEqual([]);
+      expect(f.paint).toBeTypeOf("function");
+      expect(f.world).toEqual({ w: 268, h: 282, zoom: 1 });
+    }
+    expect(fixture("facings").paint).toBeUndefined();
   });
 
   it("never asks for a hand the arm cannot reach", () => {

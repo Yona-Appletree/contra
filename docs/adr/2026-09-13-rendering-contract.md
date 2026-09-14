@@ -106,11 +106,35 @@ browser on two operating systems; it is small enough that any body part moving
 by a pixel fails. Excluding anti-aliased pixels means the test fails on shape
 changes rather than on rasteriser noise.
 
+### Text is pixels, in our own 4 × 6 bitmap font (M4)
+
+Every character the simulator shows over the hall — the caller's speech bubble
+above all — is drawn on the canvas out of `@caller/hall`'s own glyph data, one
+px at a time, in a 4 × 6 cell with a 1 px letter gap. No HTML text is positioned
+over the canvas, no web font is loaded, and no third-party bitmap font is
+vendored: the glyphs are pixel art in `packages/hall/src/font/glyphs.ts`. The
+bubble itself is a rounded, one-px-bordered box of paper with a one-px shadow
+and a tail back to the speaker's head, wrapped at 22 columns and clamped inside
+the world.
+
+Why: the user rejected crisp text over pixel graphics outright. Vector text
+drawn at an integer zoom is anti-aliased at the display resolution, so it sits
+at a different resolution from everything under it and reads as a caption
+pasted on a screenshot rather than as part of the hall. A bitmap font in world
+px scales with the hall — one text pixel is one hall pixel at every zoom — and
+is the same on every machine, which also makes the bubble goldenable. The cost
+is a 4 px cell: `½`, `¾` and `¼` are stylised marks rather than typography, and
+anything below the cap height has no room. That is accepted.
+
 ## Consequences
 
 - M4's walls, boards, stage and bubble paint into `layers.floor`, which the
   renderer allocates and never touches. Trails have their own layer so a floor
   repaint cannot wipe a dance's trails.
+- The bubble composites **under** the dancers, because `layers.floor` is where
+  it is painted and the renderer has no overlay layer. It is legible because the
+  caller stands on the stage, where no dancer ever is. A bubble that has to sit
+  over the dance floor would need a fourth layer.
 - M5's figures produce `PoseSample`s and a velocity; they never draw.
 - Every fixture added from here on is one more golden. A deliberate look change
   means regenerating them and saying so — which is the point.
