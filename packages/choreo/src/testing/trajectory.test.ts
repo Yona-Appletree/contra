@@ -121,7 +121,7 @@ describe("handsJoined and joinWindow", () => {
   const held = sampleTrack(
     ["a", "b"],
     4,
-    (id, t) =>
+    (id) =>
       pose(
         id === "a" ? [-7, 0] : [7, 0],
         id === "a" ? 0 : 180,

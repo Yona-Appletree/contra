@@ -57,7 +57,7 @@ const TEST_FIGURE: FigureDef<TestParams> = {
       amp: 0,
     };
   },
-  ends(_group: Group): Record<StationId, EndPose> {
+  ends(): Record<StationId, EndPose> {
     return { a: { p: [0, 0], facing: 0 }, b: { p: [20, 0], facing: 0 } };
   },
 };
