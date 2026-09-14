@@ -338,6 +338,40 @@ export function danceOrder(first?: string): Dance[] {
 }
 
 /**
+ * The hall the demo ships: two lines, **eight couples and seven**.
+ *
+ * Longer lines rather than wider ones (P1, and the user's "increase the
+ * number of dancers in the hall"). Two reasons the number is this one. A
+ * becket dance on short lines is mostly waiting — on the old lines of five
+ * and four, ten of the eighteen dancers waited out Butter's first time
+ * through — and a waiting couple is one couple at each end whatever the line
+ * holds, so the way to make waiting the exception is a longer line rather
+ * than another one. And the world's **width** is fixed by the number of
+ * lines (`SIDE_W * 2 + SET_PITCH * lines`), which is what a phone has to fit
+ * at 1× (U1): two lines are 268 px and three are 372, so a third line is an
+ * option (`?lines=3`) rather than the default. Only the world's height moves:
+ * 282 px at five-and-four, 342 at eight-and-seven.
+ *
+ * Uneven on purpose. Duple improper works the line in minor sets of two
+ * couples, so an odd line always has one couple over at an end — which is
+ * exactly the waiting couple a contra dance has, and the case `wait-out`
+ * exists for. Two odd lines and two even ones would each have the hall
+ * waiting in lockstep; one of each keeps both cases on the page.
+ */
+export const DEMO_LINES: readonly number[] = [8, 7];
+
+/**
+ * The couples in each of `lines` lines, repeating {@link DEMO_LINES}.
+ *
+ * `?lines=3` on the hall URL asks for a third set, and three lines need a
+ * third number. Cycling the default's own two — eight, seven, eight — keeps
+ * the default exactly `DEMO_LINES` and keeps one odd line and one even
+ * whatever the count.
+ */
+export const demoLines = (lines: number): number[] =>
+  Array.from({ length: lines }, (_, i) => DEMO_LINES[i % DEMO_LINES.length]!);
+
+/**
  * A hall of two lines, seated on the world the renderer draws.
  *
  * `layoutHall` decides where the lines go in the hall's own world

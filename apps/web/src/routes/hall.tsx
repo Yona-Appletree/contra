@@ -34,6 +34,7 @@ import {
   TIMES_THROUGH,
   betweenDancesStatus,
   createDemoProgram,
+  demoLines,
   lineUpStartOf,
   musicBeatOf,
   musicItemEnd,
@@ -41,10 +42,7 @@ import {
   programBeatOf,
   shownMusicBeat,
 } from "../program.js";
-import { readSeed, setHallUrl } from "../state/hallUrl.js";
-
-/** The demo hall: two lines, five couples and four (plan Q16). */
-const DEMO_LINES: readonly number[] = [5, 4];
+import { readLines, readSeed, setHallUrl } from "../state/hallUrl.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -133,9 +131,17 @@ export function HallPage({
   // the bigger hall the AC7 perf test measures.
   const frozen = params.get("beat");
   const benchCouples = Number(params.get("couples") ?? "0");
+  // `?lines=<n>` asks for another set. There is no control for it in the bar:
+  // the bar is already one row wider than a phone (U1) and another select
+  // would push the tempo slider off the screen, so this is URL-only until the
+  // bar is redesigned. Two lines is the shipped hall.
+  const lineCount = readLines(params);
   const lines = useMemo(
-    () => (benchCouples > 0 ? [benchCouples, benchCouples] : DEMO_LINES),
-    [benchCouples],
+    () =>
+      benchCouples > 0
+        ? (Array.from({ length: lineCount }, () => benchCouples) as number[])
+        : demoLines(lineCount),
+    [benchCouples, lineCount],
   );
 
   // The seed for the evening's medley shuffle: `?seed=<n>` when given, else

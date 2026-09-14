@@ -23,9 +23,11 @@ test("the hall draws, with the band, the lines and the caller", async ({ page })
 
   const canvas = page.getByTestId("hall-canvas");
   await expect(canvas).toBeVisible();
-  // 268 × 282 world px at 2×, in device pixels.
+  // 268 × 342 world px at 2×, in device pixels. P1 made the lines longer —
+  // eight couples and seven — so the world grew downward; its **width** is
+  // fixed by the number of lines and is the 268 px a phone fits at 1× (U1).
   const box = await canvas.evaluate((el: HTMLCanvasElement) => ({ w: el.width, h: el.height }));
-  expect(box).toEqual({ w: 536, h: 564 });
+  expect(box).toEqual({ w: 536, h: 684 });
   await expect(page.getByTestId("hall-card")).toContainText("Airpants");
   await expect(page.getByTestId("hall-version")).toBeVisible();
   expect(errors).toEqual([]);

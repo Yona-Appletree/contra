@@ -85,13 +85,14 @@ test("renders a hall of two lines of nine couples under the frame budget at zoom
 
 /**
  * Plan AC7, second half, real number: the hall the demo actually ships —
- * two lines of five and four couples (`DEMO_LINES` in
- * apps/web/src/routes/hall.tsx), nine couples total, at zoom 1. Nobody had
- * measured this one; the eighteen-couple hall above is a deliberately bigger
- * stress case, not what a visitor sees. Reported only, against the same
- * budget as a sanity check — not a separate tuning target.
+ * two lines of **eight and seven** couples (`DEMO_LINES` in
+ * apps/web/src/program.ts), fifteen couples total, at zoom 1. P1 grew the
+ * lines from five and four; the eighteen-couple hall above is still a
+ * deliberately bigger stress case, not what a visitor sees. Reported against
+ * the same 33 ms guard — a guard, not a target, and nothing here is tuned
+ * toward it.
  */
-test("renders the shipped hall of five-and-four couples under the frame budget at zoom 1", async ({
+test("renders the shipped hall of eight-and-seven couples under the frame budget at zoom 1", async ({
   page,
 }) => {
   await page.goto(`#/?zoom=1&beat=0`);
@@ -105,7 +106,7 @@ test("renders the shipped hall of five-and-four couples under the frame budget a
   const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0;
   const median = at(0.5);
   const report = [
-    `couples: 9 (shipped hall, lines of 5 and 4)`,
+    `couples: 15 (shipped hall, lines of 8 and 7)`,
     `frames: ${FRAMES}`,
     `median: ${median.toFixed(3)} ms`,
     `p90: ${at(0.9).toFixed(3)} ms`,

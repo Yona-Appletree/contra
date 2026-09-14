@@ -1,6 +1,13 @@
 import { HOLD_SPACING_PX, LINE_OFFSET_PX } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { COUPLE_PITCH_PX, LINES_APART_PX, SET_PITCH, SIDE_W, layoutHall } from "./layoutHall.js";
+import {
+  COUPLE_PITCH_PX,
+  FLOOR_TAIL_PX,
+  LINES_APART_PX,
+  SET_PITCH,
+  SIDE_W,
+  layoutHall,
+} from "./layoutHall.js";
 
 /**
  * The hall is a fixed world sized by the number of lines, so these are the
@@ -24,6 +31,35 @@ describe("layoutHall", () => {
     expect(hall.sets.map((s) => s.cx)).toEqual([-52, 52]);
     expect(hall.sets.map((s) => s.top)).toEqual([-30, -30]);
     expect(hall.sets.map((s) => s.couples)).toEqual([5, 4]);
+  });
+
+  it("grows only downward for the demo's longer lines: eight couples and seven", () => {
+    // P1: the hall the page ships went from five-and-four to eight-and-seven.
+    // The world's **width** is what a phone fits at 1× (U1, 268 px), and it
+    // is fixed by the number of lines — so a longer line may only make the
+    // world taller, never wider.
+    const was = layoutHall({ lines: 2, couplesPerLine: [5, 4] });
+    const now = layoutHall({ lines: 2, couplesPerLine: [8, 7] });
+    expect(now.world).toEqual({ w: 268, h: 342, zoom: 1 });
+    expect(now.world.w).toBe(was.world.w);
+    expect(now.world.h - was.world.h).toBe((8 - 5) * COUPLE_PITCH_PX);
+    // Same sets in the same places, just longer.
+    expect(now.sets.map((s) => s.cx)).toEqual(was.sets.map((s) => s.cx));
+    expect(now.sets.map((s) => s.couples)).toEqual([8, 7]);
+  });
+
+  it("leaves the tail below the last couple for the couple waiting out", () => {
+    // A duple improper line works in minor sets of two couples, so an odd
+    // line always has one couple over at the bottom end, standing one place
+    // further down than the last dancing couple. `FLOOR_TAIL_PX` is the floor
+    // kept below that, and it has to survive a longer line.
+    for (const couples of [4, 5, 8, 9]) {
+      const hall = layoutHall({ lines: 2, couplesPerLine: [couples, couples] });
+      const set = hall.sets[0]!;
+      const waiting = set.centre(couples)[1];
+      expect(waiting, `${String(couples)} couples`).toBeLessThan(hall.floorBottom);
+      expect(hall.floorBottom - waiting, `${String(couples)} couples`).toBe(FLOOR_TAIL_PX);
+    }
   });
 
   it("sizes a three-line hall and keeps the set pitch", () => {
