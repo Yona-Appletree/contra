@@ -26,6 +26,60 @@ export const LINE_UP_BEATS = 8;
 /** Beats one programme item takes: its times through plus the line-up after it. */
 export const ITEM_BEATS = TIMES_THROUGH * CYCLE_BEATS + LINE_UP_BEATS;
 
+/**
+ * Beats of **music** one programme item takes: the dancing beats, and no more.
+ *
+ * The line-up is silent, which is the whole point. A dance is two times through
+ * of 64 beats and the medley switches tune every 64; the line-up is 8. If the
+ * tune kept looping through the line-up, every dance switch would put the music
+ * eight beats out of phase with the dance, and after eight switches the drift
+ * would be a whole time through — which is what M9 measured on the page. So the
+ * music runs on its own count of dancing beats, the player stops at the end of
+ * the last time through, the eight line-up beats run on the silent clock, and
+ * the next tune starts at **its own beat 0** exactly as the next dance starts.
+ * `MUSIC_BEATS_PER_ITEM` is a whole number of tune cycles, which is what makes
+ * that true for every dance rather than for the first one.
+ */
+export const MUSIC_BEATS_PER_ITEM = TIMES_THROUGH * CYCLE_BEATS;
+
+/**
+ * The tune's own beat at a programme beat, or `null` during the line-up, when
+ * nothing is playing.
+ */
+export function musicBeatOf(beat: Beat): Beat | null {
+  const index = Math.floor(beat / ITEM_BEATS);
+  const into = beat - index * ITEM_BEATS;
+  if (into >= MUSIC_BEATS_PER_ITEM) return null;
+  return index * MUSIC_BEATS_PER_ITEM + into;
+}
+
+/**
+ * The programme beat a music beat belongs to: `musicBeatOf` read backwards, so
+ * the page can go on asking one clock what beat it is while the tune plays
+ * (AC4) and still know where in the evening that is.
+ */
+export function programBeatOf(musicBeat: Beat): Beat {
+  const index = Math.floor(musicBeat / MUSIC_BEATS_PER_ITEM);
+  return index * ITEM_BEATS + (musicBeat - index * MUSIC_BEATS_PER_ITEM);
+}
+
+/**
+ * The music beat the notation and the tune name follow: `musicBeatOf`, except
+ * that during the silent line-up it is the **next** dance's beat 0, because
+ * that is the tune the caller has just announced.
+ */
+export function shownMusicBeat(beat: Beat): Beat {
+  return musicBeatOf(beat) ?? (Math.floor(beat / ITEM_BEATS) + 1) * MUSIC_BEATS_PER_ITEM;
+}
+
+/** Where a music beat's own item ends, in music beats: when the tune stops. */
+export const musicItemEnd = (musicBeat: Beat): Beat =>
+  (Math.floor(musicBeat / MUSIC_BEATS_PER_ITEM) + 1) * MUSIC_BEATS_PER_ITEM;
+
+/** The programme beat that same moment is: where the silent line-up begins. */
+export const lineUpStartOf = (musicBeat: Beat): Beat =>
+  Math.floor(musicBeat / MUSIC_BEATS_PER_ITEM) * ITEM_BEATS + MUSIC_BEATS_PER_ITEM;
+
 /** How far ahead of the play head the decider is kept. */
 export const LOOKAHEAD_BEATS = CYCLE_BEATS;
 

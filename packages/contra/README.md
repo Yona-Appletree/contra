@@ -70,7 +70,7 @@ does: somebody is always out, and never the same couple twice running. The
 oracle checks five couples as well as the even lengths, because the demo
 hall's longer line is five.
 
-**Where a becket set sits.** `SetSpec.centre` is where a line's *first* dancer
+**Where a becket set sits.** `SetSpec.centre` is where a line's _first_ dancer
 stands, which is what it means for a duple improper set, and a hall hands the
 same point to both formations. A becket set's first dancer is at place `-1`,
 so `BECKET.start` puts the frame `BECKET_TOP_OFFSET_PX` (one waiting place
@@ -194,7 +194,7 @@ reaches exactly the same two places, because a point reflection _is_ a half
 turn, and it loops 10 px beyond the end of the set so it does not share a lane
 with the couple sliding out of the place it is coming back to.
 
-Since F2 the crossing is reckoned from where the couple *started* the figure
+Since F2 the crossing is reckoned from where the couple _started_ the figure
 rather than from the waiting place, so a becket dance that progresses in its
 own first figure — the waiting couple slides off the end of the line with
 everybody else — lands one place short of the waiting place, ready to slide in
