@@ -1,6 +1,13 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
 import { dirOf, norm, smooth, sub } from "@caller/core";
-import type { CrossOver, EndPose, FigureDef, Group, StationId, WaitOutParams } from "@caller/choreo";
+import type {
+  CrossOver,
+  EndPose,
+  FigureDef,
+  Group,
+  StationId,
+  WaitOutParams,
+} from "@caller/choreo";
 import { WAIT_OUT, groupStationPose, standing } from "@caller/choreo";
 
 /**
@@ -58,9 +65,7 @@ function resolve(group: Group, params: ContraWaitOutParams): WaitOutParams {
 }
 
 /** The engine's defaults, less the crossing this figure works out for itself. */
-function stripCrossing(
-  defaults: Omit<WaitOutParams, "beats">,
-): Omit<ContraWaitOutParams, "beats"> {
+function stripCrossing(defaults: Omit<WaitOutParams, "beats">): Omit<ContraWaitOutParams, "beats"> {
   const rest: Record<string, unknown> = { ...defaults };
   delete rest["crossTo"];
   return rest as Omit<ContraWaitOutParams, "beats">;

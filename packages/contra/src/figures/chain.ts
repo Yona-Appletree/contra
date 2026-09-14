@@ -68,8 +68,7 @@ export function chainCalls(
   const stations = options.stations ?? formation.group(4);
   const spacing = options.spacing ?? HOLD_SPACING_PX;
   let places: Spots =
-    options.start ??
-    Object.fromEntries(stations.map((s) => [s.id, { p: s.p, facing: s.facing }]));
+    options.start ?? Object.fromEntries(stations.map((s) => [s.id, { p: s.p, facing: s.facing }]));
 
   const out: FigureCall[] = [];
   for (const call of calls) {
@@ -80,11 +79,7 @@ export function chainCalls(
       );
     }
     const from = places;
-    const params = withDefaults<ContraParams>(
-      def,
-      { ...(call.params ?? {}), from },
-      call.beats,
-    );
+    const params = withDefaults<ContraParams>(def, { ...(call.params ?? {}), from }, call.beats);
     const ends = def.moves(params, stations, spacing);
     const selected = resolveSelector(call.who, formation, stations);
     const next: Spots = { ...places };

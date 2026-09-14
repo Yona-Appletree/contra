@@ -60,7 +60,8 @@ export const californiaTwirl = contraFigure<CaliforniaTwirlParams>({
       centreOfPair[b] = centre;
       ends[a] = { p: ctx.spot(b).p, facing: ctx.spot(a).facing + 180 };
       ends[b] = { p: ctx.spot(a).p, facing: ctx.spot(b).facing + 180 };
-      joins.push({ a, aSide: insideSide(ctx, a, b), b, bSide: insideSide(ctx, b, a) });
+      const [sideA, sideB] = insidePair(ctx, a, b);
+      joins.push({ a, aSide: sideA, b, bSide: sideB });
     }
     for (const id of ctx.ids) ends[id] ??= ctx.spot(id);
 
@@ -115,4 +116,23 @@ export function insideSide(ctx: PlanContext, id: StationId, other: StationId): S
   const toOther = sub(ctx.spot(other).p, self.p);
   const left = dirOf(self.facing - 90);
   return left[0] * toOther[0] + left[1] * toOther[1] > 0 ? "L" : "R";
+}
+
+/**
+ * The two inside hands of a couple standing side by side: one dancer's left and
+ * the other's right.
+ *
+ * Two dancers facing *each other* have no inside hands — both would give the
+ * same one — and a figure for a couple side by side cannot be danced by them.
+ * Saying so here is better than a hand placed where an arm cannot reach it.
+ */
+export function insidePair(ctx: PlanContext, a: StationId, b: StationId): [Side, Side] {
+  const sideA = insideSide(ctx, a, b);
+  const sideB = insideSide(ctx, b, a);
+  if (sideA === sideB) {
+    throw new Error(
+      `"${a}" and "${b}" are not standing side by side, so they have no inside hands`,
+    );
+  }
+  return [sideA, sideB];
 }

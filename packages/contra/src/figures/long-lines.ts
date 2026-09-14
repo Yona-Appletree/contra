@@ -1,7 +1,14 @@
 import type { Beat, Hand, Vec2 } from "@caller/core";
 import { addScaled, angleLerp, dirOf, dist, norm, ramp, sub } from "@caller/core";
 import type { StationId } from "@caller/choreo";
-import type { ContraParams, FigurePlan, HandJoin, PlanContext, Spot, Spots } from "./ContraFigure.js";
+import type {
+  ContraParams,
+  FigurePlan,
+  HandJoin,
+  PlanContext,
+  Spot,
+  Spots,
+} from "./ContraFigure.js";
 import {
   bearing,
   centreOf,
@@ -80,7 +87,12 @@ export const longLines = contraFigure<LongLinesParams>({
       const mate = mateOf(id);
       if (seen.has(mate)) continue;
       seen.add(id);
-      joins.push({ a: id, aSide: sideToward(ctx, id, mate), b: mate, bSide: sideToward(ctx, mate, id) });
+      joins.push({
+        a: id,
+        aSide: sideToward(ctx, id, mate),
+        b: mate,
+        bSide: sideToward(ctx, mate, id),
+      });
     }
 
     return {

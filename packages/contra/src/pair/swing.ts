@@ -215,7 +215,12 @@ function swingPair(frame: PairFrame, t: Beat, params: SwingParams): PairPose {
 }
 
 /** The walking feet fading into the buzz step's pivot-and-push. */
-export function swingFeet(t: Beat, facing: Angle, velocity: Vec2, buzz: number): { L: Vec2; R: Vec2 } {
+export function swingFeet(
+  t: Beat,
+  facing: Angle,
+  velocity: Vec2,
+  buzz: number,
+): { L: Vec2; R: Vec2 } {
   const speed = Math.hypot(velocity[0], velocity[1]);
   const moving = speed > 1e-3;
   const vu = moving ? dot(velocity, dirOf(facing)) / speed : 1;

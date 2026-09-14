@@ -1,13 +1,14 @@
 import type { Beat } from "@caller/core";
 import type { StationId } from "@caller/choreo";
-import type { ContraParams, FigurePlan, HandJoin, PlanContext, Spot, Spots } from "./ContraFigure.js";
-import {
-  bearing,
-  contraFigure,
-  holdWindow,
-  isHeld,
-  takeAndRelease,
+import type {
+  ContraParams,
+  FigurePlan,
+  HandJoin,
+  PlanContext,
+  Spot,
+  Spots,
 } from "./ContraFigure.js";
+import { bearing, contraFigure, holdWindow, isHeld, takeAndRelease } from "./ContraFigure.js";
 import { ringFor, ringHands, ringShift, ringWalk } from "./ring.js";
 
 /** {@link circle}'s parameters. */
@@ -61,7 +62,9 @@ export const circle = contraFigure<CircleParams>({
     const placeAt = (id: StationId, t: Beat): Spot =>
       ringWalk(ring, id, ctx.spot(id), ends[id] ?? ctx.spot(id), t, beats, walk);
 
-    const joinedAt = (t: Beat): { hands: ReturnType<typeof ringHands>["hands"]; joins: HandJoin[] } =>
+    const joinedAt = (
+      t: Beat,
+    ): { hands: ReturnType<typeof ringHands>["hands"]; joins: HandJoin[] } =>
       ringHands(ctx, ring, (id) => placeAt(id, t), params.holdDrop, params.stackPx);
 
     return {

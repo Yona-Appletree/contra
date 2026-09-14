@@ -1,13 +1,14 @@
 import type { Beat, Hand, Side } from "@caller/core";
 import type { StationId } from "@caller/choreo";
-import type { ContraParams, FigurePlan, HandJoin, PlanContext, Spot, Spots } from "./ContraFigure.js";
-import {
-  bearing,
-  contraFigure,
-  holdWindow,
-  isHeld,
-  takeAndRelease,
+import type {
+  ContraParams,
+  FigurePlan,
+  HandJoin,
+  PlanContext,
+  Spot,
+  Spots,
 } from "./ContraFigure.js";
+import { bearing, contraFigure, holdWindow, isHeld, takeAndRelease } from "./ContraFigure.js";
 import { ringFor, ringShift, ringWalk } from "./ring.js";
 
 /** {@link star}'s parameters. */

@@ -148,11 +148,7 @@ export function ringWalk(
     dist(ring.centre, end.p),
     kOut,
   );
-  const facing = angleLerp(
-    angleLerp(start.facing, angle + walk.faceOffset, kIn),
-    end.facing,
-    kOut,
-  );
+  const facing = angleLerp(angleLerp(start.facing, angle + walk.faceOffset, kIn), end.facing, kOut);
   return { p: polar(ring.centre, angle, radius), facing };
 }
 

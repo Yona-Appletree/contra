@@ -71,7 +71,8 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     const arrival: Spots = {};
     for (const id of ctx.ids) {
       const other = across[id];
-      if (other === undefined) throw new Error(`right-and-left-through: nobody across from "${id}"`);
+      if (other === undefined)
+        throw new Error(`right-and-left-through: nobody across from "${id}"`);
       const to = ctx.spot(other).p;
       arrival[id] = { p: to, facing: bearing(ctx.spot(id).p, to) };
     }

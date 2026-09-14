@@ -88,9 +88,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     for (const id of ctx.ids) {
       const to = swap[id];
       ends[id] =
-        to === undefined
-          ? ctx.spot(id)
-          : { p: ctx.spot(to).p, facing: ctx.spot(host[id]!).facing };
+        to === undefined ? ctx.spot(id) : { p: ctx.spot(to).p, facing: ctx.spot(host[id]!).facing };
     }
 
     const placeAt = (station: StationId, t: Beat): Spot => {
@@ -126,7 +124,8 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     const pull = { takeFrom: 0.8, takeTo: 1.6, releaseFrom: 2.4, releaseTo: 3.2 };
 
     const joins: HandJoin[] = [];
-    for (const [id, lark] of Object.entries(host)) joins.push({ a: id, aSide: "L", b: lark, bSide: "L" });
+    for (const [id, lark] of Object.entries(host))
+      joins.push({ a: id, aSide: "L", b: lark, bSide: "L" });
     const pullJoin: HandJoin = { a: first, aSide: "R", b: second, bSide: "R" };
 
     return {

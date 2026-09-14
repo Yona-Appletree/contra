@@ -68,9 +68,7 @@ export const allemande = contraFigure<AllemandeParams>({
     const ends: Spots = {};
     const joins: HandJoin[] = [];
 
-    const centres = pairsOf(params.pairs).map(([a, b]) =>
-      midpoint(ctx.spot(a).p, ctx.spot(b).p),
-    );
+    const centres = pairsOf(params.pairs).map(([a, b]) => midpoint(ctx.spot(a).p, ctx.spot(b).p));
     pairsOf(params.pairs).forEach(([a, b], index) => {
       const centre = centres[index]!;
       const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
@@ -101,11 +99,7 @@ export const allemande = contraFigure<AllemandeParams>({
       const angle = from + turn * trapezoid(t, 0.8, 1.8, beats - 1.6, beats - 0.6);
       const out = ramp(t, 0, 1.3);
       const close = ramp(t, beats - 1.1, beats);
-      const radius = mix(
-        mix(dist(pair.centre, start.p), pair.radius, out),
-        pair.half,
-        close,
-      );
+      const radius = mix(mix(dist(pair.centre, start.p), pair.radius, out), pair.half, close);
 
       const toPartner = ramp(t, 0.1, 0.9);
       const toTurn = ramp(t, 0.9, 1.9);

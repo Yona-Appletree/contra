@@ -49,7 +49,8 @@ export const petronella = contraFigure<PetronellaParams>({
       // Round the ring clockwise, which is to the dancer's own right.
       const arc = raw > 0 ? raw - 360 : raw;
       const radius = mix(dist(ring.centre, start.p), dist(ring.centre, end.p), k);
-      const spin = 360 * params.spins * Math.sign(params.places || 1) + angleDiff(start.facing, end.facing);
+      const spin =
+        360 * params.spins * Math.sign(params.places || 1) + angleDiff(start.facing, end.facing);
       return { p: polar(ring.centre, from + arc * k, radius), facing: start.facing + spin * k };
     };
 

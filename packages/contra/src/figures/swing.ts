@@ -3,6 +3,7 @@ import {
   BUZZ_STEPS_PER_BEAT,
   SHOULDER_WIDTH_PX,
   addScaled,
+  angleDiff,
   angleLerp,
   bodyPoint,
   dirOf,
@@ -127,14 +128,23 @@ export const swing = contraFigure<SwingParams>({
       const half =
         params.endHalf ??
         placeHalf(ctx.stations, centre, facing, dist(ctx.spot(a).p, ctx.spot(b).p) / 2);
+      // The line the turn starts on: from the centre toward the robin.
+      const psi0 = bearing(centre, ctx.spot(robin).p);
+      // Where the turn has to stop for the pair to open straight out on to
+      // their end places: the lark's end lies at `facing − 90` from the centre
+      // and the lark turns opposite the robin, so the line is `facing + 90`.
+      // `turns` is therefore how many times round to the nearest half turn,
+      // which is what a swing is; without this the pair can open out *through*
+      // each other, and a probe catches them 3.3 px apart.
+      const whole = 360 * params.turns;
       const pair: SwingPair = {
         lark,
         robin,
         centre,
         endFacing: facing,
         half,
-        // The line the turn starts on: from the centre toward the robin.
-        psi0: bearing(centre, ctx.spot(robin).p),
+        psi0,
+        turn: whole + angleDiff(psi0 + whole, facing + 90),
       };
       pairOf[a] = pair;
       pairOf[b] = pair;
@@ -161,7 +171,7 @@ export const swing = contraFigure<SwingParams>({
       if (!pair) return ctx.spot(station);
       const isLark = station === pair.lark;
       const sign = isLark ? -1 : 1;
-      const psi = pair.psi0 + 360 * params.turns * trapezoid(t, 0, 1.2, beats - 1.6, beats - 0.3);
+      const psi = pair.psi0 + pair.turn * trapezoid(t, 0, 1.2, beats - 1.6, beats - 0.3);
       const into = ramp(t, 0, INTO_BEATS);
       const open = ramp(t, beats - OPEN_BEATS, beats);
       const tight = squeeze(pair);
@@ -258,6 +268,8 @@ interface SwingPair {
   endFacing: Angle;
   half: number;
   psi0: Angle;
+  /** How far the turn actually goes: `turns`, rounded to open out cleanly. */
+  turn: Angle;
 }
 
 /** The step the velocity for the feet is differenced over; M5's number. */

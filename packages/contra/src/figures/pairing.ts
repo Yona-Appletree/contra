@@ -67,7 +67,8 @@ export function ringOrder(spots: Spots, ids: readonly StationId[]): StationId[] 
   const centre = centreOf(places);
   return [...ids].sort(
     (a, b) =>
-      wrap360(bearing(centre, mustSpot(spots, a).p)) - wrap360(bearing(centre, mustSpot(spots, b).p)),
+      wrap360(bearing(centre, mustSpot(spots, a).p)) -
+      wrap360(bearing(centre, mustSpot(spots, b).p)),
   );
 }
 

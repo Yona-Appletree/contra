@@ -35,7 +35,15 @@ export {
 } from "./ContraFigure.js";
 
 export type { Pairing } from "./pairing.js";
-export { NEIGHBORS, PARTNERS, mustPair, mustSpot, pairedWith, pairsOf, ringOrder } from "./pairing.js";
+export {
+  NEIGHBORS,
+  PARTNERS,
+  mustPair,
+  mustSpot,
+  pairedWith,
+  pairsOf,
+  ringOrder,
+} from "./pairing.js";
 
 export type { Ring, RingWalk } from "./ring.js";
 export { ringFor, ringHands, ringOf, ringShift, ringWalk } from "./ring.js";

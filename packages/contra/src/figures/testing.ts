@@ -2,7 +2,7 @@ import type { Beat, PoseSample, Side, Vec2 } from "@caller/core";
 import { dist } from "@caller/core";
 import type { Formation, Frame, Group, StationId } from "@caller/choreo";
 import { createGroup, frame as makeFrame, withDefaults } from "@caller/choreo";
-import type { ContraFigure, ContraParams } from "./ContraFigure.js";
+import type { ContraFigure, ContraParams, Spot, Spots } from "./ContraFigure.js";
 import { planContext, worldSpot } from "./ContraFigure.js";
 import { armShortfall } from "../pair/armShortfall.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
@@ -142,6 +142,80 @@ export function probeFigure<P extends ContraParams>(
     );
   }
   return probe;
+}
+
+/**
+ * Where a figure leaves everybody, in the frame's own axes: the same answer a
+ * dance chains on, which is what a figure's own test should be written against.
+ */
+export function figureMoves<P extends ContraParams>(
+  def: ContraFigure<P>,
+  params: Partial<Omit<P, "beats">> & { beats?: Beat } = {},
+  formation: Formation = DUPLE_IMPROPER,
+): Spots {
+  const resolved = withDefaults(def, params, params.beats ?? def.beats);
+  return def.moves(resolved, formation.group(4));
+}
+
+/** Where a formation's station stands, frame-local: what a figure's ends are read against. */
+export function stationSpot(formation: Formation, id: StationId): Spot {
+  const station = formation.group(4).find((s) => s.id === id);
+  if (!station) throw new Error(`no station "${id}" in ${formation.id}`);
+  return { p: station.p, facing: station.facing };
+}
+
+/** How far apart two places are, for a test that wants an exact end. */
+export const spotError = (a: Spot, b: Spot): number => dist(a.p, b.p);
+
+/** What a figure has to answer to, in px. The plan's own numbers. */
+export interface FigureLimits {
+  /** AC1: every arm reaches its hand. */
+  short: number;
+  /** Two hands the figure joins are one point. */
+  joinGap: number;
+  /** AC5: `ends` is exact, and so is the start. */
+  seam: number;
+  /** AC6: no two torso centres closer than this, contacts aside. */
+  distance: number;
+}
+
+/** The limits every figure is held to unless its own test says otherwise. */
+export const FIGURE_LIMITS: FigureLimits = { short: 0, joinGap: 0.1, seam: 0.01, distance: 8 };
+
+/**
+ * Everything wrong with a figure, as sentences; empty is the figure passing.
+ *
+ * A list rather than an assertion so `testing.ts` stays free of the test runner
+ * and can be read — and run — by anything.
+ */
+export function figureProblems(probe: FigureProbe, limits: Partial<FigureLimits> = {}): string[] {
+  const want = { ...FIGURE_LIMITS, ...limits };
+  const problems: string[] = [];
+  const where = (at: unknown): string => JSON.stringify(at ?? {});
+  if (probe.maxShort > want.short) {
+    problems.push(
+      `an arm falls ${probe.maxShort.toFixed(4)} px short of its hand at ${where(probe.worstShort)}`,
+    );
+  }
+  if (probe.maxJoinGap > want.joinGap) {
+    problems.push(
+      `joined hands are ${probe.maxJoinGap.toFixed(4)} px apart at ${where(probe.worstJoin)}`,
+    );
+  }
+  if (probe.maxEndError > want.seam) {
+    problems.push(`the pose at the end is ${probe.maxEndError.toExponential(3)} px from "ends"`);
+  }
+  if (probe.maxStartError > want.seam) {
+    problems.push(
+      `the pose at the start is ${probe.maxStartError.toExponential(3)} px from where the figure was told to start`,
+    );
+  }
+  if (probe.minDistance <= want.distance) {
+    problems.push(
+      `two dancers come ${probe.minDistance.toFixed(3)} px apart at ${where(probe.worstPair)}`,
+    );
+  }
+  return problems;
 }
 
 /** The floor velocity a figure gives a dancer, for the quiet motion. */

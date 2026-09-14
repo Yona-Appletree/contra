@@ -83,7 +83,10 @@ export const doSiDo = contraFigure<DoSiDoParams>({
       const swell = pair.swell * Math.sin(Math.PI * f);
       const radius =
         mix(mix(from, pair.radius, ramp(t, 0, 1)), pair.half, ramp(t, beats - 1, beats)) + swell;
-      return { p: polar(pair.centre, bearing(pair.centre, start.p) + turn * f, radius), facing: start.facing };
+      return {
+        p: polar(pair.centre, bearing(pair.centre, start.p) + turn * f, radius),
+        facing: start.facing,
+      };
     };
 
     return {

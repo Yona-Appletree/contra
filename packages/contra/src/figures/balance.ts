@@ -140,7 +140,10 @@ function pairBalance(ctx: PlanContext, params: BalanceParams): FigurePlan {
   /** The body, rocked off its place along the way it faces. */
   const bodyAt = (id: StationId, t: Beat): Spot => {
     const place = placeAt(id, t);
-    return { p: addScaled(place.p, dirOf(place.facing), rockAt(t, params.rock)), facing: place.facing };
+    return {
+      p: addScaled(place.p, dirOf(place.facing), rockAt(t, params.rock)),
+      facing: place.facing,
+    };
   };
 
   const joins: HandJoin[] = [];

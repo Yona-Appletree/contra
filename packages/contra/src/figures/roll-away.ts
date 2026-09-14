@@ -10,7 +10,7 @@ import type {
   Spots,
 } from "./ContraFigure.js";
 import { contraFigure, joinedHands, midpoint, takeAndRelease } from "./ContraFigure.js";
-import { insideSide } from "./california-twirl.js";
+import { insidePair, insideSide } from "./california-twirl.js";
 import type { Pairing } from "./pairing.js";
 import { pairsOf } from "./pairing.js";
 
@@ -60,7 +60,8 @@ export const rollAway = contraFigure<RollAwayParams>({
       mates[b] = a;
       ends[a] = { p: ctx.spot(b).p, facing: ctx.spot(a).facing };
       ends[b] = { p: ctx.spot(a).p, facing: ctx.spot(b).facing };
-      joins.push({ a, aSide: insideSide(ctx, a, b), b, bSide: insideSide(ctx, b, a) });
+      const [sideA, sideB] = insidePair(ctx, a, b);
+      joins.push({ a, aSide: sideA, b, bSide: sideB });
     }
     for (const id of ctx.ids) ends[id] ??= ctx.spot(id);
 
@@ -88,13 +89,7 @@ export const rollAway = contraFigure<RollAwayParams>({
         }
         const other = placeAt(mate, t);
         const side = insideSide(ctx, station, mate);
-        const joined = joinedHands(
-          ctx,
-          station,
-          mate,
-          midpoint(self.p, other.p),
-          params.holdDrop,
-        );
+        const joined = joinedHands(ctx, station, mate, midpoint(self.p, other.p), params.holdDrop);
         const mine = joined[station];
         if (!mine) throw new Error(`roll-away: no joined hand for "${station}"`);
         return {

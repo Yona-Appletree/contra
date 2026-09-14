@@ -203,7 +203,10 @@ export function laneAt(lane: Lane, arc: number): { p: Vec2; tangent: Angle } {
   if (s < straight + loop) {
     const k = (s - straight) / loop;
     const th = (90 + 180 * k) * (Math.PI / 180);
-    return { p: [-half - track * Math.sin(th - Math.PI / 2), track * Math.cos(th - Math.PI / 2)], tangent: 180 + 180 * k };
+    return {
+      p: [-half - track * Math.sin(th - Math.PI / 2), track * Math.cos(th - Math.PI / 2)],
+      tangent: 180 + 180 * k,
+    };
   }
   if (s < 2 * straight + loop) {
     return { p: [-half + (s - straight - loop), -track], tangent: 0 };
