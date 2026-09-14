@@ -84,8 +84,15 @@ describe("layoutHall", () => {
     for (const a of hall.band) {
       for (const b of hall.band) {
         if (a === b) continue;
-        expect(Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1])).toBeGreaterThan(14);
+        expect(Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1])).toBeGreaterThan(20);
       }
+    }
+  });
+
+  it("keeps the caller clear of the band, so the bubble does not sit on them", () => {
+    const hall = layoutHall({ lines: 2, couplesPerLine: [5, 4] });
+    for (const member of hall.band) {
+      expect(member.p[0] - hall.caller[0]).toBeGreaterThan(40);
     }
   });
 

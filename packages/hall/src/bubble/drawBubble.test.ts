@@ -133,6 +133,11 @@ function recorder(): { ctx: Parameters<typeof drawBubble>[0]; rects: Fill[] } {
     fillRect(x: number, y: number, w: number, h: number) {
       rects.push({ x, y, w, h, style: ctx.fillStyle });
     },
+    // The bubble saves the transform and sets the world origin; a recorder
+    // stays in world coordinates, which is what the assertions read.
+    save() {},
+    restore() {},
+    setTransform() {},
   };
   return { ctx: ctx as unknown as Parameters<typeof drawBubble>[0], rects };
 }

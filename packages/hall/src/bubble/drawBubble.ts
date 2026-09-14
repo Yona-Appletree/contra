@@ -50,10 +50,11 @@ export interface BubbleBox {
  * The bubble is pixels. Crisp HTML text over pixel graphics was rejected, so
  * every letter here is drawn on the canvas out of {@link Font}.
  *
- * `anchor` is the point the tail points at — the caller's head — in world
- * coordinates. The box sits above it (or to its right, with a `"left"` tail)
- * and is clamped inside `opts.world` if one is given, so a caller near the edge
- * of the hall still gets a whole bubble.
+ * `anchor` is the point the tail points at — the caller's head. Given
+ * `opts.world`, the bubble is drawn in **world coordinates**, with the origin
+ * at the centre of that world and the box clamped inside it, exactly as
+ * `drawFloor` and `drawFurniture` do; without one it is drawn in whatever
+ * coordinates the context is already in and not clamped.
  */
 export function drawBubble(
   g: Ctx2D,
@@ -64,6 +65,10 @@ export function drawBubble(
 ): BubbleBox {
   const box = layoutBubble(font, text, anchor, opts);
   const tail = opts.tail ?? "down";
+  const world = opts.world;
+
+  g.save();
+  if (world !== undefined) g.setTransform(1, 0, 0, 1, world.w / 2, world.h / 2);
 
   // The hard shadow, one px down and right, under everything.
   g.fillStyle = BUBBLE_SHADOW;
@@ -82,6 +87,7 @@ export function drawBubble(
     drawText(g, font, line, textX, textY + i * LINE_ADVANCE_PX, BUBBLE_INK);
   });
 
+  g.restore();
   return box;
 }
 

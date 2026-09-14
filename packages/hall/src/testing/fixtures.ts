@@ -7,10 +7,18 @@ import {
   lerp,
   shouldersAt,
 } from "@caller/core";
+import { drawBubble } from "../bubble/drawBubble.js";
+import type { BlitCtx2D } from "../floor/drawFloor.js";
+import { drawFloor } from "../floor/drawFloor.js";
+import { FONT } from "../font/Font.js";
+import { drawFurniture } from "../furniture/drawFurniture.js";
 import { createPerson } from "../person/Person.js";
 import type { Frame, FrameDancer } from "../renderer/Frame.js";
+import type { Renderer } from "../renderer/Renderer.js";
 import type { World } from "../renderer/World.js";
 import { DEFAULT_WORLD } from "../renderer/World.js";
+import type { HallWorld } from "../world/layoutHall.js";
+import { layoutHall } from "../world/layoutHall.js";
 
 /**
  * Static frames with fixed seeds and no animation, so a screenshot of one is
@@ -23,7 +31,17 @@ export interface Fixture {
   description: string;
   world: World;
   frame: Frame;
+  /**
+   * Paint the floor layer before the frame is drawn. The dancer fixtures leave
+   * it empty and sit on the backdrop; the hall fixtures paint the boards, the
+   * walls, the band and the caller's bubble into it, which is the only thing
+   * that makes a hall a hall.
+   */
+  paint?: (renderer: Renderer) => void;
 }
+
+/** The call the bubble golden says, so the director can read it at zoom 3. */
+export const BUBBLE_CALL = "HANDS FOUR FROM THE TOP";
 
 /** The contra role set's hand stacking: the robin's hand on top. */
 export const CONTRA_ROLE_SET = { top: "robin" } as const;
@@ -194,6 +212,46 @@ function swingFixture(): Fixture {
   };
 }
 
+/** The demo's hall: two lines, five couples and four. */
+export const DEMO_HALL: HallWorld = layoutHall({ lines: 2, couplesPerLine: [5, 4] });
+
+/**
+ * The hall with nobody dancing in it: boards, walls, stage, band, caller,
+ * chairs, sitters and the snack table, and not one dancer. This is the frame
+ * that says whether the world reads as a hall before anybody is in it.
+ */
+function emptyHallFixture(): Fixture {
+  return {
+    name: "hall-empty-2-lines",
+    description: "Two lines, five couples and four, with nobody dancing yet.",
+    world: { ...DEMO_HALL.world },
+    frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
+    paint: (renderer) => paintHall(renderer, false),
+  };
+}
+
+/** The same hall with the caller calling, so the bubble can be read at zoom 3. */
+function hallBubbleFixture(): Fixture {
+  return {
+    name: "hall-bubble",
+    description: `The caller calling "${BUBBLE_CALL}" in the bitmap font.`,
+    world: { ...DEMO_HALL.world },
+    frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
+    paint: (renderer) => paintHall(renderer, true),
+  };
+}
+
+function paintHall(renderer: Renderer, bubble: boolean): void {
+  const g = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
+  if (g === null) return;
+  drawFloor(g, DEMO_HALL, "grange");
+  drawFurniture(g, DEMO_HALL, 0);
+  if (bubble) {
+    // Anchored on the caller's head, which is where the tail has to land.
+    drawBubble(g, FONT, BUBBLE_CALL, DEMO_HALL.caller, { world: DEMO_HALL.world });
+  }
+}
+
 const joined = (centre: Vec2, side: Vec2, lateral: number): Hand => ({
   p: at(centre, side, lateral),
   drop: HOLD_DROP_PX,
@@ -204,7 +262,13 @@ const at = (p: Vec2, v: Vec2, k: number): Vec2 => [p[0] + v[0] * k, p[1] + v[1] 
 /** Every fixture, by name. */
 export const FIXTURES: Readonly<Record<string, Fixture>> = Object.freeze(
   Object.fromEntries(
-    [facingsFixture(), twoHandHoldFixture(), swingFixture()].map((f) => [f.name, f]),
+    [
+      facingsFixture(),
+      twoHandHoldFixture(),
+      swingFixture(),
+      emptyHallFixture(),
+      hallBubbleFixture(),
+    ].map((f) => [f.name, f]),
   ),
 );
 

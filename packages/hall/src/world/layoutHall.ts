@@ -179,7 +179,7 @@ export function layoutHall(layout: HallLayout): HallWorld {
     bottom: cy(stageBottom),
     x0: cx(stageX0),
     x1: cx(stageX1),
-    piano: { x: cx(stageX1 - 54), y: cy(stageTop + 8), w: 34, h: 18 },
+    piano: { x: cx(stageX1 - 38), y: cy(stageTop + 8), w: 34, h: 18 },
   };
 
   const sets: SetGeometry[] = couplesPerLine.map((couples, index) => {
@@ -210,28 +210,31 @@ export function layoutHall(layout: HallLayout): HallWorld {
     };
   }
 
+  // The band takes the right of the stage and the caller the left, because the
+  // caller's bubble hangs above their head and would otherwise sit on top of
+  // the fiddler for the whole of every call.
   const stageWidth = stageX1 - stageX0;
   const onStage = (fraction: number): number => cx(Math.round(stageX0 + stageWidth * fraction));
   const band: HallPerson[] = [
-    who("band", [onStage(0.22), cy(stageTop + 34)], 90, {
+    who("band", [onStage(0.43), cy(stageTop + 34)], 90, {
       prop: "fiddle",
       instrument: "fiddle",
     }),
-    who("band", [onStage(0.42), cy(stageTop + 30)], 90, {
+    who("band", [onStage(0.57), cy(stageTop + 30)], 90, {
       prop: "bass",
       instrument: "bass",
     }),
-    who("band", [onStage(0.62), cy(stageTop + 36)], 90, {
+    who("band", [onStage(0.72), cy(stageTop + 36)], 90, {
       prop: "guitar",
       instrument: "guitar",
     }),
-    who("band", [cx(stageX1 - 37), cy(stageTop + 34)], 270, {
+    who("band", [onStage(0.89), cy(stageTop + 34)], 270, {
       instrument: "piano",
       seated: true,
     }),
   ];
 
-  const callerP: Vec2 = [cx(Math.round(w / 2) - 46), cy(stageBottom - 4)];
+  const callerP: Vec2 = [onStage(0.14), cy(stageBottom - 4)];
   const callerPerson = who("caller", callerP, 90, { prop: "mic" });
 
   const chairs: Vec2[] = [];

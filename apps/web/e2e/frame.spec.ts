@@ -21,19 +21,33 @@ const TOLERANCE = 0.005;
 /** Per-pixel colour distance below which two pixels count as the same. */
 const PIXEL_THRESHOLD = 0.1;
 
-const FIXTURES = ["facings", "two-hand-hold", "swing"];
+/**
+ * Each golden: a fixture, the zoom it is judged at, and the file it lives in.
+ * The dancer fixtures are judged at 6× (one dancer fills the frame); the hall
+ * is judged at 1×, which is a phone, and 3×, which is a laptop and the zoom the
+ * bubble has to be legible at.
+ */
+const GOLDENS: Array<{ name: string; zoom: number; file: string }> = [
+  { name: "facings", zoom: 6, file: "facings.png" },
+  { name: "two-hand-hold", zoom: 6, file: "two-hand-hold.png" },
+  { name: "swing", zoom: 6, file: "swing.png" },
+  { name: "hall-empty-2-lines", zoom: 1, file: "hall-empty-2-lines@1x.png" },
+  { name: "hall-empty-2-lines", zoom: 3, file: "hall-empty-2-lines@3x.png" },
+  { name: "hall-bubble", zoom: 3, file: "hall-bubble@3x.png" },
+];
 
 const UPDATE = process.env["UPDATE_GOLDENS"] === "1";
 
-for (const name of FIXTURES) {
-  test(`golden frame: ${name}`, async ({ page }) => {
-    const actual = await captureFixture(page, name);
-    const file = join(GOLDEN_DIR, `${name}.png`);
+for (const golden of GOLDENS) {
+  const { name, zoom } = golden;
+  test(`golden frame: ${name} at ${zoom}×`, async ({ page }) => {
+    const actual = await captureFixture(page, name, zoom);
+    const file = join(GOLDEN_DIR, golden.file);
 
     if (UPDATE) {
       mkdirSync(GOLDEN_DIR, { recursive: true });
       writeFileSync(file, actual);
-      test.info().annotations.push({ type: "golden", description: `updated ${name}.png` });
+      test.info().annotations.push({ type: "golden", description: `updated ${golden.file}` });
       return;
     }
 
@@ -57,14 +71,19 @@ for (const name of FIXTURES) {
     );
     const fraction = differing / (expected.width * expected.height);
     if (fraction > TOLERANCE) {
-      await test.info().attach(`${name}-actual.png`, { body: actual, contentType: "image/png" });
       await test
         .info()
-        .attach(`${name}-diff.png`, { body: PNG.sync.write(diff), contentType: "image/png" });
+        .attach(`${golden.file}-actual.png`, { body: actual, contentType: "image/png" });
+      await test
+        .info()
+        .attach(`${golden.file}-diff.png`, {
+          body: PNG.sync.write(diff),
+          contentType: "image/png",
+        });
     }
     expect(
       fraction,
-      `${name}: ${differing} px differ (${(fraction * 100).toFixed(3)}%)`,
+      `${golden.file}: ${differing} px differ (${(fraction * 100).toFixed(3)}%)`,
     ).toBeLessThanOrEqual(TOLERANCE);
   });
 }
@@ -77,8 +96,9 @@ test("the frame route says so when a fixture does not exist", async ({ page }) =
 async function captureFixture(
   page: import("@playwright/test").Page,
   name: string,
+  zoom: number,
 ): Promise<Buffer> {
-  await page.goto(`#/frame?fixture=${name}&zoom=6`);
+  await page.goto(`#/frame?fixture=${name}&zoom=${zoom}`);
   await page.waitForFunction(() => document.documentElement.dataset["frameReady"] === "true");
   return page.getByTestId("frame-canvas").screenshot();
 }
