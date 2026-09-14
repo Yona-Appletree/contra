@@ -29,9 +29,15 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
  * figure calls into each of them, gives every waiting couple the built-in
  * `wait-out`, says each call `lead` beats early, and then asks the formation's
  * progression what the set looks like next. After a dance's `timesThrough` it
- * announces the next dance over the last eight beats, walks everybody to the
- * new start stations over an eight-beat gap, and calls hands four from the top.
- * The program loops, so the demo cycles without anyone touching it.
+ * announces the next dance over the last eight beats, walks everybody to that
+ * dance's own first places over an eight-beat gap, and calls hands four from
+ * the top. The program loops, so the demo cycles without anyone touching it.
+ *
+ * A dance's first places are the formation's stations unless it says otherwise
+ * (`Dance.startPlaces`), which is what lets a becket dance whose first figure is
+ * the progression be danced at all: the minor set the time through runs in is
+ * the one that figure makes, so the dancers — the waiting couple included —
+ * begin one couple place back along their own line.
  *
  * Nothing here knows what a lark is, what a swing is, or what a hall looks
  * like. Everything contra comes from the formation and the figure registry.
@@ -132,7 +138,12 @@ export function createScriptDecider(
         // one figure and record the other's `ends` — which the eight-beat
         // line-up between two dances then walks to, 51 px out.
         const def = registry.get(WAIT_OUT.id);
-        const params = withDefaults(def, undefined, cycle);
+        // `startPlaces` matters only for a dance that progresses in its own
+        // first figure: the waiting couple slides off the end of the line with
+        // everybody else, so its crossing has to be reckoned from the place it
+        // slid out of. Empty — every other dance — is the waiting place, which
+        // is what `wait-out` did before there was a parameter at all.
+        const params = withDefaults(def, { startPlaces: dance.startPlaces ?? {} }, cycle);
         emitFigure(into, group, def, params, Object.keys(group.members), start);
         continue;
       }
@@ -175,6 +186,9 @@ export function createScriptDecider(
       formation = nextFormation;
     }
     const start = at.beat;
+    // Everybody walks to the *next dance's* own first places, which are the
+    // stations unless that dance progresses in its first figure.
+    const endPlaces = next.startPlaces ?? {};
     for (const { group } of planGroups()) {
       const origins: Record<StationId, EndPose> = {};
       const to: Record<StationId, StationId> = {};
@@ -183,7 +197,7 @@ export function createScriptDecider(
         const here = standingAt.get(group.members[station.id]!);
         if (here) origins[station.id] = here;
       }
-      const params = withDefaults(WALK_TO_STATION, { origins, to }, opts.lineUpBeats);
+      const params = withDefaults(WALK_TO_STATION, { origins, to, endPlaces }, opts.lineUpBeats);
       emitFigure(into, group, WALK_TO_STATION, params, Object.keys(group.members), start);
     }
     const tail = Math.min(HANDS_FOUR_LEAD, opts.lineUpBeats);

@@ -1,4 +1,5 @@
 import type { Beat } from "@caller/core";
+import type { EndPose } from "../figure/FigureDef.js";
 import type { StationId } from "../formation/Formation.js";
 
 /**
@@ -51,6 +52,26 @@ export interface Dance {
   formation: string;
   phrases: DancePhrase[];
   notes?: string;
+  /**
+   * Where each station's dancer stands at beat 0 of **every** time through, in
+   * the group frame's own axes. Left out — the usual case — means the
+   * formation's own stations.
+   *
+   * A dance whose first figure is the progression starts somewhere else. A
+   * becket dance that shifts left in its first two beats dances the rest of the
+   * time through with the couple it shifted *to*, so the minor set a time
+   * through runs in is the one the shift makes, and the dancers begin one
+   * couple place back along their own line. The stations stay the formation's;
+   * this says where the dance picks people up from and, by the same token,
+   * where it has to leave them — closure (AC5) is measured against these places
+   * in the progressed set, not against the stations.
+   *
+   * Two things read it: the eight-beat line-up walks people here rather than to
+   * the stations, and a waiting couple's `wait-out` crosses over from here. The
+   * dance's own figures are told by their own parameters, which is what
+   * `chainCalls` threads.
+   */
+  startPlaces?: Record<StationId, EndPose>;
 }
 
 /** One dance in a program, with the medley it is danced to. */

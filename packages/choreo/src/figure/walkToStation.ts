@@ -1,5 +1,6 @@
 import type { Angle, Beat, PoseSample } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
+import { frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
 import { groupStationPose } from "../group/Group.js";
 import type { EndPose, FigureDef, FigureParams } from "./FigureDef.js";
@@ -17,6 +18,19 @@ export interface WalkToStationParams extends FigureParams {
   from: Record<StationId, StationId>;
   /** Station → where it actually starts, in world px. Overrides `from`. */
   origins: Record<StationId, EndPose>;
+  /**
+   * Station → where it starts, in the group frame's **own axes**. Overridden by
+   * `origins`, overrides `from`. Frame-local so a dance can carry it as data —
+   * world px depend on where the group sits, which a serialised dance cannot
+   * know.
+   */
+  startPlaces: Record<StationId, EndPose>;
+  /**
+   * Station → where it ends, in the group frame's own axes. Overrides `to`.
+   * This is how the eight-beat line-up puts everybody on the *next* dance's own
+   * first places rather than on the formation's stations.
+   */
+  endPlaces: Record<StationId, EndPose>;
   /** Extra degrees added to the end facing. */
   turn: Record<StationId, number>;
   /** How far each dancer bows to their own right while travelling, in px. */
@@ -42,7 +56,15 @@ export const WALK_TO_STATION: FigureDef<WalkToStationParams> = {
   call: "WALK TO YOUR PLACE",
   lead: 2,
   beats: 8,
-  defaults: { to: {}, from: {}, origins: {}, turn: {}, bowPx: DEFAULT_BOW_PX },
+  defaults: {
+    to: {},
+    from: {},
+    origins: {},
+    startPlaces: {},
+    endPlaces: {},
+    turn: {},
+    bowPx: DEFAULT_BOW_PX,
+  },
 
   sample(group: Group, station: StationId, t: Beat, params: WalkToStationParams): PoseSample {
     const step = walkStep(
@@ -63,13 +85,30 @@ export const WALK_TO_STATION: FigureDef<WalkToStationParams> = {
 };
 
 function startPose(group: Group, station: StationId, params: WalkToStationParams): EndPose {
-  return params.origins[station] ?? groupStationPose(group, params.from[station] ?? station);
+  const local = params.startPlaces[station];
+  return (
+    params.origins[station] ??
+    (local === undefined
+      ? groupStationPose(group, params.from[station] ?? station)
+      : framePose(group, local))
+  );
 }
 
 function endPose(group: Group, station: StationId, params: WalkToStationParams): EndPose {
+  const local = params.endPlaces[station];
   const target = params.to[station];
   const base =
-    target === undefined ? startPose(group, station, params) : groupStationPose(group, target);
+    local !== undefined
+      ? framePose(group, local)
+      : target === undefined
+        ? startPose(group, station, params)
+        : groupStationPose(group, target);
   const turn: Angle = params.turn[station] ?? 0;
   return turn === 0 ? base : { p: base.p, facing: base.facing + turn };
 }
+
+/** One frame-local pose in world px. */
+const framePose = (group: Group, local: EndPose): EndPose => ({
+  p: framePoint(group.frame, local.p),
+  facing: frameAngle(group.frame, local.facing),
+});

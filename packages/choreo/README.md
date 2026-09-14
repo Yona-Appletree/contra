@@ -140,6 +140,21 @@ constant; `validateDance` insists every phrase is the same length. A figure
 may end anywhere inside a phrase — a 4-beat balance and a 12-beat swing is a
 normal A1.
 
+A dance may also carry **`startPlaces`**: where each station's dancer stands
+at beat 0 of every time through, in the group frame's own axes. Left out —
+the usual case — it is the formation's stations. It exists for a dance whose
+_first figure is the progression_: a becket dance that shifts left in its
+first two beats dances the rest of the time through with the couple it
+shifted to, so the minor set a time through runs in is the one the shift
+makes and everybody begins one couple place back along their own line.
+Closure (AC5) is then measured against these places in the progressed set
+rather than against the stations. Two things read it: the eight-beat line-up
+walks people here instead of to the stations, and a waiting couple's
+`wait-out` reckons its crossing from here — it slid off the end of the line
+with everybody else and has to land one place short of the waiting place,
+ready to slide in again. The dance's own figures are told where they start by
+their own parameters, which is what `@caller/contra`'s `chainCalls` threads.
+
 ### The seam — `src/timeline/`
 
 ```ts
@@ -185,9 +200,10 @@ asks the formation for its groups, plays the dance's figure calls into each
 one, gives every waiting couple `wait-out`, says each call `lead` beats
 early and two beats into the figure, and asks the progression what the set
 looks like next. After a dance's `timesThrough` it announces the next dance
-over the last eight beats, walks everybody to the new start stations over an
-eight-beat gap, calls hands four from the top, and carries on; the program
-loops, so the demo cycles with nobody touching it.
+over the last eight beats, walks everybody to the next dance's own first
+places (its `startPlaces`, or the stations) over an eight-beat gap, calls
+hands four from the top, and carries on; the program loops, so the demo
+cycles with nobody touching it.
 
 ## Form neutrality, and how it is enforced
 
