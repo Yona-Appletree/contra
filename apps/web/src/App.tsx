@@ -78,6 +78,11 @@ const TABS = [
  *
  * Small on purpose: the hall is the page it sits above, and a phone has little
  * enough height already.
+ *
+ * On the dark theme (U2) it is a band of the hall's wall colour rather than a
+ * rule on the page's own ground: the page is wood now, and a hairline border
+ * on wood reads as a scratch. The current tab is underlined in the lit floor
+ * board, which is the one bright colour the palette has.
  */
 function Tabbed({
   tab,
@@ -89,7 +94,7 @@ function Tabbed({
   return (
     <>
       <nav
-        className="flex items-stretch gap-1 border-b px-2 text-sm"
+        className="flex items-stretch gap-1 border-b border-border bg-muted px-2 text-sm"
         data-testid="tabs"
         aria-label="Sections"
       >
@@ -101,8 +106,8 @@ function Tabbed({
             aria-current={t.id === tab ? "page" : undefined}
             className={`px-3 py-1.5 no-underline ${
               t.id === tab
-                ? "border-b-2 border-current font-semibold"
-                : "border-b-2 border-transparent opacity-60"
+                ? "border-b-2 border-primary font-semibold text-foreground"
+                : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {t.label}

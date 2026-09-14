@@ -1,14 +1,38 @@
 @import "tailwindcss";
 
 /*
- * Warm grange (grey-orange) palette. Placeholder values chosen to be
- * sensible and legible; M9 tunes them against the rendered hall.
+ * The hall after dark: a wood-coloured theme.
+ *
+ * Every colour below is taken from the hall's own palette — `HALL_THEMES.grange`
+ * in `@caller/hall` — converted to oklch, so the page the canvas sits on is
+ * made of the same timber as the room inside it. The anchors, for anyone
+ * tuning these:
+ *
+ *   out        #0c0a09  oklch(0.147 0.004 49)   outside, through the doorway
+ *   wallIn     #3d2d22  oklch(0.312 0.030 56)   the inward face of the wall
+ *   wall       #5a4636  oklch(0.411 0.037 60)   the wall band from above
+ *   wallTop    #75604c  oklch(0.504 0.041 65)   its lit top edge
+ *   stageA     #8a6238  oklch(0.529 0.078 66)   the stage deck
+ *   floorA     #c9a06a  oklch(0.731 0.086 74)   a floor board
+ *
+ * The page ground sits between `out` and `wallIn`; the ink is the snack
+ * table's cloth; the accents climb the wall to the floor boards. The card is
+ * the one thing that does not go dark: it is a paper note card lying on a dark
+ * table (U1), so it keeps its own light ground, its own dark ink and its own
+ * warm header band, in the three `--card*` tokens below.
+ *
+ * There is no light mode. The user asked for dark as the look, not as an
+ * option, so `prefers-color-scheme` is not consulted and there is nothing to
+ * toggle. `color-scheme: dark` is set so the browser's own furniture — the
+ * scrollbars and the range sliders the pages use — comes up dark too.
  */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-accent: var(--card-accent);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -32,37 +56,73 @@
 }
 
 :root {
+  color-scheme: dark;
+
   --radius: 0.5rem;
 
-  --background: oklch(0.98 0.008 70);
-  --foreground: oklch(0.22 0.02 50);
+  /* Dark walnut: between the hall's `out` and the inward face of its wall. */
+  --background: oklch(0.235 0.022 58);
+  /* The snack table's cloth, which is the lightest thing in the room. */
+  --foreground: oklch(0.925 0.018 78);
 
   /*
-   * Paper. The page ground is already a warm near-white, so a card that is to
-   * read as a card on top of it has to be lighter than the page, not darker —
-   * a note card's own stock, with the separation carried by its shadow. U1
-   * added it: nothing in the palette was white.
+   * Paper, and the ink and the header band that go on it.
+   *
+   * U1 made the dance card a note card; this milestone put the table under it
+   * in the dark, and a note card does not go dark with the table. So the card
+   * keeps U1's off-white stock and carries its own foreground and its own
+   * accent rather than reading the page's, which are now the wrong way round
+   * for it. Anything drawn inside the card — abcjs's notation, the phrase
+   * tints, which are `currentColor` mixes — follows `--card-foreground`.
    */
   --card: oklch(0.995 0.004 90);
+  --card-foreground: oklch(0.22 0.02 50);
+  --card-accent: oklch(0.88 0.045 55);
 
-  --primary: oklch(0.6 0.14 45);
-  --primary-foreground: oklch(0.98 0.008 70);
+  /* A floor board, lit: the brightest wood in the room. */
+  --primary: oklch(0.72 0.1 72);
+  --primary-foreground: oklch(0.2 0.025 55);
 
-  --secondary: oklch(0.92 0.025 60);
-  --secondary-foreground: oklch(0.25 0.02 50);
+  /* The wall, and a shade darker than it. */
+  --secondary: oklch(0.365 0.032 60);
+  --secondary-foreground: oklch(0.93 0.015 78);
 
-  --muted: oklch(0.94 0.015 60);
-  --muted-foreground: oklch(0.5 0.02 50);
+  --muted: oklch(0.315 0.028 58);
+  --muted-foreground: oklch(0.74 0.022 72);
 
-  --accent: oklch(0.88 0.045 55);
-  --accent-foreground: oklch(0.25 0.02 50);
+  --accent: oklch(0.41 0.037 60);
+  --accent-foreground: oklch(0.95 0.012 80);
 
-  --border: oklch(0.88 0.02 55);
-  --input: oklch(0.88 0.02 55);
-  --ring: oklch(0.6 0.14 45);
+  --border: oklch(0.4 0.03 60);
+  --input: oklch(0.4 0.03 60);
+  --ring: oklch(0.72 0.1 72);
+
+  /*
+   * The grain: a board seam and its lit edge, and how far apart the seams are.
+   *
+   * The hall's floor is 5 px boards with a seam every 37 px at 1×, which is
+   * the proportion this borrows rather than the number — a page is not a floor
+   * seen from above and a 5 px stripe on it reads as corduroy. One faint dark
+   * line and one fainter light one every `--wood-pitch` is enough to say wood
+   * and quiet enough to read text over.
+   */
+  --wood-pitch: 48px;
+  --wood-seam: oklch(0.2 0.018 55);
+  --wood-lit: oklch(0.272 0.024 60);
 }
 
 body {
   background-color: var(--background);
+  /* The planks. `to bottom` so the boards run across the page, as they run
+     across the hall. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--wood-pitch) - 2px),
+    var(--wood-seam) calc(var(--wood-pitch) - 2px),
+    var(--wood-seam) calc(var(--wood-pitch) - 1px),
+    var(--wood-lit) calc(var(--wood-pitch) - 1px),
+    var(--wood-lit) var(--wood-pitch)
+  );
   color: var(--foreground);
 }

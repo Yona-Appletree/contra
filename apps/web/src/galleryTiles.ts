@@ -18,6 +18,7 @@ import {
   createGroup,
   createTimeline,
   frame,
+  motionReport,
   poseAt,
   resolveSelector,
   withDefaults,
@@ -25,6 +26,7 @@ import {
 import type { ContraCall } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
+  CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
   DUPLE_IMPROPER,
   chainCalls,
@@ -74,30 +76,18 @@ const AXIS = 90;
 /** The one group every tile dances in. */
 const GROUP_ID = "gallery";
 
-/**
- * `describe` is F3a's, arriving in `@caller/contra` in parallel with this. The
- * slot is here and the tile shows this instead until the export exists.
- */
-export const DESCRIBE_SLOT = "describe —";
-
-/**
- * The metrics line is F3a's `motionReport`, same rule: the slot is here, the
- * export is not.
- */
-export const METRICS_SLOT = "metrics —";
-
-/** Why those two slots are empty, said once in the page header. */
-export const SLOTS_NOTE =
-  "Each tile keeps a slot for the figure's own description and a motion metrics line. " +
-  "Neither is filled in yet: `describe` and `motionReport` are F3a's, landing in " +
-  "@caller/contra and @caller/choreo in parallel with this page.";
-
 /** One figure inside a tile, as the tile lists it. */
 export interface GalleryCall {
   figure: string;
   beats: Beat;
   /** What the caller says for it — the dance's own words where a dance gave any. */
   call: string;
+  /**
+   * What the dancers actually do, in the figure's own prose: `FigureDef.describe`,
+   * written by F3a. `undefined` only if a figure has none, which the registry
+   * test makes hard.
+   */
+  describe?: string;
   /** The tuning it ran with. `from` is left out: it is threaded, not chosen. */
   params: Record<string, unknown>;
 }
@@ -121,6 +111,16 @@ export interface GalleryTile {
   world: { w: number; h: number };
   /** Beats into the window where the seam falls, for a seam tile. */
   seamAt?: Beat;
+  /**
+   * Whether a seam tile is a dance's wrap: its last figure back into its first.
+   *
+   * The row needs it because the oracle needs it. In the hall the progression
+   * re-forms the minor set between those two figures and this tile cannot, so
+   * a wrap tile's dancers jump a couple place at the seam — and the motion
+   * numbers below measure that jump, not the figure. The tile has always said
+   * so in its notes; this is the same fact in a form the metrics line can read.
+   */
+  wrapped?: boolean;
   /** The dance the parameters came from, when they came from one. */
   source?: string;
   /** Anything about this tile a reviewer needs told. */
@@ -149,6 +149,158 @@ export const dancerOn = (station: Station): string => `${GROUP_ID}/${station.id}
 /** Every tile, figures first, then the seams grouped under their first figure. */
 export function galleryTiles(): GalleryTile[] {
   return [...figureTiles(), ...seamTiles()];
+}
+
+/** One figure and every seam that leaves it, in the order the page lists them. */
+export interface TileGroup {
+  figure: GalleryTile;
+  seams: GalleryTile[];
+}
+
+/**
+ * The tiles as the page lays them out: one group per figure, each seam filed
+ * under the figure it comes out of.
+ *
+ * A seam's `under` is its first figure, which is always a figure that has a
+ * tile of its own — every seam comes from a demo dance and every figure a demo
+ * dance calls is in the registry. A seam whose `under` somehow has no tile
+ * would be dropped silently, so it gets a group of its own at the end instead,
+ * with the seam tile standing in for the missing figure.
+ */
+export function groupedTiles(tiles: readonly GalleryTile[]): TileGroup[] {
+  const groups = new Map<string, TileGroup>();
+  for (const tile of tiles) {
+    if (tile.kind === "figure") groups.set(tile.key, { figure: tile, seams: [] });
+  }
+  const orphans: TileGroup[] = [];
+  for (const tile of tiles) {
+    if (tile.kind !== "seam") continue;
+    const group = groups.get(tile.under);
+    if (group === undefined) orphans.push({ figure: tile, seams: [] });
+    else group.seams.push(tile);
+  }
+  return [...groups.values(), ...orphans];
+}
+
+/** The widest and tallest world any of these tiles is drawn on, before zoom. */
+export function maxTileWorld(tiles: readonly GalleryTile[]): { w: number; h: number } {
+  return {
+    w: Math.max(MIN_TILE_WORLD.w, ...tiles.map((t) => t.world.w)),
+    h: Math.max(MIN_TILE_WORLD.h, ...tiles.map((t) => t.world.h)),
+  };
+}
+
+/** One number the motion oracle measured, ready to put on the page. */
+export interface TileMetric {
+  /** What it is, short enough for a chip: `hand`, `elbow/hand`, `dip`. */
+  label: string;
+  /** The number, formatted, with its unit where it has one. */
+  value: string;
+  /** Whether it is over the bound `@caller/contra` derives from the library. */
+  over: boolean;
+  /** The whole story, for the chip's `title`: the bound, and where the worst was. */
+  detail: string;
+}
+
+/**
+ * What F3a's motion oracle says about one tile, measured over the tile's own
+ * looping window and against `@caller/contra`'s derived bounds.
+ *
+ * This is the same instrument `docs/motion-report.md` is written with, pointed
+ * at the gallery's timelines instead of the dances': each tile is one figure
+ * (or one seam) danced by one group of four, so the numbers are that figure's
+ * own and are not averaged with anything else's. The bounds are guards, three
+ * times the fastest thing an honest take does, so a number over one is worth a
+ * look and is not by itself a defect.
+ *
+ * Costs a sampling sweep at 1/32 beat per tile — about 9 ms each, half a second
+ * for the whole gallery — so the page measures after it has painted rather than
+ * before.
+ */
+export function tileMetrics(tile: GalleryTile): TileMetric[] {
+  const report = motionReport(tile.timeline, tile.window.start + tile.window.beats, {
+    from: tile.window.start,
+    bounds: CONTRA_MOTION_BOUNDS,
+  });
+  const o = report.overall;
+  const b = CONTRA_MOTION_BOUNDS;
+  return [
+    metric(
+      "hand",
+      o.handSpeed.value,
+      b.handSpeedPx,
+      "px/beat",
+      "a hand's floor speed",
+      o.handSpeed,
+    ),
+    metric(
+      "elbow/hand",
+      o.elbowPerHand.value,
+      b.elbowPerHand,
+      "×",
+      "how much faster an elbow moves than the hand it belongs to — the number that catches flail",
+      o.elbowPerHand,
+    ),
+    metric(
+      "height",
+      o.heightRate.value,
+      b.heightRatePx,
+      "px/beat",
+      "how fast a hand changes height",
+      o.heightRate,
+    ),
+    metric("dip", o.dip.value, b.dipPx, "px", "the worst out-and-back inside one beat", o.dip),
+    countMetric(
+      "flips",
+      o.stateFlips,
+      "how many times a hand swapped between placed and hanging",
+      o.flipJump.value > 0 ? `worst jump ${o.flipJump.value.toFixed(2)} px` : undefined,
+    ),
+    countMetric(
+      "NaN",
+      o.nonFinite,
+      "samples where a hand or an elbow was not a finite number — an arm that is drawn as nothing",
+      undefined,
+      true,
+    ),
+  ];
+}
+
+/** A measured number against its bound. */
+function metric(
+  label: string,
+  value: number,
+  bound: number,
+  unit: string,
+  what: string,
+  worst: { dancer?: string; side?: string; beat?: Beat },
+): TileMetric {
+  const where =
+    worst.dancer === undefined
+      ? ""
+      : ` Worst at ${worst.dancer} ${worst.side ?? ""} beat ${(worst.beat ?? 0).toFixed(2)}.`;
+  return {
+    label,
+    value: `${value.toFixed(unit === "×" ? 2 : 1)}${unit === "×" ? "×" : ` ${unit}`}`,
+    over: value > bound,
+    detail: `${what}. Bound ${bound.toFixed(unit === "×" ? 2 : 1)}${unit === "×" ? "×" : ` ${unit}`}.${where}`,
+  };
+}
+
+/** A count, which has no bound: any non-zero is worth a look, zero is silent. */
+function countMetric(
+  label: string,
+  n: number,
+  what: string,
+  extra?: string,
+  always = false,
+): TileMetric {
+  return {
+    label,
+    value: String(n),
+    over: n > 0 && always,
+    detail: `${what}.${extra === undefined ? "" : ` ${extra}.`}`,
+  };
 }
 
 /** The tile with this deep-link key, or `undefined`. */
@@ -262,7 +414,7 @@ function figureTile(id: string, registry: FigureRegistry): GalleryTile {
     kind: "figure",
     key: id,
     title: id,
-    calls: [listed(shown, callText)],
+    calls: [listed(shown, callText, def.describe)],
     under: id,
     formation: formation.id,
     group,
@@ -302,7 +454,10 @@ function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean):
     kind: "seam",
     key: `${a.figure}--${b.figure}`,
     title: `${a.figure} → ${b.figure}`,
-    calls: [a, b].map((c) => listed(c, c.call ?? registry.get(c.figure).call)),
+    calls: [a, b].map((c) => {
+      const def = registry.get(c.figure);
+      return listed(c, c.call ?? def.call, def.describe);
+    }),
     under: a.figure,
     formation: formation.id,
     group,
@@ -310,6 +465,7 @@ function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean):
     window: { start: 0, beats: a.beats + b.beats },
     world: MIN_TILE_WORLD,
     seamAt: a.beats,
+    ...(wrapped ? { wrapped: true } : {}),
     source: dance.slug,
     notes,
   });
@@ -441,10 +597,11 @@ function withoutFrom(params: object | undefined): Record<string, unknown> {
   return rest;
 }
 
-const listed = (call: FigureCall, text: string): GalleryCall => ({
+const listed = (call: FigureCall, text: string, describe?: string): GalleryCall => ({
   figure: call.figure,
   beats: call.beats,
   call: text,
+  ...(describe === undefined ? {} : { describe }),
   params: withoutFrom(call.params),
 });
 
