@@ -68,6 +68,13 @@ test.describe("the move gallery", () => {
     const tiles = page.getByTestId("moves-tile");
     expect(await tiles.count()).toBeGreaterThan(40);
 
+    // Pause first: the shared clock keeps advancing the beat every animation
+    // frame, and scrubbing while it plays races the assertion below against
+    // that rAF loop. Pausing is itself a control under test (DD20 opens
+    // playing; the button must actually stop the beat).
+    await page.getByTestId("moves-play").click();
+    await expect(page.getByTestId("moves-play")).toHaveText("Play");
+
     await page.getByTestId("moves-scrub").fill("12");
     await expect(page.getByTestId("moves-scrub")).toHaveValue("12");
 
