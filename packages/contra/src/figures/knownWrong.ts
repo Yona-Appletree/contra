@@ -25,81 +25,26 @@ export interface KnownWrong {
 }
 
 /**
- * Every assertion in `figureChecks()` that fails today.
+ * Every assertion in `figureChecks()` that fails today. **The list is empty.**
  *
- * Measured 2026-09-14 by F3a, against `main` at `8da9d72`, and shortened the
- * same day by F3c: the two `balance` rows and the `balance → swing` row are
- * gone, because the zero-length release that made both of a balance's hands
- * `NaN` is fixed and the hold now crosses the seam instead of being let go of.
+ * It was written by F3a on 2026-09-14 against `main` at `8da9d72` with fourteen
+ * rows, and emptied over the same day:
+ *
+ * - F3c took the two `balance` rows and the `balance → swing` row: the
+ *   zero-length release that made both of a balance's hands `NaN` is fixed and
+ *   the hold crosses the seam now instead of being let go of.
+ * - F4 took the other eleven — three `hey`, four `robins-chain`, three
+ *   `right-and-left-through`, one `do-si-do` — by re-choreographing the four
+ *   figures they were about: the hey weaves, the chain's larks scoop and walk
+ *   backward, right and left through passes the dancer it is facing, and a
+ *   do-si-do passes instead of orbiting.
+ *
+ * An empty list is the interesting state, not the end of the table: the
+ * contract `figureChecks.test.ts` holds is that everything not on this list
+ * passes, so with nothing on it every assertion in the library passes. The next
+ * defect anybody measures gets a row here rather than a `skip`.
  */
-export const KNOWN_WRONG: readonly KnownWrong[] = [
-  {
-    key: "hey",
-    label: "1R and 1L pass L shoulders around beat 4.0",
-    measured: "at the closest point 1L is on 1R's R, not their L (10.000 px at beat 4.250)",
-    why: "the user: \"the hey is just totally wrong. that's a weaving figure.\" A hey alternates shoulders — right in the centre, left on the sides — and this one never alternates: all four dancers walk one closed lane in the same direction, so every pass in the figure is by the same shoulder. The four passes in the *centre* are right and correct (they pass at 10.0 px, within 3.5 px of the set's centre, at beats 3.0, 5.5, 10.5 and 13.0); it is the three side passes that are on the wrong shoulder.",
-  },
-  {
-    key: "hey",
-    label: "1R and 2L pass L shoulders around beat 8.0",
-    measured: "at the closest point 2L is on 1R's R, not their L (10.000 px at beat 8.000)",
-    why: "the same single lane as the pass at beat 4.",
-  },
-  {
-    key: "hey",
-    label: "2R and 2L pass L shoulders around beat 12.0",
-    measured: "at the closest point 2L is on 2R's R, not their L (10.000 px at beat 11.750)",
-    why: "the same single lane as the pass at beat 4.",
-  },
-  {
-    key: "robins-chain",
-    label: "1L walks backward from beat 6.3 to 7.4",
-    measured: "he does not walk anywhere: 0.000 px over the whole window",
-    why: 'the user: "robins pull by in the center, then the larks scoop them and walk backwards or they twirl them." The lark stands rooted on his place through the courtesy turn and only turns his head.',
-  },
-  {
-    key: "robins-chain",
-    label: "2L walks backward from beat 6.3 to 7.4",
-    measured: "he does not walk anywhere: 0.000 px over the whole window",
-    why: "the same as 1L.",
-  },
-  {
-    key: "robins-chain",
-    label: "1L's L stays joined to 2R's L from beat 6.3 to 7.4",
-    measured: "the two hands are 42.723 px apart",
-    why: "the chain courtesy-turns each robin with the wrong lark. It picks the lark *nearest* where she lands, and in this formation the nearest lark is 20 px up the same line while the lark she is a couple with there is 32 px away across the set. The line offset being larger than the place pitch is what makes the heuristic pick wrong, so this is a bug in the chain and not a tuning number.",
-  },
-  {
-    key: "robins-chain",
-    label: "2L's L stays joined to 1R's L from beat 6.3 to 7.4",
-    measured: "the two hands are 42.723 px apart",
-    why: "the same as 1L and 2R.",
-  },
-  {
-    key: "do-si-do",
-    label: "1L and 2R pass R shoulders around beat 1.8",
-    measured: "they never come closer than 20.21 px, and a pass is 14 px",
-    why: "the two of them orbit their common centre at a constant radius and never approach each other. A do-si-do is a pass: you walk forward past a right shoulder, go back to back, and walk backward past a left one, and you are beside each other for most of it.",
-  },
-  {
-    key: "right-and-left-through",
-    label: "1L and 2R pass R shoulders around beat 2.0",
-    measured: "they never come closer than 20.00 px, and a pass is 14 px",
-    why: "each dancer crosses the set diagonally to the far corner rather than passing the dancer directly opposite. In duple improper the ones face the twos along the line, so 1L's pass is with 2R, 20 px straight ahead of him; the figure sends him to 2L's place instead, and the two of them never meet.",
-  },
-  {
-    key: "right-and-left-through",
-    label: "1L walks backward from beat 4.5 to 7",
-    measured: "only 0.000 px of the 29.518 px he travels is behind him",
-    why: "the courtesy turn is drawn as a sideways slide: he travels 29.5 px, all of it across his own facing and none of it backward. Same defect as the chain's, differently shaped.",
-  },
-  {
-    key: "right-and-left-through",
-    label: "2L walks backward from beat 4.5 to 7",
-    measured: "only 0.000 px of the 29.518 px he travels is behind him",
-    why: "the same as 1L.",
-  },
-];
+export const KNOWN_WRONG: readonly KnownWrong[] = [];
 
 /** Whether this assertion of this figure is a known defect. */
 export const isKnownWrong = (key: string, label: string): boolean =>

@@ -15,11 +15,13 @@ import {
 /** The hey read in frame-local px: a group on the identity frame. */
 const plainGroup = probeGroup(DUPLE_IMPROPER, 4, frame([0, 0], 90));
 
+const WEAVE_PX = 6.5;
+
 const params = (start: "robins-right" | "larks-left") => ({
   from: {},
   start,
   half: false,
-  trackPx: 5,
+  weavePx: WEAVE_PX,
   joinBeats: 2,
   beats: 16,
 });
@@ -49,26 +51,40 @@ describe("hey for four", () => {
   });
 
   it("sends the robins into the middle first and the larks round the ends", () => {
+    // Count 2 is the first pass in the centre: the robins are on the middle of
+    // the weave and the larks are out past the lines, looping.
     const across = (station: string, t: number): number =>
       hey.sample(plainGroup, station, t, params("robins-right")).p[0];
-    expect(Math.abs(across("1R", 3))).toBeLessThan(6);
-    expect(Math.abs(across("2R", 3))).toBeLessThan(6);
-    expect(Math.abs(across("1L", 3))).toBeGreaterThan(12);
-    expect(Math.abs(across("2L", 3))).toBeGreaterThan(12);
+    expect(Math.abs(across("1R", 2))).toBeLessThan(1e-9);
+    expect(Math.abs(across("2R", 2))).toBeLessThan(1e-9);
+    expect(Math.abs(across("1L", 2))).toBeGreaterThan(16);
+    expect(Math.abs(across("2L", 2))).toBeGreaterThan(16);
   });
 
   it("mirrors the weave when the larks start", () => {
     const across = (station: string, t: number): number =>
       hey.sample(plainGroup, station, t, params("larks-left")).p[0];
-    expect(Math.abs(across("1L", 3))).toBeLessThan(6);
-    expect(Math.abs(across("1R", 3))).toBeGreaterThan(12);
+    expect(Math.abs(across("1L", 2))).toBeLessThan(1e-9);
+    expect(Math.abs(across("1R", 2))).toBeGreaterThan(16);
   });
 
   it("passes the two in the middle on opposite sides of it", () => {
-    // The lane's two sides are `trackPx` either side of the middle, so the two
-    // dancers crossing at the same moment are twice that apart.
+    // The weave's side-step is at its full swing where it crosses the middle,
+    // so the two dancers crossing at the same moment are twice that apart —
+    // and on opposite sides, which is what makes it a pass and not a collision.
     const at = (station: string, t: number): number =>
       hey.sample(plainGroup, station, t, params("robins-right")).p[1];
-    expect(Math.abs(at("1R", 4) - at("2R", 4))).toBeCloseTo(10, 6);
+    expect(at("1R", 2)).toBeCloseTo(-WEAVE_PX, 6);
+    expect(at("2R", 2)).toBeCloseTo(WEAVE_PX, 6);
+  });
+
+  it("weaves: the side-step swings right across between the middle and the end", () => {
+    // Count 2 is a pass in the centre and count 4 a pass at the side, and the
+    // dancer has changed sides of the weave in between. That is the alternation
+    // — right shoulders in the middle, left at the sides — in one assertion.
+    const side = (t: number): number =>
+      hey.sample(plainGroup, "1R", t, params("robins-right")).p[1];
+    expect(side(2)).toBeLessThan(-WEAVE_PX + 1e-9);
+    expect(side(4)).toBeGreaterThan(0);
   });
 });

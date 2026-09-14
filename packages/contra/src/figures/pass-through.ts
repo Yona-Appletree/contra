@@ -1,3 +1,4 @@
+import { dirOf, leftOf, sub } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import { DEFAULT_BOW_PX } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spots } from "./ContraFigure.js";
@@ -56,6 +57,39 @@ export const passThrough = contraFigure<PassThroughParams>({
     };
   },
 });
+
+/**
+ * Who is straight in front of each dancer: the one they would walk into.
+ *
+ * `facingPairs` asks which way the set lies; this asks which way the *dancers*
+ * are looking, which is what a caller means by "pass the one you are facing".
+ * In duple improper the ones face the twos along the line, so `1L`'s is `2R`,
+ * 20 px straight ahead of him; in becket everyone faces across, so it is the
+ * dancer opposite. Nobody behind you counts, however near.
+ */
+export function aheadPairs(ctx: PlanContext): Record<StationId, StationId> {
+  const out: Record<StationId, StationId> = {};
+  for (const id of ctx.ids) {
+    const self = ctx.spot(id);
+    const ahead = dirOf(self.facing);
+    const beside = leftOf(self.facing);
+    let best: StationId | undefined;
+    let bestOff = Infinity;
+    for (const candidate of ctx.ids) {
+      if (candidate === id) continue;
+      const to = sub(ctx.spot(candidate).p, self.p);
+      if (to[0] * ahead[0] + to[1] * ahead[1] <= 0) continue;
+      const off = Math.abs(to[0] * beside[0] + to[1] * beside[1]);
+      if (off < bestOff) {
+        bestOff = off;
+        best = candidate;
+      }
+    }
+    if (best === undefined) throw new Error(`nobody in front of "${id}"`);
+    out[id] = best;
+  }
+  return out;
+}
 
 /**
  * Who each dancer passes: the dancer on the other side of the set (`'across'`)

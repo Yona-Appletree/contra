@@ -197,19 +197,27 @@ export function deriveBounds(step = DERIVE_STEP): {
 }
 
 /**
- * The bounds, as re-derived on 2026-09-14 by F3c and written down so the oracle
- * is not re-deriving itself out of its own defects.
+ * The bounds, as re-derived on 2026-09-14 by F3c, and again the same day by F4
+ * when the worst take in the registry got shorter, written down so the oracle is
+ * not re-deriving itself out of its own defects.
  *
  * `motionBounds.test.ts` re-runs {@link deriveBounds} and fails if any of these
  * has moved, so the numbers stay honest without the oracle chasing the code.
  *
  * | | legitimate maximum | × 3 = the bound |
  * | --- | ---: | ---: |
- * | hand floor speed | 26.8129 px/beat | 80.4388 |
- * | elbow floor speed | 68.1629 px/beat | 204.4888 |
- * | elbow speed / hand speed, per sample | 3.2552× | 9.7655 |
+ * | hand floor speed | 24.1413 px/beat | 72.4240 |
+ * | elbow floor speed | 61.6394 px/beat | 184.9183 |
+ * | elbow speed / hand speed, per sample | 3.2694× | 9.8082 |
  * | hand height rate | 21.7217 px/beat | 65.1650 |
  * | out-and-back inside a beat | 1.2 px | 3.6 |
+ *
+ * **F4 tightened them, and that is the direction they should move.** The
+ * furthest any figure reaches from a hip to a hand it holds was 17.8986 px —
+ * the courtesy turn in right and left through, whose couple had been sliding
+ * sideways across the set with its hands joined. Turning properly brings the
+ * same reach down to 16.1152 px, so the take the bounds are derived from is
+ * shorter and every guard derived from it is smaller.
  *
  * **The elbow bound F3a derived was useless, and F3c found out why.** A take
  * moved the elbow at 250 px/beat — 9.33× the hand — which made the guard 750
@@ -227,9 +235,9 @@ export function deriveBounds(step = DERIVE_STEP): {
  * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
-  handSpeedPx: 80.4388,
-  elbowSpeedPx: 204.4888,
-  elbowPerHand: 9.7655,
+  handSpeedPx: 72.424,
+  elbowSpeedPx: 184.9183,
+  elbowPerHand: 9.8082,
   heightRatePx: 65.165,
   dipPx: 3.6,
 };
@@ -237,16 +245,16 @@ export const CONTRA_MOTION_BOUNDS: MotionBounds = {
 /** The measured legitimate maxima the bounds above are three times. */
 export const CONTRA_TAKE_MOTION = {
   /** The furthest hip-to-joined-point reach in the registry, px. */
-  floorPx: 17.8986,
+  floorPx: 16.1152,
   floorAt: "right-and-left-through 1L L at t=5.750",
   /** The smallest drop any figure holds a hand at, px. */
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
-  handSpeed: 26.8129,
-  elbowSpeed: 68.1629,
+  handSpeed: 24.1413,
+  elbowSpeed: 61.6394,
   heightRate: 21.7217,
-  elbowPerHand: 2.5422,
-  elbowRatio: 3.2552,
+  elbowPerHand: 2.5533,
+  elbowRatio: 3.2694,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

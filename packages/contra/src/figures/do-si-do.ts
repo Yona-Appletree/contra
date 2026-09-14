@@ -22,8 +22,16 @@ export interface DoSiDoParams extends ContraParams {
   pairs: Pairing;
   /** How far round: once, or once and a half to change places. */
   amount: number;
-  /** How far the circle bulges at the back-to-back point, px. */
-  swellPx: number;
+  /**
+   * How far each dancer steps off the line between them as they pass, px.
+   *
+   * A do-si-do is a *pass*, not an orbit: the two of them come shoulder to
+   * shoulder half way out, which is `2 × passPx` apart — 10 px with the bow the
+   * rest of the library passes at, inside a pass (14 px) and outside AC6's 8.
+   * It is the short radius of the ellipse they walk; the long one is their own
+   * separation.
+   */
+  passPx: number;
   /** How far from the centre each dancer ends, px. `null` takes it from the formation. */
   endHalf: number | null;
 }
@@ -36,8 +44,15 @@ const SWING_OUT = 0.6;
  * Do-si-do: pass right shoulders, round back to back, and come back — or carry
  * on round and a half to change places.
  *
+ * The path is an **ellipse**, not a circle, and that is the whole of what F4
+ * changed: its long radius is the pair's own half separation, so each dancer
+ * still walks through the other's place, and its short radius is one bow, so
+ * half way out they are 10 px apart, shoulder to shoulder, moving opposite
+ * ways. F3a measured the circle this used to be at a constant 20.2 px — two
+ * people orbiting a point they never got near, which is not a do-si-do.
+ *
  * Hands stay down and neither body turns; only the head follows the partner
- * round, which is M5's. The circle is as big as the pair's own places allow,
+ * round, which is M5's. The ellipse is as big as the pair's own places allow,
  * or tighter when the pair beside them would be in the way.
  */
 export const doSiDo = contraFigure<DoSiDoParams>({
@@ -47,7 +62,7 @@ export const doSiDo = contraFigure<DoSiDoParams>({
     "Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.",
   lead: 4,
   beats: 8,
-  defaults: { from: {}, pairs: "neighbors", amount: 1, swellPx: 2.5, endHalf: null },
+  defaults: { from: {}, pairs: "neighbors", amount: 1, passPx: 5, endHalf: null },
 
   plan(ctx: PlanContext, params: DoSiDoParams): FigurePlan {
     const beats = params.beats;
@@ -85,7 +100,9 @@ export const doSiDo = contraFigure<DoSiDoParams>({
         centre,
         half,
         radius,
-        swell: Math.min(params.swellPx, Math.max(0, allowed - radius)),
+        // The short radius never reaches further from the centre than the long
+        // one, so the ellipse sits inside the circle the clearance allowed.
+        pass: Math.min(params.passPx, radius),
       };
       pairOf[a] = pair;
       pairOf[b] = pair;
@@ -104,11 +121,26 @@ export const doSiDo = contraFigure<DoSiDoParams>({
       if (!pair) return start;
       const f = trapezoid(t, 0, 0.9, beats - 0.9, beats);
       const from = dist(pair.centre, start.p);
-      const swell = pair.swell * Math.sin(Math.PI * f);
-      const radius =
-        mix(mix(from, pair.radius, ramp(t, 0, 1)), pair.half, ramp(t, beats - 1, beats)) + swell;
+      // The long radius: out to the pair's own separation, and in to wherever
+      // the dance leaves them.
+      const along = mix(
+        mix(from, pair.radius, ramp(t, 0, 1)),
+        pair.half,
+        ramp(t, beats - 1, beats),
+      );
+      // The ellipse, walked from the dancer's own place: the long radius along
+      // the line between the two of them, the short one across it. The two of
+      // them are always opposite each other on it, so the short radius is what
+      // decides how close they come — and which shoulder, since each of them
+      // leans to their own left to get there.
+      const turned = ((bearing(pair.centre, start.p) + turn * f) * Math.PI) / 180;
+      const home = ((bearing(pair.centre, start.p) * Math.PI) / 180) as number;
+      const u: Vec2 = [Math.cos(home), Math.sin(home)];
+      const swung = turned - home;
+      const c = Math.cos(swung) * along;
+      const s = Math.sin(swung) * pair.pass;
       return {
-        p: polar(pair.centre, bearing(pair.centre, start.p) + turn * f, radius),
+        p: [pair.centre[0] + u[0] * c - u[1] * s, pair.centre[1] + u[1] * c + u[0] * s],
         facing: start.facing,
       };
     };
@@ -138,9 +170,10 @@ export const doSiDo = contraFigure<DoSiDoParams>({
 interface DoSiDoPair {
   centre: Vec2;
   half: number;
+  /** The long radius: how far out along the line between them they walk, px. */
   radius: number;
-  /** How far the circle may bulge without crowding the pair beside them, px. */
-  swell: number;
+  /** The short radius: how close they come as they pass, halved, px. */
+  pass: number;
 }
 
 /** The point opposite `p` through `centre`: where the partner is, on the same circle. */
