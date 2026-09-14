@@ -1,5 +1,13 @@
 import type { Beat } from "@caller/core";
-import type { AnyFigureDef, Dance, Decider, Group, Program, StationId } from "@caller/choreo";
+import type {
+  AnyFigureDef,
+  Dance,
+  Decider,
+  Group,
+  Program,
+  StationId,
+  Timeline,
+} from "@caller/choreo";
 import {
   closureReport,
   collisionReport,
@@ -9,7 +17,7 @@ import {
   reachReport,
   withDefaults,
 } from "@caller/choreo";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { BECKET } from "../../formation/becket.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
 import type { ContraFigure, HandJoin } from "../ContraFigure.js";
@@ -165,26 +173,47 @@ function run(
   return decider;
 }
 
+// `poseAt` rebuilds a figure's plan on every sample it is asked for, and a
+// 128-beat run through `decider.advance` samples it many times over, so
+// dancing the sequence once (let alone the coded and compiled runs a report
+// comparison used to redo inline) is the expensive part here — not report
+// generation. A later milestone memoises the plan so this stops mattering.
+// Danced once per formation in `beforeAll` and shared, so no single `it`
+// (nor this hook) redoes that work, and CI's slower runners still fit
+// comfortably inside a raised, explicit timeout instead of the global one.
+const SEQUENCE_HOOK_TIMEOUT = 20_000;
+
 describe("the sequences dance the same with the compiled circle", () => {
   for (const { name, dance, couples } of [
     { name: "duple improper", dance: DUPLE_SEQUENCE, couples: 6 },
     { name: "becket", dance: BECKET_SEQUENCE, couples: 8 },
   ]) {
-    it(`${name}: closure, reach and collision are the coded figure's own numbers`, () => {
-      const coded = run(dance, couples, 128, []).timeline();
-      const data = run(dance, couples, 128, [CIRCLE_AS_DATA]).timeline();
+    describe(name, () => {
+      let coded: Timeline;
+      let data: Timeline;
 
-      const codedClosure = closureReport(coded);
-      expect(codedClosure.seams).toBeGreaterThan(0);
-      expect(closureReport(data)).toEqual(codedClosure);
+      beforeAll(() => {
+        coded = run(dance, couples, 128, []).timeline();
+        data = run(dance, couples, 128, [CIRCLE_AS_DATA]).timeline();
+      }, SEQUENCE_HOOK_TIMEOUT);
 
-      const codedReach = reachReport(coded, 0, 128);
-      expect(codedReach.hands).toBeGreaterThan(0);
-      expect(reachReport(data, 0, 128)).toEqual(codedReach);
+      it("closure is the coded figure's own numbers", () => {
+        const codedClosure = closureReport(coded);
+        expect(codedClosure.seams).toBeGreaterThan(0);
+        expect(closureReport(data)).toEqual(codedClosure);
+      });
 
-      const codedCollision = collisionReport(coded, 0, 128);
-      expect(codedCollision.pairs).toBeGreaterThan(0);
-      expect(collisionReport(data, 0, 128)).toEqual(codedCollision);
+      it("reach is the coded figure's own numbers", () => {
+        const codedReach = reachReport(coded, 0, 128);
+        expect(codedReach.hands).toBeGreaterThan(0);
+        expect(reachReport(data, 0, 128)).toEqual(codedReach);
+      });
+
+      it("collision is the coded figure's own numbers", () => {
+        const codedCollision = collisionReport(coded, 0, 128);
+        expect(codedCollision.pairs).toBeGreaterThan(0);
+        expect(collisionReport(data, 0, 128)).toEqual(codedCollision);
+      });
     });
   }
 });
