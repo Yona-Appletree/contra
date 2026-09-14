@@ -60,10 +60,6 @@ export type { PairFrame, PairPlace, PairRole, TwoHandHold } from "./PairFrame.js
 export {
   CENTRE_DROP_PX,
   DEFAULT_PAIR_FRAME,
-  HAND_DOWN_DROP_PX,
-  HAND_DOWN_FORWARD_PX,
-  HAND_DOWN_LATERAL_PX,
-  HAND_DOWN_SWING_PX,
   HOLD_DROP_PX,
   HOLD_LATERAL_PX,
   INSIDE_DROP_PX,

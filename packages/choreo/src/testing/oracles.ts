@@ -1,5 +1,5 @@
-import type { Beat, PoseSample, Side } from "@caller/core";
-import { angleDiff, dist, shoulders, solveArm } from "@caller/core";
+import type { Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
+import { SEAM_BEATS, angleDiff, dist, drawnArms, shoulders, solveArm } from "@caller/core";
 import type { DancerId } from "../formation/Formation.js";
 import type { Timeline } from "../timeline/Timeline.js";
 import { poseAt, sampleEvent } from "../timeline/poseAt.js";
@@ -170,4 +170,388 @@ const SIDES: readonly Side[] = ["L", "R"];
 function forEachStep(from: Beat, to: Beat, step: Beat, visit: (beat: Beat) => void): void {
   const steps = Math.round((to - from) / step);
   for (let i = 0; i <= steps; i++) visit(from + i * step);
+}
+
+/**
+ * The motion oracle (F3a): how fast a drawn arm moves, and where it jumps.
+ *
+ * The other three oracles ask whether the model is self-consistent — closure,
+ * reach, collisions — and every dance in the library passes all three while
+ * still looking wrong. This one asks a different question: does what is drawn
+ * *move continuously*? It samples the arm the renderer actually draws, through
+ * `@caller/core`'s `drawnArms`, because the elbow is what reads as a jump even
+ * when the hand barely moves, and it attributes every number to a figure
+ * instance and — for the first `SEAM_BEATS` of one — to the seam that led into
+ * it, because a seam belongs to neither figure alone.
+ *
+ * It reports; it does not judge. The bounds live with the caller, and
+ * `@caller/contra`'s own test is where today's defects are listed.
+ */
+
+/** How finely the motion oracle samples: every 1/32 beat. */
+export const MOTION_STEP: Beat = 1 / 32;
+
+/** One measurement and the dancer, beat and hand that produced it. */
+export interface MotionWorst {
+  /** The measured value; `0` when nothing was measured. */
+  value: number;
+  dancer?: DancerId;
+  beat?: Beat;
+  side?: Side;
+}
+
+/** What one figure id, or one `prev → next` seam pair, measured. */
+export interface MotionStats {
+  /** A figure id, or `"prev → next"` for a seam pair. */
+  key: string;
+  /** Worst floor speed of a hand, px per beat. */
+  handSpeed: MotionWorst;
+  /** Worst floor speed of an elbow, px per beat. */
+  elbowSpeed: MotionWorst;
+  /** Worst rate of change of a hand's height, px per beat. */
+  heightRate: MotionWorst;
+  /** Worst rate of change of an elbow's height, px per beat. Not tabled. */
+  elbowHeightRate: MotionWorst;
+  /** How many times a hand flipped between placed and hanging. */
+  stateFlips: number;
+  /** Where the first state flip was. */
+  firstFlip?: { dancer: DancerId; beat: Beat; side: Side };
+  /**
+   * How many samples had a hand or an elbow that was not a finite number.
+   *
+   * Counted explicitly because it is the one failure every other oracle is
+   * blind to: `NaN > max` is false, so a `NaN` hand slides through a maximum
+   * silently, and a `NaN` arm draws as nothing at all. An arm that vanishes
+   * is the worst continuity failure there is, so it gets its own column.
+   */
+  nonFinite: number;
+  /** Where the first non-finite sample was. */
+  firstNonFinite?: { dancer: DancerId; beat: Beat; side: Side };
+  /**
+   * The worst out-and-back: how far a hand travelled between two consecutive
+   * reversals of its own direction, when the two fell inside one beat.
+   */
+  dip: MotionWorst;
+  /** How many direction reversals of a hand's motion, in total. */
+  reversals: number;
+  /** How many (dancer, hand, step) measurements went into the numbers above. */
+  samples: number;
+}
+
+/** What {@link motionReport} found. */
+export interface MotionReport {
+  from: Beat;
+  to: Beat;
+  step: Beat;
+  /** Per figure id, worst first. */
+  figures: MotionStats[];
+  /** Per `prev → next` seam pair, worst first. */
+  seams: MotionStats[];
+  /** Everything, in one row, for a one-line summary. */
+  overall: MotionStats;
+  /** The bounds the rows were sorted against. */
+  bounds: MotionBounds;
+}
+
+/**
+ * What the oracle sorts against. These are guards, not tuning targets: see
+ * `@caller/contra`'s `motionBounds.ts` for how the library's own numbers are
+ * derived and how much headroom each one carries.
+ */
+export interface MotionBounds {
+  /** Floor speed of a hand, px per beat. */
+  handSpeedPx: number;
+  /** Floor speed of an elbow, px per beat. */
+  elbowSpeedPx: number;
+  /** Rate of change of a hand's height, px per beat. */
+  heightRatePx: number;
+  /** An out-and-back inside one beat, px. */
+  dipPx: number;
+}
+
+/** How the motion oracle is run. */
+export interface MotionOptions {
+  /** First beat sampled. Defaults to the first figure in the timeline. */
+  from: Beat;
+  step: Beat;
+  dancers: DancerId[];
+  bounds: MotionBounds;
+}
+
+/**
+ * Bounds wide enough that nothing in a hand-written figure library trips them
+ * by accident. `@caller/contra` derives its own from the registry and passes
+ * them in; these are what a caller gets for not saying.
+ */
+export const DEFAULT_MOTION_BOUNDS: MotionBounds = {
+  handSpeedPx: 60,
+  elbowSpeedPx: 60,
+  heightRatePx: 60,
+  dipPx: 6,
+};
+
+/**
+ * Sample every dancer at {@link MOTION_STEP} and report how the drawn arms
+ * moved, per figure id and per seam pair, worst first.
+ */
+export function motionReport(
+  timeline: Timeline,
+  until: Beat,
+  options: Partial<MotionOptions> = {},
+): MotionReport {
+  const dancers = options.dancers ?? timeline.dancers();
+  const step = options.step ?? MOTION_STEP;
+  const bounds = options.bounds ?? DEFAULT_MOTION_BOUNDS;
+  const from = options.from ?? firstFigureBeat(timeline, dancers);
+
+  const figures = new Map<string, MotionStats>();
+  const seams = new Map<string, MotionStats>();
+  const overall = emptyStats("everything");
+
+  const steps = Math.round((until - from) / step);
+  /** The previous sample for each (dancer, hand), and its running direction. */
+  const trail = new Map<string, HandTrail>();
+
+  for (let i = 0; i <= steps; i++) {
+    const beat = from + i * step;
+    for (const dancer of dancers) {
+      const event = timeline.figureAt(dancer, beat);
+      if (!event) continue;
+      const pose = poseAt(timeline, dancer, beat);
+      const drawn = drawnArms(pose, beat);
+
+      const inSeam = beat - event.start < SEAM_BEATS;
+      const previous = inSeam ? timeline.figureBefore(dancer, event.start) : undefined;
+      const rows = [
+        overall,
+        statsFor(figures, event.figure),
+        ...(previous ? [statsFor(seams, `${previous.figure} → ${event.figure}`)] : []),
+      ];
+
+      for (const [index, side] of SIDES.entries()) {
+        const arm = drawn.arms[index]!;
+        const hand = drawn.hands[side];
+        const now: HandTrail = {
+          beat,
+          hand: hand.p,
+          handHeight: -hand.drop,
+          elbow: arm.elbow,
+          elbowHeight: arm.elbowZ,
+          hanging: drawn.hanging[side],
+          local: bodyLocalHand(pose, hand),
+          direction: undefined,
+          lastReversal: undefined,
+        };
+        const key = `${dancer}/${side}`;
+        const before = trail.get(key);
+        trail.set(key, now);
+
+        const where = { dancer, beat, side };
+        if (!finiteTrail(now)) {
+          for (const row of rows) {
+            row.samples += 1;
+            row.nonFinite += 1;
+            row.firstNonFinite ??= where;
+          }
+          continue;
+        }
+        if (!before || !finiteTrail(before)) continue;
+
+        const dt = beat - before.beat;
+        if (dt <= 0) continue;
+        for (const row of rows) {
+          row.samples += 1;
+          keep(row.handSpeed, dist(now.hand, before.hand) / dt, where);
+          keep(row.elbowSpeed, dist(now.elbow, before.elbow) / dt, where);
+          keep(row.heightRate, Math.abs(now.handHeight - before.handHeight) / dt, where);
+          keep(row.elbowHeightRate, Math.abs(now.elbowHeight - before.elbowHeight) / dt, where);
+          if (now.hanging !== before.hanging) {
+            row.stateFlips += 1;
+            row.firstFlip ??= where;
+          }
+        }
+
+        // The hand's own direction, in the dancer's frame, so walking across
+        // the room is not a reversal and a take-and-drop-and-take is.
+        const move = sub3(now.local, before.local);
+        const length = Math.hypot(move[0], move[1], move[2]);
+        if (length < 1e-9) {
+          now.direction = before.direction;
+          now.lastReversal = before.lastReversal;
+          continue;
+        }
+        const direction: Vec3 = [move[0] / length, move[1] / length, move[2] / length];
+        const reversed =
+          before.direction !== undefined && dot3(direction, before.direction) < REVERSAL_DOT;
+        now.direction = direction;
+        now.lastReversal = reversed ? { beat, local: before.local } : before.lastReversal;
+        if (!reversed) continue;
+        for (const row of rows) row.reversals += 1;
+        const mark = before.lastReversal;
+        if (mark === undefined || beat - mark.beat > 1) continue;
+        // Two turns inside one beat: an out-and-back, which is the dip.
+        const move2 = sub3(before.local, mark.local);
+        const excursion = Math.hypot(move2[0], move2[1], move2[2]);
+        for (const row of rows) keep(row.dip, excursion, where);
+      }
+    }
+  }
+
+  const severity = (s: MotionStats): number =>
+    Math.max(
+      s.handSpeed.value / bounds.handSpeedPx,
+      s.elbowSpeed.value / bounds.elbowSpeedPx,
+      s.heightRate.value / bounds.heightRatePx,
+      s.dip.value / bounds.dipPx,
+      s.stateFlips > 0 ? 1 : 0,
+      // An arm that is not a number is drawn as nothing, which is worse than
+      // any speed, so it sorts above everything else.
+      s.nonFinite > 0 ? 1000 : 0,
+    );
+  const worstFirst = (rows: MotionStats[]): MotionStats[] =>
+    rows.sort((a, b) => severity(b) - severity(a) || a.key.localeCompare(b.key));
+
+  return {
+    from,
+    to: until,
+    step,
+    figures: worstFirst([...figures.values()]),
+    seams: worstFirst([...seams.values()]),
+    overall,
+    bounds,
+  };
+}
+
+/** A motion report as a markdown section: the bounds, then the two tables. */
+export function formatMotionReport(report: MotionReport, top = Infinity): string {
+  const lines: string[] = [];
+  lines.push(
+    `Sampled beats ${report.from} to ${report.to} every ${fraction(report.step)} beat. ` +
+      `Bounds: hand ${report.bounds.handSpeedPx} px/beat, elbow ${report.bounds.elbowSpeedPx} px/beat, ` +
+      `height ${report.bounds.heightRatePx} px/beat, dip ${report.bounds.dipPx} px.`,
+  );
+  lines.push("");
+  lines.push("**Per figure**");
+  lines.push("");
+  lines.push(...motionTable(report.figures.slice(0, top)));
+  lines.push("");
+  lines.push("**Per seam** (`prev → next`, the first 0.4 beats of the second figure)");
+  lines.push("");
+  lines.push(...motionTable(report.seams.slice(0, top)));
+  return lines.join("\n");
+}
+
+const MOTION_HEADER = [
+  "| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | where the worst hand was |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+];
+
+function motionTable(rows: readonly MotionStats[]): string[] {
+  if (rows.length === 0) return ["_nothing measured._"];
+  return [
+    ...MOTION_HEADER,
+    ...rows.map(
+      (r) =>
+        `| \`${r.key}\` | ${r.handSpeed.value.toFixed(1)} | ${r.elbowSpeed.value.toFixed(1)} | ` +
+        `${r.heightRate.value.toFixed(1)} | ${r.stateFlips} | ${r.nonFinite} | ` +
+        `${r.dip.value.toFixed(2)} | ${motionPlace(r.handSpeed)} |`,
+    ),
+  ];
+}
+
+const motionPlace = (w: MotionWorst): string =>
+  w.dancer === undefined ? "—" : `${w.dancer} ${w.side} at beat ${w.beat!.toFixed(3)}`;
+
+const fraction = (step: number): string =>
+  Number.isInteger(1 / step) ? `1/${Math.round(1 / step)}` : String(step);
+
+/** How far a direction has to turn to count as a reversal: more than 90°. */
+const REVERSAL_DOT = 0;
+
+type Vec3 = readonly [number, number, number];
+const sub3 = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot3 = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/** Whether every number in one trail sample is finite. */
+const finiteTrail = (t: HandTrail): boolean =>
+  Number.isFinite(t.hand[0]) &&
+  Number.isFinite(t.hand[1]) &&
+  Number.isFinite(t.handHeight) &&
+  Number.isFinite(t.elbow[0]) &&
+  Number.isFinite(t.elbow[1]) &&
+  Number.isFinite(t.elbowHeight);
+
+/** One hand at one step, kept so the next step can difference against it. */
+interface HandTrail {
+  beat: Beat;
+  hand: Vec2;
+  handHeight: number;
+  elbow: Vec2;
+  elbowHeight: number;
+  hanging: boolean;
+  /** Forward, to the dancer's right, and up: the hand relative to the body. */
+  local: Vec3;
+  direction: Vec3 | undefined;
+  lastReversal: { beat: Beat; local: Vec3 } | undefined;
+}
+
+/**
+ * The hand relative to the dancer: forward, to their right, and up.
+ *
+ * Reversals are measured here rather than on the floor so that walking across
+ * the room is not a reversal and a hand that is taken, dropped and taken again
+ * while the dancer walks steadily is.
+ */
+function bodyLocalHand(pose: PoseSample, hand: Hand): Vec3 {
+  const rad = (pose.facing * Math.PI) / 180;
+  const dx = hand.p[0] - pose.p[0];
+  const dy = hand.p[1] - pose.p[1];
+  return [
+    dx * Math.cos(rad) + dy * Math.sin(rad),
+    -dx * Math.sin(rad) + dy * Math.cos(rad),
+    -hand.drop,
+  ];
+}
+
+function statsFor(rows: Map<string, MotionStats>, key: string): MotionStats {
+  const found = rows.get(key);
+  if (found) return found;
+  const made = emptyStats(key);
+  rows.set(key, made);
+  return made;
+}
+
+const emptyStats = (key: string): MotionStats => ({
+  key,
+  handSpeed: { value: 0 },
+  elbowSpeed: { value: 0 },
+  heightRate: { value: 0 },
+  elbowHeightRate: { value: 0 },
+  stateFlips: 0,
+  nonFinite: 0,
+  dip: { value: 0 },
+  reversals: 0,
+  samples: 0,
+});
+
+function keep(
+  worst: MotionWorst,
+  value: number,
+  where: { dancer: DancerId; beat: Beat; side: Side },
+): void {
+  if (value <= worst.value) return;
+  worst.value = value;
+  worst.dancer = where.dancer;
+  worst.beat = where.beat;
+  worst.side = where.side;
+}
+
+/** The first beat any figure in the timeline starts at. */
+function firstFigureBeat(timeline: Timeline, dancers: readonly DancerId[]): Beat {
+  let first = Infinity;
+  for (const dancer of dancers) {
+    const event = timeline.figuresOf(dancer)[0];
+    if (event) first = Math.min(first, event.start);
+  }
+  return Number.isFinite(first) ? first : 0;
 }

@@ -44,6 +44,8 @@ export interface LongLinesParams extends ContraParams {
 export const longLines = contraFigure<LongLinesParams>({
   id: "long-lines",
   call: "LONG LINES FORWARD AND BACK",
+  describe:
+    "Take hands all the way along your own line with the dancers beside you, walk four steps into the set, and walk four steps back out. The arms do not move in this figure: everyone is just holding hands, and only the bodies travel. You end where you started, still facing across.",
   lead: 4,
   beats: 8,
   defaults: { from: {}, forwardPx: 9, holdDrop: 8, stackPx: 1 },

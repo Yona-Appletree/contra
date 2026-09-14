@@ -45,6 +45,8 @@ export interface RobinsChainParams extends ContraParams {
 export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
+  describe:
+    "The two robins take right hands in the middle and pull by, passing right shoulders. Each robin then gives her left hand to the opposite lark, who catches it with his left and puts his right behind her back; he walks backward while she walks forward round him — the courtesy turn — and the two of them end as a couple facing across. The larks never leave their places: the whole effect of a chain is that the robins have traded and each couple has a new robin.",
   lead: 4,
   beats: 8,
   defaults: { from: {}, chains: "robin", pullBeats: 4.5, bowPx: 5, holdDrop: 6, stackPx: 1 },

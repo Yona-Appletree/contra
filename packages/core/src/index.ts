@@ -7,6 +7,20 @@ export { POLE_OUTWARD, planarReach, solveArm, solveArm3d } from "./kinematics/Ar
 export type { Hand, PoseSample, Side, Style } from "./kinematics/PoseSample.js";
 export { NEUTRAL_STYLE, lerpHand } from "./kinematics/PoseSample.js";
 export { shoulders, shouldersAt } from "./kinematics/shoulders.js";
+export type { ArmPair, DrawnArms } from "./kinematics/drawnArms.js";
+export {
+  ELBOW_TUCK_DROP_PX,
+  ELBOW_TUCK_PLANAR_PX,
+  ELBOW_TUCK_SPLAY_DEG,
+  HAND_HANG_DROP_PX,
+  HAND_HANG_FORWARD_PX,
+  HAND_HANG_LATERAL_PX,
+  HAND_HANG_SWING_PX,
+  drawnArms,
+  elbowPole,
+  hangingHand,
+  resolveHand,
+} from "./kinematics/drawnArms.js";
 export type { HandStackRoleSet, JoinedHand } from "./kinematics/stackJoined.js";
 export { stackJoined } from "./kinematics/stackJoined.js";
 export { easeSeam, seamProgress } from "./kinematics/easeSeam.js";

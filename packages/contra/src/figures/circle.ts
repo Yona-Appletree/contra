@@ -40,6 +40,8 @@ const OUT_BEATS = 1.5;
 export const circle = contraFigure<CircleParams>({
   id: "circle",
   call: "CIRCLE LEFT",
+  describe:
+    "All four join hands in a ring and walk round — circle left means the way your left hand is pointing, clockwise seen from above. Three quarters is the usual amount, which lands you one place back from where you started. Keep the hands joined and the ring the same size the whole way round.",
   lead: 4,
   beats: 8,
   defaults: { from: {}, direction: "left", places: 3, holdDrop: 6, stackPx: 1 },

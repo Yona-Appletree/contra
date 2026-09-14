@@ -102,6 +102,8 @@ const SWING_CLEARANCE_PX = 8.5;
 export const swing = contraFigure<SwingParams>({
   id: "swing",
   call: "SWING",
+  describe:
+    "Ballroom hold: right hips together, the lark's right hand on the robin's back, her left on his shoulder, his left and her right joined out to the side. Buzz step round each other — one foot pushing, the other pivoting — for as many turns as the music gives, then open out side by side, lark on the left and robin on the right, facing whichever way the next figure needs. Both of them keep their weight on the inside foot and lean a little away from each other, which is what makes a swing spin instead of shuffle.",
   lead: 4,
   beats: 8,
   defaults: {

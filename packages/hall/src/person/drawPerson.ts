@@ -1,10 +1,10 @@
-import type { Arm3dSolution, PoseSample, Vec2 } from "@caller/core";
+import type { Arm3dSolution, ArmPair, PoseSample, Vec2 } from "@caller/core";
 import { UPPER_ARM_PX, bodyPoint, q256Vec2 } from "@caller/core";
 import { SHOE_COLOUR } from "../appearance/Appearance.js";
 import { shade } from "../appearance/shade.js";
 import type { Ctx2D } from "../renderer/Ctx2D.js";
 import { OUTLINE_COLOUR, TAU, circ, ell, seg } from "../renderer/Ctx2D.js";
-import type { ArmPair, DancerLayout } from "./layoutDancer.js";
+import type { DancerLayout } from "./layoutDancer.js";
 import { layoutDancer } from "./layoutDancer.js";
 import type { Person } from "./Person.js";
 
@@ -28,7 +28,7 @@ export const SHADOW_COLOUR = "rgba(0,0,0,0.22)";
 /**
  * The torso ellipse seen from above: half its depth front to back, and half
  * its width side to side. The width is the shoulders' own half-width, which is
- * what a resting hand hangs beside — see `HAND_HANG_LATERAL_PX`.
+ * what a resting hand hangs beside — see `@caller/core`'s `HAND_HANG_LATERAL_PX`.
  */
 export const TORSO_HALF_DEPTH_PX = 3.6;
 export const TORSO_HALF_WIDTH_PX = 5.6;

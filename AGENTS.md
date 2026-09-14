@@ -7,19 +7,20 @@ start with
 
 ## Where code goes
 
-| Kind of code                                                 | Package / path                        | Filename                                 |
-| ------------------------------------------------------------ | ------------------------------------- | ---------------------------------------- |
-| Clock, pose sample, arm solver, stacking, seam easing, style | `packages/core/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Formation, group, figure def, progression, timeline, decider | `packages/choreo/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Contra role set, contra figures, contra dances               | `packages/contra/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
-| A figure written as **data** (a `FigureSpec`), not code      | `packages/contra/src/figures/specs/`  | `<name>Spec.ts`, co-located test         |
-| The pixel-hall renderer: world, bodies, z-order, bubble      | `packages/hall/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Audio clock, tunes, medleys, notation cursor                 | `packages/music/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Design tokens, theme, CSS variables                          | `packages/ui-design/src/`             | `theme.css`                              |
-| Primitive component (no app knowledge)                       | `packages/ui-base/src/components/ui/` | `<name>.tsx` (shadcn layout)             |
-| App screens, layout, routing, composition root               | `apps/web/src/`                       | `<Name>.tsx`                             |
-| Full-tree stories                                            | `apps/storybook/src/`                 | `<Name>.stories.tsx`                     |
-| Visual spikes (never imported by production code)            | `spikes/<name>/`                      | `index.html` + vendored assets           |
+| Kind of code                                                                       | Package / path                        | Filename                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------- |
+| Clock, pose sample, arm solver, stacking, seam easing, style                       | `packages/core/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
+| The resting arm: where a `'down'` hand hangs, the elbow pole, the drawn arm points | `packages/core/src/kinematics/`       | `drawnArms.ts`                           |
+| Formation, group, figure def, progression, timeline, decider                       | `packages/choreo/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
+| Contra role set, contra figures, contra dances                                     | `packages/contra/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
+| A figure written as **data** (a `FigureSpec`), not code                            | `packages/contra/src/figures/specs/`  | `<name>Spec.ts`, co-located test         |
+| The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
+| Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts` |
+| Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`             | `theme.css`                              |
+| Primitive component (no app knowledge)                                             | `packages/ui-base/src/components/ui/` | `<name>.tsx` (shadcn layout)             |
+| App screens, layout, routing, composition root                                     | `apps/web/src/`                       | `<Name>.tsx`                             |
+| Full-tree stories                                                                  | `apps/storybook/src/`                 | `<Name>.stories.tsx`                     |
+| Visual spikes (never imported by production code)                                  | `spikes/<name>/`                      | `index.html` + vendored assets           |
 
 A package may keep a local file at any layer when it needs one; the table
 names the default home, not a prohibition.

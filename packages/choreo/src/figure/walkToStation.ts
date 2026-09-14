@@ -54,6 +54,8 @@ export interface WalkToStationParams extends FigureParams {
 export const WALK_TO_STATION: FigureDef<WalkToStationParams> = {
   id: "walk-to-station",
   call: "WALK TO YOUR PLACE",
+  describe:
+    "Walk from where you are to where the figure says, bowing a little to one side so two dancers swapping places pass shoulder to shoulder instead of through each other, and stand still once you are there. It is the engine's placeholder figure and the stand that the dancers a `who` selector leaves out are doing; no dance calls it by name.",
   lead: 2,
   beats: 8,
   defaults: {

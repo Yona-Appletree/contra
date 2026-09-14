@@ -43,6 +43,8 @@ const SWING_OUT = 0.6;
 export const doSiDo = contraFigure<DoSiDoParams>({
   id: "do-si-do",
   call: "DO-SI-DO",
+  describe:
+    "Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.",
   lead: 4,
   beats: 8,
   defaults: { from: {}, pairs: "neighbors", amount: 1, swellPx: 2.5, endHalf: null },

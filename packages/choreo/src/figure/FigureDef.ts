@@ -34,6 +34,17 @@ export interface FigureDef<P extends FigureParams = FigureParams> {
   id: string;
   /** What the caller says, e.g. `"NEIGHBORS BALANCE AND SWING"`. */
   call: string;
+  /**
+   * What the dancers actually do, in two to four sentences of a caller's own
+   * words — not what the code does, what the people do.
+   *
+   * This is the figure's specification in prose, and it is what the trajectory
+   * assertions are written against: "robins pull by in the centre, then the
+   * larks scoop them and walk backwards" is a sentence, four assertions and a
+   * reason for each. Anything the author is not sure of is marked `(unsure)`
+   * in the text, so a caller reading the report knows which lines to correct.
+   */
+  describe?: string;
   /** How many beats before the figure the caller starts saying it. */
   lead: Beat;
   /** The figure's natural duration, used when a call does not give one. */

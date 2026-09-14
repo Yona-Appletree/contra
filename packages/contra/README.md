@@ -310,7 +310,7 @@ Where a number was settled at gate 3 the library **imports it from here**
 rather than restating it: the swing's radius, lateral offset, body turn, hand
 drop, back and shoulder hands, lean, flare and buzz feet; the balance's rock
 profile, back ratio and lean cap; the allemande's turn radius; the trapezoid
-speed profile; the hanging hand.
+speed profile. The hanging hand is `@caller/core`'s.
 
 The package exports these six under `pair`-prefixed names — `pairBalance`,
 `pairSwing`, `pairAllemande`, `pairDoSiDo`, `pairWalkIn`, `pairFallBack` —
@@ -400,13 +400,10 @@ starts on a whole beat — neither moves a pixel.
 - **Hanging hands are explicit.** A figure emits a real `Hand` for a hand at
   the dancer's side rather than `'down'`, because `easeSeam` cannot
   interpolate `'down'` (it switches at the midpoint of the seam) and because
-  every take and release has to animate out of somewhere. `handDown` restates
-  `@caller/hall`'s `HAND_HANG_*` numbers, which came from the same spike and
-  were retuned at gate G1 (5.6 px out, 14.5 px down, 0.6 px of swing, so a
-  resting arm is nearly hidden by the torso from above); **that is a
-  duplication to watch**, and the tidy fix is to move the hanging hand into
-  `@caller/core`. `apps/web` depends on both packages and has the test that
-  says the two sets still agree.
+  every take and release has to animate out of somewhere. `handDown` **is**
+  `@caller/core`'s `hangingHand` — F3a moved the resting-arm model down into
+  `core`, so this package no longer keeps its own copy of the `HAND_HANG_*`
+  numbers and there is nothing left for the two copies to disagree about.
 - **The arm swing starts and ends at zero.** The spike's `walk-in` opened with
   the arms already swinging while `fall-back` closed with them still, so the
   hanging hands jumped up to 0.8 px at three seams and the seam ease hid it.
@@ -458,3 +455,41 @@ M1 lands one segment kind (`ringWalk`) and one segment per track. `walk`,
 `orbitPair` and `oscillate`, segment sequencing, `carried` holds, dance-local
 figures and the `describe`/`assertions` fields are later milestones; the
 compiler names the milestone when it meets one.
+
+## The motion oracle and the figure checks (F3a)
+
+Three files and a report, built to make jank _measurable_ rather than to fix
+any of it. F3a deliberately fixed no figure: a figure fixed then is a figure
+whose defect the instrument never got to prove it could see.
+
+- **`figures/motionBounds.ts`** — how fast a drawn arm is allowed to move,
+  derived from this library rather than picked. The fastest legitimate hand
+  motion here is a one-beat `takeAndRelease` take; `takeExtremes` finds the
+  registry's own worst geometry (a hand 17.8986 px from its hip in
+  `right-and-left-through`, lifted to a drop of 0 in `swing`) and
+  `deriveTakeMotion` measures what that take does at 1/32 beat. Each bound is a
+  **guard at 3×** the measured maximum — 80.44 px/beat of hand, 65.17 px/beat
+  of height, 3.6 px of out-and-back — not a tuning target. `motionBounds.test.ts`
+  re-derives every one and fails if the code moves underneath.
+  **The elbow bound is useless and that is a finding**: a straight take moves the
+  elbow at 9.33× the hand's speed, because a hanging hand sits 0.14 px from its
+  own shoulder on the floor and the elbow's azimuth is very nearly undefined
+  there. Read the report's elbow column against its hand column instead.
+- **`figures/figureChecks.ts`** — each figure's `describe` turned into
+  `@caller/choreo` trajectory assertions, with the windows taken from the
+  figure's own declared joins where there is one.
+- **`figures/knownWrong.ts`** — the fourteen assertions that fail today, each
+  with its measurement and one line of why. `figureChecks.test.ts` holds both
+  halves of the contract: everything **off** the list passes, everything **on**
+  it still fails, so a fix has to delete its row. Nothing is skipped and nothing
+  was loosened.
+- **`pnpm report:motion`** writes [`docs/motion-report.md`](../../docs/motion-report.md):
+  the derived bounds and their derivation, the ten worst figures and the ten
+  worst seams over the ten demo dances, every figure measured alone, the
+  known-wrong table, every assertion with its evidence, and what every figure
+  says it does.
+
+Every figure in `createContraRegistry()` carries a `describe`: two to four
+sentences of what the dancers do, in a caller's words. `star`,
+`california-twirl` and `slide-left` are marked `(unsure: …)` — a caller should
+correct those three.

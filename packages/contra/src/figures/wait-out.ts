@@ -35,6 +35,8 @@ export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo">;
 export const waitOut: FigureDef<ContraWaitOutParams> = {
   id: WAIT_OUT.id,
   call: WAIT_OUT.call,
+  describe:
+    "The couple at the end of the line has nobody to dance with this time through. They wait it out, then cross over to the other line so they come back in on the other side and as the other kind of couple. In a duple improper set they face each other and swap places; in a becket set they loop round the end of the set together as a couple.",
   lead: WAIT_OUT.lead,
   beats: WAIT_OUT.beats,
   defaults: stripCrossing(WAIT_OUT.defaults),
