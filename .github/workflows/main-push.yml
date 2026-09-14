@@ -54,9 +54,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Print app version
+        id: version
+        run: echo "version=$(./scripts/print-app-version.sh)" >> "$GITHUB_OUTPUT"
+
       - name: Build web app
         env:
-          VITE_APP_VERSION: ${{ needs.tag-next-version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
         run: pnpm --filter @caller/web build
 
       - uses: actions/configure-pages@v5
