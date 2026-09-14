@@ -24,11 +24,12 @@ import {
   withDefaults,
 } from "@caller/choreo";
 import type { ContraFigure, ContraParams } from "./ContraFigure.js";
-import { planContext, worldSpot } from "./ContraFigure.js";
+import { bearing, holdWindow, planContext, polar, worldSpot } from "./ContraFigure.js";
 import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
 import { CONTRA_FIGURES } from "./registry.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { IN_BEATS as STAR_IN_BEATS, OUT_BEATS as STAR_OUT_BEATS, WRIST_RADIUS_PX } from "./star.js";
 
 /**
  * What each figure's `describe` says, turned into assertions.
@@ -274,18 +275,86 @@ function longLinesChecks(): FigureChecks {
   return { key: "long-lines", describe: describeOf("long-lines"), results };
 }
 
-/** A star: the giving hands are one point in the middle, held the whole way. */
+/**
+ * A star: the default hold is a wrist grip — each giving hand rests on the
+ * wrist of the dancer ahead of them round the ring, not at a shared centre —
+ * and `hold: "hands-across"` is the older shape, one point per diagonal pair.
+ *
+ * The user: "in our area the star is done by putting the hand on the wrist of
+ * the person in front of you... doing all in a pile in the center (that's
+ * awkward)."
+ */
 function starChecks(): FigureChecks {
-  const { track } = figureTrack("star");
-  // A star is *one* hold in the middle: all four right hands on one point, not
-  // two pairs of hands near one another.
-  const held = joinWindow(track, "1R", "R", "2R", "R") ?? win(1, 7);
+  const { track: wrist, beats } = figureTrack("star");
+  // The figure's own take/release window: `WRIST_JOIN_WINDOW`-shaped, but read
+  // straight off `star.ts`'s own constants so a change there cannot go stale
+  // here.
+  const held = holdWindow(beats, STAR_IN_BEATS + 0.4, STAR_OUT_BEATS);
+  const wristHeld = win(held.takeTo, held.releaseFrom);
+  const { track: across } = figureTrack("star", { hold: "hands-across" });
+  const acrossHeld = joinWindow(across, "1R", "R", "2R", "R") ?? win(1, 7);
   const results = [
-    joinedThroughout(track, "1R", "R", "2R", "R", held),
-    joinedThroughout(track, "1L", "R", "2L", "R", held),
-    handsJoined(track, "1L", "R", "1R", "R", held),
+    // The wrist hold: a four-person star's ring alternates role at every
+    // place, so going round it once visits every giver-and-leader pair.
+    wristJoined(wrist, "2R", "R", "2L", wristHeld),
+    wristJoined(wrist, "2L", "R", "1R", wristHeld),
+    wristJoined(wrist, "1R", "R", "1L", wristHeld),
+    wristJoined(wrist, "1L", "R", "2R", wristHeld),
+    // hands-across: unchanged from before this milestone — one point per
+    // diagonal pair, both pairs over the centre.
+    joinedThroughout(across, "1R", "R", "2R", "R", acrossHeld),
+    joinedThroughout(across, "1L", "R", "2L", "R", acrossHeld),
+    handsJoined(across, "1L", "R", "1R", "R", acrossHeld),
   ];
   return { key: "star", describe: describeOf("star"), results };
+}
+
+/**
+ * A giving hand stays on the wrist of the dancer ahead of it round the star: a
+ * forearm's length out from the ring's centre, in the direction of wherever
+ * the leader actually is at each instant.
+ *
+ * This is not a `handsJoined` call: the leader's own hand is busy on somebody
+ * else's wrist, so there is no second *hand* to compare against, only a point
+ * built from the leader's sampled body. `@caller/choreo`'s `trajectory.ts`
+ * models a `HandJoin` as two named hands meeting at one point, which is not
+ * this shape, so this stays local to `figureChecks.ts` rather than adding a
+ * wrist-target helper to a package this milestone does not own.
+ */
+function wristJoined(
+  track: Track,
+  giver: string,
+  side: "L" | "R",
+  leader: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${giver}'s ${side} stays on ${leader}'s wrist from beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let worst = 0;
+  let beat = track.beats[first] ?? 0;
+  for (let i = first; i <= last; i++) {
+    const hand = track.pose(giver, i).hands[side];
+    const at = track.beats[i] ?? 0;
+    if (hand === "down") {
+      return fail(label, `${giver}'s ${side} hand is down, not on a wrist`, at, Infinity, "px");
+    }
+    const target = polar(SET_CENTRE, bearing(SET_CENTRE, track.pose(leader, i).p), WRIST_RADIUS_PX);
+    const gap = dist(hand.p, target);
+    if (gap > worst) {
+      worst = gap;
+      beat = at;
+    }
+  }
+  if (worst > HAND_TOLERANCE_PX) {
+    return fail(label, `${worst.toFixed(4)} px off the wrist point`, beat, worst, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `${worst.toFixed(4)} px off the wrist point, within ${HAND_TOLERANCE_PX} px`,
+    worst: { beat, value: worst, unit: "px" },
+  };
 }
 
 /** A circle: hands joined all the way round, all the way through. */

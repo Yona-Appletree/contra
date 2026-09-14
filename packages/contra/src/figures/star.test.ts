@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { Vec2 } from "@caller/core";
+import { dist } from "@caller/core";
+import { frame as makeFrame, withDefaults } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
-import { star } from "./star.js";
+import { WRIST_RADIUS_PX, star } from "./star.js";
 import {
   figureMoves,
   figureProblems,
@@ -15,12 +18,14 @@ describe("star", () => {
   for (const formation of [DUPLE_IMPROPER, BECKET]) {
     it(`reaches, joins, ends and keeps its distance in ${formation.id}`, () => {
       const group = probeGroup(formation);
-      for (const hand of ["R", "L"] as const) {
-        for (const places of [2, 3, 4]) {
-          expect(
-            figureProblems(probeFigure(star, { hand, places }, { group })),
-            `${hand}${places}`,
-          ).toEqual([]);
+      for (const hold of ["wrist", "hands-across"] as const) {
+        for (const hand of ["R", "L"] as const) {
+          for (const places of [2, 3, 4]) {
+            expect(
+              figureProblems(probeFigure(star, { hold, hand, places }, { group })),
+              `${hold} ${hand}${places}`,
+            ).toEqual([]);
+          }
         }
       }
     });
@@ -33,9 +38,34 @@ describe("star", () => {
     expect(spotError(left["1L"]!, stationSpot(DUPLE_IMPROPER, "1R"))).toBeLessThan(1e-9);
   });
 
-  it("brings every hand to one floor point in the middle", () => {
-    // Every join the figure declares is the two hands across the star, and the
-    // probe checks each of them is one point; all four therefore coincide.
-    expect(probeFigure(star, {}, { group: probeGroup(DUPLE_IMPROPER) }).maxJoinGap).toBe(0);
+  it("hands-across brings each diagonal pair to one floor point in the middle", () => {
+    // Every join this hold declares is a diagonal pair, and the probe checks
+    // each of them is one point; both pairs happen to sit over the centre.
+    expect(
+      probeFigure(star, { hold: "hands-across" }, { group: probeGroup(DUPLE_IMPROPER) }).maxJoinGap,
+    ).toBe(0);
+  });
+
+  it("wrist grip puts four hands at four points on a small ring, not one pile", () => {
+    // The wrist hold declares no `HandJoin`s at all — nobody's hand is shared,
+    // each one is on the *other* dancer's wrist — so this samples the hands
+    // directly rather than reading the probe's join-gap oracle.
+    const group = probeGroup(DUPLE_IMPROPER, 4, makeFrame([0, 0], 90));
+    const resolved = withDefaults(star, {}, star.beats);
+    const t = star.beats / 2;
+    const points: Vec2[] = [];
+    for (const id of ["1L", "1R", "2L", "2R"] as const) {
+      const hand = star.sample(group, id, t, resolved).hands.R;
+      if (hand === "down") throw new Error(`${id}'s R hand is down at beat ${t}`);
+      // The ring's centre is the group's own centre, [0, 0] on this frame:
+      // every wrist point sits exactly one forearm out from it.
+      expect(Math.hypot(hand.p[0], hand.p[1])).toBeCloseTo(WRIST_RADIUS_PX, 5);
+      points.push(hand.p);
+    }
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        expect(dist(points[i]!, points[j]!)).toBeGreaterThan(1);
+      }
+    }
   });
 });
