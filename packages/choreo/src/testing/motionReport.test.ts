@@ -142,9 +142,17 @@ describe("motionReport", () => {
 
   it("counts a hand that changes between placed and hanging as a state flip", () => {
     const report = motionReport(timelineOf("still", "down"), 8);
-    const seam = report.seams[0]!;
-    expect(seam.stateFlips).toBeGreaterThan(0);
-    expect(seam.firstFlip?.side).toBe("R");
+    const row = report.figures[0]!;
+    expect(row.stateFlips).toBeGreaterThan(0);
+    expect(row.firstFlip?.side).toBe("R");
+    // And the flip is now motionless: the seam eased the hand down to exactly
+    // where the hang puts it, so nothing moves at the instant the label
+    // changes. Before F3c the two swapped at the seam's midpoint and the hand
+    // jumped the whole distance between them.
+    expect(row.flipJump.value).toBeLessThanOrEqual(row.handSpeed.value * report.step + 1e-9);
+    // The seam itself no longer holds a flip at all: the hand is placed for the
+    // whole of it and only becomes hanging once it has arrived.
+    expect(report.seams[0]!.stateFlips).toBe(0);
   });
 
   it("sorts an offending figure above a quiet one and marks it in the markdown", () => {

@@ -1,3 +1,4 @@
+import type { Angle } from "../geometry/Angle.js";
 import { angleLerp } from "../geometry/Angle.js";
 import { mix, smooth } from "../geometry/smooth.js";
 import type { Beat } from "../time/Clock.js";
@@ -24,13 +25,14 @@ import { SEAM_BEATS } from "./RenderingContract.js";
  */
 export function easeSeam(prev: PoseSample, next: PoseSample, k: number, beat: Beat = 0): PoseSample {
   const w = smooth(k);
+  const facing = angleLerp(prev.facing, next.facing, w);
   return {
     ...next,
-    facing: angleLerp(prev.facing, next.facing, w),
+    facing,
     lean: mix(prev.lean, next.lean, w),
     hands: {
-      L: easeHand(prev, next, "L", w, beat),
-      R: easeHand(prev, next, "R", w, beat),
+      L: easeHand(prev, next, "L", w, beat, facing),
+      R: easeHand(prev, next, "R", w, beat, facing),
     },
   };
 }
@@ -49,6 +51,14 @@ export const seamProgress = (t: number): number => (t >= SEAM_BEATS ? 1 : t / SE
  * and a hand hanging at the hip, mid-seam: the pop the user sees when an arm
  * "jumps". At `w = 1` the interpolation arrives at exactly the hand the
  * renderer would hang there anyway, so the moment the seam ends nothing moves.
+ *
+ * A hanging hand is resolved against the **eased** body — the seam's own facing
+ * and the incoming figure's place — and not against the facing the figure that
+ * left it `'down'` had. That matters for reach (AC1): the two ends of the
+ * interpolation then hang off the same shoulder, the reachable set is a ball
+ * and therefore convex, and a hand between them is always within the arm. Off
+ * the outgoing figure's facing it is not, and a pair of figures that face
+ * opposite ways puts the hip 2 px out of reach half way through the seam.
  */
 function easeHand(
   prev: PoseSample,
@@ -56,15 +66,11 @@ function easeHand(
   side: Side,
   w: number,
   beat: Beat,
+  facing: Angle,
 ): Hand | "down" {
   const a = prev.hands[side];
   const b = next.hands[side];
   if (a === "down" && b === "down") return "down";
-  return lerpHand(handOf(prev, side, beat), handOf(next, side, beat), w);
+  const hang = (amp: number): Hand => hangingHand(next.p, facing, side, beat, amp);
+  return lerpHand(a === "down" ? hang(prev.amp) : a, b === "down" ? hang(next.amp) : b, w);
 }
-
-/** A pose's hand on this side, with a `'down'` one resolved to where it hangs. */
-const handOf = (pose: PoseSample, side: Side, beat: Beat): Hand => {
-  const hand = pose.hands[side];
-  return hand === "down" ? hangingHand(pose.p, pose.facing, side, beat, pose.amp) : hand;
-};

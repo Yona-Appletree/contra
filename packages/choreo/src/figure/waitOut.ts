@@ -1,5 +1,5 @@
-import type { Beat, PoseSample, Vec2 } from "@caller/core";
-import { angleOfVec, norm, shouldersAt, sub } from "@caller/core";
+import type { Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
+import { angleOfVec, hangingHand, lerpHand, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
 import { frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
@@ -21,6 +21,19 @@ import { DEFAULT_BOW_PX, walkStep } from "./walkPath.js";
  * side that has to reach the other line, as a becket end couple does.
  */
 export type CrossOver = "swap" | "mirror";
+
+/**
+ * Beats the inside hand spends coming up off the hip to the hold, and going
+ * back down again: one beat each, which is what every take in the library
+ * takes.
+ *
+ * The take runs *after* the couple has stepped together, and the release
+ * *before* it steps back out, rather than overlapping either. A hand on its way
+ * to a point 16 px away while its dancer is still 16 px from it is a hand
+ * outside the 15 px arm, and AC1 says a hand is never drawn where the arm
+ * cannot reach.
+ */
+const TAKE_BEATS: Beat = 1;
 
 /** `wait-out`'s parameters. */
 export interface WaitOutParams extends FigureParams {
@@ -97,43 +110,56 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     const g = geometry(group, params);
     const self = g.side(station);
 
-    if (t < g.joinBeats) {
-      const step = walkStep(self.start, self.hold, t, g.joinBeats, 0);
-      return standing(step.p, step.facing);
-    }
-    if (t >= g.partStart && t < g.crossStart) {
-      const step = walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0);
-      return standing(step.p, step.facing);
-    }
-    if (t < g.crossStart) {
-      const myRole = groupStation(group, station).role;
-      const theirRole = groupStation(group, g.otherId(station)).role;
-      const joined = joinHands(
-        g.joinPoint,
-        params.holdDrop,
-        [myRole, theirRole],
-        group.roleSet,
-        params.stackPx,
+    if (t >= g.crossStart) {
+      const step = walkStep(
+        self.home,
+        g.target(station),
+        t - g.crossStart,
+        g.crossBeats,
+        params.bowPx,
       );
-      const hand = joined[myRole];
-      if (!hand) throw new Error(`wait-out: no joined hand for role "${myRole}"`);
-      const pose = standing(self.hold.p, self.hold.facing);
       return {
-        ...pose,
-        hands: self.inside === "L" ? { L: hand, R: "down" } : { L: "down", R: hand },
+        ...standing(step.p, step.facing),
+        stepRate: step.moving ? 1 : 0,
+        amp: step.moving ? 1 : 0,
       };
     }
-    const step = walkStep(
-      self.home,
-      g.target(station),
-      t - g.crossStart,
-      g.crossBeats,
-      params.bowPx,
+
+    // Where the body is: stepping together, waiting, or stepping back out.
+    const walk =
+      t < g.joinBeats
+        ? walkStep(self.start, self.hold, t, g.joinBeats, 0)
+        : t >= g.partStart
+          ? walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0)
+          : undefined;
+    const pose = walk ? standing(walk.p, walk.facing) : standing(self.hold.p, self.hold.facing);
+
+    const myRole = groupStation(group, station).role;
+    const theirRole = groupStation(group, g.otherId(station)).role;
+    const joined = joinHands(
+      g.joinPoint,
+      params.holdDrop,
+      [myRole, theirRole],
+      group.roleSet,
+      params.stackPx,
     );
+    const hand = joined[myRole];
+    if (!hand) throw new Error(`wait-out: no joined hand for role "${myRole}"`);
+
+    // The take and the release animate, a beat each, once the couple is
+    // standing at the hold. Before F3c this hand appeared out of nothing the
+    // instant they arrived and vanished the instant they parted: 140 state
+    // flips and 216.7 px/beat of hand speed, which made `wait-out` the
+    // second-worst figure in the library — and it is the one on screen for 64
+    // beats at a time, danced by the couple nobody is watching.
+    const down = hangingHand(pose.p, pose.facing, self.inside, t, pose.amp);
+    const half = (g.partStart - g.joinBeats) / 2;
+    const take = Math.min(TAKE_BEATS, Math.max(0, half));
+    const rising = lerpHand(down, hand, ramp(t, g.joinBeats, g.joinBeats + take));
+    const inside = lerpHand(rising, down, ramp(t, g.partStart - take, g.partStart));
     return {
-      ...standing(step.p, step.facing),
-      stepRate: step.moving ? 1 : 0,
-      amp: step.moving ? 1 : 0,
+      ...pose,
+      hands: self.inside === "L" ? { L: inside, R: "down" } : { L: "down", R: inside },
     };
   },
 

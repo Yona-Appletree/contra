@@ -6,6 +6,7 @@ import type {
   ContraParams,
   FigurePlan,
   HandJoin,
+  HoldWindow,
   PlanContext,
   Spot,
   Spots,
@@ -16,6 +17,7 @@ import {
   holdWindow,
   isHeld,
   joinPoint,
+  joinWindowFor,
   joinedHands,
   midpoint,
   takeAndRelease,
@@ -135,6 +137,12 @@ const leanAt = (t: Beat): number =>
 /** A balance for two: close to the hold spacing, take hands, rock. */
 function pairBalance(ctx: PlanContext, params: BalanceParams): FigurePlan {
   const beats = params.beats;
+  // A balance never lets go at the end — the swing that almost always follows
+  // wants the pair already holding — so its release window has no length. That
+  // used to be `smooth(0 / 0)`, which is where every vanished arm in the
+  // library came from; `ramp` now reads it as "still held at the last beat".
+  const windowFor = (self: StationId, side: Side, other: StationId, otherSide: Side): HoldWindow =>
+    joinWindowFor(params.carried, self, side, other, otherSide, beats, TAKE_TO, 0);
   const window = holdWindow(beats, TAKE_TO, 0);
   const ends: Spots = {};
   const hold: Record<StationId, Spot> = {};
@@ -213,7 +221,9 @@ function pairBalance(ctx: PlanContext, params: BalanceParams): FigurePlan {
         );
         const mine = joined[station];
         if (!mine) throw new Error(`balance: no joined hand for "${station}"`);
-        return takeAndRelease(self, side, t, mine, window);
+        const partner = mustPair(params.pairs, station);
+        const theirSide: Side = params.hold === "one" ? params.hand : theirs;
+        return takeAndRelease(self, side, t, mine, windowFor(station, side, partner, theirSide));
       };
 
       return {

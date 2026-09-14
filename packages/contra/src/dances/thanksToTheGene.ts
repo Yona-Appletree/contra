@@ -27,12 +27,11 @@ export const thanksToTheGene: Dance = contraDance({
     {
       name: "A1",
       figures: [
-        { figure: "balance", beats: 4, params: { pairs: "neighbors" }, call: "NEIGHBOR BALANCE" },
         {
-          figure: "swing",
-          beats: 12,
+          figure: "balance-and-swing",
+          beats: 16,
           params: { pairs: "neighbors", endFacing: "across" },
-          call: "AND SWING",
+          call: "NEIGHBOR BALANCE AND SWING",
         },
       ],
     },

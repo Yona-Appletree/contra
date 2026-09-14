@@ -59,8 +59,20 @@ export interface Style {
 /** The neutral style: no variation at all. */
 export const NEUTRAL_STYLE: Style = { bounce: 1, lead: 0, swingTightness: 1 };
 
-/** Interpolate two hands. `k` is not clamped. */
-export const lerpHand = (a: Hand, b: Hand, k: number): Hand => ({
-  p: [a.p[0] + (b.p[0] - a.p[0]) * k, a.p[1] + (b.p[1] - a.p[1]) * k],
-  drop: a.drop + (b.drop - a.drop) * k,
-});
+/**
+ * Interpolate two hands. `k` is not clamped.
+ *
+ * The two ends are returned exactly, not computed: `a + (b − a) × 1` is not `b`
+ * in floating point, and a take that finishes 10⁻¹⁶ px away from where it was
+ * aiming breaks the one invariant that matters most — two joined hands being
+ * *one* floor point, which both dancers arrive at from their own hips.
+ */
+export const lerpHand = (a: Hand, b: Hand, k: number): Hand =>
+  k <= 0
+    ? a
+    : k >= 1
+      ? b
+      : {
+          p: [a.p[0] + (b.p[0] - a.p[0]) * k, a.p[1] + (b.p[1] - a.p[1]) * k],
+          drop: a.drop + (b.drop - a.drop) * k,
+        };

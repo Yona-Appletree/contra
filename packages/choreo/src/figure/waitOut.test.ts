@@ -1,4 +1,4 @@
-import { HOLD_SPACING_PX, dist, shoulders, solveArm } from "@caller/core";
+import { HOLD_SPACING_PX, dist, hangingHand, shoulders, solveArm } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { frame, reverseFrame } from "../formation/Frame.js";
 import type { Station } from "../formation/Formation.js";
@@ -79,13 +79,24 @@ describe("wait-out", () => {
     }
   });
 
-  it("has hands down at the stations, where no arm could reach the middle", () => {
+  it("has its hands at the hip at the stations, where no arm could reach the middle", () => {
     const g = group();
     const p = params();
     for (const t of [0, 1, 57, 60, 64]) {
       const pose = WAIT_OUT.sample(g, "WL", t, p);
-      expect(pose.hands.L).toBe("down");
+      // The outside hand is never placed at all. The inside one is placed — at
+      // the hip, which is where its take starts from and where its release
+      // leaves it, so nothing appears or vanishes at either instant (F3c).
       expect(pose.hands.R).toBe("down");
+      const inside = pose.hands.L;
+      if (inside === "down") {
+        // Past the start of the crossing the couple has let go for good.
+        expect(t).toBeGreaterThanOrEqual(56);
+        continue;
+      }
+      const hang = hangingHand(pose.p, pose.facing, "L", t, pose.amp);
+      expect(dist(inside.p, hang.p)).toBeCloseTo(0, 9);
+      expect(inside.drop).toBeCloseTo(hang.drop, 9);
     }
   });
 

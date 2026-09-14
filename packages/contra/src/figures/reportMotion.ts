@@ -1,6 +1,12 @@
 import type { Beat } from "@caller/core";
 import type { MotionReport, MotionStats } from "@caller/choreo";
-import { createTimeline, formatMotionReport, motionReport, withDefaults } from "@caller/choreo";
+import {
+  MOTION_STEP,
+  createTimeline,
+  formatMotionReport,
+  motionReport,
+  withDefaults,
+} from "@caller/choreo";
 import { CONTRA_MOTION_BOUNDS, CONTRA_TAKE_MOTION, GUARD_FACTOR } from "./motionBounds.js";
 import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
@@ -248,15 +254,26 @@ function merge(rows: Map<string, MotionStats>, row: MotionStats): void {
 
 /** The worse of two rows, field by field. */
 function mergeInto(a: MotionStats, b: MotionStats): MotionStats {
-  const worse = <K extends "handSpeed" | "elbowSpeed" | "heightRate" | "elbowHeightRate" | "dip">(
+  const worse = <
+    K extends
+      | "handSpeed"
+      | "elbowSpeed"
+      | "elbowPerHand"
+      | "heightRate"
+      | "elbowHeightRate"
+      | "flipJump"
+      | "dip",
+  >(
     key: K,
   ) => (b[key].value > a[key].value ? b[key] : a[key]);
   return {
     key: a.key,
     handSpeed: worse("handSpeed"),
     elbowSpeed: worse("elbowSpeed"),
+    elbowPerHand: worse("elbowPerHand"),
     heightRate: worse("heightRate"),
     elbowHeightRate: worse("elbowHeightRate"),
+    flipJump: worse("flipJump"),
     dip: worse("dip"),
     stateFlips: a.stateFlips + b.stateFlips,
     ...((a.firstFlip ?? b.firstFlip) ? { firstFlip: a.firstFlip ?? b.firstFlip } : {}),
@@ -278,6 +295,7 @@ function severity(s: MotionStats): number {
   return Math.max(
     s.handSpeed.value / CONTRA_MOTION_BOUNDS.handSpeedPx,
     s.elbowSpeed.value / CONTRA_MOTION_BOUNDS.elbowSpeedPx,
+    s.elbowPerHand.value / CONTRA_MOTION_BOUNDS.elbowPerHand,
     s.heightRate.value / CONTRA_MOTION_BOUNDS.heightRatePx,
     s.dip.value / CONTRA_MOTION_BOUNDS.dipPx,
     s.stateFlips > 0 ? 1 : 0,
@@ -286,8 +304,8 @@ function severity(s: MotionStats): number {
 }
 
 const HEADER = [
-  "| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | worst hand at |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function table(rows: readonly MotionStats[]): string[] {
@@ -298,15 +316,17 @@ function table(rows: readonly MotionStats[]): string[] {
       (r) =>
         `| \`${r.key}\` | ${over(r.handSpeed.value, CONTRA_MOTION_BOUNDS.handSpeedPx)} | ` +
         `${over(r.elbowSpeed.value, CONTRA_MOTION_BOUNDS.elbowSpeedPx)} | ` +
+        `${over(r.elbowPerHand.value, CONTRA_MOTION_BOUNDS.elbowPerHand, 2)} | ` +
         `${over(r.heightRate.value, CONTRA_MOTION_BOUNDS.heightRatePx)} | ${r.stateFlips} | ` +
-        `${r.nonFinite} | ${over(r.dip.value, CONTRA_MOTION_BOUNDS.dipPx)} | ${where(r)} |`,
+        `${over(r.flipJump.value, CONTRA_MOTION_BOUNDS.handSpeedPx * MOTION_STEP, 2)} | ` +
+        `${r.nonFinite} | ${over(r.dip.value, CONTRA_MOTION_BOUNDS.dipPx, 2)} | ${where(r)} |`,
     ),
   ];
 }
 
 /** A number, marked when it is over its bound. */
-const over = (value: number, bound: number): string =>
-  value > bound ? `**${value.toFixed(1)}**` : value.toFixed(1);
+const over = (value: number, bound: number, places = 1): string =>
+  value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
 
 const where = (r: MotionStats): string =>
   r.handSpeed.dancer === undefined

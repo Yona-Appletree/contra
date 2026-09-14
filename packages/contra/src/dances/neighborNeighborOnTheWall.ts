@@ -46,12 +46,11 @@ export const neighborNeighborOnTheWall: Dance = contraDance({
     {
       name: "B1",
       figures: [
-        { figure: "balance", beats: 4, params: { pairs: "partners" }, call: "PARTNER BALANCE" },
         {
-          figure: "swing",
-          beats: 12,
+          figure: "balance-and-swing",
+          beats: 16,
           params: { pairs: "partners", endFacing: "across" },
-          call: "AND SWING",
+          call: "PARTNER BALANCE AND SWING",
         },
       ],
     },

@@ -33,11 +33,13 @@ describe("the derived motion bounds", () => {
     expect(derived.take.elbowSpeed).toBeCloseTo(CONTRA_TAKE_MOTION.elbowSpeed, 3);
     expect(derived.take.heightRate).toBeCloseTo(CONTRA_TAKE_MOTION.heightRate, 3);
     expect(derived.take.elbowPerHand).toBeCloseTo(CONTRA_TAKE_MOTION.elbowPerHand, 3);
+    expect(derived.take.elbowRatio).toBeCloseTo(CONTRA_TAKE_MOTION.elbowRatio, 3);
   });
 
   it("still comes out at the bounds that are written down", () => {
     expect(derived.bounds.handSpeedPx).toBeCloseTo(CONTRA_MOTION_BOUNDS.handSpeedPx, 3);
     expect(derived.bounds.elbowSpeedPx).toBeCloseTo(CONTRA_MOTION_BOUNDS.elbowSpeedPx, 3);
+    expect(derived.bounds.elbowPerHand).toBeCloseTo(CONTRA_MOTION_BOUNDS.elbowPerHand, 3);
     expect(derived.bounds.heightRatePx).toBeCloseTo(CONTRA_MOTION_BOUNDS.heightRatePx, 3);
     expect(derived.bounds.dipPx).toBeCloseTo(CONTRA_MOTION_BOUNDS.dipPx, 9);
   });
@@ -46,6 +48,8 @@ describe("the derived motion bounds", () => {
     expect(GUARD_FACTOR).toBe(3);
     expect(CONTRA_MOTION_BOUNDS.handSpeedPx / CONTRA_TAKE_MOTION.handSpeed).toBeCloseTo(3, 3);
     expect(CONTRA_MOTION_BOUNDS.heightRatePx / CONTRA_TAKE_MOTION.heightRate).toBeCloseTo(3, 3);
+    expect(CONTRA_MOTION_BOUNDS.elbowSpeedPx / CONTRA_TAKE_MOTION.elbowSpeed).toBeCloseTo(3, 3);
+    expect(CONTRA_MOTION_BOUNDS.elbowPerHand / CONTRA_TAKE_MOTION.elbowRatio).toBeCloseTo(3, 3);
   });
 
   it("derives the dip bound from the only out-and-back the model asks for", () => {
@@ -89,10 +93,13 @@ describe("the derived motion bounds", () => {
     expect(CONTRA_MOTION_BOUNDS.dipPx).toBeCloseTo(GUARD_FACTOR * worst, 9);
   });
 
-  it("moves the elbow far faster than the hand, which is why its bound is useless", () => {
-    // The finding, asserted so it cannot quietly stop being true: a straight
-    // take whips the elbow because a hanging hand is 0.14 px from its own
-    // shoulder on the floor, so the elbow's azimuth is very nearly undefined.
+  it("no longer whips the elbow, which is what made the old bound useless", () => {
+    // A hanging hand really is 0.14 px from its own shoulder on the floor, so
+    // the elbow's azimuth really is nearly undefined there — but that is not
+    // what made F3a's take move the elbow at 250 px/beat. That was the pole
+    // lining up with the arm part way through, and the elbow flipping through
+    // 180°; with `ELBOW_POLE_ALONG_FRACTION` capping it the same take moves the
+    // elbow at 68 px/beat, 2.54× the hand rather than 9.33×.
     const hip = handDown([0, 0], 0, "R", 0, 0);
     const arms = drawnArms(
       {
@@ -109,6 +116,7 @@ describe("the derived motion bounds", () => {
       0,
     );
     expect(dist(hip.p, arms.shoulders.R)).toBeLessThan(0.2);
-    expect(derived.take.elbowPerHand).toBeGreaterThan(9);
+    expect(derived.take.elbowPerHand).toBeLessThan(3);
+    expect(derived.take.elbowRatio).toBeLessThan(4);
   });
 });
