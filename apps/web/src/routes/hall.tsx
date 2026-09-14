@@ -30,6 +30,7 @@ import type { DemoProgram } from "../program.js";
 import {
   LOOKAHEAD_BEATS,
   MUSIC_BEATS_PER_ITEM,
+  TIMES_THROUGH,
   createDemoProgram,
   lineUpStartOf,
   musicBeatOf,
@@ -38,7 +39,7 @@ import {
   programBeatOf,
   shownMusicBeat,
 } from "../program.js";
-import { setHallUrl } from "../state/hallUrl.js";
+import { readSeed, setHallUrl } from "../state/hallUrl.js";
 
 /** The demo hall: two lines, five couples and four (plan Q16). */
 const DEMO_LINES: readonly number[] = [5, 4];
@@ -65,6 +66,16 @@ const TEMPO_MAX = 124;
 
 /** The theme the demo hall is painted in. */
 const THEME = "grange";
+
+/**
+ * The tune select's sentinel value for "let the programme's seeded shuffle
+ * choose" — the default (T1: "ensure we have more tunes to randomize (I am
+ * so sick of soldier's joy)"). Distinct from every real medley slug
+ * (`@caller/music`'s slugs are all `kebab-case-words`, never this bare
+ * word), so it is safe to store in the same state as a pinned medley slug
+ * and in the `?tune=` URL parameter.
+ */
+const SHUFFLE_MEDLEY = "shuffle";
 
 /** What the caller says while nobody is dancing, so the bubble is never blank. */
 const IDLE_CALL = "";
@@ -101,8 +112,15 @@ export function HallPage({
     [benchCouples],
   );
 
+  // The seed for the evening's medley shuffle: `?seed=<n>` when given, else
+  // the date, so a seeded URL reproduces one evening exactly (T1).
+  const seed = readSeed(params);
+
   const [danceSlug, setDanceSlug] = useState<string | undefined>(routeDance);
-  const [medleySlug, setMedleySlug] = useState(routeTune ?? medleys[0]!.slug);
+  // "Shuffle" is the default (T1): the programme's own seeded shuffle picks
+  // the medley for whichever dance is playing. `?tune=<slug>` still pins
+  // every dance to one medley, as before.
+  const [medleySlug, setMedleySlug] = useState(routeTune ?? SHUFFLE_MEDLEY);
   const [tempo, setTempo] = useState(112);
   const [playing, setPlaying] = useState(false);
   const [zoomChoice, setZoomChoice] = useState<"auto" | number>(() => zoomFrom(params.get("zoom")));
@@ -118,17 +136,34 @@ export function HallPage({
     [lines],
   );
   const program = useMemo<DemoProgram>(
-    () => createDemoProgram(world, danceSlug),
-    [world, danceSlug],
+    () => createDemoProgram(world, danceSlug, seed),
+    [world, danceSlug, seed],
   );
   const people = useMemo<Map<DancerId, Person>>(() => createHallPeople(program.hall), [program]);
-  const medley = useMemo(() => medleyOf(medleySlug), [medleySlug]);
+  // The programme's own shuffle, read as a `Medley`: `program.tunes` is one
+  // concrete tune per dance (each dance's assigned medley's next tune in
+  // turn), so this is a real medley whose own tune-cycling arithmetic
+  // (`tuneAt`, `Player`'s internal `sequence`) already gives the right tune
+  // for the right dance with no further bookkeeping — a dance is exactly
+  // `MUSIC_BEATS_PER_ITEM` beats of music, `TIMES_THROUGH` times through the
+  // one tune the shuffle gave it.
+  const shuffleMedley = useMemo<Medley>(
+    () => ({ slug: SHUFFLE_MEDLEY, tunes: [...program.tunes], timesThroughEach: TIMES_THROUGH }),
+    [program],
+  );
+  const medley = useMemo(
+    () => (medleySlug === SHUFFLE_MEDLEY ? shuffleMedley : medleyOf(medleySlug)),
+    [medleySlug, shuffleMedley],
+  );
   // Which tune is playing is arithmetic on the beat rather than something the
   // player tells us, so the notation follows the silent clock too: the medley
   // plays each tune `timesThroughEach` times through and then moves on, which
   // is exactly how `Player` chooses its own buffers. It is the *music* beat —
   // the count of dancing beats, with the silent line-ups left out — so a tune
-  // always changes between two dances rather than eight beats into one.
+  // always changes between two dances rather than eight beats into one. This
+  // holds for the shuffle medley too: it is a real `Medley`, just one this
+  // programme's own seed built rather than one of `@caller/music`'s fixed
+  // ones.
   const tune = tuneAt(medley, shownMusicBeat(beat));
 
   const zoom = zoomChoice === "auto" ? fitZoom : zoomChoice;
@@ -317,10 +352,12 @@ export function HallPage({
     };
   }, [draw, frozen, beatNow, goMusic, goSilent]);
 
-  // Keep the address bar on the dance that is actually playing.
+  // Keep the address bar on the dance that is actually playing. "Shuffle"
+  // does not round-trip through `?tune=` — it is the default, so leaving it
+  // out is what a URL with no `?tune=` at all already means.
   const position = positionAt(program, beat);
   useEffect(() => {
-    setHallUrl(position.dance.slug, medleySlug);
+    setHallUrl(position.dance.slug, medleySlug === SHUFFLE_MEDLEY ? undefined : medleySlug);
   }, [position.dance.slug, medleySlug]);
 
   const play = useCallback(async (): Promise<void> => {
@@ -504,6 +541,7 @@ function ControlBar(props: {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={SHUFFLE_MEDLEY}>Shuffle</SelectItem>
           {medleys.map((m) => (
             <SelectItem key={m.slug} value={m.slug}>
               {medleyName(m)}
