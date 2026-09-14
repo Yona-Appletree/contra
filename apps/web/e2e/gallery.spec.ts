@@ -102,7 +102,7 @@ test.describe("the move gallery", () => {
     mkdirSync(FIGURE_DIR, { recursive: true });
     mkdirSync(SEAM_DIR, { recursive: true });
 
-    const rows: string[] = [];
+    const rows: string[][] = [];
     for (const tile of tiles) {
       const link = tile.kind === "seam" ? `#/moves/seam/${tile.key}` : `#/moves/${tile.key}`;
       await page.goto(`${link}?strip=1&bare=1&zoom=${ZOOM}&step=${STEP}`);
@@ -135,13 +135,41 @@ async function tileList(page: Page): Promise<TileInfo[]> {
   );
 }
 
-function indexRow(tile: TileInfo, cells: number, link: string): string {
+function indexRow(tile: TileInfo, cells: number, link: string): string[] {
   const file = tile.kind === "seam" ? `seams/${tile.key}.png` : `figures/${tile.key}.png`;
   const source = tile.source === "" ? "figure defaults" : tile.source;
-  return `| \`${tile.key}\` | [${file}](./${file}) | \`${link}\` | ${tile.beats} | ${cells} | ${tile.formation} | ${source} |`;
+  return [
+    `\`${tile.key}\``,
+    `[${file}](./${file})`,
+    `\`${link}\``,
+    String(tile.beats),
+    String(cells),
+    tile.formation,
+    source,
+  ];
 }
 
-function indexPage(rows: string[]): string {
+/** The header the index's table carries. */
+const COLUMNS = ["move", "strip", "deep link", "beats", "frames", "formation", "params from"];
+
+/**
+ * A markdown table padded the way `prettier` pads one, so the generated index
+ * passes `pnpm format:check` without anybody running `--write` over it: every
+ * cell in a column is padded to the longest cell in that column, and the rule
+ * under the header is that many dashes.
+ */
+function table(header: readonly string[], rows: readonly string[][]): string {
+  const width = header.map((h, i) =>
+    Math.max(3, h.length, ...rows.map((r) => (r[i] ?? "").length)),
+  );
+  const line = (cells: readonly string[]): string =>
+    `| ${cells.map((c, i) => c.padEnd(width[i]!)).join(" | ")} |`;
+  return [line(header), line(width.map((w) => "-".repeat(w))), ...rows.map((r) => line(r))].join(
+    "\n",
+  );
+}
+
+function indexPage(rows: string[][]): string {
   return `<!-- Written by e2e/gallery.spec.ts on every run. Do not edit by hand. -->
 
 # Move gallery strips
@@ -161,9 +189,7 @@ These are written on every \`playwright test\` run and committed. They are
 
 The deep link opens the same tile live, looping, on the Moves tab.
 
-| move | strip | deep link | beats | frames | formation | params from |
-| ---- | ----- | --------- | ----- | ------ | --------- | ----------- |
-${rows.join("\n")}
+${table(COLUMNS, rows)}
 
 M5's pair strips (\`01-walk-in.png\` … \`09-fall-back.png\`) are in this
 directory too; they are gate G1's artifact and come from \`e2e/pair.spec.ts\`.
