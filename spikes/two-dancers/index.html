@@ -66,7 +66,7 @@ p.hint code{color:var(--accent);font:13px ui-monospace,Menlo,monospace}
   <h1>Hands Four · two dancers</h1>
   <p class="hint">Follow-up spike to <code>spikes/hall</code> (vision: "The hall, rendered"; D13, D14, D15, D21; Q4 and Q5 are now ruled). It builds on the gate-2 rulings rather than re-asking them:
   <b>true overhead only</b>, people about 1.5× the hall's (shoulders 11 px wide, arm reach 15 px, roughly 4 cm per pixel), <b>anti-aliasing allowed</b> for sprites and motion, positions still at 1/256 px, integer zoom for display.
-  <b>Rendering contract:</b> the body is drawn procedurally from above (feet, skirt, shoulders, head with a face sliver and a nose) and rotated per facing, the head turns separately to look at the partner. Joined hands always stack the same way: the robin's hand on top, fingers down, the lark's underneath, palm up, so the robin's arms draw over the lark's.
+  <b>Role look:</b> by default larks wear cool shirts and robins warm ones and nobody wears a skirt, since dress is not role; the hall spike's skirt-on-robins look stays as an option. Skin, hair and build vary per person either way. <b>Rendering contract:</b> the body is drawn procedurally from above (feet, skirt, shoulders, head with a face sliver and a nose) and rotated per facing, the head turns separately to look at the partner. Joined hands always stack the same way: the robin's hand on top, fingers down, the lark's underneath, palm up, so the robin's arms draw over the lark's.
   <b>Arms are puppets:</b> each hand is a floor point with a height that both dancers compute from the same figure; the arm is two 7.5 px bones with fixed length in three dimensions, solved by two-bone IK with the elbow pole pointing down and out and then projected onto the floor, so a planar arm can never exceed 15 px and a hand point out of reach makes the arm point at it and fall short, so hands only meet when the dancers are close enough.
   <b>Spacing:</b> 14 px chest to chest in a two-hand hold (about 55 cm), lines 18 px further apart; dancers walk in before taking hands, and every take and release is animated rather than snapped. Movement is deliberately quiet: contra glides, so the beat shows as small foot and shoulder motion, not bounce. Everything is canned keyframes for one 64-beat sequence on the tune's clock, not an engine.</p>
 </header>
@@ -83,6 +83,7 @@ p.hint code{color:var(--accent);font:13px ui-monospace,Menlo,monospace}
     <div class="grp"><span class="l">outline</span><button data-k="outline" data-v="1" class="on">on</button><button data-k="outline" data-v="0">off</button></div>
     <div class="grp"><span class="l">shadow</span><button data-k="shadow" data-v="1" class="on">on</button><button data-k="shadow" data-v="0">off</button></div>
     <div class="grp"><span class="l">hold spacing</span><input type="range" id="spacing" min="10" max="30" value="14"><span id="spacingV">14 px</span></div>
+    <div class="grp"><span class="l">role look</span><button data-k="look" data-v="colours" class="on">two colours</button><button data-k="look" data-v="skirts">skirt on robins</button></div>
     <div class="grp"><button id="reroll">another pair</button></div>
   </div>
   <div class="controls" id="ctlSeq">
@@ -157,9 +158,11 @@ function makePerson(rng,skirt){
   p.cap=pick(rng,['#8a2b2b','#2b4a8a','#3a3a3a','#6a8a3a']);p.capDark=shade(p.cap,0.7);
   return p;
 }
-let people=null;
-function rollPeople(seed){const rng=mulberry32(seed);people={L:makePerson(rng,false),R:makePerson(rng,true)};if(people.R.style==='bald')people.R.style='bob';}
-rollPeople(34);
+// role look: 'colours' tells larks and robins apart by shirt colour only (cool vs warm, nobody in a skirt); 'skirts' is the hall spike's look, robins in skirts
+const LARK_SHIRTS=['#4c7fc9','#2e5d8a','#3f8f8f','#5fb0a0','#6aa84f','#5c8a3f'],ROBIN_SHIRTS=['#c95c9e','#a33f5c','#c94c4c','#d97a3a','#e0a56a','#d9b23a'];
+let people=null,peopleSeed=34;
+function rollPeople(seed){peopleSeed=seed;const rng=mulberry32(seed);const skirts=OPT.look==='skirts';people={L:makePerson(rng,false),R:makePerson(rng,skirts)};if(people.R.style==='bald')people.R.style='bob';
+  if(!skirts){people.L.shirt=pick(rng,LARK_SHIRTS);people.R.shirt=pick(rng,ROBIN_SHIRTS);['L','R'].forEach(k=>{const q=people[k];q.shirtDark=shade(q.shirt,0.72);q.shirtLite=shade(q.shirt,1.18);});}}
 
 // ============================================================ the puppet rig
 const ARM={L1:7.5,L2:7.5};const SHW=5.2;         // shoulder half width; arm = upper + forearm
@@ -261,7 +264,8 @@ function sampleAt(b){
 }
 
 // ============================================================ options and clock (hall spike contract)
-const OPT={zoom:6,aa:1,outline:1,shadow:1,spacing:14,loopFig:-1};
+const OPT={zoom:6,aa:1,outline:1,shadow:1,spacing:14,loopFig:-1,look:'colours'};
+rollPeople(34);
 const clock={mode:'perf',bpm:112,ref:performance.now()/1000,refBeat:0,paused:false,pausedBeat:0,
   now(){return this.mode==='audio'?audio.ctx.currentTime:performance.now()/1000;},
   beat(){if(this.paused)return this.pausedBeat;return this.refBeat+(this.now()-this.ref)*this.bpm/60;},
@@ -376,8 +380,8 @@ function wearFloor(states,alpha){const wg=wornCv.getContext('2d');wg.fillStyle='
 
 // ============================================================ controls
 document.querySelectorAll('#ctl0 button[data-k]').forEach(btn=>btn.addEventListener('click',()=>{
-  const k=btn.dataset.k;OPT[k]=+btn.dataset.v;document.querySelectorAll('#ctl0 button[data-k="'+k+'"]').forEach(b2=>b2.classList.toggle('on',b2===btn));
-  if(k==='zoom')applyZoom();if(k==='aa')document.getElementById('otherLabel').textContent=OPT.aa?'anti-alias off':'anti-alias on';
+  const k=btn.dataset.k;const v=btn.dataset.v;OPT[k]=isNaN(+v)?v:+v;document.querySelectorAll('#ctl0 button[data-k="'+k+'"]').forEach(b2=>b2.classList.toggle('on',b2===btn));
+  if(k==='look')rollPeople(peopleSeed);if(k==='zoom')applyZoom();if(k==='aa')document.getElementById('otherLabel').textContent=OPT.aa?'anti-alias off':'anti-alias on';
 }));
 const tempoEl=document.getElementById('tempo');tempoEl.addEventListener('input',()=>{document.getElementById('tempoV').textContent=tempoEl.value;clock.setTempo(+tempoEl.value);if(audio.playing)restartAudio();});
 const spacingEl=document.getElementById('spacing');spacingEl.addEventListener('input',()=>{OPT.spacing=+spacingEl.value;document.getElementById('spacingV').textContent=OPT.spacing+' px';wornCv.getContext('2d').clearRect(0,0,W,H);});
@@ -458,6 +462,7 @@ document.getElementById('btnPlay').addEventListener('click',async(e)=>{
   if(q.has('aa')){OPT.aa=+q.get('aa');setBtn('aa',OPT.aa);document.getElementById('otherLabel').textContent=OPT.aa?'anti-alias off':'anti-alias on';}
   if(q.has('outline')){OPT.outline=+q.get('outline');setBtn('outline',OPT.outline);}
   if(q.has('s')){OPT.spacing=+q.get('s');spacingEl.value=OPT.spacing;document.getElementById('spacingV').textContent=OPT.spacing+' px';}
+  if(q.has('look')){OPT.look=q.get('look');document.querySelectorAll('#ctl0 button[data-k="look"]').forEach(b=>b.classList.toggle('on',b.dataset.v===OPT.look));rollPeople(peopleSeed);}
   if(q.has('seed'))rollPeople(+q.get('seed'));
   for(let b=0;b<64;b+=0.1)wearFloor(sampleAt(b).st,0.012);      // one cycle of wear so the traces are there on load
   if(q.has('shot'))document.body.classList.add('shot');
