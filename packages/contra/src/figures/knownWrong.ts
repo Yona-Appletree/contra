@@ -50,8 +50,7 @@ export const KNOWN_WRONG: readonly KnownWrong[] = [
     label: "1R and 2R pass R shoulders around beat 2.5",
     measured:
       "they come 13.497 px apart at beat 2.719, 6.75 px from the middle of the set — a pass, and in the middle — but 2R is on 1R's LEFT by 13.16 px",
-    why:
-      "F7's ruling makes the courtesy turn a rigid pivot, and a rigid pivot's take is the finish reflected through the point between them: each robin stops a hold short of her couple's centre, on the near side of it. Two robins who both stop short of the middle are on each other's left however they walk — their straight paths come no nearer than 19.36 px, and the bow that closes that gap cannot change which side of it they are on. Getting them on to right shoulders needs each of them past the middle before the hands close, and that needs her lark a further 11.5 px past it — 27.5 px of a 32 px set — which puts four dancers in the middle at once and breaks AC6 (measured best: 6.78 px against 8). Ruling wanted: the two cannot both be had at this set width.",
+    why: "F7's ruling makes the courtesy turn a rigid pivot, and a rigid pivot's take is the finish reflected through the point between them: each robin stops a hold short of her couple's centre, on the near side of it. Two robins who both stop short of the middle are on each other's left however they walk — their straight paths come no nearer than 19.36 px, and the bow that closes that gap cannot change which side of it they are on. Getting them on to right shoulders needs each of them past the middle before the hands close, and that needs her lark a further 11.5 px past it — 27.5 px of a 32 px set — which puts four dancers in the middle at once and breaks AC6 (measured best: 6.78 px against 8). Ruling wanted: the two cannot both be had at this set width.",
   },
 ];
 
