@@ -98,9 +98,9 @@ it, so every number is the figure's own and no seam is folded in.
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
-| `star` | 31.9 | 46.4 | 8.30 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
+| `star` | 31.9 | 31.9 | 2.10 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
 | `robins-chain` | 30.8 | 62.5 | 4.58 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.125 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
@@ -175,10 +175,14 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 
 ### `star`
 
-> All four put the named hand into the middle and take hold of it, and walk forward round the centre; right hand star goes one way and left hand star the other. Four places is once round, two is half way. The joined hands stay over one spot in the middle of the set while the four of you walk round it. (unsure: a real star is a wrist grip or a stack of palms, and which one a hall uses varies; this draws one shared point, which reads as a palm star.)
+> All four put the named hand on the wrist of the dancer ahead of them round the star, not in a pile in the middle — that keeps your arm slightly bent — and walk forward round the centre; right hand star goes one way and left hand star the other. Four places is once round, two is half way. Rarely, a caller asks for a hands-across star instead: you take hold only of the dancer diagonally across from you, one hand each, the robins' held a little higher than the larks'.
 
 | | assertion | evidence |
 | --- | --- | --- |
+| pass | 2R's R stays on 2L's wrist from beat 1.9 to 6.5 | 0.0000 px off the wrist point, within 0.01 px |
+| pass | 2L's R stays on 1R's wrist from beat 1.9 to 6.5 | 0.0000 px off the wrist point, within 0.01 px |
+| pass | 1R's R stays on 1L's wrist from beat 1.9 to 6.5 | 0.0000 px off the wrist point, within 0.01 px |
+| pass | 1L's R stays on 2R's wrist from beat 1.9 to 6.5 | 0.0000 px off the wrist point, within 0.01 px |
 | pass | 1R's R stays joined to 2R's R from beat 1.90625 to 6.5 | never more than 0.0000 px apart |
 | pass | 1L's R stays joined to 2L's R from beat 1.90625 to 6.5 | never more than 0.0000 px apart |
 | pass | 1L's R stays joined to 1R's R from beat 1.90625 to 6.5 | never more than 0.0000 px apart |
@@ -343,7 +347,7 @@ In a becket dance the whole line slides one couple's width along to its own left
 
 ### `star` — STAR RIGHT
 
-All four put the named hand into the middle and take hold of it, and walk forward round the centre; right hand star goes one way and left hand star the other. Four places is once round, two is half way. The joined hands stay over one spot in the middle of the set while the four of you walk round it. (unsure: a real star is a wrist grip or a stack of palms, and which one a hall uses varies; this draws one shared point, which reads as a palm star.)
+All four put the named hand on the wrist of the dancer ahead of them round the star, not in a pile in the middle — that keeps your arm slightly bent — and walk forward round the centre; right hand star goes one way and left hand star the other. Four places is once round, two is half way. Rarely, a caller asks for a hands-across star instead: you take hold only of the dancer diagonally across from you, one hand each, the robins' held a little higher than the larks'.
 
 ### `swing` — SWING
 

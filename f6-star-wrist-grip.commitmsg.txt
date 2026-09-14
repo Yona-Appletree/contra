@@ -1,0 +1,14 @@
+feat(contra): star's default hold is a wrist grip, not a centre pile
+
+The user's own hall puts the giving hand on the wrist of the dancer
+ahead round the star, a forearm's length back from the centre along
+their arm, so four hands sit at four distinct points on a small ring
+rather than one shared pile -- each arm stays a little bent. A new
+`hold: "wrist" | "hands-across"` parameter defaults to "wrist";
+"hands-across" is today's shape, unchanged, gated behind the
+parameter. The wrist hold's giving hand is not a shared HandJoin (only
+the giver has a hand there), so figureChecks.ts gets a local
+`wristJoined` assertion rather than a new choreo/testing/trajectory.ts
+helper. describe rewritten in the user's words, marker removed.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
