@@ -93,6 +93,56 @@ placeholder figure maps a station of a group on to a station of the _same_
 group and a becket couple's progression takes it out of its group frame
 entirely — which is what `slide-left` is for.)
 
+### `"shadow-pair"` and `"line"` (M2)
+
+Both formations define two selectors beyond `"hands-four"`, per
+`@caller/choreo`'s per-call `groupsFor(selector, set)` contract.
+
+**`"shadow-pair"`** partitions the whole set **seam by seam**, not group by
+group: ordering every couple by `place`, a couple travelling `direction: -1`
+(duple improper's "twos", becket's `-1` line) is always the _near_ half of
+the seam immediately below it, paired with whichever couple sits at the very
+next place — always `direction: 1`, since the two directions alternate
+strictly by place within one minor set and a seam only ever sits between two
+different minor sets. The four-station seam group's stations are `NL`/`NR`
+(near couple) and `FL`/`FR` (far couple) — "near"/"far", not the brief's own
+sketched `1L+`/`2R-`, because which couple is `"1"` or `"2"` in its _own_
+minor set is not fixed relative to the seam (a couple can be a seam's near
+half one cycle and would be a different seam's far half were it read the
+other way). A couple with no seam partner — the true top or bottom of the
+whole line — is a smaller, two-station element (`NL`/`NR` alone), not a merge
+failure: `who: "shadow"` resolves to nothing there and the existing
+`who`-complement stand path takes over for that one call, exactly as a
+`who: "larks"` selector already stands out a formation's other role. `shadow`
+is a pairing tag (`tags("shadow-pair")["shadow"]` is the whole group, the
+same shape `neighbors`/`partners` already are at `"hands-four"`); which two
+stations actually dance together is a figure's own business (M6).
+**`left-diagonal`/`right-diagonal`** are the seam's two cross-role pairs
+(`["NL","FR"]`/`["NR","FL"]`) — the two dancers who are, in duple improper,
+on the _same physical line_ either side of the seam (duple improper
+alternates lark and robin down a line, so this pairing is cross-role) and,
+in becket, on the same line but never alternating (so becket's "diagonal" is
+really a straight, same-role pairing kept under the same tag names for one
+figure library to use both). Which of the two reads as "left" versus "right"
+from a dancer's own facing is unconfirmed by hand-check against real dance
+text and is one of gate G1's open questions — see the M2 report.
+
+**`"line"`** is each minor set's own four stations, widened — only at a true
+end, only when one exists — to fold in the waiting couple beyond it: six
+stations there (`1L`/`1R`/`2L`/`2R` plus `WL-<end>`/`WR-<end>`, suffixed
+`"top"`/`"bottom"` since a formation can in principle widen at both ends of
+the same call, as `long-lines` on a short becket line does), four everywhere
+else, identical in the interior to `"hands-four"`. A `"line"`-selector call
+always dances as one `kind: "set"` group — `groupsFor("line", set)` never
+returns a separate `"wait-*"` plan, because that would double-claim a couple
+this selector already folded in — and the _call's_ own `ends: "both" | "top"
+| "bottom"` field (see `@caller/choreo`'s README) is what actually decides,
+per call, whether a given true end's waiting couple dances or stands for it.
+An odd becket set's rare second waiting place beyond the bottom is left an
+unwidened true end of its own (`"line"` only ever widens with the couple
+immediately adjacent to the dancing line) — flagged for whichever milestone's
+dance needs that shape; no corpus dance in this milestone's scope does.
+
 ## The figure library — `src/figures/`
 
 Every figure the demo's dances call, on `@caller/choreo`'s `FigureDef` and
