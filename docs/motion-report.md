@@ -54,9 +54,9 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `allemande` | 39.1 | 44.6 | 23.4 | 162 | 0 | **7.9** | `set0/c1/lark` L at beat 63.625 |
 | `robins-chain` | 30.0 | 281.4 | 22.5 | 44 | 0 | **7.9** | `set0/c1/robin` R at beat 25.125 |
 | `hey` | **113.0** | 124.3 | 2.3 | 44 | 0 | 1.4 | `set0/c3/robin` L at beat 38.375 |
+| `slide-left` | **80.7** | 61.6 | 0.7 | 8 | 0 | 1.9 | `set0/c2/robin` R at beat 64.219 |
 | `balance-ring` | 31.7 | 35.3 | 16.8 | 6 | 0 | 0.0 | `set0/c3/robin` R at beat 40.344 |
 | `circle` | 43.7 | 40.5 | 10.6 | 44 | 0 | 1.2 | `set0/c5/lark` L at beat 66.219 |
-| `pass-through` | 69.0 | 45.2 | 0.4 | 24 | 0 | 1.6 | `set0/c2/lark` R at beat 62.219 |
 
 ### The ten worst seams
 
@@ -94,7 +94,7 @@ it, so every number is the figure's own and no seam is folded in.
 | `roll-away` | 26.6 | 258.8 | 21.2 | 0 | 0 | 1.2 | `1R` L at beat 2.719 |
 | `do-si-do` | 13.8 | 12.1 | 0.0 | 0 | 0 | 1.2 | `1L` R at beat 5.531 |
 | `pass-through` | 23.0 | 22.5 | 0.0 | 0 | 0 | 1.2 | `1L` L at beat 0.563 |
-| `slide-left` | 15.5 | 15.7 | 0.0 | 0 | 0 | 1.2 | `2L` L at beat 2.000 |
+| `slide-left` | 15.4 | 15.4 | 0.0 | 0 | 0 | 1.2 | `1L` L at beat 0.500 |
 | `petronella` | 24.7 | 26.8 | 0.0 | 0 | 0 | 0.0 | `2L` L at beat 1.781 |
 | `balance-ring` | 19.3 | 24.4 | 12.5 | 0 | 0 | 0.0 | `1R` R at beat 0.500 |
 | `circle` | 15.7 | 24.3 | 9.0 | 0 | 0 | 0.0 | `2L` L at beat 7.500 |
@@ -313,7 +313,7 @@ Take your partner's near hand. The robin rolls across in front of the lark, turn
 
 ### `slide-left` — SLIDE LEFT ALONG THE SET
 
-In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. Nobody turns; you take the step sideways and the whole line moves together. This is the becket progression, and it is what the dance's last figure sets up. (unsure: many callers have the couple step in and along on a diagonal rather than straight sideways; this slides straight along the line.)
+In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.
 
 ### `star` — STAR RIGHT
 

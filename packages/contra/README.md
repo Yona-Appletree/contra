@@ -490,6 +490,7 @@ whose defect the instrument never got to prove it could see.
   says it does.
 
 Every figure in `createContraRegistry()` carries a `describe`: two to four
-sentences of what the dancers do, in a caller's words. `star`,
-`california-twirl` and `slide-left` are marked `(unsure: …)` — a caller should
-correct those three.
+sentences of what the dancers do, in a caller's words. `star` and
+`california-twirl` are marked `(unsure: …)` — a caller should correct those
+two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
+square to the other line, danced in two steps, and the figure now says so.
