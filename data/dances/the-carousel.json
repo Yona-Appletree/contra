@@ -1,0 +1,59 @@
+{
+  "slug": "the-carousel",
+  "title": "The Carousel",
+  "author": "Tom Hinds",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 10324, permission: full.",
+  "source": {
+    "callersBoxId": 10324,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10324",
+    "permission": "full",
+    "transcript": "A1  (8) In long lines, go forward and back   (8) Women allemande left 1 & 1/2\nA2  (16) Hey (PR;ML;NR;WL;PR;ML;NR;WL)\nB1  (4) Partner balance   (12) Partner swing\nB2  (6) Circle left 3/4   (10) Neighbor swing"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1R", "2R"]], "hand": "L", "amount": 1.5 },
+          "call": "ROBINS ALLEMANDE LEFT ONE AND A HALF"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [{ "figure": "hey", "beats": 16, "call": "FULL HEY FOR FOUR" }]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "circle",
+          "beats": 6,
+          "params": { "direction": "left", "places": 3 },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "swing",
+          "beats": 10,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR SWING"
+        }
+      ]
+    }
+  ]
+}

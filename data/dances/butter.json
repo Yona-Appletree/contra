@@ -1,0 +1,71 @@
+{
+  "slug": "butter",
+  "title": "Butter",
+  "author": "Gene Hubert",
+  "formation": "becket",
+  "notes": "The Caller's Box 10320, permission: full.",
+  "source": {
+    "callersBoxId": 10320,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10320",
+    "permission": "full",
+    "transcript": "A1  (2) Shift left  (6) Circle left 3/4  (8) Neighbor swing\nA2  (8) In long lines, go forward and back   (8) Ladies chain to partner\nB1  (16) Hey (WR;NL;MR;PL;WR;NL;MR)\nB2  (4) Partner balance   (12) Partner swing"
+  },
+  "startPlaces": {
+    "1L": { "p": [-16, 30], "facing": 0 },
+    "1R": { "p": [-16, 50], "facing": 0 },
+    "2L": { "p": [16, -30], "facing": 180 },
+    "2R": { "p": [16, -50], "facing": 180 },
+    "WL": { "p": [-16, 10], "facing": 0 },
+    "WR": { "p": [-16, 30], "facing": 0 }
+  },
+  "waitOut": { "joinBeats": 2 },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        { "figure": "slide-left", "beats": 2, "call": "SHIFT LEFT" },
+        {
+          "figure": "circle",
+          "beats": 6,
+          "params": { "direction": "left", "places": 3 },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "neighbors", "endFacing": "across", "endHalf": 10 },
+          "call": "NEIGHBOR SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR PARTNER" }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "hey",
+          "beats": 16,
+          "params": { "start": "robins-right" },
+          "call": "HEY FOR FOUR"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    }
+  ]
+}

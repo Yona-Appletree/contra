@@ -1,0 +1,61 @@
+{
+  "slug": "contra-cockaigne",
+  "title": "Contra Cockaigne",
+  "author": "Devin Nordson",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 4361, permission: full.",
+  "source": {
+    "callersBoxId": 4361,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=4361",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (8) In long lines, go forward and back   (8) Women allemande right 1 & 1/2\nB1  (4) Partner balance   (12) Partner swing\nB2  (8) Ladies chain to neighbor   (8) Star left 1"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1R", "2R"]], "hand": "R", "amount": 1.5 },
+          "call": "ROBINS ALLEMANDE RIGHT ONE AND A HALF"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": { "hand": "L", "places": 4 },
+          "call": "STAR LEFT ONCE"
+        }
+      ]
+    }
+  ]
+}

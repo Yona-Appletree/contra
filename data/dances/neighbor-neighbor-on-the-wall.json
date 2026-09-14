@@ -1,0 +1,62 @@
+{
+  "slug": "neighbor-neighbor-on-the-wall",
+  "title": "Neighbor, Neighbor on the Wall",
+  "author": "Maia McCormick",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 14399, permission: full.",
+  "source": {
+    "callersBoxId": 14399,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=14399",
+    "permission": "full",
+    "transcript": "A1  (8) In long lines, go forward and back   (8) Neighbor swing\nA2  (8) Ladies chain to partner   (8) Hey 1/2 (WR;NL;MR)\nB1  (4) Partner balance   (12) Partner swing\nB2  (8) Men allemande left 1 & 1/2   (8) Neighbor swing"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO PARTNER" },
+        { "figure": "hey", "beats": 8, "params": { "half": true }, "call": "HALF A HEY" }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR SWING"
+        }
+      ]
+    }
+  ]
+}

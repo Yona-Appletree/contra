@@ -263,12 +263,60 @@ Closure, reach and collisions over eight times through, at every line length:
 | duple improper | 2–6     | 1.8 × 10⁻¹⁴ px | 0       | 9.516 px           |
 | becket         | 4–12    | 3.4 × 10⁻¹⁴ px | 0       | 10.000 px          |
 
-`src/dances/` holds the encoded dances, each sourced from its own page on The
-Caller's Box; `dances.test.ts` runs every one of them through the same three
-oracles at every line length its formation is checked at. **Butter** (Gene
-Hubert, becket) is the one that progresses in its own first figure: closure
-≤ 2.9 × 10⁻¹⁴ px, `short` 0, min torso distance 10.000 px, at 4, 5, 6, 8, 10
-and 12 couples.
+`data/dances/*.json` (repo root, beside `data/corpus/`) holds the ten encoded
+dances, each sourced from its own page on The Caller's Box; `dances.test.ts`
+runs every one of them through the same three oracles at every line length
+its formation is checked at. **Butter** (Gene Hubert, becket) is the one that
+progresses in its own first figure: closure ≤ 2.9 × 10⁻¹⁴ px, `short` 0, min
+torso distance 10.000 px, at 4, 5, 6, 8, 10 and 12 couples.
+
+### The demo dances — `data/dances/*.json`, loaded by `src/dances/`
+
+A dance is plain data (`Dance` in `@caller/choreo` has no functions and
+survives a JSON round trip), so the ten demo dances are files rather than
+TypeScript modules: `data/dances/<slug>.json` is a `ContraDanceSpec` as
+written — title, author, a formation **id** (a JSON file cannot hold the
+`Formation` object itself), phrases with figure calls and params, `notes`,
+and `startPlaces`/`waitOut` where a dance has them (Butter's own) — plus a
+`source` block carrying the same provenance every dance file's header used to
+carry in a comment: the Caller's Box id, the page URL, its `permission` field
+and the quoted A1/A2/B1/B2 transcript. `data/dances/programme.json` holds the
+programme's own order, a plain `{ "slugs": [...] }`.
+
+**What a dance file must never hold**: `from` (where each figure's dancers
+already stand) and `carried` (which hands cross a figure boundary without
+letting go) are both _derived_, not written — `chainCalls`/`contraDance`
+compute them fresh at load, exactly as they did when a TypeScript module
+called `contraDance({...})` directly. A dance file that tried to write either
+by hand would drift from what the figures actually do the first time a figure
+changed.
+
+**The loader**, `src/dances/loadDances.ts`: `DanceFile` is `ContraDanceSpec`
+with `formation: string` (see `formationById`) and the `source` block added.
+`danceFromFile` resolves the formation id, checks every call's figure id is
+real (`contraFigureOf`) and every one of its parameter names is something
+that figure actually declares (`Object.keys(figure.defaults)`, less `from`
+and `carried` — the two the loader itself supplies), then calls `contraDance`
+to thread `from`/`carried` through and hand back a `Dance`. A bad dance file
+fails at import time, naming the dance, the phrase and the figure or
+parameter, rather than failing quietly on stage.
+
+`src/dances/index.ts` imports the ten JSON files as plain Vite/TypeScript
+JSON modules (`resolveJsonModule` is on for every package; no code generation
+step, no `readFileSync` — the same import works in `vitest`, in `tsc`, and
+in the browser bundle, because all three already treat repo-root `data/` as
+part of the module graph the same way `packages/hall/src/font/Font.test.ts`
+already read `data/corpus/demo-dances.json`), runs each through
+`danceFromFile` in `programme.json`'s order, and exports the result as
+`DEMO_DANCES` — exactly the shape and the ten dances this package exported
+before, now with no TypeScript dance module behind any of them.
+
+**The `figures` key is reserved, not implemented.** The move-data-layer
+plan's decision 3 gives `Dance` an optional `figures?: Record<string,
+FigureSpec>` for dance-local figures a phrase's calls may reference by name
+(M4). `DanceFile` already has room for the same key so a future dance file
+does not need every existing file to change shape to gain it, but no demo
+dance sets it and this loader does not read it.
 
 ### Where the library is a model rather than a transcription
 

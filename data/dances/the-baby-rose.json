@@ -1,0 +1,66 @@
+{
+  "slug": "the-baby-rose",
+  "title": "The Baby Rose",
+  "author": "David Kaynor",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 10273, permission: full.",
+  "source": {
+    "callersBoxId": 10273,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10273",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance      (12) Neighbor swing\nA2  (8) Circle left 3/4        (8) Partner do-si-do\nB1  (4) Partner balance       (12) Partner swing\nB2  (8) Ladies chain to neighbor (8) Star left 1"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "circle",
+          "beats": 8,
+          "params": { "direction": "left", "places": 3 },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "do-si-do",
+          "beats": 8,
+          "params": { "pairs": "partners", "amount": 1 },
+          "call": "PARTNER DO-SI-DO"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": { "hand": "L", "places": 4 },
+          "call": "STAR LEFT ONCE"
+        }
+      ]
+    }
+  ]
+}

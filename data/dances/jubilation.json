@@ -1,0 +1,62 @@
+{
+  "slug": "jubilation",
+  "title": "Jubilation",
+  "author": "Gene Hubert",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 10526, permission: full.",
+  "source": {
+    "callersBoxId": 10526,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10526",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (8) Men allemande left 1 & 1/2   (8) Partner allemande right 1 & 1/2\nB1  (8) Hey 1/2 (WL;NR;ML)   (8) Partner swing\nB2  (8) In long lines, go forward and back   (8) Ladies chain to neighbor"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+        },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": "partners", "hand": "R", "amount": 1.5 },
+          "call": "PARTNER ALLEMANDE RIGHT ONE AND A HALF"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        { "figure": "hey", "beats": 8, "params": { "half": true }, "call": "HALF A HEY" },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" }
+      ]
+    }
+  ]
+}
