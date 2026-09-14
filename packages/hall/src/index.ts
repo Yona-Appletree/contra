@@ -27,6 +27,8 @@ export {
 export type { DrawOptions, HandStack } from "./person/drawPerson.js";
 export {
   HAND_STACK_RADIUS_PX,
+  HEAD_FORWARD_PX,
+  HEAD_LEAN_FOLLOW,
   SHADOW_COLOUR,
   drawArms,
   drawBody,

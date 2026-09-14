@@ -2,6 +2,7 @@ import { Button } from "@caller/ui-base";
 import { useEffect, useState } from "react";
 import { FramePage } from "./routes/frame.js";
 import { hashRoute } from "./routes/hashRoute.js";
+import { PairPage } from "./routes/pair.js";
 
 const appVersion = import.meta.env.VITE_APP_VERSION ?? "dev";
 
@@ -16,6 +17,12 @@ export function App() {
 
   if (route.path === "/frame") {
     return <FramePage params={route.params} />;
+  }
+
+  if (route.path === "/pair") {
+    // Keyed on the query, so navigating between `#/pair?...` URLs starts the
+    // page again rather than keeping the previous zoom, beat and strip.
+    return <PairPage key={route.params.toString()} params={route.params} />;
   }
 
   return <Home />;
@@ -33,6 +40,9 @@ function Home() {
         </Button>
         <Button asChild variant="secondary">
           <a href={`${base}spikes/two-dancers/`}>Two-dancers spike</a>
+        </Button>
+        <Button asChild variant="secondary">
+          <a href="#/pair">The pair</a>
         </Button>
       </div>
       <footer className="mt-12 text-sm text-muted-foreground">{appVersion}</footer>

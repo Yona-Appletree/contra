@@ -14,7 +14,7 @@ const SCOPE = "@caller/";
 const PACKAGES = {
   core: { dir: "packages/core", allows: new Set([]) },
   choreo: { dir: "packages/choreo", allows: new Set(["core"]) },
-  contra: { dir: "packages/contra", allows: new Set(["choreo"]) },
+  contra: { dir: "packages/contra", allows: new Set(["choreo", "core"]) },
   hall: { dir: "packages/hall", allows: new Set(["core"]) },
   music: { dir: "packages/music", allows: new Set(["core"]) },
   "ui-design": { dir: "packages/ui-design", allows: new Set([]) },
