@@ -1,4 +1,3 @@
-export { createClock, type Beat, type Clock, type Meter } from "./clock/Clock.js";
 export { createPlayer, type Player } from "./player/Player.js";
 export {
   hasteToTheWedding,
@@ -14,7 +13,6 @@ export {
 export {
   Card,
   Notation,
-  type CardDance,
   type CardFigure,
   type CardPhrase,
   type CardProps,

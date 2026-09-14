@@ -1,5 +1,5 @@
+import { createClock, type Beat, type Clock } from "@caller/core";
 import { renderAbc, synth, type TuneObject } from "abcjs";
-import { createClock, type Beat, type Clock } from "../clock/Clock.js";
 import type { Medley, Tune } from "../tunes/Tune.js";
 
 export interface Player {

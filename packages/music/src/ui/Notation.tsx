@@ -1,6 +1,6 @@
+import type { Beat } from "@caller/core";
 import { renderAbc } from "abcjs";
 import { useEffect, useRef } from "react";
-import type { Beat } from "../clock/Clock.js";
 import type { Tune } from "../tunes/Tune.js";
 
 /**

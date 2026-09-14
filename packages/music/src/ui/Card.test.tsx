@@ -3,9 +3,9 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Card } from "./Card.js";
-import type { CardDance } from "./CardDance.js";
+import type { CardProps } from "./Card.js";
 
-const dance: CardDance = {
+const dance: CardProps["dance"] = {
   title: "Test Dance",
   phrases: [
     {

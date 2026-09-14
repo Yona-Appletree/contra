@@ -1,4 +1,4 @@
-import type { Meter } from "../clock/Clock.js";
+import type { Meter } from "@caller/core";
 
 /**
  * A single tune, as ABC notation plus the metadata the player and the UI

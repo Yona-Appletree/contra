@@ -6,27 +6,15 @@ Nothing above reads a wall clock once music plays.
 
 ## Allowed imports
 
-`@caller/music` may import `@caller/core`. Nothing else in this workspace.
-**It does not currently import `@caller/core`** — see "The local clock"
-below.
+`@caller/music` may import `@caller/core`, and does: the clock, `Beat` and
+`Meter` are all `@caller/core`'s. Nothing else in this workspace.
 
 ## API
 
-```ts
-type Beat = number;
-interface Meter {
-  beatsPerBar: number;
-  barsPerPhrase: number;
-}
-interface Clock {
-  beat(): Beat;
-  rebase(now: number, beat: Beat, bpm: number): void;
-  setTempo(bpm: number): void;
-  pause(): void;
-  resume(): void;
-}
-function createClock(now: () => number): Clock;
+`Beat`, `Meter`, `Clock` and `createClock` are imported from `@caller/core`
+and are not re-exported here — take them from `@caller/core` directly.
 
+```ts
 interface Tune {
   slug: string;
   title: string;
@@ -55,57 +43,45 @@ function createPlayer(ctx?: AudioContext): Player;
 
 // React components, src/ui/
 function Notation(props: { tune: Tune; beat: Beat }): JSX.Element;
-function Card(props: { dance: CardDance; beat: Beat }): JSX.Element;
-interface CardDance {
-  title: string;
-  phrases: Array<{ name: string; figures: Array<{ beats: number; call: string }> }>;
+function Card(props: CardProps): JSX.Element;
+interface CardProps {
+  dance: {
+    title: string;
+    phrases: readonly { name: string; figures: readonly CardFigure[] }[];
+  };
+  beat: Beat;
+}
+interface CardFigure {
+  beats: number;
+  call?: string | undefined;
 }
 ```
 
-## The local clock
+`CardProps["dance"]` is structural, and `@caller/choreo`'s `Dance` satisfies
+it exactly — so the card draws a real dance with no shim and no conversion
+step. It is written out rather than imported because `scripts/check-deps.mjs`
+gives `music` one edge, to `core`; importing `@caller/choreo` here would have
+been a change to that table, and the card only ever reads a title, four
+phrase names, and each figure's duration and call text.
 
-`@caller/core` (M2) had not merged when this package was built, so
-`packages/music/src/clock/Clock.ts` defines its own `createClock`, matching
-`m02-core-kinematics.md`'s "time" contract verbatim (`Beat`, `Meter`,
-`Clock`, `createClock(now)`). Per the director's note, the swap to
-`@caller/core`'s `createClock` is deliberately left to a later milestone
-dispatch, even though **M2 merged into `main` while this milestone was in
-progress** (PR #3, `feat(core): clock, geometry, pose sample and the arm
-solver`) — see the next section for why the swap isn't a plain drop-in.
+## The clock is `@caller/core`'s
 
-When it happens: delete `src/clock/Clock.ts` and `src/clock/Clock.test.ts`,
-import `Beat`, `Meter`, `Clock`, `createClock` from `@caller/core` instead,
-add `@caller/core` back to this package's `package.json` dependencies —
-and resolve the beat-convention mismatch below first, since it changes
-`meter` on all three bundled tunes and the beat math in `Notation`/`Card`.
+M9 made the swap the M6 note left open: `src/clock/Clock.ts` and its test are
+gone, `Beat`, `Meter`, `Clock` and `createClock` come from `@caller/core`, and
+`@caller/core` is back in this package's dependencies.
 
-## The `beatsPerBar` convention — now a confirmed conflict with `@caller/core`
+It was a plain drop-in, because the beat-convention conflict M6 recorded had
+already been settled the other way. Director ruling DD11 makes a dance beat
+the dance count: a reel or jig bar is 2 beats, a 32-bar tune is 64 beats, and
+a phrase (A1, A2, B1, B2) is 8 bars — 16 beats. `@caller/core` now ships
+`REEL` and `JIG` as `{ beatsPerBar: 2, barsPerPhrase: 8 }`, which is exactly
+what this package's three tunes already carried, so no tune's `meter` moved
+and neither did the beat arithmetic in `Notation` or `Card`.
 
-`m02-core-kinematics.md`'s example read `// reel: 4, 2 (8-beat phrases)` for
-`Meter`, and **the merged `@caller/core` ships exactly that**:
-`packages/core/src/time/Meter.ts` defines `REEL = { beatsPerBar: 4,
-barsPerPhrase: 2 }`, with the comment "a reel is 4 beats per bar and 2 bars
-per phrase, so phrases are the 8 beats a contra figure is written against."
-
-That is a **different, smaller unit** than this package's own numbers:
-`Tune.beatsPerCycle` is 64 for one full AABB pass (32 bars), and the card
-readout (ported from the hall spike) treats A1/A2/B1/B2 as 16-beat musical
-phrases — i.e. 2 beats/bar and 8 bars/phrase for the _tune's_ structure, not
-4 and 2. `@caller/core`'s 8-beat unit is a _figure_ phrase (what a call like
-"circle left 3/4" spans); this package's 16-beat unit is a _tune_ phrase
-(A1/A2/B1/B2). Both are real, just not the same thing, and they don't
-share a name. This package uses `{ beatsPerBar: 2, barsPerPhrase: 8 }` for
-every tune (both reels and jigs — see "Tempo and `millisecondsPerMeasure`"
-below for why the two forms share the same beat/bar convention), consistent
-with its own `beatsPerCycle: 64` and with the hall spike's A1/A2/B1/B2
-readout.
-
-**This is now a confirmed conflict the director needs to rule on before the
-`createClock` swap**, not a hypothetical one: is a tune's `Meter` the
-figure-phrase unit `@caller/core` ships, the tune-phrase unit this package
-uses, or does `Tune` need two separate fields (one for each)? Whichever way
-it goes, the swap needs a matching change to `meter` on the three bundled
-tunes and to the beat arithmetic in `ui/Notation.tsx` and `ui/Card.tsx`.
+`@caller/core`'s `Clock` is a superset of the local one: it adds `setBeat`,
+`isPaused` and `tempo`, and `createClock` takes an optional starting tempo.
+`Player.clock` is therefore richer than it was; nothing in this package reads
+the new members, and the demo page uses `setBeat` to seek the silent clock.
 
 ## Tempo and `millisecondsPerMeasure`
 

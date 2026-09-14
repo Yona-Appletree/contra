@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "./Card.js";
-import type { CardDance } from "./CardDance.js";
+import type { CardProps } from "./Card.js";
 
 // See Notation.stories.tsx for why these are plain CSF3 objects, not
 // `@storybook/react-vite`-typed ones.
@@ -10,7 +10,7 @@ const meta = {
 };
 export default meta;
 
-const dance: CardDance = {
+const dance: CardProps["dance"] = {
   title: "Spike Dance · improper · 64 beats",
   phrases: [
     {

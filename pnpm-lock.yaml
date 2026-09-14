@@ -193,6 +193,9 @@ importers:
 
   packages/music:
     dependencies:
+      '@caller/core':
+        specifier: workspace:*
+        version: link:../core
       abcjs:
         specifier: ^6.7.0
         version: 6.7.0
