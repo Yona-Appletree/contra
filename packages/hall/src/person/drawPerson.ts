@@ -147,6 +147,16 @@ export function drawArms(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
   }
 }
 
+/** How far ahead of the body centre the head sits. */
+export const HEAD_FORWARD_PX = 0.9;
+
+/**
+ * How far the head follows the torso's lean, per px of lean. The spike drew
+ * 0.8 and the heads crowded at the balance at gate 3 (`spikes/two-dancers`
+ * section 0, gate-3 rulings); M5's balance is judged at gate G1 against 0.5.
+ */
+export const HEAD_LEAN_FOLLOW = 0.5;
+
 /**
  * The head, turned to `layout.headAngle` independently of the body: hair behind
  * (or a bun, or curls, or a cap), the skull, a face sliver clipped inside it,
@@ -157,7 +167,9 @@ export function drawHead(g: Ctx2D, layout: DancerLayout, opts: DrawOptions = {})
   const a = layout.person.appearance;
   const outline = opts.outline ?? true;
   const p = snap(layout.p);
-  const centre = snap(bodyPoint(p, layout.pose.facing, 0.9 + layout.pose.lean * 0.8, 0));
+  const centre = snap(
+    bodyPoint(p, layout.pose.facing, HEAD_FORWARD_PX + layout.pose.lean * HEAD_LEAN_FOLLOW, 0),
+  );
   const look = layout.headAngle;
   const lookRad = (look * Math.PI) / 180;
   const style = a.hairStyle;
