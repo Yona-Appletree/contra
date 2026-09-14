@@ -1,0 +1,110 @@
+[
+  {
+    "slug": "a-thing-of-trust",
+    "title": "A Thing of Trust",
+    "choreographer": "Chris Page",
+    "callersBoxId": "10950",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "Single most-programmed dance in the corpus (20x, 14 callers) — a safe, broadly-known opener."
+  },
+  {
+    "slug": "butter",
+    "title": "Butter",
+    "choreographer": "Gene Hubert",
+    "callersBoxId": "10320",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "reason": "Explicitly requested; also #2 overall (17x) and confirmed Becket formation from Caller's Box."
+  },
+  {
+    "slug": "heartbeat-contra",
+    "title": "Heartbeat Contra",
+    "choreographer": "Don Flaherty",
+    "callersBoxId": "2711",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "#4 overall (15x, 14 callers) and petronella-forward — a good iconic-figure demo dance."
+  },
+  {
+    "slug": "airpants",
+    "title": "Airpants",
+    "choreographer": "Lisa Greenleaf",
+    "callersBoxId": "4577",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "#5 overall (14x); simple, generic figures make it a good readable-at-a-glance demo dance."
+  },
+  {
+    "slug": "frederick-contra",
+    "title": "Frederick Contra",
+    "choreographer": "Tom Hinds",
+    "callersBoxId": "10446",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "High frequency (13x) with a different choreographer voice; adds down-the-hall variety to the set."
+  },
+  {
+    "slug": "the-judge",
+    "title": "The Judge",
+    "choreographer": "Bob Isaacs",
+    "callersBoxId": "1789",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "reason": "Tied #6 (13x, 10 callers); Bob Isaacs is the single most-programmed choreographer in the whole corpus."
+  },
+  {
+    "slug": "simplicity-swing",
+    "title": "Simplicity Swing",
+    "choreographer": "Becky Hill",
+    "callersBoxId": "10732",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "Solid mid-tier frequency (11x, 9 callers) from a well-represented choreographer not otherwise on this list."
+  },
+  {
+    "slug": "theory-of-mind",
+    "title": "Theory of Mind",
+    "choreographer": "David Smukler",
+    "callersBoxId": "1450",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "11x with the widest caller spread at that count (10 callers) — a dance dancers everywhere already know."
+  },
+  {
+    "slug": "you-can-get-there-from-here",
+    "title": "You Can Get There From Here",
+    "choreographer": "Linda Leslie",
+    "callersBoxId": "10891",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "11x; brings in a give-and-take and chain-star figure not otherwise represented in the set."
+  },
+  {
+    "slug": "zag-it-back",
+    "title": "Zag It Back",
+    "choreographer": "Jacqui Grennan",
+    "callersBoxId": "14115",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "reason": "11x, Becket, with a zig-zag figure — good visual variety for the simulator."
+  },
+  {
+    "slug": "diamond-allotrope",
+    "title": "Diamond Allotrope",
+    "choreographer": "Lindsey Dono",
+    "callersBoxId": "14047",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "Feature-rich showcase pick, still programmed 8x by 7 callers — not obscure despite the figure density."
+  },
+  {
+    "slug": "spring-break",
+    "title": "Spring Break",
+    "choreographer": "Nils Fredland",
+    "callersBoxId": "9632",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "reason": "Second feature-rich showcase pick, 6x programmed, and yet another distinct choreographer."
+  }
+]

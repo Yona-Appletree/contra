@@ -7,3 +7,7 @@ robin), the contra figure library, and contra-specific dances and programs.
 
 `@caller/contra` may import `@caller/choreo`. Nothing else in this
 workspace.
+
+`src/corpus/normaliseTitle.ts` normalises dance titles (whitespace, a
+leading program-order number, case) for `scripts/corpus/import-portland.mjs`,
+which derives `data/corpus/portland-programs.json` — see `data/README.md`.
