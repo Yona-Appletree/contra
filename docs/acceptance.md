@@ -73,24 +73,28 @@ clears 8 px on its own).
 
 Three cases now (P1 added the shipped-hall case at its new, larger size).
 Measured on this machine, Playwright's bundled headless Chromium,
-`--workers=1`, 300 frames after warm-up, `apps/web/e2e/perf.spec.ts`, first
-attempt (no straddle, no rerun needed):
+`--workers` per the config, 300 frames after warm-up,
+`apps/web/e2e/perf.spec.ts`, from the final validation run (below), first
+attempt, no straddle, no rerun needed:
 
 | case                                                       | budget |    median |       p90 |       p99 |       max |
 | ---------------------------------------------------------- | -----: | --------: | --------: | --------: | --------: |
-| pair at zoom 6                                             |   8 ms |  0.400 ms |  0.500 ms |  0.600 ms |  0.700 ms |
-| 18-couple hall at zoom 1                                   |  33 ms | 10.100 ms | 10.500 ms | 14.700 ms | 15.100 ms |
-| shipped hall (8+7 couples, 15 total, 30 dancers) at zoom 1 |  33 ms |  9.000 ms |  9.500 ms | 13.600 ms | 14.000 ms |
+| pair at zoom 6                                             |   8 ms |  0.400 ms |  0.500 ms |  0.600 ms |  0.800 ms |
+| 18-couple hall at zoom 1                                   |  33 ms | 10.300 ms | 10.800 ms | 15.000 ms | 15.900 ms |
+| shipped hall (8+7 couples, 15 total, 30 dancers) at zoom 1 |  33 ms |  9.200 ms |  9.700 ms | 13.900 ms | 14.200 ms |
 
 All three comfortably inside budget, consistent with every prior milestone's
 own local numbers on this plan run (P1: 10.3–10.7 ms / 9.1–9.4 ms on an M2
 Max; U2, H1, F5, F6: 34/34 golden Playwright cases green with no reported
-`perf.spec.ts` straddle). **On the CI runner (`ubuntu-latest`):** not
-observed by this agent — the director reads the number off this PR's own CI
-run, per the standing brief, and updates this section if the CI number moves
-the picture (CI's headless Chromium on `ubuntu-latest` has historically run
-somewhat slower than this machine's, per AC7's own amendment note about
-runner noise).
+`perf.spec.ts` straddle). Run twice in this session (once alongside the
+golden regeneration, once as part of the final forced `turbo` run); both
+passed first try with numbers within noise of each other (9.0–9.2 ms /
+10.1–10.3 ms), so the table above quotes the final run. **On the CI runner
+(`ubuntu-latest`):** not observed by this agent — the director reads the
+number off this PR's own CI run, per the standing brief, and updates this
+section if the CI number moves the picture (CI's headless Chromium on
+`ubuntu-latest` has historically run somewhat slower than this machine's,
+per AC7's own amendment note about runner noise).
 
 **Where a frame's milliseconds go** (P1's own instrumented measurement,
 unchanged by anything since — nothing this milestone or the milestones
@@ -174,9 +178,15 @@ wrist grip.)
 ## `pnpm validate` time
 
 The full forced check
-(`pnpm exec turbo run format:check check:deps lint typecheck test build test:golden --force`)
-took **see the PR body's checks table for this run's own wall time** on this
-machine. On the CI runner: not observed by this agent (the standing brief
-does not have this agent watch CI); if the director finds it over 10
+(`pnpm exec turbo run format:check check:deps lint typecheck test build test:golden --force`,
+which forces every task to actually run rather than serve from cache — the
+worst case, and the one this number is worth recording as) took **26.6 s**
+wall time on this machine (turbo's own reported `Time:` line; `45
+successful, 45 total`, `0 cached, 45 total`), well under the 10-minute
+threshold the checklist asks about. **On the CI runner:** not observed by
+this agent (the standing brief does not have this agent watch CI); if the
+director finds CI's own `pnpm validate` (uncached, on every PR) is over 10
 minutes there, that is noted as future work per the checklist, not
-optimised here.
+optimised here — but a 26.6 s local uncached run makes a CI runner north of
+10 minutes unlikely absent a very different bottleneck (network, runner
+contention) than anything this repository's own task graph creates.
