@@ -11,7 +11,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:golden": "playwright test",
-    "test:golden:update": "UPDATE_GOLDENS=1 playwright test"
+    "test:golden:update": "UPDATE_GOLDENS=1 playwright test",
+    "strips": "node scripts/strips.mjs",
+    "figure-lab-pictures": "playwright test e2e/figureLab.spec.ts"
   },
   "dependencies": {
     "@caller/choreo": "workspace:*",
