@@ -13,6 +13,7 @@
     "test:golden:update": "UPDATE_GOLDENS=1 playwright test"
   },
   "dependencies": {
+    "@caller/contra": "workspace:*",
     "@caller/core": "workspace:*",
     "@caller/hall": "workspace:*",
     "@caller/ui-base": "workspace:*",

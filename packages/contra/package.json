@@ -14,7 +14,8 @@
     "test:golden": "exit 0"
   },
   "dependencies": {
-    "@caller/choreo": "workspace:*"
+    "@caller/choreo": "workspace:*",
+    "@caller/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
