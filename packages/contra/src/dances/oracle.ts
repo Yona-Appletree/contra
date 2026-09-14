@@ -12,8 +12,8 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
-import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { createContraRegistry } from "../figures/registry.js";
+import { formationById } from "./formations.js";
 
 /**
  * Running one encoded dance through the engine and reading the plan's oracles
@@ -44,9 +44,7 @@ export const BECKET_LINES = [4, 5, 6, 8, 10, 12] as const;
 
 /** The formation a dance's `formation` id names. */
 export function formationFor(dance: Dance): Formation {
-  if (dance.formation === BECKET.id) return BECKET;
-  if (dance.formation === DUPLE_IMPROPER.id) return DUPLE_IMPROPER;
-  throw new Error(`no contra formation with id "${dance.formation}"`);
+  return formationById(dance.formation);
 }
 
 /** The line lengths this dance's formation is checked at. */

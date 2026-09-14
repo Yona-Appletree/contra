@@ -1,0 +1,66 @@
+{
+  "slug": "airpants",
+  "title": "Airpants",
+  "author": "Lisa Greenleaf",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 4577, permission: full.",
+  "source": {
+    "callersBoxId": 4577,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=4577",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (8) In long lines, go forward and back   (8) Women allemande right 1 & 1/2\nB1  (4) Partner balance   (12) Partner swing\nB2  (6) Circle left 3/4   (10) Neighbor do-si-do 1 & 1/2"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1R", "2R"]], "hand": "R", "amount": 1.5 },
+          "call": "ROBINS ALLEMANDE RIGHT ONE AND A HALF"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "circle",
+          "beats": 6,
+          "params": { "direction": "left", "places": 3 },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "do-si-do",
+          "beats": 10,
+          "params": { "pairs": "neighbors", "amount": 1.5 },
+          "call": "NEIGHBOR DO-SI-DO ONE AND A HALF"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "slug": "thanks-to-the-gene",
+  "title": "Thanks to the Gene",
+  "author": "Tom Hinds",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 10811, permission: full.",
+  "source": {
+    "callersBoxId": 10811,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10811",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (8) Right and left through with neighbor   (8) Ladies chain to partner\nB1  (6) Women right shoulder round 1   (10) Partner swing\nB2  (8) In long lines, go forward and back   (8) Men allemande left 1 & 1/2"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "right-and-left-through",
+          "beats": 8,
+          "params": { "couples": "neighbors" },
+          "call": "RIGHT AND LEFT THROUGH"
+        },
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO PARTNER" }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "do-si-do",
+          "beats": 6,
+          "params": { "pairs": [["1R", "2R"]], "amount": 1 },
+          "call": "ROBINS RIGHT SHOULDER ROUND"
+        },
+        {
+          "figure": "swing",
+          "beats": 10,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+        }
+      ]
+    }
+  ]
+}

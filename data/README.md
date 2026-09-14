@@ -1,10 +1,11 @@
 # data/
 
-Derived, committable corpus data for the contra simulator. Everything here
-is generated from a community spreadsheet and a handful of public dance
-database pages; the source spreadsheet itself, and any dance's figure text,
-are never committed. See `docs/adr/2026-09-13-corpus-and-permission.md` for
-the reasoning.
+Derived, committable data for the contra simulator: `corpus/` is generated
+from a community spreadsheet and a handful of public dance database pages,
+and `dances/` holds the demo's own encoded dances. The source spreadsheet
+itself is never committed. See
+`docs/adr/2026-09-13-corpus-and-permission.md` for the corpus's reasoning
+and `docs/adr/2026-09-14-dances-as-files.md` for the dances'.
 
 ## `corpus/portland-programs.json`
 
@@ -73,20 +74,39 @@ produces the general aggregate above. Regenerating it means re-reading
 corpus-analysis.md section 6 and re-fetching the Caller's Box pages by
 hand, the same way both runs did.
 
+## `dances/<slug>.json`, `dances/programme.json`
+
+What it is: the ten demo dances' actual figures — the A1/A2/B1/B2 sequence
+that teaches the dance — as data, one file per dance, loaded by
+`packages/contra/src/dances/`. Each carries the same provenance a dance's
+TypeScript module used to state in a comment before D1: the Caller's Box id
+and page URL the sequence was quoted from, that page's own `permission`
+field, and the quoted transcript itself. `programme.json` holds the demo's
+own dance order. See `docs/adr/2026-09-14-dances-as-files.md`.
+
+This is deliberately not under the same rule as `corpus/` below — these ten
+dances' figures already went through gate G2 (the director/user checking
+that the dance and its named choreographer being public was acceptable) as
+TypeScript source before this milestone; moving the identical, already
+public content from a `.ts` file to a `.json` file changes nothing about
+its clearance. A dance's figures reach `data/dances/` only after that gate,
+never before it — see "Permission note" below, which is about `corpus/`.
+
 ## Permission note
 
 The source spreadsheet (`Portland Contra Programs - Portland.csv`) is
 never committed to this repository — it's a live community document with
 notes, hall names and other detail beyond what the demo needs, and it
-isn't this project's to redistribute. Nor is any dance's figure text
-(the A1/A2/B1/B2 sequence that teaches the dance): only the facts a
-program listing itself would state publicly are committed here — a
-dance's title, its choreographer, how many times it's been programmed,
+isn't this project's to redistribute. Nor does `corpus/` hold any dance's
+figure text (the A1/A2/B1/B2 sequence that teaches the dance): only the
+facts a program listing itself would state publicly are committed there —
+a dance's title, its choreographer, how many times it's been programmed,
 the caller's own free-text "Features" shorthand (one representative
 phrase, not the raw sequence), and the Caller's Box `formation` and
 `permission` fields. `.gitignore` excludes `data/local/` (for any future
 downloads) and any `*.csv` under `data/` as a backstop.
 
-Encoding a demo dance's actual figures (M9) is out of scope here, and per
-the ADR, needs the dance's author's clearance before the demo publishes it
-— not before this data is committed, since none of the figures live here.
+Encoding a demo dance's actual figures (M9, F2) is what clears a dance for
+`dances/` above — the clearance happens before the figures are encoded at
+all, never merely before this data is committed, and a dance's figures
+never sat in `corpus/` at any point.

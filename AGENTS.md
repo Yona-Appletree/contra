@@ -14,6 +14,7 @@ start with
 | Formation, group, figure def, progression, timeline, decider                       | `packages/choreo/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
 | Contra role set, contra figures, contra dances                                     | `packages/contra/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
 | A figure written as **data** (a `FigureSpec`), not code                            | `packages/contra/src/figures/specs/`  | `<name>Spec.ts`, co-located test         |
+| A dance written as **data**, loaded by `packages/contra/src/dances/`               | `data/dances/`                        | `<slug>.json`, plus `programme.json`     |
 | The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
 | Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts` |
 | Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`             | `theme.css`                              |

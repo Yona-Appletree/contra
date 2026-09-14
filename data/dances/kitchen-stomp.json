@@ -1,0 +1,64 @@
+{
+  "slug": "kitchen-stomp",
+  "title": "Kitchen Stomp",
+  "author": "Becky Hill",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 10541, permission: full.",
+  "source": {
+    "callersBoxId": 10541,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10541",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (8) Men allemande left 1 & 1/2   (8) Partner swing\nB1  (8) Ladies chain to neighbor  (4) Balance ring  (4) Petronella turn\nB2  (4) Balance ring  (4) Petronella turn  (8) Star left 1"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" },
+        { "figure": "balance-ring", "beats": 4, "call": "BALANCE THE RING" },
+        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN" }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "balance-ring", "beats": 4, "call": "BALANCE THE RING" },
+        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN" },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": { "hand": "L", "places": 4 },
+          "call": "STAR LEFT ONCE"
+        }
+      ]
+    }
+  ]
+}
