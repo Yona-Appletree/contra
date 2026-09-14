@@ -556,8 +556,9 @@ starts on a whole beat — neither moves a pixel.
   places its own feet (walking cross-faded into the buzz step, as the spike
   did) and uses `amp` to fade the torso sway out as the buzz comes in.
 - **Both dancers flare.** The spike gave the skirt flare to the robin only;
-  flare comes from turning, so both get it. Invisible in the demo's default
-  look, where nobody wears a skirt.
+  flare comes from turning, so both get it — a skirt is decided by a dancer's
+  seed and never by their role. Invisible on any surface the renderer's
+  `skirts` option is off for, which is everything but the Stage.
 
 ## The figure primitive language — `src/figures/language/`
 
