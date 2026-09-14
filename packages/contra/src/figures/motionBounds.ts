@@ -206,18 +206,29 @@ export function deriveBounds(step = DERIVE_STEP): {
  *
  * | | legitimate maximum | × 3 = the bound |
  * | --- | ---: | ---: |
- * | hand floor speed | 24.1413 px/beat | 72.4240 |
- * | elbow floor speed | 61.6394 px/beat | 184.9183 |
- * | elbow speed / hand speed, per sample | 3.2694× | 9.8082 |
+ * | hand floor speed | 22.1432 px/beat | 66.4295 |
+ * | elbow floor speed | 65.3205 px/beat | 195.9615 |
+ * | elbow speed / hand speed, per sample | 3.5298× | 10.5893 |
  * | hand height rate | 21.7217 px/beat | 65.1650 |
  * | out-and-back inside a beat | 1.2 px | 3.6 |
  *
- * **F4 tightened them, and that is the direction they should move.** The
- * furthest any figure reaches from a hip to a hand it holds was 17.8986 px —
- * the courtesy turn in right and left through, whose couple had been sliding
- * sideways across the set with its hands joined. Turning properly brings the
- * same reach down to 16.1152 px, so the take the bounds are derived from is
- * shorter and every guard derived from it is smaller.
+ * **The reach keeps coming down, and that is the direction it should move.**
+ * The furthest any figure reaches from a hip to a hand it holds was 17.8986 px
+ * before F4 — the courtesy turn in right and left through, whose couple had
+ * been sliding sideways across the set with its hands joined — then 16.1152
+ * when F4 made it turn. F5 makes both courtesy turns close up on to a hold
+ * before they turn and open out only as they let go, and the worst reach in the
+ * registry is now 14.7814 px, in the chain, and it is the lark's right hand on
+ * the robin's back rather than a joined hand at all.
+ *
+ * **Two of the guards got looser anyway, and the reason is worth writing
+ * down.** A take is a hand travelling from the hip to the joined point over one
+ * beat, so a *shorter* take is a slower hand — 24.1413 → 22.1432 px/beat — but
+ * the elbow does not scale with it: the shorter the take, the more of it is
+ * spent near the shoulder where the elbow's azimuth swings fastest. So the
+ * elbow's own peak went 61.6394 → 65.3205 and the per-sample ratio 3.2694 →
+ * 3.5298, and the guards derived from them went up with them. The ratio guard
+ * is still the one that discriminates, and nothing in the library is near it.
  *
  * **The elbow bound F3a derived was useless, and F3c found out why.** A take
  * moved the elbow at 250 px/beat — 9.33× the hand — which made the guard 750
@@ -235,26 +246,26 @@ export function deriveBounds(step = DERIVE_STEP): {
  * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
-  handSpeedPx: 72.424,
-  elbowSpeedPx: 184.9183,
-  elbowPerHand: 9.8082,
+  handSpeedPx: 66.4295,
+  elbowSpeedPx: 195.9615,
+  elbowPerHand: 10.5893,
   heightRatePx: 65.165,
   dipPx: 3.6,
 };
 
 /** The measured legitimate maxima the bounds above are three times. */
 export const CONTRA_TAKE_MOTION = {
-  /** The furthest hip-to-joined-point reach in the registry, px. */
-  floorPx: 16.1152,
-  floorAt: "right-and-left-through 1L L at t=5.750",
+  /** The furthest hip-to-placed-point reach in the registry, px. */
+  floorPx: 14.7814,
+  floorAt: "robins-chain 2L R at t=5.469",
   /** The smallest drop any figure holds a hand at, px. */
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
-  handSpeed: 24.1413,
-  elbowSpeed: 61.6394,
+  handSpeed: 22.1432,
+  elbowSpeed: 65.3205,
   heightRate: 21.7217,
-  elbowPerHand: 2.5533,
-  elbowRatio: 3.2694,
+  elbowPerHand: 2.9499,
+  elbowRatio: 3.5298,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

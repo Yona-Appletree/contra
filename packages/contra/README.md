@@ -121,7 +121,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                         |
 | `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                           |
 | `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 8.5, `holdDrop` 6, `stackPx` 1, `scoopPx` 12                                    |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 7, `holdDrop` 6, `stackPx` 1, `scoopPx` 10                                      |
 | `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                               |
 | `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                               |
 | `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                 |
@@ -330,18 +330,31 @@ dance sets it and this loader does not read it.
   weave, so everybody steps on to it over `joinBeats` and off it again. Who
   steps off first is the role `start` names, and mirroring the side-step
   mirrors the whole weave.
-- **A courtesy turn** is the couple turning as one about the point between
-  them with their left hands joined, the lark walking backward. The lark's
-  right hand is not on the robin's back, because at a place pitch apart it
-  would not reach. How far round the couple gets is the set's own doing: a
+- **A courtesy turn** is a **half turn of the two bodies**: each of them turns
+  exactly 180°, the way round that leaves the lark's feet behind him, from
+  facing out of the set when the hands close to facing in when it is over, with
+  the robin on the lark's right and both their right hands on her back. The
+  couple closes up on to a hold first, wheels, and opens out on to its two
+  places only over the last beat and a half, as the hands let go — because a
   couple standing in the lines is 32 px wide and a couple turning is a hold
-  spacing, so the pivot, the axis and the separation all travel. Right and
-  left through, whose dancers are already standing in the lines when the turn
-  begins, turns the clean half a caller would draw; a chain, where the robin
-  arrives from the middle of the set, turns through less than that.
-- **A chain** steps the lark off his place to scoop the robin up and walks him
-  backward onto it again, rather than turning the pair a whole half round: a
-  half turn of a 32 px couple would put him in the other line.
+  spacing, and joined hands on a couple that has already opened out are further
+  apart than two arms reach.
+- **What the couple's own line does is not free.** Which of the lark's sides
+  the robin is on is `bearing(lark, robin) − larkFacing`, and it changes by
+  `sweep − bodyTurn`, so a body turn of 180° and a side change together mean a
+  sweep of nothing. Right and left through arrives with the robin already on
+  the lark's right and leaves her there on the other pair of places, so its
+  line sweeps a clean 180° with the bodies — the textbook picture. A chain
+  arrives with her on his **left**, because she has come across the set and he
+  has stepped off his place to meet her coming, so its line sweeps about 13°
+  while the two bodies turn the half. Asking for a 180° sweep _and_ a side
+  change describes no motion at all.
+- **The hold is capped twice.** Two couples courtesy turn at once with their
+  centres one place pitch apart, so `courtesyHold` shrinks it until
+  `CLEARANCE_PX` is left — 11.5 px in duple improper, where the library's own
+  hold spacing is 14. It is capped again at `COURTESY_REACH_HOLD_PX`, which is
+  how far apart two dancers can stand and still have the lark's right hand on
+  the robin's back rather than past the end of his arm.
 - **A roll away** lets the hands go as the roll turns: a dancer spinning a whole
   turn cannot keep a hand on a point 10 px away and still have an arm that
   reaches it.

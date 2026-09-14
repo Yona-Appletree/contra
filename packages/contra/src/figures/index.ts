@@ -96,8 +96,15 @@ export { robinsChain } from "./robins-chain.js";
 export type { HeyParams } from "./hey.js";
 export { hey } from "./hey.js";
 
-export type { CourtesyTurn, TurnEnds } from "./courtesyTurn.js";
-export { backwardArc, backwardSweep, courtesyTurn, larkAndRobin } from "./courtesyTurn.js";
+export type { BackHands, CourtesyTurn, CourtesyTurnSpec } from "./courtesyTurn.js";
+export {
+  COURTESY_HALF_TURN,
+  backwardArc,
+  courtesyBackHands,
+  courtesyHold,
+  courtesyTurn,
+  larkAndRobin,
+} from "./courtesyTurn.js";
 
 export type { ContraFigureId } from "./registry.js";
 export {

@@ -1,4 +1,4 @@
-import type { Beat, Side } from "@caller/core";
+import type { Beat, Hand, Vec2 } from "@caller/core";
 import { DEFAULT_BOW_PX } from "@caller/choreo";
 import type { StationId } from "@caller/choreo";
 import type {
@@ -14,11 +14,12 @@ import {
   contraFigure,
   joinPoint,
   joinedHands,
+  midpoint,
   passRight,
   takeAndRelease,
 } from "./ContraFigure.js";
 import type { CourtesyTurn } from "./courtesyTurn.js";
-import { courtesyTurn, larkAndRobin } from "./courtesyTurn.js";
+import { courtesyBackHands, courtesyHold, courtesyTurn, larkAndRobin } from "./courtesyTurn.js";
 import { aheadPairs } from "./pass-through.js";
 import type { Pairing } from "./pairing.js";
 import { mustPair, pairsOf } from "./pairing.js";
@@ -47,19 +48,19 @@ export interface RightAndLeftThroughParams extends ContraParams {
  * in duple improper is the partner standing beside you: the two of them walked
  * through each other's places and nobody ever passed anybody.
  *
- * The courtesy turn is {@link courtesyTurn}, shared with the chain: the couple
- * turns as one about the point between them, their left hands joined at one
- * floor point, the lark walking backward and the robin forward, which leaves
- * them facing back across the set with the robin still on the lark's right —
- * and on the other line, which is the whole point of the figure. Dance it
- * twice and everybody is home, which is what "right and left through, right
- * and left back" means.
+ * The courtesy turn is {@link courtesyTurn}, shared with the chain. This is the
+ * figure whose turn is the textbook one: the couple arrives with the robin
+ * already on the lark's right, closes up to the hold, and the whole of it —
+ * both bodies *and* the line between them — sweeps a clean half round the point
+ * between them, so they end facing back the way they came, the robin still on
+ * his right and both of them on the other line. Dance it twice and everybody is
+ * home, which is what "right and left through, right and left back" means.
  */
 export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
   id: "right-and-left-through",
   call: "RIGHT AND LEFT THROUGH",
   describe:
-    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing. On the far side each lark takes the robin he came over with — his left hand in her left — and courtesy turns her: he walks backward while she walks forward round him, half way round the point between them, and the couple ends facing back the way it came with the robin still on the lark's right. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: the lark's right hand belongs on the robin's back through the turn and hangs at his side instead, which is the drawn arm's business and not the figure's.)",
+    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with. Left hand in her left, his right hand on her back and her own right hand there too, the couple turns half way round the point between them — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple has to close up before it turns and open out again as it lets go — and the two couples turning at once pass 8.5 px, which is as much room as a place pitch leaves them.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -75,36 +76,50 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     const beats = params.beats;
     const passBeats = Math.min(params.passBeats, beats);
     const turnBeats = beats - passBeats;
+    const openBeats = Math.min(OPEN_BEATS, turnBeats / 2);
     const ahead = aheadPairs(ctx);
 
-    /** Where the pass through leaves everybody, before the courtesy turn. */
+    /** Where the pass through leaves everybody, before the couples close up. */
     const arrival: Spots = {};
     for (const id of ctx.ids) {
       const to = ctx.spot(ahead[id]!).p;
       arrival[id] = { p: to, facing: bearing(ctx.spot(id).p, to) };
     }
 
+    // The couple turns as one: half way round puts each on the other's arrival
+    // place, facing back the way they came.
     const ends: Spots = {};
-    const turns: Record<StationId, { turn: CourtesyTurn; mine: "lark" | "robin" }> = {};
-    const joins: HandJoin[] = [];
+    const couples: { lark: StationId; robin: StationId; pivot: Vec2 }[] = [];
     for (const pair of pairsOf(params.couples)) {
       const [lark, robin] = larkAndRobin(ctx, pair);
       const arriveLark = arrival[lark]!;
       const arriveRobin = arrival[robin]!;
-      // The couple turns as one: half way round puts each on the other's
-      // arrival place, facing back the way they came.
       ends[lark] = { p: arriveRobin.p, facing: arriveLark.facing + 180 };
       ends[robin] = { p: arriveLark.p, facing: arriveRobin.facing + 180 };
-      const turn = courtesyTurn(
-        { from: arriveLark, to: ends[lark]! },
-        { from: arriveRobin, to: ends[robin]! },
-        turnBeats,
-      );
-      turns[lark] = { turn, mine: "lark" };
-      turns[robin] = { turn, mine: "robin" };
-      joins.push({ a: pair[0], aSide: "L", b: pair[1], bSide: "L" });
+      couples.push({ lark, robin, pivot: midpoint(ends[lark]!.p, ends[robin]!.p) });
     }
     for (const id of ctx.ids) ends[id] ??= arrival[id] ?? ctx.spot(id);
+
+    const pivots = couples.map((couple) => couple.pivot);
+    const turns: Record<StationId, { turn: CourtesyTurn; mine: "lark" | "robin" }> = {};
+    const joins: HandJoin[] = [];
+    for (const { lark, robin, pivot } of couples) {
+      // They arrive on the two places they walked to, the robin already on the
+      // lark's right, and close up on to the hold as the hands go up.
+      const turn = courtesyTurn({
+        larkTake: arrival[lark]!.p,
+        robinTake: arrival[robin]!.p,
+        lark: ends[lark]!,
+        robin: ends[robin]!,
+        hold: courtesyHold(ctx.spacing, pivot, pivots),
+        beats: turnBeats,
+        closeBeats: openBeats,
+        openBeats,
+      });
+      turns[lark] = { turn, mine: "lark" };
+      turns[robin] = { turn, mine: "robin" };
+      joins.push({ a: lark, aSide: "L", b: robin, bSide: "L" });
+    }
 
     const placeAt = (station: StationId, t: Beat): Spot => {
       const arrive = arrival[station] ?? ctx.spot(station);
@@ -118,10 +133,14 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
       return mine === "lark" ? turn.lark(t - passBeats) : turn.robin(t - passBeats);
     };
 
+    // The hands go up over exactly the beats the couple spends closing, and
+    // come down over exactly the beats it spends opening out: a hand that
+    // finishes its take while its target is still travelling has to chase it,
+    // and chasing is what the oracle's hand column sees.
     const window = {
       takeFrom: passBeats,
-      takeTo: passBeats + Math.min(1, turnBeats / 2),
-      releaseFrom: beats - Math.min(0.8, turnBeats / 4),
+      takeTo: passBeats + openBeats,
+      releaseFrom: beats - openBeats,
       releaseTo: beats,
     };
 
@@ -130,23 +149,27 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
       joinsAt: (t) => (t >= window.takeTo && t <= window.releaseFrom ? joins : []),
       at(station, t) {
         const self = placeAt(station, t);
-        const mate = turns[station] ? mustPair(params.couples, station) : undefined;
-        if (mate === undefined) {
+        const turning = turns[station];
+        const mate = turning ? mustPair(params.couples, station) : undefined;
+        if (mate === undefined || !turning) {
           return { p: self.p, facing: self.facing, hands: { L: "down", R: "down" }, amp: 1 };
         }
         const other = placeAt(mate, t);
+        const isLark = turning.mine === "lark";
         // Both left hands on one point: the midpoint of the two left shoulders.
         const point = joinPoint(self, "L", other, "L");
         const joined = joinedHands(ctx, station, mate, point, params.holdDrop, params.stackPx);
         const mine = joined[station];
         if (!mine) throw new Error(`right-and-left-through: no joined hand for "${station}"`);
-        const side: Side = "L";
+        // Both right hands go to the robin's back: two points, never a join.
+        const back = courtesyBackHands(isLark ? other : self, isLark ? self : other);
+        const free: Hand = isLark ? back.lark : back.robin;
         return {
           p: self.p,
           facing: self.facing,
           hands: {
-            L: takeAndRelease(self, side, t, mine, window),
-            R: "down",
+            L: takeAndRelease(self, "L", t, mine, window),
+            R: takeAndRelease(self, "R", t, free, window),
           },
           stepRate: 1,
         };
@@ -154,3 +177,12 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     };
   },
 });
+
+/**
+ * How long the couple takes to open out on to its two places, beats.
+ *
+ * The turn happens at the hold and the places are a set's width apart, so the
+ * last beat and a half of the figure is the couple opening out and letting go
+ * at the same time — which is the only moment either arm has to stretch.
+ */
+const OPEN_BEATS: Beat = 1.5;
