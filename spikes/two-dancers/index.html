@@ -66,7 +66,7 @@ p.hint code{color:var(--accent);font:13px ui-monospace,Menlo,monospace}
   <h1>Hands Four · two dancers</h1>
   <p class="hint">Follow-up spike to <code>spikes/hall</code> (vision: "The hall, rendered"; D13, D14, D15, D21; Q4 and Q5 are now ruled). It builds on the gate-2 rulings rather than re-asking them:
   <b>true overhead only</b>, people about 1.5× the hall's (shoulders 11 px wide, arm reach 15 px, roughly 4 cm per pixel), <b>anti-aliasing allowed</b> for sprites and motion, positions still at 1/256 px, integer zoom for display.
-  <b>Rendering contract:</b> the body is drawn procedurally from above (feet, skirt, shoulders, head with a face sliver and a nose) and rotated per facing, the head turns separately to look at the partner.
+  <b>Rendering contract:</b> the body is drawn procedurally from above (feet, skirt, shoulders, head with a face sliver and a nose) and rotated per facing, the head turns separately to look at the partner. Joined hands always stack the same way: the robin's hand on top, fingers down, the lark's underneath, palm up, so the robin's arms draw over the lark's.
   <b>Arms are puppets:</b> each hand is a floor point with a height that both dancers compute from the same figure; the arm is two 7.5 px bones with fixed length in three dimensions, solved by two-bone IK with the elbow pole pointing down and out and then projected onto the floor, so a planar arm can never exceed 15 px and a hand point out of reach makes the arm point at it and fall short, so hands only meet when the dancers are close enough.
   <b>Spacing:</b> 14 px chest to chest in a two-hand hold (about 55 cm), lines 18 px further apart; dancers walk in before taking hands, and every take and release is animated rather than snapped. Movement is deliberately quiet: contra glides, so the beat shows as small foot and shoulder motion, not bounce. Everything is canned keyframes for one 64-beat sequence on the tune's clock, not an engine.</p>
 </header>
@@ -297,10 +297,12 @@ function armRigs(s){
   const P=s.P;const a=s.torsoA;const SL=bodyPt(P,a,0.3,-SHW),SR=bodyPt(P,a,0.3,SHW);const lo=leftOf(a),ro=rightOf(a);
   return {L:Object.assign(solveArm(SL,s.hands.L.p,s.hands.L.d,lo),{target:s.hands.L.p,drop:s.hands.L.d}),R:Object.assign(solveArm(SR,s.hands.R.p,s.hands.R.d,ro),{target:s.hands.R.p,drop:s.hands.R.d})};
 }
-function drawArms(g,p,s,opt,snap){
+// joined hands stack the same way every time: the robin's hand on top, fingers down; the lark's underneath, palm up, peeking out around it
+function joinedMap(states){const near=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1])<0.1;const L=states.L.hands,R=states.R.hands;return {L:{L:near(L.L.p,R.R.p),R:near(L.R.p,R.L.p)},R:{R:near(L.L.p,R.R.p),L:near(L.R.p,R.L.p)}};}
+function drawArms(g,p,s,opt,snap,joined,under){
   const rig=armRigs(Object.assign({},s,{P:snap(s.P)}));s.rig=rig;
   ['L','R'].forEach(k=>{const r=rig[k];const S=snap(r.S),E=snap(r.E),Hh=snap(r.H);
-    const hr=1.25+0.35*(1+Math.max(-15,r.hz)/15);const f1=Math.min(1,Math.hypot(E[0]-S[0],E[1]-S[1])/ARM.L1);   // higher hands look a little bigger; a steep upper arm reads darker
+    const hr=1.25+0.35*(1+Math.max(-15,r.hz)/15)+(joined&&joined[k]?(under?0.45:-0.15):0);const f1=Math.min(1,Math.hypot(E[0]-S[0],E[1]-S[1])/ARM.L1);   // higher hands look a little bigger; a steep upper arm reads darker
     if(opt.outline){seg(g,S,E,3.7,DK);seg(g,E,Hh,3.2,DK);circ(g,Hh[0],Hh[1],hr+0.7,DK,false);}
     seg(g,S,E,2.4,p.shirt);if(f1<0.9){g.globalAlpha=(1-f1)*0.4;seg(g,S,E,2.4,DK);g.globalAlpha=1;}
     seg(g,E,Hh,1.9,p.skin);circ(g,Hh[0],Hh[1],hr,p.skin,false);});
@@ -325,7 +327,7 @@ function renderLayer(states,aa){
   const snap=aa?(p=>p):(p=>[Math.round(p[0]),Math.round(p[1])]);const opt=OPT;
   const order=['L','R'].sort((a,b)=>states[a].P[1]-states[b].P[1]);
   order.forEach(k=>drawBody(g,people[k],states[k],opt,snap));
-  order.forEach(k=>drawArms(g,people[k],states[k],opt,snap));
+  const jm=joinedMap(states);drawArms(g,people.L,states.L,opt,snap,jm.L,true);drawArms(g,people.R,states.R,opt,snap,jm.R,false);
   order.forEach(k=>drawHead(g,people[k],states[k],opt,snap));
   layerG.setTransform(1,0,0,1,0,0);layerG.clearRect(0,0,W,H);layerG.imageSmoothingEnabled=!!aa;layerG.imageSmoothingQuality='high';layerG.drawImage(ssCv,0,0,W,H);
   if(!aa){const id=layerG.getImageData(0,0,W,H);const d=id.data;for(let i=3;i<d.length;i+=4)d[i]=d[i]>=128?255:0;layerG.putImageData(id,0,0);}
