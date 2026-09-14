@@ -1,8 +1,8 @@
 import type { Beat } from "@caller/core";
-import { angleDiff, dist, mix, smooth } from "@caller/core";
+import { addScaled, angleDiff, dirOf, lerp, smooth } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
-import { bearing, contraFigure, polar } from "./ContraFigure.js";
+import { bearing, contraFigure } from "./ContraFigure.js";
 import { handDown } from "../pair/PairFrame.js";
 import { ringFor, ringShift } from "./ring.js";
 
@@ -12,6 +12,18 @@ export interface PetronellaParams extends ContraParams {
   places: number;
   /** How many whole turns the body spins on the way. */
   spins: number;
+  /**
+   * How far the travelling path bows outward from the straight line between
+   * the two places, px.
+   *
+   * A petronella walks round the set, not round a circle through its corners.
+   * Riding the circle through both places bulges `R(1 − cos(arc / 2))` beyond
+   * the set — 8.9 px for a quarter turn of a duple improper minor set, which
+   * is most of the 20 px between one minor set and the next, and puts two
+   * adjacent sets' dancers 2.3 px apart (AC6 wants 8). The chord with a small
+   * bow is both what a dancer walks and what keeps the set to itself.
+   */
+  bowPx: number;
 }
 
 /**
@@ -27,7 +39,7 @@ export const petronella = contraFigure<PetronellaParams>({
   call: "PETRONELLA TURN",
   lead: 4,
   beats: 4,
-  defaults: { from: {}, places: 1, spins: 1 },
+  defaults: { from: {}, places: 1, spins: 1, bowPx: 3 },
 
   plan(ctx: PlanContext, params: PetronellaParams): FigurePlan {
     const ring = ringFor(ctx);
@@ -44,14 +56,17 @@ export const petronella = contraFigure<PetronellaParams>({
       const start = ctx.spot(station);
       const end = ends[station] ?? start;
       const k = smooth(t / beats);
-      const from = bearing(ring.centre, start.p);
-      const raw = angleDiff(from, bearing(ring.centre, end.p));
-      // Round the ring clockwise, which is to the dancer's own right.
-      const arc = raw > 0 ? raw - 360 : raw;
-      const radius = mix(dist(ring.centre, start.p), dist(ring.centre, end.p), k);
+      // Walk the chord between the two places, bowed a little away from the
+      // middle so the path is a rounded square rather than either a circle
+      // through the corners or a flat line. See `bowPx`.
+      const straight = lerp(start.p, end.p, k);
+      const bow = params.bowPx * Math.sin(Math.PI * k);
+      const p =
+        bow === 0 ? straight : addScaled(straight, dirOf(bearing(ring.centre, straight)), bow);
+      // The body spins to the dancer's own right, which is clockwise.
       const spin =
         360 * params.spins * Math.sign(params.places || 1) + angleDiff(start.facing, end.facing);
-      return { p: polar(ring.centre, from + arc * k, radius), facing: start.facing + spin * k };
+      return { p, facing: start.facing + spin * k };
     };
 
     return {
