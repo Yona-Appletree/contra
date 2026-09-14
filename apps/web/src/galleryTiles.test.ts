@@ -62,12 +62,17 @@ describe("every tile", () => {
     for (const tile of tiles) expect(tileByKey(tiles, tile.key)).toBe(tile);
   });
 
-  test("gives every dancer a pose across its whole window", () => {
-    for (const tile of tiles) {
-      for (const dancer of tile.timeline.dancers()) {
-        for (const t of window(tile)) {
-          expect(() => poseAt(tile.timeline, dancer, t), `${tile.key} @ ${t}`).not.toThrow();
-        }
+  // One case per tile rather than one loop over all of them: `poseAt` plans
+  // its figure from scratch on every sample (a later milestone memoises it),
+  // so all tiles in a single case shares one 5s vitest budget and that budget
+  // is tight on a slower CI runner even though every individual tile is fast.
+  // Splitting costs nothing in coverage — every dancer of every tile is still
+  // checked at every sampled beat of its window — it just gives each tile its
+  // own budget.
+  test.each(tiles)("gives every dancer a pose across its whole window: $key", (tile) => {
+    for (const dancer of tile.timeline.dancers()) {
+      for (const t of window(tile)) {
+        expect(() => poseAt(tile.timeline, dancer, t), `${tile.key} @ ${t}`).not.toThrow();
       }
     }
   });
