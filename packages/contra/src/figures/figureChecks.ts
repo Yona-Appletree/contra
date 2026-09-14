@@ -217,7 +217,6 @@ function robinsChainChecks(): FigureChecks {
   // The chain's own default timing: the pull by is the first half, the rigid
   // half turn is beats 4.5 to 6.5, and the couple opens out over the last 1.5.
   const turn = win(4.5, 6.5);
-  const held = win(5.5, 6.5);
   const results = [
     passes(track, "1R", "2R", {
       within: CLOSE_PX,
@@ -234,8 +233,8 @@ function robinsChainChecks(): FigureChecks {
     // one across the set from it — 1L. 1R lands on 2R's place and pairs with
     // 2L. A courtesy turn is with the lark of the place you arrive at, not the
     // nearest lark on the floor.
-    handsJoined(track, "1L", "L", "2R", "L", held, HAND_TOLERANCE_PX),
-    handsJoined(track, "2L", "L", "1R", "L", held, HAND_TOLERANCE_PX),
+    handsJoined(track, "1L", "L", "2R", "L", turn, HAND_TOLERANCE_PX),
+    handsJoined(track, "2L", "L", "1R", "L", turn, HAND_TOLERANCE_PX),
     // The rigid half turn itself, as four separate measurements: the couple's
     // line sweeps a half, both bodies turn a half, she is on his right at every
     // sample of it and not only at the ends, and the four hands never move on
@@ -246,8 +245,8 @@ function robinsChainChecks(): FigureChecks {
     turnsHalf(track, "2L", "1R", turn),
     onHisRightThroughout(track, "1L", "2R", turn),
     onHisRightThroughout(track, "2L", "1R", turn),
-    handsRideTheBodies(track, "1L", "2R", held),
-    handsRideTheBodies(track, "2L", "1R", held),
+    handsRideTheBodies(track, "1L", "2R", turn),
+    handsRideTheBodies(track, "2L", "1R", turn),
     endsBesideOnTheRight(track, "1L", "2R"),
     endsBesideOnTheRight(track, "2L", "1R"),
     // AC6: the couple turning beside you gets left room.

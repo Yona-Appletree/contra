@@ -90,12 +90,18 @@ const CHAIN_BOW_PX = 3.5;
  *
  * The lark ends on his own place facing the way he began: the whole effect of a
  * chain is that the robins have traded and each couple has a new robin.
+ *
+ * **What the reflection costs the pull by** is the one thing in this figure
+ * that is measured and wrong rather than modelled: each robin stops on the near
+ * side of her couple's centre, so the two of them stop short of each other and
+ * pass on the *left*. See {@link CHAIN_BOW_PX} and the `robins-chain` row of
+ * `knownWrong.ts`.
  */
 export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across and out. The lark of the couple each robin is arriving at turns to face out of the set as she comes, stepping across to meet her: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her back and his right hand on it. Then the two of them pivot as one, a half turn about the point between them — she walks forward, he walks backward, and the arms basically stay put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops; and because the two lines of this model stand nearly three times as far apart as a courtesy turn holds, the lark has to step across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it.)",
+    "The two robins take right hands in the middle and pull by, and carry on across the set. The lark of the couple each robin is arriving at steps across to meet her, turning to face out of the set over the last beat as she comes: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her own back and his right hand on it. Then the two of them pivot as one body, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops. And two things this model gets wrong, both of them the same cause — its two lines stand 32 px apart where a courtesy turn holds at 11.5. The lark has to step 21.75 px across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it, where a real lark barely leaves his place. And the two robins pull by on the wrong shoulder: each of them stops a hold short of her new couple's centre, which leaves them on each other's left, 13.5 px apart, where a chain passes right shoulders.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -223,14 +229,15 @@ export const robinsChain = contraFigure<RobinsChainParams>({
       return turning.mine === "lark" ? turning.turn.lark(into) : turning.turn.robin(into);
     };
 
-    // A beat to take, and the whole of the opening out to let go over. Right
-    // and left through matches its take to its closing up because its couple
-    // closes 10 px and a hand that finishes its take while the target is still
-    // travelling has to chase it; a chain's couple closes about a pixel, so
-    // there is nothing to chase and a beat of held hold is worth more.
+    // The hands go up over the **last beat of the pull by**, so that they are
+    // joined at the instant the rigid turn begins and stay joined for every
+    // sample of it. Taking them after it begins instead means each hand is
+    // chasing a point that is swinging round the pivot: measured, the lark's
+    // right hand on her back does 9.20 elbow-per-hand that way against 5.15
+    // this way, on a guard of 9.5833.
     const window = {
-      takeFrom: pullBeats,
-      takeTo: pullBeats + Math.min(1, turnBeats / 2),
+      takeFrom: Math.max(0, pullBeats - TAKE_BEATS),
+      takeTo: pullBeats,
       releaseFrom: beats - openBeats,
       releaseTo: beats,
     };
@@ -300,6 +307,9 @@ export const robinsChain = contraFigure<RobinsChainParams>({
  * go at the same time, after the rotation is over.
  */
 const OPEN_BEATS: Beat = 1.5;
+
+/** How long the hands take to close, at the end of the pull by, beats. */
+const TAKE_BEATS: Beat = 1;
 
 /**
  * How long before the hands close the lark is standing on his take, beats.
