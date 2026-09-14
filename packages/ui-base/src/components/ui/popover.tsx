@@ -64,17 +64,25 @@ export function Popover({
     setProgress(value);
   }, []);
 
+  // Every measurement keeps the previous object when nothing moved by more
+  // than a tenth of a pixel: the scroll listener and the panel's own
+  // ResizeObserver both fire on their own changes, and a fresh object each
+  // time would re-render the page on every scroll frame.
   const measure = useCallback(() => {
     const button = triggerRef.current;
     if (!button) return;
     const rect = button.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
-      setTriggerRect({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+      const next = { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+      setTriggerRect((was) => (was && sameRect(was, next) ? was : next));
     }
     const panel = panelRef.current;
     if (panel) {
       const box = panel.getBoundingClientRect();
-      if (box.width > 0 && box.height > 0) setPanelSize({ width: box.width, height: box.height });
+      if (box.width > 0 && box.height > 0) {
+        const next = { width: box.width, height: box.height };
+        setPanelSize((was) => (was && sameSize(was, next) ? was : next));
+      }
     }
   }, []);
 
@@ -203,11 +211,16 @@ export function Popover({
         ? createPortal(
             <div style={LAYER_STYLE} data-testid={panelTestId ? `${panelTestId}-layer` : undefined}>
               {/* Outside click. Covers the viewport under the panel and the
-                  trigger's copy, both of which sit above it in the layer. */}
+                  trigger's copy, both of which sit above it in the layer.
+                  `preventDefault` so the mousedown this pointerdown would
+                  synthesize cannot move focus to the body: the close puts it
+                  back on the trigger, and the default would take it away
+                  again a moment later. */}
               <div
                 aria-hidden="true"
                 style={BACKDROP_STYLE}
                 onPointerDown={(event) => {
+                  event.preventDefault();
                   event.stopPropagation();
                   close();
                 }}
@@ -216,8 +229,8 @@ export function Popover({
                 <path
                   d={shape?.path ?? ""}
                   fillRule="evenodd"
-                  fill="var(--popover-fill, var(--color-secondary))"
-                  stroke="var(--popover-border, var(--color-border))"
+                  fill="var(--popover-fill)"
+                  stroke="var(--popover-border)"
                   strokeWidth={POPOVER_BORDER_WIDTH_PX}
                   style={{ filter: "drop-shadow(0 12px 28px rgb(0 0 0 / 0.45))" }}
                 />
@@ -271,6 +284,9 @@ export function Popover({
                     cursor: "pointer",
                   }}
                   onPointerDown={(event) => {
+                    // Same as the backdrop: closing restores focus to the
+                    // in-flow button, and the default would pull it away.
+                    event.preventDefault();
                     event.stopPropagation();
                     close();
                   }}
@@ -344,10 +360,15 @@ const LAYER_STYLE: CSSProperties = {
   inset: 0,
   zIndex: 60,
   pointerEvents: "none",
-  // Defaults the consumer can override: the wall, one shade up from the tab
-  // bar it opens out of, with the page's own hairline.
-  ["--popover-fill" as string]: "var(--color-secondary)",
-  ["--popover-border" as string]: "var(--color-border)",
+  // Defaults the consumer overrides by setting these two on the trigger's
+  // subtree: the wall, one shade up from the tab bar it opens out of, with
+  // the page's own hairline. They name `--secondary` / `--border` rather
+  // than Tailwind's `--color-*` because `@caller/ui-design` declares its
+  // theme with `@theme inline`, which inlines those values into utilities
+  // and emits no `--color-*` custom property to read back at runtime — an
+  // unresolvable `fill` would silently paint the panel black.
+  ["--popover-fill" as string]: "var(--secondary, #2c2320)",
+  ["--popover-border" as string]: "var(--border, #4a3c30)",
 };
 const BACKDROP_STYLE: CSSProperties = {
   position: "fixed",
@@ -520,6 +541,16 @@ function contentStyle(t: number): CSSProperties {
   if (eased >= 1) return { opacity: 1, transform: "none" };
   return { opacity: eased, transform: `translateY(${(-6 * (1 - eased)).toFixed(1)}px)` };
 }
+
+/** Measurement noise below this is not a move. */
+const MEASURE_EPSILON_PX = 0.1;
+const sameRect = (a: RectSnapshot, b: RectSnapshot): boolean =>
+  Math.abs(a.x - b.x) < MEASURE_EPSILON_PX &&
+  Math.abs(a.y - b.y) < MEASURE_EPSILON_PX &&
+  sameSize(a, b);
+const sameSize = (a: SizeSnapshot, b: SizeSnapshot): boolean =>
+  Math.abs(a.width - b.width) < MEASURE_EPSILON_PX &&
+  Math.abs(a.height - b.height) < MEASURE_EPSILON_PX;
 
 const easeOutCubic = (t: number): number => 1 - (1 - t) ** 3;
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;

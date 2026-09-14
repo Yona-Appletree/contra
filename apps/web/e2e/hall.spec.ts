@@ -29,7 +29,8 @@ test("the hall draws, with the band, the lines and the caller", async ({ page })
   const box = await canvas.evaluate((el: HTMLCanvasElement) => ({ w: el.width, h: el.height }));
   expect(box).toEqual({ w: 536, h: 684 });
   await expect(page.getByTestId("hall-card")).toContainText("Airpants");
-  await expect(page.getByTestId("hall-version")).toBeVisible();
+  // V1 moved the version out of the footer and into the tab bar's badge.
+  await expect(page.getByTestId("build-info-trigger")).toBeVisible();
   expect(errors).toEqual([]);
 });
 

@@ -25,6 +25,8 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t2-dance-card-1280.png`    | T2: the same tab at 1280 × 800                                               |
 | `t2-traces-view-390.png`    | T2: all four views at 390 × 844, `#/dances/airpants/traces`                  |
 | `t2-traces-view-1280.png`   | T2: the same page at 1280 × 800                                              |
+| `v1-badge-390.png`          | V1: the build-info badge open at 390 × 844, `#/dance/airpants?beat=8&seed=1` |
+| `v1-badge-1280.png`         | V1: the same badge open at 1280 × 800                                        |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -52,6 +54,23 @@ row off a 390 px screen. On the traces page the views with a beat axis keep
 their own width and scroll inside their own box rather than being scaled down to
 a phone, which is why the 390 picture shows the first phrases of the march and
 the seismograph rather than four squeezed ones.
+
+The two V1 pictures are the look gate for the build-info badge: the merged
+outline, with the trigger's rounded box rising out of the panel's top edge and
+a concave fillet where the two meet, and the panel's own contents — the build
+rows, then "Recent updates". They are the viewport rather than `fullPage`
+(the panel is fixed-position; a full-page picture would scroll the page out
+from under it), and they need the two JSON files a deploy writes, so the
+recipe for them has one extra step:
+
+```bash
+pnpm --filter @caller/web build
+node scripts/pages/build-info.mjs --out apps/web/dist
+pnpm --filter @caller/web exec playwright test <scratch spec>
+```
+
+Without that middle step both fetches 404 and the badge shows its dev-build
+state, which is the right behaviour and the wrong picture.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
