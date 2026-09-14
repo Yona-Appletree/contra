@@ -29,6 +29,17 @@ export interface CaliforniaTwirlParams extends ContraParams {
   pairs: Pairing;
   /** How far below shoulder height the arch is, px. `0` is shoulder height. */
   holdDrop: number;
+  /**
+   * Which way the couple turns: `1` the way the raised hand leads, `-1` back
+   * the other way.
+   *
+   * The two places a twirl ends on are the same either way — it is half a turn
+   * about the point between the pair — but the arc between them is not, and at
+   * the end of a line the wrong arc reaches into the couple crossing over. The
+   * figure's own numbers are unchanged at `1`; a dance that needs the other
+   * arc says so.
+   */
+  direction: 1 | -1;
 }
 
 /**
@@ -45,7 +56,7 @@ export const californiaTwirl = contraFigure<CaliforniaTwirlParams>({
   call: "CALIFORNIA TWIRL",
   lead: 4,
   beats: 4,
-  defaults: { from: {}, pairs: "partners", holdDrop: 0 },
+  defaults: { from: {}, pairs: "partners", holdDrop: 0, direction: 1 },
 
   plan(ctx: PlanContext, params: CaliforniaTwirlParams): FigurePlan {
     const beats = params.beats;
@@ -58,8 +69,9 @@ export const californiaTwirl = contraFigure<CaliforniaTwirlParams>({
       const centre = midpoint(ctx.spot(a).p, ctx.spot(b).p);
       centreOfPair[a] = centre;
       centreOfPair[b] = centre;
-      ends[a] = { p: ctx.spot(b).p, facing: ctx.spot(a).facing + 180 };
-      ends[b] = { p: ctx.spot(a).p, facing: ctx.spot(b).facing + 180 };
+      const half = 180 * params.direction;
+      ends[a] = { p: ctx.spot(b).p, facing: ctx.spot(a).facing + half };
+      ends[b] = { p: ctx.spot(a).p, facing: ctx.spot(b).facing + half };
       const [sideA, sideB] = insidePair(ctx, a, b);
       joins.push({ a, aSide: sideA, b, bSide: sideB });
     }
@@ -69,7 +81,7 @@ export const californiaTwirl = contraFigure<CaliforniaTwirlParams>({
       const centre = centreOfPair[station];
       const start = ctx.spot(station);
       if (!centre) return start;
-      const k = smooth(t / beats);
+      const k = smooth(t / beats) * params.direction;
       const from = bearing(centre, start.p);
       return {
         p: polar(centre, from + 180 * k, Math.hypot(...sub(start.p, centre))),
