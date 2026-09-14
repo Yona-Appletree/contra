@@ -15,15 +15,15 @@ walks.
 
 So: measure the worst take the registry actually contains, then guard at **3×** it.
 
-- The furthest any figure reaches from a dancer's own hip to a hand they hold is **14.7814 px** (`robins-chain 2L R at t=5.469`).
+- The furthest any figure reaches from a dancer's own hip to a hand they hold is **15.8454 px** (`robins-chain 1R R at t=1.563`).
 - The lowest drop any figure holds a hand at is **0 px** (`swing 1R L at t=1.000`), so the largest lift a take makes is 14.5 px.
 - Measured at 1/32 beat, a standing dancer's one-beat take over that geometry peaks at:
 
 | | legitimate maximum | × 3 = the bound |
 | --- | ---: | ---: |
-| hand floor speed | 22.1432 px/beat | **66.4295** |
-| elbow floor speed | 65.3205 px/beat | **195.9615** |
-| elbow speed ÷ hand speed, per sample | 3.5298× | **10.5893** |
+| hand floor speed | 23.7372 px/beat | **71.2116** |
+| elbow floor speed | 59.2183 px/beat | **177.6548** |
+| elbow speed ÷ hand speed, per sample | 3.1944× | **9.5833** |
 | hand height rate | 21.7217 px/beat | **65.1650** |
 | out-and-back inside one beat | 1.2000 px | **3.6000** |
 
@@ -35,8 +35,8 @@ elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat,
 nothing would ever trip. That was not the elbow being unbounded by construction: it
 was the elbow **pole lining up with the arm** part way through the take, and the elbow
 flipping through 180° as it crossed. With the pole capped
-(`ELBOW_POLE_ALONG_FRACTION` in `@caller/core`) the same take moves the elbow at 65.3
-px/beat, **2.950×** the hand, and the guard means something again.
+(`ELBOW_POLE_ALONG_FRACTION` in `@caller/core`) the same take moves the elbow at 59.2
+px/beat, **2.495×** the hand, and the guard means something again.
 
 The **ratio** is the column that discriminates, and it is derived the same way: the
 worst per-sample `elbow speed ÷ hand speed` an honest take produces, with the hand
@@ -63,7 +63,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `allemande` | 39.1 | 44.6 | 4.78 | 23.4 | 162 | 0.45 | 0 | **7.86** | `set0/c3/lark` L at beat 63.625 |
-| `robins-chain` | 30.8 | 69.8 | 7.05 | 20.2 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 25.125 |
+| `robins-chain` | 34.9 | 66.2 | 6.52 | 20.2 | 0 | 0.00 | 0 | **7.86** | `set0/c2/robin` R at beat 57.156 |
 | `swing` | 59.5 | **225.5** | **11.94** | 25.6 | 36 | 0.09 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 138 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
 | `circle` | 25.1 | 40.5 | 2.25 | 9.0 | 32 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 59.000 |
@@ -78,7 +78,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
-| `long-lines → robins-chain` | 8.5 | 7.9 | 0.97 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c4/robin` R at beat 24.375 |
+| `long-lines → robins-chain` | 16.2 | 17.5 | 1.08 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c2/lark` L at beat 24.344 |
 | `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 24 | 0.12 | 0 | 0.66 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
@@ -100,17 +100,17 @@ it, so every number is the figure's own and no seam is folded in.
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
-| `star` | 31.9 | 31.9 | 2.10 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
-| `robins-chain` | 30.8 | 62.5 | 4.58 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.125 |
+| `robins-chain` | 36.9 | 55.7 | 5.15 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.156 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
+| `right-and-left-through` | 31.9 | 78.7 | 3.76 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 3.813 |
+| `star` | 31.9 | 31.9 | 2.10 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
-| `petronella` | 24.7 | 26.8 | 1.86 | 0.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.781 |
 | `allemande` | 22.2 | 32.5 | 2.45 | 23.4 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 7.563 |
-| `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
+| `petronella` | 24.7 | 26.8 | 1.86 | 0.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.781 |
 | `hey` | 22.0 | 26.3 | 2.30 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.750 |
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
+| `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
 | `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
-| `right-and-left-through` | 21.5 | 59.1 | 2.87 | 13.5 | 0 | 0.00 | 0 | 0.00 | `2L` R at beat 3.969 |
 | `balance-ring` | 19.3 | 20.9 | 1.50 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 0.500 |
 | `circle` | 15.7 | 24.3 | 1.74 | 9.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 7.500 |
 | `balance` | 11.8 | 14.8 | 1.26 | 9.9 | 0 | 0.00 | 0 | 0.00 | `2R` L at beat 0.469 |
@@ -123,6 +123,7 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 
 | figure or seam | assertion | measured | why |
 | --- | --- | --- | --- |
+| `robins-chain` | 1R and 2R pass R shoulders around beat 2.5 | they come 13.497 px apart at beat 2.719, 6.75 px from the middle of the set — a pass, and in the middle — but 2R is on 1R's LEFT by 13.16 px | F7's ruling makes the courtesy turn a rigid pivot, and a rigid pivot's take is the finish reflected through the point between them: each robin stops a hold short of her couple's centre, on the near side of it. Two robins who both stop short of the middle are on each other's left however they walk — their straight paths come no nearer than 19.36 px, and the bow that closes that gap cannot change which side of it they are on. Getting them on to right shoulders needs each of them past the middle before the hands close, and that needs her lark a further 11.5 px past it — 27.5 px of a 32 px set — which puts four dancers in the middle at once and breaks AC6 (measured best: 6.78 px against 8). Ruling wanted: the two cannot both be had at this set width. |
 
 ## What each figure actually does
 
@@ -142,20 +143,26 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 
 ### `robins-chain`
 
-> The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at turns about to face out and steps off his place to meet her; she comes to his left, her left hand in his left, his right hand on her back and her own right hand there too. Then the couple turns a half — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops; and the couple's own line barely turns while the two bodies turn a half, because the places it ends on are a whole set's width apart.)
+> The two robins take right hands in the middle and pull by, and carry on across the set. The lark of the couple each robin is arriving at steps across to meet her, turning to face out of the set over the last beat as she comes: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her own back and his right hand on it. Then the two of them pivot as one body, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops. And two things this model gets wrong, both of them the same cause — its two lines stand 32 px apart where a courtesy turn holds at 11.5. The lark has to step 21.75 px across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it, where a real lark barely leaves his place. And the two robins pull by on the wrong shoulder: each of them stops a hold short of her new couple's centre, which leaves them on each other's left, 13.5 px apart, where a chain passes right shoulders.)
 
 | | assertion | evidence |
 | --- | --- | --- |
-| pass | 1R and 2R pass R shoulders around beat 2.5 | they come 10.50 px apart at beat 3.13 |
-| pass | 1L walks backward from beat 6 to 7.5 | they travel 8.13 px, 7.23 px of it behind them |
-| pass | 2L walks backward from beat 6 to 7.5 | they travel 8.13 px, 7.23 px of it behind them |
-| pass | 1L's L stays joined to 2R's L from beat 5.5 to 6.5 | never more than 0.0000 px apart |
-| pass | 2L's L stays joined to 1R's L from beat 5.5 to 6.5 | never more than 0.0000 px apart |
-| pass | 1L and 2R each turn a half between beat 4.5 and the end | both of them turn 180.000°, within 0.0000° |
-| pass | 2L and 1R each turn a half between beat 4.5 and the end | both of them turn 180.000°, within 0.0000° |
+| **known** | 1R and 2R pass R shoulders around beat 2.5 | at the closest point 2R is on 1R's L, not their R |
+| pass | 1L walks backward from beat 4.5 to 6.5 | they travel 11.50 px, 11.50 px of it behind them |
+| pass | 2L walks backward from beat 4.5 to 6.5 | they travel 11.50 px, 11.50 px of it behind them |
+| pass | 1L's L stays joined to 2R's L from beat 4.5 to 6.5 | never more than 0.0000 px apart |
+| pass | 2L's L stays joined to 1R's L from beat 4.5 to 6.5 | never more than 0.0000 px apart |
+| pass | the line from 1L to 2R sweeps a half between beat 4.5 and 6.5 | it sweeps 180.000°, within 0.0000° |
+| pass | the line from 2L to 1R sweeps a half between beat 4.5 and 6.5 | it sweeps 180.000°, within 0.0000° |
+| pass | 1L and 2R each turn a half between beat 4.5 and 6.5 | both of them turn 180.000°, within 0.0000° |
+| pass | 2L and 1R each turn a half between beat 4.5 and 6.5 | both of them turn 180.000°, within 0.0000° |
+| pass | 2R is on 1L's right for the whole turn, beat 4.5 to 6.5 | she is never less than 11.500 px to his right |
+| pass | 1R is on 2L's right for the whole turn, beat 4.5 to 6.5 | she is never less than 11.500 px to his right |
+| pass | the four hands of 1L and 2R stay put on their bodies from beat 4.5 to 6.5 | no hand moves more than 0.0000 px on its own body |
+| pass | the four hands of 2L and 1R stay put on their bodies from beat 4.5 to 6.5 | no hand moves more than 0.0000 px on its own body |
 | pass | 2R ends on 1L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
 | pass | 1R ends on 2L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
-| pass | nobody comes within 8 px of anybody from beat 4.5 to 8 | the closest anybody gets is 1L and 2R at 11.500 px |
+| pass | nobody comes within 8 px of anybody from beat 4.5 to 8 | the closest anybody gets is 1L and 2L at 8.500 px |
 | pass | 1R's R stays joined to 2R's R from beat 1.625 to 2.375 | never more than 0.0000 px apart |
 | pass | 1R ends on 2R | they end 0.0000 px away |
 | pass | 2R ends on 1R | they end 0.0000 px away |
@@ -219,20 +226,26 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 
 ### `right-and-left-through`
 
-> The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with. Left hand in her left, his right hand on her back and her own right hand there too, the couple turns half way round the point between them — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple has to close up before it turns and open out again as it lets go — and the two couples turning at once pass 8.5 px, which is as much room as a place pitch leaves them.)
+> The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with, stopping a little short of the far line. Left hand in her left, her own right hand behind her back and his right hand on it, the couple pivots as one, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both of them face in again with the robin still on the lark's right, and then opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple stops short of the line to turn and opens out again as it lets go.)
 
 | | assertion | evidence |
 | --- | --- | --- |
 | pass | 1L and 2R pass R shoulders around beat 2.0 | they come 10.00 px apart at beat 1.75 |
-| pass | 1L walks backward from beat 5 to 6.5 | they travel 7.89 px, 7.89 px of it behind them |
-| pass | 2L walks backward from beat 5 to 6.5 | they travel 7.89 px, 7.89 px of it behind them |
-| pass | 1L's L stays joined to 1R's L from beat 5 to 6.5 | never more than 0.0000 px apart |
-| pass | 2L's L stays joined to 2R's L from beat 5 to 6.5 | never more than 0.0000 px apart |
-| pass | 1L and 1R each turn a half between beat 3.5 and the end | both of them turn 180.000°, within 0.0000° |
-| pass | 2L and 2R each turn a half between beat 3.5 and the end | both of them turn 180.000°, within 0.0000° |
+| pass | 1L walks backward from beat 4.5 to 6.5 | they travel 11.50 px, 11.50 px of it behind them |
+| pass | 2L walks backward from beat 4.5 to 6.5 | they travel 11.50 px, 11.50 px of it behind them |
+| pass | 1L's L stays joined to 1R's L from beat 4.5 to 6.5 | never more than 0.0000 px apart |
+| pass | 2L's L stays joined to 2R's L from beat 4.5 to 6.5 | never more than 0.0000 px apart |
+| pass | the line from 1L to 1R sweeps a half between beat 4.5 and 6.5 | it sweeps 180.000°, within 0.0000° |
+| pass | the line from 2L to 2R sweeps a half between beat 4.5 and 6.5 | it sweeps 180.000°, within 0.0000° |
+| pass | 1L and 1R each turn a half between beat 4.5 and 6.5 | both of them turn 180.000°, within 0.0000° |
+| pass | 2L and 2R each turn a half between beat 4.5 and 6.5 | both of them turn 180.000°, within 0.0000° |
+| pass | 1R is on 1L's right for the whole turn, beat 4.5 to 6.5 | she is never less than 11.500 px to his right |
+| pass | 2R is on 2L's right for the whole turn, beat 4.5 to 6.5 | she is never less than 11.500 px to his right |
+| pass | the four hands of 1L and 1R stay put on their bodies from beat 4.5 to 6.5 | no hand moves more than 0.0000 px on its own body |
+| pass | the four hands of 2L and 2R stay put on their bodies from beat 4.5 to 6.5 | no hand moves more than 0.0000 px on its own body |
 | pass | 1R ends on 1L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
 | pass | 2R ends on 2L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
-| pass | nobody comes within 8 px of anybody from beat 3.5 to 8 | the closest anybody gets is 1L and 2L at 8.500 px |
+| pass | nobody comes within 8 px of anybody from beat 4.5 to 8 | the closest anybody gets is 1L and 2L at 8.500 px |
 
 ### `petronella`
 
@@ -331,11 +344,11 @@ Everybody turns once round to their own right while travelling one place clockwi
 
 ### `right-and-left-through` — RIGHT AND LEFT THROUGH
 
-The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with. Left hand in her left, his right hand on her back and her own right hand there too, the couple turns half way round the point between them — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple has to close up before it turns and open out again as it lets go — and the two couples turning at once pass 8.5 px, which is as much room as a place pitch leaves them.)
+The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with, stopping a little short of the far line. Left hand in her left, her own right hand behind her back and his right hand on it, the couple pivots as one, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both of them face in again with the robin still on the lark's right, and then opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple stops short of the line to turn and opens out again as it lets go.)
 
 ### `robins-chain` — ROBINS CHAIN
 
-The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at turns about to face out and steps off his place to meet her; she comes to his left, her left hand in his left, his right hand on her back and her own right hand there too. Then the couple turns a half — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops; and the couple's own line barely turns while the two bodies turn a half, because the places it ends on are a whole set's width apart.)
+The two robins take right hands in the middle and pull by, and carry on across the set. The lark of the couple each robin is arriving at steps across to meet her, turning to face out of the set over the last beat as she comes: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her own back and his right hand on it. Then the two of them pivot as one body, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops. And two things this model gets wrong, both of them the same cause — its two lines stand 32 px apart where a courtesy turn holds at 11.5. The lark has to step 21.75 px across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it, where a real lark barely leaves his place. And the two robins pull by on the wrong shoulder: each of them stops a hold short of her new couple's centre, which leaves them on each other's left, 13.5 px apart, where a chain passes right shoulders.)
 
 ### `roll-away` — ROLL AWAY WITH A HALF SASHAY
 
