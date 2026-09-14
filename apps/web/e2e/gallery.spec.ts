@@ -197,7 +197,10 @@ has.
 These are written on every \`playwright test\` run and committed. They are
 **not** compared against anything — they are what a reviewer looks at.
 
-The deep link opens the same tile live, looping, on the Moves tab.
+The deep link opens the same tile live, looping, on the Moves tab, and the
+order of the table is the order that page is in: each figure, then every seam
+that leaves it (U2). It used to be all nineteen figures and then all
+thirty-five seams; nothing else about the strips changed when it moved.
 
 ${table(COLUMNS, rows)}
 

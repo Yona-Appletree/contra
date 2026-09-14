@@ -4,18 +4,18 @@ import type { DancerId, Group } from "@caller/choreo";
 import { CONTRA_ROLES } from "@caller/contra";
 import type { Person, Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, createPerson, createRenderer, drawText } from "@caller/hall";
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GalleryTile } from "../galleryTiles.js";
+import type { GalleryTile, TileMetric } from "../galleryTiles.js";
 import {
   DEFAULT_ZOOM,
-  DESCRIBE_SLOT,
   FLOOR_COLOUR,
   GALLERY_ZOOMS,
-  METRICS_SLOT,
-  SLOTS_NOTE,
   SOLO_ZOOM,
   galleryTiles,
+  groupedTiles,
+  maxTileWorld,
+  tileMetrics,
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
 
@@ -27,6 +27,13 @@ import { hallFrame, seedOf } from "../hallFrame.js";
  * Every tile reads a `Timeline` with `poseAt`, exactly as the hall does. The
  * page never calls `FigureDef.sample`, so a figure that looks wrong here looks
  * wrong on the Stage tab too — which is the whole point of the gallery.
+ *
+ * One move to a row, never a grid (U2): the tile on the left in a slot as wide
+ * as the widest world in the gallery, so every set stands on the same axis and
+ * the writing beside them starts in the same column; the id, the call, the
+ * figure's own `describe` and the motion oracle's numbers on the right. Each
+ * seam is filed in the same row shape under the figure it comes out of, so the
+ * page reads as one move and then every way out of it.
  *
  * Deep links, which are what a review is conducted in:
  *
@@ -87,6 +94,7 @@ export function MovesPage({
   const [strips, setStrips] = useState<ReadonlySet<string>>(
     () => new Set(stripOnly && solo !== null ? [solo] : []),
   );
+  const metrics = useMetrics(shown, bare);
 
   const clock = useMemo<Clock>(() => {
     const c = createClock(() => performance.now() / 1000, BPM);
@@ -157,22 +165,41 @@ export function MovesPage({
     );
   }
 
-  const figures = shown.filter((t) => t.kind === "figure");
-  const seams = shown.filter((t) => t.kind === "seam");
+  const groups = groupedTiles(shown);
+  const figures = shown.filter((t) => t.kind === "figure").length;
+  const seams = shown.length - figures;
+  // The tile column is one width for the whole page: the widest world in the
+  // gallery at the current zoom. Every set then stands on the same axis and
+  // the writing beside them starts in the same column, which is the whole
+  // point of a row — a slot per tile would be a ragged left edge.
+  const slot = maxTileWorld(shown).w * zoom;
 
   return (
     <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-4">
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-2xl font-semibold">Moves</h1>
         <p className="max-w-[80ch] text-sm text-muted-foreground">
-          Every figure, and every seam between two figures the ten dances dance. One group of four,
-          the real engine, one beat driving all of them. {SLOTS_NOTE}
+          {solo === null
+            ? `${String(figures)} figures and ${String(seams)} seams between them, one to a row:`
+            : "One move, on its own:"}{" "}
+          the tile, what the caller says, what the dancers do in the figure&rsquo;s own words, and
+          what the motion oracle measured over the beats the tile loops.
+          {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
+          <span className="moves-over px-1">this colour</span> is over the bound{" "}
+          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.
         </p>
       </header>
 
       <div
-        className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 bg-background/95 py-2 text-sm"
+        /*
+         * Opaque, not 95%: the page ground carries a board grain now, and a
+         * translucent shelf let both the grain and whatever row was under it
+         * ghost through the controls. The rule under it is what says it is a
+         * shelf rather than a gap.
+         */
+        className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-background px-4 py-2 text-sm"
         data-testid="moves-controls"
+        data-measured={metrics === null ? "0" : "1"}
       >
         <button
           type="button"
@@ -245,64 +272,51 @@ export function MovesPage({
         </label>
       </div>
 
-      {figures.length === 0 ? null : (
-        <Section title="Figures" count={figures.length}>
-          {figures.map((tile) => (
-            <Tile
-              key={tile.key}
-              tile={tile}
+      <ol className="moves-list" style={{ "--moves-tile-w": `${String(slot)}px` } as CSSProperties}>
+        {groups.map((group) => (
+          <li key={group.figure.key} className="moves-group">
+            <Row
+              tile={group.figure}
               beat={beat}
               zoom={zoom}
               trails={trails}
-              strip={strips.has(tile.key)}
+              strip={strips.has(group.figure.key)}
               step={step}
               onStrip={toggleStrip}
+              metrics={metrics?.get(group.figure.key)}
+              solo={solo !== null}
             />
-          ))}
-        </Section>
-      )}
-
-      {seams.length === 0 ? null : (
-        <Section title="Seams" count={seams.length}>
-          {seams.map((tile) => (
-            <Tile
-              key={tile.key}
-              tile={tile}
-              beat={beat}
-              zoom={zoom}
-              trails={trails}
-              strip={strips.has(tile.key)}
-              step={step}
-              onStrip={toggleStrip}
-            />
-          ))}
-        </Section>
-      )}
+            {group.seams.length === 0 ? null : (
+              <ol className="moves-seams">
+                {group.seams.map((tile) => (
+                  <li key={tile.key}>
+                    <Row
+                      tile={tile}
+                      beat={beat}
+                      zoom={zoom}
+                      trails={trails}
+                      strip={strips.has(tile.key)}
+                      step={step}
+                      onStrip={toggleStrip}
+                      metrics={metrics?.get(tile.key)}
+                      solo={solo !== null}
+                    />
+                  </li>
+                ))}
+              </ol>
+            )}
+          </li>
+        ))}
+      </ol>
     </main>
   );
 }
 
-function Section({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count: number;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold">
-        {title} <span className="text-sm font-normal text-muted-foreground">({count})</span>
-      </h2>
-      <div className="flex flex-wrap items-start gap-4">{children}</div>
-    </section>
-  );
-}
-
-/** One tile: the looping canvas, what it is, and its strip when it is open. */
-function Tile({
+/**
+ * One move, one row: the looping canvas in the shared left column, everything
+ * that is known about it on the right, and its strip under both when it is open.
+ */
+function Row({
   tile,
   beat,
   zoom,
@@ -310,6 +324,8 @@ function Tile({
   strip,
   step,
   onStrip,
+  metrics,
+  solo,
 }: {
   tile: GalleryTile;
   beat: Beat;
@@ -318,10 +334,19 @@ function Tile({
   strip: boolean;
   step: number;
   onStrip: (key: string) => void;
+  /** `undefined` until the page has measured; the line says so meanwhile. */
+  metrics: TileMetric[] | undefined;
+  /** Whether this row is the only one on the page: `#/moves/<key>`. */
+  solo: boolean;
 }): JSX.Element {
+  // A seam row sits under the figure it comes out of, whose own row says what
+  // that figure is, so the prose that is new here is the figure it goes into.
+  // On its own deep link there is no row above it, so both are shown.
+  const described = tile.kind === "seam" && !solo ? tile.calls.slice(-1) : tile.calls;
+
   return (
-    <figure
-      className="flex max-w-full flex-none flex-col gap-1"
+    <article
+      className="moves-row"
       data-testid="moves-tile"
       data-key={tile.key}
       data-kind={tile.kind}
@@ -329,49 +354,119 @@ function Tile({
       data-source={tile.source ?? ""}
       data-formation={tile.formation}
     >
-      <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
-      <figcaption className="flex max-w-[28rem] flex-col gap-0.5 text-xs">
-        <span className="text-sm font-semibold">{tile.title}</span>
+      <div className="moves-row-tile">
+        <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
+      </div>
+
+      <div className="moves-row-head">
+        <h2 className="moves-row-title">
+          <a href={soloHref(tile)}>{tile.title}</a>
+        </h2>
         {tile.calls.map((call, i) => (
-          <span key={i} className="text-muted-foreground">
-            {call.call} &middot; {call.beats} beats
-            {paramText(call.params) === "" ? "" : ` · ${paramText(call.params)}`}
-          </span>
+          <p key={i} className="moves-row-call">
+            <span className="moves-row-callid">{call.figure}</span> {call.call}
+            <span className="moves-row-dim">
+              {" · "}
+              {call.beats} beats
+              {paramText(call.params) === "" ? "" : ` · ${paramText(call.params)}`}
+            </span>
+          </p>
         ))}
-        <span className="text-muted-foreground">
+        <p className="moves-row-dim">
           {tile.formation}
           {tile.source === undefined ? " · figure defaults" : ` · from ${tile.source}`}
-        </span>
-        {/* F3a's two lines, when F3a lands them. See the note in the header. */}
-        <span className="italic opacity-50" data-testid="moves-slots">
-          {DESCRIBE_SLOT} &middot; {METRICS_SLOT}
-        </span>
-        {tile.notes.map((note) => (
-          <span key={note} className="text-muted-foreground">
-            {note}
-          </span>
+        </p>
+        <Metrics tile={tile} metrics={metrics} />
+      </div>
+
+      <div className="moves-row-body">
+        {described.map((call) => (
+          <p key={call.figure} className="moves-row-describe">
+            {tile.kind === "seam" ? <b>{call.figure}: </b> : null}
+            {call.describe ?? "No description: this figure has no `describe` yet."}
+          </p>
         ))}
-        <span className="flex flex-wrap items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => onStrip(tile.key)}
-            aria-pressed={strip}
-            className="min-h-8 rounded border px-2 py-1"
-          >
+        {tile.notes.map((note) => (
+          <p key={note} className="moves-row-note">
+            {note}
+          </p>
+        ))}
+        <p className="moves-row-actions">
+          <button type="button" onClick={() => onStrip(tile.key)} aria-pressed={strip}>
             {strip ? "hide strip" : "strip"}
           </button>
-          <a href={soloHref(tile)} className="min-h-8 rounded border px-2 py-1">
-            loop this one
-          </a>
-        </span>
-      </figcaption>
-      {strip ? (
-        <div className="w-full max-w-[90vw] overflow-x-auto">
-          <TileStrip tile={tile} zoom={zoom} step={step} />
-        </div>
-      ) : null}
-    </figure>
+          <a href={soloHref(tile)}>loop this one</a>
+        </p>
+        {strip ? (
+          <div className="moves-row-strip">
+            <TileStrip tile={tile} zoom={zoom} step={step} />
+          </div>
+        ) : null}
+      </div>
+    </article>
   );
+}
+
+/** The oracle's line for one row: six numbers, the ones over a bound marked. */
+function Metrics({
+  tile,
+  metrics,
+}: {
+  tile: GalleryTile;
+  metrics: TileMetric[] | undefined;
+}): JSX.Element {
+  if (metrics === undefined) {
+    return (
+      <p className="moves-row-metrics" data-testid="moves-metrics" data-key={tile.key}>
+        <span className="moves-row-dim">measuring…</span>
+      </p>
+    );
+  }
+  return (
+    <p className="moves-row-metrics" data-testid="moves-metrics" data-key={tile.key}>
+      {metrics.map((m) => (
+        <span key={m.label} className={m.over ? "moves-metric moves-over" : "moves-metric"}>
+          <abbr title={m.detail}>{m.label}</abbr> {m.value}
+        </span>
+      ))}
+      {tile.wrapped === true ? (
+        <span className="moves-row-dim">
+          across the wrap: these measure the tile&rsquo;s own place shift, not the figure
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+/**
+ * The motion oracle's numbers for every row, measured **after** the page has
+ * painted.
+ *
+ * A sweep at 1/32 beat costs about 9 ms a tile, which is half a second over the
+ * whole gallery — cheap enough to do for every row and far too much to do in
+ * front of the first paint on a phone. So the rows render with `measuring…` in
+ * the slot and fill in on the next tick; `data-measured` on the control bar is
+ * how a screenshot waits for them. The bare and strip routes never measure:
+ * they draw one canvas for a camera.
+ */
+function useMetrics(
+  tiles: readonly GalleryTile[],
+  bare: boolean,
+): ReadonlyMap<string, TileMetric[]> | null {
+  const [measured, setMeasured] = useState<ReadonlyMap<string, TileMetric[]> | null>(null);
+  useEffect(() => {
+    if (bare) return;
+    let live = true;
+    const id = requestAnimationFrame(() => {
+      if (!live) return;
+      setMeasured(new Map(tiles.map((tile) => [tile.key, tileMetrics(tile)])));
+    });
+    return () => {
+      live = false;
+      cancelAnimationFrame(id);
+    };
+  }, [tiles, bare]);
+  return measured;
 }
 
 /** The looping canvas of one tile. */
@@ -606,9 +701,27 @@ export function beatText(beat: Beat): string {
   return text.endsWith(".0") ? text.slice(0, -2) : text;
 }
 
-/** A call's tuning as one short line. */
-function paramText(params: Record<string, unknown>): string {
+/**
+ * A call's tuning as one short line.
+ *
+ * Objects are written out rather than `String`ed: a `carried` parameter is a
+ * record of which hands come in already joined, and `String({...})` made the
+ * row read `carried [object Object]`, which is worse than saying nothing. A
+ * value too long to belong on one line is given as its shape instead.
+ */
+export function paramText(params: Record<string, unknown>): string {
   return Object.entries(params)
-    .map(([k, v]) => `${k} ${String(v)}`)
+    .map(([k, v]) => `${k} ${paramValue(v)}`)
     .join(", ");
+}
+
+/** The most this line will spend on one parameter's value. */
+const PARAM_VALUE_CHARS = 40;
+
+function paramValue(value: unknown): string {
+  if (value === null || typeof value !== "object") return String(value);
+  const written = JSON.stringify(value) ?? "?";
+  if (written.length <= PARAM_VALUE_CHARS) return written;
+  const keys = Object.keys(value);
+  return `{${String(keys.length)} keys: ${keys.slice(0, 3).join(", ")}${keys.length > 3 ? ", …" : ""}}`;
 }
