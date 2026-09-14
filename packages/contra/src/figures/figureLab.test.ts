@@ -18,8 +18,8 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
  * `packages/contra/src/dances/loadDances.ts` builds one from its JSON file —
  * `contraDance` over real figures — but deliberately not added to
  * `DEMO_DANCES`: one time through, four couples, two or three figures, so a
- * `figureSeamRows`/`figureLabReport` case here runs the decider once or twice
- * over ~16-24 beats instead of sweeping every real dance that calls a figure
+ * `figureSeamRows`/`figureLabReport` case here runs the decider once, over
+ * ~16-24 beats, instead of sweeping every real dance that calls a figure
  * through it at full length, which is exactly the per-sample cost the repo's
  * briefs forbid inside one vitest case.
  *
@@ -117,6 +117,7 @@ describe("figureAloneRow", () => {
 });
 
 describe("figureSeamRows", () => {
+  // `figureSeamRows` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
   it("only reports seams that touch the figure, over the dances that call it", () => {
     // Fixture A: circle → long-lines → star, wrap star → circle. The two
     // seams either side of `long-lines` should come back; the wrap, which
@@ -128,11 +129,12 @@ describe("figureSeamRows", () => {
     for (const row of rows) {
       expect(row.key.startsWith("long-lines → ") || row.key.endsWith(" → long-lines")).toBe(true);
     }
-  });
+  }, 20000);
 
+  // `figureSeamRows` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
   it("is empty when no dance calls the figure", () => {
     expect(figureSeamRows("swing", [])).toEqual([]);
-  });
+  }, 20000);
 });
 
 describe("figureAssertionGroups", () => {
@@ -157,11 +159,28 @@ describe("figureOracles", () => {
   });
 });
 
+/**
+ * The `- \`...\`` bullet lines of a `figureLabReport` text between two
+ * section headers (or from `startMarker` to the end, when `endMarker` is
+ * omitted) — the seam rows or the oracle rows, counted without re-running the
+ * decider to get them independently.
+ */
+function bulletsBetween(text: string, startMarker: string, endMarker?: string): number {
+  const from = text.slice(text.indexOf(startMarker) + startMarker.length);
+  const section = endMarker ? from.slice(0, from.indexOf(endMarker)) : from;
+  return (section.match(/^- `/gm) ?? []).length;
+}
+
+const seamRowCount = (text: string): number =>
+  bulletsBetween(text, "## Seam rows", "## 3. Oracles");
+const oracleRowCount = (text: string): number => bulletsBetween(text, "## 3. Oracles");
+
 describe("figureLabReport", () => {
+  // `figureLabReport` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
   it("is green for a real figure, on the library's current, all-fixed state", () => {
     // A real-corpus smoke test, restricted to `jubilation` (duple-improper,
     // four couples) so it still runs the decider on real data — the fixtures
-    // above only stand in for the dance-scoping test below — without
+    // above only stand in for the dance-scoping tests below — without
     // sweeping every "hey" dance in the demo corpus (including becket's six
     // couples) through it in one case. The unrestricted sweep (every dance
     // `hey` is called by) is still exercised by `pnpm figure hey` itself;
@@ -175,22 +194,42 @@ describe("figureLabReport", () => {
     expect(report.text).toContain("`hey`");
     expect(report.text).toContain("## 2. Motion, alone");
     expect(report.text).toContain("## 3. Oracles");
-  });
+  }, 20000);
 
-  it("restricts seams and oracles to one dance with `dance`", () => {
-    // Both fixtures call `long-lines`; passing them as the corpus (instead of
-    // the real, ten-dance `DEMO_DANCES`) keeps this to two short decider runs
-    // instead of a sweep over every real dance that calls the figure.
+  // `figureLabReport` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
+  it("sweeps seams and oracles over every dance that calls the figure, unrestricted", () => {
+    // Both fixtures call `long-lines`; passing them as the corpus (instead
+    // of the real, ten-dance `DEMO_DANCES`) keeps this to one short decider
+    // run instead of a sweep over every real dance that calls the figure.
+    // Fixture A contributes the `circle → long-lines` and
+    // `long-lines → star` seams, fixture B contributes `long-lines →
+    // do-si-do` and its wrap `do-si-do → long-lines` — 4 seam rows and one
+    // oracle row per fixture (2 total) when both are in scope.
     const fixtures = [FIXTURE_DANCE_A, FIXTURE_DANCE_B];
     const all = figureLabReport("long-lines", undefined, fixtures);
+    expect(all.text).toContain("`figure-lab-fixture-a`");
+    expect(all.text).toContain("`figure-lab-fixture-b`");
+    expect(seamRowCount(all.text)).toBe(4);
+    expect(oracleRowCount(all.text)).toBe(2);
+  }, 20000);
+
+  // `figureLabReport` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
+  it("restricts seams and oracles to one dance with `dance`", () => {
+    // Same two-fixture corpus as the unrestricted case above, but narrowed
+    // to fixture A alone: only its two seam rows and its one oracle row
+    // should appear, not fixture B's.
+    const fixtures = [FIXTURE_DANCE_A, FIXTURE_DANCE_B];
     const one = figureLabReport("long-lines", "figure-lab-fixture-a", fixtures);
     expect(one.text).toContain("`figure-lab-fixture-a`");
-    expect(one.text.length).toBeLessThan(all.text.length);
-  });
+    expect(one.text).not.toContain("figure-lab-fixture-b");
+    expect(seamRowCount(one.text)).toBe(2);
+    expect(oracleRowCount(one.text)).toBe(1);
+  }, 20000);
 
+  // `figureLabReport` drives the decider through `poseAt`; CI under turbo load runs ~15x slower than a laptop.
   it("is not ok for an id with no registry figure", () => {
     const report = figureLabReport("not-a-figure");
     expect(report.ok).toBe(false);
     expect(report.text).toContain("no such figure");
-  });
+  }, 20000);
 });
