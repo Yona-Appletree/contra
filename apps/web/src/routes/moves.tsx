@@ -13,6 +13,7 @@ import {
   FLOOR_COLOUR,
   GALLERY_ZOOMS,
   METRICS_SLOT,
+  SLOTS_NOTE,
   SOLO_ZOOM,
   galleryTiles,
 } from "../galleryTiles.js";
@@ -163,9 +164,9 @@ export function MovesPage({
     <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-4">
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-2xl font-semibold">Moves</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="max-w-[80ch] text-sm text-muted-foreground">
           Every figure, and every seam between two figures the ten dances dance. One group of four,
-          the real engine, one beat driving all of them.
+          the real engine, one beat driving all of them. {SLOTS_NOTE}
         </p>
       </header>
 
@@ -323,6 +324,10 @@ function Tile({
       className="flex max-w-full flex-none flex-col gap-1"
       data-testid="moves-tile"
       data-key={tile.key}
+      data-kind={tile.kind}
+      data-beats={tile.window.beats}
+      data-source={tile.source ?? ""}
+      data-formation={tile.formation}
     >
       <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
       <figcaption className="flex max-w-[28rem] flex-col gap-0.5 text-xs">
@@ -337,8 +342,10 @@ function Tile({
           {tile.formation}
           {tile.source === undefined ? " · figure defaults" : ` · from ${tile.source}`}
         </span>
-        <span className="italic text-muted-foreground">{DESCRIBE_SLOT}</span>
-        <span className="italic text-muted-foreground">{METRICS_SLOT}</span>
+        {/* F3a's two lines, when F3a lands them. See the note in the header. */}
+        <span className="italic opacity-50" data-testid="moves-slots">
+          {DESCRIBE_SLOT} &middot; {METRICS_SLOT}
+        </span>
         {tile.notes.map((note) => (
           <span key={note} className="text-muted-foreground">
             {note}
@@ -588,9 +595,14 @@ function speedFrom(raw: string | null): number {
 
 const speedText = (s: number): string => (s === 0.25 ? "¼×" : s === 0.5 ? "½×" : "1×");
 
-/** A beat as the strip labels it: no trailing zero, and a bare minus for before. */
+/**
+ * A beat as the strip labels it: no trailing zero, and a bare minus for the
+ * beats before a seam. The rounding matters — a seam cell lands on the seam
+ * through a float sum, and `(-1e-15).toFixed(1)` is the string `"-0.0"`.
+ */
 export function beatText(beat: Beat): string {
-  const text = beat.toFixed(1);
+  const rounded = Math.round(beat * 10) / 10;
+  const text = (rounded === 0 ? 0 : rounded).toFixed(1);
   return text.endsWith(".0") ? text.slice(0, -2) : text;
 }
 

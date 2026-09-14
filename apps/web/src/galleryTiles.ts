@@ -77,13 +77,19 @@ const GROUP_ID = "gallery";
  * `describe` is F3a's, arriving in `@caller/contra` in parallel with this. The
  * slot is here and the tile shows this instead until the export exists.
  */
-export const DESCRIBE_SLOT = "describe: not exported by @caller/contra yet (F3a)";
+export const DESCRIBE_SLOT = "describe —";
 
 /**
  * The metrics line is F3a's `motionReport`, same rule: the slot is here, the
  * export is not.
  */
-export const METRICS_SLOT = "metrics: motionReport not exported yet (F3a)";
+export const METRICS_SLOT = "metrics —";
+
+/** Why those two slots are empty, said once in the page header. */
+export const SLOTS_NOTE =
+  "Each tile keeps a slot for the figure's own description and a motion metrics line. " +
+  "Neither is filled in yet: `describe` and `motionReport` are F3a's, landing in " +
+  "@caller/contra and @caller/choreo in parallel with this page.";
 
 /** One figure inside a tile, as the tile lists it. */
 export interface GalleryCall {
@@ -244,6 +250,12 @@ function figureTile(id: string, registry: FigureRegistry): GalleryTile {
     notes.push("a group of two — the couple waiting out at the end of the line");
   }
 
+  if (found === undefined && contra !== undefined) {
+    notes.push(
+      "no demo dance calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over",
+    );
+  }
+
   const shown = calls.find((c) => c.figure === id) ?? calls[0]!;
   return sized({
     kind: "figure",
@@ -280,7 +292,10 @@ function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean):
   const group = galleryGroup(formation, 4);
   const registry = createContraRegistry();
   const notes = wrapped
-    ? ["the wrap: this dance's last figure into its first, one time through into the next"]
+    ? [
+        "the wrap: this dance's last figure into its first, one time through into the next",
+        "the hall re-forms the minor set between the two, and this tile does not: a place shift across this seam is the progression, not a jump",
+      ]
     : [];
   return sized({
     kind: "seam",

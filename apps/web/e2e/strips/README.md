@@ -1,0 +1,76 @@
+<!-- Written by e2e/gallery.spec.ts on every run. Do not edit by hand. -->
+
+# Move gallery strips
+
+One rendered frame per **half beat** at **4×**, laid out left to right,
+with the beat drawn under each frame in the hall's own bitmap font. A figure
+strip covers the figure's own beats, counted from 0. A seam strip covers the
+four beats each side of the seam, counted **from the seam**, so `-4` is four
+beats before the join and `0` is the first frame of the second figure.
+
+A strip longer than 32 frames is drawn at a coarser step so the image stays a
+readable width; the `frames` column says how many frames each one actually
+has.
+
+These are written on every `playwright test` run and committed. They are
+**not** compared against anything — they are what a reviewer looks at.
+
+The deep link opens the same tile live, looping, on the Moves tab.
+
+| move | strip | deep link | beats | frames | formation | params from |
+| ---- | ----- | --------- | ----- | ------ | --------- | ----------- |
+| `balance` | [figures/balance.png](./figures/balance.png) | `#/moves/balance` | 4 | 8 | duple-improper | airpants |
+| `balance-ring` | [figures/balance-ring.png](./figures/balance-ring.png) | `#/moves/balance-ring` | 4 | 8 | duple-improper | kitchen-stomp |
+| `swing` | [figures/swing.png](./figures/swing.png) | `#/moves/swing` | 12 | 24 | duple-improper | airpants |
+| `allemande` | [figures/allemande.png](./figures/allemande.png) | `#/moves/allemande` | 8 | 16 | duple-improper | airpants |
+| `do-si-do` | [figures/do-si-do.png](./figures/do-si-do.png) | `#/moves/do-si-do` | 10 | 20 | duple-improper | airpants |
+| `long-lines` | [figures/long-lines.png](./figures/long-lines.png) | `#/moves/long-lines` | 8 | 16 | duple-improper | airpants |
+| `circle` | [figures/circle.png](./figures/circle.png) | `#/moves/circle` | 6 | 12 | duple-improper | airpants |
+| `star` | [figures/star.png](./figures/star.png) | `#/moves/star` | 8 | 16 | duple-improper | the-baby-rose |
+| `petronella` | [figures/petronella.png](./figures/petronella.png) | `#/moves/petronella` | 4 | 8 | duple-improper | kitchen-stomp |
+| `california-twirl` | [figures/california-twirl.png](./figures/california-twirl.png) | `#/moves/california-twirl` | 4 | 8 | duple-improper | figure defaults |
+| `right-and-left-through` | [figures/right-and-left-through.png](./figures/right-and-left-through.png) | `#/moves/right-and-left-through` | 8 | 16 | duple-improper | after-the-solstice |
+| `robins-chain` | [figures/robins-chain.png](./figures/robins-chain.png) | `#/moves/robins-chain` | 8 | 16 | becket | butter |
+| `pass-through` | [figures/pass-through.png](./figures/pass-through.png) | `#/moves/pass-through` | 2 | 4 | duple-improper | after-the-solstice |
+| `roll-away` | [figures/roll-away.png](./figures/roll-away.png) | `#/moves/roll-away` | 4 | 8 | duple-improper | figure defaults |
+| `slide-left` | [figures/slide-left.png](./figures/slide-left.png) | `#/moves/slide-left` | 2 | 4 | becket | butter |
+| `hey` | [figures/hey.png](./figures/hey.png) | `#/moves/hey` | 16 | 32 | becket | butter |
+| `wait-out` | [figures/wait-out.png](./figures/wait-out.png) | `#/moves/wait-out` | 64 | 32 | duple-improper | figure defaults |
+| `walk-to-station` | [figures/walk-to-station.png](./figures/walk-to-station.png) | `#/moves/walk-to-station` | 8 | 16 | duple-improper | figure defaults |
+| `balance--swing` | [seams/balance--swing.png](./seams/balance--swing.png) | `#/moves/seam/balance--swing` | 16 | 16 | duple-improper | airpants |
+| `balance-ring--petronella` | [seams/balance-ring--petronella.png](./seams/balance-ring--petronella.png) | `#/moves/seam/balance-ring--petronella` | 8 | 16 | duple-improper | kitchen-stomp |
+| `swing--allemande` | [seams/swing--allemande.png](./seams/swing--allemande.png) | `#/moves/seam/swing--allemande` | 20 | 16 | duple-improper | jubilation |
+| `swing--circle` | [seams/swing--circle.png](./seams/swing--circle.png) | `#/moves/seam/swing--circle` | 18 | 16 | duple-improper | airpants |
+| `swing--long-lines` | [seams/swing--long-lines.png](./seams/swing--long-lines.png) | `#/moves/seam/swing--long-lines` | 20 | 16 | duple-improper | airpants |
+| `swing--right-and-left-through` | [seams/swing--right-and-left-through.png](./seams/swing--right-and-left-through.png) | `#/moves/seam/swing--right-and-left-through` | 20 | 16 | duple-improper | after-the-solstice |
+| `swing--robins-chain` | [seams/swing--robins-chain.png](./seams/swing--robins-chain.png) | `#/moves/seam/swing--robins-chain` | 20 | 16 | duple-improper | the-baby-rose |
+| `swing--slide-left` | [seams/swing--slide-left.png](./seams/swing--slide-left.png) | `#/moves/seam/swing--slide-left` | 14 | 12 | becket | butter |
+| `allemande--allemande` | [seams/allemande--allemande.png](./seams/allemande--allemande.png) | `#/moves/seam/allemande--allemande` | 16 | 16 | duple-improper | jubilation |
+| `allemande--balance` | [seams/allemande--balance.png](./seams/allemande--balance.png) | `#/moves/seam/allemande--balance` | 12 | 16 | duple-improper | airpants |
+| `allemande--hey` | [seams/allemande--hey.png](./seams/allemande--hey.png) | `#/moves/seam/allemande--hey` | 16 | 16 | duple-improper | jubilation |
+| `allemande--swing` | [seams/allemande--swing.png](./seams/allemande--swing.png) | `#/moves/seam/allemande--swing` | 16 | 16 | duple-improper | kitchen-stomp |
+| `do-si-do--balance` | [seams/do-si-do--balance.png](./seams/do-si-do--balance.png) | `#/moves/seam/do-si-do--balance` | 14 | 16 | duple-improper | airpants |
+| `do-si-do--swing` | [seams/do-si-do--swing.png](./seams/do-si-do--swing.png) | `#/moves/seam/do-si-do--swing` | 16 | 16 | duple-improper | after-the-solstice |
+| `long-lines--allemande` | [seams/long-lines--allemande.png](./seams/long-lines--allemande.png) | `#/moves/seam/long-lines--allemande` | 16 | 16 | duple-improper | airpants |
+| `long-lines--robins-chain` | [seams/long-lines--robins-chain.png](./seams/long-lines--robins-chain.png) | `#/moves/seam/long-lines--robins-chain` | 16 | 16 | becket | butter |
+| `long-lines--swing` | [seams/long-lines--swing.png](./seams/long-lines--swing.png) | `#/moves/seam/long-lines--swing` | 16 | 16 | duple-improper | neighbor-neighbor-on-the-wall |
+| `circle--do-si-do` | [seams/circle--do-si-do.png](./seams/circle--do-si-do.png) | `#/moves/seam/circle--do-si-do` | 16 | 16 | duple-improper | airpants |
+| `circle--pass-through` | [seams/circle--pass-through.png](./seams/circle--pass-through.png) | `#/moves/seam/circle--pass-through` | 8 | 12 | duple-improper | after-the-solstice |
+| `circle--swing` | [seams/circle--swing.png](./seams/circle--swing.png) | `#/moves/seam/circle--swing` | 14 | 16 | becket | butter |
+| `star--balance` | [seams/star--balance.png](./seams/star--balance.png) | `#/moves/seam/star--balance` | 12 | 16 | duple-improper | the-baby-rose |
+| `petronella--balance-ring` | [seams/petronella--balance-ring.png](./seams/petronella--balance-ring.png) | `#/moves/seam/petronella--balance-ring` | 8 | 16 | duple-improper | kitchen-stomp |
+| `petronella--star` | [seams/petronella--star.png](./seams/petronella--star.png) | `#/moves/seam/petronella--star` | 12 | 16 | duple-improper | kitchen-stomp |
+| `right-and-left-through--circle` | [seams/right-and-left-through--circle.png](./seams/right-and-left-through--circle.png) | `#/moves/seam/right-and-left-through--circle` | 14 | 16 | duple-improper | after-the-solstice |
+| `right-and-left-through--robins-chain` | [seams/right-and-left-through--robins-chain.png](./seams/right-and-left-through--robins-chain.png) | `#/moves/seam/right-and-left-through--robins-chain` | 16 | 16 | duple-improper | thanks-to-the-gene |
+| `robins-chain--balance` | [seams/robins-chain--balance.png](./seams/robins-chain--balance.png) | `#/moves/seam/robins-chain--balance` | 12 | 16 | duple-improper | jubilation |
+| `robins-chain--balance-ring` | [seams/robins-chain--balance-ring.png](./seams/robins-chain--balance-ring.png) | `#/moves/seam/robins-chain--balance-ring` | 12 | 16 | duple-improper | kitchen-stomp |
+| `robins-chain--do-si-do` | [seams/robins-chain--do-si-do.png](./seams/robins-chain--do-si-do.png) | `#/moves/seam/robins-chain--do-si-do` | 14 | 16 | duple-improper | thanks-to-the-gene |
+| `robins-chain--hey` | [seams/robins-chain--hey.png](./seams/robins-chain--hey.png) | `#/moves/seam/robins-chain--hey` | 24 | 16 | becket | butter |
+| `robins-chain--star` | [seams/robins-chain--star.png](./seams/robins-chain--star.png) | `#/moves/seam/robins-chain--star` | 16 | 16 | duple-improper | the-baby-rose |
+| `pass-through--do-si-do` | [seams/pass-through--do-si-do.png](./seams/pass-through--do-si-do.png) | `#/moves/seam/pass-through--do-si-do` | 10 | 12 | duple-improper | after-the-solstice |
+| `slide-left--circle` | [seams/slide-left--circle.png](./seams/slide-left--circle.png) | `#/moves/seam/slide-left--circle` | 8 | 12 | becket | butter |
+| `hey--balance` | [seams/hey--balance.png](./seams/hey--balance.png) | `#/moves/seam/hey--balance` | 20 | 16 | becket | butter |
+| `hey--swing` | [seams/hey--swing.png](./seams/hey--swing.png) | `#/moves/seam/hey--swing` | 16 | 16 | duple-improper | jubilation |
+
+M5's pair strips (`01-walk-in.png` … `09-fall-back.png`) are in this
+directory too; they are gate G1's artifact and come from `e2e/pair.spec.ts`.
