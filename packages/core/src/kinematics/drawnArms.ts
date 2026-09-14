@@ -104,7 +104,6 @@ export const ELBOW_POLE_ALONG_FRACTION = 0.5;
  */
 export const ELBOW_POLE_ALONG_PLANAR_PX = 2;
 
-
 /** Left and right, in that order. */
 export type ArmPair = readonly [left: Arm3dSolution, right: Arm3dSolution];
 

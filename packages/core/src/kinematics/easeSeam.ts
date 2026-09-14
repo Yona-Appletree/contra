@@ -23,7 +23,12 @@ import { SEAM_BEATS } from "./RenderingContract.js";
  * across the seam has to start from, or arrive at, the hand where the hang
  * actually puts it at this instant. Left out it is the hand at rest.
  */
-export function easeSeam(prev: PoseSample, next: PoseSample, k: number, beat: Beat = 0): PoseSample {
+export function easeSeam(
+  prev: PoseSample,
+  next: PoseSample,
+  k: number,
+  beat: Beat = 0,
+): PoseSample {
   const w = smooth(k);
   const facing = angleLerp(prev.facing, next.facing, w);
   return {

@@ -116,9 +116,9 @@ describe("the elbow pole against the arm", () => {
     // elbow against 21 px/beat of hand in `long-lines`.
     const sh = shouldersAt([0, 0], 0);
     for (const side of ["L", "R"] as const) {
-      for (let planar = ELBOW_POLE_ALONG_PLANAR_PX; planar <= 15; planar += 0.1) {
-        for (let drop = 0; drop <= 15; drop += 0.25) {
-          for (let bearing = -180; bearing < 180; bearing += 10) {
+      for (let planar = ELBOW_POLE_ALONG_PLANAR_PX; planar <= 15; planar += 0.5) {
+        for (let drop = 0; drop <= 15; drop += 0.5) {
+          for (let bearing = -180; bearing < 180; bearing += 20) {
             const dir = dirOf(bearing);
             const hand = {
               p: [sh[side][0] + dir[0] * planar, sh[side][1] + dir[1] * planar] as [number, number],

@@ -1,4 +1,4 @@
-import type { Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
+import type { Beat, PoseSample, Vec2 } from "@caller/core";
 import { angleOfVec, hangingHand, lerpHand, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
 import { frameAngle, framePoint } from "../formation/Frame.js";
