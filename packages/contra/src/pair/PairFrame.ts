@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
+import type { Angle, Hand, Vec2 } from "@caller/core";
 import {
   HOLD_SPACING_PX,
   LINE_OFFSET_PX,
@@ -6,6 +6,7 @@ import {
   angleOf,
   bodyPoint,
   dirOf,
+  hangingHand,
   leftOf,
 } from "@caller/core";
 
@@ -87,37 +88,18 @@ export const lookAtPartner = (self: Vec2, partner: Vec2): Angle =>
  * A hand that is not placed by the figure: out to the side and down, swinging
  * with the step.
  *
- * These four numbers are `@caller/hall`'s `HAND_HANG_*`, which came from the
- * same two-dancers spike and were re-tuned at gate G1 so a resting arm is
- * almost hidden by the torso from above. A figure needs them because every take
- * and release is animated and the animation has to start somewhere;
- * `@caller/contra` cannot import `@caller/hall`, so they are restated here.
- * Keeping them in step is a known duplication — `apps/web`, which depends on
- * both packages, has the test that says the two sets agree. See
- * `packages/contra/README.md`.
- */
-export const HAND_DOWN_DROP_PX = 14.5;
-export const HAND_DOWN_LATERAL_PX = 5.6;
-export const HAND_DOWN_FORWARD_PX = 0.4;
-export const HAND_DOWN_SWING_PX = 0.6;
-
-/**
- * The hand of a dancer at `p` facing `facing`, hanging at the dancer's side.
+ * This is `@caller/core`'s {@link hangingHand} under the name the pair figures
+ * have always called it. A figure needs it because every take and every release
+ * is animated and the animation has to start where the renderer would have
+ * drawn the hand; F3a moved the model down into `core` so there is exactly one
+ * copy of those numbers — see `packages/core/src/kinematics/drawnArms.ts`.
  *
  * `beat` is the figure's **own** beat, not the absolute one: a figure's step
  * phase is measured from its own start. Because every figure starts on a whole
  * beat and the phase has period 1 (or 1/2 for a buzz), that is the same number
  * the renderer's quiet motion uses.
  */
-export function handDown(p: Vec2, facing: Angle, side: Side, beat: Beat, amp: number): Hand {
-  const sign = side === "L" ? -1 : 1;
-  const forward =
-    HAND_DOWN_FORWARD_PX + sign * HAND_DOWN_SWING_PX * amp * Math.sin(Math.PI * 2 * beat);
-  return {
-    p: bodyPoint(p, facing, forward, sign * HAND_DOWN_LATERAL_PX),
-    drop: HAND_DOWN_DROP_PX,
-  };
-}
+export const handDown = hangingHand;
 
 /** Where a two-hand hold puts the joined hands, sideways from the centre. */
 export const HOLD_LATERAL_PX = 4.5;

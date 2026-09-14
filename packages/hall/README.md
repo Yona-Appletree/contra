@@ -73,18 +73,21 @@ the forearm renders _over_ the upper arm which is usually wrong."
 
 ### The resting arm
 
-A hand the figure leaves `'down'` hangs at `HAND_HANG_LATERAL_PX` (5.6 px —
-the torso ellipse's own half-width, so the hand is beside the hip) and
-`HAND_HANG_DROP_PX` (14.5 px, nearly the whole 15 px reach), swinging
-`HAND_HANG_SWING_PX` forward and back with the step. `elbowPole` then swings
-`core`'s elbow pole from outward to backward as a hand comes to hang under its
-shoulder: a near-vertical arm cancels the pole's downward part, so the outward
-part would otherwise be the whole of it and the elbow would wing out about 3 px
-past the shoulder. The rule is a function of where the hand is, not of whether
-the figure said `'down'`, so a figure that places a hand at the dancer's side
-draws the same as one the renderer hangs there. A standing dancer measures
-12.05 px across arms and all, against 11 px of shoulder. Gate G1: "you can't
-see much arm when someone is just standing there."
+**This package does not own the resting arm.** `@caller/core`'s `drawnArms.ts`
+does: `hangingHand`, `elbowPole`, the four `HAND_HANG_*` numbers and the three
+`ELBOW_TUCK_*` ones live there, and `drawnArms(pose, beat, p, torsoAngle)` is
+the whole of the arm half of `layoutDancer` — shoulders, both hands with a
+`'down'` one filled in, both elbows, `elbowZ`/`handZ`. F3a moved them down
+because `@caller/contra` starts every take from the same rest and cannot import
+a renderer, and because the motion oracle has to measure the elbow that is
+actually drawn. `layoutDancer` keeps the quantisation, the sway, the feet, the
+head and the person, and calls `drawnArms` for the rest.
+
+What the model does, and why it looks like it does, is in `core`'s README. The
+number this package answers for is the one a golden can see: a standing dancer
+measures 12.05 px across arms and all, against 11 px of shoulder, and
+`layoutDancer.test.ts` is where that is asserted. Gate G1: "you can't see much
+arm when someone is just standing there."
 
 ### Joined hands and z-order
 
@@ -199,7 +202,7 @@ the spikes and retyped.
 | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `drawBody`, `drawArms`, `drawHead`                  | `spikes/two-dancers`'s `drawBody` / `drawArms` / `drawHead`, radius for radius        |
 | the supersample-and-downsample pipeline             | its `renderLayer`: `SS = 4`, `imageSmoothingQuality = 'high'`, the alpha threshold    |
-| `hangingHand`                                       | its `hang(P, a, side, ph, amp)`, retuned at gate G1 (5.6 px out, 14.5 px down)        |
+| `core`'s `hangingHand`                              | its `hang(P, a, side, ph, amp)`, retuned at gate G1 (5.6 px out, 14.5 px down)        |
 | `HAND_STACK_RADIUS_PX`, the joined-hand hand radius | its `drawArms`'s `hr` and `under` flag                                                |
 | `headLook`                                          | its `sampleAt` head-turn block: ±55°, fading to 0 by 115°                             |
 | `mulberry32`, `shade`, the palettes                 | its people block                                                                      |

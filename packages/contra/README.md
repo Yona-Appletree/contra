@@ -310,7 +310,7 @@ Where a number was settled at gate 3 the library **imports it from here**
 rather than restating it: the swing's radius, lateral offset, body turn, hand
 drop, back and shoulder hands, lean, flare and buzz feet; the balance's rock
 profile, back ratio and lean cap; the allemande's turn radius; the trapezoid
-speed profile; the hanging hand.
+speed profile. The hanging hand is `@caller/core`'s.
 
 The package exports these six under `pair`-prefixed names — `pairBalance`,
 `pairSwing`, `pairAllemande`, `pairDoSiDo`, `pairWalkIn`, `pairFallBack` —
@@ -400,13 +400,10 @@ starts on a whole beat — neither moves a pixel.
 - **Hanging hands are explicit.** A figure emits a real `Hand` for a hand at
   the dancer's side rather than `'down'`, because `easeSeam` cannot
   interpolate `'down'` (it switches at the midpoint of the seam) and because
-  every take and release has to animate out of somewhere. `handDown` restates
-  `@caller/hall`'s `HAND_HANG_*` numbers, which came from the same spike and
-  were retuned at gate G1 (5.6 px out, 14.5 px down, 0.6 px of swing, so a
-  resting arm is nearly hidden by the torso from above); **that is a
-  duplication to watch**, and the tidy fix is to move the hanging hand into
-  `@caller/core`. `apps/web` depends on both packages and has the test that
-  says the two sets still agree.
+  every take and release has to animate out of somewhere. `handDown` **is**
+  `@caller/core`'s `hangingHand` — F3a moved the resting-arm model down into
+  `core`, so this package no longer keeps its own copy of the `HAND_HANG_*`
+  numbers and there is nothing left for the two copies to disagree about.
 - **The arm swing starts and ends at zero.** The spike's `walk-in` opened with
   the arms already swinging while `fall-back` closed with them still, so the
   hanging hands jumped up to 0.8 px at three seams and the seam ease hid it.

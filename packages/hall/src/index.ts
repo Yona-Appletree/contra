@@ -15,19 +15,8 @@ export { JOIN_EPSILON_PX, sceneOrder } from "./renderer/sceneOrder.js";
 // people
 export type { Person, PersonSpec } from "./person/Person.js";
 export { TRAIL_COLOURS, createPerson, roleTrailColour } from "./person/Person.js";
-export type { ArmPair, DancerLayout } from "./person/layoutDancer.js";
-export {
-  ELBOW_TUCK_DROP_PX,
-  ELBOW_TUCK_PLANAR_PX,
-  ELBOW_TUCK_SPLAY_DEG,
-  HAND_HANG_DROP_PX,
-  HAND_HANG_FORWARD_PX,
-  HAND_HANG_LATERAL_PX,
-  HAND_HANG_SWING_PX,
-  elbowPole,
-  hangingHand,
-  layoutDancer,
-} from "./person/layoutDancer.js";
+export type { DancerLayout } from "./person/layoutDancer.js";
+export { layoutDancer } from "./person/layoutDancer.js";
 export type { DrawOptions, HandStack } from "./person/drawPerson.js";
 export {
   HAND_STACK_RADIUS_PX,

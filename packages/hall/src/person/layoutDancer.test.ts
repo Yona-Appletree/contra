@@ -1,24 +1,22 @@
 import {
   FOREARM_PX,
+  HAND_HANG_DROP_PX,
+  HAND_HANG_SWING_PX,
   RENDERING_CONTRACT,
   SHOULDER_WIDTH_PX,
   TORSO_SWAY_DEG,
   UPPER_ARM_PX,
   dirOf,
   dist,
+  elbowPole,
+  hangingHand,
   rightOf,
 } from "@caller/core";
 import type { PoseSample, Vec2 } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { TORSO_HALF_DEPTH_PX, TORSO_HALF_WIDTH_PX } from "./drawPerson.js";
 import type { DancerLayout } from "./layoutDancer.js";
-import {
-  HAND_HANG_DROP_PX,
-  HAND_HANG_SWING_PX,
-  elbowPole,
-  hangingHand,
-  layoutDancer,
-} from "./layoutDancer.js";
+import { layoutDancer } from "./layoutDancer.js";
 import { createPerson } from "./Person.js";
 
 const person = createPerson({ id: "a", role: "lark", seed: 1, skirt: false });

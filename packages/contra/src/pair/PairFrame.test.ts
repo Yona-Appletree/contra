@@ -1,5 +1,6 @@
 import {
   ARM_REACH_PX,
+  HAND_HANG_DROP_PX,
   HOLD_SPACING_PX,
   LINE_OFFSET_PX,
   angleDiff,
@@ -10,7 +11,6 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PAIR_FRAME,
-  HAND_DOWN_DROP_PX,
   handDown,
   pairLinePlace,
   pairPlace,
@@ -60,7 +60,7 @@ describe("PairFrame", () => {
     for (let n = 0; n < 16; n++) {
       const beat = n / 8;
       const hand = handDown([0, 0], 30, "L", beat, 1);
-      expect(hand.drop).toBe(HAND_DOWN_DROP_PX);
+      expect(hand.drop).toBe(HAND_HANG_DROP_PX);
       const sh = shouldersAt([0, 0], 30);
       const solved = solveArm(sh.L, hand, "L", 30);
       expect(solved.short).toBe(0);

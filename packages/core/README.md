@@ -106,10 +106,54 @@ function seamProgress(t: number): number; // t / SEAM_BEATS, clamped
 function quietMotion(sample: PoseSample, beat: Beat, velocity: Vec2, style?: Style): QuietMotion;
 function lerpHand(a: Hand, b: Hand, k: number): Hand;
 function lerpFeet(a: Feet, b: Feet, k: number): Feet;
+
+// the resting arm and the drawn arm points — src/kinematics/drawnArms.ts
+interface DrawnArms {
+  shoulders: { L: Vec2; R: Vec2 };
+  hands: { L: Hand; R: Hand }; // a 'down' hand filled in from the hang
+  hanging: { L: boolean; R: boolean };
+  arms: readonly [left: Arm3dSolution, right: Arm3dSolution];
+}
+function hangingHand(p: Vec2, facing: Angle, side: "L" | "R", beat: Beat, amp: number): Hand;
+function elbowPole(shoulder: Vec2, hand: Hand, side: "L" | "R", facing: Angle): Vec2;
+function resolveHand(pose: PoseSample, p: Vec2, side: "L" | "R", beat: Beat): Hand;
+function drawnArms(pose: PoseSample, beat: Beat, p?: Vec2, torsoAngle?: Angle): DrawnArms;
 ```
 
 `stackJoined` takes the role set's `top` role, so `core` never mentions larks or
 robins; the contra role set supplies `{ top: "robin" }`.
+
+#### The resting arm
+
+A figure says where a hand is when it places one and `'down'` when it does not,
+so `PoseSample` only half answers "where is the arm". The other half is
+`drawnArms.ts`, and it lives here rather than in the renderer because three
+callers need the same answer: `@caller/hall` draws it, `@caller/contra` starts
+every take and every release from it and may not import a renderer, and
+`@caller/choreo`'s motion oracle has to measure the elbow that is actually
+drawn — an elbow that crosses the body reads as a jump even when the hand
+barely moves. F3a moved it down out of `@caller/hall`; every golden was
+byte-identical afterwards.
+
+A hand the figure leaves `'down'` hangs at `HAND_HANG_LATERAL_PX` (5.6 px — the
+torso ellipse's own half-width, so the hand is beside the hip),
+`HAND_HANG_FORWARD_PX` (0.4 px) forward and `HAND_HANG_DROP_PX` (14.5 px,
+nearly the whole 15 px reach) down, swinging `HAND_HANG_SWING_PX` (0.6 px)
+forward and back with the step. `elbowPole` then swings the elbow pole from
+outward to backward as a hand comes to hang under its shoulder, over
+`ELBOW_TUCK_PLANAR_PX` (4 px) of floor distance and `ELBOW_TUCK_DROP_PX` (6 px)
+of drop, splaying `ELBOW_TUCK_SPLAY_DEG` (15°) to the dancer's own side: a
+near-vertical arm cancels the pole's downward part, so the outward part would
+otherwise be the whole of it and the elbow would wing out about 3 px past the
+shoulder. The rule reads the hand's geometry, not whether the figure said
+`'down'`, so a hand a figure places at the dancer's side draws the same as one
+the renderer hangs there. All seven numbers were retuned at gate G1.
+
+`drawnArms` takes `p` and `torsoAngle` separately because the renderer quantises
+the body position before it solves anything and hangs the shoulders off the
+_swaying_ torso, while a hanging hand is placed on the plain facing. Left to
+default they are the pose's own, which is the figure's answer rather than the
+renderer's.
 
 ### The rendering contract numbers
 

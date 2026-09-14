@@ -1,7 +1,7 @@
-import type { Beat, Hand, PoseSample, Side, Style, Vec2 } from "@caller/core";
-import { NEUTRAL_STYLE, q256Vec2, quietMotion, shouldersAt, solveArm } from "@caller/core";
+import type { Beat, PoseSample, Side, Style, Vec2 } from "@caller/core";
+import { NEUTRAL_STYLE, drawnArms, q256Vec2, quietMotion } from "@caller/core";
 import type { PairFrame, PairRole } from "./PairFrame.js";
-import { PAIR_ROLES, handDown } from "./PairFrame.js";
+import { PAIR_ROLES } from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import { resolveParams, sampleVelocity } from "./FigureDef.js";
 
@@ -28,17 +28,8 @@ export function armShortfall(
   style: Style = NEUTRAL_STYLE,
 ): ReachCheck {
   const motion = quietMotion(pose, beat, velocity, style);
-  const p = q256Vec2(pose.p);
-  const torsoAngle = pose.facing + motion.sway;
-  const sh = shouldersAt(p, torsoAngle);
-  const resolve = (side: Side): Hand => {
-    const h = pose.hands[side];
-    return h === "down" ? handDown(p, pose.facing, side, beat, pose.amp) : h;
-  };
-  return {
-    L: solveArm(sh.L, resolve("L"), "L", torsoAngle).short,
-    R: solveArm(sh.R, resolve("R"), "R", torsoAngle).short,
-  };
+  const drawn = drawnArms(pose, beat, q256Vec2(pose.p), pose.facing + motion.sway);
+  return { L: drawn.arms[0].short, R: drawn.arms[1].short };
 }
 
 /** The worst shortfall a figure produces, and where. */
