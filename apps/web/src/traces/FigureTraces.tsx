@@ -1,3 +1,4 @@
+import type { FacingStyle } from "@caller/hall";
 import type { JSX } from "react";
 import { useMemo } from "react";
 import type { GalleryTile } from "../galleryTiles.js";
@@ -16,12 +17,15 @@ import { rowPenPlot, rowStrip } from "./traceDrawings.js";
  * `reach` is the whole page's widest move, so the plots down the column are at
  * one scale: a balance draws small beside a hey instead of being blown up to
  * match it.
+ *
+ * `facing` is T3's `?facing=` query parameter, threaded down from the Moves
+ * page; `undefined` draws the shipped default (ticks).
  */
-export function FigureTraces({ tile, side, reach }: FigureTracesProps): JSX.Element {
+export function FigureTraces({ tile, side, reach, facing }: FigureTracesProps): JSX.Element {
   const drawings = useMemo(() => {
     const trace = figureTrace(tile);
-    return { pen: rowPenPlot(trace, side, reach), strip: rowStrip(trace, side) };
-  }, [tile, side, reach]);
+    return { pen: rowPenPlot(trace, side, reach, facing), strip: rowStrip(trace, side) };
+  }, [tile, side, reach, facing]);
 
   return (
     <div className="moves-row-traces" data-testid="moves-row-traces" data-key={tile.key}>
@@ -42,4 +46,6 @@ export interface FigureTracesProps {
   side: number;
   /** The widest floor half-extent on the page, in set-local px. */
   reach: number;
+  /** T3's `?facing=` override. `undefined` draws the default (ticks). */
+  facing?: FacingStyle;
 }

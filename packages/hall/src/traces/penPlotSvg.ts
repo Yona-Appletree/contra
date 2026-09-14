@@ -3,7 +3,7 @@ import type { TraceDraw, TraceDrawOptions } from "./traceSvg.js";
 import {
   box,
   dot,
-  facingTicks,
+  facingMarks,
   inkOf,
   inkRuns,
   label,
@@ -36,7 +36,9 @@ export function penPlotSvg(trace: TraceView, options: PenPlotOptions = {}): stri
   const pad = options.pad ?? PEN_PLOT_PAD;
   const marks = options.marks ?? true;
 
-  // A facing tick is drawn out of the path, so the margin has to hold one.
+  // A facing mark is drawn out of the path — a tick's tip, a wake's outer
+  // edge or an arrowhead's point, whichever `draw.facing` asks for, all the
+  // same `facingPx` reach — so the margin has to hold one.
   const plot = penPlotMap(trace, width, height, pad + draw.facingPx, options.reach);
   const parts: string[] = [];
 
@@ -48,7 +50,7 @@ export function penPlotSvg(trace: TraceView, options: PenPlotOptions = {}): stri
     for (const run of inkRuns(pen, map, window === undefined ? {} : { window })) {
       parts.push(polyline(run, ink, draw.penWidth));
     }
-    parts.push(facingTicks(pen, map, draw, ink));
+    parts.push(facingMarks(pen, index, map, draw, ink));
     const first = pen.samples[0];
     if (first !== undefined) parts.push(dot(map(first), draw.penWidth + 0.8, ink));
   });

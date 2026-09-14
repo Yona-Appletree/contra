@@ -1,7 +1,7 @@
 import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
 import type { DancerId, Group } from "@caller/choreo";
-import type { Person, Renderer } from "@caller/hall";
+import type { FacingStyle, Person, Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, createPerson, createRenderer, drawText } from "@caller/hall";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import {
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
+import { facingFromQuery } from "../traces/traceDrawings.js";
 
 /**
  * The Moves tab: every figure the registry holds and every figure-to-figure
@@ -44,6 +45,9 @@ import { FigureTraces } from "../traces/FigureTraces.js";
  * - `?beat=<n>` freezes; `?zoom=<n>`; `?speed=<n>`; `?trails=1`;
  *   `?strip=1&step=<beats>` shows the one-frame-per-step strip;
  *   `?bare=1` renders only the canvas, for screenshots.
+ * - `?facing=wake` or `?facing=arrowheads` swaps the row's pen-plot facing
+ *   style away from the shipped default (ticks), T3's live comparison —
+ *   no rebuild needed to try the user's gradient-wake idea on a phone.
  */
 
 /** The tempo the gallery loops at, matching the pair page's plain clock. */
@@ -86,6 +90,7 @@ export function MovesPage({
   const bare = params.get("bare") === "1";
   const stripOnly = params.get("strip") === "1";
   const step = Number(params.get("step") ?? DEFAULT_STRIP_STEP) || DEFAULT_STRIP_STEP;
+  const facing = facingFromQuery(params.get("facing"));
 
   const [zoom, setZoom] = useState(() => zoomFrom(params.get("zoom"), solo !== null));
   const [speed, setSpeed] = useState(() => speedFrom(params.get("speed")));
@@ -294,6 +299,7 @@ export function MovesPage({
               solo={solo !== null}
               side={slot}
               reach={reach}
+              facing={facing}
             />
             {group.seams.length === 0 ? null : (
               <ol className="moves-seams">
@@ -311,6 +317,7 @@ export function MovesPage({
                       solo={solo !== null}
                       side={slot}
                       reach={reach}
+                      facing={facing}
                     />
                   </li>
                 ))}
@@ -339,6 +346,7 @@ function Row({
   solo,
   side,
   reach,
+  facing,
 }: {
   tile: GalleryTile;
   beat: Beat;
@@ -355,6 +363,8 @@ function Row({
   side: number;
   /** The page's widest floor half-extent, so every trace is at one scale. */
   reach: number;
+  /** T3's `?facing=` override for the row's pen plot. */
+  facing: FacingStyle;
 }): JSX.Element {
   // A seam row sits under the figure it comes out of, whose own row says what
   // that figure is, so the prose that is new here is the figure it goes into.
@@ -373,7 +383,7 @@ function Row({
     >
       <div className="moves-row-tile">
         <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
-        <FigureTraces tile={tile} side={side} reach={reach} />
+        <FigureTraces tile={tile} side={side} reach={reach} facing={facing} />
       </div>
 
       <div className="moves-row-head">

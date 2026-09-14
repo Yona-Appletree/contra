@@ -154,7 +154,7 @@ export {
   familyColour,
   penColour,
 } from "./traces/TraceView.js";
-export type { TraceDraw, TraceDrawOptions } from "./traces/traceSvg.js";
+export type { FacingStyle, TraceDraw, TraceDrawOptions } from "./traces/traceSvg.js";
 export { TRACE_JUMP_PX, phraseName, traceDraw, traceSvg } from "./traces/traceSvg.js";
 export type { PenPlotMap, PenPlotOptions } from "./traces/penPlotSvg.js";
 export {

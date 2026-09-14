@@ -4,7 +4,7 @@ import type { JSX } from "react";
 import { useMemo } from "react";
 import { TraceSvg } from "../traces/TraceSvg.js";
 import { danceTrace } from "../traces/danceTrace.js";
-import { traceDrawings } from "../traces/traceDrawings.js";
+import { facingFromQuery, traceDrawings } from "../traces/traceDrawings.js";
 
 /**
  * `#/dances/<slug>/traces`: one dance, all four views, at full width.
@@ -12,12 +12,22 @@ import { traceDrawings } from "../traces/traceDrawings.js";
  * The four are the exploration post's four, redrawn from the engine — pen plot,
  * march, seismograph, figure strip — and each carries the sentence that says
  * how to read it, because a plate nobody can read is a decoration.
+ *
+ * `?facing=wake` or `?facing=arrowheads` swaps the pen plot's and the march's
+ * facing style away from the shipped default (ticks) — T3's live comparison.
  */
-export function TracesPage({ slug }: { slug: string }): JSX.Element {
+export function TracesPage({
+  slug,
+  params,
+}: {
+  slug: string;
+  params: URLSearchParams;
+}): JSX.Element {
   const dance = danceBySlug(slug);
+  const facing = facingFromQuery(params.get("facing"));
   const drawings = useMemo(
-    () => (dance === undefined ? null : traceDrawings(danceTrace(dance))),
-    [dance],
+    () => (dance === undefined ? null : traceDrawings(danceTrace(dance), undefined, facing)),
+    [dance, facing],
   );
 
   if (dance === undefined || drawings === null) {
