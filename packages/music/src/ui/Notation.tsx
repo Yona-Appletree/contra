@@ -18,6 +18,19 @@ export function Notation({ tune, beat }: NotationProps) {
     if (!container) return;
     container.innerHTML = "";
     renderAbc(container, tune.abc, { add_classes: true });
+    // abcjs sizes its SVG in pixels and gives it no `viewBox`, so a narrower
+    // column clips the tune instead of scaling it. Turning the width and
+    // height it chose into a `viewBox` makes the notation scale with whatever
+    // space the page has, which is what a card beside a hall needs.
+    const svg = container.querySelector("svg");
+    const w = svg?.getAttribute("width");
+    const h = svg?.getAttribute("height");
+    if (svg && w !== null && h !== null && svg.getAttribute("viewBox") === null) {
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+    }
   }, [tune.abc]);
 
   // Move the highlight without a full re-render.

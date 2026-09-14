@@ -81,6 +81,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@caller/choreo':
+        specifier: workspace:*
+        version: link:../../packages/choreo
       '@caller/contra':
         specifier: workspace:*
         version: link:../../packages/contra
@@ -90,6 +93,9 @@ importers:
       '@caller/hall':
         specifier: workspace:*
         version: link:../../packages/hall
+      '@caller/music':
+        specifier: workspace:*
+        version: link:../../packages/music
       '@caller/ui-base':
         specifier: workspace:*
         version: link:../../packages/ui-base
