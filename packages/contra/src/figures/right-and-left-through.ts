@@ -1,4 +1,5 @@
 import type { Beat, Hand, Vec2 } from "@caller/core";
+import { mix, ramp } from "@caller/core";
 import { DEFAULT_BOW_PX } from "@caller/choreo";
 import type { StationId } from "@caller/choreo";
 import type {
@@ -12,6 +13,7 @@ import type {
 import {
   bearing,
   contraFigure,
+  nearestTurn,
   joinPoint,
   joinedHands,
   midpoint,
@@ -49,18 +51,19 @@ export interface RightAndLeftThroughParams extends ContraParams {
  * through each other's places and nobody ever passed anybody.
  *
  * The courtesy turn is {@link courtesyTurn}, shared with the chain. This is the
- * figure whose turn is the textbook one: the couple arrives with the robin
- * already on the lark's right, closes up to the hold, and the whole of it —
- * both bodies *and* the line between them — sweeps a clean half round the point
- * between them, so they end facing back the way they came, the robin still on
- * his right and both of them on the other line. Dance it twice and everybody is
- * home, which is what "right and left through, right and left back" means.
+ * figure whose turn is the textbook one: the couple walks over with the robin
+ * already on the lark's right and stops a hold short of the far line, and the
+ * whole of it — both bodies *and* the line between them — pivots as one rigid
+ * body a half round the point between them, so they end facing back the way
+ * they came, the robin still on his right and both of them on the other line.
+ * Dance it twice and everybody is home, which is what "right and left through,
+ * right and left back" means.
  */
 export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
   id: "right-and-left-through",
   call: "RIGHT AND LEFT THROUGH",
   describe:
-    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with. Left hand in her left, his right hand on her back and her own right hand there too, the couple turns half way round the point between them — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple has to close up before it turns and open out again as it lets go — and the two couples turning at once pass 8.5 px, which is as much room as a place pitch leaves them.)",
+    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with, stopping a little short of the far line. Left hand in her left, her own right hand behind her back and his right hand on it, the couple pivots as one, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both of them face in again with the robin still on the lark's right, and then opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple stops short of the line to turn and opens out again as it lets go.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -76,7 +79,8 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     const beats = params.beats;
     const passBeats = Math.min(params.passBeats, beats);
     const turnBeats = beats - passBeats;
-    const openBeats = Math.min(OPEN_BEATS, turnBeats / 2);
+    const closeBeats = Math.min(CLOSE_BEATS, turnBeats / 3);
+    const openBeats = Math.min(OPEN_BEATS, (turnBeats - closeBeats) / 2);
     const ahead = aheadPairs(ctx);
 
     /** Where the pass through leaves everybody, before the couples close up. */
@@ -102,22 +106,25 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
 
     const pivots = couples.map((couple) => couple.pivot);
     const turns: Record<StationId, { turn: CourtesyTurn; mine: "lark" | "robin" }> = {};
+    const takes: Spots = {};
     const joins: HandJoin[] = [];
     for (const { lark, robin, pivot } of couples) {
-      // They arrive on the two places they walked to, the robin already on the
-      // lark's right, and close up on to the hold as the hands go up.
+      // The robin is already on the lark's right as the two of them walk over,
+      // and the couple's turn is rigid, so the take is exactly the pair of end
+      // places reflected through the point between them: the pass through
+      // stops a hold short of the far line rather than walking on to it and
+      // closing up afterward.
       const turn = courtesyTurn({
-        larkTake: arrival[lark]!.p,
-        robinTake: arrival[robin]!.p,
         lark: ends[lark]!,
         robin: ends[robin]!,
         hold: courtesyHold(ctx.spacing, pivot, pivots),
-        beats: turnBeats,
-        closeBeats: openBeats,
+        beats: turnBeats - closeBeats,
         openBeats,
       });
       turns[lark] = { turn, mine: "lark" };
       turns[robin] = { turn, mine: "robin" };
+      takes[lark] = turn.takes.lark;
+      takes[robin] = turn.takes.robin;
       joins.push({ a: lark, aSide: "L", b: robin, bSide: "L" });
     }
 
@@ -128,18 +135,34 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
         return { p: step.p, facing: step.facing };
       }
       const turning = turns[station];
-      if (!turning) return arrive;
+      const take = takes[station];
+      if (!turning || !take) return arrive;
+      // The couple walks all the way through and *then* closes up on to the
+      // hold, rather than aiming short of the far line from the start: the two
+      // dancers who pass right shoulders would otherwise be walking 4.25 px
+      // nearer each other the whole way over, which in becket is the difference
+      // between 10 px of daylight and 5.7. Closing after the pass is a straight
+      // slide with no turn in it — the take faces the way the walk arrived — so
+      // the rotation that follows is still the whole of the couple's turning.
+      if (t <= passBeats + closeBeats) {
+        const k = ramp(t, passBeats, passBeats + closeBeats);
+        return {
+          p: [mix(arrive.p[0], take.p[0], k), mix(arrive.p[1], take.p[1], k)],
+          facing: mix(arrive.facing, nearestTurn(arrive.facing, take.facing), k),
+        };
+      }
+      const into = t - passBeats - closeBeats;
       const { turn, mine } = turning;
-      return mine === "lark" ? turn.lark(t - passBeats) : turn.robin(t - passBeats);
+      return mine === "lark" ? turn.lark(into) : turn.robin(into);
     };
 
-    // The hands go up over exactly the beats the couple spends closing, and
-    // come down over exactly the beats it spends opening out: a hand that
-    // finishes its take while its target is still travelling has to chase it,
-    // and chasing is what the oracle's hand column sees.
+    // The hands go up over the first beats of the rigid turn and come down over
+    // exactly the beats the couple spends opening out: a hand that finishes its
+    // take while its target is still travelling has to chase it, and chasing is
+    // what the oracle's hand column sees.
     const window = {
       takeFrom: passBeats,
-      takeTo: passBeats + openBeats,
+      takeTo: passBeats + closeBeats,
       releaseFrom: beats - openBeats,
       releaseTo: beats,
     };
@@ -186,3 +209,16 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
  * at the same time — which is the only moment either arm has to stretch.
  */
 const OPEN_BEATS: Beat = 1.5;
+
+/**
+ * How long the couple takes to close up from the two far places on to the hold,
+ * beats.
+ *
+ * The pass through walks everybody the whole way over — that is what keeps the
+ * two dancers who pass right shoulders apart — so the couple arrives a set's
+ * width apart and has to come in to the hold before it can turn. It is a slide,
+ * not a turn: the rotation that follows it is rigid and is the whole of the
+ * 180°, and this is also the beat the hands go up over, so no hand is chasing a
+ * point that is still travelling.
+ */
+const CLOSE_BEATS: Beat = 1;

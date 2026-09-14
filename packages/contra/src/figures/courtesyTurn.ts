@@ -2,9 +2,7 @@ import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
 import {
   ARM_REACH_PX,
   SHOULDER_WIDTH_PX,
-  angleDiff,
   bodyPoint,
-  dirOf,
   dist,
   mix,
   ramp,
@@ -14,51 +12,48 @@ import {
 } from "@caller/core";
 import type { RoleName, RoleSet, StationId } from "@caller/choreo";
 import type { Spot } from "./ContraFigure.js";
-import { bearing, midpoint, orbitRadius } from "./ContraFigure.js";
+import { bearing, midpoint, orbitRadius, polar } from "./ContraFigure.js";
 import { BACK_HAND_DROP_PX, BACK_HAND_FORWARD_PX } from "../pair/swing.js";
 
 /**
- * The courtesy turn: the couple closes up, turns **half way round**, and opens
- * out on to its two places with the robin on the lark's right.
+ * The courtesy turn: the couple stands side by side facing **out**, robin on
+ * the lark's right, and **pivots as one rigid body through 180° about the point
+ * between them**, ending facing **in** with the robin still on his right.
  *
  * The user, who is the authority on what this figure is:
  *
- * > "on the courtesy turn... it usually is just a half turn if I have it right
- * > in my mind. robins pull-by right in the center, give left hand to the larks
- * > left, right hand goes on their back and lark's right goes there too, robins
- * > walk forward a half turn while larks walk backwards until both face in
- * > again, with robin on the right."
+ * > "robins pull-by, take left hands with the lark, robin right hand goes
+ * > behind the back, lark right hand goes on it, then they pivot around the
+ * > center point (both walking, lark backwards, robin forwards) to put the
+ * > robin back on the right. the arm basically stay put during the move."
  *
- * So the half turn this file guarantees is the **bodies'**: each of the two
- * turns through exactly {@link COURTESY_HALF_TURN}, the way round that leaves
- * the lark's feet behind him, from facing *out* when the hands close to facing
- * *in* when the turn is over. Two figures do it — `robins-chain` and
- * `right-and-left-through` — and this is the piece of choreography they share.
+ * Three things follow from "rigid", and this file exists so that all three are
+ * true by construction rather than by a figure's arithmetic agreeing:
  *
- * **What the couple's own line does is not free, and it is not always 180°.**
- * The figure says where its two dancers are standing when the hands close and
- * where the turn has to leave them; the couple then closes up on to the hold,
- * turns, and opens out on to the two places. The line sweeps from the axis the
- * two take points make on to the axis the two end places make:
+ * - **The bodies and the line turn together.** {@link CourtesyTurn.bodyTurn}
+ *   and {@link CourtesyTurn.sweep} are the same number, ±180°, because a rigid
+ *   body has one angular velocity. `bearing(lark, robin) − larkFacing` is which
+ *   of his sides she is on and it changes by `sweep − bodyTurn`, so she is on
+ *   his right at every instant of the turn and not only at the ends.
+ * - **The hands stay put.** Two bodies whose relative pose never changes carry
+ *   every point they hold with them: the joined left hands and the two right
+ *   hands at her back keep the same body-local offsets for the whole rotation
+ *   ("the arms basically stay put"). Nothing here interpolates a hand.
+ * - **Which way round is not a choice.** She must walk forward and he backward,
+ *   and for a rigid pair with her on his right that is one sign and one only:
+ *   see {@link COURTESY_HALF_TURN}.
  *
- * - **Right and left through** arrives with the robin on the lark's right and
- *   leaves her on his right on the *other* pair of places, so the line sweeps a
- *   clean 180° with the bodies. It is a rigid half turn, the textbook picture.
- * - **A chain** arrives with the robin on the lark's **left** — she has come
- *   across the set and he has stepped out to meet her coming — and leaves her
- *   on his right. A body that turns 180° swaps which of its own sides a fixed
- *   direction is on, so the line has to sweep **nothing at all** for that to
- *   happen. The chain's couple therefore spins rather than wheels, and opens
- *   out on to two places a whole set's width apart while it does.
- *
- * That difference is geometry, not choice: `bearing(lark, robin) − larkFacing`
- * is which side of him she is on, and it changes by `sweep − bodyTurn`. Ask for
- * a 180° sweep *and* a side change and there is no such motion. The whole of
- * the arithmetic is in {@link CourtesyTurn.sweep}, which is `angleDiff` of the
- * two axes — and `angleDiff` answers `+180` for a half turn either way, so a
- * right and left through's direction is decided by the bodies and nowhere else.
+ * **Where the couple stands when the hands close is not a choice either.** A
+ * rigid half turn about the point between them is its own inverse, so the take
+ * is the end reflected through the pivot: he stands on her side of the pivot
+ * and she on his, one {@link CourtesyTurnSpec.hold} apart. A figure hands this
+ * function the two *end* places and is told, in {@link CourtesyTurn.takes},
+ * where it has to walk its two dancers first. In a chain that means the lark
+ * steps across the middle of the set to meet her and wheels back out of it —
+ * which is the price of a hall whose two lines stand further apart than a
+ * couple holds, and is written up in the report for F7.
  */
-export const COURTESY_HALF_TURN = 180;
+export const COURTESY_HALF_TURN = -180;
 
 /** The turn, planned: where it takes the couple from, and where it puts them. */
 export interface CourtesyTurn {
@@ -68,111 +63,77 @@ export interface CourtesyTurn {
   lark(t: Beat): Spot;
   /** Where the robin is `t` beats into the turn. */
   robin(t: Beat): Spot;
-  /** How far each body turns, signed degrees: ±{@link COURTESY_HALF_TURN}. */
+  /** How far each body turns, signed degrees: {@link COURTESY_HALF_TURN}. */
   bodyTurn: number;
-  /** How far the couple's own line sweeps, signed degrees. */
+  /** How far the couple's own line sweeps: the same number, the pair is rigid. */
   sweep: number;
   /** How far apart the couple turns, px. */
   hold: number;
+  /** The point between them, which the whole turn happens about. */
+  pivot: Vec2;
+  /** How long the rigid rotation lasts; the rest of the figure opens out. */
+  turnBeats: Beat;
 }
 
 /** What a figure hands {@link courtesyTurn}. */
 export interface CourtesyTurnSpec {
-  /** Where the lark stands when the hands close, having walked there. */
-  larkTake: Vec2;
-  /** Where the robin stands when the hands close, having walked there. */
-  robinTake: Vec2;
   /** Where the turn leaves the lark: his place, facing in. */
   lark: Spot;
   /** Where the turn leaves the robin: beside him on his right, facing in. */
   robin: Spot;
   /**
-   * How far apart the couple turns once it has closed up, px; see
-   * {@link courtesyHold}. Never more than they arrive at.
+   * How far apart the couple turns, px; see {@link courtesyHold}. Never more
+   * than the two end places are apart.
    */
   hold: number;
   /** How long the whole turn takes. */
   beats: Beat;
   /**
-   * How long the couple takes to close up on to the hold, at the start.
-   *
-   * A right and left through arrives with the two of them standing on places a
-   * whole set apart, which is more than twice a hold, so they walk in as the
-   * hands go up. A chain arrives all but closed already and this costs it
-   * almost nothing.
-   */
-  closeBeats: Beat;
-  /**
    * How long the opening out on to the two places takes, at the end.
    *
    * The couple turns at the hold and ends on places that can be a whole set
-   * apart — 32 px in duple improper against a 14 px hold — so the opening out
-   * has to happen somewhere. It happens last, over this many beats, which is
-   * also when the hands let go: joined hands on a couple that has already
-   * opened out are further apart than two arms reach.
+   * apart — 32 px in duple improper against an 11.5 px hold — so the opening
+   * out has to happen somewhere. It happens **after** the rotation, over this
+   * many beats, which is also when the hands let go: joined hands on a couple
+   * that has already opened out are further apart than two arms reach, and a
+   * couple still opening out is not a rigid body.
    */
   openBeats: Beat;
 }
 
 /**
- * The couple's half turn, from the closed hold on to the two places.
+ * The couple's rigid half turn, and the opening out on to the two places.
  *
  * Both dancers are placed from the same three numbers — the pivot, the axis and
  * the separation — so the two of them are one couple at every instant and their
  * joined hands are one point by construction rather than by agreement.
  */
 export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
-  const takes = {
-    lark: { p: spec.larkTake, facing: spec.lark.facing + 180 },
-    robin: { p: spec.robinTake, facing: spec.robin.facing + 180 },
-  };
-
-  // His body turns the way his feet go: the half turn, round the way that
-  // leaves the ground he covers behind him.
-  const bodyTurn = backwardArc(
-    COURTESY_HALF_TURN,
-    sub(spec.lark.p, spec.larkTake),
-    takes.lark.facing,
-  );
-
-  const axisFrom = bearing(spec.larkTake, spec.robinTake);
-  const axisTo = bearing(spec.lark.p, spec.robin.p);
-  const arc = angleDiff(axisFrom, axisTo);
-  // A couple that swaps ends — right and left through — has an axis that turns
-  // a half either way, and `angleDiff` cannot say which; the bodies can.
-  const sweep =
-    Math.abs(Math.abs(arc) - COURTESY_HALF_TURN) < 1e-9
-      ? Math.sign(bodyTurn) * COURTESY_HALF_TURN
-      : arc;
-
-  const pivotFrom = midpoint(spec.larkTake, spec.robinTake);
-  const pivotTo = midpoint(spec.lark.p, spec.robin.p);
-  const sepFrom = dist(spec.larkTake, spec.robinTake);
+  const pivot = midpoint(spec.lark.p, spec.robin.p);
   const sepTo = dist(spec.lark.p, spec.robin.p);
-  const hold = Math.min(spec.hold, sepFrom);
-  const closeBeats = Math.min(Math.max(spec.closeBeats, 0), spec.beats);
-  const openBeats = Math.min(Math.max(spec.openBeats, 0), spec.beats);
+  const hold = Math.min(spec.hold, sepTo);
+  const axisTo = bearing(spec.lark.p, spec.robin.p);
+  const axisFrom = axisTo - COURTESY_HALF_TURN;
+  const turnBeats = Math.max(0, spec.beats - Math.min(Math.max(spec.openBeats, 0), spec.beats));
 
-  const at = (t: Beat, side: -1 | 1, end: Spot): Spot => {
-    const k = spec.beats <= 0 ? 1 : smooth(t / spec.beats);
-    const close = closeBeats <= 0 ? 1 : ramp(t, 0, closeBeats);
-    const open = openBeats <= 0 ? k : ramp(t, spec.beats - openBeats, spec.beats);
-    const axis = dirOf(axisFrom + sweep * k);
-    const reach = (mix(mix(sepFrom, hold, close), sepTo, open) / 2) * side;
-    const pivot: Vec2 = [mix(pivotFrom[0], pivotTo[0], k), mix(pivotFrom[1], pivotTo[1], k)];
+  const at = (t: Beat, from: Angle, end: Spot): Spot => {
+    const k = turnBeats <= 0 ? 1 : smooth(t / turnBeats);
+    const open = ramp(t, turnBeats, spec.beats);
     return {
-      p: [pivot[0] + axis[0] * reach, pivot[1] + axis[1] * reach],
-      facing: end.facing - bodyTurn * (1 - k),
+      p: polar(pivot, from + COURTESY_HALF_TURN * k, mix(hold, sepTo, open) / 2),
+      facing: end.facing + 180 + COURTESY_HALF_TURN * k,
     };
   };
 
   return {
-    takes,
-    bodyTurn,
-    sweep,
+    takes: { lark: at(0, axisFrom + 180, spec.lark), robin: at(0, axisFrom, spec.robin) },
+    bodyTurn: COURTESY_HALF_TURN,
+    sweep: COURTESY_HALF_TURN,
     hold,
-    lark: (t) => at(t, -1, spec.lark),
-    robin: (t) => at(t, 1, spec.robin),
+    pivot,
+    turnBeats,
+    lark: (t) => at(t, axisFrom + 180, spec.lark),
+    robin: (t) => at(t, axisFrom, spec.robin),
   };
 }
 
@@ -191,33 +152,16 @@ export function courtesyHold(spacing: number, pivot: Vec2, pivots: readonly Vec2
 }
 
 /**
- * `arc`, or the way round the other way, so that a dancer who covers `move`
- * while turning it is walking backward — judged half way round, which is where
- * `walksBackward` reads the facing and where a turning dancer's facing is the
- * one the whole arc is about.
- */
-export function backwardArc(arc: number, move: Vec2, facing: Angle): number {
-  const other = theOtherWay(arc);
-  const forward = (a: number): number => {
-    const d = dirOf(facing + a / 2);
-    return move[0] * d[0] + move[1] * d[1];
-  };
-  return forward(arc) <= forward(other) ? arc : other;
-}
-
-/** The same turn, round the other way. */
-const theOtherWay = (arc: number): number => (arc > 0 ? arc - 360 : arc + 360);
-
-/**
  * Where a courtesy turn's two right hands go: **both on the robin's back**, two
  * points and never a join.
  *
- * The user: "right hand goes on their back and lark's right goes there too."
- * She reaches behind her own back with her right; he is on her left, and at the
- * spacing this model holds a couple at — 14 px between two torsos, against a 15
- * px arm — he lands on the near side of her back rather than reaching across
- * it. Two points two pixels apart, the same shape as the swing's free hand,
- * which is where the forward offset and the drop come from.
+ * The user: "robin right hand goes behind the back, lark right hand goes on
+ * it." She reaches behind her own back with her right; he is on her left for
+ * the whole turn — she is on his right, which is the same sentence — and at the
+ * spacing this model holds a couple at, 11.5 px between two torsos against a 15
+ * px arm, he lands on the near side of her back rather than reaching across it.
+ * Two points two pixels apart, the same shape as the swing's free hand, which
+ * is where the forward offset and the drop come from.
  */
 export interface BackHands {
   /** The lark's right hand, round behind the robin. */
@@ -275,17 +219,12 @@ export const COURTESY_REACH_HOLD_PX =
 /**
  * The two right hands of a courtesy turn, from where the two of them stand.
  *
- * Both points sit on the half of the robin's back that faces the lark — her
- * right in a right and left through and her left in a chain, because the two
- * figures hand her to him on opposite sides. At the spacing this model holds a
- * couple at, an arm that reached across her instead would be longer than an
- * arm.
- *
- * `side` is the **cosine** of where he is round her rather than a sign, so that
- * a chain — where he starts on her right and ends on her left as she comes
- * round him — slides his hand across her back instead of teleporting it. As a
- * sign it jumped 5 px in one 1/32-beat sample, which is 156 px/beat of hand
- * against a 67 px/beat guard.
+ * Both points sit on the half of the robin's back that faces the lark, which
+ * for a rigid courtesy turn is her **left** for the whole of it: she is on his
+ * right, so he is on her left, before the turn, during it and after it. `side`
+ * is the **cosine** of where he is round her rather than a sign so that the
+ * hands slide rather than teleport if a figure ever hands this a pair that is
+ * not in the hold — during the turn itself it is exactly −1 at every sample.
  */
 export function courtesyBackHands(robin: Spot, lark: Spot): BackHands {
   const near = rightOf(robin.facing);
