@@ -53,6 +53,40 @@ export {
 export { mulberry32, pick } from "./appearance/mulberry32.js";
 export { hexToRgb, shade } from "./appearance/shade.js";
 
+// the hall itself: where everything stands, and what it is painted in
+export type {
+  BandInstrument,
+  HallLayout,
+  HallPerson,
+  HallWorld,
+  PropKind,
+  SetGeometry,
+  StageGeometry,
+  TableGeometry,
+} from "./world/layoutHall.js";
+export {
+  COUPLE_PITCH_PX,
+  DEFAULT_HALL_SEED,
+  FLOOR_TAIL_PX,
+  FLOOR_TO_FIRST_COUPLE_PX,
+  LINES_APART_PX,
+  SET_PITCH,
+  SIDE_W,
+  STAGE_DEPTH_PX,
+  STAGE_TO_FLOOR_PX,
+  WALL_PX,
+  layoutHall,
+} from "./world/layoutHall.js";
+export type { BlitCtx2D, HallPalette, HallTheme } from "./floor/drawFloor.js";
+export { HALL_THEMES, clearFloorCache, drawFloor } from "./floor/drawFloor.js";
+export {
+  BAND_MOTION_PX,
+  clearFurnitureLayer,
+  drawFurniture,
+  drawProp,
+  posture,
+} from "./furniture/drawFurniture.js";
+
 // the bitmap font and the text drawn in it
 export type { Font } from "./font/Font.js";
 export { FONT, textHeight, textWidth } from "./font/Font.js";
@@ -67,6 +101,22 @@ export {
   MISSING_GLYPH,
 } from "./font/glyphs.js";
 export { drawText } from "./font/drawText.js";
+
+// the caller's speech bubble, drawn in that font
+export type { BubbleBox, BubbleOptions } from "./bubble/drawBubble.js";
+export {
+  BUBBLE_BORDER,
+  BUBBLE_INK,
+  BUBBLE_MARGIN_PX,
+  BUBBLE_MAX_COLS,
+  BUBBLE_PADDING_PX,
+  BUBBLE_PAPER,
+  BUBBLE_SHADOW,
+  BUBBLE_TAIL_PX,
+  drawBubble,
+  layoutBubble,
+  wrapText,
+} from "./bubble/drawBubble.js";
 
 // trails
 export type { TrailUpdate, Trails } from "./trails/Trails.js";
