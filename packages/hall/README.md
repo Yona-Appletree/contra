@@ -137,10 +137,10 @@ straight to a figure and a prop goes straight to the floor.
 too: they set the origin themselves, so both can be handed a raw
 `layers.floor.getContext("2d")`. The floor is cached per layout and theme, since
 none of it moves; the furniture is redrawn each frame because the band is alive
-— the fiddle bows, the guitar strums, the bass nods, the pianist leans, one px
-each on the same sine as the dancers' quiet motion — and it is drawn on a 4×
-supersampled layer and downsampled, so the band is the same kind of pixels as
-the dancers.
+— the fiddle bows, the guitar strums, the bass nods and leans, the pianist's
+hands slide along the keys a quarter beat apart — on the same sine as the
+dancers' quiet motion — and it is drawn on a 4× supersampled layer and
+downsampled, so the band is the same kind of pixels as the dancers.
 
 The band takes the right of the stage and the caller the left: the caller's
 bubble hangs above their head, and centred on the stage it would sit on the
@@ -239,3 +239,15 @@ the spikes and retyped.
   neutral.
 - **Shoulders are 11 px** (core's AC3 number), where the spike drew 10.4. That
   is core's settled deviation, not a new one.
+- **The band's hands hold closer to the body, and the piano moved 5 px closer
+  to the bench (H1).** F1 measured a band member at 18.6–19.9 px across the
+  elbows against a dancer's 12.1, because the instruments were held with the
+  same 8 px drop that leaves the elbow's tuck (`elbowPole` in
+  `@caller/core`) nearly off: a hand that far out of the tuck's reach draws
+  with the pre-G1 winged elbow regardless of the figure. Raising the drop to
+  14 px (12 for the seated pianist) and tightening the forward/lateral reach
+  brings every band member to 12.6–14.4 px, without touching a dancer's own
+  numbers. The pianist's hands also needed to reach the keyboard — 6+ px
+  forward left no reach to spare, so `layoutHall.ts`'s `stage.piano` moved
+  5 px toward the bench instead, which is the one place this milestone
+  touched a prop position.

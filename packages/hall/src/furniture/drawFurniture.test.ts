@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { DancerLayout } from "../person/layoutDancer.js";
 import { layoutDancer } from "../person/layoutDancer.js";
 import { createPerson } from "../person/Person.js";
+import { DEMO_HALL } from "../testing/fixtures.js";
 import type { HallPerson } from "../world/layoutHall.js";
 import { posture } from "./drawFurniture.js";
 
@@ -60,5 +61,114 @@ describe("a sitter's arms", () => {
     expect(lf).toBeGreaterThan(0);
     expect(lr).toBeCloseTo(-rr, 9);
     expect(layout.hands.L.drop).toBe(layout.hands.R.drop);
+  });
+});
+
+/** Every eighth of a beat, so a sine that peaks off the quarter-beats is still sampled near its peak. */
+const BEATS = Array.from({ length: 32 }, (_, i) => i / 32);
+
+/**
+ * H1's finding: the instruments used to sit outside the players' own arm
+ * tuck, so a band member measured 18.6–19.9 px across the elbows against a
+ * dancer's 12.1 and a sitter's 13.3 (F1's own finding, left alone as out of
+ * that milestone's scope). Bringing the instruments in to the body — a
+ * higher hand drop and a smaller reach for the standing three, a keyboard
+ * moved closer to the bench for the pianist — brings the whole band back
+ * inside a dancer's scale, without moving a single dancer.
+ */
+describe("the band's arms", () => {
+  it("tuck in to about a dancer's width, and never reach past the arm's 15 px", () => {
+    for (const who of DEMO_HALL.band) {
+      for (const beat of BEATS) {
+        const layout = layoutDancer({ person: who.person, pose: posture(who, beat) }, beat);
+        let half = SHOULDER_WIDTH_PX / 2;
+        for (const arm of layout.arms) {
+          for (const q of [arm.elbow, arm.hand]) {
+            half = Math.max(half, Math.abs(local(q, layout)[1]));
+          }
+          expect(arm.short, `short, ${who.instrument}, beat ${beat}`).toBe(0);
+        }
+        expect(half * 2, `${who.instrument} width, beat ${beat}`).toBeLessThanOrEqual(15);
+      }
+    }
+  });
+});
+
+/**
+ * The pianist's own ruling (the user's words: "the piano player isn't
+ * touching the keyboard, looks silly"): both hands sit over the strip of
+ * keys `drawFloor` paints into `hall.stage.piano`, at every point in their
+ * along-the-keys motion — not floating in the gap in front of it.
+ */
+describe("the pianist's hands", () => {
+  const pianist = DEMO_HALL.band.find((who) => who.instrument === "piano");
+  if (pianist === undefined) throw new Error("expected a pianist in the demo band");
+
+  it("rest on the keys, sliding along them rather than bouncing off the canvas", () => {
+    const { piano } = DEMO_HALL.stage;
+    const keysY0 = piano.y + piano.h - 5;
+    const keysY1 = piano.y + piano.h - 2;
+    const keysX0 = piano.x + 2;
+    const keysX1 = piano.x + piano.w - 2;
+
+    let sawMotion = false;
+    let lastLx: number | undefined;
+    for (const beat of BEATS) {
+      const pose = posture(pianist, beat);
+      for (const side of ["L", "R"] as const) {
+        const hand = pose.hands[side];
+        if (hand === "down") throw new Error(`expected the pianist's ${side} hand to be placed`);
+        const [x, y] = hand.p;
+        expect(y, `${side} hand y, beat ${beat}`).toBeGreaterThanOrEqual(keysY0);
+        expect(y, `${side} hand y, beat ${beat}`).toBeLessThanOrEqual(keysY1);
+        expect(x, `${side} hand x, beat ${beat}`).toBeGreaterThanOrEqual(keysX0);
+        expect(x, `${side} hand x, beat ${beat}`).toBeLessThanOrEqual(keysX1);
+        if (side === "L") {
+          if (lastLx !== undefined && lastLx !== x) sawMotion = true;
+          lastLx = x;
+        }
+      }
+    }
+    // The hands actually move along the keys over the beat, not a fixed pose.
+    expect(sawMotion).toBe(true);
+  });
+
+  it("each slide a couple of px along the keys over the beat", () => {
+    const layout0 = layoutDancer({ person: pianist.person, pose: posture(pianist, 0) }, 0);
+    for (const side of ["L", "R"] as const) {
+      let min = Infinity;
+      let max = -Infinity;
+      for (const beat of BEATS) {
+        const pose = posture(pianist, beat);
+        const hand = pose.hands[side];
+        if (hand === "down") throw new Error(`expected the pianist's ${side} hand to be placed`);
+        const lateral = local(hand.p, layout0)[1];
+        min = Math.min(min, lateral);
+        max = Math.max(max, lateral);
+      }
+      // "Two or three px of motion is enough" (the brief): comfortably inside
+      // that, and comfortably more than a rounding error.
+      expect(max - min, `${side} hand's travel along the keys`).toBeGreaterThan(1);
+      expect(max - min, `${side} hand's travel along the keys`).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("alternate: the two hands do not peak at the same beat", () => {
+    const layout0 = layoutDancer({ person: pianist.person, pose: posture(pianist, 0) }, 0);
+    const peakBeat = (side: "L" | "R"): number => {
+      let bestBeat = 0;
+      let bestAbs = -Infinity;
+      for (const beat of BEATS) {
+        const hand = posture(pianist, beat).hands[side];
+        if (hand === "down") throw new Error(`expected the pianist's ${side} hand to be placed`);
+        const lateral = Math.abs(local(hand.p, layout0)[1]);
+        if (lateral > bestAbs) {
+          bestAbs = lateral;
+          bestBeat = beat;
+        }
+      }
+      return bestBeat;
+    };
+    expect(peakBeat("L")).not.toBe(peakBeat("R"));
   });
 });
