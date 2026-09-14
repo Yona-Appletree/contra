@@ -14,7 +14,7 @@ import {
 } from "@caller/core";
 import type { RoleName, RoleSet, StationId } from "@caller/choreo";
 import type { Spot } from "./ContraFigure.js";
-import { CLEARANCE_PX, bearing, midpoint, orbitRadius } from "./ContraFigure.js";
+import { bearing, midpoint, orbitRadius } from "./ContraFigure.js";
 import { BACK_HAND_DROP_PX, BACK_HAND_FORWARD_PX } from "../pair/swing.js";
 
 /**
@@ -183,7 +183,7 @@ export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
  * place pitch apart — 20 px in duple improper — so a couple turning at the
  * library's own 14 px hold spacing would walk through the couple beside it.
  * {@link orbitRadius} is the same clearance the swing takes: the hold shrinks
- * until {@link CLEARANCE_PX} is left, and where nothing is close it does not
+ * until `CLEARANCE_PX` is left, and where nothing is close it does not
  * shrink at all.
  */
 export function courtesyHold(spacing: number, pivot: Vec2, pivots: readonly Vec2[]): number {

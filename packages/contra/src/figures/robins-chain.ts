@@ -10,13 +10,11 @@ import type {
   Spots,
 } from "./ContraFigure.js";
 import {
-  bearing,
   contraFigure,
   joinPoint,
   joinedHands,
   midpoint,
   passRight,
-  polar,
   takeAndRelease,
 } from "./ContraFigure.js";
 import type { CourtesyTurn } from "./courtesyTurn.js";
