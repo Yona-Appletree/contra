@@ -52,7 +52,7 @@ function HallView({
     const g = layer.getContext("2d") as BlitCtx2D | null;
     if (g === null) return;
     drawFloor(g, hall, theme);
-    drawFurniture(g, hall, beat);
+    drawFurniture(g, hall, beat, { skirts: true });
     if (call !== "") {
       drawBubble(g, FONT, call, hall.caller, { world: hall.world });
     }

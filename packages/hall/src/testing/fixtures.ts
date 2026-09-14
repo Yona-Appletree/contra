@@ -231,6 +231,7 @@ function emptyHallFixture(): Fixture {
     name: "hall-empty-2-lines",
     description: "Two lines, five couples and four, with nobody dancing yet.",
     world: { ...DEMO_HALL.world },
+    skirts: true,
     frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
     paint: (renderer) => paintHall(renderer, false),
   };
@@ -242,6 +243,7 @@ function hallBubbleFixture(): Fixture {
     name: "hall-bubble",
     description: `The caller calling "${BUBBLE_CALL}" in the bitmap font.`,
     world: { ...DEMO_HALL.world },
+    skirts: true,
     frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
     paint: (renderer) => paintHall(renderer, true),
   };
@@ -251,7 +253,7 @@ function paintHall(renderer: Renderer, bubble: boolean): void {
   const g = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
   if (g === null) return;
   drawFloor(g, DEMO_HALL, "grange");
-  drawFurniture(g, DEMO_HALL, 0);
+  drawFurniture(g, DEMO_HALL, 0, { skirts: true });
   if (bubble) {
     // Anchored on the caller's head, which is where the tail has to land.
     drawBubble(g, FONT, BUBBLE_CALL, DEMO_HALL.caller, { world: DEMO_HALL.world });

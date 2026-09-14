@@ -90,6 +90,7 @@ export {
 } from "./world/layoutHall.js";
 export type { BlitCtx2D, HallPalette, HallTheme } from "./floor/drawFloor.js";
 export { HALL_THEMES, clearFloorCache, drawFloor } from "./floor/drawFloor.js";
+export type { FurnitureOptions } from "./furniture/drawFurniture.js";
 export {
   BAND_MOTION_PX,
   clearFurnitureLayer,

@@ -363,7 +363,7 @@ export function HallPage({
       const floor = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
       if (floor !== null) {
         drawFloor(floor, world, THEME);
-        drawFurniture(floor, world, at);
+        drawFurniture(floor, world, at, { skirts: true });
         const call = callAt(program, at);
         if (call !== "") {
           drawBubble(floor, FONT, call, world.caller, {
