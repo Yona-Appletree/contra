@@ -93,11 +93,50 @@ export interface SetSpec {
   axis: Angle;
 }
 
-/** How a set state is partitioned into the groups that dance one time through. */
+/**
+ * How wide a figure call draws its dancers from: the name of one partition of a
+ * whole set, resolved by the formation ({@link Formation.groupsFor}).
+ *
+ * Open, exactly like {@link import('../dance/Dance.js').Selector}: `choreo`
+ * supplies the mechanism and one built-in meaning, and each formation supplies
+ * the rest. The one meaning this package knows is
+ * {@link HANDS_FOUR_GROUP} — "the ordinary minor-set partition", what a
+ * formation's groups have always been. A formation is free to define wider ones
+ * (a seam between two minor sets, a whole line, the whole set); asked for one it
+ * does not define, it throws rather than quietly returning nothing.
+ */
+export type GroupSelector = "hands-four" | (string & Record<never, never>);
+
+/**
+ * The ordinary minor-set partition, and what a call that says nothing gets.
+ *
+ * Named `…_GROUP` because `HANDS_FOUR` is already taken by what the *caller
+ * says* between two dances (`decider/Decider.ts`); this one is never spoken.
+ */
+export const HANDS_FOUR_GROUP: GroupSelector = "hands-four";
+
+/**
+ * What a group in a partition is for.
+ *
+ * `"set"` groups dance the call. The other two are **the two outs**: a couple
+ * with nobody to dance with, waiting at the top of the set or at the bottom.
+ * They are distinguished here rather than collapsed into one `"wait"` because
+ * the two behave differently and every consumer needs to know which — the top
+ * out is the couple "hands four from the top" is reckoned from and the one long
+ * lines addresses; the bottom out is the one a `down-the-hall` call sweeps
+ * along, and the one a becket line's shift pushes off the end.
+ *
+ * Each formation already carries the signal that tells them apart — it is what
+ * decides which way a waiting couple's frame is turned — so this surfaces that
+ * distinction rather than computing it twice.
+ */
+export type GroupKind = "set" | "wait-top" | "wait-bottom";
+
+/** How a set state is partitioned into the groups that dance one figure call. */
 export interface GroupPlan {
   id: GroupId;
-  /** `"set"` groups dance the dance; `"wait"` groups dance `wait-out`. */
-  kind: "set" | "wait";
+  /** `"set"` groups dance the call; the two outs wait it out. */
+  kind: GroupKind;
   frame: Frame;
   stations: readonly Station[];
   members: Readonly<Record<StationId, DancerId>>;
@@ -136,13 +175,48 @@ export interface Formation {
   lineUpCalls?: readonly string[];
   /** The layout of a group of `n` dancers, in frame-local px. */
   group(n: number): Station[];
+  /**
+   * The **authoring-time** template for one group selector: the abstract station
+   * layout a dance's calls are written against, before any hall exists.
+   *
+   * The counterpart of {@link groupsFor}, which needs a real set to resolve
+   * against. `@caller/contra`'s `chainCalls` threads a dance's places through
+   * this layout; the runtime groups it replays into may bind only a subset of
+   * these ids, which every figure already copes with because it reads only the
+   * stations its own group has.
+   *
+   * Additive: {@link group} stays, because a waiting couple's two-station layout
+   * is not a selector and nothing else names it.
+   */
+  groupFor(selector: GroupSelector): Station[];
   progression: Progression;
-  /** The groups that dance one time through, in set order. */
-  groups(set: SetState): GroupPlan[];
+  /**
+   * How the whole set divides up for one figure call: **a partition**.
+   *
+   * Every dancer in `set` appears in the `members` of exactly one returned plan,
+   * dancing and waiting alike. That is what makes double-claiming structurally
+   * impossible — `Timeline.add()` throws if a dancer is bound into two events
+   * over overlapping beats, so a partition that is not one fails loudly the
+   * first time a dance exercises it. `src/testing/assertPartition.ts` checks the
+   * property directly.
+   *
+   * Called once per figure call, not once per time through: two calls of the
+   * same dance may draw their dancers from different widths.
+   */
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[];
   /** A fresh set, with couples and dancers named from `spec.id`. */
   start(spec: SetSpec): SetState;
-  /** Station subsets a {@link Selector} tag names, for a group of `n`. */
-  tags(n: number): Record<string, StationId[]>;
+  /**
+   * Station subsets a {@link Selector} tag names, in the layout `selector` is
+   * resolved against.
+   *
+   * Keyed by the group selector rather than by station count: two different
+   * partitions can produce groups of the same size, so `n` does not say what a
+   * tag means. `resolveSelector` filters the answer down to the ids the call's
+   * own group actually has, so one abstract definition serves every runtime
+   * instance of that selector, however wide it happened to come out.
+   */
+  tags(selector: GroupSelector): Record<string, StationId[]>;
 }
 
 /** Every dancer in a hall, in set then place then role order. */

@@ -17,7 +17,7 @@ const group = (axis = 90) =>
   createGroup(
     {
       id: "w",
-      kind: "wait",
+      kind: "wait-top",
       frame: frame([0, 0], axis),
       stations: WAIT_STATIONS,
       members: { WL: "lark-1", WR: "robin-1" },
@@ -135,7 +135,7 @@ describe("wait-out", () => {
     const bottom = createGroup(
       {
         id: "w",
-        kind: "wait",
+        kind: "wait-bottom",
         frame: reverseFrame(frame([0, 0], 90)),
         stations: WAIT_STATIONS,
         members: { WL: "lark-2", WR: "robin-2" },
@@ -152,7 +152,7 @@ describe("wait-out", () => {
     const three = createGroup(
       {
         id: "w",
-        kind: "wait",
+        kind: "wait-top",
         frame: frame([0, 0], 90),
         stations: [...WAIT_STATIONS, { id: "X", role: "lark", facing: 0, p: [0, 20] }],
         members: { WL: "a", WR: "b", X: "c" },

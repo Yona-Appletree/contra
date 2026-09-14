@@ -43,16 +43,28 @@ export interface DanceFile extends Omit<ContraDanceSpec, "formation"> {
 }
 
 /**
- * Check one call names a real figure and only the parameters that figure
- * declares — the schema check the brief asks for, beyond `validateDance`'s own
- * shape check.
+ * Check one call names a real figure, only the parameters that figure
+ * declares, and a group selector its formation defines — the schema check the
+ * brief asks for, beyond `validateDance`'s own shape check.
  *
  * `from` and `carried` are excluded from "declares": both are on every
  * figure's `defaults` (the first because every contra figure takes one, the
  * second because {@link contraFigure} injects it), and both are exactly the
  * two things {@link contraDance} derives and a dance file must never write.
+ *
+ * **`group` is a call field, not a figure parameter**, and belongs beside
+ * `who` rather than inside `params`: it says how wide the call draws its
+ * dancers from — which partition of the whole set it runs in — where `params`
+ * tune the figure itself. A file that names a selector its formation has not
+ * built yet fails here, with the selectors it does have, rather than deep
+ * inside the decider on the first time through.
  */
-function checkCall(danceSlug: string, phraseName: string, call: ContraCall): void {
+function checkCall(
+  danceSlug: string,
+  phraseName: string,
+  formation: Formation,
+  call: ContraCall,
+): void {
   const def = contraFigureOf(call.figure);
   if (!def) {
     throw new Error(`${danceSlug} ${phraseName}: "${call.figure}" is not a known contra figure`);
@@ -68,6 +80,17 @@ function checkCall(danceSlug: string, phraseName: string, call: ContraCall): voi
       );
     }
   }
+  if (call.group !== undefined) {
+    try {
+      formation.groupFor(call.group);
+    } catch (cause) {
+      throw new Error(
+        `${danceSlug} ${phraseName}: "${call.figure}" wants group "${call.group}", ` +
+          `which formation "${formation.id}" does not define`,
+        { cause },
+      );
+    }
+  }
 }
 
 /**
@@ -79,7 +102,7 @@ function checkCall(danceSlug: string, phraseName: string, call: ContraCall): voi
 export function danceFromFile(file: DanceFile): Dance {
   const formation: Formation = formationById(file.formation);
   for (const phrase of file.phrases as ContraPhrase[]) {
-    for (const call of phrase.figures) checkCall(file.slug, phrase.name, call);
+    for (const call of phrase.figures) checkCall(file.slug, phrase.name, formation, call);
   }
   const spec: ContraDanceSpec = {
     slug: file.slug,

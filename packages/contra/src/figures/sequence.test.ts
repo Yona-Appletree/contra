@@ -1,5 +1,6 @@
 import type { Dance, Decider, Program, SetState } from "@caller/choreo";
 import {
+  HANDS_FOUR_GROUP,
   closureReport,
   collisionReport,
   coverageProblems,
@@ -83,7 +84,7 @@ describe("AC5 — closure", () => {
       const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
       const progressed: SetState = formation.progression.next(hall.sets[0]!);
       let worst = 0;
-      for (const plan of formation.groups(progressed)) {
+      for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, progressed)) {
         for (const station of plan.stations) {
           const dancer = plan.members[station.id]!;
           const want = stationPose(plan.frame, station).p;

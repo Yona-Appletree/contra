@@ -1,6 +1,7 @@
 import type { Dance, Decider, Program, SetState, StationId } from "@caller/choreo";
 import {
   ARM_REACH_PX,
+  HANDS_FOUR_GROUP,
   HOLD_SPACING_PX,
   LINE_OFFSET_PX,
   WAIT_OUT,
@@ -14,6 +15,7 @@ import {
   createScriptDecider,
   danceBeats,
   dist,
+  partitionProblems,
   poseAt,
   reachReport,
   stationPose,
@@ -146,16 +148,52 @@ describe("hands four from the top", () => {
 
   it("leaves the bottom couple waiting when the line is odd", () => {
     const parts = partitionDupleImproper(set(5));
-    expect(parts.map((p) => p.kind)).toEqual(["set", "set", "wait"]);
+    expect(parts.map((p) => p.kind)).toEqual(["set", "set", "wait-bottom"]);
     expect(parts[2]!.couples[0]!.place).toBe(4);
   });
 
   it("moves the sets down one place the next time through, leaving both ends out", () => {
     const after = DUPLE_IMPROPER.progression.next(set(6));
     const parts = partitionDupleImproper(after);
-    expect(parts.map((p) => p.kind)).toEqual(["wait", "set", "set", "wait"]);
+    expect(parts.map((p) => p.kind)).toEqual(["wait-top", "set", "set", "wait-bottom"]);
     expect(parts[0]!.couples[0]!.place).toBe(0);
     expect(parts[3]!.couples[0]!.place).toBe(5);
+  });
+
+  it("puts every dancer in exactly one group, at every line length and every time through", () => {
+    // The partition property `groupsFor` owes the engine: nobody in two groups,
+    // nobody in none. Checked by the engine's own form-neutral helper.
+    for (let couples = 2; couples <= 7; couples++) {
+      let state = set(couples);
+      for (let cycle = 0; cycle < 2 * couples; cycle++) {
+        const plans = DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, state);
+        expect(partitionProblems(plans, state), `${couples} couples, cycle ${cycle}`).toEqual([]);
+        state = DUPLE_IMPROPER.progression.next(state);
+      }
+    }
+  });
+
+  it("names the end a leftover couple is out at, and reaches both over a line of five", () => {
+    // An odd line always has somebody out, and it is the other end each time
+    // through — which is exactly the difference `wait-top`/`wait-bottom` carries.
+    let state = set(5);
+    const kinds: string[] = [];
+    for (let cycle = 0; cycle < 4; cycle++) {
+      kinds.push(
+        ...DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, state)
+          .filter((p) => p.kind !== "set")
+          .map((p) => p.kind),
+      );
+      state = DUPLE_IMPROPER.progression.next(state);
+    }
+    expect(kinds).toEqual(["wait-bottom", "wait-top", "wait-bottom", "wait-top"]);
+  });
+
+  it("refuses a group selector it does not define, rather than dancing in fours anyway", () => {
+    expect(() => DUPLE_IMPROPER.groupsFor("shadow-pair", set(4))).toThrow(/no group selector/);
+    expect(() => DUPLE_IMPROPER.tags("line")).toThrow(/no group selector/);
+    expect(() => DUPLE_IMPROPER.groupFor("set")).toThrow(/no group selector/);
+    expect(DUPLE_IMPROPER.groupFor(HANDS_FOUR_GROUP)).toEqual(DUPLE_IMPROPER.group(4));
   });
 
   it("returns to the same shape after two times through, at every line length", () => {
@@ -253,7 +291,7 @@ describe("AC5 — closure, at every line length from 2 to 6", () => {
 
     // Where the progressed set says each dancer should stand.
     const expected = new Map<string, readonly [number, number]>();
-    for (const plan of DUPLE_IMPROPER.groups(progressed)) {
+    for (const plan of DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, progressed)) {
       for (const station of plan.stations) {
         const dancer = plan.members[station.id]!;
         expected.set(dancer, stationPose(plan.frame, station).p);

@@ -1,5 +1,6 @@
 import type { Dance, Decider, Formation, Program } from "@caller/choreo";
 import {
+  HANDS_FOUR_GROUP,
   closureReport,
   collisionReport,
   coverageProblems,
@@ -97,7 +98,7 @@ export function oraclesFor(dance: Dance, couples: number, until = 128): DanceOra
   const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
   const progressed = formation.progression.next(hall.sets[0]!);
   let progressedPx = 0;
-  for (const plan of formation.groups(progressed)) {
+  for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, progressed)) {
     for (const station of plan.stations) {
       const dancer = plan.members[station.id];
       if (dancer === undefined) continue;

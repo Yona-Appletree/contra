@@ -11,12 +11,13 @@ import type {
   CoupleState,
   Formation,
   GroupPlan,
+  GroupSelector,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "../formation/Formation.js";
-import { createHall } from "../formation/Formation.js";
+import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
 import { frame } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
 import { closureReport } from "../testing/oracles.js";
@@ -63,9 +64,15 @@ const WAITING: Formation = {
     return WAIT_STATIONS.map((s) => ({ ...s }));
   },
 
+  groupFor(selector: GroupSelector): Station[] {
+    onlyHandsFour(selector);
+    return WAIT_STATIONS.map((s) => ({ ...s }));
+  },
+
   progression: { next: (set: SetState): SetState => set },
 
-  groups(set: SetState): GroupPlan[] {
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    onlyHandsFour(selector);
     return set.couples.map((couple): GroupPlan => {
       const lark = couple.dancers["lark"];
       const robin = couple.dancers["robin"];
@@ -74,7 +81,9 @@ const WAITING: Formation = {
       }
       return {
         id: `${set.id}/w${couple.place}`,
-        kind: "wait",
+        // Everybody in this fixture is out, and out at the bottom: there is no
+        // line above them to be the top of.
+        kind: "wait-bottom",
         frame: frame(
           [set.frame.centre[0], set.frame.centre[1] + couple.place * set.pitch],
           set.frame.axis,
@@ -105,11 +114,18 @@ const WAITING: Formation = {
     };
   },
 
-  tags(n: number): Record<string, StationId[]> {
-    if (n !== 2) throw new Error(`the waiting fixture waits in twos, not ${n}`);
+  tags(selector: GroupSelector): Record<string, StationId[]> {
+    onlyHandsFour(selector);
     return { all: ["WL", "WR"], larks: ["WL"], robins: ["WR"] };
   },
 };
+
+/** The waiting fixture defines the one built-in selector and no other. */
+function onlyHandsFour(selector: GroupSelector): void {
+  if (selector !== HANDS_FOUR_GROUP) {
+    throw new Error(`the waiting fixture has no group selector "${selector}"`);
+  }
+}
 
 /**
  * The same figure, crossing the other way: every dancer walks to the point
@@ -181,7 +197,7 @@ describe("the decider takes wait-out from the registry", () => {
     // Without this the test above could pass by the replacement being the same
     // figure. A `'swap'` and a `'mirror'` crossing of these stations differ.
     const hall = createHall(WAITING, [{ id: "set0", couples: 1, centre: [0, 0], axis: 90 }]);
-    const plan = WAITING.groups(hall.sets[0]!)[0]!;
+    const plan = WAITING.groupsFor(HANDS_FOUR_GROUP, hall.sets[0]!)[0]!;
     const group: Group = {
       id: plan.id,
       frame: plan.frame,

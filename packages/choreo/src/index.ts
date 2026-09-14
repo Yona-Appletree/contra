@@ -10,7 +10,9 @@ export type {
   DancerId,
   Formation,
   GroupId,
+  GroupKind,
   GroupPlan,
+  GroupSelector,
   HallState,
   Progression,
   RoleName,
@@ -21,7 +23,13 @@ export type {
   Station,
   StationId,
 } from "./formation/Formation.js";
-export { createHall, hallDancers, stationById, stationPose } from "./formation/Formation.js";
+export {
+  HANDS_FOUR_GROUP,
+  createHall,
+  hallDancers,
+  stationById,
+  stationPose,
+} from "./formation/Formation.js";
 export type { Frame } from "./formation/Frame.js";
 export { frame, frameAngle, framePoint, frameVector, reverseFrame } from "./formation/Frame.js";
 export type { Group } from "./group/Group.js";
@@ -131,14 +139,19 @@ export {
   velocity,
   walksBackward,
 } from "./testing/trajectory.js";
+export { assertPartition, partitionProblems } from "./testing/assertPartition.js";
 export {
   SQUARE,
   SQUARE_HALF_COUPLE_PX,
   SQUARE_HEADS,
+  SQUARE_PLACES,
   SQUARE_RADIUS_PX,
   SQUARE_ROLES,
   SQUARE_SIDES,
+  SQUARE_WAIT_HALF_PX,
+  SQUARE_WAIT_STATIONS,
   squareStations,
+  squareWaitKind,
 } from "./testing/square.js";
 
 // The slice of `@caller/core` a formation or figure needs, re-exported so that
