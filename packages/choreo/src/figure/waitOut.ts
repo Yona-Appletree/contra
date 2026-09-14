@@ -27,6 +27,8 @@ export interface WaitOutParams extends FigureParams {
   crossTo: CrossOver;
   /** Beats spent stepping together to take hands. */
   joinBeats: Beat;
+  /** Beats spent letting go and stepping back out, just before the crossing. */
+  partBeats: Beat;
   /** Beats spent crossing over, at the end of the figure. */
   crossBeats: Beat;
   /** How far below shoulder height the joined hands are, in px. */
@@ -39,18 +41,25 @@ export interface WaitOutParams extends FigureParams {
 
 /**
  * `wait-out`: the couple with nobody to dance with steps together, holds hands
- * for the whole time through, and crosses over during the last eight beats so
- * it comes back in facing the right way.
+ * for the whole time through, lets go, and crosses over during the last eight
+ * beats so it comes back in facing the right way.
  *
  * Form-neutral: it works on any group of exactly two stations, taking the
- * inside hands (the first station's left, the second's right) and swapping the
- * two places. In a contra set the group's frame is turned end for end for the
- * couple waiting at the bottom, so both waiters finish facing along the frame's
- * own axis and the same figure serves both ends of the line.
+ * inside hands (the first station's left, the second's right). In a contra set
+ * the group's frame is turned end for end for the couple waiting at the bottom,
+ * so both waiters finish facing along the frame's own axis and the same figure
+ * serves both ends of the line.
  *
- * Hands are down while stepping in and while crossing: at the stations the two
- * are a line's width apart, which is further than a 15 px arm can reach, and
- * the inviolable invariant says a hand is never drawn where the arm cannot go.
+ * Two deviations from the hall spike, both forced by the plan's numbers:
+ *
+ * - The couple **steps together** to `frame.spacing` before taking hands. The
+ *   spike holds hands at the stations, a line's width apart, which is further
+ *   than a 15 px arm reaches; the inviolable invariant says a hand is never
+ *   drawn where the arm cannot go, so `short` would not be 0 (AC1).
+ * - It **steps back out** over the last couple of beats of the hold, so the
+ *   crossing runs station to station over the last eight beats exactly as the
+ *   spike's does. Crossing from the closed-up hold would take the two within
+ *   8 px of each other (AC6).
  */
 export const WAIT_OUT: FigureDef<WaitOutParams> = {
   id: "wait-out",
@@ -60,6 +69,7 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
   defaults: {
     crossTo: "swap",
     joinBeats: 4,
+    partBeats: 2,
     crossBeats: 8,
     holdDrop: 10,
     bowPx: DEFAULT_BOW_PX,
@@ -72,6 +82,10 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
 
     if (t < g.joinBeats) {
       const step = walkStep(self.home, self.hold, t, g.joinBeats, 0);
+      return standing(step.p, step.facing);
+    }
+    if (t >= g.partStart && t < g.crossStart) {
+      const step = walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0);
       return standing(step.p, step.facing);
     }
     if (t < g.crossStart) {
@@ -92,7 +106,7 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
         hands: self.inside === "L" ? { L: hand, R: "down" } : { L: "down", R: hand },
       };
     }
-    const step = walkStep(self.hold, g.target(station), t - g.crossStart, g.crossBeats, params.bowPx);
+    const step = walkStep(self.home, g.target(station), t - g.crossStart, g.crossBeats, params.bowPx);
     return {
       ...standing(step.p, step.facing),
       stepRate: step.moving ? 1 : 0,
@@ -143,6 +157,8 @@ function geometry(group: Group, params: WaitOutParams) {
 
   const joinBeats = Math.min(params.joinBeats, params.beats);
   const crossBeats = Math.min(params.crossBeats, params.beats - joinBeats);
+  const crossStart = params.beats - crossBeats;
+  const partBeats = Math.min(params.partBeats, crossStart - joinBeats);
   const centre = group.frame.centre;
   const side = (id: StationId): WaitSide => {
     const s = sides[id];
@@ -154,7 +170,9 @@ function geometry(group: Group, params: WaitOutParams) {
   return {
     joinBeats,
     crossBeats,
-    crossStart: params.beats - crossBeats,
+    crossStart,
+    partBeats,
+    partStart: crossStart - partBeats,
     joinPoint,
     side,
     otherId,
