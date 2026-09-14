@@ -7,8 +7,8 @@ page is the hall — a pixel contra dance that dances itself.
 
 A four-line hash router (`src/routes/hashRoute.ts`).
 
-- `#/` and `#/dance/<slug>?tune=<slug>` — **the hall (M9).** Two lines of five
-  couples and four dance every encoded dance twice through to a medley, with
+- `#/` and `#/dance/<slug>?tune=<slug>` — **the hall (M9, P1).** Two lines of
+  eight couples and seven dance every encoded dance twice through to a medley, with
   the band on stage, a caller calling each figure in a pixel speech bubble,
   and the dance card and the tune's notation following along. The programme
   runs itself: after the second time through the caller announces the next
@@ -16,7 +16,12 @@ A four-line hash router (`src/routes/hashRoute.ts`).
   URL follows the dance without reloading. Query parameters, used by the
   tests: `beat=<n>` freezes one frame and sets `data-hall-ready`,
   `zoom=<1|2|3|4|6>` pins the zoom (otherwise it fits the space, up to 2×),
-  `couples=<n>` builds a hall of two lines of `n` couples for the perf test.
+  `couples=<n>` builds a hall whose lines are all `n` couples for the perf
+  test, and `lines=<1..4>` asks for that many sets — three lines is a real
+  hall the renderer and the decider both take, but the world's width is
+  `SIDE_W * 2 + SET_PITCH * lines`, so it grows from 268 px to 372 and a phone
+  no longer has it to spare. There is no control for `lines` in the bar: the
+  bar is already wider than a phone.
 - `#/pair` — **the pair page (M5, gate G1).** The two-dancers spike's 64-beat
   sequence at 112 bpm, played from `@caller/contra`'s figure definitions and
   drawn by `@caller/hall`, with a zoom selector, a scrubber over the 64 beats,

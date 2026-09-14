@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { readSeed } from "./hallUrl.js";
+import { MAX_LINES, MIN_LINES, readLines, readSeed } from "./hallUrl.js";
+
+describe("readLines", () => {
+  it("is two lines — the shipped hall — with no ?lines= at all", () => {
+    expect(readLines(new URLSearchParams(""))).toBe(2);
+    expect(readLines(new URLSearchParams("zoom=2&beat=8"))).toBe(2);
+  });
+
+  it("reads ?lines=<n> for the third set the URL can ask for", () => {
+    expect(readLines(new URLSearchParams("lines=1"))).toBe(1);
+    expect(readLines(new URLSearchParams("lines=3"))).toBe(3);
+  });
+
+  it("clamps rather than refusing: a hall is the page", () => {
+    expect(readLines(new URLSearchParams("lines=0"))).toBe(MIN_LINES);
+    expect(readLines(new URLSearchParams("lines=-4"))).toBe(MIN_LINES);
+    expect(readLines(new URLSearchParams("lines=99"))).toBe(MAX_LINES);
+    expect(readLines(new URLSearchParams("lines=2.6"))).toBe(3);
+  });
+
+  it("falls back to two when ?lines= is not a number", () => {
+    expect(readLines(new URLSearchParams("lines=lots"))).toBe(2);
+  });
+});
 
 describe("readSeed", () => {
   it("reads a finite ?seed=<n> straight through", () => {

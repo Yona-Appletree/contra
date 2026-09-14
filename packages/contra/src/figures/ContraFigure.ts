@@ -197,12 +197,107 @@ export interface ContraFigureSpec<P extends ContraParams> {
 }
 
 /**
+ * How many planned figures the library keeps, over every figure at once.
+ *
+ * A plan is only worth caching if the cache holds every plan a frame asks
+ * for, and small enough that a whole evening cannot fill memory with it. A
+ * frame of the hall asks for one plan per group per figure event, twice over
+ * at a seam — the eighteen-couple perf hall is about forty, the Moves gallery
+ * about a hundred — while an evening's timeline holds some 1 400 figure
+ * events, one params object each. 512 is comfortably above the first number
+ * and well below the second, so a running page never evicts a plan it is
+ * about to want and never accumulates the evening's worth either.
+ */
+export const PLAN_CACHE_SIZE = 512;
+
+/**
+ * Identity numbers for the objects a plan is keyed on.
+ *
+ * A `WeakMap` so interning an object never keeps it alive, and a number so the
+ * cache itself can key on a string and use `Map`'s insertion order as its LRU
+ * order.
+ */
+const planIds = new WeakMap<object, number>();
+let planIdSeq = 0;
+function planId(o: object): number {
+  const seen = planIds.get(o);
+  if (seen !== undefined) return seen;
+  planIdSeq += 1;
+  planIds.set(o, planIdSeq);
+  return planIdSeq;
+}
+
+/** The plans themselves, oldest use first: a `Map` keeps its insertion order. */
+const planCache = new Map<string, FigurePlan>();
+
+/**
+ * The plan for one figure, one group and one params object, built once.
+ *
+ * `contraFigure().sample` used to rebuild the whole {@link FigurePlan} — the
+ * ends, the joins, the ring geometry, every pair lookup — for **every dancer
+ * of every frame**, and again for the previous figure at a seam. That was the
+ * hall's frame cost: the geometry is a pure function of the figure, the group
+ * and the parameters, and none of the three changes while a frame is drawn.
+ *
+ * The cache is keyed on object identity, which is sound because all three are
+ * immutable once a timeline holds them: a `Group` is minted fresh for every
+ * time through and never written to (`@caller/choreo`'s `Group`), and the
+ * decider's `withDefaults` builds a **new** params object for every figure
+ * event. `moves` and `joins` deliberately do **not** go through here — they
+ * are `chainCalls`' dance-build path, which does mutate `params.carried` as it
+ * threads a dance, and they are called once per dance rather than once per
+ * dancer per frame.
+ *
+ * `sample` stays pure seen from outside: the same arguments give the same
+ * pose, the cache is not observable through the figure's contract, and
+ * dropping every entry changes nothing but the time taken.
+ */
+function cachedPlan<P extends ContraParams>(
+  spec: object,
+  group: Group,
+  params: P,
+  build: (group: Group, params: P) => FigurePlan,
+): FigurePlan {
+  const key = `${String(planId(spec))}/${String(planId(group))}/${String(planId(params))}`;
+  const hit = planCache.get(key);
+  if (hit !== undefined) {
+    // Re-insert, so the most recently used plan is last and the first key is
+    // always the least recently used one.
+    planCache.delete(key);
+    planCache.set(key, hit);
+    return hit;
+  }
+  const made = build(group, params);
+  planCache.set(key, made);
+  if (planCache.size > PLAN_CACHE_SIZE) {
+    const oldest = planCache.keys().next();
+    if (oldest.done !== true) planCache.delete(oldest.value);
+  }
+  return made;
+}
+
+/**
+ * Empty the plan cache.
+ *
+ * Nothing in the running page needs this — the cache is bounded and invisible
+ * — but a test that counts how often a plan is built needs to start from
+ * nothing.
+ */
+export function clearPlanCache(): void {
+  planCache.clear();
+}
+
+/** How many plans the cache is holding. For tests, and for nothing else. */
+export const planCacheSize = (): number => planCache.size;
+
+/**
  * A contra figure from its plan: the plan does the geometry in frame-local px
  * and this wraps it in the engine's contract.
  */
 export function contraFigure<P extends ContraParams>(spec: ContraFigureSpec<P>): ContraFigure<P> {
-  const planOf = (group: Group, params: P): FigurePlan =>
+  const build = (group: Group, params: P): FigurePlan =>
     spec.plan(planContext(group.stations, group.roleSet, group.frame.spacing, params.from), params);
+  const planOf = (group: Group, params: P): FigurePlan => cachedPlan(spec, group, params, build);
 
   return {
     id: spec.id,

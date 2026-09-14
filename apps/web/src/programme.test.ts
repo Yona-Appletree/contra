@@ -3,7 +3,7 @@ import { coverageProblems } from "@caller/choreo";
 import { DEMO_DANCES } from "@caller/contra";
 import { layoutHall } from "@caller/hall";
 import { describe, expect, it } from "vitest";
-import { CYCLE_BEATS, ITEM_BEATS, createDemoProgram } from "./program.js";
+import { CYCLE_BEATS, DEMO_LINES, ITEM_BEATS, createDemoProgram } from "./program.js";
 
 /**
  * The whole evening, danced: every dancer has a figure at every beat, and the
@@ -23,9 +23,9 @@ import { CYCLE_BEATS, ITEM_BEATS, createDemoProgram } from "./program.js";
  * item, so no single case runs more than one time through plus a line-up.
  */
 
-/** The demo hall the page ships: two lines, five couples and four. */
-const DEMO_LINES = [5, 4];
-
+// The demo hall the page ships, taken from `program.ts` rather than written
+// down again: the coverage this file measures is the coverage of the hall the
+// page actually seats, and two numbers that have to be equal are one number.
 const world = layoutHall({ lines: DEMO_LINES.length, couplesPerLine: [...DEMO_LINES] });
 
 /** Every figure id a dance calls, the caller's own list. */
@@ -75,8 +75,8 @@ describe("the evening as the page dances it", () => {
         expect([...danced], `${dance.slug} never dances "${figure}"`).toContain(figure);
       }
       // Waiting couples are real, but they are couples, not the whole hall:
-      // a line of five and a line of four have at most three waiting couples
-      // between them in either formation.
+      // a waiting couple is one couple at each end of a line, whatever the
+      // line holds, which is the whole reason the lines got longer (P1).
       const waiting = waitingAll(timeline, from, from + CYCLE_BEATS);
       expect(waiting.length, `waiting all the way through: ${waiting.join(", ")}`).toBeLessThan(
         timeline.dancers().length,

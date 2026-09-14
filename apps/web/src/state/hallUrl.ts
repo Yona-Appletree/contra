@@ -46,6 +46,31 @@ export function setHallUrl(dance: string | undefined, tune: string | undefined):
  * midnight in a zone west of UTC, and two visitors on the same calendar
  * date get the same shuffle regardless of where they are.
  */
+/** How many lines of dancers the hall may be asked for. */
+export const MIN_LINES = 1;
+export const MAX_LINES = 4;
+
+/**
+ * How many lines of dancers the hall is laid out with: `?lines=<n>`, else two.
+ *
+ * Two is the shipped hall and the one the review gate is about, because the
+ * world's width is `SIDE_W * 2 + SET_PITCH * lines` and two lines are the
+ * 268 px a phone fits at 1× (U1). A third set is a real hall and the renderer
+ * and the decider both take it, so it is on the URL; what it does to a phone
+ * is a look decision, not this function's.
+ *
+ * Clamped rather than rejected: a hall is the page, and `?lines=99` should
+ * give a hall rather than a blank screen. Anything that is not a number at
+ * all is two.
+ */
+export function readLines(params: URLSearchParams): number {
+  const raw = params.get("lines");
+  if (raw === null) return 2;
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n)) return 2;
+  return Math.min(MAX_LINES, Math.max(MIN_LINES, n));
+}
+
 export function readSeed(params: URLSearchParams, now: Date = new Date()): number {
   const raw = params.get("seed");
   if (raw !== null) {

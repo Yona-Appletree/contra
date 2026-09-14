@@ -16,15 +16,18 @@ export type {
 } from "./ContraFigure.js";
 export {
   CHAIN_FRAME,
+  PLAN_CACHE_SIZE,
   asPose,
   bearing,
   centreOf,
+  clearPlanCache,
   contraFigure,
   holdWindow,
   isHeld,
   joinPoint,
   joinedHands,
   passRight,
+  planCacheSize,
   planContext,
   polar,
   spotGap,
