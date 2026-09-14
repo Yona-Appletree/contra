@@ -39,6 +39,12 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
  * the one that figure makes, so the dancers — the waiting couple included —
  * begin one couple place back along their own line.
  *
+ * `hall` is read for where each set stands, how it is turned and how many
+ * couples it holds — its {@link SetSpec}s. The decider seats those specs in
+ * whichever formation the programme's first dance is written in, and re-seats
+ * them at every line-up where the formation changes, so a caller never has to
+ * know which formation to hand it a hall in.
+ *
  * Nothing here knows what a lark is, what a swing is, or what a hall looks
  * like. Everything contra comes from the formation and the figure registry.
  */
@@ -57,8 +63,17 @@ export function createScriptDecider(
 
   const timeline = createTimeline(registry);
   const specs = hallSpecs(hall);
-  let state: HallState = hall;
   let formation: Formation = formationOf(library, danceOf(library, program.items[0]!.dance));
+  // `hall` says where each set stands and how many couples it holds; which
+  // formation it happens to be seated in is not the decider's to assume, so it
+  // seats the first item's formation itself. Every *later* formation change is
+  // caught by the line-up between two dances (`emitLineUp`), but the first
+  // dance has no line-up before it — and a hall seated in one formation and
+  // partitioned by another does not throw: it silently finds a set's couples
+  // in the wrong places and puts every one of them in a `"wait"` group, so the
+  // whole hall dances `wait-out` for the length of the dance and nothing that
+  // was called is danced at all.
+  let state: HallState = createHall(formation, specs);
   const at: ScriptPosition = { itemIndex: 0, timeThrough: 0, beat: opts.startBeat };
   /** Where the last figure emitted leaves each dancer. */
   const standingAt = new Map<DancerId, EndPose>();
@@ -263,11 +278,23 @@ export const HANDS_FOUR_LEAD = 4;
 /** A runaway guard: no program needs this many times through to reach a beat. */
 const MAX_CYCLES = 10_000;
 
-/** The specs a hall's sets were built from, so a formation change can re-seed them. */
+/**
+ * The specs a hall's sets were built from, so a formation change can re-seed
+ * them.
+ *
+ * `createHall` records each set's own spec, and that is what is used when it is
+ * there: a formation may seat its frame somewhere other than `spec.centre`
+ * (becket does, by a waiting place and a half), so reading the spec back off
+ * the frame would move the set by that offset every time the formation changed.
+ * The fallback is for a set built by hand, where the frame is all there is.
+ */
 const hallSpecs = (hall: HallState): SetSpec[] =>
-  hall.sets.map((set) => ({
-    id: set.id,
-    couples: set.couples.length,
-    centre: set.frame.centre,
-    axis: set.frame.axis,
-  }));
+  hall.sets.map(
+    (set) =>
+      set.spec ?? {
+        id: set.id,
+        couples: set.couples.length,
+        centre: set.frame.centre,
+        axis: set.frame.axis,
+      },
+  );

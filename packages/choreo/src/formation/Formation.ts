@@ -65,6 +65,19 @@ export interface SetState {
   frame: Frame;
   pitch: number;
   couples: readonly CoupleState[];
+  /**
+   * The spec {@link createHall} seated this set from, when one did.
+   *
+   * A formation is free to put its frame somewhere other than `spec.centre` —
+   * becket does, because `centre` is where a line's *first* dancer stands and
+   * a becket line starts at a waiting place beyond the end — so reading the
+   * spec back off the frame is not an inverse for every formation. Anything
+   * that re-seats the same sets in another formation (the script decider, at
+   * every dance that changes formation) needs the spec the hall was laid out
+   * from, not a guess at it, or the sets drift by whatever offset the
+   * formation applied.
+   */
+  spec?: SetSpec;
 }
 
 /** Every set on the floor. */
@@ -141,7 +154,13 @@ export function stationById(stations: readonly Station[], id: StationId): Statio
   return found;
 }
 
-/** A hall of one set per spec, all in the same formation. */
+/**
+ * A hall of one set per spec, all in the same formation.
+ *
+ * Each set remembers the spec it was seated from ({@link SetState.spec}), so
+ * the same hall can be re-seated in another formation — which is what happens
+ * every time the programme reaches a dance in a different one.
+ */
 export const createHall = (formation: Formation, specs: readonly SetSpec[]): HallState => ({
-  sets: specs.map((spec) => formation.start(spec)),
+  sets: specs.map((spec) => ({ ...formation.start(spec), spec })),
 });
