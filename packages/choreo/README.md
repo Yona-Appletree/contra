@@ -225,6 +225,43 @@ a timeline, so they serve every dance anyone encodes:
 | `reachReport`      | AC1       | `short === 0` for every placed hand at every 1/8 beat                |
 | `collisionReport`  | AC6       | No two torso centres within 8 px at any 1/8 beat                     |
 | `coverageProblems` | —         | Every dancer has exactly one figure at every beat                    |
+| `motionReport`     | —         | How the drawn arm moves; see below                                   |
+
+### `motionReport` — the motion oracle
+
+The three above ask whether the model is self-consistent. Every dance in the
+library passes all three while still looking wrong, so `motionReport` asks a
+different question: **does what is drawn move continuously?**
+
+It samples every dancer at 1/32 beat, resolves the arm the renderer actually
+draws through `@caller/core`'s `drawnArms` — the elbow is what reads as a jump,
+even when the hand barely moves — and attributes every number to a figure
+instance and, for the first `SEAM_BEATS` of one, to the `prev → next` seam that
+led into it. Per figure and per seam it reports the worst hand floor speed, the
+worst elbow floor speed, the worst height rate, how many times a hand flipped
+between placed and hanging, how many samples were **not a finite number**, and
+the worst out-and-back inside one beat, each with the dancer, beat and hand
+that produced it. `formatMotionReport` renders it as markdown.
+
+The non-finite count exists because `NaN > max` is false: a hand that is not a
+number slides through every maximum in every other oracle silently, and an arm
+that is not a number is drawn as nothing at all. It is the one failure the rest
+of this file is blind to, so it gets its own column and sorts above everything.
+
+`motionReport` takes its bounds from the caller and never judges. `@caller/contra`'s
+`motionBounds.ts` derives the contra library's own.
+
+## Trajectory assertions — `src/testing/trajectory.ts`
+
+Form-neutral assertions about what a figure's dancers actually _did_, over a
+`Track` of sampled poses and declared hand joins: `passes` (two dancers come
+close, near a named point, moving oppositely, with one on the other's named
+shoulder), `walksBackward`, `handsJoined`, `handsStill` (relative to the body),
+`staysOnPlace`, `endsOn`, and `joinWindow` (the span a figure itself declares a
+join, so a check never invents a window). Every one returns a result with a
+pass flag and the worst evidence, and none of them throws — a report prints
+them all, and a test asserts over the list. A figure can be perfectly closed,
+perfectly in reach and completely wrong; this is the class of bug they catch.
 
 ## Deviations from the hall spike
 
