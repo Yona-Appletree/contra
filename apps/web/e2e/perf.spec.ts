@@ -41,11 +41,19 @@ test("renders the pair under the frame budget at zoom 6", async ({ page }) => {
 /**
  * Plan AC7, second half: the hall's frame budget. Two lines of nine couples —
  * thirty-six dancers, the floor, the band and the caller's bubble — drawn 300
- * times at zoom 1, median under 16 ms.
+ * times at zoom 1, median under budget.
  *
  * The number this reports is the number; nothing is tuned toward the budget.
+ *
+ * The budget is 33 ms (30 fps), not 16 (60 fps): seven CI samples on
+ * ubuntu-latest, with rendering unchanged since M3, spread from 11.8 to
+ * 17.8 ms — the runner's own noise straddles a 16 ms line. Per the user's
+ * 2026-09-14 ruling, losing a frame here and there is fine this early, so
+ * this guards against a real regression rather than locking to 60 fps;
+ * tightening it back toward 16 is future work once someone does a real
+ * rendering-performance pass.
  */
-const HALL_BUDGET_MS = 16;
+const HALL_BUDGET_MS = 33;
 const HALL_COUPLES = 9;
 
 test("renders a hall of two lines of nine couples under the frame budget at zoom 1", async ({
@@ -70,6 +78,41 @@ test("renders a hall of two lines of nine couples under the frame budget at zoom
     `max: ${(sorted[sorted.length - 1] ?? 0).toFixed(3)} ms`,
   ].join(" · ");
   console.log(`[AC7] hall frame at zoom 1 — ${report}`);
+  test.info().annotations.push({ type: "perf", description: report });
+
+  expect(median, `median frame time, ${report}`).toBeLessThan(HALL_BUDGET_MS);
+});
+
+/**
+ * Plan AC7, second half, real number: the hall the demo actually ships —
+ * two lines of five and four couples (`DEMO_LINES` in
+ * apps/web/src/routes/hall.tsx), nine couples total, at zoom 1. Nobody had
+ * measured this one; the eighteen-couple hall above is a deliberately bigger
+ * stress case, not what a visitor sees. Reported only, against the same
+ * budget as a sanity check — not a separate tuning target.
+ */
+test("renders the shipped hall of five-and-four couples under the frame budget at zoom 1", async ({
+  page,
+}) => {
+  await page.goto(`#/?zoom=1&beat=0`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+
+  await page.evaluate((n) => window.hallDemo?.bench(n), 60);
+  const times = await page.evaluate((n) => window.hallDemo?.bench(n) ?? [], FRAMES);
+
+  expect(times).toHaveLength(FRAMES);
+  const sorted = [...times].sort((a, b) => a - b);
+  const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0;
+  const median = at(0.5);
+  const report = [
+    `couples: 9 (shipped hall, lines of 5 and 4)`,
+    `frames: ${FRAMES}`,
+    `median: ${median.toFixed(3)} ms`,
+    `p90: ${at(0.9).toFixed(3)} ms`,
+    `p99: ${at(0.99).toFixed(3)} ms`,
+    `max: ${(sorted[sorted.length - 1] ?? 0).toFixed(3)} ms`,
+  ].join(" · ");
+  console.log(`[AC7] shipped hall frame at zoom 1 — ${report}`);
   test.info().annotations.push({ type: "perf", description: report });
 
   expect(median, `median frame time, ${report}`).toBeLessThan(HALL_BUDGET_MS);
