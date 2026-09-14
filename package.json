@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "fix": "pnpm format && eslint --fix .",
     "report:motion": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/writeMotionReport.mjs",
-    "check:deps": "node scripts/check-deps.mjs"
+    "check:deps": "node scripts/check-deps.mjs",
+    "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
