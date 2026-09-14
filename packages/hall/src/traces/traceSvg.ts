@@ -37,6 +37,18 @@ export const TRACE_JUMP_PX = 12;
  */
 export type TraceSpread = "diagonal" | "horizontal" | "vertical" | "none";
 
+/**
+ * How a pen's facing is drawn on the pen plot and the march, T3's own option.
+ *
+ * `"ticks"` is what shipped in T2 and stays the default: a short line out of
+ * the path every `facingEvery` beats. `"wake"` is the user's idea — a
+ * gradient band on the facing side of the whole path, not a mark at a beat —
+ * and `"arrowheads"` swaps the tick for a small triangle once a phrase
+ * (`phraseBeats`, default 16) instead of every beat. All three are compared
+ * in `apps/web/e2e/screenshots/t3-facing-*.png`.
+ */
+export type FacingStyle = "ticks" | "wake" | "arrowheads";
+
 /** Everything all four drawings take. */
 export interface TraceDrawOptions {
   palette?: TracePalette;
@@ -58,11 +70,18 @@ export interface TraceDrawOptions {
   spreadPx?: number;
   /**
    * How often a facing tick is drawn, in beats. Default 1 — one tick a beat.
-   * `0` turns them off.
+   * `0` turns them off. Only read by `"ticks"`; `"wake"` draws from every
+   * sample regardless, and `"arrowheads"` uses `phraseBeats` instead.
    */
   facingEvery?: Beat;
-  /** How long a facing tick is, px. Default 4. */
+  /**
+   * How long a facing tick is, px, or how far a wake band reaches outward, or
+   * how long an arrowhead is. Default 4. One number for all three styles so a
+   * margin computed from it (`pad + facingPx`) holds whichever is drawn.
+   */
   facingPx?: number;
+  /** Which way a pen's facing is drawn. Default `"ticks"`, T2's shipped look. */
+  facing?: FacingStyle;
 }
 
 /** The options with their defaults filled in. */
@@ -78,6 +97,7 @@ export interface TraceDraw {
   spreadPx: number;
   facingEvery: Beat;
   facingPx: number;
+  facing: FacingStyle;
 }
 
 /** Fill in every default a drawing needs. */
@@ -94,6 +114,7 @@ export function traceDraw(options: TraceDrawOptions = {}): TraceDraw {
     spreadPx: options.spreadPx ?? 2.4,
     facingEvery: options.facingEvery ?? 1,
     facingPx: options.facingPx ?? 4,
+    facing: options.facing ?? "ticks",
   };
 }
 
@@ -143,6 +164,147 @@ export function facingTicks(
       at[1] + Math.sin(radians) * draw.facingPx,
     ];
     out.push(line(at, tip, stroke, draw.penWidth * 0.75));
+  }
+  return out.join("");
+}
+
+/**
+ * The point a facing tick's tip, a wake band's outer edge, or an arrowhead's
+ * point all share: `px` out from `p`, in the direction `facing` degrees.
+ */
+function outward(p: Vec2, facing: number, px: number): Vec2 {
+  const radians = (facing * Math.PI) / 180;
+  return [p[0] + Math.cos(radians) * px, p[1] + Math.sin(radians) * px];
+}
+
+/**
+ * Draws a pen's facing in whichever of the three styles `draw.facing` names.
+ *
+ * The three styles share one call site in `penPlotSvg` and `marchSvg`, at
+ * exactly the point T2 called {@link facingTicks} — so the default style,
+ * `"ticks"`, forwards to the untouched T2 function with the untouched
+ * arguments, in the untouched position in the drawing's own string
+ * concatenation. That is what keeps every committed plate, strip and
+ * exported trace byte-identical until somebody actually asks for a
+ * different style: nothing about this milestone's own code path runs unless
+ * `facing` is `"wake"` or `"arrowheads"`.
+ */
+export function facingMarks(
+  pen: TraceViewPen,
+  penIndex: number,
+  map: (sample: TraceViewPen["samples"][number]) => Vec2,
+  draw: TraceDraw,
+  stroke: string,
+): string {
+  if (draw.facing === "wake") return facingWake(pen, penIndex, map, draw, stroke);
+  if (draw.facing === "arrowheads") return facingArrowheads(pen, map, draw, stroke);
+  return facingTicks(pen, map, draw, stroke);
+}
+
+/**
+ * The user's gradient-wake idea: instead of a mark once a beat, a continuous
+ * band running the whole path on the facing side of the line, fading from the
+ * pen's own colour at the path to fully transparent `facingPx` out.
+ *
+ * Built as one small quad per consecutive pair of samples — the first of the
+ * two constructions the brief offered, not a single ribbon path with one
+ * gradient. Facing can turn sharply (a courtesy turn spins a dancer through
+ * most of a circle in a couple of beats) and a single gradient direction for
+ * the whole pen cannot rotate to follow that, while a quad per segment can:
+ * each one uses its own two samples' own facings for its own two outer
+ * corners, so the band's outward direction turns exactly when the dancer's
+ * facing does. Each quad gets its own tiny `userSpaceOnUse` gradient — a
+ * shared `objectBoundingBox` gradient would have to share one direction too —
+ * fading to `stop-opacity="0"`, not to black: two bands cross wherever two
+ * dancers pass, which is exactly the "stay legible where the four pens cross"
+ * case the brief asks about, and a transparent fade lets whichever pen is
+ * underneath keep showing, where an opaque black fade would paint over it
+ * instead. (Fading to black was tried — on this palette's near-black ground,
+ * `#14110f`, it reads almost the same as transparent everywhere except a
+ * crossing, where it is worse.)
+ *
+ * The outward edge never reaches further than `facingPx` from the path, the
+ * same reach a tick's own tip uses, so the margin `penPlotSvg` and `marchSvg`
+ * already reserve for a tick (`pad + draw.facingPx`) holds a wake with no
+ * change of its own.
+ */
+function facingWake(
+  pen: TraceViewPen,
+  penIndex: number,
+  map: (sample: TraceViewPen["samples"][number]) => Vec2,
+  draw: TraceDraw,
+  stroke: string,
+): string {
+  if (draw.facingPx <= 0) return "";
+  const defs: string[] = [];
+  const quads: string[] = [];
+  const samples = pen.samples;
+  for (let i = 0; i < samples.length - 1; i++) {
+    const a = samples[i]!;
+    const b = samples[i + 1]!;
+    // The same break the ink itself takes: no band across a jump no pair of
+    // feet could have walked.
+    if (Math.hypot(b.p[0] - a.p[0], b.p[1] - a.p[1]) > TRACE_JUMP_PX) continue;
+    const pa = map(a);
+    const pb = map(b);
+    const oa = outward(pa, a.facing, draw.facingPx);
+    const ob = outward(pb, b.facing, draw.facingPx);
+    const id = `t3wk-${String(penIndex)}-${String(i)}`;
+    const midIn: Vec2 = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2];
+    const midOut: Vec2 = [(oa[0] + ob[0]) / 2, (oa[1] + ob[1]) / 2];
+    defs.push(
+      `<linearGradient id="${id}" gradientUnits="userSpaceOnUse"` +
+        ` x1="${num(midIn[0])}" y1="${num(midIn[1])}" x2="${num(midOut[0])}" y2="${num(midOut[1])}">` +
+        `<stop offset="0" stop-color="${stroke}" stop-opacity="1"/>` +
+        `<stop offset="1" stop-color="${stroke}" stop-opacity="0"/>` +
+        `</linearGradient>`,
+    );
+    quads.push(
+      `<path d="M${num(pa[0])} ${num(pa[1])}L${num(pb[0])} ${num(pb[1])}` +
+        `L${num(ob[0])} ${num(ob[1])}L${num(oa[0])} ${num(oa[1])}Z"` +
+        ` fill="url(#${id})" stroke="none"/>`,
+    );
+  }
+  if (quads.length === 0) return "";
+  return `<defs>${defs.join("")}</defs>${quads.join("")}`;
+}
+
+/**
+ * The third candidate: one small triangle every phrase (`phraseBeats`, a
+ * contra phrase's 16 beats by default) instead of a tick every beat —
+ * fewer, bigger marks that read at a glance rather than a fence of ticks
+ * along the whole path.
+ *
+ * Every vertex stays within `facingPx` of the sample, the same reach a
+ * tick's own tip uses, so it needs no margin of its own either: the tip sits
+ * exactly `facingPx` out (a tick's own distance) and the two back corners sit
+ * closer in than that.
+ */
+function facingArrowheads(
+  pen: TraceViewPen,
+  map: (sample: TraceViewPen["samples"][number]) => Vec2,
+  draw: TraceDraw,
+  stroke: string,
+): string {
+  if (draw.phraseBeats <= 0 || draw.facingPx <= 0) return "";
+  const out: string[] = [];
+  for (const sample of pen.samples) {
+    const beats = sample.beat / draw.phraseBeats;
+    if (Math.abs(beats - Math.round(beats)) > 1e-6) continue;
+    const at = map(sample);
+    const radians = (sample.facing * Math.PI) / 180;
+    const dir: Vec2 = [Math.cos(radians), Math.sin(radians)];
+    const perp: Vec2 = [-dir[1], dir[0]];
+    const tip: Vec2 = [at[0] + dir[0] * draw.facingPx, at[1] + dir[1] * draw.facingPx];
+    const backX = at[0] + dir[0] * draw.facingPx * 0.55;
+    const backY = at[1] + dir[1] * draw.facingPx * 0.55;
+    const wing = draw.facingPx * 0.4;
+    const left: Vec2 = [backX + perp[0] * wing, backY + perp[1] * wing];
+    const right: Vec2 = [backX - perp[0] * wing, backY - perp[1] * wing];
+    out.push(
+      `<path d="M${num(left[0])} ${num(left[1])}L${num(tip[0])} ${num(tip[1])}` +
+        `L${num(right[0])} ${num(right[1])}Z" fill="${stroke}"/>`,
+    );
   }
   return out.join("");
 }

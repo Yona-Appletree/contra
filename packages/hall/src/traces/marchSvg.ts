@@ -2,7 +2,7 @@ import type { Beat } from "@caller/core";
 import type { TraceDrawOptions } from "./traceSvg.js";
 import {
   beatRules,
-  facingTicks,
+  facingMarks,
   inkOf,
   inkRuns,
   label,
@@ -31,9 +31,10 @@ export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
 
   const ey = Math.max(trace.extent.y, 1);
   const lane = height - header;
-  // Every margin holds a facing tick as well as the ink: a tick is drawn out of
-  // the path, so the widest thing on the page is a sample at the edge of the
-  // set with its tick pointing further out still.
+  // Every margin holds a facing mark as well as the ink: a tick, a wake band
+  // or an arrowhead is drawn out of the path, so the widest thing on the page
+  // is a sample at the edge of the set with its mark pointing further out
+  // still. All three styles share `facingPx` as their reach.
   const margin = MARCH_MARGIN_PX + draw.facingPx;
   const scale = Math.min(MARCH_MAX_SCALE, (lane / 2 - margin) / ey);
   const cy = header + lane / 2;
@@ -62,7 +63,7 @@ export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
         number,
       ];
     for (const run of inkRuns(pen, map)) parts.push(polyline(run, ink, draw.penWidth));
-    parts.push(facingTicks(pen, map, draw, ink));
+    parts.push(facingMarks(pen, index, map, draw, ink));
   });
   if (draw.title !== undefined) parts.push(label([4, 9], draw.title, draw.palette.text, 9));
   return traceSvg(width, height, parts.join(""), draw.palette.ground);

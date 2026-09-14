@@ -52,7 +52,13 @@ export function App() {
   // `readHallRoute` below only ever reads that one.
   const traces = tracesSlug(route.path);
   if (traces !== undefined) {
-    const page = <TracesPage key={traces} slug={traces} />;
+    const page = (
+      <TracesPage
+        key={`${traces}|${route.params.toString()}`}
+        slug={traces}
+        params={route.params}
+      />
+    );
     return bare ? page : <Tabbed tab="dances">{page}</Tabbed>;
   }
 

@@ -109,6 +109,52 @@ describe("the pen plot", () => {
   });
 });
 
+describe("the facing styles (T3)", () => {
+  it("defaults to ticks, unchanged from T2", () => {
+    expect(penPlotSvg(TRACE)).toBe(penPlotSvg(TRACE, { facing: "ticks" }));
+    expect(marchSvg(TRACE)).toBe(marchSvg(TRACE, { facing: "ticks" }));
+  });
+
+  it("wake draws the same bytes twice and stays inside the page", () => {
+    const svg = penPlotSvg(TRACE, { facing: "wake" });
+    expect(svg).toBe(penPlotSvg(TRACE, { facing: "wake" }));
+    expect(svg).not.toBe(penPlotSvg(TRACE));
+    expect(svg).toContain("<linearGradient");
+    expect(svg).toContain('stop-opacity="0"');
+    expectInside(svg);
+  });
+
+  it("wake fades to transparent, not to black, so a crossing pen still shows", () => {
+    const svg = penPlotSvg(TRACE, { facing: "wake" });
+    expect(svg).not.toContain("#000");
+  });
+
+  it("wake plumbs through the march too", () => {
+    expect(marchSvg(TRACE, { facing: "wake" })).toContain("<linearGradient");
+  });
+
+  it("arrowheads draws one mark a phrase, not one a beat, and stays inside the page", () => {
+    const svg = penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 });
+    expect(svg).toBe(penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 }));
+    const withTicks = penPlotSvg(TRACE, { facingEvery: 1 });
+    const withArrows = penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 });
+    const paths = (s: string): number => [...s.matchAll(/<path /g)].length;
+    // The window is 4 beats; a phrase of 2 puts a mark at 0, 2 and 4 — three
+    // per pen, against ticks' five (one for every whole beat 0..4).
+    expect(paths(withArrows)).toBeLessThan(paths(withTicks));
+    expectInside(withArrows);
+  });
+
+  it("`facingPx` bounds every style's reach the same way", () => {
+    // Same margin math as a tick's own tip: nothing this milestone draws
+    // needs `penPlotSvg` or `marchSvg` to reserve any more room than T2 did.
+    const wide = penPlotSvg(TRACE, { facing: "wake", facingPx: 20 });
+    expectInside(wide);
+    const arrows = penPlotSvg(TRACE, { facing: "arrowheads", facingPx: 20 });
+    expectInside(arrows);
+  });
+});
+
 describe("the march", () => {
   it("takes its width from the beat axis and labels the phrases", () => {
     const widthOf = (beatPx: number): number =>

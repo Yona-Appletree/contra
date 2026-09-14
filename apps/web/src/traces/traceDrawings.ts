@@ -1,4 +1,5 @@
 import type { Trace } from "@caller/choreo";
+import type { FacingStyle } from "@caller/hall";
 import { figureStripSvg, marchSvg, penPlotSvg, seismographSvg } from "@caller/hall";
 
 /**
@@ -23,12 +24,35 @@ export const TRACE_BEAT_PX = 14;
 /** The side of a full-size pen plot, px. */
 export const TRACE_PEN_SIDE = 480;
 
-/** All four, at reading size: the traces page, and every exported file. */
-export function traceDrawings(trace: Trace, title?: string): TraceDrawings {
+/**
+ * `?facing=<style>` from the URL, or the default when the query is absent or
+ * names something that isn't one of the three T3 offers.
+ *
+ * One parser shared by the Moves page and the traces view (T3's brief): the
+ * default — `"ticks"`, T2's shipped look — never changes on its own, only
+ * when a reader actually asks for `wake` or `arrowheads` in the address bar.
+ */
+export function facingFromQuery(param: string | null): FacingStyle {
+  return param === "wake" || param === "arrowheads" ? param : "ticks";
+}
+
+/**
+ * All four, at reading size: the traces page, and every exported file.
+ *
+ * `facing` only reaches the pen plot and the march — the seismograph and the
+ * figure strip carry no facing (T3's brief keeps it that way) and their
+ * options don't accept the field.
+ */
+export function traceDrawings(trace: Trace, title?: string, facing?: FacingStyle): TraceDrawings {
   const named = title === undefined ? {} : { title };
   return {
-    pen: penPlotSvg(trace, { width: TRACE_PEN_SIDE, height: penPlotHeight(trace), ...named }),
-    march: marchSvg(trace, { beatPx: TRACE_BEAT_PX, height: 200 }),
+    pen: penPlotSvg(trace, {
+      width: TRACE_PEN_SIDE,
+      height: penPlotHeight(trace),
+      ...named,
+      facing,
+    }),
+    march: marchSvg(trace, { beatPx: TRACE_BEAT_PX, height: 200, facing }),
     seismograph: seismographSvg(trace, { beatPx: TRACE_BEAT_PX, height: 220 }),
     strip: figureStripSvg(trace, { beatPx: TRACE_BEAT_PX, cellHeight: 84 }),
   };
@@ -51,7 +75,12 @@ export function penPlotHeight(trace: Trace): number {
 export const TRACE_PEN_MIN_HEIGHT = 260;
 
 /** The pen plot beside a Moves row's tile, sized to the tile column. */
-export function rowPenPlot(trace: Trace, side: number, reach: number): string {
+export function rowPenPlot(
+  trace: Trace,
+  side: number,
+  reach: number,
+  facing?: FacingStyle,
+): string {
   return penPlotSvg(trace, {
     width: side,
     height: side,
@@ -60,6 +89,7 @@ export function rowPenPlot(trace: Trace, side: number, reach: number): string {
     spreadPx: 2,
     facingPx: 3.5,
     reach,
+    facing,
   });
 }
 
