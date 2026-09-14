@@ -81,6 +81,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@caller/contra':
+        specifier: workspace:*
+        version: link:../../packages/contra
       '@caller/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -146,6 +149,9 @@ importers:
       '@caller/choreo':
         specifier: workspace:*
         version: link:../choreo
+      '@caller/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       typescript:
         specifier: ^5.7.2
