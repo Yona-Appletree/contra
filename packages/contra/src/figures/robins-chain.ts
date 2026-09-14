@@ -18,7 +18,12 @@ import {
   takeAndRelease,
 } from "./ContraFigure.js";
 import type { CourtesyTurn } from "./courtesyTurn.js";
-import { courtesyBackHands, courtesyHold, courtesyTurn } from "./courtesyTurn.js";
+import {
+  COURTESY_PIVOT_FROM_LARK_PX,
+  courtesyBackHands,
+  courtesyHold,
+  courtesyTurn,
+} from "./courtesyTurn.js";
 
 /** {@link robinsChain}'s parameters. */
 export interface RobinsChainParams extends ContraParams {
@@ -39,16 +44,25 @@ export interface RobinsChainParams extends ContraParams {
   holdDrop: number;
   /** How much higher the robin's hand sits, px. */
   stackPx: number;
+  /**
+   * How far from the lark the couple pivots, px; see
+   * {@link COURTESY_PIVOT_FROM_LARK_PX}. The user's ruling is that it is near
+   * him; the exact distance is theirs to judge by eye.
+   */
+  pivotFromLark: number;
 }
 
 /**
  * How far each robin bows to her own left on the way across, px.
  *
- * Down from 7, and the reason is the whole of deviation 1 in this milestone's
- * report. The rigid turn's take is the finish reflected through the pivot, so
- * each robin stops 21.75 px short of her new place, on the **near** side of her
- * couple's centre — and two robins who both stop short of the middle pass on
- * each other's *left*, 19.36 px apart, however they walk. Bowing to her own
+ * Down from 7, and the reason is the whole of deviation 1 in F7's report and
+ * the whole of F8's. The rigid turn's take is the finish reflected through the
+ * pivot, so each robin stops 21.75 px short of her new place, on the **near**
+ * side of her couple's centre — and two robins who both stop short of the
+ * middle pass on each other's *left*, 19.36 px apart, however they walk. Where
+ * the pivot sits does not move that number by a thousandth of a pixel: her take
+ * is one hold behind his, so it is the *couple's* clearance that decides it.
+ * Bowing to her own
  * left now closes that gap instead of opening it: 3.5 px of bow brings the two
  * of them to 13.4 px in duple improper and 8.6 px in becket, which is as close
  * as AC6's 8 px will let them come. At 7 they were 7.6 px apart in becket,
@@ -68,18 +82,19 @@ const CHAIN_BOW_PX = 3.5;
  * So the lark turns about to face out of the set and steps across it to meet
  * the robin coming over; she arrives beside him **on his right**, both of them
  * facing out, her left hand in his left and both their right hands at her back.
- * Then the couple pivots as one rigid body, a half turn about the point between
- * them — she walking forward, he walking backward, the arms staying put — which
- * leaves them facing back into the set with her still on his right, and opens
- * out on to the two places.
+ * Then the couple pivots as one rigid body, a half turn about a point **near
+ * the lark** — she walking forward round the big arc, he backing round a small
+ * circle, the arms staying put — which leaves them facing back into the set
+ * with her still on his right, and opens out on to the two places.
  *
  * A rigid half turn is its own inverse, so **the take is the finish reflected
  * through the pivot**: he has to be standing on her side of it and she on his.
  * That is why the lark steps into and across the middle of the set rather than
  * waiting on his place — the two lines of this model stand 32 px apart while a
- * courtesy turn holds at 11.5, so the reflection is 21.75 px of stepping for
+ * courtesy turn holds at 8.625, so the reflection is 18.875 px of stepping for
  * him. It is the part of this figure that is a model rather than a
- * transcription; see {@link courtesyTurn}.
+ * transcription; see {@link courtesyTurn}. Where the pivot sits between the two
+ * of them is `pivotFromLark`, and the user's ruling is that it is near him.
  *
  * Which lark is *her* lark is the couple she lands on, not the nearest one on
  * the floor: in duple improper the two robins stand on a diagonal, so the lark
@@ -100,7 +115,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, and carry on across the set. The lark of the couple each robin is arriving at steps across to meet her, turning to face out of the set over the last beat as she comes: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her own back and his right hand on it. Then the two of them pivot as one body, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops. And two things this model gets wrong, both of them the same cause — its two lines stand 32 px apart where a courtesy turn holds at 11.5. The lark has to step 21.75 px across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it, where a real lark barely leaves his place. And the two robins pull by on the wrong shoulder: each of them stops a hold short of her new couple's centre, which leaves them on each other's left, 13.5 px apart, where a chain passes right shoulders.)",
+    "The two robins take right hands in the middle and pull by, and carry on across the set. The lark of the couple each robin is arriving at steps across to meet her, turning to face out of the set as he goes and standing on the spot half a beat before she gets there: she arrives beside him on his right, both of them facing out, her left hand in his left, her own right hand behind her own back and his right hand on it. Then the two of them pivot as one body, a half turn about a point near the lark — he backs round a small circle of his own while she walks the big arc round him, the arms staying put — until both face in again with the robin still on his right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: exact pivot distance — the user judges by eye. A quarter of the hold puts his circle 2.9 px from him, which is 9 px of walking against her 18. A lark can also twirl her under his hand instead, and this only scoops. And two things this model still gets wrong, both of them the same cause — its two lines stand 32 px apart where a courtesy turn holds at 8.6. The lark has to step 18.9 px across the middle of the set to be on the robin's far side when the hands close, and wheel back out of it, where a real lark barely leaves his place. And the two robins pull by on the wrong shoulder: each of them stops a hold short of her new couple's centre, which leaves them on each other's left, 13.5 px apart, where a chain passes right shoulders.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -110,6 +125,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     bowPx: CHAIN_BOW_PX,
     holdDrop: 6,
     stackPx: 1,
+    pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
   },
 
   plan(ctx: PlanContext, params: RobinsChainParams): FigurePlan {
@@ -193,9 +209,10 @@ export const robinsChain = contraFigure<RobinsChainParams>({
       const turn = courtesyTurn({
         lark: ctx.spot(lark),
         robin: ends[robin]!,
-        hold: courtesyHold(ctx.spacing, pivot, pivots),
+        hold: courtesyHold(ctx.spacing, pivot, pivots, params.pivotFromLark),
         beats: turnBeats,
         openBeats,
+        pivotFromLark: params.pivotFromLark,
       });
       take[lark] = turn.takes.lark;
       take[robin] = turn.takes.robin;
@@ -215,12 +232,17 @@ export const robinsChain = contraFigure<RobinsChainParams>({
         // are walking and then, over the **last beat**, to the facing the take
         // wants — so the lark's turn to face out is folded into his step rather
         // than done standing still, and the take is one motion.
+        //
+        // The lark is given {@link LARK_LEAD_BEATS} of head start, so that he
+        // is standing on his take before she arrives at hers.
+        const mine = swap[station] !== undefined;
+        const walk = mine ? pullBeats : Math.max(pullBeats - LARK_LEAD_BEATS, 1);
         const step = passRight(
           start,
           take[station]!,
-          t,
-          pullBeats,
-          swap[station] === undefined ? 0 : params.bowPx,
+          Math.min(t, walk),
+          walk,
+          mine ? params.bowPx : 0,
         );
         return { p: step.p, facing: step.facing };
       }
@@ -315,8 +337,22 @@ const TAKE_BEATS: Beat = 1;
  *
  * He has to be across the set and turned about before she gets there — the take
  * is the couple's finish reflected through the pivot, so his side of it is the
- * far side — and the two of them are converging on a hold 11.5 px wide from
+ * far side — and the two of them are converging on a hold 8.625 px wide from
  * opposite directions. Getting there ahead of her is what keeps that
- * convergence outside AC6's 8 px: measured, he and his own robin come no closer
- * than the hold itself.
+ * convergence outside AC6's 8 px: walking in step with her they cross **6.98
+ * px** apart at beat 3.34 in duple improper and 7.47 px at 3.56 in becket, and
+ * half a beat of head start makes those 8.46 and 8.35.
+ *
+ * F7 did not need this, because its pivot sat midway between the two bodies and
+ * its couple therefore turned 11.5 px apart: the nearer pivot of F8 closes the
+ * hold to 8.625 and with it the room the two of them had to converge in.
+ *
+ * **Half a beat and no more**, and the number is measured rather than chosen. A
+ * lark who is standing still for the *whole* of the beat his right hand takes
+ * her back over is F3c's elbow-azimuth singularity again — a hand nearly still
+ * while its target rotates — and the elbow-per-hand it costs is a cliff, not a
+ * slope: 6.85 at half a beat of lead, 30.50 at 0.6 and 35.28 at 0.7, on a guard
+ * of 9.5833. At half a beat he is still walking when the hand leaves his hip
+ * and stops before it lands, which is the only part of the window that matters.
  */
+const LARK_LEAD_BEATS: Beat = 0.5;

@@ -44,14 +44,17 @@ import { BACK_HAND_DROP_PX, BACK_HAND_FORWARD_PX } from "../pair/swing.js";
  *   see {@link COURTESY_HALF_TURN}.
  *
  * **Where the couple stands when the hands close is not a choice either.** A
- * rigid half turn about the point between them is its own inverse, so the take
- * is the end reflected through the pivot: he stands on her side of the pivot
- * and she on his, one {@link CourtesyTurnSpec.hold} apart. A figure hands this
- * function the two *end* places and is told, in {@link CourtesyTurn.takes},
- * where it has to walk its two dancers first. In a chain that means the lark
- * steps across the middle of the set to meet her and wheels back out of it —
- * which is the price of a hall whose two lines stand further apart than a
- * couple holds, and is written up in the report for F7.
+ * rigid half turn is its own inverse, so the take is the end reflected through
+ * the pivot: he stands on her side of the pivot and she on his, one
+ * {@link CourtesyTurnSpec.hold} apart. A figure hands this function the two
+ * *end* places and is told, in {@link CourtesyTurn.takes}, where it has to walk
+ * its two dancers first. In a chain that means the lark steps across the middle
+ * of the set to meet her and wheels back out of it — which is the price of a
+ * hall whose two lines stand further apart than a couple holds, and is written
+ * up in the reports for F7 and F8.
+ *
+ * **Where the pivot sits between them is the one thing that is a choice**, and
+ * the user made it: see {@link CourtesyTurnSpec.pivotFromLark}.
  */
 export const COURTESY_HALF_TURN = -180;
 
@@ -69,8 +72,12 @@ export interface CourtesyTurn {
   sweep: number;
   /** How far apart the couple turns, px. */
   hold: number;
-  /** The point between them, which the whole turn happens about. */
+  /** The point on the couple's line the whole turn happens about. */
   pivot: Vec2;
+  /** How far that point is from the lark, px: the small circle he backs round. */
+  larkRadius: number;
+  /** How far it is from the robin, px: the big arc she walks. */
+  robinRadius: number;
   /** How long the rigid rotation lasts; the rest of the figure opens out. */
   turnBeats: Beat;
 }
@@ -86,6 +93,22 @@ export interface CourtesyTurnSpec {
    * than the two end places are apart.
    */
   hold: number;
+  /**
+   * How far from the lark, along the couple's own line, the pair pivots, px.
+   *
+   * The user, asked where the courtesy turn's pivot sits:
+   *
+   * > "I think its near the lark, but its a little hard for me to imagine
+   * > without doing the dance with 4 people"
+   *
+   * So it is a number and not a fact: the lark backs round a circle of this
+   * radius and the robin walks the big arc of `hold − pivotFromLark`, and the
+   * user judges the distance by eye on the tile. `hold / 2` — the point midway
+   * between the two bodies — is what F7 shipped and is the one thing in that
+   * milestone the user corrected. See {@link COURTESY_PIVOT_FROM_LARK_PX} for
+   * the default and for what the number costs at each end of its range.
+   */
+  pivotFromLark: number;
   /** How long the whole turn takes. */
   beats: Beat;
   /**
@@ -112,28 +135,39 @@ export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
   const pivot = midpoint(spec.lark.p, spec.robin.p);
   const sepTo = dist(spec.lark.p, spec.robin.p);
   const hold = Math.min(spec.hold, sepTo);
+  const larkRadius = Math.min(Math.max(spec.pivotFromLark, 0), hold);
+  const robinRadius = hold - larkRadius;
   const axisTo = bearing(spec.lark.p, spec.robin.p);
   const axisFrom = axisTo - COURTESY_HALF_TURN;
   const turnBeats = Math.max(0, spec.beats - Math.min(Math.max(spec.openBeats, 0), spec.beats));
 
-  const at = (t: Beat, from: Angle, end: Spot): Spot => {
+  // Each dancer keeps their own radius for the whole rotation and then opens
+  // out along their own ray to their own place, which is `sepTo / 2` from the
+  // pivot: the two of them are one rigid body at every sample of the turn
+  // whatever the two radii are, because they share the pivot and the angle.
+  const at = (t: Beat, from: Angle, radius: number, end: Spot): Spot => {
     const k = turnBeats <= 0 ? 1 : smooth(t / turnBeats);
     const open = ramp(t, turnBeats, spec.beats);
     return {
-      p: polar(pivot, from + COURTESY_HALF_TURN * k, mix(hold, sepTo, open) / 2),
+      p: polar(pivot, from + COURTESY_HALF_TURN * k, mix(radius, sepTo / 2, open)),
       facing: end.facing + 180 + COURTESY_HALF_TURN * k,
     };
   };
 
   return {
-    takes: { lark: at(0, axisFrom + 180, spec.lark), robin: at(0, axisFrom, spec.robin) },
+    takes: {
+      lark: at(0, axisFrom + 180, larkRadius, spec.lark),
+      robin: at(0, axisFrom, robinRadius, spec.robin),
+    },
     bodyTurn: COURTESY_HALF_TURN,
     sweep: COURTESY_HALF_TURN,
     hold,
     pivot,
+    larkRadius,
+    robinRadius,
     turnBeats,
-    lark: (t) => at(t, axisFrom + 180, spec.lark),
-    robin: (t) => at(t, axisFrom, spec.robin),
+    lark: (t) => at(t, axisFrom + 180, larkRadius, spec.lark),
+    robin: (t) => at(t, axisFrom, robinRadius, spec.robin),
   };
 }
 
@@ -143,12 +177,32 @@ export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
  * Two pairs of a minor set courtesy turn at once and their centres are one
  * place pitch apart — 20 px in duple improper — so a couple turning at the
  * library's own 14 px hold spacing would walk through the couple beside it.
- * {@link orbitRadius} is the same clearance the swing takes: the hold shrinks
- * until `CLEARANCE_PX` is left, and where nothing is close it does not
- * shrink at all.
+ * {@link orbitRadius} is the same clearance the swing takes: the radius shrinks
+ * until `CLEARANCE_PX` is left, and where nothing is close it does not shrink
+ * at all.
+ *
+ * **What the pivot changes.** The number this returns is the *sum* of the two
+ * radii, and the clearance is spent on the **robin's** arc: she is the one who
+ * swings wide, and where the pivot sits is not her business. So her arc is what
+ * it always was — half the widest hold, cut down to `CLEARANCE_PX` by the
+ * couple turning beside her, which is 5.75 px in every formation the library
+ * dances — and the hold is her arc plus his circle. Moving the pivot toward the
+ * lark therefore leaves the robin's whole path alone, in both formations, and
+ * closes the couple up by exactly what it takes off his circle.
+ *
+ * At `pivotFromLark = 0` that leaves a couple turning 5.75 px apart, which is
+ * two torsos inside AC6's 8 px: the pivot cannot go all the way to the lark,
+ * and this is the number that says so rather than a rule that hides it.
  */
-export function courtesyHold(spacing: number, pivot: Vec2, pivots: readonly Vec2[]): number {
-  return Math.min(2 * orbitRadius(spacing / 2, pivot, pivots), COURTESY_REACH_HOLD_PX);
+export function courtesyHold(
+  spacing: number,
+  pivot: Vec2,
+  pivots: readonly Vec2[],
+  pivotFromLark: number,
+): number {
+  const want = Math.min(spacing, COURTESY_REACH_HOLD_PX) / 2;
+  const lark = Math.max(pivotFromLark, 0);
+  return Math.min(lark + orbitRadius(want, pivot, pivots), COURTESY_REACH_HOLD_PX);
 }
 
 /**
@@ -215,6 +269,33 @@ const TURN_BACK_REACH_MARGIN_PX = 0.5;
  */
 export const COURTESY_REACH_HOLD_PX =
   ARM_REACH_PX - SHOULDER_WIDTH_PX / 2 + TURN_BACK_LARK_RIGHT_PX - TURN_BACK_REACH_MARGIN_PX;
+
+/**
+ * How far from the lark the courtesy turn pivots by default, px: a quarter of
+ * the widest hold, which is **2.875**.
+ *
+ * The user ruled the pivot is **near the lark**, and said in the same breath
+ * that they could not fix the distance from memory — "it's a little hard for me
+ * to imagine without doing the dance with 4 people" — so this is a small number
+ * to be judged by eye, with the reasons for its two neighbours written down
+ * rather than guessed at:
+ *
+ * - **0**, the lark turning on the spot, is not available. The clearance to the
+ *   couple turning beside them caps the robin's arc at 5.75 px in duple
+ *   improper, so the whole hold would be 5.75 px and the couple itself would be
+ *   two torsos 5.75 px apart, inside AC6's 8. See {@link courtesyHold}.
+ * - **`hold / 2`**, 5.75, the point midway between the two bodies, is what F7
+ *   shipped and what the user corrected: the lark backs round an 18.06 px
+ *   semicircle there against 9.03 px here, and walks 50.06 px against 41.03 in
+ *   a chain.
+ *
+ * What the pivot does **not** buy is the pull by, which is the thing the
+ * milestone that added it went looking for: where the robin takes hands is
+ * `hold` behind where the lark takes them, whatever the pivot, so moving the
+ * pivot toward the lark leaves the two robins passing exactly where they did.
+ * The arithmetic is in `knownWrong.ts`.
+ */
+export const COURTESY_PIVOT_FROM_LARK_PX = COURTESY_REACH_HOLD_PX / 4;
 
 /**
  * The two right hands of a courtesy turn, from where the two of them stand.

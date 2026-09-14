@@ -99,6 +99,7 @@ export { hey } from "./hey.js";
 export type { BackHands, CourtesyTurn, CourtesyTurnSpec } from "./courtesyTurn.js";
 export {
   COURTESY_HALF_TURN,
+  COURTESY_PIVOT_FROM_LARK_PX,
   courtesyBackHands,
   courtesyHold,
   courtesyTurn,
