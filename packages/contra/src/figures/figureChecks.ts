@@ -451,7 +451,12 @@ const HALF_TURN_SLACK_DEG = 1;
  * because they are measured separately, a couple that shears instead of
  * pivoting fails one of them and not the other.
  */
-function turnsHalf(track: Track, lark: string, robin: string, window: BeatWindow): TrajectoryResult {
+function turnsHalf(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
   const label = `${lark} and ${robin} each turn a half between beat ${window.from} and ${window.to}`;
   const first = track.indexAt(window.from);
   const last = track.indexAt(window.to);
@@ -589,10 +594,7 @@ function handsRideTheBodies(
         const ahead = dirOf(pose.facing);
         const right = dirOf(pose.facing + 90);
         const v: Vec2 = [hand.p[0] - pose.p[0], hand.p[1] - pose.p[1]];
-        const here: Vec2 = [
-          v[0] * ahead[0] + v[1] * ahead[1],
-          v[0] * right[0] + v[1] * right[1],
-        ];
+        const here: Vec2 = [v[0] * ahead[0] + v[1] * ahead[1], v[0] * right[0] + v[1] * right[1]];
         from ??= here;
         const moved = Math.hypot(here[0] - from[0], here[1] - from[1]);
         if (moved > worst) {

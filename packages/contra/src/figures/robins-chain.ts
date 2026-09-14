@@ -1,4 +1,4 @@
-import type { Beat, Hand, Vec2 } from "@caller/core";
+import type { Beat, Hand } from "@caller/core";
 import { angleDiff, dist } from "@caller/core";
 import type { RoleName, StationId } from "@caller/choreo";
 import type {
@@ -10,7 +10,6 @@ import type {
   Spots,
 } from "./ContraFigure.js";
 import {
-  bearing,
   contraFigure,
   joinPoint,
   joinedHands,
@@ -321,4 +320,3 @@ const TAKE_BEATS: Beat = 1;
  * convergence outside AC6's 8 px: measured, he and his own robin come no closer
  * than the hold itself.
  */
-
