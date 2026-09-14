@@ -31,7 +31,15 @@ export {
   stationPose,
 } from "./formation/Formation.js";
 export type { Frame } from "./formation/Frame.js";
-export { frame, frameAngle, framePoint, frameVector, reverseFrame } from "./formation/Frame.js";
+export {
+  frame,
+  frameAngle,
+  framePoint,
+  frameVector,
+  localAngle,
+  localPoint,
+  reverseFrame,
+} from "./formation/Frame.js";
 export type { Group } from "./group/Group.js";
 export {
   createGroup,

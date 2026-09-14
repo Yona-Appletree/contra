@@ -5,9 +5,11 @@ import type {
   DancerId,
   Formation,
   GroupPlan,
+  GroupSelector,
   HallState,
   SetSpec,
   SetState,
+  Station,
   StationId,
 } from "../formation/Formation.js";
 import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
@@ -216,6 +218,20 @@ export function createScriptDecider(
       }
     };
 
+    // Every figure this cycle produces — a call's own dancers, a call's
+    // resting complement, and (once every call is known) a waiting couple's
+    // gap fill — is recorded here rather than emitted straight away, and run
+    // in beat order once the whole cycle is known. `Timeline.add()` requires
+    // each dancer's own events to arrive in non-decreasing start order; a
+    // waiting couple's *leading* gap (beat 0) is only discoverable after
+    // every call has been walked (M2's sweep may claim its later beats), by
+    // which point an ordinary run-as-you-go loop would already have added
+    // that later call's event — arriving before the gap that precedes it.
+    // Sorting the whole cycle's emissions by their own start beat, stably (so
+    // same-beat calls keep the schedule's own order), is what keeps every
+    // dancer's own sequence chronological regardless of which pass found it.
+    const pending: Array<{ at: Beat; run: () => void }> = [];
+
     for (const { call, start: offset } of schedule) {
       const selector = call.group ?? HANDS_FOUR_GROUP;
       for (const set of state.sets) {
@@ -226,20 +242,38 @@ export function createScriptDecider(
           const group = mintGroup(plan);
           const def = registry.get(call.figure);
           const params = withDefaults(def, call.params, call.beats);
-          const selected = resolveSelector(call.who, formation, selector, group.stations);
-          emitFigure(into, group, def, params, selected, start + offset);
-
-          const resting = complementOf(group.stations, selected);
-          if (resting.length > 0) {
-            const origins: Record<StationId, EndPose> = {};
-            for (const id of resting) {
-              const here = standingAt.get(group.members[id]!);
-              if (here) origins[id] = here;
-            }
-            const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
-            emitFigure(into, group, WALK_TO_STATION, stand, resting, start + offset);
-          }
-          claim(Object.values(group.members), offset, offset + call.beats);
+          const named = resolveSelector(call.who, formation, selector, group.stations);
+          const denied = excludedByEnds(formation, selector, call.ends, group.stations);
+          // A station `ends` denies is not merely left out of `who` — it is
+          // not part of this call *at all*: a `down-the-hall`-shaped call
+          // (`ends: "bottom"`) must leave a `wait-top` couple in the widened
+          // group's own partition untouched by this call's beats entirely, not
+          // standing through them, so the fill below still sees their whole
+          // cycle unclaimed and gives them one ordinary wait-out — exactly as
+          // if `groupsFor` had never widened toward that end for this call.
+          const active = group.stations.filter((s) => !denied.has(s.id));
+          const selected = named.filter((id) => !denied.has(id));
+          const resting = complementOf(active, selected);
+          pending.push({
+            at: offset,
+            run: () => {
+              emitFigure(into, group, def, params, selected, start + offset);
+              if (resting.length > 0) {
+                const origins: Record<StationId, EndPose> = {};
+                for (const id of resting) {
+                  const here = standingAt.get(group.members[id]!);
+                  if (here) origins[id] = here;
+                }
+                const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
+                emitFigure(into, group, WALK_TO_STATION, stand, resting, start + offset);
+              }
+            },
+          });
+          claim(
+            active.map((s) => group.members[s.id]!),
+            offset,
+            offset + call.beats,
+          );
         }
       }
     }
@@ -258,21 +292,55 @@ export function createScriptDecider(
         // one figure and record the other's `ends` — which the eight-beat
         // line-up between two dances then walks to, 51 px out.
         const def = registry.get(WAIT_OUT.id);
+        // Untouched by any call this cycle (every dance before M2, and every
+        // waiting couple no `"line"` call swept in): keep the fill sorting
+        // *after* every ordinary call, exactly as it always has, rather than
+        // at its own `at: 0` — nothing here depends on the order between two
+        // gap fills of *different* dancers, but `timeline.dancers()`'s
+        // insertion order does, and the motion report breaks ties by it
+        // (M1's own finding). Only a genuinely swept couple — where the sort
+        // key actually has to seam a gap in beside the call that produced it
+        // for `Timeline.add()`'s sake — sorts by its own beat.
+        const swept = Object.values(group.members).some((d) => claimed.has(d));
         for (const [from, to] of gapsIn(cycle, Object.values(group.members), claimed)) {
           // `startPlaces` matters only for a dance that progresses in its own
           // first figure: the waiting couple slides off the end of the line with
           // everybody else, so its crossing has to be reckoned from the place it
           // slid out of. Empty — every other dance — is the waiting place, which
           // is what `wait-out` did before there was a parameter at all.
+          //
+          // A `"line"`-selector call may have swept this couple in for part of
+          // the cycle (M2), leaving the gaps here as leading and/or trailing
+          // remainders rather than the whole cycle: `join` only makes sense for
+          // a gap that opens at the couple's own beat 0 (nothing claimed them
+          // before it) and `cross` only for one that runs to the cycle's own
+          // end (nothing claims them after it) — a gap in the middle, between
+          // two sweeps, does neither. With only `"hands-four"` ever resolved
+          // here (M1), every waiting couple's only gap is still `[0, cycle)`
+          // and both stay `true`, which is today's only behaviour, unchanged.
           const params = withDefaults(
             def,
-            { startPlaces: dance.startPlaces ?? {}, ...(dance.waitOut ?? {}) },
+            {
+              startPlaces: dance.startPlaces ?? {},
+              join: from === 0,
+              cross: to === cycle,
+              ...(dance.waitOut ?? {}),
+            },
             to - from,
           );
-          emitFigure(into, group, def, params, Object.keys(group.members), start + from);
+          pending.push({
+            at: swept ? from : Number.POSITIVE_INFINITY,
+            run: () =>
+              emitFigure(into, group, def, params, Object.keys(group.members), start + from),
+          });
         }
       }
     }
+
+    // Stable: `Array.prototype.sort` preserves the relative order of equal
+    // keys, so every same-beat tie keeps the order the two passes above
+    // already found it in.
+    for (const p of [...pending].sort((a, b) => a.at - b.at)) p.run();
 
     // The caller says each call once for the whole hall, not once per group.
     for (const { call, start: offset } of schedule) {
@@ -421,6 +489,33 @@ export function createScriptDecider(
  */
 export const nextDanceCall = (next: Dance): string =>
   `NEXT: ${next.title.toUpperCase()}, BY ${next.author.toUpperCase()}`;
+
+/**
+ * The stations `call.ends` (default `"both"`) says this call does not reach.
+ *
+ * A widened group — `"line"`'s widest shape, or any formation-defined
+ * selector shaped like it — carries a waiting couple's stations tagged
+ * `"wait-top"`/`"wait-bottom"` (the same two names `GroupPlan.kind`'s own two
+ * outs already use, not a new vocabulary), so a call can say which of the
+ * true ends it is actually willing to widen into without a second selector
+ * value: `ends` lives on the call, the widest partition `groupsFor` can build
+ * lives on the formation, per plan.md's "the widest partition regardless,
+ * `ends` decides whether *this* call uses it." A call that leaves `ends` at
+ * its default excludes nothing and never even asks the formation for the
+ * tags, so a formation that never widens anything needs to define neither.
+ */
+function excludedByEnds(
+  formation: Formation,
+  selector: GroupSelector,
+  ends: "both" | "top" | "bottom" | undefined,
+  stations: readonly Station[],
+): Set<StationId> {
+  if (ends === undefined || ends === "both") return new Set();
+  const tags = formation.tags(selector);
+  const denied = ends === "top" ? tags["wait-bottom"] : tags["wait-top"];
+  const ids = new Set(stations.map((s) => s.id));
+  return new Set((denied ?? []).filter((id) => ids.has(id)));
+}
 
 /** A runaway guard: no program needs this many times through to reach a beat. */
 const MAX_CYCLES = 10_000;

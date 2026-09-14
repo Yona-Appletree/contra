@@ -19,6 +19,7 @@ import { poseAt } from "../timeline/poseAt.js";
 import { closureReport, collisionReport, coverageProblems, reachReport } from "./oracles.js";
 import { assertPartition, partitionProblems } from "./assertPartition.js";
 import {
+  LINE_GROUP,
   SQUARE,
   SQUARE_HEADS,
   SQUARE_PLACES,
@@ -357,5 +358,254 @@ describe("the two outs", () => {
   it("refuses a hall it cannot seat", () => {
     expect(() => squareSet(3)).toThrow(/at least four/);
     expect(() => squareSet(7)).toThrow(/four, five or six/);
+  });
+});
+
+/**
+ * M2's own fixture proof: a neutral `"line"`-equivalent selector that widens
+ * to sweep a standing-out couple into a call for part of a cycle, and the
+ * `WaitOutParams.join`/`cross` split that fills whatever the sweep leaves
+ * unclaimed. No contra knowledge anywhere below — a square has no lines, only
+ * a couple standing out beyond either end of the set's own axis, which is
+ * exactly what `@caller/contra`'s waiting couple is at the true end of a line.
+ */
+describe("the line selector's sweep (M2)", () => {
+  it("is a partition of the whole set too, at every line length", () => {
+    for (const couples of [4, 5, 6]) {
+      const set = squareSet(couples);
+      const plans = SQUARE.groupsFor(LINE_GROUP, set);
+      // Always exactly one plan: "line" folds every standing-out couple into
+      // the one dancing group rather than leaving it a separate wait plan.
+      expect(plans).toHaveLength(1);
+      expect(plans[0]!.kind).toBe("set");
+      expect(partitionProblems(plans, set)).toEqual([]);
+      assertPartition(plans, set);
+    }
+  });
+
+  it("widens by exactly the standing-out couple's own two stations, per end", () => {
+    const top = SQUARE.groupsFor(LINE_GROUP, squareSet(6))[0]!;
+    expect(top.stations).toHaveLength(8 + 2 + 2);
+    expect(new Set(top.stations.map((s) => s.id)).size).toBe(12); // no id collision
+    expect(top.members["WL-top"]).toBeDefined();
+    expect(top.members["WR-bottom"]).toBeDefined();
+
+    const noOuts = SQUARE.groupsFor(LINE_GROUP, squareSet(4))[0]!;
+    expect(noOuts.stations).toHaveLength(8); // identical to "hands-four" in the interior
+  });
+
+  it('tags("line")\'s wait-top/wait-bottom filter down to whichever end an instance actually has', () => {
+    const tags = SQUARE.tags(LINE_GROUP);
+    const sixCoupleStations = SQUARE.groupsFor(LINE_GROUP, squareSet(6))[0]!.stations.map(
+      (s) => s.id,
+    );
+    const fourCoupleStations = SQUARE.groupsFor(LINE_GROUP, squareSet(4))[0]!.stations.map(
+      (s) => s.id,
+    );
+    expect(tags["wait-top"]!.filter((id) => sixCoupleStations.includes(id))).toEqual([
+      "WL-top",
+      "WR-top",
+    ]);
+    // The plain interior (no outs) instance has neither: resolveSelector's own
+    // filter-to-present-ids drops both down to nothing, exactly as it already
+    // does for `"hands-four"`'s widest abstract tag definitions.
+    expect(tags["wait-top"]!.filter((id) => fourCoupleStations.includes(id))).toEqual([]);
+  });
+
+  // A figure for the widened group: heads forward-and-back, unchanged, plus
+  // whichever standing-out couple this call's own partition swept in also
+  // goes forward and back as its own pair — proof (a) below that a swept
+  // couple gets the *real* figure, not a stand-in.
+  const WIDE_PARTNER: Record<StationId, StationId> = {
+    ...PARTNER,
+    "WL-top": "WR-top",
+    "WR-top": "WL-top",
+    "WL-bottom": "WR-bottom",
+    "WR-bottom": "WL-bottom",
+  };
+  const WIDE_FORWARD_AND_BACK: FigureDef<ForwardAndBackParams> = {
+    ...FORWARD_AND_BACK,
+    id: "wide-forward-and-back",
+    call: "EVERYBODY FORWARD AND BACK",
+    sample(group, station, t, params) {
+      const half = params.beats / 2;
+      const k = t <= half ? smooth(t / half) : smooth((params.beats - t) / half);
+      const home = groupStationPose(group, station);
+      const partner = WIDE_PARTNER[station];
+      const forward = dirOf(home.facing);
+      const here =
+        partner === undefined || k === 0
+          ? home
+          : {
+              p: [
+                home.p[0] + forward[0] * params.reachPx * k,
+                home.p[1] + forward[1] * params.reachPx * k,
+              ] as const,
+              facing: home.facing,
+            };
+      return t > 0 && t < params.beats
+        ? walking(here.p, here.facing)
+        : standing(here.p, here.facing);
+    },
+    ends(group) {
+      const out: Record<StationId, EndPose> = {};
+      for (const s of group.stations) out[s.id] = groupStationPose(group, s.id);
+      return out;
+    },
+  };
+
+  const SWEEP_DANCE: Dance = validateDance({
+    slug: "line-sweep-fixture",
+    title: "Everybody Forward and Back",
+    author: "M2",
+    formation: "square",
+    phrases: [
+      { name: "A1", figures: [{ figure: "heads-forward-and-back", beats: 8, who: "heads" }] },
+      {
+        name: "A2",
+        figures: [
+          {
+            figure: "wide-forward-and-back",
+            beats: 8,
+            who: "all",
+            group: LINE_GROUP,
+            ends: "both",
+          },
+        ],
+      },
+      { name: "B1", figures: [{ figure: "heads-forward-and-back", beats: 8, who: "heads" }] },
+    ],
+  });
+
+  const SWEEP_PROGRAM: Program = {
+    slug: "line-sweep-fixture",
+    items: [{ dance: "line-sweep-fixture", medley: "none", timesThrough: 4 }],
+  };
+
+  function runSweep(throughBeat: number, couples = 6) {
+    const registry = createFigureRegistry([
+      FORWARD_AND_BACK,
+      WIDE_FORWARD_AND_BACK,
+      WALK_TO_STATION,
+      WAIT_OUT,
+    ]);
+    const hall = createHall(SQUARE, [{ id: "sq", couples, centre: [0, 0], axis: 90 }]);
+    const decider = createScriptDecider(
+      SWEEP_PROGRAM,
+      registry,
+      hall,
+      createLibrary([SWEEP_DANCE], [SQUARE]),
+    );
+    decider.advance(throughBeat);
+    return decider;
+  }
+
+  it("(a) gives the swept couple the real figure over its own span", () => {
+    const timeline = runSweep(24).timeline();
+    const topOut = timeline.dancers().find((d) => d.endsWith("c5/lark"))!; // 6th couple, wait-top
+    const figures = timeline.figuresOf(topOut).filter((f) => f.start < 24);
+    expect(figures.map((f) => f.figure)).toEqual(["wait-out", "wide-forward-and-back", "wait-out"]);
+    expect(figures.map((f) => [f.start, f.end])).toEqual([
+      [0, 8],
+      [8, 16],
+      [16, 24],
+    ]);
+  });
+
+  it("(b) phase-flags the leading and trailing gaps: join only leading, cross only trailing", () => {
+    const timeline = runSweep(24).timeline();
+    const bottomOut = timeline.dancers().find((d) => d.endsWith("c4/robin"))!; // 5th couple, wait-bottom
+    const figures = timeline.figuresOf(bottomOut).filter((f) => f.start < 24);
+    const [leading, swept, trailing] = figures as [
+      (typeof figures)[0],
+      (typeof figures)[0],
+      (typeof figures)[0],
+    ];
+    expect(leading.figure).toBe("wait-out");
+    expect((leading.params as { join: boolean; cross: boolean }).join).toBe(true);
+    expect((leading.params as { join: boolean; cross: boolean }).cross).toBe(false);
+    expect(swept.figure).toBe("wide-forward-and-back");
+    expect(trailing.figure).toBe("wait-out");
+    expect((trailing.params as { join: boolean; cross: boolean }).join).toBe(false);
+    expect((trailing.params as { join: boolean; cross: boolean }).cross).toBe(true);
+  });
+
+  it("(c) closes to 0.01 px across the whole sequence, sweep and gaps together", () => {
+    const report = closureReport(runSweep(24 * 8).timeline());
+    expect(report.seams).toBeGreaterThan(0);
+    expect(report.maxPositionError, JSON.stringify(report.worst)).toBeLessThan(CLOSURE_PX);
+  });
+
+  it("covers every dancer with no gap and no overlap, sweep included", () => {
+    expect(coverageProblems(runSweep(24 * 8).timeline(), 0, 24 * 8)).toEqual([]);
+  });
+
+  it("checked independently for wait-top and wait-bottom: both got their own leading/trailing split", () => {
+    const timeline = runSweep(24).timeline();
+    const topOut = timeline.dancers().find((d) => d.endsWith("c5/robin"))!;
+    const bottomOut = timeline.dancers().find((d) => d.endsWith("c4/lark"))!;
+    for (const dancer of [topOut, bottomOut]) {
+      const figures = timeline.figuresOf(dancer).filter((f) => f.start < 24);
+      expect(figures.map((f) => f.figure)).toEqual([
+        "wait-out",
+        "wide-forward-and-back",
+        "wait-out",
+      ]);
+    }
+  });
+
+  it('a down-the-hall-shaped call (ends: "bottom") never sweeps a wait-top couple in', () => {
+    const bottomOnlyDance: Dance = validateDance({
+      ...SWEEP_DANCE,
+      slug: "line-sweep-bottom-only",
+      phrases: [
+        { name: "A1", figures: [{ figure: "heads-forward-and-back", beats: 8, who: "heads" }] },
+        {
+          name: "A2",
+          figures: [
+            {
+              figure: "wide-forward-and-back",
+              beats: 8,
+              who: "all",
+              group: LINE_GROUP,
+              ends: "bottom",
+            },
+          ],
+        },
+        { name: "B1", figures: [{ figure: "heads-forward-and-back", beats: 8, who: "heads" }] },
+      ],
+    });
+    const program: Program = {
+      slug: "line-sweep-bottom-only",
+      items: [{ dance: "line-sweep-bottom-only", medley: "none", timesThrough: 1 }],
+    };
+    const registry = createFigureRegistry([
+      FORWARD_AND_BACK,
+      WIDE_FORWARD_AND_BACK,
+      WALK_TO_STATION,
+      WAIT_OUT,
+    ]);
+    const hall = createHall(SQUARE, [{ id: "sq", couples: 6, centre: [0, 0], axis: 90 }]);
+    const decider = createScriptDecider(
+      program,
+      registry,
+      hall,
+      createLibrary([bottomOnlyDance], [SQUARE]),
+    );
+    decider.advance(24);
+    const timeline = decider.timeline();
+    const topOut = timeline.dancers().find((d) => d.endsWith("c5/lark"))!; // wait-top
+    const bottomOut = timeline.dancers().find((d) => d.endsWith("c4/lark"))!; // wait-bottom
+    // The bottom-out couple gets swept; the top-out couple gets a single,
+    // whole-cycle wait-out, exactly as if it were never widened at all.
+    expect(
+      timeline
+        .figuresOf(bottomOut)
+        .filter((f) => f.start < 24)
+        .map((f) => f.figure),
+    ).toEqual(["wait-out", "wide-forward-and-back", "wait-out"]);
+    const topFigures = timeline.figuresOf(topOut).filter((f) => f.start < 24);
+    expect(topFigures.map((f) => f.figure)).toEqual(["wait-out"]);
+    expect(topFigures.map((f) => [f.start, f.end])).toEqual([[0, 24]]);
   });
 });

@@ -48,3 +48,26 @@ export function frameVector(f: Frame, local: Vec2): Vec2 {
   const across = leftOf(f.axis);
   return [local[0] * across[0] + local[1] * along[0], local[0] * across[1] + local[1] * along[1]];
 }
+
+/**
+ * The inverse of {@link framePoint}: a world point, in the frame's own local
+ * axes.
+ *
+ * `along` and `across` are unit vectors at right angles, so the inverse of the
+ * rotation is just the dot product against each — no matrix to invert. Needed
+ * for the waiting-couple sweep (`createScriptDecider`'s gap fill): a couple
+ * swept into a `"line"` call ends it in *that* call's group's frame, but the
+ * gap that follows is filled in the plain waiting group's own (different)
+ * frame, so `WaitOutParams.startPlaces` — which the figure reads as local px —
+ * has to be re-expressed in the new frame before it means anything.
+ */
+export function localPoint(f: Frame, world: Vec2): Vec2 {
+  const along = dirOf(f.axis);
+  const across = leftOf(f.axis);
+  const dx = world[0] - f.centre[0];
+  const dy = world[1] - f.centre[1];
+  return [dx * across[0] + dy * across[1], dx * along[0] + dy * along[1]];
+}
+
+/** The inverse of {@link frameAngle}: a world angle, in the frame's own axis. */
+export const localAngle = (f: Frame, world: Angle): Angle => world - f.axis + 90;

@@ -43,11 +43,16 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
 
   sample(group: Group, station: StationId, t: Beat, params: ContraWaitOutParams): PoseSample {
     const engine = resolve(group, params);
-    const crossStart = params.beats - params.crossBeats;
-    if (engine.crossTo !== "mirror" || t < crossStart) {
+    // `cross: false` (M2's waiting-couple sweep) means there is nothing to
+    // cross to yet this instance — mirror this exactly as the engine's own
+    // `geometry` does (no crossing beats at all), rather than reading
+    // `crossBeats` on its own and crossing anyway.
+    const crossBeats = params.cross ? params.crossBeats : 0;
+    const crossStart = params.beats - crossBeats;
+    if (engine.crossTo !== "mirror" || !params.cross || t < crossStart) {
       return WAIT_OUT.sample(group, station, t, engine);
     }
-    return crossTogether(group, station, t - crossStart, params.crossBeats, engine);
+    return crossTogether(group, station, t - crossStart, crossBeats, engine);
   },
 
   ends(group: Group, params: ContraWaitOutParams): Record<StationId, EndPose> {

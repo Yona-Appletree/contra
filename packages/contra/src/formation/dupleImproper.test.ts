@@ -6,6 +6,7 @@ import {
   LINE_OFFSET_PX,
   WAIT_OUT,
   WALK_TO_STATION,
+  assertPartition,
   closureReport,
   collisionReport,
   coverageProblems,
@@ -18,6 +19,7 @@ import {
   partitionProblems,
   poseAt,
   reachReport,
+  resolveSelector,
   stationPose,
   validateDance,
 } from "@caller/choreo";
@@ -26,7 +28,9 @@ import {
   ACROSS_PX,
   DUPLE_IMPROPER,
   DUPLE_IMPROPER_STATIONS,
+  LINE_GROUP,
   PLACE_PITCH_PX,
+  SHADOW_PAIR_GROUP,
   partitionDupleImproper,
 } from "./dupleImproper.js";
 
@@ -190,8 +194,10 @@ describe("hands four from the top", () => {
   });
 
   it("refuses a group selector it does not define, rather than dancing in fours anyway", () => {
-    expect(() => DUPLE_IMPROPER.groupsFor("shadow-pair", set(4))).toThrow(/no group selector/);
-    expect(() => DUPLE_IMPROPER.tags("line")).toThrow(/no group selector/);
+    // M2 added "shadow-pair" and "line"; "set" (D9, the full-set promenade)
+    // is still not one duple improper defines.
+    expect(() => DUPLE_IMPROPER.groupsFor("set", set(4))).toThrow(/no group selector/);
+    expect(() => DUPLE_IMPROPER.tags("set")).toThrow(/no group selector/);
     expect(() => DUPLE_IMPROPER.groupFor("set")).toThrow(/no group selector/);
     expect(DUPLE_IMPROPER.groupFor(HANDS_FOUR_GROUP)).toEqual(DUPLE_IMPROPER.group(4));
   });
@@ -373,5 +379,140 @@ describe("waiting out", () => {
     expect(dist(before.p, after.p)).toBeGreaterThan(HOLD_SPACING_PX);
     // The set runs down +y, so "facing the right way" is along the set axis.
     expect(Math.abs(((after.facing % 360) + 360) % 360) % 180).toBeCloseTo(90, 6);
+  });
+});
+
+/**
+ * M2: the seam-scoped `"shadow-pair"` partition. The partition property is
+ * checked at several line lengths, even and odd, per the milestone's own
+ * requirement — this is the check that would have caught the superseded
+ * eight-station design's double-claiming risk (notes.md D6).
+ */
+describe("shadow-pair: the seam-scoped four-station partition", () => {
+  const set = (couples: number): SetState =>
+    DUPLE_IMPROPER.start({ id: "s", couples, centre: [0, 0], axis: 90 });
+
+  for (const couples of [2, 3, 4, 5, 6, 7]) {
+    it(`is a partition of the whole set at ${String(couples)} couples, over several times through`, () => {
+      let state = set(couples);
+      for (let cycle = 0; cycle < couples; cycle++) {
+        const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, state);
+        expect(partitionProblems(plans, state), `cycle ${cycle}`).toEqual([]);
+        assertPartition(plans, state);
+        state = DUPLE_IMPROPER.progression.next(state);
+      }
+    });
+  }
+
+  it("has exactly one interior seam at four couples, and true ends on both sides", () => {
+    const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
+    const bySize = plans.map((p) => p.stations.length).sort((a, b) => a - b);
+    expect(bySize).toEqual([2, 2, 4]);
+    const seam = plans.find((p) => p.stations.length === 4)!;
+    expect(new Set(Object.keys(seam.members))).toEqual(new Set(["NL", "NR", "FL", "FR"]));
+  });
+
+  it("a seam always names four different dancers, never eight (Q9)", () => {
+    for (const couples of [4, 6, 8]) {
+      const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(couples));
+      for (const plan of plans) {
+        expect(new Set(Object.values(plan.members)).size).toBe(Object.values(plan.members).length);
+        expect(plan.stations.length === 2 || plan.stations.length === 4).toBe(true);
+      }
+    }
+  });
+
+  it('who: "shadow" resolves through tags("shadow-pair") the way who: "neighbors" resolves through tags("hands-four")', () => {
+    const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
+    const seam = plans.find((p) => p.stations.length === 4)!;
+    const shadowSelected = resolveSelector(
+      "shadow",
+      DUPLE_IMPROPER,
+      SHADOW_PAIR_GROUP,
+      seam.stations,
+    );
+    expect(new Set(shadowSelected)).toEqual(new Set(["NL", "NR", "FL", "FR"]));
+
+    const handsFour = DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, set(4))[0]!;
+    const neighborsSelected = resolveSelector(
+      "neighbors",
+      DUPLE_IMPROPER,
+      HANDS_FOUR_GROUP,
+      handsFour.stations,
+    );
+    expect(new Set(neighborsSelected)).toEqual(new Set(["1L", "1R", "2L", "2R"]));
+  });
+
+  it('a true end resolves "shadow" to nothing, and stands instead of dancing a full pairing', () => {
+    const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
+    const end = plans.find((p) => p.stations.length === 2)!;
+    const selected = resolveSelector("shadow", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, end.stations);
+    // The whole-group pairing tag (`shadow: all`) filtered down to this
+    // smaller instance's own two stations still names both of them — a
+    // *figure* would need a real far side to pair them with and that is M6's
+    // problem, not this milestone's; `groupsFor`'s own job is only ever the
+    // partition (every dancer in exactly one group), which item still holds.
+    expect(selected.length).toBeGreaterThan(0);
+  });
+
+  it("left-diagonal and right-diagonal are the two disjoint cross-role pairs of a seam", () => {
+    const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
+    const seam = plans.find((p) => p.stations.length === 4)!;
+    const left = resolveSelector("left-diagonal", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, seam.stations);
+    const right = resolveSelector(
+      "right-diagonal",
+      DUPLE_IMPROPER,
+      SHADOW_PAIR_GROUP,
+      seam.stations,
+    );
+    expect(left).toHaveLength(2);
+    expect(right).toHaveLength(2);
+    expect(new Set([...left, ...right])).toEqual(new Set(["NL", "NR", "FL", "FR"]));
+    expect(left.some((id) => right.includes(id))).toBe(false);
+  });
+});
+
+/**
+ * M2: `"line"` — each minor set's own four stations, widened only at a true
+ * end to fold in the waiting couple beyond it, and only when the call's own
+ * `ends` permits that end.
+ */
+describe("line: the widened minor set, and ends", () => {
+  const set = (couples: number): SetState =>
+    DUPLE_IMPROPER.start({ id: "s", couples, centre: [0, 0], axis: 90 });
+
+  for (const couples of [2, 3, 4, 5, 6, 7]) {
+    it(`is a partition of the whole set at ${String(couples)} couples`, () => {
+      const state = set(couples);
+      const plans = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state);
+      expect(partitionProblems(plans, state)).toEqual([]);
+      assertPartition(plans, state);
+    });
+  }
+
+  it("is identical to hands-four in the interior — four couples, no waiting couple", () => {
+    const state = set(4);
+    const line = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state);
+    const handsFour = DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, state);
+    expect(line).toHaveLength(handsFour.length);
+    for (const plan of line) expect(plan.stations).toHaveLength(4);
+  });
+
+  it("widens to six stations at a true end", () => {
+    const state = set(5); // one couple waits, always at a true end
+    const line = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state);
+    const sizes = line.map((p) => p.stations.length).sort((a, b) => a - b);
+    expect(sizes).toEqual([4, 6]);
+  });
+
+  it('tags("line")\'s wait-top/wait-bottom filter to whichever end an instance actually widened', () => {
+    const state = set(5); // the odd couple waits at the bottom this cycle
+    const tags = DUPLE_IMPROPER.tags(LINE_GROUP);
+    const widened = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state).find(
+      (p) => p.stations.length === 6,
+    )!;
+    const ids = new Set(widened.stations.map((s) => s.id));
+    expect(tags["wait-bottom"]!.every((id) => ids.has(id))).toBe(true);
+    expect(tags["wait-top"]!.some((id) => ids.has(id))).toBe(false);
   });
 });

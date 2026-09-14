@@ -12,9 +12,20 @@ import type {
   Station,
   StationId,
 } from "@caller/choreo";
-import { HANDS_FOUR_GROUP, HOLD_SPACING_PX, frame, framePoint, reverseFrame } from "@caller/choreo";
+import {
+  HANDS_FOUR_GROUP,
+  HOLD_SPACING_PX,
+  frame,
+  framePoint,
+  localAngle,
+  localPoint,
+  reverseFrame,
+  stationPose,
+} from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
+import type { ShadowPart } from "./shadowSeam.js";
+import { partitionShadowSeams } from "./shadowSeam.js";
 
 /**
  * Becket: partners stand side by side in a line, facing the couple across the
@@ -129,6 +140,59 @@ export const BECKET_BEFORE_SLIDE: Record<StationId, { p: Vec2; facing: Angle }> 
     ]),
   );
 
+/**
+ * The `"shadow-pair"` seam group's four stations (M2, D7), for becket.
+ *
+ * The near couple (`direction: -1`, always `"shadowSeam.ts"`'s near half of
+ * a seam) is shaped exactly like `BECKET_STATIONS`' own `"2"` couple —
+ * becket's shadow is on the *same line* the seam-adjacent couple already
+ * stands on, since becket (unlike duple improper) never alternates lark and
+ * robin by line — and the far couple (`direction: 1`) like its `"1"`. This is
+ * literally the same four-station shape as an ordinary becket minor set,
+ * just centred on the seam between two different ones instead of on one.
+ */
+const SHADOW_SEAM_STATIONS: readonly Station[] = [
+  { id: "NL", role: "lark", facing: BACK, p: [HALF_ACROSS, HALF_COUPLE] },
+  { id: "NR", role: "robin", facing: BACK, p: [HALF_ACROSS, -HALF_COUPLE] },
+  { id: "FL", role: "lark", facing: ACROSS, p: [-HALF_ACROSS, -HALF_COUPLE] },
+  { id: "FR", role: "robin", facing: ACROSS, p: [-HALF_ACROSS, HALF_COUPLE] },
+];
+
+/** A true end's own two stations — nobody on the far side of this seam. */
+const SHADOW_END_STATIONS: readonly Station[] = [
+  { id: "NL", role: "lark", facing: ACROSS, p: [-HALF_ACROSS, -HALF_COUPLE] },
+  { id: "NR", role: "robin", facing: ACROSS, p: [-HALF_ACROSS, HALF_COUPLE] },
+];
+
+/** One `"shadow-pair"` seam group, or a true end's smaller element. */
+function shadowGroupPlan(set: SetState, part: ShadowPart): GroupPlan {
+  if (part.kind === "end") {
+    const couple = part.near;
+    return {
+      id: `${set.id}/shadow-end${couple.place}`,
+      kind: "set",
+      frame: at(set, couple.place),
+      stations: SHADOW_END_STATIONS.map((s) => ({ ...s })),
+      members: { NL: dancerOn(couple, "lark"), NR: dancerOn(couple, "robin") },
+      couples: [couple.id],
+    };
+  }
+  const { near, far } = part;
+  return {
+    id: `${set.id}/shadow${near.place}`,
+    kind: "set",
+    frame: at(set, (near.place + far.place) / 2),
+    stations: SHADOW_SEAM_STATIONS.map((s) => ({ ...s })),
+    members: {
+      NL: dancerOn(near, "lark"),
+      NR: dancerOn(near, "robin"),
+      FL: dancerOn(far, "lark"),
+      FR: dancerOn(far, "robin"),
+    },
+    couples: [near.id, far.id],
+  };
+}
+
 /** One part of a becket set for one time through. */
 interface Part {
   kind: GroupKind;
@@ -185,6 +249,120 @@ const dancerOn = (couple: CoupleState, role: string): DancerId => {
 const at = (set: SetState, place: number): Frame =>
   frame(framePoint(set.frame, [0, place * set.pitch]), set.frame.axis, set.frame.spacing);
 
+/**
+ * A true-end waiting couple's two stations, re-expressed in `into`'s own
+ * frame and suffixed `"top"`/`"bottom"`. See `dupleImproper.ts`'s own
+ * `widenedWaitStations`, the same idea: reuse the plain wait `GroupPlan`'s
+ * own frame and convert its stations' world poses with `localPoint`/
+ * `localAngle` rather than re-deriving becket's own (more involved, `place +
+ * direction / 2`-centred) wait geometry a second time.
+ */
+function widenedWaitStations(
+  set: SetState,
+  couple: CoupleState,
+  into: Frame,
+): { stations: Station[]; members: Record<StationId, DancerId> } {
+  const base = at(set, couple.place + couple.direction / 2);
+  const waitFrame = couple.direction === 1 ? base : reverseFrame(base);
+  const suffix = waitKindOf(couple) === "wait-top" ? "top" : "bottom";
+  const stations = BECKET_WAIT_STATIONS.map((s) => {
+    const world = stationPose(waitFrame, s);
+    return {
+      id: `${s.id}-${suffix}`,
+      role: s.role,
+      p: localPoint(into, world.p),
+      facing: localAngle(into, world.facing),
+    };
+  });
+  const members: Record<StationId, DancerId> = {
+    [`WL-${suffix}`]: dancerOn(couple, "lark"),
+    [`WR-${suffix}`]: dancerOn(couple, "robin"),
+  };
+  return { stations, members };
+}
+
+/**
+ * `groupsFor("line", set)` for becket: each dancing place's own four
+ * stations, widened only at a true end — only there — to fold in the one
+ * waiting couple immediately beyond it. An odd becket set can have *two*
+ * couples waiting beyond the bottom (`start`'s own second waiting place);
+ * `"line"` widens with only the one immediately adjacent to the last dancing
+ * place, leaving the further one a plain (unwidened) true end — flagged in
+ * the M2 report, since no corpus dance in this milestone's scope exercises
+ * that shape.
+ */
+function lineGroupsFor(set: SetState): GroupPlan[] {
+  const parts = partitionBecket(set);
+  const setIdx = parts.map((p, i) => (p.kind === "set" ? i : -1)).filter((i) => i >= 0);
+  const firstIdx = setIdx[0];
+  const lastIdx = setIdx[setIdx.length - 1];
+  const plans: GroupPlan[] = [];
+  // The one wait part immediately adjacent to the first/last dancing place —
+  // never a further one: an odd becket set can have a *second* waiting place
+  // beyond the bottom (`start`'s own extra waiting couple), and `"line"`
+  // widens only as far as the couple actually standing at the true end of
+  // the *dancing* line, leaving the further one its own plain true end
+  // (flagged in the M2 report; no corpus dance in this milestone's scope
+  // exercises that shape).
+  const topAdjacent = firstIdx !== undefined && firstIdx > 0 ? parts[firstIdx - 1] : undefined;
+  const bottomAdjacent =
+    lastIdx !== undefined && lastIdx < parts.length - 1 ? parts[lastIdx + 1] : undefined;
+  const widened = new Set<Part>();
+  parts.forEach((part, i) => {
+    if (part.kind !== "set") return;
+    const [a, b] = part.couples as [CoupleState, CoupleState];
+    const dancingFrame = at(set, a.place);
+    const stations: Station[] = BECKET_STATIONS.map((s) => ({ ...s }));
+    const members: Record<StationId, DancerId> = {
+      "1L": dancerOn(a, "lark"),
+      "1R": dancerOn(a, "robin"),
+      "2L": dancerOn(b, "lark"),
+      "2R": dancerOn(b, "robin"),
+    };
+    const couples = [a.id, b.id];
+    if (i === firstIdx && topAdjacent && topAdjacent.kind !== "set") {
+      const w = widenedWaitStations(set, topAdjacent.couples[0]!, dancingFrame);
+      stations.push(...w.stations);
+      Object.assign(members, w.members);
+      couples.push(topAdjacent.couples[0]!.id);
+      widened.add(topAdjacent);
+    }
+    if (i === lastIdx && bottomAdjacent && bottomAdjacent.kind !== "set") {
+      const w = widenedWaitStations(set, bottomAdjacent.couples[0]!, dancingFrame);
+      stations.push(...w.stations);
+      Object.assign(members, w.members);
+      couples.push(bottomAdjacent.couples[0]!.id);
+      widened.add(bottomAdjacent);
+    }
+    plans.push({
+      id: `${set.id}/line${a.place}`,
+      kind: "set",
+      frame: dancingFrame,
+      stations,
+      members,
+      couples,
+    });
+  });
+  // Any wait-kind part the widening above did not absorb still needs its own
+  // (unwidened) place in the partition — `"line"` never returns a `"wait-*"`
+  // kind, so this is a plain `kind: "set"` two-station element, the same
+  // shape `"shadow-pair"`'s own true ends use.
+  for (const part of parts) {
+    if (part.kind === "set" || widened.has(part)) continue;
+    const couple = part.couples[0]!;
+    const base = at(set, couple.place + couple.direction / 2);
+    plans.push({
+      id: `${set.id}/line-end${couple.place}`,
+      kind: "set",
+      frame: couple.direction === 1 ? base : reverseFrame(base),
+      stations: BECKET_WAIT_STATIONS.map((s) => ({ ...s })),
+      members: { WL: dancerOn(couple, "lark"), WR: dancerOn(couple, "robin") },
+      couples: [couple.id],
+    });
+  }
+  return plans;
+}
+
 /** Becket, and the second formation the demo's dances may be written in. */
 export const BECKET: Formation = {
   id: "becket",
@@ -198,11 +376,22 @@ export const BECKET: Formation = {
   },
 
   groupFor(selector: GroupSelector): Station[] {
+    if (selector === SHADOW_PAIR_GROUP) return SHADOW_SEAM_STATIONS.map((s) => ({ ...s }));
+    if (selector === LINE_GROUP) {
+      // The plain four-station shape, not the widest six-station one — see
+      // duple improper's own `groupFor("line")` note; no dance calls `"line"`
+      // in this milestone, so nothing threads a dance's `from` against it.
+      return BECKET_STATIONS.map((s) => ({ ...s }));
+    }
     onlyHandsFour(selector);
     return BECKET_STATIONS.map((s) => ({ ...s }));
   },
 
   groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    if (selector === SHADOW_PAIR_GROUP) {
+      return partitionShadowSeams(set).map((part) => shadowGroupPlan(set, part));
+    }
+    if (selector === LINE_GROUP) return lineGroupsFor(set);
     onlyHandsFour(selector);
     return partitionBecket(set).map((part): GroupPlan => {
       if (part.kind === "set") {
@@ -304,6 +493,37 @@ export const BECKET: Formation = {
   },
 
   tags(selector: GroupSelector): Record<string, StationId[]> {
+    if (selector === SHADOW_PAIR_GROUP) {
+      const all = SHADOW_SEAM_STATIONS.map((s) => s.id);
+      return {
+        all,
+        larks: ["NL", "FL"],
+        robins: ["NR", "FR"],
+        shadow: all,
+        // Becket's shadow is the same-line, same-role couple across the
+        // seam — a straight pairing, not a genuine diagonal (see the M2
+        // report): "left"/"right" here name the two lines, not two crossing
+        // diagonals, kept for the same tag names duple improper offers.
+        "left-diagonal": ["NL", "FR"],
+        "right-diagonal": ["NR", "FL"],
+      };
+    }
+    if (selector === LINE_GROUP) {
+      const all = BECKET_STATIONS.map((s) => s.id);
+      const waitTop = ["WL-top", "WR-top"];
+      const waitBottom = ["WL-bottom", "WR-bottom"];
+      return {
+        all: [...all, ...waitTop, ...waitBottom],
+        larks: [...all.filter((id) => id.endsWith("L")), "WL-top", "WL-bottom"],
+        robins: [...all.filter((id) => id.endsWith("R")), "WR-top", "WR-bottom"],
+        ones: ["1L", "1R"],
+        twos: ["2L", "2R"],
+        neighbors: all,
+        partners: all,
+        "wait-top": waitTop,
+        "wait-bottom": waitBottom,
+      };
+    }
     onlyHandsFour(selector);
     const all = BECKET_STATIONS.map((s) => s.id);
     return {
@@ -318,8 +538,14 @@ export const BECKET: Formation = {
   },
 };
 
-/** The one group selector becket defines so far; see duple improper's own note. */
+/** The group selectors becket defines beyond `"hands-four"`. */
+export const SHADOW_PAIR_GROUP: GroupSelector = "shadow-pair";
+export const LINE_GROUP: GroupSelector = "line";
+
+/** A selector becket does not know is an error, not an empty group. */
 function onlyHandsFour(selector: GroupSelector): void {
   if (selector === HANDS_FOUR_GROUP) return;
-  throw new Error(`becket has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}")`);
+  throw new Error(
+    `becket has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}", "${SHADOW_PAIR_GROUP}", "${LINE_GROUP}")`,
+  );
 }

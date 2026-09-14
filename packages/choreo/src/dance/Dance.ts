@@ -41,6 +41,25 @@ export interface FigureCall {
    * names its dancers in the wider layout exactly as it does in the narrow one.
    */
   group?: GroupSelector;
+  /**
+   * Which true end(s) a widened group's call is willing to widen into. Default
+   * `"both"`.
+   *
+   * A selector like `"line"` computes the *widest* widening it can — up to six
+   * stations, four dancing plus a waiting couple at each true end that has
+   * one — regardless of this field (`Formation.groupsFor` never reads it).
+   * `ends` is what the decider consults, per call, to decide whether *this*
+   * call actually reaches a given true end's waiting couple: `long-lines`
+   * ("dancers standing out normally do participate") is `"both"`,
+   * `down-the-hall` ("dancers out at the bottom... have to walk down, too") is
+   * `"bottom"`, so a `wait-top` couple is never swept into it even in the same
+   * schedule as a `"both"` call that does sweep it in. Read by asking the
+   * formation for two well-known tag names, `"wait-top"`/`"wait-bottom"` — the
+   * same vocabulary `GroupPlan.kind`'s two outs already use — and excluding
+   * whichever of them this call's `ends` does not permit; a formation that
+   * never widens anything need not define either tag.
+   */
+  ends?: "both" | "top" | "bottom";
   /** Overrides the figure's own call text for this dance. */
   call?: string;
 }

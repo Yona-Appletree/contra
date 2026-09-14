@@ -257,6 +257,39 @@ places (its `startPlaces`, or the stations) over an eight-beat gap, calls
 hands four from the top, and carries on; the program loops, so the demo
 cycles with nobody touching it.
 
+**The waiting-couple sweep (M2).** A call whose selector reaches a waiting
+couple's stations — `@caller/contra`'s `"line"`, widened at a true end —
+claims them for its own span exactly like a dancing couple; every beat of the
+cycle nothing claims is still filled with `wait-out`, but now possibly in
+more than one piece (a leading gap, a trailing one, both scoped to their own
+`beats`). `WaitOutParams` gains `join`/`cross` booleans, both defaulting
+`true`, so a gap can say which of its two ramps actually apply: `join` (the
+step-together-and-take-hands ramp) only makes sense for a gap that opens at
+the couple's own beat 0 — anything later means an earlier call already had
+them — and `cross` (the walk to the far station) only for a gap that runs to
+the cycle's own boundary — anything earlier means a later call is going to
+sweep them out before the crossing matters. The part-out ramp (hold → home)
+always runs regardless of `cross`, landing the couple back at its own station
+by the end of every gap, which is what lets the _next_ sweep or gap pick them
+up with no seam to paper over. `createScriptDecider` computes both flags per
+gap (`join: from === 0`, `cross: to === cycle`) and, because a leading gap
+discovered only after a later sweep's claims are known must still reach
+`Timeline.add()` before that sweep's own event, defers every figure emission
+for a cycle and runs them in beat order at the end — stably, so a schedule
+with no sweep (every dance before M2, and any waiting couple no call actually
+reaches) keeps sorting its untouched wait-out fill after every ordinary call,
+exactly as it always has.
+
+A call's own `ends: "both" | "top" | "bottom"` field (default `"both"`) says
+which true end(s) it is willing to sweep into — `groupsFor` itself always
+computes the widest partition it can, regardless of `ends`; the decider's
+`excludedByEnds` reads two well-known tag names, `"wait-top"`/`"wait-bottom"`
+(the same vocabulary `GroupPlan.kind`'s own two outs already use), and drops
+whichever of them a call's `ends` does not permit from that call's own
+`selected`/`claimed` set — never merely standing those dancers through the
+call, which would still claim their beats and rob the untouched end of its
+single, whole-cycle `wait-out`.
+
 ## Form neutrality, and how it is enforced
 
 `src/testing/square.ts` is a square formation — four couples on the sides of

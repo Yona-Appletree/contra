@@ -50,8 +50,10 @@ describe("a dance file's figure calls", () => {
   });
 
   it("refuses a group the formation has not built yet, naming the dance and phrase", () => {
-    expect(() => danceFromFile(file({ group: "shadow-pair" }))).toThrow(
-      /fixture A1: "long-lines" wants group "shadow-pair"/,
+    // M2 built "shadow-pair" and "line" for duple improper; "set" (D9) is
+    // still not one any formation defines.
+    expect(() => danceFromFile(file({ group: "set" }))).toThrow(
+      /fixture A1: "long-lines" wants group "set"/,
     );
   });
 

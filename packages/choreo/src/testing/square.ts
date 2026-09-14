@@ -10,8 +10,19 @@ import type {
   Station,
   StationId,
 } from "../formation/Formation.js";
-import { HANDS_FOUR_GROUP } from "../formation/Formation.js";
-import { frame, framePoint, reverseFrame } from "../formation/Frame.js";
+import { HANDS_FOUR_GROUP, stationPose } from "../formation/Formation.js";
+import { frame, framePoint, localAngle, localPoint, reverseFrame } from "../formation/Frame.js";
+
+/**
+ * The neutral `"line"`-equivalent selector M2's own brief asks the square
+ * fixture to prove the waiting-couple sweep with: the square's one dancing
+ * group, widened — when a couple stands out at either end — to include that
+ * couple's two stations too, so a call can sweep it in for part of a cycle
+ * exactly as `@caller/contra`'s `"line"` sweeps a waiting couple into
+ * `long-lines`/`down-the-hall`. No contra knowledge anywhere in it: a square
+ * has no lines, only a couple standing out beyond either end of its own axis.
+ */
+export const LINE_GROUP: GroupSelector = "line";
 
 /**
  * A square: four couples on the sides of a square, facing the middle.
@@ -124,6 +135,96 @@ const waitFrame = (set: SetState, couple: CoupleState) => {
   return couple.direction === 1 ? base : reverseFrame(base);
 };
 
+/** The plain `"hands-four"` partition: one eight-station square, plus any outs. */
+function handsFourGroupsFor(set: SetState): GroupPlan[] {
+  const ordered = [...set.couples].sort((a, b) => a.place - b.place);
+  const dancing = ordered.filter((c) => squareWaitKind(c.place) === undefined);
+  if (dancing.length !== SQUARE_PLACES) {
+    throw new Error(`a square has four couples in it, not ${dancing.length}`);
+  }
+  const members: Record<StationId, string> = {};
+  for (const couple of dancing) {
+    const number = couple.place + 1;
+    for (const role of SQUARE_ROLES.roles) {
+      members[`${number}${role === "lark" ? "L" : "R"}`] = dancerOn(couple, role);
+    }
+  }
+  const square: GroupPlan = {
+    id: `${set.id}/square`,
+    kind: "set",
+    frame: set.frame,
+    stations: squareStations(),
+    members,
+    couples: dancing.map((c) => c.id),
+  };
+
+  // In place order down the set, so the whole partition reads top to bottom.
+  const plans: GroupPlan[] = [];
+  for (const couple of ordered) {
+    const kind = squareWaitKind(couple.place);
+    if (kind === undefined) {
+      if (!plans.includes(square)) plans.push(square);
+      continue;
+    }
+    plans.push({
+      id: `${set.id}/w${couple.place}`,
+      kind,
+      frame: waitFrame(set, couple),
+      stations: SQUARE_WAIT_STATIONS.map((s) => ({ ...s })),
+      members: { WL: dancerOn(couple, "lark"), WR: dancerOn(couple, "robin") },
+      couples: [couple.id],
+    });
+  }
+  return plans;
+}
+
+/**
+ * The `"line"` partition: the same one dancing group, widened to fold in
+ * whichever couple(s) stand out beyond either end — never a separate
+ * `"wait-*"` plan of its own, because `"line"` is defined to widen maximally
+ * regardless of any one call's own `ends`; a call that does not want a given
+ * end excludes those stations itself (`createScriptDecider`'s
+ * `excludedByEnds`), reading the `"wait-top"`/`"wait-bottom"` tags below. This
+ * is always a single `kind: "set"` plan — a true partition, since folding a
+ * standing-out couple's two stations in here is what keeps them from *also*
+ * appearing in a separate wait plan.
+ */
+function lineGroupFor(set: SetState): GroupPlan {
+  const ordered = [...set.couples].sort((a, b) => a.place - b.place);
+  const dancing = ordered.filter((c) => squareWaitKind(c.place) === undefined);
+  if (dancing.length !== SQUARE_PLACES) {
+    throw new Error(`a square has four couples in it, not ${dancing.length}`);
+  }
+  const members: Record<StationId, string> = {};
+  for (const couple of dancing) {
+    const number = couple.place + 1;
+    for (const role of SQUARE_ROLES.roles) {
+      members[`${number}${role === "lark" ? "L" : "R"}`] = dancerOn(couple, role);
+    }
+  }
+  const stations: Station[] = squareStations();
+  const couples = [...dancing.map((c) => c.id)];
+  for (const couple of ordered) {
+    const kind = squareWaitKind(couple.place);
+    if (kind === undefined) continue;
+    couples.push(couple.id);
+    const suffix = kind === "wait-top" ? "top" : "bottom";
+    const wf = waitFrame(set, couple);
+    for (const s of SQUARE_WAIT_STATIONS) {
+      const world = stationPose(wf, s);
+      const id = `${s.id}-${suffix}`;
+      stations.push({
+        id,
+        role: s.role,
+        p: localPoint(set.frame, world.p),
+        facing: localAngle(set.frame, world.facing),
+      });
+      members[id] = dancerOn(couple, s.role);
+    }
+  }
+  return { id: `${set.id}/line`, kind: "set", frame: set.frame, stations, members, couples };
+}
+
 /**
  * The square formation. A square dance ends where it began, so nothing
  * progresses — except a couple standing out, which turns over so it can cross.
@@ -139,10 +240,16 @@ export const SQUARE: Formation = {
   },
 
   groupFor(selector: GroupSelector): Station[] {
-    if (selector !== HANDS_FOUR_GROUP) {
-      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
+    if (selector === HANDS_FOUR_GROUP) return squareStations();
+    if (selector === LINE_GROUP) {
+      // The widest case, unconditionally, per M2's contract for `groupFor`: a
+      // representative six-couple square (one couple out at each end) run
+      // through the real `groupsFor` gives the abstract shape directly,
+      // rather than re-deriving the wait geometry by hand a second time.
+      const wide = SQUARE.start({ id: "_line-template", couples: 6, centre: [0, 0], axis: 90 });
+      return SQUARE.groupsFor(LINE_GROUP, wide)[0]!.stations.map((s) => ({ ...s }));
     }
-    return squareStations();
+    throw new Error(`a square knows no group selector "${selector}"`);
   },
 
   progression: {
@@ -162,48 +269,9 @@ export const SQUARE: Formation = {
   },
 
   groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
-    if (selector !== HANDS_FOUR_GROUP) {
-      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
-    }
-    const ordered = [...set.couples].sort((a, b) => a.place - b.place);
-    const dancing = ordered.filter((c) => squareWaitKind(c.place) === undefined);
-    if (dancing.length !== SQUARE_PLACES) {
-      throw new Error(`a square has four couples in it, not ${dancing.length}`);
-    }
-    const members: Record<StationId, string> = {};
-    for (const couple of dancing) {
-      const number = couple.place + 1;
-      for (const role of SQUARE_ROLES.roles) {
-        members[`${number}${role === "lark" ? "L" : "R"}`] = dancerOn(couple, role);
-      }
-    }
-    const square: GroupPlan = {
-      id: `${set.id}/square`,
-      kind: "set",
-      frame: set.frame,
-      stations: squareStations(),
-      members,
-      couples: dancing.map((c) => c.id),
-    };
-
-    // In place order down the set, so the whole partition reads top to bottom.
-    const plans: GroupPlan[] = [];
-    for (const couple of ordered) {
-      const kind = squareWaitKind(couple.place);
-      if (kind === undefined) {
-        if (!plans.includes(square)) plans.push(square);
-        continue;
-      }
-      plans.push({
-        id: `${set.id}/w${couple.place}`,
-        kind,
-        frame: waitFrame(set, couple),
-        stations: SQUARE_WAIT_STATIONS.map((s) => ({ ...s })),
-        members: { WL: dancerOn(couple, "lark"), WR: dancerOn(couple, "robin") },
-        couples: [couple.id],
-      });
-    }
-    return plans;
+    if (selector === HANDS_FOUR_GROUP) return handsFourGroupsFor(set);
+    if (selector === LINE_GROUP) return [lineGroupFor(set)];
+    throw new Error(`a square knows no group selector "${selector}"`);
   },
 
   start(spec: SetSpec): SetState {
@@ -231,17 +299,37 @@ export const SQUARE: Formation = {
   },
 
   tags(selector: GroupSelector): Record<string, StationId[]> {
-    if (selector !== HANDS_FOUR_GROUP) {
-      throw new Error(`a square knows no group selector "${selector}", only "${HANDS_FOUR_GROUP}"`);
-    }
     const stations = squareStations().map((s) => s.id);
-    return {
-      all: stations,
-      heads: [...SQUARE_HEADS],
-      sides: [...SQUARE_SIDES],
-      larks: stations.filter((id) => id.endsWith("L")),
-      robins: stations.filter((id) => id.endsWith("R")),
-    };
+    if (selector === HANDS_FOUR_GROUP) {
+      return {
+        all: stations,
+        heads: [...SQUARE_HEADS],
+        sides: [...SQUARE_SIDES],
+        larks: stations.filter((id) => id.endsWith("L")),
+        robins: stations.filter((id) => id.endsWith("R")),
+      };
+    }
+    if (selector === LINE_GROUP) {
+      // `"wait-top"`/`"wait-bottom"` are what `createScriptDecider`'s
+      // `excludedByEnds` reads for a call whose `ends` is not `"both"` — the
+      // same two names `GroupPlan.kind`'s own two outs use, not a new
+      // vocabulary. `resolveSelector` filters every tag down to the ids a
+      // given instance's own group actually has, so this one abstract table
+      // (the widest case, both ends) is correct at the interior (neither
+      // present) and at either true end (only that end's pair present) alike.
+      const waitTop = ["WL-top", "WR-top"];
+      const waitBottom = ["WL-bottom", "WR-bottom"];
+      return {
+        all: [...stations, ...waitTop, ...waitBottom],
+        heads: [...SQUARE_HEADS],
+        sides: [...SQUARE_SIDES],
+        larks: [...stations.filter((id) => id.endsWith("L")), "WL-top", "WL-bottom"],
+        robins: [...stations.filter((id) => id.endsWith("R")), "WR-top", "WR-bottom"],
+        "wait-top": waitTop,
+        "wait-bottom": waitBottom,
+      };
+    }
+    throw new Error(`a square knows no group selector "${selector}"`);
   },
 };
 
