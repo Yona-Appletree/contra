@@ -179,16 +179,25 @@ export function MovesPage({
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-2xl font-semibold">Moves</h1>
         <p className="max-w-[80ch] text-sm text-muted-foreground">
-          {figures} figures and {seams} seams between them, one to a row: the tile, what the caller
-          says, what the dancers do in the figure&rsquo;s own words, and what the motion oracle
-          measured over the beats the tile loops. Every seam sits under the figure it comes out of.
-          A number in <span className="moves-over px-1">this colour</span> is over the bound{" "}
+          {solo === null
+            ? `${String(figures)} figures and ${String(seams)} seams between them, one to a row:`
+            : "One move, on its own:"}{" "}
+          the tile, what the caller says, what the dancers do in the figure&rsquo;s own words, and
+          what the motion oracle measured over the beats the tile loops.
+          {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
+          <span className="moves-over px-1">this colour</span> is over the bound{" "}
           <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.
         </p>
       </header>
 
       <div
-        className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 bg-background/95 py-2 text-sm"
+        /*
+         * Opaque, not 95%: the page ground carries a board grain now, and a
+         * translucent shelf let both the grain and whatever row was under it
+         * ghost through the controls. The rule under it is what says it is a
+         * shelf rather than a gap.
+         */
+        className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-background px-4 py-2 text-sm"
         data-testid="moves-controls"
         data-measured={metrics === null ? "0" : "1"}
       >
