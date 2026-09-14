@@ -172,7 +172,9 @@ function swingFixture(): Fixture {
         id: "robin",
         role: "robin",
         seed: 707,
-        skirt: true,
+        // No skirt: a flared skirt at this radius covers the lark, and the
+        // point of this fixture is the arms. `facings` exercises skirts.
+        skirt: false,
         roleShirts: CONTRA_ROLE_SET,
       }),
       pose: restingPose(robinP, robinA, larkA + 180, {

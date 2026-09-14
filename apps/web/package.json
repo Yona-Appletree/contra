@@ -9,9 +9,12 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:golden": "playwright test"
+    "test:golden": "playwright test",
+    "test:golden:update": "UPDATE_GOLDENS=1 playwright test"
   },
   "dependencies": {
+    "@caller/core": "workspace:*",
+    "@caller/hall": "workspace:*",
     "@caller/ui-base": "workspace:*",
     "@caller/ui-design": "workspace:*",
     "react": "^19.0.0",
@@ -23,6 +26,9 @@
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "@types/pngjs": "^6.0.5",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0"
   }
 }

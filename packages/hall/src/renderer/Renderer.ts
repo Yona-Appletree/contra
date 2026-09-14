@@ -71,7 +71,7 @@ export function createRenderer(canvas: HTMLCanvasElement, opts: RendererOptions 
   let peopleCtx = context(people);
   let superCanvas = new OffscreenCanvas(world.w * supersample, world.h * supersample);
   let superCtx = context(superCanvas);
-  let trails: Trails = createTrails(world);
+  const trails: Trails = createTrails(world);
   let display = displayContext(canvas);
 
   applyCanvasSize();

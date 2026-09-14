@@ -1,8 +1,27 @@
 import { Button } from "@caller/ui-base";
+import { useEffect, useState } from "react";
+import { FramePage } from "./routes/frame.js";
+import { hashRoute } from "./routes/hashRoute.js";
 
 const appVersion = import.meta.env.VITE_APP_VERSION ?? "dev";
 
 export function App() {
+  const [route, setRoute] = useState(() => hashRoute(window.location.hash));
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(hashRoute(window.location.hash));
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  if (route.path === "/frame") {
+    return <FramePage params={route.params} />;
+  }
+
+  return <Home />;
+}
+
+function Home() {
   const base = import.meta.env.BASE_URL;
 
   return (
