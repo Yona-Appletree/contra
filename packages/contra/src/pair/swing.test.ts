@@ -1,10 +1,12 @@
-import { angleDiff, dist } from "@caller/core";
+import type { Vec2 } from "@caller/core";
+import { angleDiff, dirOf, dist, dot, shouldersAt } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PAIR_FRAME, OPEN_PAIR_HALF_PX, norm360 } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { resolveParams } from "./FigureDef.js";
 import type { SwingParams } from "./swing.js";
-import { swing, swingEndFacing } from "./swing.js";
+import { handForwardAngle } from "./forwardAngle.js";
+import { SWING_BODY_TURN_DEG, swing, swingEndFacing } from "./swing.js";
 
 const frame = DEFAULT_PAIR_FRAME;
 const params = (over: Partial<SwingParams> = {}): SwingParams => resolveParams(swing, over);
@@ -73,6 +75,49 @@ describe("swing", () => {
     expect(mid.lark.stepRate).toBe(2);
     expect(mid.lark.feet).toBeDefined();
     expect(mid.lark.lean).toBeLessThan(0);
+  });
+
+  /**
+   * Gate G1's allemande criterion — the joined arm at least 30° forward of the
+   * shoulder line — applied to the swing hold's outstretched arms, which the
+   * milestone asks for as a measurement rather than a change.
+   *
+   * **It does not pass, and at this hold it cannot.** The lark's outstretched
+   * arm is 76° forward; the robin's runs 1.3° *behind* its shoulder line. The
+   * reason is geometry, not tuning: the two hands are one shared floor point
+   * (AC2), and for that point to be 30° forward of both joined shoulders the
+   * line between those shoulders would have to lie within 60° of each dancer's
+   * facing. Writing `e` for that line and `u` for the lark's facing, the two
+   * cone conditions add to `e · u ≥ |e| / 2`; here `e · u` is 4.56 px against
+   * `|e| / 2` of 5.98, so no point satisfies both. The joined shoulders sit
+   * 67.6° off the facing because each body turns `SWING_BODY_TURN_DEG` = 30°
+   * out of the line of the turn — a gate-3 tuning. Reported, not changed: the
+   * user passed the swing and raised the allemande.
+   */
+  it("measures the swing hold's forward angle, which fails the allemande's bar", () => {
+    let larkBest = -Infinity;
+    let robinWorst = Infinity;
+    for (let n = 8; n <= (swing.beats - 1.4) * 8; n++) {
+      const t = n / 8;
+      const { lark, robin } = at(t);
+      const l = handForwardAngle(lark, "L");
+      const r = handForwardAngle(robin, "R");
+      if (l !== null) larkBest = Math.max(larkBest, l);
+      if (r !== null) robinWorst = Math.min(robinWorst, r);
+    }
+    expect(larkBest).toBeCloseTo(76.0, 0);
+    expect(robinWorst).toBeCloseTo(-1.3, 1);
+    expect(robinWorst).toBeLessThan(30);
+
+    // The arithmetic behind "cannot": the joined shoulders, and the lark's
+    // facing, at the middle of the hold.
+    const { lark, robin } = at(4);
+    const ls = shouldersAt(lark.p, lark.facing).L;
+    const rs = shouldersAt(robin.p, robin.facing).R;
+    const e: Vec2 = [rs[0] - ls[0], rs[1] - ls[1]];
+    const u = dirOf(lark.facing);
+    expect(dot(e, u)).toBeLessThan(Math.hypot(e[0], e[1]) / 2);
+    expect(SWING_BODY_TURN_DEG).toBe(30);
   });
 
   it("never puts a hand out of reach (AC1)", () => {

@@ -12,6 +12,8 @@ export { REST_FEET, pairPose } from "./pairPose.js";
 export type { FigureProbe, ReachCheck } from "./armShortfall.js";
 export { armShortfall, worstShortfall } from "./armShortfall.js";
 
+export { FOLDED_ARM_PX, handForwardAngle } from "./forwardAngle.js";
+
 export type { PoseGap } from "./poseGap.js";
 export { poseGap } from "./poseGap.js";
 

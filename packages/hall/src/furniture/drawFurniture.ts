@@ -24,8 +24,20 @@ const INSTRUMENT_DROP_PX = 8;
 const INSTRUMENT_FORWARD_PX = 3;
 const INSTRUMENT_LATERAL_PX = 3;
 
-/** A sitter's hands rest on their knees. */
+/** How far below shoulder height a seated player holds their instrument. */
 const SITTING_DROP_PX = 10;
+
+/**
+ * A sitter who is not playing rests their hands on their knees: forward of the
+ * body, in against the hips, and at very nearly arm's length, so the elbows
+ * tuck down beside the ribs instead of winging out to the sides. This is gate
+ * G1's resting-arm ruling applied to M4's sitters — "you can't see much arm
+ * when someone is just standing there", and no more of one when they are
+ * sitting.
+ */
+const SITTER_HAND_FORWARD_PX = 3.5;
+const SITTER_HAND_LATERAL_PX = 3;
+const SITTER_HAND_DROP_PX = 13.5;
 
 const FIDDLE_BODY = "#8a4a22";
 const FIDDLE_BOW = "#d9c08a";
@@ -161,9 +173,13 @@ export function posture(who: HallPerson, beat: Beat): PoseSample {
         // The caller holds the mic in front of them with one hand.
         hands = { L: "down", R: held(INSTRUMENT_FORWARD_PX + 1, 1) };
       } else if (seated) {
+        const rest = (lateral: number): Hand => ({
+          p: bodyPoint(who.p, who.facing, SITTER_HAND_FORWARD_PX, lateral),
+          drop: SITTER_HAND_DROP_PX,
+        });
         hands = {
-          L: held(1, -4),
-          R: held(1, 4),
+          L: rest(-SITTER_HAND_LATERAL_PX),
+          R: rest(SITTER_HAND_LATERAL_PX),
         };
       }
       break;

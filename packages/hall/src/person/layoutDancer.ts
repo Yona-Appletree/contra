@@ -1,25 +1,62 @@
 import type { Angle, Arm3dSolution, Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
 import {
   NEUTRAL_STYLE,
+  POLE_OUTWARD,
   bodyPoint,
+  dirOf,
+  leftOf,
+  mix,
   q256Vec2,
   quietMotion,
+  rightOf,
   shouldersAt,
+  smooth,
   solveArm3d,
 } from "@caller/core";
 import type { FrameDancer } from "../renderer/Frame.js";
 import type { Person } from "./Person.js";
 import { headLook } from "./headLook.js";
 
-/** How far below the shoulder a hand hangs when the figure does not place it. */
-export const HAND_HANG_DROP_PX = 14;
+/**
+ * How far below the shoulder a hand hangs when the figure does not place it.
+ *
+ * A resting arm is very nearly straight — a real one is 60 cm from shoulder to
+ * hand and hangs about that far down — so this sits just inside the contract's
+ * 15 px reach. The 0.5 px of slack is what bends the elbow; the less of it
+ * there is, the less arm there is to see from above, which is gate G1's
+ * ruling ("you can't see much arm when someone is just standing there").
+ */
+export const HAND_HANG_DROP_PX = 14.5;
 
-/** How far out to the side a hanging hand sits, and how far forward it rests. */
-export const HAND_HANG_LATERAL_PX = 6.2;
+/**
+ * How far out to the side a hanging hand sits, and how far forward it rests.
+ *
+ * The lateral number is the torso ellipse's own half-width, so the hand hangs
+ * beside the hip rather than out past it — 0.1 px outside the shoulder point,
+ * which is as close to straight down as the body allows.
+ */
+export const HAND_HANG_LATERAL_PX = 5.6;
 export const HAND_HANG_FORWARD_PX = 0.4;
 
-/** How far a hanging hand swings forward and back with the step. */
-export const HAND_HANG_SWING_PX = 0.8;
+/**
+ * How far a hanging hand swings forward and back with the step. Scaled down
+ * with the rest of the hang (gate G1) so the swing stays inside the resting
+ * silhouette instead of reaching past the hip.
+ */
+export const HAND_HANG_SWING_PX = 0.6;
+
+/**
+ * How far the hand has to be from the shoulder, on the floor, before the elbow
+ * bows outward again. Inside this the hand is hanging under the shoulder and
+ * the elbow tucks back instead of winging out.
+ */
+export const ELBOW_TUCK_PLANAR_PX = 4;
+
+/** How far below the shoulder a hand has to be for the tuck to reach full strength. */
+export const ELBOW_TUCK_DROP_PX = 6;
+
+/** How far outward of straight back a fully tucked elbow splays, in degrees. */
+export const ELBOW_TUCK_SPLAY_DEG = 15;
 
 /** Left and right, in that order. */
 export type ArmPair = readonly [left: Arm3dSolution, right: Arm3dSolution];
@@ -64,6 +101,37 @@ export function hangingHand(p: Vec2, facing: Angle, side: Side, beat: Beat, amp:
 }
 
 /**
+ * The floor-plane part of the elbow pole for one arm.
+ *
+ * `core`'s solver points the pole down and outward, which is right for an arm
+ * that is reaching: the elbow drops and bows away from the body. It is wrong
+ * for an arm that hangs, because a near-vertical arm cancels the pole's
+ * downward part entirely and the outward part is then the whole of it — the
+ * elbow swings out to the side and the dancer stands there with their elbows
+ * winged, about 3 px wider each side than their shoulders. That is gate G1's
+ * "a bit outstretched at rest still".
+ *
+ * So: the nearer the hand is to hanging straight under the shoulder, the more
+ * the pole swings from outward to backward, which is where a resting elbow
+ * actually sits. It is a function of the hand's geometry, not of whether the
+ * figure said `'down'`, so a hand a figure places at the dancer's side draws
+ * the same as one the renderer hangs there.
+ */
+export function elbowPole(shoulder: Vec2, hand: Hand, side: Side, facing: Angle): Vec2 {
+  const outward = side === "L" ? leftOf(facing) : rightOf(facing);
+  const planar = Math.hypot(hand.p[0] - shoulder[0], hand.p[1] - shoulder[1]);
+  const tuck = (1 - smooth(planar / ELBOW_TUCK_PLANAR_PX)) * smooth(hand.drop / ELBOW_TUCK_DROP_PX);
+  if (tuck <= 0) return [outward[0] * POLE_OUTWARD, outward[1] * POLE_OUTWARD];
+  // Straight back, splayed a little to this dancer's own side.
+  const splay = side === "L" ? ELBOW_TUCK_SPLAY_DEG : -ELBOW_TUCK_SPLAY_DEG;
+  const back = dirOf(facing + 180 + splay);
+  return [
+    mix(outward[0], back[0], tuck) * POLE_OUTWARD,
+    mix(outward[1], back[1], tuck) * POLE_OUTWARD,
+  ];
+}
+
+/**
  * Resolve one dancer for one beat.
  *
  * `snap` is the position quantiser: `q256Vec2` normally, whole-pixel rounding
@@ -89,8 +157,8 @@ export function layoutDancer(
   // Shoulders follow the swaying torso, so the arms sway with the body.
   const sh = shouldersAt(p, torsoAngle);
   const arms: ArmPair = [
-    solveArm3d(sh.L, hands.L, "L", torsoAngle),
-    solveArm3d(sh.R, hands.R, "R", torsoAngle),
+    solveArm3d(sh.L, hands.L, "L", torsoAngle, elbowPole(sh.L, hands.L, "L", torsoAngle)),
+    solveArm3d(sh.R, hands.R, "R", torsoAngle, elbowPole(sh.R, hands.R, "R", torsoAngle)),
   ];
 
   return {
