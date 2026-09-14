@@ -193,6 +193,45 @@ so the outlines read; `src/world/HallWorld.stories.tsx` shows the hall itself in
 all three themes, at one to four lines, with a beat slider for the band and a
 call for the bubble; `src/font/Font.stories.tsx` shows every glyph in the font.
 
+## Traces — `src/traces/`
+
+Four SVG drawings of where the dancers went: `penPlotSvg` (the whole window on
+the set), `marchSvg` (the set sliding right as the beats pass), `seismographSvg`
+(each dancer across the set, then along it, against time) and `figureStripSvg`
+(one small plot per call, the cell as wide as the call is long). They are the
+exploration post's four views, redrawn from the simulation.
+
+SVG rather than canvas because these are meant to be looked at large, printed
+and pasted into a post, and because a string is easy to make deterministic:
+every number goes through `num` (hundredths, never minus zero), every drawing
+walks its pens in the order the trace lists them, and nothing reads a clock or a
+random source. The same trace gives the same bytes.
+
+**They take plain data, not a `Timeline`.** The sampler that measures a trace
+lives in `@caller/choreo`, a layer this package may not import (see _Allowed
+imports_), so `src/traces/TraceView.ts` declares the shape structurally and
+`@caller/choreo`'s `Trace` is assignable to it with no adapter;
+`apps/web/src/traces/traceViewShape.test.ts` typechecks that the two stay the
+same shape in both directions.
+
+**`ROLE_COLOURS` is larks gold and robins red**, the ones darker than the twos
+(a user ruling of 2026-09-14, replacing the blue-and-pink of the exploration
+post, which read as a claim about gender that contra's role names exist to
+avoid). It is one exported constant so that anything else that colours by role
+uses the same two hues. `TRAIL_COLOURS` in `person/Person.ts` is the older
+blue-and-rose trail palette, still what the golden frames pin; moving it onto
+these two is a renderer change and belongs to whichever milestone owns it.
+
+Two things the post's plates could not do, both from community feedback on it:
+each pen's whole path is nudged a couple of pixels along a **diagonal**, so the
+last one drawn does not bury the other three (a contra's straight tracks are
+axis-aligned, and a horizontal nudge is invisible on a horizontal track — a
+diagonal is the only direction that separates both families); and a **facing
+tick** is drawn out of the path on every beat, because a track with no facing on
+it cannot tell a forward pass from a backward one. Only the two views with a
+floor in them get ticks: on the seismograph an axis is position against time and
+a direction on the floor has nowhere to point, and a strip cell is too small.
+
 ## What was ported from the spikes
 
 Production code never imports from `spikes/`; these behaviours were read from

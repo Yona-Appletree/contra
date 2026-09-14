@@ -43,6 +43,7 @@ import {
   shownMusicBeat,
 } from "../program.js";
 import { readLines, readSeed, setHallUrl } from "../state/hallUrl.js";
+import { DanceTraces } from "../traces/DanceTraces.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -572,6 +573,8 @@ export function HallPage({
                 </span>
                 <Notation tune={tune} beat={beat} showTitle={false} />
               </div>
+              {/* T2: the shape this dance makes, drawn from the same engine. */}
+              <DanceTraces dance={position.dance} />
             </Card>
           </div>
           {/*

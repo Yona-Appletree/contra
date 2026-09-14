@@ -126,6 +126,39 @@ export {
   trailStrokes,
 } from "./trails/Trails.js";
 
+// traces: the four SVG drawings of where the dancers went
+export type {
+  TracePalette,
+  TraceView,
+  TraceViewCell,
+  TraceViewPen,
+  TraceViewSpan,
+} from "./traces/TraceView.js";
+export {
+  ONES_SHADE,
+  ROLE_COLOURS,
+  TRACE_FAMILY_COLOURS,
+  TRACE_PALETTE,
+  TWOS_SHADE,
+  familyColour,
+  penColour,
+} from "./traces/TraceView.js";
+export type { TraceDraw, TraceDrawOptions } from "./traces/traceSvg.js";
+export { TRACE_JUMP_PX, phraseName, traceDraw, traceSvg } from "./traces/traceSvg.js";
+export type { PenPlotMap, PenPlotOptions } from "./traces/penPlotSvg.js";
+export {
+  BAND_RAIL_GAP_PX,
+  MAX_PEN_PLOT_SCALE,
+  penPlotMap,
+  penPlotSvg,
+} from "./traces/penPlotSvg.js";
+export type { MarchOptions } from "./traces/marchSvg.js";
+export { MARCH_MAX_SCALE, marchSvg } from "./traces/marchSvg.js";
+export type { SeismographOptions } from "./traces/seismographSvg.js";
+export { seismographSvg } from "./traces/seismographSvg.js";
+export type { FigureStripOptions } from "./traces/figureStripSvg.js";
+export { STRIP_MAX_SCALE, STRIP_WASH_OPACITY, figureStripSvg } from "./traces/figureStripSvg.js";
+
 // fixtures for the golden frames and the stories
 export type { Fixture } from "./testing/fixtures.js";
 export { CONTRA_ROLE_SET, FIXTURES, FIXTURE_NAMES, fixture } from "./testing/fixtures.js";

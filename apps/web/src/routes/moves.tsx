@@ -12,12 +12,14 @@ import {
   FLOOR_COLOUR,
   GALLERY_ZOOMS,
   SOLO_ZOOM,
+  TILE_MARGIN_PX,
   galleryTiles,
   groupedTiles,
   maxTileWorld,
   tileMetrics,
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
+import { FigureTraces } from "../traces/FigureTraces.js";
 
 /**
  * The Moves tab: every figure the registry holds and every figure-to-figure
@@ -172,7 +174,13 @@ export function MovesPage({
   // gallery at the current zoom. Every set then stands on the same axis and
   // the writing beside them starts in the same column, which is the whole
   // point of a row — a slot per tile would be a ragged left edge.
-  const slot = maxTileWorld(shown).w * zoom;
+  const world = maxTileWorld(shown);
+  const slot = world.w * zoom;
+  // The trace panels share one floor scale for the same reason, and it falls
+  // out of the same number: a tile's world is its own travel plus
+  // `TILE_MARGIN_PX` on every side, so the widest world minus that margin is
+  // the widest ink on the page.
+  const reach = Math.max(1, Math.max(world.w, world.h) / 2 - TILE_MARGIN_PX);
 
   return (
     <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-4">
@@ -285,6 +293,8 @@ export function MovesPage({
               onStrip={toggleStrip}
               metrics={metrics?.get(group.figure.key)}
               solo={solo !== null}
+              side={slot}
+              reach={reach}
             />
             {group.seams.length === 0 ? null : (
               <ol className="moves-seams">
@@ -300,6 +310,8 @@ export function MovesPage({
                       onStrip={toggleStrip}
                       metrics={metrics?.get(tile.key)}
                       solo={solo !== null}
+                      side={slot}
+                      reach={reach}
                     />
                   </li>
                 ))}
@@ -326,6 +338,8 @@ function Row({
   onStrip,
   metrics,
   solo,
+  side,
+  reach,
 }: {
   tile: GalleryTile;
   beat: Beat;
@@ -338,6 +352,10 @@ function Row({
   metrics: TileMetric[] | undefined;
   /** Whether this row is the only one on the page: `#/moves/<key>`. */
   solo: boolean;
+  /** The tile column's width in px: what the trace panel is drawn square to. */
+  side: number;
+  /** The page's widest floor half-extent, so every trace is at one scale. */
+  reach: number;
 }): JSX.Element {
   // A seam row sits under the figure it comes out of, whose own row says what
   // that figure is, so the prose that is new here is the figure it goes into.
@@ -356,6 +374,7 @@ function Row({
     >
       <div className="moves-row-tile">
         <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
+        <FigureTraces tile={tile} side={side} reach={reach} />
       </div>
 
       <div className="moves-row-head">

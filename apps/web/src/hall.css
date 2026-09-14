@@ -220,10 +220,15 @@
   }
 }
 
+/*
+ * A column, not a row: the canvas on top and T2's trace panel under it, both
+ * centred. It was a centring row when the cell held nothing but the canvas.
+ */
 .moves-row-tile {
   grid-area: tile;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Seated on the wood rather than floating on it: a hairline and a short drop. */
@@ -359,4 +364,65 @@
   margin-top: 0.5rem;
   max-width: 100%;
   overflow-x: auto;
+}
+
+/*
+ * Traces (T2): the four SVG drawings of where the dancers actually went.
+ *
+ * The renderers in `@caller/hall` write an SVG with its own width and height,
+ * which is what the exported files want; on the page the drawing should fill
+ * whatever box it is in instead, so one rule undoes the intrinsic size for all
+ * four views. A view with a beat axis is wider than a phone, so it scrolls
+ * inside its own box rather than making the page scroll.
+ */
+.trace-svg {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.trace-svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * A view with a beat axis keeps its own width and scrolls inside its box: at a
+ * phone's width, scaling sixty-four beats down to 390 px makes the figure names
+ * and the phrase letters too small to read, and the page itself must never
+ * scroll sideways.
+ */
+.trace-svg[data-kind="march"] svg,
+.trace-svg[data-kind="seismograph"] svg,
+.trace-svg[data-kind="strip"] svg {
+  width: auto;
+  max-width: none;
+}
+
+/* The pen plot is square: on the traces page it would otherwise be a metre. */
+[data-testid="traces-page"] .trace-svg[data-kind="pen"] svg {
+  max-width: 540px;
+  margin-inline: auto;
+}
+
+/*
+ * A Moves row's panel lives inside the tile column, under the canvas, so the
+ * row keeps the two columns U2 laid out and nothing new can push the writing
+ * off a phone. Both drawings are the column's width by construction.
+ */
+.moves-row-traces {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+/* On a dance card: the strip, then the plot, both the card's own width. */
+.dance-traces {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
 }

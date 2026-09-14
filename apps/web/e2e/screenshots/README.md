@@ -19,6 +19,12 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `u2-moves-1280.png`         | U2: the Moves tab at 1280 × 800, the same URL                                |
 | `u2-dances-390.png`         | U2: the Dances tab at 390 × 844, `#/dances`                                  |
 | `u2-dances-1280.png`        | U2: the Dances tab at 1280 × 800, `#/dances`                                 |
+| `t2-moves-row-390.png`      | T2: one Moves row at 390 × 844, `#/moves/swing?beat=6&zoom=2`                |
+| `t2-moves-row-1280.png`     | T2: the same row at 1280 × 800                                               |
+| `t2-dance-card-390.png`     | T2: the Dances tab at 390 × 844, `#/dances`, cards with their traces         |
+| `t2-dance-card-1280.png`    | T2: the same tab at 1280 × 800                                               |
+| `t2-traces-view-390.png`    | T2: all four views at 390 × 844, `#/dances/airpants/traces`                  |
+| `t2-traces-view-1280.png`   | T2: the same page at 1280 × 800                                              |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -35,3 +41,17 @@ The two U2 Moves pictures are the viewport rather than `fullPage`: the Moves
 page is fifty-four rows tall and a full-page picture of it is 20 000 px of
 scroll. They wait on `data-measured="1"` on the control bar, which is how the
 page says the motion oracle has finished measuring every row.
+
+The six T2 pictures are the look gate for the traces: the figure's pen plot and
+its strip cell under the tile in a Moves row, the dance cards carrying their own
+strip and pen plot, and `#/dances/<slug>/traces` with all four views. The Moves
+pair is one row on its own deep link at the page's default zoom, so the tile
+column is the width it is on the whole page; the phone picture is the evidence
+that the panel goes _inside_ the tile column and so cannot push U2's two-column
+row off a 390 px screen. On the traces page the views with a beat axis keep
+their own width and scroll inside their own box rather than being scaled down to
+a phone, which is why the 390 picture shows the first phrases of the march and
+the seismograph rather than four squeezed ones.
+
+The SVGs themselves — every figure and every dance, four ways — are in
+`../traces/`, written by `pnpm traces:export`.

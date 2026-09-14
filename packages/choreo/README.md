@@ -359,6 +359,34 @@ pass flag and the worst evidence, and none of them throws — a report prints
 them all, and a test asserts over the list. A figure can be perfectly closed,
 perfectly in reach and completely wrong; this is the class of bug they catch.
 
+## Traces — `src/trace/sampleTrace.ts`
+
+`sampleTrace(timeline, { to, from, dancers, step, frame })` walks a window of a
+timeline with `poseAt` — the same call the renderer makes every frame — and
+writes down where every dancer's feet went, eight samples to the beat, tagged
+with the figure instance that owns each sample. It is pure data: no colours, no
+pixels. `@caller/hall`'s `src/traces/` draws it four ways (pen plot, march,
+seismograph, figure strip), and `apps/web`'s `pnpm traces:export` writes every
+figure's and every dance's four views to `apps/web/e2e/traces/`.
+
+Two decisions worth knowing:
+
+- **Positions come back in one fixed frame**, not in whichever group frame owns
+  a sample. A contra set mints a fresh group every time through and a becket set
+  re-centres after its slide, so re-framing per sample would break the ink
+  exactly where the dancers are still walking. One frame means the progression
+  draws as the travel it is. `x` is across the set, `y` along it.
+- **`spans` are truthful and `cells` are readable.** Every figure event any
+  traced dancer dances is a span; a call with a `who` therefore has two (the
+  figure and the `walk-to-station` covering everybody else). The strip wants one
+  cell per call, so `cells` collapses the spans that share a window to the one
+  most of the group danced, with a filler figure never beating a real one.
+
+Form-neutral, like the rest of the package: a pen's `rank` is read from the
+leading digits of its station id (contra's `"1L"` is rank 1), overridable, and a
+cell's `family` is whatever `familyOf` says — by default the figure id, because
+the workspace has no move-family taxonomy yet.
+
 ## Deviations from the hall spike
 
 Production code never imports from `spikes/`; the line and progression

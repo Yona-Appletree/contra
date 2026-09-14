@@ -162,6 +162,17 @@ export {
   squareWaitKind,
 } from "./testing/square.js";
 
+// traces: where the feet went, as data
+export type {
+  Trace,
+  TraceCell,
+  TraceOptions,
+  TracePen,
+  TraceSample,
+  TraceSpan,
+} from "./trace/sampleTrace.js";
+export { TRACE_FILLER_FIGURES, TRACE_STEP, sampleTrace, stationRank } from "./trace/sampleTrace.js";
+
 // The slice of `@caller/core` a formation or figure needs, re-exported so that
 // `@caller/contra` can stay on its one allowed edge (`contra → choreo`) and
 // still speak the same geometry as the renderer.
