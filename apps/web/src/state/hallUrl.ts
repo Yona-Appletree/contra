@@ -34,3 +34,23 @@ export function setHallUrl(dance: string | undefined, tune: string | undefined):
   if (window.location.hash === next) return;
   window.history.replaceState(null, "", next);
 }
+
+/**
+ * The seed for the evening's medley shuffle: `?seed=<n>` when given and a
+ * finite number, else a number derived from the date, so the evening's
+ * running order of medleys differs day to day and a seeded URL still
+ * reproduces one exactly (T1: "ensure we have more tunes to randomize").
+ *
+ * The date is read as UTC (`toISOString`), not the visitor's local zone,
+ * so the seed does not change mid-evening for someone dancing near
+ * midnight in a zone west of UTC, and two visitors on the same calendar
+ * date get the same shuffle regardless of where they are.
+ */
+export function readSeed(params: URLSearchParams, now: Date = new Date()): number {
+  const raw = params.get("seed");
+  if (raw !== null) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return Number(now.toISOString().slice(0, 10).replaceAll("-", ""));
+}

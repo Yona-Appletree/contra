@@ -3,6 +3,8 @@ import type { Dance, Decider, HallState, Program, Timeline } from "@caller/chore
 import { createHall, createLibrary, createScriptDecider } from "@caller/choreo";
 import { BECKET, DEMO_DANCES, DUPLE_IMPROPER, createContraRegistry } from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
+import type { Medley, Tune } from "@caller/music";
+import { medleys as musicMedleys } from "@caller/music";
 
 /**
  * The evening: every encoded dance, each two times through, looping for as
@@ -90,8 +92,166 @@ export interface DemoProgram {
   hall: HallState;
   /** The dances, in the order this programme dances them. */
   dances: readonly Dance[];
+  /**
+   * The medley slug shuffled onto each dance, parallel to `dances`
+   * (`medleys[i]` is what `dances[i]` is danced to when the tune select is
+   * on "Shuffle" rather than pinned to one medley by `?tune=`).
+   */
+  medleys: readonly string[];
+  /**
+   * The one concrete tune each dance actually plays in Shuffle mode,
+   * parallel to `dances`. Each dance is exactly `MUSIC_BEATS_PER_ITEM`
+   * beats of music — one tune, played `TIMES_THROUGH` times — so a dance
+   * does not cycle through its assigned medley's other tunes the way a
+   * medley pinned for the whole evening does; instead, each medley
+   * remembers its own place in its tune list from the last dance it was
+   * shuffled onto, so a two- or three-tune medley is heard in full across
+   * the evening rather than always giving up only its first tune.
+   */
+  tunes: readonly Tune[];
   /** How long one time round the whole programme takes, in beats. */
   totalBeats: Beat;
+}
+
+/**
+ * A default seed for callers that do not care which medleys play (this
+ * package's own tests, mostly) — fixed rather than the wall clock, so
+ * `createDemoProgram` stays a pure function of its arguments. The page
+ * itself always resolves a real seed first, from `?seed=<n>` or the date
+ * (`readSeed` in `../state/hallUrl.js`), and passes it in.
+ */
+const DEFAULT_SEED = 0;
+
+/** A tiny deterministic PRNG (mulberry32), seeded by a 32-bit integer. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return (): number => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates, drawing from `rng` at each step. Mutates and returns `items`. */
+function shuffleInPlace<T>(items: T[], rng: () => number): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const a = items[i]!;
+    items[i] = items[j]!;
+    items[j] = a;
+  }
+  return items;
+}
+
+/**
+ * A seeded, circular assignment of one medley to each dance — the shuffle
+ * the user asked for ("I am so sick of soldier's joy").
+ *
+ * Two properties hold over the *circular* order of `danceSlugs` (the
+ * programme loops back to its first dance after its last, and that
+ * loop-back counts as "consecutive" too, or the evening would repeat a
+ * medley across the seam every single lap):
+ *
+ *  - no two circularly-adjacent dances share a medley;
+ *  - every medley is danced once before any medley repeats — each run of
+ *    `medleySlugs.length` dances is a fresh shuffle of all of them (a
+ *    "bag" shuffle, the way a good DJ or a card-game randomizer avoids
+ *    back-to-back repeats without ever losing "everyone gets a turn").
+ *
+ * Built over the dances' own fixed order rather than however a caller has
+ * rotated them (`danceOrder`'s `first`, used when someone picks a dance
+ * from the page), because a rotation of a circular sequence that is
+ * already adjacency-safe stays adjacency-safe — it is the same cycle of
+ * neighbours, just read starting from a different point.
+ *
+ * With fewer than three medleys, the final wrap-around comparison (last
+ * dance against first) cannot always be resolved — an odd-length cycle
+ * genuinely cannot be 2-coloured without two neighbours matching, a fact
+ * about cycle graphs rather than a bug here — so that fix-up only runs
+ * when there are at least three medleys to choose the mismatched slot
+ * from.
+ */
+export function shuffleMedleyAssignment(
+  seed: number,
+  danceSlugs: readonly string[],
+  medleySlugs: readonly string[],
+): Map<string, string> {
+  const n = danceSlugs.length;
+  const m = medleySlugs.length;
+  const map = new Map<string, string>();
+  if (n === 0 || m === 0) return map;
+  if (m === 1) {
+    for (const slug of danceSlugs) map.set(slug, medleySlugs[0]!);
+    return map;
+  }
+
+  const rng = mulberry32(seed);
+  const order: string[] = [];
+  let previous: string | undefined;
+  while (order.length < n) {
+    const bag = shuffleInPlace([...medleySlugs], rng);
+    // A fresh bag's first draw must not repeat the previous bag's last —
+    // otherwise the seam between two "everyone gets a turn" rounds would
+    // itself be a repeat.
+    if (previous !== undefined && bag[0] === previous) {
+      const j = 1 + Math.floor(rng() * (m - 1));
+      const a = bag[0]!;
+      bag[0] = bag[j]!;
+      bag[j] = a;
+    }
+    order.push(...bag);
+    previous = bag[bag.length - 1];
+  }
+  order.length = n;
+
+  // The programme loops, so the last dance and the first are consecutive
+  // too — fix the one seam the bag construction above cannot see.
+  if (n > 1 && m >= 3 && order[n - 1] === order[0]) {
+    const left = order[n - 2];
+    const replacement = medleySlugs.find((slug) => slug !== order[0] && slug !== left);
+    if (replacement !== undefined) order[n - 1] = replacement;
+  }
+
+  danceSlugs.forEach((slug, i) => map.set(slug, order[i]!));
+  return map;
+}
+
+/**
+ * Layers `shuffleMedleyAssignment` with a per-medley tune pointer, so the
+ * seeded shuffle picks both a medley and a concrete tune for every dance.
+ *
+ * `shuffleMedleyAssignment` decides which *medley* plays each dance — the
+ * property the brief asks for. Within that, this walks the dances in order
+ * and gives each dance its assigned medley's *next* tune, remembering where
+ * each medley left off the last time the shuffle landed on it (not always
+ * tune 0): a three-tune medley is heard in full across the evening rather
+ * than always giving up only its first tune. Built over the dances' own
+ * fixed order for the same reason `shuffleMedleyAssignment` is.
+ */
+export function shuffleProgramme(
+  seed: number,
+  danceSlugs: readonly string[],
+  medleyList: readonly Medley[],
+): { medleyOf: Map<string, string>; tuneOf: Map<string, Tune> } {
+  const medleyOf = shuffleMedleyAssignment(
+    seed,
+    danceSlugs,
+    medleyList.map((m) => m.slug),
+  );
+  const bySlug = new Map(medleyList.map((m) => [m.slug, m]));
+  const nextTuneIndex = new Map<string, number>();
+  const tuneOf = new Map<string, Tune>();
+  for (const slug of danceSlugs) {
+    const medleySlug = medleyOf.get(slug);
+    if (medleySlug === undefined) continue;
+    const medley = bySlug.get(medleySlug);
+    if (medley === undefined) continue;
+    const i = nextTuneIndex.get(medleySlug) ?? 0;
+    tuneOf.set(slug, medley.tunes[i % medley.tunes.length]!);
+    nextTuneIndex.set(medleySlug, i + 1);
+  }
+  return { medleyOf, tuneOf };
 }
 
 /** Where a beat falls in the programme. */
@@ -146,14 +306,35 @@ export function seatHall(world: HallWorld, couplesPerLine: readonly number[]): H
 /** Frame-local degrees for "down the hall": the choreo frame's own +y. */
 const DOWN_THE_HALL = 90;
 
-/** Build the programme and the decider that dances it. */
-export function createDemoProgram(world: HallWorld, first?: string): DemoProgram {
+/**
+ * Build the programme and the decider that dances it.
+ *
+ * `seed` drives the medley shuffle (`shuffleMedleyAssignment`): the caller
+ * resolves it once from `?seed=<n>` or the date (`readSeed` in
+ * `../state/hallUrl.js`) and passes the same number in every time, which
+ * is what makes a seeded URL reproduce one evening. The assignment is
+ * built over the dances' own fixed order (`DEMO_DANCES`), not over
+ * `dances` (which `first` may have rotated), so that choosing a dance to
+ * start from does not change which medley any dance is shuffled onto.
+ */
+export function createDemoProgram(
+  world: HallWorld,
+  first?: string,
+  seed = DEFAULT_SEED,
+): DemoProgram {
   const dances = danceOrder(first);
+  const { medleyOf, tuneOf } = shuffleProgramme(
+    seed,
+    DEMO_DANCES.map((d) => d.slug),
+    musicMedleys,
+  );
+  const medleyFor = (slug: string): string => medleyOf.get(slug) ?? musicMedleys[0]!.slug;
+  const tuneFor = (slug: string): Tune => tuneOf.get(slug) ?? musicMedleys[0]!.tunes[0]!;
   const program: Program = {
     slug: "the-evening",
     items: dances.map((d) => ({
       dance: d.slug,
-      medley: "reel-set",
+      medley: medleyFor(d.slug),
       timesThrough: TIMES_THROUGH,
     })),
   };
@@ -173,6 +354,8 @@ export function createDemoProgram(world: HallWorld, first?: string): DemoProgram
     timeline: decider.timeline(),
     hall,
     dances,
+    medleys: dances.map((d) => medleyFor(d.slug)),
+    tunes: dances.map((d) => tuneFor(d.slug)),
     totalBeats: dances.length * ITEM_BEATS,
   };
 }
