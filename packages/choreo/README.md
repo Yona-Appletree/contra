@@ -77,16 +77,62 @@ interface HallState {
 interface Progression {
   next(set: SetState): SetState;
 }
+type GroupSelector = "hands-four" | string;
+type GroupKind = "set" | "wait-top" | "wait-bottom";
+interface GroupPlan {
+  id: GroupId;
+  kind: GroupKind;
+  frame: Frame;
+  stations: readonly Station[];
+  members: Record<StationId, DancerId>;
+  couples: readonly CoupleId[];
+}
 interface Formation {
   id;
   roleSet: RoleSet;
+  lineUpCalls?: readonly string[];
   group(n: number): Station[];
+  groupFor(selector: GroupSelector): Station[];
   progression: Progression;
-  groups(set: SetState): GroupPlan[];
+  groupsFor(selector: GroupSelector, set: SetState): GroupPlan[];
   start(spec: SetSpec): SetState;
-  tags(n: number): Record<string, StationId[]>;
+  tags(selector: GroupSelector): Record<string, StationId[]>;
 }
 ```
+
+**Groups are formed per figure call, by a selector.** `groupsFor` is asked
+once for every call in a dance, not once per time through, and a call says
+which partition it runs in through `FigureCall.group` (default
+`"hands-four"`, the ordinary minor set). `choreo` supplies the mechanism and
+that one meaning; each formation supplies the rest, and throws for a
+selector it does not define rather than quietly dancing in fours. A call
+that reaches past its own four — a shadow allemande, a diagonal chain, long
+lines that sweep the couple standing out — is a different selector, not a
+different figure. `groupFor` is the same thing at authoring time, before any
+hall exists: the abstract station layout `@caller/contra`'s `chainCalls`
+threads a dance's places through.
+
+**`groupsFor` must return a partition**: every dancer in the set in exactly
+one group, dancing and standing out alike. That is what makes it impossible
+for two groups of one call to claim the same dancer — `Timeline.add()`
+throws when a dancer is bound into two figures over overlapping beats, so a
+partition that is not one fails loudly. `src/testing/assertPartition.ts`
+(`partitionProblems`, `assertPartition`) checks the property directly
+against a formation, before any dance is written on it.
+
+**There are two outs.** A couple with nobody to dance with is `wait-top` or
+`wait-bottom`, never a bare "wait": the top out is the couple hands four is
+reckoned from and the one long lines addresses, the bottom out is the one a
+"down the hall" sweeps along and the one a becket line's shift pushes off
+the end. Each formation already has the signal that tells them apart — it is
+what turns a waiting couple's frame end for end — so `kind` surfaces it
+rather than making every later reader derive it again.
+
+**`tags` is keyed by selector, not by station count.** Two partitions can
+hand out groups of the same size, so `n` does not say what a tag means.
+`resolveSelector(who, formation, groupSelector, stations)` filters the tag's
+station list down to the ids the call's own group has, which is what lets
+one abstract definition serve a selector's widest shape and its narrowest.
 
 **Frame-local coordinates.** A station's `p` and `facing` are in the group
 frame's own axes, in world px: **local +y runs along `frame.axis`** (down
@@ -197,10 +243,15 @@ function createScriptDecider(program, registry, hall, library, options?): Decide
 ```
 
 The script decider dances the program as written. Every time through it
-asks the formation for its groups, plays the dance's figure calls into each
-one, gives every waiting couple `wait-out`, says each call `lead` beats
-early and two beats into the figure, and asks the progression what the set
-looks like next. After a dance's `timesThrough` it announces the next dance
+asks the formation, **call by call**, how the whole set divides up for that
+call (`groupsFor`), plays the figure into each group that dances it, says
+each call `lead` beats early and two beats into the figure, and asks the
+progression what the set looks like next. Whatever beats of a time through
+nobody claimed for a couple standing out are then filled with `wait-out` —
+there is no waiting-couple special case, only a group nothing selected.
+With `"hands-four"` the only selector any call names, nothing ever claims a
+couple standing out and the fill is the whole cycle, exactly as it was when
+the special case existed. After a dance's `timesThrough` it announces the next dance
 over the last eight beats, walks everybody to the next dance's own first
 places (its `startPlaces`, or the stations) over an eight-beat gap, calls
 hands four from the top, and carries on; the program loops, so the demo
@@ -215,6 +266,12 @@ a square, groups of eight, no progression, no ones and twos — and
 puts it through the same oracles. If this package ever grows a contra
 assumption, that is what catches it.
 
+It also seats **five or six** couples on purpose, standing the extras out
+beyond the ends of the set's own axis — a square has no such thing, which is
+the point. That is what proves the partition property at an odd set size and
+puts both `wait-top` and `wait-bottom` on the floor, in a fixture that knows
+nothing about lines, ones and twos, or contra at all.
+
 ## The oracles — `src/testing/oracles.ts`
 
 These are how the plan's acceptance criteria are checked, and they run over
@@ -227,6 +284,11 @@ a timeline, so they serve every dance anyone encodes:
 | `collisionReport`  | AC6       | No two torso centres within 8 px at any 1/8 beat                     |
 | `coverageProblems` | —         | Every dancer has exactly one figure at every beat                    |
 | `motionReport`     | —         | How the drawn arm moves; see below                                   |
+
+`src/testing/assertPartition.ts` sits beside them and asks the same kind of
+question one step earlier, of a formation rather than of a danced timeline:
+`partitionProblems(plans, set)` returns every dancer in two groups, in none,
+or in a group but not in the set, and `assertPartition` throws with the lot.
 
 ### `motionReport` — the motion oracle
 

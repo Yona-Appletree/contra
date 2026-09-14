@@ -4,6 +4,7 @@ import {
   WAIT_OUT,
   createGroup,
   dist,
+  partitionProblems,
   stationPose,
   withDefaults,
 } from "@caller/choreo";
@@ -111,6 +112,25 @@ describe("a becket set", () => {
         BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind === "set").length,
       ).toBeGreaterThan(0);
     }
+  });
+
+  it("puts every dancer in exactly one group, at every hall size and every time through", () => {
+    for (let couples = 4; couples <= 9; couples++) {
+      let state = set(couples);
+      for (let cycle = 0; cycle < 2 * couples; cycle++) {
+        expect(
+          partitionProblems(BECKET.groupsFor(HANDS_FOUR_GROUP, state), state),
+          `${couples} couples, cycle ${cycle}`,
+        ).toEqual([]);
+        state = BECKET.progression.next(state);
+      }
+    }
+  });
+
+  it("refuses a group selector it does not define", () => {
+    expect(() => BECKET.groupsFor("shadow-pair", set(8))).toThrow(/no group selector/);
+    expect(() => BECKET.tags("line")).toThrow(/no group selector/);
+    expect(BECKET.groupFor(HANDS_FOUR_GROUP)).toEqual(BECKET.group(4));
   });
 
   it("lays its first dancer out where a duple improper line's first dancer stands", () => {

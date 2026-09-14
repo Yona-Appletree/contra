@@ -9,15 +9,23 @@ import { joinHands } from "../figure/joinHands.js";
 import { standing, walking } from "../figure/standing.js";
 import { WAIT_OUT } from "../figure/waitOut.js";
 import { WALK_TO_STATION } from "../figure/walkToStation.js";
-import { createHall } from "../formation/Formation.js";
-import type { StationId } from "../formation/Formation.js";
+import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
+import type { GroupPlan, StationId } from "../formation/Formation.js";
 import type { Group } from "../group/Group.js";
 import { groupStation, groupStationPose } from "../group/Group.js";
 import { createLibrary } from "../decider/Decider.js";
 import { createScriptDecider } from "../decider/createScriptDecider.js";
 import { poseAt } from "../timeline/poseAt.js";
 import { closureReport, collisionReport, coverageProblems, reachReport } from "./oracles.js";
-import { SQUARE, SQUARE_HEADS, SQUARE_RADIUS_PX, squareStations } from "./square.js";
+import { assertPartition, partitionProblems } from "./assertPartition.js";
+import {
+  SQUARE,
+  SQUARE_HEADS,
+  SQUARE_PLACES,
+  SQUARE_RADIUS_PX,
+  squareStations,
+  squareWaitKind,
+} from "./square.js";
 
 /** AC5's number. */
 const CLOSURE_PX = 0.01;
@@ -124,9 +132,9 @@ const SQUARE_PROGRAM: Program = {
   items: [{ dance: "square-fixture", medley: "none", timesThrough: 4 }],
 };
 
-function run(throughBeat: number) {
+function run(throughBeat: number, couples = 4) {
   const registry = createFigureRegistry([FORWARD_AND_BACK, WALK_TO_STATION, WAIT_OUT]);
-  const hall = createHall(SQUARE, [{ id: "sq", couples: 4, centre: [0, 0], axis: 90 }]);
+  const hall = createHall(SQUARE, [{ id: "sq", couples, centre: [0, 0], axis: 90 }]);
   const decider = createScriptDecider(
     SQUARE_PROGRAM,
     registry,
@@ -136,6 +144,10 @@ function run(throughBeat: number) {
   decider.advance(throughBeat);
   return decider;
 }
+
+/** The fixture's set, as the hall seats it. */
+const squareSet = (couples: number) =>
+  SQUARE.start({ id: "sq", couples, centre: [0, 0], axis: 90 });
 
 describe("the square, which is not a contra", () => {
   it("has eight stations, four couples, robins on their larks' right", () => {
@@ -240,5 +252,110 @@ describe("the square runs through the same engine", () => {
       .utterances()
       .map((u) => u.text);
     expect(said).toContain("HEADS FORWARD AND BACK");
+  });
+});
+
+/**
+ * The partition property, on the one selector this milestone implements.
+ *
+ * `groupsFor` has to divide the *whole* set up — every dancer in exactly one
+ * group, dancing and standing out alike — because that is what makes it
+ * impossible for two groups of one call to claim the same dancer once the
+ * selectors get wider than one minor set. Proved here, on the fixture that
+ * knows nothing about contra, so `assertPartition` exists before it is needed.
+ */
+describe("groupsFor is a partition of the whole set", () => {
+  for (const couples of [4, 5, 6]) {
+    it(`accounts for every one of ${String(couples)} couples exactly once`, () => {
+      const set = squareSet(couples);
+      const plans = SQUARE.groupsFor(HANDS_FOUR_GROUP, set);
+      expect(partitionProblems(plans, set)).toEqual([]);
+      assertPartition(plans, set);
+      // And again in the progressed set, which turns the outs over.
+      const next = SQUARE.progression.next(set);
+      expect(partitionProblems(SQUARE.groupsFor(HANDS_FOUR_GROUP, next), next)).toEqual([]);
+    });
+  }
+
+  it("notices a dancer claimed twice, and one claimed by nobody", () => {
+    const set = squareSet(5);
+    const [square, out] = SQUARE.groupsFor(HANDS_FOUR_GROUP, set) as [GroupPlan, GroupPlan];
+    // The out couple's lark dragged into the square as well: double-claimed,
+    // and whoever they displaced is now in no group at all.
+    const both: GroupPlan = { ...square, members: { ...square.members, "1L": out.members["WL"]! } };
+    const problems = partitionProblems([both, out], set);
+    expect(problems).toHaveLength(2);
+    expect(problems.join("\n")).toMatch(/in 2 groups/);
+    expect(problems.join("\n")).toMatch(/in no group/);
+    expect(() => assertPartition([both, out], set)).toThrow(/not a partition/);
+  });
+
+  it("notices a group naming somebody who is not in the set", () => {
+    const set = squareSet(4);
+    const [square] = SQUARE.groupsFor(HANDS_FOUR_GROUP, set) as [GroupPlan];
+    const stranger: GroupPlan = {
+      ...square,
+      members: { ...square.members, "1L": "somebody-else" },
+    };
+    expect(partitionProblems([stranger], set).join("\n")).toMatch(
+      /somebody-else: in .* but not in set/,
+    );
+  });
+});
+
+/**
+ * The two outs, and a couple standing out going through the same per-call loop
+ * as everybody else.
+ *
+ * A square has no couples standing out of its own accord; the fixture seats
+ * them on purpose, one beyond each end of the set's axis, so that the engine's
+ * `wait-top`/`wait-bottom` distinction and its waiting-group path are both
+ * exercised by something that is not a contra.
+ */
+describe("the two outs", () => {
+  it("stands a fifth couple out at the bottom and a sixth at the top", () => {
+    expect(SQUARE.groupsFor(HANDS_FOUR_GROUP, squareSet(5)).map((p) => p.kind)).toEqual([
+      "set",
+      "wait-bottom",
+    ]);
+    // Both ends, in one set: the partition reads top to bottom.
+    expect(SQUARE.groupsFor(HANDS_FOUR_GROUP, squareSet(6)).map((p) => p.kind)).toEqual([
+      "wait-top",
+      "set",
+      "wait-bottom",
+    ]);
+  });
+
+  it("knows which end from the place alone, and says so for a place either side", () => {
+    expect(squareWaitKind(-1)).toBe("wait-top");
+    expect(squareWaitKind(SQUARE_PLACES)).toBe("wait-bottom");
+    expect(squareWaitKind(0)).toBeUndefined();
+    expect(squareWaitKind(SQUARE_PLACES - 1)).toBeUndefined();
+  });
+
+  it("gives a couple standing out one wait-out for the whole time through", () => {
+    // What the removed special case did, now reached by the general path: the
+    // schedule claims nothing of their cycle, so the whole of it is the gap.
+    const timeline = run(128, 6).timeline();
+    for (const suffix of ["c4/lark", "c5/robin"]) {
+      const out = timeline.dancers().find((d) => d.endsWith(suffix))!;
+      const first = timeline.figuresOf(out).filter((f) => f.start < 64);
+      expect(first.map((f) => [f.figure, f.start, f.end])).toEqual([["wait-out", 0, 64]]);
+    }
+  });
+
+  it("covers a hall with couples standing out, with no gap and no overlap", () => {
+    expect(coverageProblems(run(128, 6).timeline(), 0, 128)).toEqual([]);
+  });
+
+  it("closes (AC5) with couples standing out too", () => {
+    const report = closureReport(run(128, 6).timeline());
+    expect(report.seams).toBeGreaterThan(0);
+    expect(report.maxPositionError, JSON.stringify(report.worst)).toBeLessThan(CLOSURE_PX);
+  });
+
+  it("refuses a hall it cannot seat", () => {
+    expect(() => squareSet(3)).toThrow(/at least four/);
+    expect(() => squareSet(7)).toThrow(/four, five or six/);
   });
 });
