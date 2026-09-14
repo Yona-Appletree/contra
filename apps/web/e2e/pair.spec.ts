@@ -112,6 +112,16 @@ test("the pair page plays, scrubs and pauses", async ({ page }) => {
   await page.waitForFunction(() => document.documentElement.dataset["pairReady"] === "true");
   await expect(page.getByTestId("pair-readout")).toContainText("Walk in");
 
+  // Gate G1 ruling D: the selector is 1, 2, 3, 4, 6 and opens at 2.
+  await expect(page.getByTestId("pair-zoom-2")).toHaveAttribute("aria-pressed", "true");
+  for (const z of [1, 3, 4, 6]) {
+    await expect(page.getByTestId(`pair-zoom-${String(z)}`)).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  }
+  await expect(page.getByTestId("pair-zoom-8")).toHaveCount(0);
+
   await page.getByTestId("pair-play").click();
   await expect(page.getByTestId("pair-play")).toHaveText("Play");
 
