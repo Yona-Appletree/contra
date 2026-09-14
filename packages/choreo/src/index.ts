@@ -82,13 +82,42 @@ export { complementOf, resolveSelector } from "./decider/resolveSelector.js";
 
 // oracles and the neutrality fixture
 export type { ClosureReport, CollisionReport, ReachReport } from "./testing/oracles.js";
+export type {
+  MotionBounds,
+  MotionOptions,
+  MotionReport,
+  MotionStats,
+  MotionWorst,
+} from "./testing/oracles.js";
 export {
+  DEFAULT_MOTION_BOUNDS,
+  MOTION_STEP,
   ORACLE_STEP,
   closureReport,
   collisionReport,
   coverageProblems,
+  formatMotionReport,
+  motionReport,
   reachReport,
 } from "./testing/oracles.js";
+export type {
+  BeatWindow,
+  HandJoinAt,
+  PassesOptions,
+  Track,
+  TrajectoryResult,
+} from "./testing/trajectory.js";
+export {
+  endsOn,
+  handsJoined,
+  handsStill,
+  passes,
+  sampleTrack,
+  shoulderOf,
+  staysOnPlace,
+  velocity,
+  walksBackward,
+} from "./testing/trajectory.js";
 export {
   SQUARE,
   SQUARE_HALF_COUPLE_PX,

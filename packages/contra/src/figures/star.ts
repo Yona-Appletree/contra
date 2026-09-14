@@ -37,6 +37,8 @@ const OUT_BEATS = 1.5;
 export const star = contraFigure<StarParams>({
   id: "star",
   call: "STAR RIGHT",
+  describe:
+    "All four put the named hand into the middle and take hold of it, and walk forward round the centre; right hand star goes one way and left hand star the other. Four places is once round, two is half way. The joined hands stay over one spot in the middle of the set while the four of you walk round it. (unsure: a real star is a wrist grip or a stack of palms, and which one a hall uses varies; this draws one shared point, which reads as a palm star.)",
   lead: 4,
   beats: 8,
   defaults: { from: {}, hand: "R", places: 4, holdDrop: 3, stackPx: 1.2 },

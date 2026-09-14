@@ -24,6 +24,8 @@ export interface SlideLeftParams extends ContraParams {
 export const slideLeft = contraFigure<SlideLeftParams>({
   id: "slide-left",
   call: "SLIDE LEFT ALONG THE SET",
+  describe:
+    "In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. Nobody turns; you take the step sideways and the whole line moves together. This is the becket progression, and it is what the dance's last figure sets up. (unsure: many callers have the couple step in and along on a diagonal rather than straight sideways; this slides straight along the line.)",
   lead: 4,
   beats: 4,
   defaults: { from: {}, alongPx: COUPLE_PITCH_PX, direction: 1 },

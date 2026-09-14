@@ -39,6 +39,8 @@ export interface RollAwayParams extends ContraParams {
 export const rollAway = contraFigure<RollAwayParams>({
   id: "roll-away",
   call: "ROLL AWAY WITH A HALF SASHAY",
+  describe:
+    "Take your partner's near hand. The robin rolls across in front of the lark, turning once round as she goes, while the lark slides sideways into the place she came out of. You have traded places and you are both still facing the way you were. Four beats, hands joined through the roll.",
   lead: 4,
   beats: 4,
   defaults: { from: {}, pairs: "partners", roller: "robin", bowPx: 4.5, spins: 1, holdDrop: 6 },

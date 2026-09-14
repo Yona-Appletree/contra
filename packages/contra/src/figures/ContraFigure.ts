@@ -126,6 +126,8 @@ export interface ContraFigure<P extends ContraParams = ContraParams> extends Fig
 export interface ContraFigureSpec<P extends ContraParams> {
   id: string;
   call: string;
+  /** What the dancers do, in a caller's words. See {@link FigureDef.describe}. */
+  describe: string;
   lead: Beat;
   beats: Beat;
   defaults: Omit<P, "beats">;
@@ -143,6 +145,7 @@ export function contraFigure<P extends ContraParams>(spec: ContraFigureSpec<P>):
   return {
     id: spec.id,
     call: spec.call,
+    describe: spec.describe,
     lead: spec.lead,
     beats: spec.beats,
     defaults: spec.defaults,

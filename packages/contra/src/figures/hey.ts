@@ -49,6 +49,8 @@ export interface HeyParams extends ContraParams {
 export const hey = contraFigure<HeyParams>({
   id: "hey",
   call: "HEY FOR FOUR",
+  describe:
+    "The weave. All four dancers travel a figure of eight across the set, passing each other by alternate shoulders and never taking hands. The robins start it by passing right shoulders in the centre of the set; each then meets a lark and passes left; the larks loop round at the ends and come back. Sixteen beats, four passes in the centre at about counts 2, 6, 10 and 14, and everybody is home where they started.",
   lead: 4,
   beats: 16,
   defaults: { from: {}, start: "robins-right", half: false, trackPx: 5, joinBeats: 2 },

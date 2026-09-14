@@ -78,6 +78,8 @@ export interface WaitOutParams extends FigureParams {
 export const WAIT_OUT: FigureDef<WaitOutParams> = {
   id: "wait-out",
   call: "WAIT IT OUT AND CROSS OVER",
+  describe:
+    "A couple with nobody to dance with steps together, takes two hands and waits out a whole time through, then steps back out and crosses to the other line so they come back in on the other side. This is the engine's form-neutral version; a form that knows how its own end couples cross registers its own over this id.",
   lead: 0,
   beats: 64,
   defaults: {

@@ -22,6 +22,8 @@ export interface PassThroughParams extends ContraParams {
 export const passThrough = contraFigure<PassThroughParams>({
   id: "pass-through",
   call: "PASS THROUGH",
+  describe:
+    "Walk forward past the dancer opposite you, passing right shoulders, and stop on the other side without turning round. Four beats. Whatever comes next is what tells you which way to face.",
   lead: 4,
   beats: 4,
   defaults: { from: {}, direction: "across", bowPx: DEFAULT_BOW_PX },

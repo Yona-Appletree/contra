@@ -48,6 +48,8 @@ export interface AllemandeParams extends ContraParams {
 export const allemande = contraFigure<AllemandeParams>({
   id: "allemande",
   call: "ALLEMANDE",
+  describe:
+    "Join the named hands — forearms up, palms together, elbows bent — and walk forward round each other, keeping the joined hands over the one spot between you. Once round for a plain allemande; once and a half where the dance wants you to change sides. Look at each other the whole way, and the free hand stays down at your side.",
   lead: 4,
   beats: 8,
   defaults: {

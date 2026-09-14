@@ -50,6 +50,8 @@ export interface RightAndLeftThroughParams extends ContraParams {
 export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
   id: "right-and-left-through",
   call: "RIGHT AND LEFT THROUGH",
+  describe:
+    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one opposite. On the far side each lark takes the robin who has arrived beside him — his left hand in her left, his right behind her back — and courtesy turns her: he backs up while she walks forward round him, and the couple ends facing back across the set. Eight beats, both couples doing it at once.",
   lead: 4,
   beats: 8,
   defaults: {

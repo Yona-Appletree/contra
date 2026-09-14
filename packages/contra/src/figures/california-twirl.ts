@@ -54,6 +54,8 @@ export interface CaliforniaTwirlParams extends ContraParams {
 export const californiaTwirl = contraFigure<CaliforniaTwirlParams>({
   id: "california-twirl",
   call: "CALIFORNIA TWIRL",
+  describe:
+    "Take inside hands with your partner and raise them, then walk forward: one of you walks round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: which of the two turns under varies from hall to hall; this turns the robin under.)",
   lead: 4,
   beats: 4,
   defaults: { from: {}, pairs: "partners", holdDrop: 0, direction: 1 },

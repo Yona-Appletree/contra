@@ -37,6 +37,8 @@ export interface PetronellaParams extends ContraParams {
 export const petronella = contraFigure<PetronellaParams>({
   id: "petronella",
   call: "PETRONELLA TURN",
+  describe:
+    "Everybody turns once round to their own right while travelling one place clockwise round the set, so the four of you rotate as a ring without holding anybody. Four beats, and it almost always follows a balance of the ring. The hands come up and out as you spin — nobody is holding on.",
   lead: 4,
   beats: 4,
   defaults: { from: {}, places: 1, spins: 1, bowPx: 3 },

@@ -80,6 +80,8 @@ const OPEN_BEATS = 1.2;
 export const balance: ContraFigure<BalanceParams> = contraFigure<BalanceParams>({
   id: "balance",
   call: "BALANCE",
+  describe:
+    "Take both hands with the dancer you are facing, step in toward them onto one foot and touch the other beside it, then step back and touch again. Four beats, two steps in and two out; nobody travels anywhere, it is a rock and not a walk. The hands stay joined at the end, because the swing that almost always follows wants the pair already closed up.",
   lead: 4,
   beats: 4,
   defaults: {
@@ -99,6 +101,8 @@ export const balance: ContraFigure<BalanceParams> = contraFigure<BalanceParams>(
 export const balanceRing: ContraFigure<BalanceParams> = contraFigure<BalanceParams>({
   id: "balance-ring",
   call: "BALANCE THE RING",
+  describe:
+    "All four join hands in a ring. Balance in toward the middle for two beats and back out for two, hands held all the way round. The ring opens back out to the places it started from, because what usually follows — a petronella, a pass through — is measured off the set's own places and not off the closed-up ring.",
   lead: 4,
   beats: 4,
   defaults: {
