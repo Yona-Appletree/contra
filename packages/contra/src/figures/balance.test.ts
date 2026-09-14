@@ -1,76 +1,50 @@
 import { HOLD_SPACING_PX, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME } from "../pair/PairFrame.js";
-import { worstShortfall } from "./armShortfall.js";
-import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balance, balanceRock } from "./balance.js";
-import { REST_FEET } from "./pairPose.js";
-
-const frame = DEFAULT_PAIR_FRAME;
-const at = (t: number, params = balance.defaults) => ({
-  lark: balance.sample(frame, "lark", t, params),
-  robin: balance.sample(frame, "robin", t, params),
-});
+import { BECKET } from "../formation/becket.js";
+import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { balance, balanceRing } from "./balance.js";
+import { figureMoves, figureProblems, probeFigure, probeGroup } from "./testing.js";
 
 describe("balance", () => {
-  it("is four beats and rocks 1.0 px forward by default", () => {
-    expect(balance.beats).toBe(4);
-    expect(balance.defaults).toEqual({ rock: 1.0, takeHands: false });
-    expect(balance.params).toEqual(["rock", "takeHands"]);
+  for (const formation of [DUPLE_IMPROPER, BECKET]) {
+    it(`reaches, joins, ends and keeps its distance in ${formation.id}`, () => {
+      const group = probeGroup(formation);
+      for (const pairs of ["neighbors", "partners"] as const) {
+        for (const hold of ["two", "one", "none"] as const) {
+          expect(
+            figureProblems(probeFigure(balance, { pairs, hold }, { group })),
+            `${pairs} ${hold}`,
+          ).toEqual([]);
+        }
+      }
+      expect(figureProblems(probeFigure(balanceRing, {}, { group }))).toEqual([]);
+    });
+  }
+
+  it("closes the pair to the frame's hold spacing, which is where a swing starts", () => {
+    for (const pairs of ["neighbors", "partners"] as const) {
+      const ends = figureMoves(balance, { pairs });
+      expect(dist(ends["1L"]!.p, ends[pairs === "neighbors" ? "2R" : "1R"]!.p)).toBeCloseTo(
+        HOLD_SPACING_PX,
+        9,
+      );
+    }
   });
 
-  it("rocks forward, then back, and ends level", () => {
-    expect(balanceRock(0)).toBe(0);
-    expect(balanceRock(1)).toBe(1);
-    expect(balanceRock(3)).toBe(-1);
-    expect(balanceRock(4)).toBe(0);
-  });
-
-  it("closes the gap by twice the rock and opens it by twice the back rock", () => {
-    const together = at(1);
-    const apart = at(3);
-    expect(dist(together.lark.p, together.robin.p)).toBeCloseTo(HOLD_SPACING_PX - 2, 9);
-    expect(dist(apart.lark.p, apart.robin.p)).toBeCloseTo(
-      HOLD_SPACING_PX + 2 * BALANCE_BACK_RATIO,
-      9,
+  it("leaves the pair facing each other", () => {
+    const ends = figureMoves(balance, { pairs: "neighbors" });
+    expect(Math.abs(((ends["1L"]!.facing - ends["2R"]!.facing) % 360) + 360) % 360).toBeCloseTo(
+      180,
+      6,
     );
-    expect(dist(at(0).lark.p, at(0).robin.p)).toBeCloseTo(HOLD_SPACING_PX, 9);
-    expect(dist(at(4).lark.p, at(4).robin.p)).toBeCloseTo(HOLD_SPACING_PX, 9);
   });
 
-  it("never leans more than the cap, however big the rock is", () => {
-    for (let n = 0; n <= 32; n++) {
-      const { lark } = at(n / 8, { rock: 4, takeHands: false });
-      expect(Math.abs(lark.lean)).toBeLessThanOrEqual(BALANCE_LEAN_CAP);
-    }
-  });
-
-  it("keeps the joined hands on one shared point the whole way through", () => {
-    for (let n = 0; n <= 32; n++) {
-      const { lark, robin } = at(n / 8);
-      expect(lark.hands.L).toEqual(robin.hands.R);
-      expect(lark.hands.R).toEqual(robin.hands.L);
-    }
-  });
-
-  it("plants the feet and puts them back where the quiet motion would", () => {
-    expect(at(0).lark.feet).toEqual(REST_FEET);
-    expect(at(4).lark.feet).toEqual(REST_FEET);
-    // In the middle the feet stay where they were while the body moves over them.
-    const planted = at(1).lark.feet;
-    expect(planted?.L[0]).toBeLessThan(REST_FEET.L[0]);
-  });
-
-  it("takes hands over the first beat when asked", () => {
-    const taking = { rock: 1.0, takeHands: true };
-    const start = at(0, taking);
-    expect(start.lark.hands.L).not.toEqual(start.robin.hands.R);
-    const held = at(1, taking);
-    expect(held.lark.hands.L).toEqual(held.robin.hands.R);
-  });
-
-  it("never puts a hand out of reach (AC1)", () => {
-    expect(worstShortfall(balance, frame).short).toBe(0);
-    expect(worstShortfall(balance, frame, { takeHands: true }).short).toBe(0);
-    expect(worstShortfall(balance, frame, { rock: 1.3 }).short).toBe(0);
+  it("rocks the ring in and out and leaves everybody on it", () => {
+    const ends = figureMoves(balanceRing);
+    const centre = [0, 0];
+    const radii = Object.values(ends).map((spot) => dist(spot.p, centre as [number, number]));
+    for (const r of radii) expect(r).toBeCloseTo(radii[0]!, 9);
+    // Four dancers on a ring with neighbours a hold spacing apart.
+    expect(radii[0]!).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 9);
   });
 });

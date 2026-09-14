@@ -1,86 +1,67 @@
-import { angleDiff, dist } from "@caller/core";
+import { dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME, OPEN_PAIR_HALF_PX, norm360 } from "../pair/PairFrame.js";
-import { worstShortfall } from "./armShortfall.js";
-import { resolveParams } from "./FigureDef.js";
-import type { SwingParams } from "./swing.js";
-import { swing, swingEndFacing } from "./swing.js";
-
-const frame = DEFAULT_PAIR_FRAME;
-const params = (over: Partial<SwingParams> = {}): SwingParams => resolveParams(swing, over);
-const at = (t: number, over: Partial<SwingParams> = {}) => {
-  const p = params(over);
-  return {
-    lark: swing.sample(frame, "lark", t, p),
-    robin: swing.sample(frame, "robin", t, p),
-  };
-};
+import { BECKET } from "../formation/becket.js";
+import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { swing } from "./swing.js";
+import {
+  figureMoves,
+  figureProblems,
+  probeFigure,
+  probeGroup,
+  spotError,
+  stationSpot,
+} from "./testing.js";
 
 describe("swing", () => {
-  it("is eight beats and two turns by default, and its length is a parameter", () => {
-    expect(swing.beats).toBe(8);
-    expect(swing.defaults).toEqual({ turns: 2, handOffset: 5, beats: 8, endFacing: null });
-    expect(swing.beatsOf?.(params({ beats: 12 }))).toBe(12);
-  });
-
-  it("opens out with the lark on the left of the way they face", () => {
-    const end = at(8);
-    const facing = swingEndFacing(frame, params());
-    expect(facing).toBe(270);
-    expect(norm360(end.lark.facing)).toBeCloseTo(facing, 6);
-    expect(norm360(end.robin.facing)).toBeCloseTo(facing, 6);
-    expect(dist(end.lark.p, end.robin.p)).toBeCloseTo(2 * OPEN_PAIR_HALF_PX, 9);
-    // The lark is to the left of the facing direction, the robin to the right.
+  it("reaches, joins, ends and keeps its distance in duple improper", () => {
+    const group = probeGroup(DUPLE_IMPROPER);
+    expect(figureProblems(probeFigure(swing, {}, { group }))).toEqual([]);
     expect(
-      angleDiff(facing, Math.atan2(end.lark.p[1], end.lark.p[0]) * (180 / Math.PI)),
-    ).toBeCloseTo(-90, 6);
+      figureProblems(probeFigure(swing, { pairs: "partners", endFacing: "down" }, { group })),
+    ).toEqual([]);
+    expect(figureProblems(probeFigure(swing, { turns: 3, beats: 16 }, { group }))).toEqual([]);
   });
 
-  it("a half turn more leaves the pair the other way round", () => {
-    expect(swingEndFacing(frame, params({ turns: 2.5, beats: 12 }))).toBe(90);
-    expect(swingEndFacing({ ...frame, axis: 0 }, params({ turns: 2.5, beats: 12 }))).toBe(270);
+  it("reaches, joins, ends and keeps its distance in becket", () => {
+    const group = probeGroup(BECKET);
+    expect(figureProblems(probeFigure(swing, { endFacing: "down" }, { group }))).toEqual([]);
+    expect(figureProblems(probeFigure(swing, { pairs: "partners" }, { group }))).toEqual([]);
   });
 
-  it("holds the outstretched hands on one shared floor point while it turns", () => {
-    for (let n = 8; n <= 52; n++) {
-      const { lark, robin } = at(n / 8);
-      expect(lark.hands.L).toEqual(robin.hands.R);
-    }
+  it("is the duple improper progression when it is the neighbours who swing", () => {
+    // The lark ends on the left of the robin facing across, which for a pair
+    // standing up and down a line is exactly where the next time through wants
+    // them: everybody on the place of the neighbour they swung.
+    const ends = figureMoves(swing, { pairs: "neighbors" });
+    expect(spotError(ends["1L"]!, stationSpot(DUPLE_IMPROPER, "2R"))).toBeLessThan(1e-9);
+    expect(spotError(ends["2R"]!, stationSpot(DUPLE_IMPROPER, "1L"))).toBeLessThan(1e-9);
+    expect(spotError(ends["1R"]!, stationSpot(DUPLE_IMPROPER, "2L"))).toBeLessThan(1e-9);
+    expect(spotError(ends["2L"]!, stationSpot(DUPLE_IMPROPER, "1R"))).toBeLessThan(1e-9);
   });
 
-  it("never joins the hands that are on the partner's back and shoulder", () => {
-    for (let n = 8; n <= 52; n++) {
-      const { lark, robin } = at(n / 8);
-      const a = lark.hands.R;
-      const b = robin.hands.L;
-      if (a === "down" || b === "down") throw new Error("unreachable");
-      expect(dist(a.p, b.p)).toBeGreaterThan(0.1);
-    }
+  it("ends with the robin on the right of the lark, both facing where it was told", () => {
+    const ends = figureMoves(swing, { pairs: "partners", endFacing: "down" });
+    // Facing down the set (`+y`), the lark's right is `−x`, where the robin is.
+    expect(ends["1L"]!.facing).toBe(90);
+    expect(ends["1R"]!.facing).toBe(90);
+    expect(ends["1R"]!.p[0]).toBeLessThan(ends["1L"]!.p[0]);
   });
 
-  it("handOffset moves the joined hand and both dancers follow it", () => {
-    const near = at(4, { handOffset: 5 });
-    const far = at(4, { handOffset: 9 });
-    const a = near.lark.hands.L;
-    const b = far.lark.hands.L;
-    if (a === "down" || b === "down") throw new Error("unreachable");
-    expect(dist(a.p, b.p)).toBeCloseTo(4, 6);
-    expect(far.lark.hands.L).toEqual(far.robin.hands.R);
+  it("opens out on to the formation's places however close the pair started", () => {
+    // After a balance the pair is a hold spacing apart, not a place pitch; the
+    // swing still ends on the stations.
+    const closed = {
+      "1L": { p: [16, -7] as [number, number], facing: 90 },
+      "2R": { p: [16, 7] as [number, number], facing: 270 },
+      "1R": { p: [-16, -7] as [number, number], facing: 90 },
+      "2L": { p: [-16, 7] as [number, number], facing: 270 },
+    };
+    const ends = figureMoves(swing, { pairs: "neighbors", from: closed });
+    expect(dist(ends["1L"]!.p, ends["2R"]!.p)).toBeCloseTo(20, 9);
+    expect(spotError(ends["1L"]!, stationSpot(DUPLE_IMPROPER, "2R"))).toBeLessThan(1e-9);
   });
 
-  it("buzzes: the step rate doubles and the feet are the figure's own", () => {
-    const mid = at(4);
-    expect(mid.lark.stepRate).toBe(2);
-    expect(mid.lark.feet).toBeDefined();
-    expect(mid.lark.lean).toBeLessThan(0);
-  });
-
-  it("never puts a hand out of reach (AC1)", () => {
-    expect(worstShortfall(swing, frame).short).toBe(0);
-    expect(worstShortfall(swing, frame, { turns: 2.5, beats: 12 }).short).toBe(0);
-    expect(
-      worstShortfall({ ...swing }, { ...frame, axis: 0 }, { turns: 2.5, beats: 12 }).short,
-    ).toBe(0);
-    expect(worstShortfall(swing, frame, { handOffset: 9 }).short).toBe(0);
+  it("says so when across is ambiguous", () => {
+    expect(() => figureMoves(swing, { pairs: "partners" })).toThrow(/ambiguous/);
   });
 });

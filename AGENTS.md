@@ -25,13 +25,19 @@ names the default home, not a prohibition.
 
 ## The dependency rule
 
-Arrows mean "may import". Enforced by `scripts/check-deps.mjs`
+Arrows mean "may import", and **a package may import any package below it,
+not only the next one down** (director ruling DD17): the arrows are a layering,
+not a chain of single hops. `contra` therefore imports `core` directly — a
+figure's whole output is a `PoseSample`, and it needs the arm solver, the quiet
+motion, the seam ease and thirty-odd geometry helpers, which is a layer rather
+than a slice worth re-exporting. Enforced by `scripts/check-deps.mjs`
 (`pnpm check:deps`, part of `pnpm validate`): a workspace-wide scan of
 import specifiers against this table, failing on any edge not listed and on
 any import from `spikes/`.
 
 ```text
 core ← choreo ← contra          (form-neutral model; contra is one form)
+core ← contra                   (a contra figure emits poses, so it needs core)
 core ← hall                     (renderer reads pose samples and the timeline)
 core ← music                    (clock, tunes, medleys)
 ui-design ← ui-base             (theme tokens, shadcn primitives)

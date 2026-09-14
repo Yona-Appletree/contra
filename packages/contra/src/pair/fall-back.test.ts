@@ -1,6 +1,6 @@
 import { HOLD_SPACING_PX, LINE_OFFSET_PX, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAIR_FRAME, twoHandHold } from "../pair/PairFrame.js";
+import { DEFAULT_PAIR_FRAME, twoHandHold } from "./PairFrame.js";
 import { worstShortfall } from "./armShortfall.js";
 import { fallBack } from "./fall-back.js";
 

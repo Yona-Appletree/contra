@@ -1,5 +1,5 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
-import type { PairFrame, PairRole } from "../pair/PairFrame.js";
+import type { PairFrame, PairRole } from "./PairFrame.js";
 
 /**
  * A parameterised figure: everything needed to sample two dancers doing it,

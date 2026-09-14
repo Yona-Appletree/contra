@@ -1,7 +1,7 @@
 import type { Beat, Hand, PoseSample, Side, Style, Vec2 } from "@caller/core";
 import { NEUTRAL_STYLE, q256Vec2, quietMotion, shouldersAt, solveArm } from "@caller/core";
-import type { PairFrame, PairRole } from "../pair/PairFrame.js";
-import { PAIR_ROLES, handDown } from "../pair/PairFrame.js";
+import type { PairFrame, PairRole } from "./PairFrame.js";
+import { PAIR_ROLES, handDown } from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import { resolveParams, sampleVelocity } from "./FigureDef.js";
 
