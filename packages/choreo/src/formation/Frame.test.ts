@@ -1,6 +1,14 @@
 import { HOLD_SPACING_PX, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { frame, frameAngle, framePoint, frameVector, reverseFrame } from "./Frame.js";
+import {
+  frame,
+  frameAngle,
+  framePoint,
+  frameVector,
+  localAngle,
+  localPoint,
+  reverseFrame,
+} from "./Frame.js";
 
 describe("the group frame", () => {
   it("is the identity when the axis points down the screen", () => {
@@ -49,5 +57,24 @@ describe("the group frame", () => {
     const f = frame([100, 100], 90);
     expect(frameVector(f, [3, 4])[0]).toBeCloseTo(3, 9);
     expect(frameVector(f, [3, 4])[1]).toBeCloseTo(4, 9);
+  });
+
+  it("localPoint/localAngle invert framePoint/frameAngle, at any axis", () => {
+    for (const axis of [0, 37, 90, 180, 271]) {
+      const f = frame([12, -3], axis);
+      for (const local of [
+        [0, 0],
+        [3, 4],
+        [-7, 11],
+      ] as const) {
+        const world = framePoint(f, [...local]);
+        const back = localPoint(f, world);
+        expect(back[0]).toBeCloseTo(local[0], 9);
+        expect(back[1]).toBeCloseTo(local[1], 9);
+      }
+      for (const localA of [0, 42, 190]) {
+        expect(localAngle(f, frameAngle(f, localA))).toBeCloseTo(localA, 9);
+      }
+    }
   });
 });

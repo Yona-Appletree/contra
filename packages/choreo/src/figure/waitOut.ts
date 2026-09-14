@@ -52,6 +52,29 @@ export interface WaitOutParams extends FigureParams {
    * the end.
    */
   startPlaces: Record<StationId, EndPose>;
+  /**
+   * Whether this instance opens by stepping together to take hands.
+   *
+   * Defaults `true`, today's only usage. `false` is for a waiting couple's
+   * cycle that a `"line"`-selector call has already swept part of: the gap
+   * this instance fills does not start at the couple's own beat 0, so there is
+   * nothing to step in *from* — they arrive at their own resting place (in
+   * `@caller/contra`'s wrapper, wherever the sweep left them, since a call
+   * that reaches a waiting couple returns it to its own station) already
+   * standing where the crossing itself starts from. `sample`/`geometry` skip
+   * the step-together ramp entirely and hold there instead.
+   */
+  join: boolean;
+  /**
+   * Whether this instance closes by stepping back out and crossing over.
+   *
+   * Defaults `true`. `false` is for a gap that a later call in the same cycle
+   * still has to sweep the couple out of — a leading gap before a sweep, most
+   * concretely — so there is nothing to cross *to* yet: `ends` reports the
+   * held pose, not a crossed one, and the couple stays there for the rest of
+   * this instance's own beats.
+   */
+  cross: boolean;
   /** Beats spent stepping together to take hands. */
   joinBeats: Beat;
   /** Beats spent letting go and stepping back out, just before the crossing. */
@@ -98,6 +121,8 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
   defaults: {
     crossTo: "swap",
     startPlaces: {},
+    join: true,
+    cross: true,
     joinBeats: 4,
     partBeats: 2,
     crossBeats: 8,
@@ -110,7 +135,7 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     const g = geometry(group, params);
     const self = g.side(station);
 
-    if (t >= g.crossStart) {
+    if (params.cross && t >= g.crossStart) {
       const step = walkStep(
         self.home,
         g.target(station),
@@ -125,14 +150,26 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
       };
     }
 
-    // Where the body is: stepping together, waiting, or stepping back out.
-    const walk =
-      t < g.joinBeats
+    // Where the body is: stepping together, waiting, or stepping back out. A
+    // gap that does not join (a "line" call has already claimed this couple's
+    // opening beats, so there is no "in" to step together from) never runs the
+    // first ramp at all — it holds at `home` for as long as `join` stays
+    // false, which is exactly where a call that sweeps a waiting couple in
+    // leaves it. The part-out ramp always runs on schedule regardless of
+    // `cross`, so a gap this instance's own beats run out on — whether or not
+    // it goes on to cross — ends at `home` too.
+    const walk = !params.join
+      ? undefined
+      : t < g.joinBeats
         ? walkStep(self.start, self.hold, t, g.joinBeats, 0)
         : t >= g.partStart
           ? walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0)
           : undefined;
-    const pose = walk ? standing(walk.p, walk.facing) : standing(self.hold.p, self.hold.facing);
+    // The fallback is reached mid-hold (`join` true, between the two ramps) or
+    // for the whole span (`join` false, which never ramps in at all) — `hold`
+    // in the first case, `home` in the second.
+    const restPose = params.join ? self.hold : self.home;
+    const pose = walk ? standing(walk.p, walk.facing) : standing(restPose.p, restPose.facing);
 
     const myRole = groupStation(group, station).role;
     const theirRole = groupStation(group, g.otherId(station)).role;
@@ -222,8 +259,16 @@ function geometry(group: Group, params: WaitOutParams) {
     [b.id]: { start: startB, home: homeB, hold: { p: holdB, facing: faceB }, inside: "R" },
   };
 
-  const joinBeats = Math.min(params.joinBeats, params.beats);
-  const crossBeats = Math.min(params.crossBeats, params.beats - joinBeats);
+  // `join` false means there is no ramp *in*: a gap that does not open at the
+  // couple's own beat 0 has nothing to step together from, so that beat count
+  // collapses to zero. `cross` only gates the very last phase — the walk *to*
+  // the far station — never the part-out that precedes it: a gap a later call
+  // is going to sweep the couple out of still steps back out of the hold on
+  // schedule, landing them at their own resting place (`home`) exactly when
+  // this instance's beats run out, which is what lets the call that sweeps
+  // them in next pick them up from a station rather than from a hand hold.
+  const joinBeats = params.join ? Math.min(params.joinBeats, params.beats) : 0;
+  const crossBeats = params.cross ? Math.min(params.crossBeats, params.beats - joinBeats) : 0;
   const crossStart = params.beats - crossBeats;
   const partBeats = Math.min(params.partBeats, crossStart - joinBeats);
   const centre = group.frame.centre;
@@ -244,14 +289,25 @@ function geometry(group: Group, params: WaitOutParams) {
     side,
     otherId,
     /**
-     * Where this station's dancer stands once the crossing is done.
+     * Where this station's dancer stands once this instance is done.
      *
-     * Reckoned from where the couple *started*, not from the waiting place. The
-     * two are the same unless the dance progresses in its own first figure, in
-     * which case the waiting couple slid into the waiting place with everybody
-     * else and has to land one place short of it, ready to slide again.
+     * When `cross` is false there is nothing to cross to yet — a later call
+     * this cycle still owns that — so this is `home`, exactly where the
+     * part-out ramp above always lands by `t = beats` regardless of `cross`:
+     * a station, not a hand hold, which is what a call that sweeps the couple
+     * in next needs to start from.
+     *
+     * Otherwise it is reckoned from where the couple *started*, not from the
+     * waiting place. The two are the same unless the dance progresses in its
+     * own first figure, in which case the waiting couple slid into the
+     * waiting place with everybody else and has to land one place short of
+     * it, ready to slide again.
      */
     target(id: StationId): EndPose {
+      if (!params.cross) {
+        const home = side(id).home;
+        return { p: home.p, facing: home.facing };
+      }
       if (params.crossTo === "mirror") {
         const from = side(id).start;
         return {

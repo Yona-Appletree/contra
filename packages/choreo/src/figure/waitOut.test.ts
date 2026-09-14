@@ -27,6 +27,8 @@ const group = (axis = 90) =>
   );
 
 const params = (over: object = {}) => withDefaults(WAIT_OUT, over, 64);
+/** Like {@link params}, but with a beat count of its own, since `withDefaults`'s own third argument overrides any `beats` in `over`. */
+const paramsFor = (beats: number, over: object = {}) => withDefaults(WAIT_OUT, over, beats);
 
 describe("wait-out", () => {
   it("swaps the two stations by the end, exactly", () => {
@@ -146,6 +148,60 @@ describe("wait-out", () => {
     // The lark starts on opposite sides of the set at the two ends.
     expect(groupStationPose(top, "WL").p[0]).toBeCloseTo(-16, 9);
     expect(groupStationPose(bottom, "WL").p[0]).toBeCloseTo(16, 9);
+  });
+
+  describe("the join/cross split (M2's waiting-couple sweep)", () => {
+    it("defaults both true, and is byte-identical to a whole-cycle wait-out", () => {
+      const g = group();
+      const withDefaultsP = params();
+      const explicitP = params({ join: true, cross: true });
+      for (const t of [0, 1, 4, 20, 32, 56, 60, 64]) {
+        expect(WAIT_OUT.sample(g, "WL", t, explicitP)).toEqual(WAIT_OUT.sample(g, "WL", t, withDefaultsP));
+        expect(WAIT_OUT.sample(g, "WR", t, explicitP)).toEqual(WAIT_OUT.sample(g, "WR", t, withDefaultsP));
+      }
+      expect(WAIT_OUT.ends(g, explicitP)).toEqual(WAIT_OUT.ends(g, withDefaultsP));
+    });
+
+    it("join: false holds at the resting place from beat 0, no step-together ramp", () => {
+      const g = group();
+      const p = paramsFor(8, { join: false, cross: false });
+      const rest = groupStationPose(g, "WL");
+      // No ramp at all: beat 0 and beat 4 (mid-ramp in the joined case) agree.
+      expect(WAIT_OUT.sample(g, "WL", 0, p).p).toEqual(rest.p);
+      expect(WAIT_OUT.sample(g, "WL", 4, p).p).toEqual(rest.p);
+    });
+
+    it("cross: false still steps back out on schedule, ending at the station (not crossed)", () => {
+      const g = group();
+      const p = paramsFor(8, { cross: false });
+      const rest = groupStationPose(g, "WL");
+      const atEnd = WAIT_OUT.sample(g, "WL", 8, p);
+      // Lands back at its own station — the part-out ramp always runs — never
+      // at the far one: cross: false means nothing to cross to yet.
+      expect(atEnd.p).toEqual(rest.p);
+      expect(WAIT_OUT.ends(g, p)["WL"]!.p).toEqual(rest.p);
+      expect(WAIT_OUT.ends(g, p)["WL"]!.facing).toEqual(rest.facing);
+    });
+
+    it("a leading (join, no cross) instance seams into a trailing (cross, no join) one", () => {
+      // The realistic shape from `createScriptDecider`'s gap fill: a call
+      // sweeps the couple out of the middle of their own wait-out span, so the
+      // couple gets two instances — a leading gap that joins, steps back out
+      // and stops (no cross), and a trailing one that picks up from that same
+      // station and crosses without joining again.
+      const g = group();
+      const leading = paramsFor(24, { join: true, cross: false });
+      const trailing = paramsFor(40, { join: false, cross: true });
+      // Each station's own two instances seam to 0 px.
+      for (const station of ["WL", "WR"] as const) {
+        const end = WAIT_OUT.sample(g, station, 24, leading);
+        const start = WAIT_OUT.sample(g, station, 0, trailing);
+        expect(dist(end.p, start.p)).toBeCloseTo(0, 9);
+        expect(end.facing).toBeCloseTo(start.facing, 9);
+      }
+      // And the trailing instance still ends exactly on the ordinary swap.
+      expect(WAIT_OUT.ends(g, trailing)["WL"]!.p).toEqual(groupStationPose(g, "WR").p);
+    });
   });
 
   it("refuses a group that is not a couple", () => {

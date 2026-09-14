@@ -17,9 +17,14 @@ import {
   LINE_OFFSET_PX,
   frame,
   framePoint,
+  localAngle,
+  localPoint,
   reverseFrame,
+  stationPose,
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
+import type { ShadowPart } from "./shadowSeam.js";
+import { partitionShadowSeams } from "./shadowSeam.js";
 
 /**
  * Duple improper: two long lines, couples alternating down each line, the ones
@@ -73,6 +78,146 @@ export const DUPLE_IMPROPER_WAIT_STATIONS: readonly Station[] = [
   { id: "WL", role: "lark", facing: 0, p: [-HALF_ACROSS, 0] },
   { id: "WR", role: "robin", facing: 180, p: [HALF_ACROSS, 0] },
 ];
+
+/**
+ * The `"shadow-pair"` seam group's four stations (M2, D7): the couple whose
+ * own progression faces this seam from above (`N`, always the couple
+ * travelling `direction: -1` — a "twos" in its own minor set), paired with
+ * the couple facing it from below (`F`, always `direction: 1`, a "ones" in
+ * its own). See `shadowSeam.ts` for why this is always the pairing, and
+ * `NL`/`NR`/`FL`/`FR` (near/far, not the seam-local couple's own "1"/"2"
+ * labels, since either couple may be a "ones" or a "twos" of its own set
+ * depending which end of the seam it sits on) for the naming this milestone
+ * settled on instead of the brief's own `1L+`/`2R-` sketch — see the M2
+ * report for why.
+ */
+const SHADOW_SEAM_STATIONS: readonly Station[] = [
+  { id: "NL", role: "lark", facing: DOWN, p: [-HALF_ACROSS, -HALF_ALONG] },
+  { id: "NR", role: "robin", facing: DOWN, p: [HALF_ACROSS, -HALF_ALONG] },
+  { id: "FL", role: "lark", facing: UP, p: [HALF_ACROSS, HALF_ALONG] },
+  { id: "FR", role: "robin", facing: UP, p: [-HALF_ACROSS, HALF_ALONG] },
+];
+
+/** A true end's own two stations — nobody on the far side of this seam. */
+const SHADOW_END_STATIONS: readonly Station[] = [
+  { id: "NL", role: "lark", facing: 0, p: [-HALF_ACROSS, 0] },
+  { id: "NR", role: "robin", facing: 180, p: [HALF_ACROSS, 0] },
+];
+
+/** One `"shadow-pair"` seam group, or a true end's smaller element. */
+function shadowGroupPlan(set: SetState, part: ShadowPart): GroupPlan {
+  if (part.kind === "end") {
+    const couple = part.near;
+    return {
+      id: `${set.id}/shadow-end${couple.place}`,
+      kind: "set",
+      frame: at(set, couple.place),
+      stations: SHADOW_END_STATIONS.map((s) => ({ ...s })),
+      members: { NL: dancerOn(couple, "lark"), NR: dancerOn(couple, "robin") },
+      couples: [couple.id],
+    };
+  }
+  const { near, far } = part;
+  return {
+    id: `${set.id}/shadow${near.place}`,
+    kind: "set",
+    frame: at(set, (near.place + far.place) / 2),
+    stations: SHADOW_SEAM_STATIONS.map((s) => ({ ...s })),
+    members: {
+      NL: dancerOn(near, "lark"),
+      NR: dancerOn(near, "robin"),
+      FL: dancerOn(far, "lark"),
+      FR: dancerOn(far, "robin"),
+    },
+    couples: [near.id, far.id],
+  };
+}
+
+/**
+ * A true-end waiting couple's two stations, re-expressed in `into`'s own
+ * frame and suffixed by which end it is at — `"top"`/`"bottom"`, the same two
+ * words `GroupPlan.kind`'s own two outs use.
+ *
+ * Reuses the plain wait `GroupPlan`'s own frame (`reverseFrame` at the
+ * bottom, exactly as `groupsFor("hands-four", ...)` already builds it) and
+ * converts its stations' world poses into `into`'s local axes
+ * (`localPoint`/`localAngle`, `@caller/choreo`'s inverse of `framePoint`/
+ * `frameAngle`) rather than re-deriving the geometry a second time.
+ */
+function widenedWaitStations(
+  set: SetState,
+  couple: CoupleState,
+  into: Frame,
+): { stations: Station[]; members: Record<StationId, DancerId> } {
+  const base = at(set, couple.place);
+  const waitFrame = couple.direction === 1 ? reverseFrame(base) : base;
+  const suffix = waitKindOf(couple) === "wait-top" ? "top" : "bottom";
+  const stations = DUPLE_IMPROPER_WAIT_STATIONS.map((s) => {
+    const world = stationPose(waitFrame, s);
+    return { id: `${s.id}-${suffix}`, role: s.role, p: localPoint(into, world.p), facing: localAngle(into, world.facing) };
+  });
+  const members: Record<StationId, DancerId> = {
+    [`WL-${suffix}`]: dancerOn(couple, "lark"),
+    [`WR-${suffix}`]: dancerOn(couple, "robin"),
+  };
+  return { stations, members };
+}
+
+/**
+ * `groupsFor("line", set)`: each minor set's own four stations, widened —
+ * only at a true end, only there — to fold in the waiting couple beyond it.
+ *
+ * Always exactly one `kind: "set"` plan per minor set, never a separate wait
+ * plan for the couple it absorbs: `"line"` is defined to widen maximally
+ * regardless of any one call's own `ends`, and a call that does not want a
+ * given end excludes those stations for itself
+ * (`createScriptDecider`'s `excludedByEnds`, reading the `"wait-top"`/
+ * `"wait-bottom"` tags below) rather than `groupsFor` producing two different
+ * partitions for the same selector.
+ */
+function lineGroupsFor(set: SetState): GroupPlan[] {
+  const parts = partitionDupleImproper(set);
+  const setIdx = parts.map((p, i) => (p.kind === "set" ? i : -1)).filter((i) => i >= 0);
+  const firstIdx = setIdx[0];
+  const lastIdx = setIdx[setIdx.length - 1];
+  const plans: GroupPlan[] = [];
+  parts.forEach((part, i) => {
+    if (part.kind !== "set") return;
+    const [ones, twos] = part.couples as [CoupleState, CoupleState];
+    const dancingFrame = at(set, (ones.place + twos.place) / 2);
+    const stations: Station[] = DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));
+    const members: Record<StationId, DancerId> = {
+      "1L": dancerOn(ones, "lark"),
+      "1R": dancerOn(ones, "robin"),
+      "2L": dancerOn(twos, "lark"),
+      "2R": dancerOn(twos, "robin"),
+    };
+    const couples = [ones.id, twos.id];
+    const top = parts[0]!;
+    const bottom = parts[parts.length - 1]!;
+    if (i === firstIdx && top.kind !== "set") {
+      const w = widenedWaitStations(set, top.couples[0]!, dancingFrame);
+      stations.push(...w.stations);
+      Object.assign(members, w.members);
+      couples.push(top.couples[0]!.id);
+    }
+    if (i === lastIdx && bottom.kind !== "set" && bottom !== top) {
+      const w = widenedWaitStations(set, bottom.couples[0]!, dancingFrame);
+      stations.push(...w.stations);
+      Object.assign(members, w.members);
+      couples.push(bottom.couples[0]!.id);
+    }
+    plans.push({
+      id: `${set.id}/line${ones.place}`,
+      kind: "set",
+      frame: dancingFrame,
+      stations,
+      members,
+      couples,
+    });
+  });
+  return plans;
+}
 
 /** One part of a set for one time through: a minor set, or a couple standing out. */
 interface Part {
@@ -150,11 +295,27 @@ export const DUPLE_IMPROPER: Formation = {
   },
 
   groupFor(selector: GroupSelector): Station[] {
+    if (selector === SHADOW_PAIR_GROUP) return SHADOW_SEAM_STATIONS.map((s) => ({ ...s }));
+    if (selector === LINE_GROUP) {
+      // The plain four-station shape, not the widest six/eight-station one:
+      // no dance calls `"line"` in this milestone, so `chainCalls` never
+      // threads a dance's `from` against this template, and duple improper
+      // (unlike becket) can never have a wait couple at *both* true ends at
+      // once, so there is no single representative instance to derive the
+      // widest case from the way the square fixture's `groupFor` does.
+      // Flagged in the M2 report as owed to whichever milestone first
+      // authors a `"line"`-selector dance in duple improper.
+      return DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));
+    }
     onlyHandsFour(selector);
     return DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));
   },
 
   groupsFor(selector: GroupSelector, set: SetState): GroupPlan[] {
+    if (selector === SHADOW_PAIR_GROUP) {
+      return partitionShadowSeams(set).map((part) => shadowGroupPlan(set, part));
+    }
+    if (selector === LINE_GROUP) return lineGroupsFor(set);
     onlyHandsFour(selector);
     return partitionDupleImproper(set).map((part): GroupPlan => {
       if (part.kind === "set") {
@@ -226,6 +387,42 @@ export const DUPLE_IMPROPER: Formation = {
   },
 
   tags(selector: GroupSelector): Record<string, StationId[]> {
+    if (selector === SHADOW_PAIR_GROUP) {
+      const all = SHADOW_SEAM_STATIONS.map((s) => s.id);
+      return {
+        all,
+        larks: ["NL", "FL"],
+        robins: ["NR", "FR"],
+        // Pairing tags: everybody in the seam group has a shadow, exactly as
+        // everybody in a hands-four group has a neighbour and a partner —
+        // resolved to the whole group, with the pairing itself a figure's own
+        // business (M6). See this package's README/M2 report for the
+        // near/far, same-physical-line reasoning and the open question over
+        // which column reads as "left" vs "right".
+        shadow: all,
+        "left-diagonal": ["NL", "FR"],
+        "right-diagonal": ["NR", "FL"],
+      };
+    }
+    if (selector === LINE_GROUP) {
+      const all = DUPLE_IMPROPER_STATIONS.map((s) => s.id);
+      const waitTop = ["WL-top", "WR-top"];
+      const waitBottom = ["WL-bottom", "WR-bottom"];
+      return {
+        all: [...all, ...waitTop, ...waitBottom],
+        larks: [...all.filter((id) => id.endsWith("L")), "WL-top", "WL-bottom"],
+        robins: [...all.filter((id) => id.endsWith("R")), "WR-top", "WR-bottom"],
+        ones: ["1L", "1R"],
+        twos: ["2L", "2R"],
+        neighbors: all,
+        partners: all,
+        // Read by `createScriptDecider`'s `excludedByEnds` for a call whose
+        // `ends` is not `"both"`; empty at the interior and at the other true
+        // end, via `resolveSelector`'s own filter-to-present-ids.
+        "wait-top": waitTop,
+        "wait-bottom": waitBottom,
+      };
+    }
     onlyHandsFour(selector);
     const all = DUPLE_IMPROPER_STATIONS.map((s) => s.id);
     return {
@@ -243,17 +440,18 @@ export const DUPLE_IMPROPER: Formation = {
   },
 };
 
+/** The group selectors duple improper defines beyond `"hands-four"`. */
+export const SHADOW_PAIR_GROUP: GroupSelector = "shadow-pair";
+export const LINE_GROUP: GroupSelector = "line";
+
 /**
- * The one group selector duple improper defines so far.
- *
- * A selector it does not know is an error, not an empty group: the wider
- * partitions — the seam a shadow figure runs in, the line a `long-lines` call
- * sweeps the outs into — are real and are simply not built yet, and a dance
- * that asks for one should say so rather than quietly dancing in fours.
+ * A selector duple improper does not know is an error, not an empty group:
+ * one it has not built yet should say so rather than quietly dancing in
+ * fours.
  */
 function onlyHandsFour(selector: GroupSelector): void {
   if (selector === HANDS_FOUR_GROUP) return;
   throw new Error(
-    `duple improper has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}")`,
+    `duple improper has no group selector "${selector}" (has: "${HANDS_FOUR_GROUP}", "${SHADOW_PAIR_GROUP}", "${LINE_GROUP}")`,
   );
 }

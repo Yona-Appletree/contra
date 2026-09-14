@@ -2,9 +2,11 @@ import type { DancerId, SetState, Vec2 } from "@caller/choreo";
 import {
   HANDS_FOUR_GROUP,
   WAIT_OUT,
+  assertPartition,
   createGroup,
   dist,
   partitionProblems,
+  resolveSelector,
   stationPose,
   withDefaults,
 } from "@caller/choreo";
@@ -15,6 +17,8 @@ import {
   BECKET_TOP_OFFSET_PX,
   BECKET_WAIT_STATIONS,
   COUPLE_PITCH_PX,
+  LINE_GROUP,
+  SHADOW_PAIR_GROUP,
 } from "./becket.js";
 import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
 
@@ -128,8 +132,10 @@ describe("a becket set", () => {
   });
 
   it("refuses a group selector it does not define", () => {
-    expect(() => BECKET.groupsFor("shadow-pair", set(8))).toThrow(/no group selector/);
-    expect(() => BECKET.tags("line")).toThrow(/no group selector/);
+    // M2 added "shadow-pair" and "line"; "set" (D9) is still not one becket
+    // defines.
+    expect(() => BECKET.groupsFor("set", set(8))).toThrow(/no group selector/);
+    expect(() => BECKET.tags("set")).toThrow(/no group selector/);
     expect(BECKET.groupFor(HANDS_FOUR_GROUP)).toEqual(BECKET.group(4));
   });
 
@@ -214,5 +220,87 @@ describe("the becket end effect closes", () => {
       const started = stationPose(plan.frame, station).facing;
       expect(((ends[station.id]!.facing - started) % 360) + 360).toBeCloseTo(360 + 180, 9);
     }
+  });
+});
+
+/** M2: the seam-scoped `"shadow-pair"` partition, for becket. */
+describe("shadow-pair (becket)", () => {
+  for (const couples of [4, 5, 6, 8, 9, 12]) {
+    it(`is a partition of the whole set at ${String(couples)} couples`, () => {
+      const state = set(couples);
+      const plans = BECKET.groupsFor(SHADOW_PAIR_GROUP, state);
+      expect(partitionProblems(plans, state)).toEqual([]);
+      assertPartition(plans, state);
+    });
+  }
+
+  it("has interior seams of four, and true ends of two, never eight (Q9)", () => {
+    const plans = BECKET.groupsFor(SHADOW_PAIR_GROUP, set(8));
+    for (const plan of plans) {
+      expect([2, 4]).toContain(plan.stations.length);
+      expect(new Set(Object.values(plan.members)).size).toBe(Object.values(plan.members).length);
+    }
+    expect(plans.some((p) => p.stations.length === 4)).toBe(true);
+  });
+
+  it("who: \"shadow\" resolves through tags(\"shadow-pair\") the way who: \"neighbors\" resolves through tags(\"hands-four\")", () => {
+    const plans = BECKET.groupsFor(SHADOW_PAIR_GROUP, set(8));
+    const seam = plans.find((p) => p.stations.length === 4)!;
+    const shadowSelected = resolveSelector("shadow", BECKET, SHADOW_PAIR_GROUP, seam.stations);
+    expect(new Set(shadowSelected)).toEqual(new Set(["NL", "NR", "FL", "FR"]));
+
+    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, set(4)).find((p) => p.stations.length === 4)!;
+    const neighborsSelected = resolveSelector("neighbors", BECKET, HANDS_FOUR_GROUP, handsFour.stations);
+    expect(new Set(neighborsSelected)).toEqual(new Set(["1L", "1R", "2L", "2R"]));
+  });
+});
+
+/** M2: `"line"`, for becket — widened only at a true end. */
+describe("line (becket)", () => {
+  for (const couples of [4, 5, 6, 8, 9]) {
+    it(`is a partition of the whole set at ${String(couples)} couples`, () => {
+      const state = set(couples);
+      const plans = BECKET.groupsFor(LINE_GROUP, state);
+      expect(partitionProblems(plans, state)).toEqual([]);
+      assertPartition(plans, state);
+    });
+  }
+
+  it("is identical to hands-four in every interior minor set, at three dancing places", () => {
+    const state = set(8); // three dancing places (0,1,2); only the outer two widen
+    const line = BECKET.groupsFor(LINE_GROUP, state);
+    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, state).filter((p) => p.stations.length === 4);
+    expect(handsFour).toHaveLength(3);
+    // The middle dancing place (index 1 of 3) is nobody's true end, so its
+    // "line" plan is untouched — still four stations, same members.
+    const middle = line.find((p) => p.stations.length === 4)!;
+    expect(line.filter((p) => p.stations.length === 4)).toHaveLength(1);
+    const middleHandsFour = handsFour.find((p) => p.frame.centre[1] === middle.frame.centre[1])!;
+    expect(middle.members).toEqual(middleHandsFour.members);
+  });
+
+  it("widens the two outer dancing places to six stations at an even set's two true ends", () => {
+    const state = set(8);
+    const sizes = BECKET.groupsFor(LINE_GROUP, state)
+      .map((p) => p.stations.length)
+      .sort((a, b) => a - b);
+    // Three dancing places: the two outer ones widen (six each), the one in
+    // the middle stays four, and no separate wait plan remains (both waits
+    // are single couples fully absorbed).
+    expect(sizes).toEqual([4, 6, 6]);
+  });
+
+  it("tags(\"line\")'s wait-top/wait-bottom filter to whichever end an instance actually widened", () => {
+    const state = set(8);
+    const tags = BECKET.tags(LINE_GROUP);
+    const widened = BECKET.groupsFor(LINE_GROUP, state).filter((p) => p.stations.length === 6);
+    expect(widened).toHaveLength(2);
+    const topOne = widened.find((p) =>
+      p.stations.map((s) => s.id).some((id) => tags["wait-top"]!.includes(id)),
+    )!;
+    const bottomOne = widened.find((p) =>
+      p.stations.map((s) => s.id).some((id) => tags["wait-bottom"]!.includes(id)),
+    )!;
+    expect(topOne.id).not.toBe(bottomOne.id);
   });
 });
