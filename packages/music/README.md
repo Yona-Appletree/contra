@@ -67,27 +67,45 @@ interface CardDance {
 `@caller/core` (M2) had not merged when this package was built, so
 `packages/music/src/clock/Clock.ts` defines its own `createClock`, matching
 `m02-core-kinematics.md`'s "time" contract verbatim (`Beat`, `Meter`,
-`Clock`, `createClock(now)`). **Replace this with `@caller/core`'s
-`createClock` when M2 merges** — delete `src/clock/Clock.ts` and
-`src/clock/Clock.test.ts`, import `Beat`, `Meter`, `Clock`, `createClock`
-from `@caller/core` instead, and add `@caller/core` back to this package's
-`package.json` dependencies. Nothing else in this package should need to
-change: the local `Clock` type is structurally identical to the contract.
+`Clock`, `createClock(now)`). Per the director's note, the swap to
+`@caller/core`'s `createClock` is deliberately left to a later milestone
+dispatch, even though **M2 merged into `main` while this milestone was in
+progress** (PR #3, `feat(core): clock, geometry, pose sample and the arm
+solver`) — see the next section for why the swap isn't a plain drop-in.
 
-## The `beatsPerBar` convention (a note for the director)
+When it happens: delete `src/clock/Clock.ts` and `src/clock/Clock.test.ts`,
+import `Beat`, `Meter`, `Clock`, `createClock` from `@caller/core` instead,
+add `@caller/core` back to this package's `package.json` dependencies —
+and resolve the beat-convention mismatch below first, since it changes
+`meter` on all three bundled tunes and the beat math in `Notation`/`Card`.
 
-`m02-core-kinematics.md`'s example reads `// reel: 4, 2 (8-beat phrases)`
-for `Meter`. That example is **inconsistent** with this milestone's own
-numbers: `Tune.beatsPerCycle` is 64 for a full AABB pass, each bundled tune
-is 32 bars, and the card readout (ported from the hall spike) treats A1/A2/
-B1/B2 as 16-beat phrases — i.e. 2 beats/bar and 8 bars/phrase, not 4 and 2.
-This package uses `{ beatsPerBar: 2, barsPerPhrase: 8 }` for every tune
-(both reels and jigs — see "Tempo and `millisecondsPerMeasure`" below for
-why the two forms share the same beat/bar convention), consistent with its
-own `beatsPerCycle: 64` and with the hall spike. **This is a brief
-contradiction the director should reconcile before M2's `createClock` swap**
-— whichever convention M2 actually ships, the swap step above will need a
-matching change to `meter` on the three bundled tunes.
+## The `beatsPerBar` convention — now a confirmed conflict with `@caller/core`
+
+`m02-core-kinematics.md`'s example read `// reel: 4, 2 (8-beat phrases)` for
+`Meter`, and **the merged `@caller/core` ships exactly that**:
+`packages/core/src/time/Meter.ts` defines `REEL = { beatsPerBar: 4,
+barsPerPhrase: 2 }`, with the comment "a reel is 4 beats per bar and 2 bars
+per phrase, so phrases are the 8 beats a contra figure is written against."
+
+That is a **different, smaller unit** than this package's own numbers:
+`Tune.beatsPerCycle` is 64 for one full AABB pass (32 bars), and the card
+readout (ported from the hall spike) treats A1/A2/B1/B2 as 16-beat musical
+phrases — i.e. 2 beats/bar and 8 bars/phrase for the _tune's_ structure, not
+4 and 2. `@caller/core`'s 8-beat unit is a _figure_ phrase (what a call like
+"circle left 3/4" spans); this package's 16-beat unit is a _tune_ phrase
+(A1/A2/B1/B2). Both are real, just not the same thing, and they don't
+share a name. This package uses `{ beatsPerBar: 2, barsPerPhrase: 8 }` for
+every tune (both reels and jigs — see "Tempo and `millisecondsPerMeasure`"
+below for why the two forms share the same beat/bar convention), consistent
+with its own `beatsPerCycle: 64` and with the hall spike's A1/A2/B1/B2
+readout.
+
+**This is now a confirmed conflict the director needs to rule on before the
+`createClock` swap**, not a hypothetical one: is a tune's `Meter` the
+figure-phrase unit `@caller/core` ships, the tune-phrase unit this package
+uses, or does `Tune` need two separate fields (one for each)? Whichever way
+it goes, the swap needs a matching change to `meter` on the three bundled
+tunes and to the beat arithmetic in `ui/Notation.tsx` and `ui/Card.tsx`.
 
 ## Tempo and `millisecondsPerMeasure`
 
