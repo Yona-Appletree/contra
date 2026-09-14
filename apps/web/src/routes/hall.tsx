@@ -710,12 +710,19 @@ function ControlBar(props: {
   );
 }
 
+/**
+ * The footer: the side doors out of the hall, and the licence.
+ *
+ * V1 moved the version string and the GitHub link out of here and into the
+ * build-info badge in the tab bar, where they belong together with the commit
+ * and the recent releases — and where a phone can reach them without
+ * scrolling to the bottom of the page. What is left is what has nowhere else
+ * to be.
+ */
 function SiteFooter(): JSX.Element {
   const base = import.meta.env.BASE_URL;
-  const version = import.meta.env.VITE_APP_VERSION ?? "dev";
   return (
     <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-3 pt-2 pb-3 text-xs text-muted-foreground lg:px-4">
-      <span data-testid="hall-version">{version}</span>
       <a className="underline" href={`${base}spikes/hall/`}>
         Hall spike
       </a>
@@ -724,9 +731,6 @@ function SiteFooter(): JSX.Element {
       </a>
       <a className="underline" href="#/pair">
         The pair
-      </a>
-      <a className="underline" href="https://github.com/Yona-Appletree/contra">
-        Source on GitHub
       </a>
       <span>AGPL-3.0-or-later. Dances are their choreographers&rsquo;; tunes are traditional.</span>
     </footer>

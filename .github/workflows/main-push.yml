@@ -63,6 +63,16 @@ jobs:
           VITE_APP_VERSION: ${{ steps.version.outputs.version }}
         run: pnpm --filter @caller/web build
 
+      # The build-info badge's two files. Written after the build and before
+      # the upload, so the deployed artifact carries its own identity and the
+      # last twenty releases. A local build emits neither, which is how the
+      # badge knows to say "dev build". `fetch-depth: 0` above is what gives
+      # this the tags to read.
+      - name: Write build info
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/pages/build-info.mjs --out apps/web/dist --channel pages
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

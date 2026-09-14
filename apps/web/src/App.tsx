@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
+import { BuildInfoBadge } from "./buildInfo/BuildInfoBadge.js";
 import { DancesPage } from "./routes/dances.js";
 import { FramePage } from "./routes/frame.js";
 import { HallPage } from "./routes/hall.js";
@@ -101,6 +102,10 @@ const TABS = [
  * rule on the page's own ground: the page is wood now, and a hairline border
  * on wood reads as a scratch. The current tab is underlined in the lit floor
  * board, which is the one bright colour the palette has.
+ *
+ * At the right end, pushed there by the tabs' own `mr-auto`, is V1's
+ * build-info badge: an icon the width of the bar's height, which is all the
+ * room a phone has to say which build this is.
  */
 function Tabbed({
   tab,
@@ -116,13 +121,13 @@ function Tabbed({
         data-testid="tabs"
         aria-label="Sections"
       >
-        {TABS.map((t) => (
+        {TABS.map((t, i) => (
           <a
             key={t.id}
             href={t.href}
             data-testid={`tab-${t.id}`}
             aria-current={t.id === tab ? "page" : undefined}
-            className={`px-3 py-1.5 no-underline ${
+            className={`px-3 py-1.5 no-underline ${i === TABS.length - 1 ? "mr-auto" : ""} ${
               t.id === tab
                 ? "border-b-2 border-primary font-semibold text-foreground"
                 : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"
@@ -131,6 +136,12 @@ function Tabbed({
             {t.label}
           </a>
         ))}
+        {/* No vertical padding: the trigger is shorter than a tab, so the
+            badge cannot grow the bar — the hall below it is measured against
+            what is left. */}
+        <span className="flex items-center">
+          <BuildInfoBadge />
+        </span>
       </nav>
       {children}
     </>
