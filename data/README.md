@@ -56,10 +56,22 @@ verbatim (e.g. "Duple Minor - Becket"). This file, not the CSV, is what
 gate G2 question 2 (is everyone comfortable with these dances and authors
 being public) is decided from.
 
+M9 appended **33 more entries**, each marked `"source": "portland-fallback"`.
+The library the demo dances from covers only four of the original twelve, so
+M9 followed the milestone's own fallback and worked down
+`portland-programs.json` by count, fetching one Caller's Box page per dance
+and recording what it said. These entries carry three extra fields:
+`portlandCount` (how often the dance was programmed), `encoded` (whether the
+demo dances it), and a `reason` saying what stopped it when it does not —
+a figure the library defers, a `permission` of `search` (The Caller's Box
+will not display that dance's figures at all), or an oracle it failed, with
+the number. Nine dances across both groups are encoded; they are the list
+gate G2 question 2 is decided from.
+
 This file is hand-assembled, not script-generated: the importer only
 produces the general aggregate above. Regenerating it means re-reading
-corpus-analysis.md section 6 and re-fetching the 12 Caller's Box pages by
-hand, the same way this run did.
+corpus-analysis.md section 6 and re-fetching the Caller's Box pages by
+hand, the same way both runs did.
 
 ## Permission note
 

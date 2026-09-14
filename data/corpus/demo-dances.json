@@ -6,7 +6,7 @@
     "callersBoxId": "10950",
     "formation": "Duple Minor - Improper",
     "permission": "full",
-    "reason": "Single most-programmed dance in the corpus (20x, 14 callers) — a safe, broadly-known opener."
+    "reason": "Single most-programmed dance in the corpus (20x, 14 callers) \u2014 a safe, broadly-known opener."
   },
   {
     "slug": "butter",
@@ -24,7 +24,7 @@
     "callersBoxId": "2711",
     "formation": "Duple Minor - Improper",
     "permission": "full",
-    "reason": "#4 overall (15x, 14 callers) and petronella-forward — a good iconic-figure demo dance."
+    "reason": "#4 overall (15x, 14 callers) and petronella-forward \u2014 a good iconic-figure demo dance."
   },
   {
     "slug": "airpants",
@@ -69,7 +69,7 @@
     "callersBoxId": "1450",
     "formation": "Duple Minor - Improper",
     "permission": "full",
-    "reason": "11x with the widest caller spread at that count (10 callers) — a dance dancers everywhere already know."
+    "reason": "11x with the widest caller spread at that count (10 callers) \u2014 a dance dancers everywhere already know."
   },
   {
     "slug": "you-can-get-there-from-here",
@@ -87,7 +87,7 @@
     "callersBoxId": "14115",
     "formation": "Duple Minor - Becket",
     "permission": "full",
-    "reason": "11x, Becket, with a zig-zag figure — good visual variety for the simulator."
+    "reason": "11x, Becket, with a zig-zag figure \u2014 good visual variety for the simulator."
   },
   {
     "slug": "diamond-allotrope",
@@ -96,7 +96,7 @@
     "callersBoxId": "14047",
     "formation": "Duple Minor - Improper",
     "permission": "full",
-    "reason": "Feature-rich showcase pick, still programmed 8x by 7 callers — not obscure despite the figure density."
+    "reason": "Feature-rich showcase pick, still programmed 8x by 7 callers \u2014 not obscure despite the figure density."
   },
   {
     "slug": "spring-break",
@@ -106,5 +106,401 @@
     "formation": "Duple Minor - Improper",
     "permission": "full",
     "reason": "Second feature-rich showcase pick, 6x programmed, and yet another distinct choreographer."
+  },
+  {
+    "slug": "chinese-new-year",
+    "title": "Chinese New Year",
+    "choreographer": "Chris Page",
+    "callersBoxId": "10341",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 16,
+    "encoded": false,
+    "reason": "Long wavy lines, circulate and an interrupted square through: figures the library defers."
+  },
+  {
+    "slug": "jubilation",
+    "title": "Jubilation",
+    "choreographer": "Gene Hubert",
+    "callersBoxId": "10526",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 12,
+    "encoded": true,
+    "reason": "Encoded. Allemandes, half a hey, long lines and a chain \u2014 all in the library."
+  },
+  {
+    "slug": "slapping-the-wood",
+    "title": "Slapping the Wood",
+    "choreographer": "Don Flaherty",
+    "callersBoxId": "2650",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 12,
+    "encoded": false,
+    "reason": "A1 is an as-couples do-si-do, which the library does not have."
+  },
+  {
+    "slug": "the-nice-combination",
+    "title": "The Nice Combination",
+    "choreographer": "Gene Hubert",
+    "callersBoxId": "1",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 12,
+    "encoded": false,
+    "reason": "Down the hall four in line: a figure over a wider frame than a minor set."
+  },
+  {
+    "slug": "als-safeway-produce",
+    "title": "Al's Safeway Produce",
+    "choreographer": "Robert Cromartie",
+    "callersBoxId": "10257",
+    "formation": "Duple Minor - Improper",
+    "permission": "search",
+    "source": "portland-fallback",
+    "portlandCount": 10,
+    "encoded": false,
+    "reason": "Permission is 'search': The Caller's Box will not display this dance's figures."
+  },
+  {
+    "slug": "malizas-magical-mystery-motion",
+    "title": "Maliza's Magical Mystery Motion",
+    "choreographer": "Cary Ravitz",
+    "callersBoxId": "10576",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 10,
+    "encoded": false,
+    "reason": "Neighbor promenade across, and a petronella that faces the next couple mid-dance."
+  },
+  {
+    "slug": "frederick-reel",
+    "title": "Frederick Reel",
+    "choreographer": "Tom Hinds",
+    "callersBoxId": "12266",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 10,
+    "encoded": false,
+    "reason": "Down the hall four in line."
+  },
+  {
+    "slug": "another-flirty-attempt",
+    "title": "Another Flirty Attempt",
+    "choreographer": "Marian Hepburn",
+    "callersBoxId": "11197",
+    "formation": "Duple Minor - Improper",
+    "permission": "search",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": false,
+    "reason": "Permission is 'search': figures not displayed."
+  },
+  {
+    "slug": "chuck-the-budgie",
+    "title": "Chuck the Budgie",
+    "choreographer": "Rick Mohr",
+    "callersBoxId": "10345",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": false,
+    "reason": "B2 balances a wave of four and allemandes the next neighbour."
+  },
+  {
+    "slug": "early-evening-rollaway",
+    "title": "Early Evening Rollaway",
+    "choreographer": "Bob Isaacs",
+    "callersBoxId": "1708",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": false,
+    "reason": "B2 ends with a do-si-do with the next neighbour, which is outside the minor set."
+  },
+  {
+    "slug": "heart-of-glass",
+    "title": "Heart of Glass",
+    "choreographer": "Cary Ravitz",
+    "callersBoxId": "251",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": false,
+    "reason": "Star promenade, butterfly whirl, and figures with the next neighbour."
+  },
+  {
+    "slug": "kitchen-stomp",
+    "title": "Kitchen Stomp",
+    "choreographer": "Becky Hill",
+    "callersBoxId": "10541",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": true,
+    "reason": "Encoded. Ring balances and petronellas, an allemande, a chain and a star."
+  },
+  {
+    "slug": "tika-tika-timing",
+    "title": "Tika Tika Timing",
+    "choreographer": "Dean Snipes",
+    "callersBoxId": "11680",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 9,
+    "encoded": false,
+    "reason": "Neighbor promenade across, and a becket shift left as its first figure."
+  },
+  {
+    "slug": "cows-are-watching",
+    "title": "Cows are Watching",
+    "choreographer": "Cary Ravitz",
+    "callersBoxId": "9686",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 10,
+    "encoded": false,
+    "reason": "Weave the line."
+  },
+  {
+    "slug": "jenny-goes-to-camp",
+    "title": "Jenny Goes to Camp",
+    "choreographer": "Steve Zakon-Anderson",
+    "callersBoxId": "3056",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 8,
+    "encoded": false,
+    "reason": "Encoded and measured, then dropped: the partner right-shoulder-round one and a quarter leaves a wave of four across the set that the library's hey cannot weave, and closure came out 32 px."
+  },
+  {
+    "slug": "petronella-stomp",
+    "title": "Petronella Stomp",
+    "choreographer": "Tom Lehmann",
+    "callersBoxId": "923",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 8,
+    "encoded": false,
+    "reason": "B1 allemandes with the next neighbour while the larks shift left."
+  },
+  {
+    "slug": "the-baby-rose",
+    "title": "The Baby Rose",
+    "choreographer": "David Kaynor",
+    "callersBoxId": "10273",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 8,
+    "encoded": true,
+    "reason": "Encoded. Balance and swing, circle, do-si-do, chain and star."
+  },
+  {
+    "slug": "the-carousel",
+    "title": "The Carousel",
+    "choreographer": "Tom Hinds",
+    "callersBoxId": "10324",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 8,
+    "encoded": true,
+    "reason": "Encoded. The demo's full hey."
+  },
+  {
+    "slug": "mary-cays-reel",
+    "title": "Mary Cay's Reel",
+    "choreographer": "David Kaynor",
+    "callersBoxId": "10579",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": false,
+    "reason": "Figures with the next neighbour throughout."
+  },
+  {
+    "slug": "delphiniums-and-daisies",
+    "title": "Delphiniums and Daisies",
+    "choreographer": "Tanya Rotenberg",
+    "callersBoxId": "2940",
+    "formation": "Duple Minor - Improper",
+    "permission": "search",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": false,
+    "reason": "Permission is 'search': figures not displayed."
+  },
+  {
+    "slug": "neighbor-neighbor-on-the-wall",
+    "title": "Neighbor, Neighbor on the Wall",
+    "choreographer": "Maia McCormick",
+    "callersBoxId": "14399",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": true,
+    "reason": "Encoded. Two neighbour swings, a chain and half a hey."
+  },
+  {
+    "slug": "steel-anniversary-reel",
+    "title": "Steel Anniversary Reel",
+    "choreographer": "Rick Mohr",
+    "callersBoxId": "10774",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": false,
+    "reason": "Mad robin."
+  },
+  {
+    "slug": "trip-to-wilson",
+    "title": "Trip to Wilson",
+    "choreographer": "Will Mentor",
+    "callersBoxId": "13762",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": false,
+    "reason": "Cast to partner's place and single file promenade round the major set."
+  },
+  {
+    "slug": "once-more-with-feeling",
+    "title": "Once More With Feeling",
+    "choreographer": "Isaac Banner",
+    "callersBoxId": "14948",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 7,
+    "encoded": false,
+    "reason": "Box the gnat, and a petronella that faces the next couple."
+  },
+  {
+    "slug": "a-1-reel",
+    "title": "A-1 Reel",
+    "choreographer": "Chris Weiler",
+    "callersBoxId": "1605",
+    "formation": "Duple Minor - Becket",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": false,
+    "reason": "Progresses in A1 and dances the rest with the next neighbour."
+  },
+  {
+    "slug": "after-the-solstice",
+    "title": "After the Solstice",
+    "choreographer": "Lisa Greenleaf",
+    "callersBoxId": "4696",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": true,
+    "reason": "Encoded. The demo's right and left through and its pass through."
+  },
+  {
+    "slug": "another-last-dance",
+    "title": "Another Last Dance",
+    "choreographer": "Erik Hoffman",
+    "callersBoxId": "2590",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": false,
+    "reason": "Encoded and measured, then dropped: closure and collisions are clean, but the eased seam out of the final star reports `short` 0.079 px at three couples and up, and AC1 wants 0."
+  },
+  {
+    "slug": "hocus-pocus",
+    "title": "Hocus Pocus",
+    "choreographer": "Lisa Greenleaf",
+    "callersBoxId": "11",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": false,
+    "reason": "Ends on a ring balance into a partner California twirl, which is the Heartbeat Contra case: the twirl's arc reaches the couple crossing over at the end of the line."
+  },
+  {
+    "slug": "salt-and-pepper",
+    "title": "Salt and Pepper",
+    "choreographer": "Sue Rosen",
+    "callersBoxId": "7288",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": false,
+    "reason": "B2 ends with a do-si-do with the next neighbour."
+  },
+  {
+    "slug": "youre-among-friends",
+    "title": "You're Among Friends",
+    "choreographer": "Bob Isaacs",
+    "callersBoxId": "1982",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 6,
+    "encoded": false,
+    "reason": "Encoded and measured, then dropped: the neighbour allemande once and three quarters leaves an arrangement the rest of the dance does not close from \u2014 26 px."
+  },
+  {
+    "slug": "easy-peasy",
+    "title": "Easy Peasy",
+    "choreographer": "Diane Silver",
+    "callersBoxId": "10029",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 5,
+    "encoded": false,
+    "reason": "Same ending as Hocus Pocus: ring balance into a partner California twirl."
+  },
+  {
+    "slug": "contra-cockaigne",
+    "title": "Contra Cockaigne",
+    "choreographer": "Devin Nordson",
+    "callersBoxId": "4361",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 4,
+    "encoded": true,
+    "reason": "Encoded. A plain glossary dance: balance and swing, long lines, allemande, chain, star."
+  },
+  {
+    "slug": "thanks-to-the-gene",
+    "title": "Thanks to the Gene",
+    "choreographer": "Tom Hinds",
+    "callersBoxId": "10811",
+    "formation": "Duple Minor - Improper",
+    "permission": "full",
+    "source": "portland-fallback",
+    "portlandCount": 4,
+    "encoded": true,
+    "reason": "Encoded. Right and left through, a chain, and a robins' right shoulder round."
   }
 ]
