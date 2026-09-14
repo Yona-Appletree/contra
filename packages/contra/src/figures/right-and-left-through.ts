@@ -21,7 +21,13 @@ import {
   takeAndRelease,
 } from "./ContraFigure.js";
 import type { CourtesyTurn } from "./courtesyTurn.js";
-import { courtesyBackHands, courtesyHold, courtesyTurn, larkAndRobin } from "./courtesyTurn.js";
+import {
+  COURTESY_PIVOT_FROM_LARK_PX,
+  courtesyBackHands,
+  courtesyHold,
+  courtesyTurn,
+  larkAndRobin,
+} from "./courtesyTurn.js";
 import { aheadPairs } from "./pass-through.js";
 import type { Pairing } from "./pairing.js";
 import { mustPair, pairsOf } from "./pairing.js";
@@ -38,6 +44,12 @@ export interface RightAndLeftThroughParams extends ContraParams {
   holdDrop: number;
   /** How much higher the robin's hand sits, px. */
   stackPx: number;
+  /**
+   * How far from the lark the couple pivots, px; see
+   * {@link COURTESY_PIVOT_FROM_LARK_PX}. The same helper and the same default
+   * as the chain's.
+   */
+  pivotFromLark: number;
 }
 
 /**
@@ -50,12 +62,13 @@ export interface RightAndLeftThroughParams extends ContraParams {
  * in duple improper is the partner standing beside you: the two of them walked
  * through each other's places and nobody ever passed anybody.
  *
- * The courtesy turn is {@link courtesyTurn}, shared with the chain. This is the
- * figure whose turn is the textbook one: the couple walks over with the robin
- * already on the lark's right and stops a hold short of the far line, and the
- * whole of it — both bodies *and* the line between them — pivots as one rigid
- * body a half round the point between them, so they end facing back the way
- * they came, the robin still on his right and both of them on the other line.
+ * The courtesy turn is {@link courtesyTurn}, shared with the chain, with the
+ * same `pivotFromLark` and the same default. This is the figure whose turn is
+ * the textbook one: the couple walks over with the robin already on the lark's
+ * right and stops short of the far line, and the whole of it — both bodies
+ * *and* the line between them — pivots as one rigid body a half round a point
+ * near the lark, so they end facing back the way they came, the robin still on
+ * his right and both of them on the other line.
  * Dance it twice and everybody is home, which is what "right and left through,
  * right and left back" means.
  */
@@ -63,7 +76,7 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
   id: "right-and-left-through",
   call: "RIGHT AND LEFT THROUGH",
   describe:
-    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with, stopping a little short of the far line. Left hand in her left, her own right hand behind her back and his right hand on it, the couple pivots as one, a half turn about the point between them — she walks forward, he walks backward, and the arms stay put — until both of them face in again with the robin still on the lark's right, and then opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are more than twice that far apart, so the couple stops short of the line to turn and opens out again as it lets go.)",
+    "The two couples walk toward each other and pass through by the right, each dancer passing right shoulders with the one they are facing, and close up with the one they came over with, stopping short of the far line — the lark sliding the further of the two, because the couple closes up about the point it is going to turn about. Left hand in her left, her own right hand behind her back and his right hand on it, the couple pivots as one, a half turn about a point near the lark — he backs round a small circle of his own, she walks the big arc round him, and the arms stay put — until both of them face in again with the robin still on the lark's right, and then opens out on to the two places. Eight beats, both couples doing it at once; dance it twice and everybody is home. (unsure: exact pivot distance — the user judges by eye. And a hall turns a courtesy turn at a hold and stands in the lines at a hold, where this model's lines are nearly four times that far apart, so the couple stops short of the line to turn and opens out again as it lets go.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -73,6 +86,7 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     bowPx: DEFAULT_BOW_PX,
     holdDrop: 6,
     stackPx: 1,
+    pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
   },
 
   plan(ctx: PlanContext, params: RightAndLeftThroughParams): FigurePlan {
@@ -111,15 +125,18 @@ export const rightAndLeftThrough = contraFigure<RightAndLeftThroughParams>({
     for (const { lark, robin, pivot } of couples) {
       // The robin is already on the lark's right as the two of them walk over,
       // and the couple's turn is rigid, so the take is exactly the pair of end
-      // places reflected through the point between them: the pass through
-      // stops a hold short of the far line rather than walking on to it and
-      // closing up afterward.
+      // places reflected through the pivot: the pass through stops short of the
+      // far line rather than walking on to it and closing up afterward. With
+      // the pivot near the lark the reflection is no longer even — his take is
+      // `2 × pivotFromLark` from his place and hers is a hold behind his — so
+      // the closing up below slides him further than her.
       const turn = courtesyTurn({
         lark: ends[lark]!,
         robin: ends[robin]!,
-        hold: courtesyHold(ctx.spacing, pivot, pivots),
+        hold: courtesyHold(ctx.spacing, pivot, pivots, params.pivotFromLark),
         beats: turnBeats - closeBeats,
         openBeats,
+        pivotFromLark: params.pivotFromLark,
       });
       turns[lark] = { turn, mine: "lark" };
       turns[robin] = { turn, mine: "robin" };

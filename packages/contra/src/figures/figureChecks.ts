@@ -247,6 +247,8 @@ function robinsChainChecks(): FigureChecks {
     onHisRightThroughout(track, "2L", "1R", turn),
     handsRideTheBodies(track, "1L", "2R", turn),
     handsRideTheBodies(track, "2L", "1R", turn),
+    backsRoundASmallCircle(track, "1L", "2R", turn),
+    backsRoundASmallCircle(track, "2L", "1R", turn),
     endsBesideOnTheRight(track, "1L", "2R"),
     endsBesideOnTheRight(track, "2L", "1R"),
     // AC6: the couple turning beside you gets left room.
@@ -423,6 +425,8 @@ function rightAndLeftThroughChecks(): FigureChecks {
     onHisRightThroughout(track, "2L", "2R", turn),
     handsRideTheBodies(track, "1L", "1R", turn),
     handsRideTheBodies(track, "2L", "2R", turn),
+    backsRoundASmallCircle(track, "1L", "1R", turn),
+    backsRoundASmallCircle(track, "2L", "2R", turn),
     endsBesideOnTheRight(track, "1L", "1R"),
     endsBesideOnTheRight(track, "2L", "2R"),
     clearsEveryone(track, win(turn.from, 8)),
@@ -618,6 +622,63 @@ function handsRideTheBodies(
 
 /** How far a held hand may wander on the body that carries it, px: the brief's number. */
 const HAND_RIDE_TOLERANCE_PX = 0.05;
+
+/**
+ * The pivot sits **near the lark**: he backs round a circle smaller than the
+ * couple's own hold spacing while she walks the big arc round him.
+ *
+ * The user, asked where the courtesy turn's pivot sits: "I think its near the
+ * lark, but its a little hard for me to imagine without doing the dance with 4
+ * people." Near the lark is not a distance, so this measures the two things
+ * that are true at every distance the user could mean and false at the one they
+ * corrected — F7's pivot midway between the two bodies, where the two of them
+ * walk the same arc and his is 18.06 px long.
+ *
+ * `HOLD_SPACING_PX` is the yardstick because it is the library's own number for
+ * how far apart two dancers stand to take hands: a lark who walks further than
+ * that to turn a robin has left his place, and the whole point of the ruling is
+ * that he does not.
+ */
+function backsRoundASmallCircle(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${lark} backs round a circle smaller than a hold spacing while ${robin} walks the arc, beat ${window.from} to ${window.to}`;
+  const his = walked(track, lark, window);
+  const hers = walked(track, robin, window);
+  const beat = window.to;
+  if (his > HOLD_SPACING_PX) {
+    return fail(label, `he walks ${his.toFixed(2)} px round the pivot`, beat, his, "px");
+  }
+  if (his > hers) {
+    return fail(
+      label,
+      `he walks ${his.toFixed(2)} px and she walks ${hers.toFixed(2)}, so the pivot is nearer her`,
+      beat,
+      his - hers,
+      "px",
+    );
+  }
+  return {
+    label,
+    pass: true,
+    note: `he walks ${his.toFixed(2)} px of circle — under the ${HOLD_SPACING_PX} px hold spacing — and she walks ${hers.toFixed(2)} px of arc`,
+    worst: { beat, value: his, unit: "px" },
+  };
+}
+
+/** How far one dancer's feet travel over a window, px. */
+function walked(track: Track, id: string, window: BeatWindow): number {
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let sum = 0;
+  for (let i = first + 1; i <= last; i++) {
+    sum += dist(track.pose(id, i - 1).p, track.pose(id, i).p);
+  }
+  return sum;
+}
 
 /**
  * The turn leaves the robin on the lark's right, the two of them facing the
