@@ -8,11 +8,13 @@ import type { FigureEvent, Timeline } from "./Timeline.js";
  * Where a dancer is at a beat: the figure instance that owns the beat, sampled,
  * eased out of the previous instance across the seam.
  *
- * The seam is `@caller/core`'s: `easeSeam(prev, next, seamProgress(t))` over the
- * first `SEAM_BEATS` of the new figure, with `prev` the previous figure sampled
- * at its own last beat. Hands, facing and lean cross-fade; position comes from
- * the figure that is running, which is why closure has to hold to 0.01 px —
- * nothing here hides a gap.
+ * The seam is `@caller/core`'s: `easeSeam(prev, next, seamProgress(t), beat)`
+ * over the first `SEAM_BEATS` of the new figure, with `prev` the previous figure
+ * sampled at its own last beat. Hands, facing and lean cross-fade; position
+ * comes from the figure that is running, which is why closure has to hold to
+ * 0.01 px — nothing here hides a gap. The beat goes in because a hand one side
+ * leaves `'down'` is eased to or from where the hang actually puts it at that
+ * instant, so the take and the release animate instead of switching.
  */
 export function poseAt(timeline: Timeline, dancer: DancerId, beat: Beat): PoseSample {
   const event = timeline.figureAt(dancer, beat);
@@ -25,7 +27,7 @@ export function poseAt(timeline: Timeline, dancer: DancerId, beat: Beat): PoseSa
   if (!previous) return here;
 
   const there = sampleEvent(timeline, previous, dancer, previous.end - previous.start);
-  return easeSeam(there, here, k);
+  return easeSeam(there, here, k, beat);
 }
 
 /** One figure event sampled for one dancer, `t` beats in. */

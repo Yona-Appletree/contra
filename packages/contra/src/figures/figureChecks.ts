@@ -16,6 +16,8 @@ import {
 } from "@caller/choreo";
 import type { ContraFigure, ContraParams } from "./ContraFigure.js";
 import { planContext, worldSpot } from "./ContraFigure.js";
+import type { ContraCall } from "./chain.js";
+import { chainCalls } from "./chain.js";
 import { CONTRA_FIGURES } from "./registry.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 
@@ -145,6 +147,7 @@ export function figureChecks(): FigureChecks[] {
     petronellaChecks(),
     balanceChecks(),
     swingChecks(),
+    balanceAndSwingChecks(),
     balanceToSwingSeam(),
   ];
 }
@@ -358,9 +361,15 @@ function swingChecks(): FigureChecks {
  * first, with `easeSeam` in between.
  */
 function balanceToSwingSeam(): FigureChecks {
-  const balance = figureTrack("balance", { pairs: "neighbors" });
-  const swing = figureTrack("swing", { pairs: "neighbors" });
-  const seam = seamTrack(balance, swing, 1);
+  // Threaded the way a dance threads it, so the carried hold in the params is
+  // the one `chainCalls` actually works out rather than one written here.
+  const seam = seamTrack(
+    [
+      { figure: "balance", beats: 4, params: { pairs: "neighbors" } },
+      { figure: "swing", beats: 8, params: { pairs: "neighbors" } },
+    ],
+    1,
+  );
   const results = [handsJoined(seam.track, "1L", "L", "2R", "R", win(0, 2))];
   return {
     key: "balance → swing",
@@ -371,32 +380,54 @@ function balanceToSwingSeam(): FigureChecks {
 }
 
 /**
- * Two figures, back to back, sampled the way a timeline samples them.
- *
- * `span` beats either side of the boundary, with the boundary at beat `span`;
- * the second figure starts where the first left off, and the seam ease is
- * applied over `@caller/core`'s own `SEAM_BEATS`, which is what `poseAt` does.
+ * `balance-and-swing`: the hold the rock takes is the hold the turn uses, and
+ * it is one floor point from the moment it is taken until the pair opens out.
  */
-function seamTrack(
-  first: ReturnType<typeof figureTrack>,
-  second: ReturnType<typeof figureTrack>,
-  span: Beat,
-): { track: Track } {
-  const ids = first.group.stations.map((s) => s.id);
-  const firstParams = withDefaults(first.def, {}, first.beats);
-  const secondParams = withDefaults(second.def, {}, second.beats);
+function balanceAndSwingChecks(): FigureChecks {
+  const { track } = figureTrack("balance-and-swing", { pairs: "neighbors", beats: 16 });
+  const results = [
+    joinedThroughout(track, "1L", "L", "2R", "R", win(1.5, 14)),
+    // And the rock's own second pair of hands, which the turn does let go of:
+    // they are joined for the balance and on the back and the shoulder after.
+    handsJoined(track, "1L", "R", "2R", "L", win(1.5, 4)),
+  ];
+  return { key: "balance-and-swing", describe: describeOf("balance-and-swing"), results };
+}
+
+/**
+ * Two calls, back to back, sampled the way a timeline samples them.
+ *
+ * `span` beats either side of the boundary, with the boundary at beat `span`.
+ * The calls are threaded through {@link chainCalls} first — which is what gives
+ * the second one its places *and* whatever hold crosses the boundary — and the
+ * seam ease is applied over `@caller/core`'s own `SEAM_BEATS`, which is what
+ * `poseAt` does.
+ */
+function seamTrack(calls: readonly ContraCall[], span: Beat): { track: Track } {
+  const group = checkGroup();
+  const threaded = chainCalls(DUPLE_IMPROPER, calls, {
+    stations: group.stations,
+    spacing: group.frame.spacing,
+  });
+  const first = threaded.calls[0]!;
+  const second = threaded.calls[1]!;
+  const firstDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[first.figure]!;
+  const secondDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[second.figure]!;
+  const firstParams = withDefaults<ContraParams>(firstDef, first.params, first.beats);
+  const secondParams = withDefaults<ContraParams>(secondDef, second.params, second.beats);
+  const ids = group.stations.map((s) => s.id);
   const track = sampleTrack(
     ids,
     2 * span,
     (station, t) => {
       if (t < span) {
-        return first.def.sample(first.group, station, first.beats - span + t, firstParams);
+        return firstDef.sample(group, station, first.beats - span + t, firstParams);
       }
       const into = t - span;
-      const here = second.def.sample(second.group, station, into, secondParams);
+      const here = secondDef.sample(group, station, into, secondParams);
       if (into >= SEAM_BEATS) return here;
-      const there = first.def.sample(first.group, station, first.beats, firstParams);
-      return easeSeam(there, here, seamProgress(into));
+      const there = firstDef.sample(group, station, first.beats, firstParams);
+      return easeSeam(there, here, seamProgress(into), first.beats + into);
     },
     () => [],
     CHECK_STEP,

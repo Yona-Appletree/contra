@@ -3,6 +3,7 @@ import { WALK_TO_STATION, createFigureRegistry } from "@caller/choreo";
 import type { ContraFigure } from "./ContraFigure.js";
 import { allemande } from "./allemande.js";
 import { balance, balanceRing } from "./balance.js";
+import { balanceAndSwing } from "./balance-and-swing.js";
 import { californiaTwirl } from "./california-twirl.js";
 import { circle } from "./circle.js";
 import { doSiDo } from "./do-si-do.js";
@@ -31,6 +32,7 @@ export const CONTRA_FIGURES = {
   balance,
   "balance-ring": balanceRing,
   swing,
+  "balance-and-swing": balanceAndSwing,
   allemande,
   "do-si-do": doSiDo,
   "long-lines": longLines,

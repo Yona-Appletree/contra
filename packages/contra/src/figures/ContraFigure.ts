@@ -57,6 +57,46 @@ export interface Spot {
 /** Where every dancer of a group stands, in frame-local px. */
 export type Spots = Record<StationId, Spot>;
 
+/**
+ * One hand that is already joined when a figure starts, or still joined when it
+ * ends: whose hand it is in, and which of their hands.
+ */
+export interface CarriedHold {
+  /** The other dancer's station. */
+  with: StationId;
+  /** Which of *their* hands. */
+  side: Side;
+}
+
+/** What one dancer carries, by their own hand. */
+export type CarriedHands = Partial<Record<Side, CarriedHold>>;
+
+/**
+ * The hands nobody lets go of at a figure boundary, keyed by station and side.
+ *
+ * The user: "the arms still disappear between the balance and the swing." When
+ * one figure ends holding a hand and the next begins holding the **same** hand
+ * of the **same** two dancers, the hand is one shared floor point across the
+ * seam and moves continuously from where the first figure held it to where the
+ * second does. Only a hold that actually changes — a different partner, a
+ * different hand, or none — is released and retaken.
+ *
+ * It is plain data, keyed by station id and side, so a dance still survives
+ * `JSON.parse(JSON.stringify(dance))`. {@link chainCalls} works it out by
+ * asking each figure what it is holding at its end and what the next one holds
+ * through its middle, so a dance never writes it by hand. M11's M3 is where it
+ * becomes `{ hand: "carried" }` in the data language.
+ */
+export interface Carried {
+  /** Hands already joined at beat 0, so the figure does not take them. */
+  in: Record<StationId, CarriedHands>;
+  /** Hands still joined at the last beat, so the figure does not let go. */
+  out: Record<StationId, CarriedHands>;
+}
+
+/** Nothing carried either way: what a figure danced on its own gets. */
+export const NO_CARRIED: Carried = { in: {}, out: {} };
+
 /** What every contra figure's parameters carry. */
 export interface ContraParams extends FigureParams {
   /**
@@ -64,6 +104,12 @@ export interface ContraParams extends FigureParams {
    * empty object — the default — means the group's own stations.
    */
   from: Spots;
+  /**
+   * Which hands are carried across this figure's boundaries; see
+   * {@link Carried}. Absent — which is what a figure danced on its own gets —
+   * means every hold is taken at the start and let go at the end.
+   */
+  carried?: Carried;
 }
 
 /** A hand a figure places, in frame-local px, or one left hanging. */
@@ -120,6 +166,11 @@ export interface ContraFigure<P extends ContraParams = ContraParams> extends Fig
   plan(ctx: PlanContext, params: P): FigurePlan;
   /** Where the figure leaves every dancer, frame-local: what a dance chains on. */
   moves(params: P, stations: readonly Station[], spacing?: number): Spots;
+  /**
+   * What the figure is holding `t` beats in, without a group: what
+   * {@link chainCalls} reads to work out which holds cross a boundary.
+   */
+  joins(params: P, t: Beat, stations: readonly Station[], spacing?: number): HandJoin[];
 }
 
 /** What {@link contraFigure} needs to make one. */
@@ -135,7 +186,13 @@ export interface ContraFigureSpec<P extends ContraParams> {
   describe?: string;
   lead: Beat;
   beats: Beat;
-  defaults: Omit<P, "beats">;
+  /**
+   * Everything but `beats` and `carried`: a figure never declares its own
+   * carried holds, because {@link chainCalls} is what works them out and a
+   * figure danced alone carries nothing.
+   */
+  defaults: Omit<P, "beats" | "carried">;
+
   plan(ctx: PlanContext, params: P): FigurePlan;
 }
 
@@ -153,12 +210,13 @@ export function contraFigure<P extends ContraParams>(spec: ContraFigureSpec<P>):
     describe: spec.describe,
     lead: spec.lead,
     beats: spec.beats,
-    defaults: spec.defaults,
+    defaults: { ...spec.defaults, carried: NO_CARRIED } as Omit<P, "beats">,
     plan: spec.plan,
 
     sample(group: Group, station: StationId, t: Beat, params: P): PoseSample {
       const clamped = t < 0 ? 0 : t > params.beats ? params.beats : t;
-      return worldPose(group.frame, planOf(group, params).at(station, clamped));
+      const pose = worldPose(group.frame, planOf(group, params).at(station, clamped));
+      return finiteHands(pose, spec.id, station, clamped);
     },
 
     ends(group: Group, params: P): Record<StationId, EndPose> {
@@ -171,6 +229,15 @@ export function contraFigure<P extends ContraParams>(spec: ContraFigureSpec<P>):
 
     moves(params: P, stations: readonly Station[], spacing: number = HOLD_SPACING_PX): Spots {
       return spec.plan(planContext(stations, CHAIN_ROLES, spacing, params.from), params).ends;
+    },
+
+    joins(
+      params: P,
+      t: Beat,
+      stations: readonly Station[],
+      spacing: number = HOLD_SPACING_PX,
+    ): HandJoin[] {
+      return spec.plan(planContext(stations, CHAIN_ROLES, spacing, params.from), params).joinsAt(t);
     },
   };
 }
@@ -244,6 +311,36 @@ export function worldPose(f: Frame, s: LocalSample): PoseSample {
   return s.feet === undefined ? pose : { ...pose, feet: s.feet };
 }
 
+/**
+ * The pose, if every hand in it is a number, and a loud failure otherwise.
+ *
+ * A hand that is not a number is drawn as nothing at all, and — this is the
+ * part that made it survive for so long — no oracle in the repository can see
+ * one: `NaN > max` is false, so every maximum steps over it silently. F3a found
+ * 4160 of them across the ten demo dances, which is both arms of every dancer
+ * for 0.4 beats after every balance. Nothing is going to catch the next one by
+ * looking, so a figure that emits one fails here instead.
+ */
+export function finiteHands(
+  pose: PoseSample,
+  figure: string,
+  station: StationId,
+  t: Beat,
+): PoseSample {
+  for (const side of ["L", "R"] as const) {
+    const hand = pose.hands[side];
+    if (hand === "down") continue;
+    if (Number.isFinite(hand.p[0]) && Number.isFinite(hand.p[1]) && Number.isFinite(hand.drop)) {
+      continue;
+    }
+    throw new Error(
+      `${figure}: "${station}" has a ${side} hand that is not a number at beat ${t} ` +
+        `(${String(hand.p[0])}, ${String(hand.p[1])}, drop ${String(hand.drop)})`,
+    );
+  }
+  return pose;
+}
+
 /** A spot, as the {@link EndPose} the walk helpers take. */
 export const asPose = (s: Spot): EndPose => ({ p: s.p, facing: s.facing });
 
@@ -310,9 +407,16 @@ export function takeAndRelease(
   window: HoldWindow,
   swing = 0,
 ): Hand {
+  // A window of no length says the hold crosses the boundary: taken before the
+  // figure started, or still held when it ends. Neither is a snap — the seam
+  // moves the hand from where the figure before held it to where this one does.
+  if (window.takeTo <= window.takeFrom && window.releaseTo <= window.releaseFrom) return joined;
   const down = handDown(self.p, self.facing, side, t, swing);
-  const taken = lerpHand(down, joined, ramp(t, window.takeFrom, window.takeTo));
-  return lerpHand(taken, down, ramp(t, window.releaseFrom, window.releaseTo));
+  const take = window.takeTo <= window.takeFrom ? 1 : ramp(t, window.takeFrom, window.takeTo);
+  const release =
+    window.releaseTo <= window.releaseFrom ? 0 : ramp(t, window.releaseFrom, window.releaseTo);
+  const taken = lerpHand(down, joined, take);
+  return lerpHand(taken, down, release);
 }
 
 /** When a figure's hands are on their way up, held, and on their way down. */
@@ -334,6 +438,43 @@ export const holdWindow = (beats: Beat, take: Beat = 1, release: Beat = 1): Hold
 /** True while the hands of `window` are fully joined. */
 export const isHeld = (window: HoldWindow, t: Beat): boolean =>
   t >= window.takeTo && t <= window.releaseFrom;
+
+/**
+ * The hold window for one join, with the take dropped when the hold is carried
+ * in and the release dropped when it is carried out.
+ *
+ * `self` and `other` name the two stations and `side`/`otherSide` the two
+ * hands, which is exactly what {@link Carried} is keyed by — so a figure asks
+ * this once per join and never has to know how the carrying was worked out.
+ */
+export function joinWindowFor(
+  carried: Carried | undefined,
+  self: StationId,
+  side: Side,
+  other: StationId,
+  otherSide: Side,
+  beats: Beat,
+  take: Beat = 1,
+  release: Beat = 1,
+): HoldWindow {
+  return holdWindow(
+    beats,
+    isCarried(carried?.in, self, side, other, otherSide) ? 0 : take,
+    isCarried(carried?.out, self, side, other, otherSide) ? 0 : release,
+  );
+}
+
+/** Whether this side of this dancer is joined to that side of that one. */
+export function isCarried(
+  hands: Record<StationId, CarriedHands> | undefined,
+  self: StationId,
+  side: Side,
+  other: StationId,
+  otherSide: Side,
+): boolean {
+  const held = hands?.[self]?.[side];
+  return held !== undefined && held.with === other && held.side === otherSide;
+}
 
 /**
  * How much room a figure for two leaves the pair dancing beside it, px.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { angleDiff } from "../geometry/Angle.js";
+import { hangingHand } from "./drawnArms.js";
 import type { Hand, PoseSample } from "./PoseSample.js";
 import { SEAM_BEATS } from "./RenderingContract.js";
 import { easeSeam, seamProgress } from "./easeSeam.js";
@@ -81,12 +82,62 @@ describe("easeSeam", () => {
     expect(at(0.1)).toBeCloseTo(8 * 0.028, 6);
   });
 
-  it("switches a 'down' hand at the midpoint rather than interpolating", () => {
+  it("keeps both hands 'down' when neither side places one", () => {
     const down = pose({ hands: { L: "down", R: "down" } });
+    expect(easeSeam(down, down, 0.5).hands.L).toBe("down");
+    expect(easeSeam(down, down, 0.5).hands.R).toBe("down");
+  });
+
+  it("animates a take out of the hanging hand instead of switching at the midpoint", () => {
+    const down = pose({ hands: { L: "down", R: "down" }, amp: 0 });
     const placed: Hand = { p: [3, 3], drop: 7 };
-    const up = pose({ hands: { L: placed, R: placed } });
-    expect(easeSeam(down, up, 0.4).hands.L).toBe("down");
-    expect(easeSeam(down, up, 0.6).hands.L).toEqual(placed);
+    const up = pose({ hands: { L: placed, R: placed }, amp: 0 });
+    const hang = hangingHand(down.p, down.facing, "L", 0, 0);
+
+    // The hand the seam starts from is where the hang puts it, and the hand it
+    // arrives at is the one the next figure placed: no jump at either end.
+    expect(easeSeam(down, up, 0).hands.L).toEqual(hang);
+    expect(easeSeam(down, up, 1).hands.L).toEqual(placed);
+
+    // And it moves monotonically in between rather than switching.
+    const at = (k: number) => {
+      const h = easeSeam(down, up, k).hands.L;
+      if (h === "down") throw new Error("expected a placed hand");
+      return h;
+    };
+    let previous = hang.p[0];
+    for (const k of [0.2, 0.4, 0.6, 0.8, 1]) {
+      const x = at(k).p[0];
+      expect(x).toBeGreaterThan(previous);
+      previous = x;
+    }
+    // Half way through the seam the hand is half way between the two, not at
+    // either of them.
+    expect(at(0.5).p[0]).toBeCloseTo((hang.p[0] + placed.p[0]) / 2, 12);
+    expect(at(0.5).drop).toBeCloseTo((hang.drop + placed.drop) / 2, 12);
+  });
+
+  it("releases into the hanging hand the same way", () => {
+    const placed: Hand = { p: [3, 3], drop: 7 };
+    const held = pose({ hands: { L: placed, R: placed }, amp: 0 });
+    const loose = pose({ hands: { L: "down", R: "down" }, amp: 0 });
+    const hang = hangingHand(loose.p, loose.facing, "L", 0, 0);
+    expect(easeSeam(held, loose, 0).hands.L).toEqual(placed);
+    const arrived = easeSeam(held, loose, 1).hands.L;
+    if (arrived === "down") throw new Error("expected a placed hand");
+    expect(arrived.p[0]).toBeCloseTo(hang.p[0], 12);
+    expect(arrived.p[1]).toBeCloseTo(hang.p[1], 12);
+    expect(arrived.drop).toBeCloseTo(hang.drop, 12);
+  });
+
+  it("starts the take from where the hang has swung to at this beat", () => {
+    const down = pose({ hands: { L: "down", R: "down" } });
+    const up = pose({ hands: { L: { p: [3, 3], drop: 7 }, R: "down" } });
+    // A hanging hand swings with the step, so the beat has to go in.
+    const early = easeSeam(down, up, 0, 0.25).hands.L;
+    const late = easeSeam(down, up, 0, 0.75).hands.L;
+    expect(early).not.toEqual(late);
+    expect(early).toEqual(hangingHand(down.p, down.facing, "L", 0.25, down.amp));
   });
 });
 

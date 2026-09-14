@@ -10,7 +10,7 @@ import type {
   Station,
 } from "@caller/choreo";
 import { resolveSelector, validateDance, withDefaults } from "@caller/choreo";
-import type { ContraParams, Spots } from "./ContraFigure.js";
+import type { Carried, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
 import { contraFigureOf } from "./registry.js";
 
 /**
@@ -83,6 +83,9 @@ export function chainCalls(
     options.start ?? Object.fromEntries(stations.map((s) => [s.id, { p: s.p, facing: s.facing }]));
 
   const out: FigureCall[] = [];
+  /** What each call holds at its last beat, and through its middle. */
+  const ending: HandJoin[][] = [];
+  const middle: HandJoin[][] = [];
   for (const call of calls) {
     const def = contraFigureOf(call.figure);
     if (!def) {
@@ -100,6 +103,8 @@ export function chainCalls(
       if (end) next[id] = end;
     }
     places = next;
+    ending.push(def.joins(params, call.beats, stations, spacing));
+    middle.push(def.joins(params, call.beats / 2, stations, spacing));
     out.push({
       figure: call.figure,
       beats: call.beats,
@@ -108,7 +113,58 @@ export function chainCalls(
       ...(call.call === undefined ? {} : { call: call.call }),
     });
   }
+  carryHolds(out, ending, middle);
   return { calls: out, ends: places };
+}
+
+/**
+ * Give every boundary the holds that cross it: the hands one call is still
+ * holding at its last beat that the next call holds through its middle.
+ *
+ * Both halves are read from the figures themselves — what `joinsAt` says — so a
+ * dance never writes a carried hold down and a figure that changes its mind
+ * about what it holds cannot leave a stale one behind. The *middle* is the
+ * right question of the incoming figure: almost every figure takes hands over
+ * its first beat, so asking what it holds at beat 0 would answer "nothing" for
+ * all of them.
+ */
+function carryHolds(
+  calls: FigureCall[],
+  ending: readonly HandJoin[][],
+  middle: readonly HandJoin[][],
+): void {
+  for (let i = 1; i < calls.length; i++) {
+    const kept = (ending[i - 1] ?? []).filter((join) => holds(middle[i] ?? [], join));
+    if (kept.length === 0) continue;
+    addCarried(calls[i - 1]!, "out", kept);
+    addCarried(calls[i]!, "in", kept);
+  }
+}
+
+/** Whether this join — either way round — is one of those. */
+const holds = (joins: readonly HandJoin[], join: HandJoin): boolean =>
+  joins.some(
+    (other) =>
+      (other.a === join.a &&
+        other.aSide === join.aSide &&
+        other.b === join.b &&
+        other.bSide === join.bSide) ||
+      (other.a === join.b &&
+        other.aSide === join.bSide &&
+        other.b === join.a &&
+        other.bSide === join.aSide),
+  );
+
+/** Write the joins into one call's `carried.in` or `carried.out`. */
+function addCarried(call: FigureCall, way: "in" | "out", joins: readonly HandJoin[]): void {
+  const params = call.params as { carried?: Carried };
+  const carried: Carried = params.carried ?? { in: {}, out: {} };
+  const side = { ...carried[way] };
+  for (const join of joins) {
+    side[join.a] = { ...side[join.a], [join.aSide]: { with: join.b, side: join.bSide } };
+    side[join.b] = { ...side[join.b], [join.bSide]: { with: join.a, side: join.aSide } };
+  }
+  params.carried = { ...carried, [way]: side };
 }
 
 /**
@@ -117,15 +173,23 @@ export function chainCalls(
  */
 export function contraDance(spec: ContraDanceSpec): Dance {
   const stations = spec.formation.group(4);
-  let places: Spots | undefined = danceStart(spec, stations);
+  const places = danceStart(spec, stations);
+  // Threaded as one run and cut back into phrases afterwards, so a hold carries
+  // across a phrase boundary — "partner balance" at the end of B1 into "partner
+  // swing" at the start of B2 — exactly as it does inside one.
+  const threaded = chainCalls(
+    spec.formation,
+    spec.phrases.flatMap((p) => p.figures),
+    { stations, ...(places === undefined ? {} : { start: places }) },
+  );
   const phrases: DancePhrase[] = [];
+  let at = 0;
   for (const phrase of spec.phrases) {
-    const threaded = chainCalls(spec.formation, phrase.figures, {
-      stations,
-      ...(places === undefined ? {} : { start: places }),
+    phrases.push({
+      name: phrase.name,
+      figures: threaded.calls.slice(at, at + phrase.figures.length),
     });
-    places = threaded.ends;
-    phrases.push({ name: phrase.name, figures: threaded.calls });
+    at += phrase.figures.length;
   }
   return validateDance({
     slug: spec.slug,
@@ -153,13 +217,10 @@ function danceStart(spec: ContraDanceSpec, stations: readonly Station[]): Spots 
 /** Where a dance leaves every dancer, in frame-local px: what its closure is checked against. */
 export function danceEnds(spec: ContraDanceSpec): Spots {
   const stations = spec.formation.group(4);
-  let places: Spots | undefined = danceStart(spec, stations);
-  for (const phrase of spec.phrases) {
-    const threaded = chainCalls(spec.formation, phrase.figures, {
-      stations,
-      ...(places === undefined ? {} : { start: places }),
-    });
-    places = threaded.ends;
-  }
-  return places ?? Object.fromEntries(stations.map((s) => [s.id, { p: s.p, facing: s.facing }]));
+  const places = danceStart(spec, stations);
+  return chainCalls(
+    spec.formation,
+    spec.phrases.flatMap((p) => p.figures),
+    { stations, ...(places === undefined ? {} : { start: places }) },
+  ).ends;
 }

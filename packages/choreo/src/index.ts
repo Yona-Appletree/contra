@@ -93,6 +93,7 @@ export {
   DEFAULT_MOTION_BOUNDS,
   MOTION_STEP,
   ORACLE_STEP,
+  STILL_HAND_PX,
   closureReport,
   collisionReport,
   coverageProblems,

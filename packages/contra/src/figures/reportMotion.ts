@@ -1,6 +1,12 @@
 import type { Beat } from "@caller/core";
 import type { MotionReport, MotionStats } from "@caller/choreo";
-import { createTimeline, formatMotionReport, motionReport, withDefaults } from "@caller/choreo";
+import {
+  MOTION_STEP,
+  createTimeline,
+  formatMotionReport,
+  motionReport,
+  withDefaults,
+} from "@caller/choreo";
 import { CONTRA_MOTION_BOUNDS, CONTRA_TAKE_MOTION, GUARD_FACTOR } from "./motionBounds.js";
 import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
@@ -72,17 +78,32 @@ function boundsSection(): string[] {
     "| --- | ---: | ---: |",
     `| hand floor speed | ${take.handSpeed.toFixed(4)} px/beat | **${CONTRA_MOTION_BOUNDS.handSpeedPx.toFixed(4)}** |`,
     `| elbow floor speed | ${take.elbowSpeed.toFixed(4)} px/beat | **${CONTRA_MOTION_BOUNDS.elbowSpeedPx.toFixed(4)}** |`,
+    `| elbow speed ÷ hand speed, per sample | ${take.elbowRatio.toFixed(4)}× | **${CONTRA_MOTION_BOUNDS.elbowPerHand.toFixed(4)}** |`,
     `| hand height rate | ${take.heightRate.toFixed(4)} px/beat | **${CONTRA_MOTION_BOUNDS.heightRatePx.toFixed(4)}** |`,
     `| out-and-back inside one beat | ${take.hangingDipPx.toFixed(4)} px | **${CONTRA_MOTION_BOUNDS.dipPx.toFixed(4)}** |`,
     "",
     "The dip bound comes from the one out-and-back the model asks for: a hanging hand",
     "swings forward and back once a beat, `2 × HAND_HANG_SWING_PX` = 1.2 px.",
     "",
-    `**The elbow bound is useless, and that is a finding.** A straight take moves the elbow at **${take.elbowPerHand.toFixed(3)}×**`,
-    "the hand's speed, because a hanging hand sits 0.14 px from its own shoulder on the",
-    "floor — the elbow's azimuth is very nearly undefined there, so the smallest movement",
-    "of the hand swings it a long way. Three times that is 750 px/beat, which nothing",
-    "will ever trip. Read the elbow column against the hand column instead.",
+    "**The elbow bound F3a derived was useless, and F3c found out why.** A take moved the",
+    "elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat, a number",
+    "nothing would ever trip. That was not the elbow being unbounded by construction: it",
+    "was the elbow **pole lining up with the arm** part way through the take, and the elbow",
+    "flipping through 180° as it crossed. With the pole capped",
+    `(\`ELBOW_POLE_ALONG_FRACTION\` in \`@caller/core\`) the same take moves the elbow at ${take.elbowSpeed.toFixed(1)}`,
+    `px/beat, **${take.elbowPerHand.toFixed(3)}×** the hand, and the guard means something again.`,
+    "",
+    "The **ratio** is the column that discriminates, and it is derived the same way: the",
+    "worst per-sample `elbow speed ÷ hand speed` an honest take produces, with the hand",
+    "floored at `STILL_HAND_PX` (2π × `HAND_HANG_SWING_PX` = 3.77 px/beat, the fastest a",
+    "hand moves while its dancer stands still) so an elbow that swings while the hand is",
+    "stationary is still counted against it.",
+    "",
+    "The **jump** column is the distance a hand moved in the step where its state flipped",
+    "between placed and hanging. A flip is not itself a defect — a hand a figure placed and",
+    "the next figure leaves `'down'` really does stop being placed — but before F3c the seam",
+    "switched the two at its midpoint and the hand jumped the whole way between them. It is",
+    "marked against one step of the hand's own bound.",
     "",
     "These are **guards**, not tuning targets: at 1.05× they would flake on the first",
     "figure anybody re-tuned. `motionBounds.test.ts` re-derives every number above and",
@@ -248,15 +269,26 @@ function merge(rows: Map<string, MotionStats>, row: MotionStats): void {
 
 /** The worse of two rows, field by field. */
 function mergeInto(a: MotionStats, b: MotionStats): MotionStats {
-  const worse = <K extends "handSpeed" | "elbowSpeed" | "heightRate" | "elbowHeightRate" | "dip">(
+  const worse = <
+    K extends
+      | "handSpeed"
+      | "elbowSpeed"
+      | "elbowPerHand"
+      | "heightRate"
+      | "elbowHeightRate"
+      | "flipJump"
+      | "dip",
+  >(
     key: K,
   ) => (b[key].value > a[key].value ? b[key] : a[key]);
   return {
     key: a.key,
     handSpeed: worse("handSpeed"),
     elbowSpeed: worse("elbowSpeed"),
+    elbowPerHand: worse("elbowPerHand"),
     heightRate: worse("heightRate"),
     elbowHeightRate: worse("elbowHeightRate"),
+    flipJump: worse("flipJump"),
     dip: worse("dip"),
     stateFlips: a.stateFlips + b.stateFlips,
     ...((a.firstFlip ?? b.firstFlip) ? { firstFlip: a.firstFlip ?? b.firstFlip } : {}),
@@ -278,6 +310,7 @@ function severity(s: MotionStats): number {
   return Math.max(
     s.handSpeed.value / CONTRA_MOTION_BOUNDS.handSpeedPx,
     s.elbowSpeed.value / CONTRA_MOTION_BOUNDS.elbowSpeedPx,
+    s.elbowPerHand.value / CONTRA_MOTION_BOUNDS.elbowPerHand,
     s.heightRate.value / CONTRA_MOTION_BOUNDS.heightRatePx,
     s.dip.value / CONTRA_MOTION_BOUNDS.dipPx,
     s.stateFlips > 0 ? 1 : 0,
@@ -286,8 +319,8 @@ function severity(s: MotionStats): number {
 }
 
 const HEADER = [
-  "| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | worst hand at |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function table(rows: readonly MotionStats[]): string[] {
@@ -298,15 +331,17 @@ function table(rows: readonly MotionStats[]): string[] {
       (r) =>
         `| \`${r.key}\` | ${over(r.handSpeed.value, CONTRA_MOTION_BOUNDS.handSpeedPx)} | ` +
         `${over(r.elbowSpeed.value, CONTRA_MOTION_BOUNDS.elbowSpeedPx)} | ` +
+        `${over(r.elbowPerHand.value, CONTRA_MOTION_BOUNDS.elbowPerHand, 2)} | ` +
         `${over(r.heightRate.value, CONTRA_MOTION_BOUNDS.heightRatePx)} | ${r.stateFlips} | ` +
-        `${r.nonFinite} | ${over(r.dip.value, CONTRA_MOTION_BOUNDS.dipPx)} | ${where(r)} |`,
+        `${over(r.flipJump.value, CONTRA_MOTION_BOUNDS.handSpeedPx * MOTION_STEP, 2)} | ` +
+        `${r.nonFinite} | ${over(r.dip.value, CONTRA_MOTION_BOUNDS.dipPx, 2)} | ${where(r)} |`,
     ),
   ];
 }
 
 /** A number, marked when it is over its bound. */
-const over = (value: number, bound: number): string =>
-  value > bound ? `**${value.toFixed(1)}**` : value.toFixed(1);
+const over = (value: number, bound: number, places = 1): string =>
+  value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
 
 const where = (r: MotionStats): string =>
   r.handSpeed.dancer === undefined

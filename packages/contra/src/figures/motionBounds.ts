@@ -1,7 +1,7 @@
 import type { Beat, Hand, Side, Vec2 } from "@caller/core";
 import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/core";
 import type { MotionBounds } from "@caller/choreo";
-import { frame as makeFrame, withDefaults } from "@caller/choreo";
+import { STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot } from "./ContraFigure.js";
 import { holdWindow, takeAndRelease } from "./ContraFigure.js";
 import { CONTRA_FIGURES, CONTRA_FIGURE_IDS } from "./registry.js";
@@ -42,8 +42,17 @@ export interface TakeMotion {
   elbowSpeed: number;
   /** Peak rate of change of the hand's height, px per beat. */
   heightRate: number;
-  /** `elbowSpeed / handSpeed`: what a straight take does to the elbow. */
+  /** `elbowSpeed / handSpeed`: what a straight take does to the elbow, peak against peak. */
   elbowPerHand: number;
+  /**
+   * The worst **per-sample** ratio of elbow speed to hand speed in that take,
+   * with the hand floored at {@link STILL_HAND_PX}.
+   *
+   * This is the number the oracle's own `elbowPerHand` column is measured
+   * against, and it is not the same as the one above: the two peaks need not
+   * fall on the same sample.
+   */
+  elbowRatio: number;
 }
 
 /** The furthest and the lowest a figure in the registry ever places a hand. */
@@ -116,6 +125,7 @@ export function deriveTakeMotion(floorPx: number, drop: number, step = DERIVE_ST
   let handSpeed = 0;
   let elbowSpeed = 0;
   let heightRate = 0;
+  let elbowRatio = 0;
   let previous: { hand: Hand; elbow: Vec2 } | undefined;
   const steps = Math.round(2 / step);
   for (let i = 0; i <= steps; i++) {
@@ -137,8 +147,11 @@ export function deriveTakeMotion(floorPx: number, drop: number, step = DERIVE_ST
     );
     const elbow = arms.arms[1]!.elbow;
     if (previous) {
-      handSpeed = Math.max(handSpeed, dist(hand.p, previous.hand.p) / step);
-      elbowSpeed = Math.max(elbowSpeed, dist(elbow, previous.elbow) / step);
+      const hands = dist(hand.p, previous.hand.p) / step;
+      const elbows = dist(elbow, previous.elbow) / step;
+      handSpeed = Math.max(handSpeed, hands);
+      elbowSpeed = Math.max(elbowSpeed, elbows);
+      elbowRatio = Math.max(elbowRatio, elbows / Math.max(hands, STILL_HAND_PX));
       heightRate = Math.max(heightRate, Math.abs(hand.drop - previous.hand.drop) / step);
     }
     previous = { hand, elbow };
@@ -150,6 +163,7 @@ export function deriveTakeMotion(floorPx: number, drop: number, step = DERIVE_ST
     elbowSpeed,
     heightRate,
     elbowPerHand: elbowSpeed / handSpeed,
+    elbowRatio,
   };
 }
 
@@ -172,7 +186,8 @@ export function deriveBounds(step = DERIVE_STEP): {
     take,
     bounds: {
       handSpeedPx: GUARD_FACTOR * take.handSpeed,
-      elbowSpeedPx: GUARD_FACTOR * take.handSpeed * take.elbowPerHand,
+      elbowSpeedPx: GUARD_FACTOR * take.elbowSpeed,
+      elbowPerHand: GUARD_FACTOR * take.elbowRatio,
       heightRatePx: GUARD_FACTOR * take.heightRate,
       // A hanging hand swings forward and back once a beat: an out-and-back of
       // exactly `2 × HAND_HANG_SWING_PX`, and the only one the model asks for.
@@ -182,8 +197,8 @@ export function deriveBounds(step = DERIVE_STEP): {
 }
 
 /**
- * The bounds, as derived on 2026-09-14 and written down so the oracle is not
- * re-deriving itself out of its own defects.
+ * The bounds, as re-derived on 2026-09-14 by F3c and written down so the oracle
+ * is not re-deriving itself out of its own defects.
  *
  * `motionBounds.test.ts` re-runs {@link deriveBounds} and fails if any of these
  * has moved, so the numbers stay honest without the oracle chasing the code.
@@ -191,23 +206,30 @@ export function deriveBounds(step = DERIVE_STEP): {
  * | | legitimate maximum | × 3 = the bound |
  * | --- | ---: | ---: |
  * | hand floor speed | 26.8129 px/beat | 80.4388 |
- * | elbow floor speed | 250.2552 px/beat | 750.7657 |
+ * | elbow floor speed | 68.1629 px/beat | 204.4888 |
+ * | elbow speed / hand speed, per sample | 3.2552× | 9.7655 |
  * | hand height rate | 21.7217 px/beat | 65.1650 |
  * | out-and-back inside a beat | 1.2 px | 3.6 |
  *
- * **The elbow bound is useless, and that is the finding, not an accident.** A
- * straight take moves the elbow at **9.33×** the hand's speed, because the arm
- * starts nearly vertical — a hanging hand is 0.14 px from its own shoulder on
- * the floor — so the elbow's azimuth is very nearly undefined and the smallest
- * movement of the hand swings it a long way. Three times that is 750 px/beat,
- * which nothing will ever trip. Read the report's elbow column against its
- * hand column instead: `long-lines` moves an elbow at 334 px/beat while its
- * hand does 21, and `california-twirl` at 314 against 28. Whether the elbow
- * should be bounded some other way is a ruling for the director.
+ * **The elbow bound F3a derived was useless, and F3c found out why.** A take
+ * moved the elbow at 250 px/beat — 9.33× the hand — which made the guard 750
+ * px/beat, a number nothing would ever trip. That was not the elbow being
+ * intrinsically unbounded: it was the elbow pole lining up with the arm part
+ * way through the take and the elbow flipping through 180°. With the pole
+ * capped (`ELBOW_POLE_ALONG_FRACTION` in `@caller/core`) the same take moves
+ * the elbow at 68 px/beat, and the guard means something again.
+ *
+ * The **ratio** is the bound that discriminates, and it is derived the same
+ * way: the worst per-sample `elbow speed / hand speed` an honest take produces,
+ * with the hand floored at `STILL_HAND_PX` so an elbow that swings while the
+ * hand is still is still counted. A take does 3.26×; the guard is three times
+ * that. F3a saw `long-lines` at 15.8× against `balance-ring` at 1.26×, which is
+ * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
   handSpeedPx: 80.4388,
-  elbowSpeedPx: 750.7657,
+  elbowSpeedPx: 204.4888,
+  elbowPerHand: 9.7655,
   heightRatePx: 65.165,
   dipPx: 3.6,
 };
@@ -221,9 +243,10 @@ export const CONTRA_TAKE_MOTION = {
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
   handSpeed: 26.8129,
-  elbowSpeed: 250.2552,
+  elbowSpeed: 68.1629,
   heightRate: 21.7217,
-  elbowPerHand: 9.3334,
+  elbowPerHand: 2.5422,
+  elbowRatio: 3.2552,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

@@ -1,5 +1,13 @@
 import type { Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
-import { SEAM_BEATS, angleDiff, dist, drawnArms, shoulders, solveArm } from "@caller/core";
+import {
+  HAND_HANG_SWING_PX,
+  SEAM_BEATS,
+  angleDiff,
+  dist,
+  drawnArms,
+  shoulders,
+  solveArm,
+} from "@caller/core";
 import type { DancerId } from "../formation/Formation.js";
 import type { Timeline } from "../timeline/Timeline.js";
 import { poseAt, sampleEvent } from "../timeline/poseAt.js";
@@ -208,6 +216,18 @@ export interface MotionStats {
   handSpeed: MotionWorst;
   /** Worst floor speed of an elbow, px per beat. */
   elbowSpeed: MotionWorst;
+  /**
+   * Worst ratio of the elbow's floor speed to the hand's, per sample.
+   *
+   * The elbow cannot be bounded by a speed of its own: a folded arm puts the
+   * elbow several px off the shoulder-hand line, so a body turning under a
+   * still hand moves it legitimately. What reads as flail is the elbow moving
+   * *far faster than the hand it belongs to* — F3a measured `long-lines` at an
+   * elbow of 334 px/beat against a hand of 21. The hand's speed is floored at
+   * {@link STILL_HAND_PX}, the fastest a hand moves while its dancer stands
+   * still, so an elbow that swings while the hand is stationary still counts.
+   */
+  elbowPerHand: MotionWorst;
   /** Worst rate of change of a hand's height, px per beat. */
   heightRate: MotionWorst;
   /** Worst rate of change of an elbow's height, px per beat. Not tabled. */
@@ -216,6 +236,17 @@ export interface MotionStats {
   stateFlips: number;
   /** Where the first state flip was. */
   firstFlip?: { dancer: DancerId; beat: Beat; side: Side };
+  /**
+   * How far a hand moved in the step where its state flipped, px.
+   *
+   * A flip on its own is not a defect: a hand a figure placed and the next
+   * figure leaves `'down'` really does stop being placed, and the label has to
+   * change somewhere. What the user sees is whether the hand **jumps** when it
+   * does. Before F3c the seam switched the two at its midpoint and this was the
+   * whole distance between them; with the take and the release animated it is
+   * no larger than an ordinary step.
+   */
+  flipJump: MotionWorst;
   /**
    * How many samples had a hand or an elbow that was not a finite number.
    *
@@ -263,6 +294,8 @@ export interface MotionBounds {
   handSpeedPx: number;
   /** Floor speed of an elbow, px per beat. */
   elbowSpeedPx: number;
+  /** Elbow floor speed as a multiple of the hand's; see {@link MotionStats.elbowPerHand}. */
+  elbowPerHand: number;
   /** Rate of change of a hand's height, px per beat. */
   heightRatePx: number;
   /** An out-and-back inside one beat, px. */
@@ -286,9 +319,20 @@ export interface MotionOptions {
 export const DEFAULT_MOTION_BOUNDS: MotionBounds = {
   handSpeedPx: 60,
   elbowSpeedPx: 60,
+  elbowPerHand: 10,
   heightRatePx: 60,
   dipPx: 6,
 };
+
+/**
+ * How fast a hand moves while its dancer stands still, px per beat: the hanging
+ * hand's own swing, `2π × HAND_HANG_SWING_PX`.
+ *
+ * It is the floor under the hand's speed in {@link MotionStats.elbowPerHand}, so
+ * the ratio is a number rather than a division by nothing, and an elbow that
+ * swings while the hand is stationary is still counted against it.
+ */
+export const STILL_HAND_PX = 2 * Math.PI * HAND_HANG_SWING_PX;
 
 /**
  * Sample every dancer at {@link MOTION_STEP} and report how the drawn arms
@@ -361,13 +405,17 @@ export function motionReport(
         if (dt <= 0) continue;
         for (const row of rows) {
           row.samples += 1;
-          keep(row.handSpeed, dist(now.hand, before.hand) / dt, where);
-          keep(row.elbowSpeed, dist(now.elbow, before.elbow) / dt, where);
+          const handSpeed = dist(now.hand, before.hand) / dt;
+          const elbowSpeed = dist(now.elbow, before.elbow) / dt;
+          keep(row.handSpeed, handSpeed, where);
+          keep(row.elbowSpeed, elbowSpeed, where);
+          keep(row.elbowPerHand, elbowSpeed / Math.max(handSpeed, STILL_HAND_PX), where);
           keep(row.heightRate, Math.abs(now.handHeight - before.handHeight) / dt, where);
           keep(row.elbowHeightRate, Math.abs(now.elbowHeight - before.elbowHeight) / dt, where);
           if (now.hanging !== before.hanging) {
             row.stateFlips += 1;
             row.firstFlip ??= where;
+            keep(row.flipJump, dist(now.hand, before.hand), where);
           }
         }
 
@@ -401,6 +449,7 @@ export function motionReport(
     Math.max(
       s.handSpeed.value / bounds.handSpeedPx,
       s.elbowSpeed.value / bounds.elbowSpeedPx,
+      s.elbowPerHand.value / bounds.elbowPerHand,
       s.heightRate.value / bounds.heightRatePx,
       s.dip.value / bounds.dipPx,
       s.stateFlips > 0 ? 1 : 0,
@@ -428,6 +477,7 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
   lines.push(
     `Sampled beats ${report.from} to ${report.to} every ${fraction(report.step)} beat. ` +
       `Bounds: hand ${report.bounds.handSpeedPx} px/beat, elbow ${report.bounds.elbowSpeedPx} px/beat, ` +
+      `elbow/hand ${report.bounds.elbowPerHand}×, ` +
       `height ${report.bounds.heightRatePx} px/beat, dip ${report.bounds.dipPx} px.`,
   );
   lines.push("");
@@ -442,8 +492,8 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
 }
 
 const MOTION_HEADER = [
-  "| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | where the worst hand was |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | NaN | dip px | where the worst hand was |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function motionTable(rows: readonly MotionStats[]): string[] {
@@ -453,6 +503,7 @@ function motionTable(rows: readonly MotionStats[]): string[] {
     ...rows.map(
       (r) =>
         `| \`${r.key}\` | ${r.handSpeed.value.toFixed(1)} | ${r.elbowSpeed.value.toFixed(1)} | ` +
+        `${r.elbowPerHand.value.toFixed(2)} | ` +
         `${r.heightRate.value.toFixed(1)} | ${r.stateFlips} | ${r.nonFinite} | ` +
         `${r.dip.value.toFixed(2)} | ${motionPlace(r.handSpeed)} |`,
     ),
@@ -525,9 +576,11 @@ const emptyStats = (key: string): MotionStats => ({
   key,
   handSpeed: { value: 0 },
   elbowSpeed: { value: 0 },
+  elbowPerHand: { value: 0 },
   heightRate: { value: 0 },
   elbowHeightRate: { value: 0 },
   stateFlips: 0,
+  flipJump: { value: 0 },
   nonFinite: 0,
   dip: { value: 0 },
   reversals: 0,

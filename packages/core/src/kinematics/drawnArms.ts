@@ -66,6 +66,44 @@ export const ELBOW_TUCK_DROP_PX = 6;
 /** How far outward of straight back a fully tucked elbow splays, in degrees. */
 export const ELBOW_TUCK_SPLAY_DEG = 15;
 
+/**
+ * How much of the pole is allowed to point the way the **arm** already points,
+ * as a fraction of the amount that would cancel the elbow's downward bow.
+ *
+ * {@link solveArm3d} puts the elbow off the shoulder-hand line in the direction
+ * of the pole, made perpendicular to that line. The pole points down and
+ * outward; an arm that points down and outward *at the same angle* is parallel
+ * to it, almost nothing survives the projection, and the elbow's direction
+ * round the arm is then undefined — it flips through 180° as the hand crosses
+ * that angle, which swings the elbow several px in one 1/32-beat step. With
+ * `POLE_OUTWARD` at 0.55 the crossing is at 61° below horizontal, squarely
+ * inside the arc a reaching arm sweeps through, and F3a measured what it costs:
+ * `long-lines` moving an elbow at 334 px/beat while its hand did 21, and an
+ * elbow bound "derived" from an ordinary take that came out at an unusable 750
+ * px/beat because the take crosses the same angle.
+ *
+ * So the along-arm part of the pole is held to half of what would cancel: at
+ * least half the elbow's downward bow always survives, the direction is never
+ * near-singular, and — because the cap does nothing at all when the pole is
+ * already clear of the arm — every hand outside that wedge draws exactly as it
+ * did before.
+ */
+export const ELBOW_POLE_ALONG_FRACTION = 0.5;
+
+/**
+ * How far out the hand has to be, on the floor, for that cap to be at full
+ * strength.
+ *
+ * Under the shoulder there is nothing for the along-arm part to cancel: the arm
+ * is vertical, so *every* floor direction is already perpendicular to it and
+ * the pole's floor direction is the whole of the answer. Capping it there would
+ * leave nothing, which is its own singularity — and the direction it would be
+ * capped along, the hand's own tiny offset from the shoulder, reverses as the
+ * hand swings under it. So the cap fades in as the hand leaves the hip, and is
+ * at full strength well before the wedge it exists to prevent.
+ */
+export const ELBOW_POLE_ALONG_PLANAR_PX = 2;
+
 /** Left and right, in that order. */
 export type ArmPair = readonly [left: Arm3dSolution, right: Arm3dSolution];
 
@@ -113,19 +151,54 @@ export function hangingHand(p: Vec2, facing: Angle, side: Side, beat: Beat, amp:
  * actually sits. It is a function of the hand's geometry, not of whether the
  * figure said `'down'`, so a hand a figure places at the dancer's side draws
  * the same as one the renderer hangs there.
+ *
+ * Then the part of that direction that points the way the arm already points is
+ * capped, so the pole can never line up with the arm and leave the elbow's
+ * direction round it undefined — see {@link ELBOW_POLE_ALONG_FRACTION}. Outside
+ * that wedge the cap does nothing and the pole is exactly what it always was.
  */
 export function elbowPole(shoulder: Vec2, hand: Hand, side: Side, facing: Angle): Vec2 {
   const outward = side === "L" ? leftOf(facing) : rightOf(facing);
-  const planar = Math.hypot(hand.p[0] - shoulder[0], hand.p[1] - shoulder[1]);
+  const dx = hand.p[0] - shoulder[0];
+  const dy = hand.p[1] - shoulder[1];
+  const planar = Math.hypot(dx, dy);
   const tuck = (1 - smooth(planar / ELBOW_TUCK_PLANAR_PX)) * smooth(hand.drop / ELBOW_TUCK_DROP_PX);
-  if (tuck <= 0) return [outward[0] * POLE_OUTWARD, outward[1] * POLE_OUTWARD];
-  // Straight back, splayed a little to this dancer's own side.
-  const splay = side === "L" ? ELBOW_TUCK_SPLAY_DEG : -ELBOW_TUCK_SPLAY_DEG;
-  const back = dirOf(facing + 180 + splay);
-  return [
-    mix(outward[0], back[0], tuck) * POLE_OUTWARD,
-    mix(outward[1], back[1], tuck) * POLE_OUTWARD,
-  ];
+  let px = outward[0];
+  let py = outward[1];
+  if (tuck > 0) {
+    // Straight back, splayed a little to this dancer's own side.
+    const splay = side === "L" ? ELBOW_TUCK_SPLAY_DEG : -ELBOW_TUCK_SPLAY_DEG;
+    const back = dirOf(facing + 180 + splay);
+    px = mix(outward[0], back[0], tuck);
+    py = mix(outward[1], back[1], tuck);
+  }
+  return capAlongArm(px, py, dx, dy, planar, hand.drop);
+}
+
+/**
+ * The pole, with the part of it pointing the way the arm already points capped
+ * so it cannot cancel the elbow's downward bow.
+ *
+ * The cancelling amount is exactly `planar / drop`: an arm `planar` px out and
+ * `drop` px down is parallel to a pole `planar / drop` out and 1 down. A pole
+ * pointing the *opposite* way to the arm adds to the bow and is never capped.
+ */
+function capAlongArm(
+  px: number,
+  py: number,
+  dx: number,
+  dy: number,
+  planar: number,
+  drop: number,
+): Vec2 {
+  if (planar < 1e-9 || drop <= 0) return [px * POLE_OUTWARD, py * POLE_OUTWARD];
+  const ux = dx / planar;
+  const uy = dy / planar;
+  const along = px * ux + py * uy;
+  const limit = (ELBOW_POLE_ALONG_FRACTION * planar) / (drop * POLE_OUTWARD);
+  if (along <= limit) return [px * POLE_OUTWARD, py * POLE_OUTWARD];
+  const shave = (along - limit) * smooth(planar / ELBOW_POLE_ALONG_PLANAR_PX);
+  return [(px - shave * ux) * POLE_OUTWARD, (py - shave * uy) * POLE_OUTWARD];
 }
 
 /**

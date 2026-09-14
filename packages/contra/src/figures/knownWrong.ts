@@ -27,7 +27,10 @@ export interface KnownWrong {
 /**
  * Every assertion in `figureChecks()` that fails today.
  *
- * Measured 2026-09-14 by F3a, against `main` at `8da9d72`.
+ * Measured 2026-09-14 by F3a, against `main` at `8da9d72`, and shortened the
+ * same day by F3c: the two `balance` rows and the `balance → swing` row are
+ * gone, because the zero-length release that made both of a balance's hands
+ * `NaN` is fixed and the hold now crosses the seam instead of being let go of.
  */
 export const KNOWN_WRONG: readonly KnownWrong[] = [
   {
@@ -95,24 +98,6 @@ export const KNOWN_WRONG: readonly KnownWrong[] = [
     label: "2L walks backward from beat 4.5 to 7",
     measured: "only 0.000 px of the 29.518 px he travels is behind him",
     why: "the same as 1L.",
-  },
-  {
-    key: "balance",
-    label: "1L's L stays joined to 2R's R from beat 1.5 to 4",
-    measured: "a hand is not a number at beat 4.000",
-    why: "`balance` uses `holdWindow(beats, 1.4, 0)` — a zero-length release — and `takeAndRelease` then evaluates `ramp(t, beats, beats)`, which is `smooth(0 / 0)`. At exactly `t = beats` both of the balance's hands are `NaN`. Nothing else in the repository sees it: `NaN > max` is false, so every existing oracle's maximum steps over it silently.",
-  },
-  {
-    key: "balance",
-    label: "1L's R stays joined to 2R's L from beat 1.5 to 4",
-    measured: "a hand is not a number at beat 4.000",
-    why: "the other hand of the same zero-length release.",
-  },
-  {
-    key: "balance → swing",
-    label: "1L's L stays joined to 2R's R from beat 0 to 2",
-    measured: "a hand is not a number at beat 1.000",
-    why: 'the user: "the arms still disappear between the balance and the swing." This is where the `NaN` above gets out: `poseAt` samples the outgoing figure at exactly `previous.end - previous.start` for the whole of the seam, so both of a dancer\'s arms are `NaN` — and therefore drawn as nothing at all — for the 0.4 beats after every balance in every dance. Over one time through `airpants` at four couples that is 416 non-finite hand samples.',
   },
 ];
 

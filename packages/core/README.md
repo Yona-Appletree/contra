@@ -101,7 +101,7 @@ function planarReach(drop: number): number; // sqrt(15² − drop²), floored at
 function shoulders(sample: PoseSample, swayDeg?: number): { L: Vec2; R: Vec2 };
 function shouldersAt(p: Vec2, facing: Angle): { L: Vec2; R: Vec2 };
 function stackJoined(a: JoinedHand, b: JoinedHand, roleSet: { top: string }): [top, bottom];
-function easeSeam(prev: PoseSample, next: PoseSample, k: number): PoseSample;
+function easeSeam(prev: PoseSample, next: PoseSample, k: number, beat?: Beat): PoseSample;
 function seamProgress(t: number): number; // t / SEAM_BEATS, clamped
 function quietMotion(sample: PoseSample, beat: Beat, velocity: Vec2, style?: Style): QuietMotion;
 function lerpHand(a: Hand, b: Hand, k: number): Hand;
@@ -149,6 +149,22 @@ shoulder. The rule reads the hand's geometry, not whether the figure said
 `'down'`, so a hand a figure places at the dancer's side draws the same as one
 the renderer hangs there. All seven numbers were retuned at gate G1.
 
+One more thing happens to the pole, and it is F3c's: the part of it that points
+the way the **arm** already points is capped at `ELBOW_POLE_ALONG_FRACTION`
+(half) of the amount that would cancel the elbow's downward bow, fading in over
+`ELBOW_POLE_ALONG_PLANAR_PX` (2 px) of floor distance from the shoulder.
+`solveArm3d` puts the elbow off the shoulder-hand line in the direction of the
+pole, made perpendicular to that line; a pole pointing down and outward is
+_parallel_ to an arm pointing down and outward at the same angle, almost nothing
+survives the projection, and the elbow flips through 180° as the hand crosses
+it. With `POLE_OUTWARD` at 0.55 that crossing is at 61° below horizontal,
+squarely inside the arc a reaching arm sweeps through. F3a measured what it
+cost — `long-lines` moving an elbow at 334 px/beat while its hand did 21, and an
+elbow "bound" derived from an ordinary take that came out at an unusable 750
+px/beat because the take crosses the same angle. With the cap the same take
+moves the elbow at 68 px/beat, and every hand outside that wedge draws exactly
+as it did before.
+
 `drawnArms` takes `p` and `torsoAngle` separately because the renderer quantises
 the body position before it solves anything and hangs the shoulders off the
 _swaying_ torso, while a hanging hand is placed on the plain facing. Left to
@@ -183,16 +199,16 @@ invariant.
 Production code never imports from `spikes/`; these behaviours were read from
 the spike and retyped.
 
-| Here                                                                                  | Spike                                                                                                                                                                |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `solveArm` / `solveArm3d`                                                             | `solveArm(S, H, drop, outward)`, the two-bone 3D IK with the down-and-outward pole and the `(L1 + L2) / d` clamp                                                     |
-| `planarReach`                                                                         | `reach = sqrt(max(0, (L1 + L2)² − hz²))`                                                                                                                             |
-| `shoulders`                                                                           | `bodyPt(P, torsoA, 0.3, ±SHW)` — but at 11 px, not the spike's 10.4; see the deviations below                                                                        |
-| `quietMotion`                                                                         | the `sampleAt` block: `vu`/`vw`, `ampS = min(1, speed / 4) × amp`, `feet = [2.5 ± 2.6·sn·vu·ampS, ∓2.0 ± 2.6·sn·vw·ampS]`, the buzz feet, `torsoA = a + 1.5·sn·ampS` |
-| `easeSeam` / `seamProgress`                                                           | the `SEAM = 0.4` block: `w = smooth(t / SEAM)`, `mixHand`, `alerp` on facing, `lerp` on lean                                                                         |
-| `createClock`                                                                         | the `clock` object: `refBeat + (now − ref) × bpm / 60`, `pause`/`resume`/`setTempo`                                                                                  |
-| `smooth ramp clamp01 q256 dirOf leftOf rightOf bodyPoint angleOf angleDiff angleLerp` | the helper block at the top of the spike's script                                                                                                                    |
-| `stackJoined`                                                                         | "the robin's hand on top, the lark's underneath", stated in the spike header and drawn by `drawArms`'s `under` flag                                                  |
+| Here                                                                                  | Spike                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `solveArm` / `solveArm3d`                                                             | `solveArm(S, H, drop, outward)`, the two-bone 3D IK with the down-and-outward pole and the `(L1 + L2) / d` clamp                                                                                                        |
+| `planarReach`                                                                         | `reach = sqrt(max(0, (L1 + L2)² − hz²))`                                                                                                                                                                                |
+| `shoulders`                                                                           | `bodyPt(P, torsoA, 0.3, ±SHW)` — but at 11 px, not the spike's 10.4; see the deviations below                                                                                                                           |
+| `quietMotion`                                                                         | the `sampleAt` block: `vu`/`vw`, `ampS = min(1, speed / 4) × amp`, `feet = [2.5 ± 2.6·sn·vu·ampS, ∓2.0 ± 2.6·sn·vw·ampS]`, the buzz feet, `torsoA = a + 1.5·sn·ampS`                                                    |
+| `easeSeam` / `seamProgress`                                                           | the `SEAM = 0.4` block: `w = smooth(t / SEAM)`, `mixHand`, `alerp` on facing, `lerp` on lean. F3c replaced the spike's switch for a `'down'` hand with an interpolation through where the hand hangs — hence the `beat` |
+| `createClock`                                                                         | the `clock` object: `refBeat + (now − ref) × bpm / 60`, `pause`/`resume`/`setTempo`                                                                                                                                     |
+| `smooth ramp clamp01 q256 dirOf leftOf rightOf bodyPoint angleOf angleDiff angleLerp` | the helper block at the top of the spike's script                                                                                                                                                                       |
+| `stackJoined`                                                                         | "the robin's hand on top, the lark's underneath", stated in the spike header and drawn by `drawArms`'s `under` flag                                                                                                     |
 
 ### Golden fixtures
 

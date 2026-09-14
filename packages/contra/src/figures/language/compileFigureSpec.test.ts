@@ -63,8 +63,12 @@ describe("compileFigureSpec", () => {
     expect(def.beats).toBe(8);
   });
 
-  it("fills in the empty `from` every contra figure's defaults carry", () => {
-    expect(compileFigureSpec(standStill()).defaults).toEqual({ places: 0, from: {} });
+  it("fills in the empty `from` and `carried` every contra figure's defaults carry", () => {
+    expect(compileFigureSpec(standStill()).defaults).toEqual({
+      places: 0,
+      from: {},
+      carried: { in: {}, out: {} },
+    });
   });
 
   it("slots into `createContraRegistry`'s extra array with no adapter", () => {

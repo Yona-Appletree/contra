@@ -22,18 +22,33 @@ So: measure the worst take the registry actually contains, then guard at **3×**
 | | legitimate maximum | × 3 = the bound |
 | --- | ---: | ---: |
 | hand floor speed | 26.8129 px/beat | **80.4388** |
-| elbow floor speed | 250.2552 px/beat | **750.7657** |
+| elbow floor speed | 68.1629 px/beat | **204.4888** |
+| elbow speed ÷ hand speed, per sample | 3.2552× | **9.7655** |
 | hand height rate | 21.7217 px/beat | **65.1650** |
 | out-and-back inside one beat | 1.2000 px | **3.6000** |
 
 The dip bound comes from the one out-and-back the model asks for: a hanging hand
 swings forward and back once a beat, `2 × HAND_HANG_SWING_PX` = 1.2 px.
 
-**The elbow bound is useless, and that is a finding.** A straight take moves the elbow at **9.333×**
-the hand's speed, because a hanging hand sits 0.14 px from its own shoulder on the
-floor — the elbow's azimuth is very nearly undefined there, so the smallest movement
-of the hand swings it a long way. Three times that is 750 px/beat, which nothing
-will ever trip. Read the elbow column against the hand column instead.
+**The elbow bound F3a derived was useless, and F3c found out why.** A take moved the
+elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat, a number
+nothing would ever trip. That was not the elbow being unbounded by construction: it
+was the elbow **pole lining up with the arm** part way through the take, and the elbow
+flipping through 180° as it crossed. With the pole capped
+(`ELBOW_POLE_ALONG_FRACTION` in `@caller/core`) the same take moves the elbow at 68.2
+px/beat, **2.542×** the hand, and the guard means something again.
+
+The **ratio** is the column that discriminates, and it is derived the same way: the
+worst per-sample `elbow speed ÷ hand speed` an honest take produces, with the hand
+floored at `STILL_HAND_PX` (2π × `HAND_HANG_SWING_PX` = 3.77 px/beat, the fastest a
+hand moves while its dancer stands still) so an elbow that swings while the hand is
+stationary is still counted against it.
+
+The **jump** column is the distance a hand moved in the step where its state flipped
+between placed and hanging. A flip is not itself a defect — a hand a figure placed and
+the next figure leaves `'down'` really does stop being placed — but before F3c the seam
+switched the two at its midpoint and the hand jumped the whole way between them. It is
+marked against one step of the hand's own bound.
 
 These are **guards**, not tuning targets: at 1.05× they would flake on the first
 figure anybody re-tuned. `motionBounds.test.ts` re-derives every number above and
@@ -45,59 +60,60 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 
 ### The ten worst figures
 
-| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | worst hand at |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `swing` | 69.4 | 139.7 | 56.9 | 36 | 4160 | **7.9** | `set0/c3/robin` R at beat 120.219 |
-| `wait-out` | **216.7** | 178.7 | **144.0** | 140 | 0 | **12.9** | `set0/c0/lark` L at beat 2.000 |
-| `balance` | **218.3** | 188.6 | 19.5 | 74 | 0 | **12.3** | `set0/c3/lark` R at beat 64.219 |
-| `do-si-do` | 20.1 | 18.5 | 2.3 | 14 | 0 | **12.3** | `set0/c0/robin` R at beat 37.469 |
-| `allemande` | 39.1 | 44.6 | 23.4 | 162 | 0 | **7.9** | `set0/c1/lark` L at beat 63.625 |
-| `robins-chain` | 30.0 | 281.4 | 22.5 | 44 | 0 | **7.9** | `set0/c1/robin` R at beat 25.125 |
-| `hey` | **113.0** | 124.3 | 2.3 | 44 | 0 | 1.4 | `set0/c3/robin` L at beat 38.375 |
-| `slide-left` | **80.7** | 61.6 | 0.7 | 8 | 0 | 1.9 | `set0/c2/robin` R at beat 64.219 |
-| `balance-ring` | 31.7 | 35.3 | 16.8 | 6 | 0 | 0.0 | `set0/c3/robin` R at beat 40.344 |
-| `circle` | 43.7 | 40.5 | 10.6 | 44 | 0 | 1.2 | `set0/c5/lark` L at beat 66.219 |
+| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `wait-out` | 61.1 | 65.9 | 2.38 | 6.7 | 80 | 1.28 | 0 | **12.86** | `set0/c4/lark` R at beat 64.344 |
+| `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 142 | 0.14 | 0 | **12.33** | `set0/c3/lark` R at beat 64.156 |
+| `do-si-do` | 20.1 | 18.5 | 1.92 | 2.3 | 30 | 0.14 | 0 | **12.33** | `set0/c0/robin` R at beat 37.469 |
+| `robins-chain` | 30.0 | 90.2 | **23.94** | 22.5 | 44 | 0.11 | 0 | **7.86** | `set0/c1/robin` R at beat 25.125 |
+| `allemande` | 39.1 | 44.6 | 4.78 | 23.4 | 162 | 0.45 | 0 | **7.86** | `set0/c3/lark` L at beat 63.625 |
+| `swing` | 59.5 | **225.5** | **11.94** | 25.6 | 36 | 0.09 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
+| `hey` | **113.0** | 124.1 | 1.94 | 2.3 | 44 | 0.12 | 0 | 1.28 | `set0/c3/robin` L at beat 38.375 |
+| `balance-ring` | 31.7 | 35.3 | 1.50 | 12.5 | 6 | 0.00 | 0 | 0.00 | `set0/c3/robin` R at beat 40.344 |
+| `circle` | 25.1 | 40.5 | 2.25 | 9.0 | 44 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 59.000 |
+| `long-lines` | 22.5 | 51.3 | 8.27 | 12.3 | 16 | 0.14 | 0 | 0.00 | `set0/c3/lark` L at beat 64.156 |
 
 ### The ten worst seams
 
-| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | worst hand at |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `balance → swing` | 0.0 | 0.0 | 0.0 | 0 | 4160 | 0.0 | — |
-| `robins-chain → wait-out` | 2.6 | 4.5 | 2.3 | 6 | 0 | **12.9** | `set0/c1/robin` L at beat 64.000 |
-| `robins-chain → balance` | **171.6** | 141.7 | 17.4 | 2 | 0 | **12.3** | `set0/c3/lark` R at beat 64.219 |
-| `robins-chain → do-si-do` | 18.3 | 15.6 | 2.3 | 6 | 0 | **12.3** | `set0/c0/robin` R at beat 32.344 |
-| `allemande → balance` | **218.3** | 188.6 | 19.5 | 60 | 0 | **6.1** | `set0/c3/lark` R at beat 64.219 |
-| `star → balance` | **218.0** | 122.3 | 19.5 | 12 | 0 | **5.5** | `set0/c0/lark` R at beat 64.219 |
-| `star → wait-out` | **205.0** | 178.7 | 0.5 | 12 | 0 | 0.0 | `set0/c2/lark` L at beat 64.219 |
-| `long-lines → allemande` | 38.0 | 20.6 | 0.6 | 90 | 0 | **7.9** | `set0/c0/robin` R at beat 8.219 |
-| `long-lines → robins-chain` | 9.6 | 9.1 | 0.6 | 14 | 0 | **7.9** | `set0/c2/robin` R at beat 24.375 |
-| `long-lines → swing` | 59.5 | 60.9 | 25.6 | 0 | 0 | **7.9** | `set0/c1/robin` L at beat 8.344 |
+| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `robins-chain → wait-out` | 2.6 | 4.5 | 1.21 | 2.3 | 0 | 0.00 | 0 | **12.86** | `set0/c1/robin` L at beat 64.000 |
+| `robins-chain → balance-and-swing` | 43.8 | 49.9 | 2.02 | 7.9 | 4 | 0.00 | 0 | **12.33** | `set0/c0/lark` R at beat 64.156 |
+| `robins-chain → do-si-do` | 18.3 | 15.6 | 1.92 | 2.3 | 6 | 0.00 | 0 | **12.33** | `set0/c0/robin` R at beat 32.344 |
+| `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
+| `long-lines → robins-chain` | 9.6 | 9.1 | 0.99 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c2/robin` R at beat 24.375 |
+| `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
+| `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 24 | 0.12 | 0 | 0.66 | `set0/c3/lark` R at beat 64.156 |
+| `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
+| `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
+| `allemande → hey` | 10.3 | 11.3 | 1.36 | 0.0 | 30 | 0.12 | 0 | 1.28 | `set0/c0/lark` L at beat 80.281 |
 
-Over all ten dances: 687,808 measurements, 644 hand-state flips, **4160 of them not a finite number**.
+Over all ten dances: 688,128 measurements, 684 hand-state flips, **0 of them not a finite number**.
 
 ## Every figure, alone
 
 Each figure run on its own in a duple improper group of four, with nothing before
 it, so every number is the figure's own and no seam is folded in.
 
-| what | hand px/beat | elbow px/beat | height px/beat | flips | NaN | dip px | worst hand at |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `balance` | 11.8 | 14.8 | 9.9 | 0 | 8 | 0.0 | `2R` L at beat 0.469 |
-| `hey` | 69.4 | 77.4 | 0.0 | 0 | 0 | 1.2 | `2R` L at beat 14.281 |
-| `long-lines` | 21.1 | 334.0 | 10.5 | 0 | 0 | 0.0 | `1R` L at beat 0.344 |
-| `california-twirl` | 27.7 | 314.4 | 21.7 | 0 | 0 | 1.2 | `1L` L at beat 1.563 |
-| `right-and-left-through` | 32.6 | 42.3 | 16.9 | 0 | 0 | 1.2 | `2L` L at beat 7.625 |
-| `star` | 31.9 | 110.4 | 12.1 | 0 | 0 | 1.2 | `2R` L at beat 3.531 |
-| `robins-chain` | 30.0 | 83.0 | 22.5 | 0 | 0 | 0.0 | `2R` R at beat 1.125 |
-| `allemande` | 22.2 | 32.5 | 23.4 | 0 | 0 | 1.2 | `1R` L at beat 7.563 |
-| `swing` | 28.7 | 139.7 | 21.7 | 0 | 0 | 0.0 | `1L` R at beat 0.344 |
-| `roll-away` | 26.6 | 258.8 | 21.2 | 0 | 0 | 1.2 | `1R` L at beat 2.719 |
-| `do-si-do` | 13.8 | 12.1 | 0.0 | 0 | 0 | 1.2 | `1L` R at beat 5.531 |
-| `pass-through` | 23.0 | 22.5 | 0.0 | 0 | 0 | 1.2 | `1L` L at beat 0.563 |
-| `slide-left` | 15.4 | 15.4 | 0.0 | 0 | 0 | 1.2 | `1L` L at beat 0.500 |
-| `petronella` | 24.7 | 26.8 | 0.0 | 0 | 0 | 0.0 | `2L` L at beat 1.781 |
-| `balance-ring` | 19.3 | 24.4 | 12.5 | 0 | 0 | 0.0 | `1R` R at beat 0.500 |
-| `circle` | 15.7 | 24.3 | 9.0 | 0 | 0 | 0.0 | `2L` L at beat 7.500 |
+| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `robins-chain` | 30.0 | 90.2 | **23.94** | 22.5 | 0 | 0.00 | 0 | 0.00 | `2R` R at beat 1.125 |
+| `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
+| `hey` | 69.4 | 77.7 | 1.52 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 14.281 |
+| `star` | 31.9 | 46.4 | 8.30 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
+| `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
+| `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
+| `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
+| `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
+| `right-and-left-through` | 32.6 | 39.6 | 2.83 | 16.9 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 7.625 |
+| `allemande` | 22.2 | 32.5 | 2.45 | 23.4 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 7.563 |
+| `do-si-do` | 13.8 | 12.1 | 1.30 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` R at beat 5.531 |
+| `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
+| `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
+| `petronella` | 24.7 | 26.8 | 1.86 | 0.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.781 |
+| `balance-ring` | 19.3 | 20.9 | 1.50 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 0.500 |
+| `circle` | 15.7 | 24.3 | 1.74 | 9.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 7.500 |
+| `balance` | 11.8 | 14.8 | 1.26 | 9.9 | 0 | 0.00 | 0 | 0.00 | `2R` L at beat 0.469 |
 
 ## Known wrong
 
@@ -118,9 +134,6 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 | `right-and-left-through` | 1L and 2R pass R shoulders around beat 2.0 | they never come closer than 20.00 px, and a pass is 14 px | each dancer crosses the set diagonally to the far corner rather than passing the dancer directly opposite. In duple improper the ones face the twos along the line, so 1L's pass is with 2R, 20 px straight ahead of him; the figure sends him to 2L's place instead, and the two of them never meet. |
 | `right-and-left-through` | 1L walks backward from beat 4.5 to 7 | only 0.000 px of the 29.518 px he travels is behind him | the courtesy turn is drawn as a sideways slide: he travels 29.5 px, all of it across his own facing and none of it backward. Same defect as the chain's, differently shaped. |
 | `right-and-left-through` | 2L walks backward from beat 4.5 to 7 | only 0.000 px of the 29.518 px he travels is behind him | the same as 1L. |
-| `balance` | 1L's L stays joined to 2R's R from beat 1.5 to 4 | a hand is not a number at beat 4.000 | `balance` uses `holdWindow(beats, 1.4, 0)` — a zero-length release — and `takeAndRelease` then evaluates `ramp(t, beats, beats)`, which is `smooth(0 / 0)`. At exactly `t = beats` both of the balance's hands are `NaN`. Nothing else in the repository sees it: `NaN > max` is false, so every existing oracle's maximum steps over it silently. |
-| `balance` | 1L's R stays joined to 2R's L from beat 1.5 to 4 | a hand is not a number at beat 4.000 | the other hand of the same zero-length release. |
-| `balance → swing` | 1L's L stays joined to 2R's R from beat 0 to 2 | a hand is not a number at beat 1.000 | the user: "the arms still disappear between the balance and the swing." This is where the `NaN` above gets out: `poseAt` samples the outgoing figure at exactly `previous.end - previous.start` for the whole of the seam, so both of a dancer's arms are `NaN` — and therefore drawn as nothing at all — for the 0.4 beats after every balance in every dance. Over one time through `airpants` at four couples that is 416 non-finite hand samples. |
 
 ## What each figure actually does
 
@@ -234,8 +247,8 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 
 | | assertion | evidence |
 | --- | --- | --- |
-| **known** | 1L's L stays joined to 2R's R from beat 1.5 to 4 | a hand is not a number at beat 4.000 |
-| **known** | 1L's R stays joined to 2R's L from beat 1.5 to 4 | a hand is not a number at beat 4.000 |
+| pass | 1L's L stays joined to 2R's R from beat 1.5 to 4 | never more than 0.0000 px apart |
+| pass | 1L's R stays joined to 2R's L from beat 1.5 to 4 | never more than 0.0000 px apart |
 | pass | 1L stays on their place from beat 1.5 to 4 | never more than 2.077 px off their place |
 
 ### `swing`
@@ -246,13 +259,22 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 | --- | --- | --- |
 | pass | 1L's L stays joined to 2R's R from beat 1 to 6.59375 | never more than 0.0000 px apart |
 
+### `balance-and-swing`
+
+> Take both hands with the dancer you are facing, step in toward them and back — that is the balance, four beats — and then, without letting go of the hand you are already holding, close into a ballroom hold and buzz round for the rest of the phrase, opening out side by side with the lark on the left and the robin on the right. It is one call and one move: the balance is how you get into the swing, and nobody lets go in between.
+
+| | assertion | evidence |
+| --- | --- | --- |
+| pass | 1L's L stays joined to 2R's R from beat 1.40625 to 14.59375 | never more than 0.0000 px apart |
+| pass | 1L's R stays joined to 2R's L from beat 1.5 to 4 | never more than 0.0000 px apart |
+
 ### `balance → swing`
 
 > A balance ends with the pair holding two hands and the swing that follows takes the same hands, so nothing should be let go of across the boundary.
 
 | | assertion | evidence |
 | --- | --- | --- |
-| **known** | 1L's L stays joined to 2R's R from beat 0 to 2 | a hand is not a number at beat 1.000 |
+| pass | 1L's L stays joined to 2R's R from beat 0 to 2 | never more than 0.0000 px apart |
 
 ## What every figure says it does
 
@@ -266,6 +288,10 @@ Join the named hands — forearms up, palms together, elbows bent — and walk f
 ### `balance` — BALANCE
 
 Take both hands with the dancer you are facing, step in toward them onto one foot and touch the other beside it, then step back and touch again. Four beats, two steps in and two out; nobody travels anywhere, it is a rock and not a walk. The hands stay joined at the end, because the swing that almost always follows wants the pair already closed up.
+
+### `balance-and-swing` — BALANCE AND SWING
+
+Take both hands with the dancer you are facing, step in toward them and back — that is the balance, four beats — and then, without letting go of the hand you are already holding, close into a ballroom hold and buzz round for the rest of the phrase, opening out side by side with the lark on the left and the robin on the right. It is one call and one move: the balance is how you get into the swing, and nobody lets go in between.
 
 ### `balance-ring` — BALANCE THE RING
 

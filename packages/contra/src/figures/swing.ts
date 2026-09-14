@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
+import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
 import {
   BUZZ_STEPS_PER_BEAT,
   SHOULDER_WIDTH_PX,
@@ -24,7 +24,14 @@ import type {
   Spot,
   Spots,
 } from "./ContraFigure.js";
-import { bearing, contraFigure, joinPoint, joinedHands, midpoint } from "./ContraFigure.js";
+import {
+  bearing,
+  contraFigure,
+  isCarried,
+  joinPoint,
+  joinedHands,
+  midpoint,
+} from "./ContraFigure.js";
 import type { Pairing } from "./pairing.js";
 import { pairsOf } from "./pairing.js";
 import { handDown } from "../pair/PairFrame.js";
@@ -115,152 +122,200 @@ export const swing = contraFigure<SwingParams>({
     endHalf: null,
   },
 
-  plan(ctx: PlanContext, params: SwingParams): FigurePlan {
-    const beats = params.beats;
-    const ends: Spots = {};
-    const joins: HandJoin[] = [];
-    /** Everything one pair needs, by station. */
-    const pairOf: Record<StationId, SwingPair> = {};
+  plan: swingPlan,
+});
 
-    for (const [a, b] of pairsOf(params.pairs)) {
-      const lark = ctx.role(a) === ctx.roleSet.top ? b : a;
-      const robin = lark === a ? b : a;
-      const centre = midpoint(ctx.spot(a).p, ctx.spot(b).p);
-      const facing = endFacingOf(params.endFacing, ctx.spot(a).p, ctx.spot(b).p, centre);
-      const half =
-        params.endHalf ??
-        placeHalf(ctx.stations, centre, facing, dist(ctx.spot(a).p, ctx.spot(b).p) / 2);
-      // The line the turn starts on: from the centre toward the robin.
-      const psi0 = bearing(centre, ctx.spot(robin).p);
-      // Where the turn has to stop for the pair to open straight out on to
-      // their end places: the lark's end lies at `facing − 90` from the centre
-      // and the lark turns opposite the robin, so the line is `facing + 90`.
-      // `turns` is therefore how many times round to the nearest half turn,
-      // which is what a swing is; without this the pair can open out *through*
-      // each other, and a probe catches them 3.3 px apart.
-      const whole = 360 * params.turns;
-      const pair: SwingPair = {
-        lark,
-        robin,
-        centre,
-        endFacing: facing,
-        half,
-        psi0,
-        turn: whole + angleDiff(psi0 + whole, facing + 90),
-      };
-      pairOf[a] = pair;
-      pairOf[b] = pair;
-      ends[lark] = { p: addScaled(centre, leftOf(facing), half), facing };
-      ends[robin] = { p: addScaled(centre, rightOf(facing), half), facing };
-      joins.push({ a: lark, aSide: "L", b: robin, bSide: "R" });
-    }
-    for (const id of ctx.ids) ends[id] ??= ctx.spot(id);
+/**
+ * How a swing's hands start, when something other than a figure boundary
+ * decides it.
+ *
+ * `balance-and-swing` is one figure and passes both: the joined hands of the
+ * balance *are* the swing's hold, so the lark's left and the robin's right are
+ * already joined when the turn begins, and the other two hands move from the
+ * balance's second hold to the back and the shoulder over the first beat rather
+ * than dropping to the hip and coming back up.
+ */
+export interface SwingHands {
+  /** Where a hand starts, when it does not start at the dancer's hip. */
+  from?: (station: StationId, side: Side) => Hand | undefined;
+  /** Whether the outstretched hands are already joined at beat 0. */
+  joinedAlready?: boolean;
+}
 
-    // Leave the pair swinging beside you room to turn; see SWING_CLEARANCE_PX.
-    const centres = [...new Set(Object.values(pairOf))].map((pair) => pair.centre);
-    const squeeze = (pair: SwingPair): number => {
-      let nearest = Infinity;
-      for (const other of centres) {
-        const gap = dist(pair.centre, other);
-        if (gap > 1e-9) nearest = Math.min(nearest, gap);
-      }
-      if (!Number.isFinite(nearest)) return 1;
-      return Math.max(0, Math.min(1, (nearest - SWING_CLEARANCE_PX) / (2 * ORBIT_PX)));
+/** The swing, planned: exported so `balance-and-swing` can dance the same turn. */
+export function swingPlan(
+  ctx: PlanContext,
+  params: SwingParams,
+  hands: SwingHands = {},
+): FigurePlan {
+  const beats = params.beats;
+  const ends: Spots = {};
+  const joins: HandJoin[] = [];
+  /** Everything one pair needs, by station. */
+  const pairOf: Record<StationId, SwingPair> = {};
+
+  for (const [a, b] of pairsOf(params.pairs)) {
+    const lark = ctx.role(a) === ctx.roleSet.top ? b : a;
+    const robin = lark === a ? b : a;
+    const centre = midpoint(ctx.spot(a).p, ctx.spot(b).p);
+    const facing = endFacingOf(
+      params.endFacing,
+      ctx.spot(a).p,
+      ctx.spot(b).p,
+      centre,
+      ctx.spot(a).facing,
+    );
+    const half =
+      params.endHalf ??
+      placeHalf(ctx.stations, centre, facing, dist(ctx.spot(a).p, ctx.spot(b).p) / 2);
+    // The line the turn starts on: from the centre toward the robin.
+    const psi0 = bearing(centre, ctx.spot(robin).p);
+    // Where the turn has to stop for the pair to open straight out on to
+    // their end places: the lark's end lies at `facing − 90` from the centre
+    // and the lark turns opposite the robin, so the line is `facing + 90`.
+    // `turns` is therefore how many times round to the nearest half turn,
+    // which is what a swing is; without this the pair can open out *through*
+    // each other, and a probe catches them 3.3 px apart.
+    const whole = 360 * params.turns;
+    const pair: SwingPair = {
+      lark,
+      robin,
+      centre,
+      endFacing: facing,
+      half,
+      psi0,
+      turn: whole + angleDiff(psi0 + whole, facing + 90),
     };
+    pairOf[a] = pair;
+    pairOf[b] = pair;
+    ends[lark] = { p: addScaled(centre, leftOf(facing), half), facing };
+    ends[robin] = { p: addScaled(centre, rightOf(facing), half), facing };
+    joins.push({ a: lark, aSide: "L", b: robin, bSide: "R" });
+  }
+  for (const id of ctx.ids) ends[id] ??= ctx.spot(id);
 
-    const placeAt = (station: StationId, t: Beat): Spot => {
+  // Whether the outstretched hands are joined before the turn begins: because
+  // the figure before was holding them and nobody let go, or because this is
+  // the second half of one `balance-and-swing`.
+  const carriedIn = joins.some((j) => isCarried(params.carried?.in, j.a, j.aSide, j.b, j.bSide));
+  const joinedFromStart = carriedIn || hands.joinedAlready === true;
+
+  // Leave the pair swinging beside you room to turn; see SWING_CLEARANCE_PX.
+  const centres = [...new Set(Object.values(pairOf))].map((pair) => pair.centre);
+  const squeeze = (pair: SwingPair): number => {
+    let nearest = Infinity;
+    for (const other of centres) {
+      const gap = dist(pair.centre, other);
+      if (gap > 1e-9) nearest = Math.min(nearest, gap);
+    }
+    if (!Number.isFinite(nearest)) return 1;
+    return Math.max(0, Math.min(1, (nearest - SWING_CLEARANCE_PX) / (2 * ORBIT_PX)));
+  };
+
+  const placeAt = (station: StationId, t: Beat): Spot => {
+    const pair = pairOf[station];
+    if (!pair) return ctx.spot(station);
+    const isLark = station === pair.lark;
+    const sign = isLark ? -1 : 1;
+    const psi = pair.psi0 + pair.turn * trapezoid(t, 0, 1.2, beats - 1.6, beats - 0.3);
+    const into = ramp(t, 0, INTO_BEATS);
+    const open = ramp(t, beats - OPEN_BEATS, beats);
+    const tight = squeeze(pair);
+    const turning = addScaled(
+      addScaled(pair.centre, dirOf(psi), sign * SWING_RADIUS_PX * tight),
+      leftOf(psi),
+      -sign * SWING_LATERAL_PX * tight,
+    );
+    const end = ends[station] ?? ctx.spot(station);
+    const start = ctx.spot(station);
+    const p = lerp(lerp(start.p, turning, into), end.p, open);
+    const held = psi + (isLark ? 0 : 180) - SWING_BODY_TURN_DEG * into;
+    const facing = angleLerp(angleLerp(start.facing, held, into), pair.endFacing, open);
+    return { p, facing };
+  };
+
+  const velocityAt = (station: StationId, t: Beat): Vec2 => {
+    const dt = Math.min(t + SAMPLE_DT, beats) - t;
+    if (dt <= 0) return [0, 0];
+    const here = placeAt(station, t);
+    const next = placeAt(station, t + dt);
+    return [(next.p[0] - here.p[0]) / dt, (next.p[1] - here.p[1]) / dt];
+  };
+
+  return {
+    ends,
+    joinsAt: (t) =>
+      t >= (joinedFromStart ? 0 : INTO_BEATS) && t <= beats - OPEN_BEATS ? joins : [],
+    at(station, t) {
       const pair = pairOf[station];
-      if (!pair) return ctx.spot(station);
+      const self = placeAt(station, t);
+      if (!pair) {
+        return { p: self.p, facing: self.facing, hands: { L: "down", R: "down" }, amp: 0 };
+      }
       const isLark = station === pair.lark;
-      const sign = isLark ? -1 : 1;
-      const psi = pair.psi0 + pair.turn * trapezoid(t, 0, 1.2, beats - 1.6, beats - 0.3);
+      const other = placeAt(isLark ? pair.robin : pair.lark, t);
+      const lark = isLark ? self : other;
+      const robin = isLark ? other : self;
       const into = ramp(t, 0, INTO_BEATS);
       const open = ramp(t, beats - OPEN_BEATS, beats);
-      const tight = squeeze(pair);
-      const turning = addScaled(
-        addScaled(pair.centre, dirOf(psi), sign * SWING_RADIUS_PX * tight),
-        leftOf(psi),
-        -sign * SWING_LATERAL_PX * tight,
-      );
-      const end = ends[station] ?? ctx.spot(station);
-      const start = ctx.spot(station);
-      const p = lerp(lerp(start.p, turning, into), end.p, open);
-      const held = psi + (isLark ? 0 : 180) - SWING_BODY_TURN_DEG * into;
-      const facing = angleLerp(angleLerp(start.facing, held, into), pair.endFacing, open);
-      return { p, facing };
-    };
+      const buzz = into * (1 - open);
 
-    const velocityAt = (station: StationId, t: Beat): Vec2 => {
-      const dt = Math.min(t + SAMPLE_DT, beats) - t;
-      if (dt <= 0) return [0, 0];
-      const here = placeAt(station, t);
-      const next = placeAt(station, t + dt);
-      return [(next.p[0] - here.p[0]) / dt, (next.p[1] - here.p[1]) / dt];
-    };
+      // The outstretched pair of hands: the lark's left in the robin's right,
+      // one floor point, `handOffset` in from the midpoint of the two joined
+      // shoulders.
+      // M5's offset, to the left of the line from the lark to the robin.
+      const outward = leftOf(bearing(lark.p, robin.p));
+      const joinedPoint = addScaled(joinPoint(lark, "L", robin, "R"), outward, params.handOffset);
+      const joined = joinedHands(ctx, pair.lark, pair.robin, joinedPoint, SWING_HAND_DROP_PX);
+      const mineJoined = joined[station];
+      if (!mineJoined) throw new Error(`swing: no joined hand for "${station}"`);
 
-    return {
-      ends,
-      joinsAt: (t) => (t >= INTO_BEATS && t <= beats - OPEN_BEATS ? joins : []),
-      at(station, t) {
-        const pair = pairOf[station];
-        const self = placeAt(station, t);
-        if (!pair) {
-          return { p: self.p, facing: self.facing, hands: { L: "down", R: "down" }, amp: 0 };
-        }
-        const isLark = station === pair.lark;
-        const other = placeAt(isLark ? pair.robin : pair.lark, t);
-        const lark = isLark ? self : other;
-        const robin = isLark ? other : self;
-        const into = ramp(t, 0, INTO_BEATS);
-        const open = ramp(t, beats - OPEN_BEATS, beats);
-        const buzz = into * (1 - open);
+      // The other two hands are on the partner's back and shoulder: two
+      // points, never one, because they are not joined.
+      const free: Hand = isLark
+        ? {
+            p: bodyPoint(robin.p, robin.facing, BACK_HAND_FORWARD_PX, BACK_HAND_RIGHT_PX),
+            drop: BACK_HAND_DROP_PX,
+          }
+        : {
+            p: bodyPoint(lark.p, lark.facing, 0, SHOULDER_WIDTH_PX / 2 - SHOULDER_HAND_INSET_PX),
+            drop: 0,
+          };
 
-        // The outstretched pair of hands: the lark's left in the robin's right,
-        // one floor point, `handOffset` in from the midpoint of the two joined
-        // shoulders.
-        // M5's offset, to the left of the line from the lark to the robin.
-        const outward = leftOf(bearing(lark.p, robin.p));
-        const joinedPoint = addScaled(joinPoint(lark, "L", robin, "R"), outward, params.handOffset);
-        const joined = joinedHands(ctx, pair.lark, pair.robin, joinedPoint, SWING_HAND_DROP_PX);
-        const mineJoined = joined[station];
-        if (!mineJoined) throw new Error(`swing: no joined hand for "${station}"`);
+      const side = isLark ? "L" : "R";
+      const otherSide = isLark ? "R" : "L";
+      const down = (s: "L" | "R"): Hand => handDown(self.p, self.facing, s, t, 0);
+      // Where the hand comes from: the dancer's hip, unless something before
+      // this figure already had it somewhere else and said so.
+      const start = (s: "L" | "R"): Hand => hands.from?.(station, s) ?? down(s);
+      const take = (target: Hand, s: "L" | "R"): Hand =>
+        lerpHand(lerpHand(start(s), target, into), down(s), open);
+      // A hand that was already joined is not taken at all: it simply is
+      // where the swing holds it, until the pair opens out and lets go.
+      const keepJoined = (target: Hand, s: "L" | "R"): Hand => lerpHand(target, down(s), open);
 
-        // The other two hands are on the partner's back and shoulder: two
-        // points, never one, because they are not joined.
-        const free: Hand = isLark
-          ? {
-              p: bodyPoint(robin.p, robin.facing, BACK_HAND_FORWARD_PX, BACK_HAND_RIGHT_PX),
-              drop: BACK_HAND_DROP_PX,
-            }
-          : {
-              p: bodyPoint(lark.p, lark.facing, 0, SHOULDER_WIDTH_PX / 2 - SHOULDER_HAND_INSET_PX),
-              drop: 0,
-            };
-
-        const side = isLark ? "L" : "R";
-        const otherSide = isLark ? "R" : "L";
-        const down = (s: "L" | "R"): Hand => handDown(self.p, self.facing, s, t, 0);
-        const take = (target: Hand, s: "L" | "R"): Hand =>
-          lerpHand(lerpHand(down(s), target, into), down(s), open);
-
-        return {
-          p: self.p,
-          facing: self.facing,
-          lean: -SWING_LEAN_PX * buzz,
-          stepRate: BUZZ_STEPS_PER_BEAT,
-          flare: SWING_FLARE_PX * trapezoidSpeed(t, 0, 1.2, beats - 1.6, beats - 0.3),
-          amp: 1 - buzz,
-          feet: swingFeet(t, self.facing, velocityAt(station, t), buzz),
-          look: bearing(self.p, other.p),
-          hands: {
-            [side]: take(mineJoined, side),
-            [otherSide]: take(free, otherSide),
-          } as { L: Hand | "down"; R: Hand | "down" },
-        };
-      },
-    };
-  },
-});
+      return {
+        p: self.p,
+        facing: self.facing,
+        lean: -SWING_LEAN_PX * buzz,
+        stepRate: BUZZ_STEPS_PER_BEAT,
+        flare: SWING_FLARE_PX * trapezoidSpeed(t, 0, 1.2, beats - 1.6, beats - 0.3),
+        amp: 1 - buzz,
+        feet: swingFeet(t, self.facing, velocityAt(station, t), buzz),
+        look: bearing(self.p, other.p),
+        hands: {
+          // A hold carried in over a figure boundary is not taken at all:
+          // the seam is already moving it from where the figure before had
+          // it. One handed in from inside the same figure — the balance half
+          // of a `balance-and-swing` — comes through `hands.from` instead,
+          // and the take carries it from there to the swing's own hold.
+          [side]: carriedIn ? keepJoined(mineJoined, side) : take(mineJoined, side),
+          [otherSide]: take(free, otherSide),
+        } as { L: Hand | "down"; R: Hand | "down" },
+      };
+    },
+  };
+}
 
 /** What one swinging pair needs to know about itself. */
 interface SwingPair {
@@ -324,10 +379,22 @@ export function placeHalf(
  * Which way a pair faces when a figure for two opens out.
  *
  * `'across'` is square to the line the pair stands on, pointing at the middle
- * of the set; `'up'` and `'down'` are along the frame's own axis. A pair that
- * stands square across the set has no unambiguous `'across'`, and says so.
+ * of the set; `'up'` and `'down'` are along the frame's own axis.
+ *
+ * A pair that stands **square across the set** — a becket couple's neighbours,
+ * or any pair a previous figure has turned end for end — has no unambiguous
+ * `'across'`: both ways square to their line point up or down the hall and
+ * neither is nearer the middle. `facing` breaks the tie with the way the pair
+ * is already looking, which is what a caller means by "open out": you finish
+ * facing the way you came in. Without it the answer is arbitrary, so say so.
  */
-export function endFacingOf(want: EndFacing, a: Vec2, b: Vec2, centre: Vec2): Angle {
+export function endFacingOf(
+  want: EndFacing,
+  a: Vec2,
+  b: Vec2,
+  centre: Vec2,
+  facing?: Angle,
+): Angle {
   if (typeof want === "number") return want;
   if (want === "down") return 90;
   if (want === "up") return 270;
@@ -336,9 +403,12 @@ export function endFacingOf(want: EndFacing, a: Vec2, b: Vec2, centre: Vec2): An
   const candidate = dirOf(along + 90);
   const dot = candidate[0] * toMiddle[0] + candidate[1] * toMiddle[1];
   if (Math.abs(dot) < 1e-6) {
-    throw new Error(
-      `swing: "across" is ambiguous for a pair standing square across the set; say "up" or "down"`,
-    );
+    if (facing === undefined) {
+      throw new Error(
+        `swing: "across" is ambiguous for a pair standing square across the set; say "up" or "down"`,
+      );
+    }
+    return Math.abs(angleDiff(facing, along + 90)) <= 90 ? along + 90 : along - 90;
   }
   return dot > 0 ? along + 90 : along - 90;
 }
