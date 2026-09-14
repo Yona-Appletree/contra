@@ -27,7 +27,7 @@ export interface AllemandeParams {
 }
 
 /** How far out the dancers drift while turning, before closing back to the hold. */
-const TURN_RADIUS_PX = 9;
+export const TURN_RADIUS_PX = 9;
 
 function allemandePair(frame: PairFrame, t: Beat, params: AllemandeParams): PairPose {
   const b = allemande.beats;

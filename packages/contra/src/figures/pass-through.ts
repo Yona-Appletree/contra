@@ -1,4 +1,3 @@
-import type { Beat } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import { DEFAULT_BOW_PX } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spots } from "./ContraFigure.js";

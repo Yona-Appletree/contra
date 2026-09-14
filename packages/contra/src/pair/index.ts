@@ -4,7 +4,55 @@
 // group contract; this stays as the pair page's own model, unchanged, because
 // the G1 goldens and strips are pixel comparisons against it.
 
-export * from "./figures.js";
+// The six figure definitions keep their ids and their behaviour, but the
+// package exports them under `pair`-prefixed names: M8's library exports a
+// `balance` and a `swing` of its own, on `@caller/choreo`'s contract, and those
+// are the ones a dance calls.
+export type {
+  PairPose,
+  PoseGap,
+  RolePose,
+  FigureDef,
+  FigureProbe,
+  PairCall,
+  PairFigureId,
+  ReachCheck,
+} from "./figures.js";
+export type {
+  AllemandeParams as PairAllemandeParams,
+  BalanceParams as PairBalanceParams,
+  DoSiDoParams as PairDoSiDoParams,
+  FallBackParams as PairFallBackParams,
+  SwingParams as PairSwingParams,
+  WalkInParams as PairWalkInParams,
+} from "./figures.js";
+export {
+  BALANCE_BACK_RATIO,
+  BALANCE_LEAN_CAP,
+  PAIR_FIGURES,
+  PAIR_FIGURE_IDS,
+  REST_FEET,
+  SAMPLE_DT,
+  armShortfall,
+  balanceRock,
+  pairCall,
+  pairPose,
+  poseGap,
+  resolveParams,
+  sampleVelocity,
+  swingEndFacing,
+  trapezoid,
+  trapezoidSpeed,
+  worstShortfall,
+} from "./figures.js";
+export {
+  allemande as pairAllemande,
+  balance as pairBalance,
+  doSiDo as pairDoSiDo,
+  fallBack as pairFallBack,
+  swing as pairSwing,
+  walkIn as pairWalkIn,
+} from "./figures.js";
 
 export type { PairFrame, PairPlace, PairRole, TwoHandHold } from "./PairFrame.js";
 export {

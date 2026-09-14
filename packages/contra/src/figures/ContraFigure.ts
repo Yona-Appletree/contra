@@ -327,6 +327,33 @@ export const holdWindow = (beats: Beat, take: Beat = 1, release: Beat = 1): Hold
 export const isHeld = (window: HoldWindow, t: Beat): boolean =>
   t >= window.takeTo && t <= window.releaseFrom;
 
+/**
+ * How much room a figure for two leaves the pair dancing beside it, px.
+ *
+ * Two pairs of a minor set turn at once, and in duple improper their centres
+ * are one place pitch — 20 px — apart while the lines are 32 px apart. A pair
+ * turning at half their own separation would walk through the pair beside them,
+ * so a turn for two takes a tighter radius when another pair is close. See
+ * {@link orbitRadius}, and the README for the number this comes out of.
+ */
+export const CLEARANCE_PX = 8.5;
+
+/** The biggest turning radius that leaves {@link CLEARANCE_PX} to the nearest other pair. */
+export function orbitRadius(
+  want: number,
+  centre: Vec2,
+  centres: readonly Vec2[],
+  clearance = CLEARANCE_PX,
+): number {
+  let nearest = Infinity;
+  for (const other of centres) {
+    const gap = dist(centre, other);
+    if (gap > 1e-9) nearest = Math.min(nearest, gap);
+  }
+  if (!Number.isFinite(nearest)) return want;
+  return Math.max(0, Math.min(want, (nearest - clearance) / 2));
+}
+
 /** Where a spot's centre is, as a plain pose. */
 export const midpoint = (a: Vec2, b: Vec2): Vec2 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 

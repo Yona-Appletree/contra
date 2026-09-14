@@ -54,3 +54,30 @@ export { slideLeft } from "./slide-left.js";
 
 export type { StarParams } from "./star.js";
 export { star } from "./star.js";
+
+export type { BalanceParams } from "./balance.js";
+export { balance, balanceRing } from "./balance.js";
+
+export type { EndFacing, SwingParams } from "./swing.js";
+export { endFacingOf, stationHalf, swing } from "./swing.js";
+
+export type { AllemandeParams } from "./allemande.js";
+export { allemande } from "./allemande.js";
+
+export type { DoSiDoParams } from "./do-si-do.js";
+export { doSiDo } from "./do-si-do.js";
+
+export type { PetronellaParams } from "./petronella.js";
+export { petronella } from "./petronella.js";
+
+export type { CaliforniaTwirlParams } from "./california-twirl.js";
+export { californiaTwirl, insideSide } from "./california-twirl.js";
+
+export type { RollAwayParams } from "./roll-away.js";
+export { rollAway } from "./roll-away.js";
+
+export type { RightAndLeftThroughParams } from "./right-and-left-through.js";
+export { rightAndLeftThrough } from "./right-and-left-through.js";
+
+export type { RobinsChainParams } from "./robins-chain.js";
+export { robinsChain } from "./robins-chain.js";

@@ -60,30 +60,30 @@ export interface SwingParams {
 }
 
 /** How far each dancer stands from the centre while turning. */
-const SWING_RADIUS_PX = 5;
+export const SWING_RADIUS_PX = 5;
 
 /** How far each dancer sits to the side of the turning axis — the ballroom offset. */
-const SWING_LATERAL_PX = 3.5;
+export const SWING_LATERAL_PX = 3.5;
 
 /** How far each body turns out of the line of the turn as the hold is taken. */
-const SWING_BODY_TURN_DEG = 30;
+export const SWING_BODY_TURN_DEG = 30;
 
 /** The outstretched joined hands sit just below shoulder height. */
-const SWING_HAND_DROP_PX = 1;
+export const SWING_HAND_DROP_PX = 1;
 
 /** The free hand on the partner's back: body-local forward, right, and drop. */
-const BACK_HAND_FORWARD_PX = -1.5;
-const BACK_HAND_RIGHT_PX = -2.5;
-const BACK_HAND_DROP_PX = 1;
+export const BACK_HAND_FORWARD_PX = -1.5;
+export const BACK_HAND_RIGHT_PX = -2.5;
+export const BACK_HAND_DROP_PX = 1;
 
 /** The other free hand, on the partner's shoulder. */
-const SHOULDER_HAND_INSET_PX = 0.5;
+export const SHOULDER_HAND_INSET_PX = 0.5;
 
 /** How far the bodies lean into the turn, in px. */
-const SWING_LEAN_PX = 0.6;
+export const SWING_LEAN_PX = 0.6;
 
 /** Extra skirt radius at full turning speed, in px. */
-const SWING_FLARE_PX = 2.6;
+export const SWING_FLARE_PX = 2.6;
 
 const TAU = Math.PI * 2;
 
@@ -215,7 +215,7 @@ function swingPair(frame: PairFrame, t: Beat, params: SwingParams): PairPose {
 }
 
 /** The walking feet fading into the buzz step's pivot-and-push. */
-function swingFeet(t: Beat, facing: Angle, velocity: Vec2, buzz: number): { L: Vec2; R: Vec2 } {
+export function swingFeet(t: Beat, facing: Angle, velocity: Vec2, buzz: number): { L: Vec2; R: Vec2 } {
   const speed = Math.hypot(velocity[0], velocity[1]);
   const moving = speed > 1e-3;
   const vu = moving ? dot(velocity, dirOf(facing)) / speed : 1;
