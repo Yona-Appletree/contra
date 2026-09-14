@@ -158,7 +158,13 @@ export function swingPlan(
     const lark = ctx.role(a) === ctx.roleSet.top ? b : a;
     const robin = lark === a ? b : a;
     const centre = midpoint(ctx.spot(a).p, ctx.spot(b).p);
-    const facing = endFacingOf(params.endFacing, ctx.spot(a).p, ctx.spot(b).p, centre);
+    const facing = endFacingOf(
+      params.endFacing,
+      ctx.spot(a).p,
+      ctx.spot(b).p,
+      centre,
+      ctx.spot(a).facing,
+    );
     const half =
       params.endHalf ??
       placeHalf(ctx.stations, centre, facing, dist(ctx.spot(a).p, ctx.spot(b).p) / 2);
@@ -373,10 +379,22 @@ export function placeHalf(
  * Which way a pair faces when a figure for two opens out.
  *
  * `'across'` is square to the line the pair stands on, pointing at the middle
- * of the set; `'up'` and `'down'` are along the frame's own axis. A pair that
- * stands square across the set has no unambiguous `'across'`, and says so.
+ * of the set; `'up'` and `'down'` are along the frame's own axis.
+ *
+ * A pair that stands **square across the set** — a becket couple's neighbours,
+ * or any pair a previous figure has turned end for end — has no unambiguous
+ * `'across'`: both ways square to their line point up or down the hall and
+ * neither is nearer the middle. `facing` breaks the tie with the way the pair
+ * is already looking, which is what a caller means by "open out": you finish
+ * facing the way you came in. Without it the answer is arbitrary, so say so.
  */
-export function endFacingOf(want: EndFacing, a: Vec2, b: Vec2, centre: Vec2): Angle {
+export function endFacingOf(
+  want: EndFacing,
+  a: Vec2,
+  b: Vec2,
+  centre: Vec2,
+  facing?: Angle,
+): Angle {
   if (typeof want === "number") return want;
   if (want === "down") return 90;
   if (want === "up") return 270;
@@ -385,9 +403,12 @@ export function endFacingOf(want: EndFacing, a: Vec2, b: Vec2, centre: Vec2): An
   const candidate = dirOf(along + 90);
   const dot = candidate[0] * toMiddle[0] + candidate[1] * toMiddle[1];
   if (Math.abs(dot) < 1e-6) {
-    throw new Error(
-      `swing: "across" is ambiguous for a pair standing square across the set; say "up" or "down"`,
-    );
+    if (facing === undefined) {
+      throw new Error(
+        `swing: "across" is ambiguous for a pair standing square across the set; say "up" or "down"`,
+      );
+    }
+    return Math.abs(angleDiff(facing, along + 90)) <= 90 ? along + 90 : along - 90;
   }
   return dot > 0 ? along + 90 : along - 90;
 }

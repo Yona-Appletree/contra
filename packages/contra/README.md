@@ -112,6 +112,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1         |
 | `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6                                                                              |
 | `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees), `endHalf` `null` |
+| `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters                                                          |
 | `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2, `endHalf` `null`                                |
 | `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `swellPx` 2.5, `endHalf` `null`                                                           |
 | `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                     |
@@ -153,6 +154,26 @@ and the arm solver mean the same thing either side of it, and a figure's `ends`
 come out exact rather than through a round trip. Every figure's test runs on a
 frame that is deliberately **not** the identity, because a figure that has
 quietly worked in world px passes at the origin and fails there.
+
+### What nobody lets go of — `carried`
+
+When one figure ends holding a hand and the next begins holding the **same**
+hand of the **same** two dancers, nobody lets go: the hand is one shared floor
+point across the boundary and moves continuously from where the first figure
+held it to where the second does. Only a hold that actually changes — a
+different partner, a different hand, or none — is released and retaken.
+
+`ContraParams.carried` says which, and is threaded exactly as `from` is:
+`chainCalls` asks each call what it is holding at its last beat (`joins(params,
+beats, …)`) and what the next one holds through its middle, and writes the
+overlap into the first call's `carried.out` and the second's `carried.in`. A
+carried hold makes the figure's take or release a window of no length, so
+`takeAndRelease` returns the joined point rather than a ramp off the hip. It is
+plain data — station, side, and whose hand it is in — so a dance still survives
+`JSON.parse(JSON.stringify(dance))`, and a dance never writes one by hand.
+
+`contraDance` threads the whole dance as one run and cuts it back into phrases,
+so a hold carries across a phrase boundary as well as inside one.
 
 ### Two dancers passing
 

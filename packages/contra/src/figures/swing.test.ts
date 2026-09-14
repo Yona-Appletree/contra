@@ -1,8 +1,8 @@
-import { dist } from "@caller/core";
+import { angleDiff, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
-import { swing } from "./swing.js";
+import { endFacingOf, swing } from "./swing.js";
 import {
   figureMoves,
   figureProblems,
@@ -61,7 +61,17 @@ describe("swing", () => {
     expect(spotError(ends["1L"]!, stationSpot(DUPLE_IMPROPER, "2R"))).toBeLessThan(1e-9);
   });
 
-  it("says so when across is ambiguous", () => {
-    expect(() => figureMoves(swing, { pairs: "partners" })).toThrow(/ambiguous/);
+  it("breaks an ambiguous 'across' with the way the pair is already facing", () => {
+    // Partners in duple improper stand square across the set, so both ways
+    // square to their line point along the hall and neither is nearer the
+    // middle. F3c: the pair opens out the way it came in rather than throwing,
+    // which is what a caller means by "open out". `endFacingOf` still refuses
+    // when it has no facing to go on.
+    const ends = figureMoves(swing, { pairs: "partners" });
+    for (const id of ["1L", "1R", "2L", "2R"]) {
+      const spot = stationSpot(DUPLE_IMPROPER, id);
+      expect(Math.abs(angleDiff(ends[id]!.facing, spot.facing))).toBeLessThanOrEqual(90);
+    }
+    expect(() => endFacingOf("across", [0, -10], [0, 10], [0, 0])).toThrow(/ambiguous/);
   });
 });
