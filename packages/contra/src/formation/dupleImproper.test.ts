@@ -1,4 +1,4 @@
-import type { Dance, Decider, GroupPlan, Program, SetState, StationId } from "@caller/choreo";
+import type { Dance, Decider, Program, SetState, StationId } from "@caller/choreo";
 import {
   ARM_REACH_PX,
   HANDS_FOUR_GROUP,
@@ -422,10 +422,15 @@ describe("shadow-pair: the seam-scoped four-station partition", () => {
     }
   });
 
-  it("who: \"shadow\" resolves through tags(\"shadow-pair\") the way who: \"neighbors\" resolves through tags(\"hands-four\")", () => {
+  it('who: "shadow" resolves through tags("shadow-pair") the way who: "neighbors" resolves through tags("hands-four")', () => {
     const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
     const seam = plans.find((p) => p.stations.length === 4)!;
-    const shadowSelected = resolveSelector("shadow", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, seam.stations);
+    const shadowSelected = resolveSelector(
+      "shadow",
+      DUPLE_IMPROPER,
+      SHADOW_PAIR_GROUP,
+      seam.stations,
+    );
     expect(new Set(shadowSelected)).toEqual(new Set(["NL", "NR", "FL", "FR"]));
 
     const handsFour = DUPLE_IMPROPER.groupsFor(HANDS_FOUR_GROUP, set(4))[0]!;
@@ -438,7 +443,7 @@ describe("shadow-pair: the seam-scoped four-station partition", () => {
     expect(new Set(neighborsSelected)).toEqual(new Set(["1L", "1R", "2L", "2R"]));
   });
 
-  it("a true end resolves \"shadow\" to nothing, and stands instead of dancing a full pairing", () => {
+  it('a true end resolves "shadow" to nothing, and stands instead of dancing a full pairing', () => {
     const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
     const end = plans.find((p) => p.stations.length === 2)!;
     const selected = resolveSelector("shadow", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, end.stations);
@@ -454,7 +459,12 @@ describe("shadow-pair: the seam-scoped four-station partition", () => {
     const plans = DUPLE_IMPROPER.groupsFor(SHADOW_PAIR_GROUP, set(4));
     const seam = plans.find((p) => p.stations.length === 4)!;
     const left = resolveSelector("left-diagonal", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, seam.stations);
-    const right = resolveSelector("right-diagonal", DUPLE_IMPROPER, SHADOW_PAIR_GROUP, seam.stations);
+    const right = resolveSelector(
+      "right-diagonal",
+      DUPLE_IMPROPER,
+      SHADOW_PAIR_GROUP,
+      seam.stations,
+    );
     expect(left).toHaveLength(2);
     expect(right).toHaveLength(2);
     expect(new Set([...left, ...right])).toEqual(new Set(["NL", "NR", "FL", "FR"]));
@@ -495,10 +505,12 @@ describe("line: the widened minor set, and ends", () => {
     expect(sizes).toEqual([4, 6]);
   });
 
-  it("tags(\"line\")'s wait-top/wait-bottom filter to whichever end an instance actually widened", () => {
+  it('tags("line")\'s wait-top/wait-bottom filter to whichever end an instance actually widened', () => {
     const state = set(5); // the odd couple waits at the bottom this cycle
     const tags = DUPLE_IMPROPER.tags(LINE_GROUP);
-    const widened = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state).find((p) => p.stations.length === 6)!;
+    const widened = DUPLE_IMPROPER.groupsFor(LINE_GROUP, state).find(
+      (p) => p.stations.length === 6,
+    )!;
     const ids = new Set(widened.stations.map((s) => s.id));
     expect(tags["wait-bottom"]!.every((id) => ids.has(id))).toBe(true);
     expect(tags["wait-top"]!.some((id) => ids.has(id))).toBe(false);

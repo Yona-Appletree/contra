@@ -394,7 +394,7 @@ describe("the line selector's sweep (M2)", () => {
     expect(noOuts.stations).toHaveLength(8); // identical to "hands-four" in the interior
   });
 
-  it("tags(\"line\")'s wait-top/wait-bottom filter down to whichever end an instance actually has", () => {
+  it('tags("line")\'s wait-top/wait-bottom filter down to whichever end an instance actually has', () => {
     const tags = SQUARE.tags(LINE_GROUP);
     const sixCoupleStations = SQUARE.groupsFor(LINE_GROUP, squareSet(6))[0]!.stations.map(
       (s) => s.id,
@@ -443,7 +443,9 @@ describe("the line selector's sweep (M2)", () => {
               ] as const,
               facing: home.facing,
             };
-      return t > 0 && t < params.beats ? walking(here.p, here.facing) : standing(here.p, here.facing);
+      return t > 0 && t < params.beats
+        ? walking(here.p, here.facing)
+        : standing(here.p, here.facing);
     },
     ends(group) {
       const out: Record<StationId, EndPose> = {};
@@ -552,7 +554,7 @@ describe("the line selector's sweep (M2)", () => {
     }
   });
 
-  it("a down-the-hall-shaped call (ends: \"bottom\") never sweeps a wait-top couple in", () => {
+  it('a down-the-hall-shaped call (ends: "bottom") never sweeps a wait-top couple in', () => {
     const bottomOnlyDance: Dance = validateDance({
       ...SWEEP_DANCE,
       slug: "line-sweep-bottom-only",

@@ -154,7 +154,12 @@ function widenedWaitStations(
   const suffix = waitKindOf(couple) === "wait-top" ? "top" : "bottom";
   const stations = DUPLE_IMPROPER_WAIT_STATIONS.map((s) => {
     const world = stationPose(waitFrame, s);
-    return { id: `${s.id}-${suffix}`, role: s.role, p: localPoint(into, world.p), facing: localAngle(into, world.facing) };
+    return {
+      id: `${s.id}-${suffix}`,
+      role: s.role,
+      p: localPoint(into, world.p),
+      facing: localAngle(into, world.facing),
+    };
   });
   const members: Record<StationId, DancerId> = {
     [`WL-${suffix}`]: dancerOn(couple, "lark"),

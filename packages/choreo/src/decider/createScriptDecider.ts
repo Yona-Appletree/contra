@@ -330,7 +330,8 @@ export function createScriptDecider(
           );
           pending.push({
             at: swept ? from : Number.POSITIVE_INFINITY,
-            run: () => emitFigure(into, group, def, params, Object.keys(group.members), start + from),
+            run: () =>
+              emitFigure(into, group, def, params, Object.keys(group.members), start + from),
           });
         }
       }

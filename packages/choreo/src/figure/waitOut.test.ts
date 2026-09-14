@@ -156,8 +156,12 @@ describe("wait-out", () => {
       const withDefaultsP = params();
       const explicitP = params({ join: true, cross: true });
       for (const t of [0, 1, 4, 20, 32, 56, 60, 64]) {
-        expect(WAIT_OUT.sample(g, "WL", t, explicitP)).toEqual(WAIT_OUT.sample(g, "WL", t, withDefaultsP));
-        expect(WAIT_OUT.sample(g, "WR", t, explicitP)).toEqual(WAIT_OUT.sample(g, "WR", t, withDefaultsP));
+        expect(WAIT_OUT.sample(g, "WL", t, explicitP)).toEqual(
+          WAIT_OUT.sample(g, "WL", t, withDefaultsP),
+        );
+        expect(WAIT_OUT.sample(g, "WR", t, explicitP)).toEqual(
+          WAIT_OUT.sample(g, "WR", t, withDefaultsP),
+        );
       }
       expect(WAIT_OUT.ends(g, explicitP)).toEqual(WAIT_OUT.ends(g, withDefaultsP));
     });

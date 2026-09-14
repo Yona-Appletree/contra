@@ -243,14 +243,21 @@ describe("shadow-pair (becket)", () => {
     expect(plans.some((p) => p.stations.length === 4)).toBe(true);
   });
 
-  it("who: \"shadow\" resolves through tags(\"shadow-pair\") the way who: \"neighbors\" resolves through tags(\"hands-four\")", () => {
+  it('who: "shadow" resolves through tags("shadow-pair") the way who: "neighbors" resolves through tags("hands-four")', () => {
     const plans = BECKET.groupsFor(SHADOW_PAIR_GROUP, set(8));
     const seam = plans.find((p) => p.stations.length === 4)!;
     const shadowSelected = resolveSelector("shadow", BECKET, SHADOW_PAIR_GROUP, seam.stations);
     expect(new Set(shadowSelected)).toEqual(new Set(["NL", "NR", "FL", "FR"]));
 
-    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, set(4)).find((p) => p.stations.length === 4)!;
-    const neighborsSelected = resolveSelector("neighbors", BECKET, HANDS_FOUR_GROUP, handsFour.stations);
+    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, set(4)).find(
+      (p) => p.stations.length === 4,
+    )!;
+    const neighborsSelected = resolveSelector(
+      "neighbors",
+      BECKET,
+      HANDS_FOUR_GROUP,
+      handsFour.stations,
+    );
     expect(new Set(neighborsSelected)).toEqual(new Set(["1L", "1R", "2L", "2R"]));
   });
 });
@@ -269,7 +276,9 @@ describe("line (becket)", () => {
   it("is identical to hands-four in every interior minor set, at three dancing places", () => {
     const state = set(8); // three dancing places (0,1,2); only the outer two widen
     const line = BECKET.groupsFor(LINE_GROUP, state);
-    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, state).filter((p) => p.stations.length === 4);
+    const handsFour = BECKET.groupsFor(HANDS_FOUR_GROUP, state).filter(
+      (p) => p.stations.length === 4,
+    );
     expect(handsFour).toHaveLength(3);
     // The middle dancing place (index 1 of 3) is nobody's true end, so its
     // "line" plan is untouched — still four stations, same members.
@@ -290,7 +299,7 @@ describe("line (becket)", () => {
     expect(sizes).toEqual([4, 6, 6]);
   });
 
-  it("tags(\"line\")'s wait-top/wait-bottom filter to whichever end an instance actually widened", () => {
+  it('tags("line")\'s wait-top/wait-bottom filter to whichever end an instance actually widened', () => {
     const state = set(8);
     const tags = BECKET.tags(LINE_GROUP);
     const widened = BECKET.groupsFor(LINE_GROUP, state).filter((p) => p.stations.length === 6);

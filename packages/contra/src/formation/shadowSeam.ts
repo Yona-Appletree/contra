@@ -37,8 +37,7 @@ import type { CoupleState, SetState } from "@caller/choreo";
  * director's addendum leaves room for but does not require built.
  */
 export type ShadowPart =
-  | { kind: "pair"; near: CoupleState; far: CoupleState }
-  | { kind: "end"; near: CoupleState };
+  { kind: "pair"; near: CoupleState; far: CoupleState } | { kind: "end"; near: CoupleState };
 
 export function partitionShadowSeams(set: SetState): ShadowPart[] {
   const ordered = [...set.couples].sort((a, b) => a.place - b.place);
