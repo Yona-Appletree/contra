@@ -37,5 +37,7 @@ export function resolveSelector(
 }
 
 /** The stations a selection leaves out, who stand while the others dance. */
-export const complementOf = (stations: readonly Station[], selected: readonly StationId[]): StationId[] =>
-  stations.map((s) => s.id).filter((id) => !selected.includes(id));
+export const complementOf = (
+  stations: readonly Station[],
+  selected: readonly StationId[],
+): StationId[] => stations.map((s) => s.id).filter((id) => !selected.includes(id));

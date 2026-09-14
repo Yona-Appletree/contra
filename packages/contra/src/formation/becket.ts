@@ -61,7 +61,12 @@ export const BECKET_STATIONS: readonly Station[] = [
  */
 export const BECKET_WAIT_STATIONS: readonly Station[] = [
   { id: "WL", role: "lark", facing: ACROSS, p: [-HALF_ACROSS, -COUPLE_PITCH_PX / 2 - HALF_COUPLE] },
-  { id: "WR", role: "robin", facing: ACROSS, p: [-HALF_ACROSS, -COUPLE_PITCH_PX / 2 + HALF_COUPLE] },
+  {
+    id: "WR",
+    role: "robin",
+    facing: ACROSS,
+    p: [-HALF_ACROSS, -COUPLE_PITCH_PX / 2 + HALF_COUPLE],
+  },
 ];
 
 /** One part of a becket set for one time through. */
@@ -173,7 +178,9 @@ export const BECKET: Formation = {
 
   start(spec: SetSpec): SetState {
     if (spec.couples < 4 || spec.couples % 2 !== 0) {
-      throw new Error(`a becket set needs an even number of couples, at least four, not ${spec.couples}`);
+      throw new Error(
+        `a becket set needs an even number of couples, at least four, not ${spec.couples}`,
+      );
     }
     const places = (spec.couples - 2) / 2;
     const couples: CoupleState[] = [];

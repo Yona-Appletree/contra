@@ -53,6 +53,7 @@ export { WALK_TO_STATION } from "./figure/walkToStation.js";
 
 // dances and programs, as data
 export type {
+  CommonSelector,
   Dance,
   DancePhrase,
   FigureCall,
@@ -75,25 +76,12 @@ export type {
   ScriptDeciderOptions,
   ScriptPosition,
 } from "./decider/Decider.js";
-export {
-  SCRIPT_DECIDER_DEFAULTS,
-  createLibrary,
-  danceOf,
-  formationOf,
-} from "./decider/Decider.js";
-export {
-  HANDS_FOUR,
-  HANDS_FOUR_LEAD,
-  createScriptDecider,
-} from "./decider/createScriptDecider.js";
+export { SCRIPT_DECIDER_DEFAULTS, createLibrary, danceOf, formationOf } from "./decider/Decider.js";
+export { HANDS_FOUR, HANDS_FOUR_LEAD, createScriptDecider } from "./decider/createScriptDecider.js";
 export { complementOf, resolveSelector } from "./decider/resolveSelector.js";
 
 // oracles and the neutrality fixture
-export type {
-  ClosureReport,
-  CollisionReport,
-  ReachReport,
-} from "./testing/oracles.js";
+export type { ClosureReport, CollisionReport, ReachReport } from "./testing/oracles.js";
 export {
   ORACLE_STEP,
   closureReport,

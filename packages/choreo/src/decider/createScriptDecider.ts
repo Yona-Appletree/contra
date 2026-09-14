@@ -70,7 +70,8 @@ export function createScriptDecider(
     const bindings: Record<StationId, DancerId> = {};
     for (const id of stations) {
       const dancer = group.members[id];
-      if (dancer === undefined) throw new Error(`group "${group.id}" has nobody on station "${id}"`);
+      if (dancer === undefined)
+        throw new Error(`group "${group.id}" has nobody on station "${id}"`);
       bindings[id] = dancer;
     }
     const event: TimelineEvent = {

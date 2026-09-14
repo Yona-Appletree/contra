@@ -42,23 +42,26 @@ export function squareStations(): Station[] {
     // Couple 1 faces local +y from local −y; each later couple is 90° round.
     const facing = 90 + (couple - 1) * 90;
     const inward = dirOf(facing);
-    const centre: [number, number] = [
-      -inward[0] * SQUARE_RADIUS_PX,
-      -inward[1] * SQUARE_RADIUS_PX,
-    ];
+    const centre: [number, number] = [-inward[0] * SQUARE_RADIUS_PX, -inward[1] * SQUARE_RADIUS_PX];
     // The robin stands on the lark's right.
     const right = rightOf(facing);
     stations.push({
       id: `${couple}L`,
       role: "lark",
       facing,
-      p: [centre[0] - right[0] * SQUARE_HALF_COUPLE_PX, centre[1] - right[1] * SQUARE_HALF_COUPLE_PX],
+      p: [
+        centre[0] - right[0] * SQUARE_HALF_COUPLE_PX,
+        centre[1] - right[1] * SQUARE_HALF_COUPLE_PX,
+      ],
     });
     stations.push({
       id: `${couple}R`,
       role: "robin",
       facing,
-      p: [centre[0] + right[0] * SQUARE_HALF_COUPLE_PX, centre[1] + right[1] * SQUARE_HALF_COUPLE_PX],
+      p: [
+        centre[0] + right[0] * SQUARE_HALF_COUPLE_PX,
+        centre[1] + right[1] * SQUARE_HALF_COUPLE_PX,
+      ],
     });
   }
   return stations;

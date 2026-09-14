@@ -46,8 +46,5 @@ export const frameAngle = (f: Frame, local: Angle): Angle => local + f.axis - 90
 export function frameVector(f: Frame, local: Vec2): Vec2 {
   const along = dirOf(f.axis);
   const across = leftOf(f.axis);
-  return [
-    local[0] * across[0] + local[1] * along[0],
-    local[0] * across[1] + local[1] * along[1],
-  ];
+  return [local[0] * across[0] + local[1] * along[0], local[0] * across[1] + local[1] * along[1]];
 }

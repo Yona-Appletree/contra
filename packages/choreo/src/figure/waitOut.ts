@@ -106,7 +106,13 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
         hands: self.inside === "L" ? { L: hand, R: "down" } : { L: "down", R: hand },
       };
     }
-    const step = walkStep(self.home, g.target(station), t - g.crossStart, g.crossBeats, params.bowPx);
+    const step = walkStep(
+      self.home,
+      g.target(station),
+      t - g.crossStart,
+      g.crossBeats,
+      params.bowPx,
+    );
     return {
       ...standing(step.p, step.facing),
       stepRate: step.moving ? 1 : 0,

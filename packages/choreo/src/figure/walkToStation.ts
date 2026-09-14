@@ -68,7 +68,8 @@ function startPose(group: Group, station: StationId, params: WalkToStationParams
 
 function endPose(group: Group, station: StationId, params: WalkToStationParams): EndPose {
   const target = params.to[station];
-  const base = target === undefined ? startPose(group, station, params) : groupStationPose(group, target);
+  const base =
+    target === undefined ? startPose(group, station, params) : groupStationPose(group, target);
   const turn: Angle = params.turn[station] ?? 0;
   return turn === 0 ? base : { p: base.p, facing: base.facing + turn };
 }

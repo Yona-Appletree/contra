@@ -60,16 +60,16 @@ const FORWARD_AND_BACK: FigureDef<ForwardAndBackParams> = {
     const k = t <= half ? smooth(t / half) : smooth((params.beats - t) / half);
     const here = advanced(group, station, k, params);
     const partner = PARTNER[station];
-    const pose = k > 0 && t > 0 && t < params.beats ? walking(here.p, here.facing) : standing(here.p, here.facing);
+    const pose =
+      k > 0 && t > 0 && t < params.beats
+        ? walking(here.p, here.facing)
+        : standing(here.p, here.facing);
     if (partner === undefined) return pose;
 
     const there = advanced(group, partner, k, params);
     // One shared floor point: floating-point addition commutes, so both
     // dancers of the pair compute the identical point from this same frame.
-    const point: [number, number] = [
-      (here.p[0] + there.p[0]) / 2,
-      (here.p[1] + there.p[1]) / 2,
-    ];
+    const point: [number, number] = [(here.p[0] + there.p[0]) / 2, (here.p[1] + there.p[1]) / 2];
     const myRole = groupStation(group, station).role;
     const joined = joinHands(
       point,
@@ -209,7 +209,9 @@ describe("the square runs through the same engine", () => {
     const timeline = run(64).timeline();
     const headLark = timeline.dancers().find((d) => d.endsWith("c0/lark"))!;
     const sideLark = timeline.dancers().find((d) => d.endsWith("c1/lark"))!;
-    expect(dist(poseAt(timeline, headLark, 0).p, poseAt(timeline, headLark, 4).p)).toBeGreaterThan(4);
+    expect(dist(poseAt(timeline, headLark, 0).p, poseAt(timeline, headLark, 4).p)).toBeGreaterThan(
+      4,
+    );
     expect(dist(poseAt(timeline, sideLark, 0).p, poseAt(timeline, sideLark, 4).p)).toBe(0);
   });
 

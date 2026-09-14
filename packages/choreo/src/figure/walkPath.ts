@@ -51,10 +51,7 @@ export function walkStep(
   const travel = angleOfVec(d);
   const bow = bowPx * Math.sin(Math.PI * k);
   const side = rightOf(travel);
-  const p: Vec2 = [
-    from.p[0] + d[0] * k + side[0] * bow,
-    from.p[1] + d[1] * k + side[1] * bow,
-  ];
+  const p: Vec2 = [from.p[0] + d[0] * k + side[0] * bow, from.p[1] + d[1] * k + side[1] * bow];
 
   const turn = Math.min(1, beats / 4);
   const facing = angleLerp(

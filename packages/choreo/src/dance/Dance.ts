@@ -2,24 +2,25 @@ import type { Beat } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
 
 /**
+ * The tags contra formations happen to define, named for the sake of editor
+ * completion. They are not the whole list and this package never reads them: a
+ * square defines `heads` and `sides` and has no `ones` at all.
+ */
+export type CommonSelector =
+  "all" | "larks" | "robins" | "ones" | "twos" | "neighbors" | "partners";
+
+/**
  * Which dancers of a group a figure call is aimed at. `'all'` is every station;
- * an array names stations directly; any other string is a tag the formation
- * defines (see `Formation.tags`).
+ * an array names stations directly; **any other string is a tag the formation
+ * defines** and resolves (see `Formation.tags`), which is what keeps the
+ * selector form-neutral.
  *
  * The pairing tags — contra's `'neighbors'` and `'partners'` — name *who you
  * dance it with*, not a subset of the floor, so a formation resolves them to
  * the whole group and the pairing itself is a figure parameter. That is M8's
  * business; here they are carried and resolved, not interpreted.
  */
-export type Selector =
-  | "all"
-  | "larks"
-  | "robins"
-  | "ones"
-  | "twos"
-  | "neighbors"
-  | "partners"
-  | StationId[];
+export type Selector = CommonSelector | (string & Record<never, never>) | StationId[];
 
 /** One figure in a dance. Data only: no functions, so it serialises. */
 export interface FigureCall {
@@ -110,7 +111,9 @@ export function validateDance(dance: Dance): Dance {
 }
 
 /** Every figure call of a dance in order, with the beat it starts on. */
-export function danceSchedule(dance: Dance): Array<{ call: FigureCall; start: Beat; phrase: PhraseName }> {
+export function danceSchedule(
+  dance: Dance,
+): Array<{ call: FigureCall; start: Beat; phrase: PhraseName }> {
   const out: Array<{ call: FigureCall; start: Beat; phrase: PhraseName }> = [];
   let beat = 0;
   for (const phrase of dance.phrases) {

@@ -63,9 +63,18 @@ const FIXTURE_DANCE: Dance = validateDance({
   author: "M7",
   formation: "duple-improper",
   phrases: [
-    { name: "A1", figures: [{ figure: "walk-to-station", beats: 16, params: { from: IDENTITY, to: P1 } }] },
-    { name: "A2", figures: [{ figure: "walk-to-station", beats: 16, params: { from: P1, to: P2 } }] },
-    { name: "B1", figures: [{ figure: "walk-to-station", beats: 16, params: { from: P2, to: P3 } }] },
+    {
+      name: "A1",
+      figures: [{ figure: "walk-to-station", beats: 16, params: { from: IDENTITY, to: P1 } }],
+    },
+    {
+      name: "A2",
+      figures: [{ figure: "walk-to-station", beats: 16, params: { from: P1, to: P2 } }],
+    },
+    {
+      name: "B1",
+      figures: [{ figure: "walk-to-station", beats: 16, params: { from: P2, to: P3 } }],
+    },
     {
       name: "B2",
       figures: [
@@ -82,9 +91,7 @@ const PROGRAM: Program = {
 
 function run(couples: number, throughBeat: number): Decider {
   const registry = createFigureRegistry([WALK_TO_STATION, WAIT_OUT]);
-  const hall = createHall(DUPLE_IMPROPER, [
-    { id: "set0", couples, centre: [0, 0], axis: 90 },
-  ]);
+  const hall = createHall(DUPLE_IMPROPER, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
   const decider = createScriptDecider(
     PROGRAM,
     registry,
