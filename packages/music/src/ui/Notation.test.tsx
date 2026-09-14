@@ -8,6 +8,19 @@ import { soldiersJoy } from "../tunes/soldiersJoy.js";
 afterEach(cleanup);
 
 describe("Notation", () => {
+  it("draws the tune's own title by default and leaves it out when asked", async () => {
+    const withTitle = render(<Notation tune={soldiersJoy} beat={0} />);
+    await waitFor(() => expect(withTitle.container.querySelector("svg")).toBeInTheDocument());
+    expect(withTitle.container.querySelector(".abcjs-title")).toBeInTheDocument();
+    cleanup();
+
+    const without = render(<Notation tune={soldiersJoy} beat={0} showTitle={false} />);
+    await waitFor(() => expect(without.container.querySelector("svg")).toBeInTheDocument());
+    expect(without.container.querySelector(".abcjs-title")).not.toBeInTheDocument();
+    // The staves are still all four, so the beat cursor's line index is unmoved.
+    expect(without.container.querySelectorAll(".abcjs-staff-wrapper").length).toBe(4);
+  });
+
   it("renders SVG notation for the tune", async () => {
     const { container } = render(<Notation tune={soldiersJoy} beat={0} />);
     await waitFor(() => expect(container.querySelector("svg")).toBeInTheDocument());

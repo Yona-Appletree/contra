@@ -5,6 +5,7 @@ import { DEMO_DANCES } from "@caller/contra";
 import type { BlitCtx2D, HallWorld, Person, Renderer } from "@caller/hall";
 import {
   FONT,
+  HALL_THEMES,
   clearFloorCache,
   clearFurnitureLayer,
   createRenderer,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@caller/ui-base";
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
@@ -47,8 +48,32 @@ const DEMO_LINES: readonly number[] = [5, 4];
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
 
-/** The biggest zoom "auto" will choose: "somewhat small" is the look the user asked for. */
-const AUTO_MAX_ZOOM = 2;
+/**
+ * The width at which the page stops stacking and puts the card beside the
+ * hall. The same breakpoint Tailwind's `lg:` uses, written out because the
+ * zoom arithmetic has to agree with the layout about which one is running.
+ */
+const WIDE_QUERY = "(min-width: 1024px)";
+
+/**
+ * How much of a wide page the card keeps for itself, and the gap beside it.
+ *
+ * The card holds four phrase rows of call text and, under them, a whole tune
+ * on four staves: below about this the calls wrap to three lines each and the
+ * notation stops being readable. So on a laptop the hall gets what is left
+ * over rather than everything it can fill, which is what keeps the two columns
+ * from turning back into one.
+ */
+const CARD_MIN_PX = 420;
+const COLUMN_GAP_PX = 24;
+
+/**
+ * What sits above and below the hall in the window's own height: the tab bar,
+ * the control bar and the gaps between them. "Auto" fits the hall in what is
+ * left, so the thing you press play with is never below the fold — a hall two
+ * screenfuls tall is not a bigger hall, it is a hall you have to scroll.
+ */
+const HALL_CHROME_PX = 72;
 
 /**
  * How wide the caller's bubble may get, in characters.
@@ -169,7 +194,7 @@ export function HallPage({
   const zoom = zoomChoice === "auto" ? fitZoom : zoomChoice;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const primedRef = useRef(false);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -247,22 +272,35 @@ export function HallPage({
     previousRef.current = undefined;
   }, []);
 
-  // Auto zoom: the biggest of 1× and 2× that fits the space the hall has.
+  // Auto zoom: the biggest whole-number zoom whose world fits the width the
+  // hall actually has (DD20 — "auto" may pick any of 1/2/3/4/6 by fit). On a
+  // phone that width is the viewport, because the stage runs edge to edge; on
+  // a laptop it is what is left of the row once the card has its column.
   useEffect(() => {
-    const shell = shellRef.current;
-    if (shell === null) return;
+    const row = rowRef.current;
+    if (row === null) return;
+    const media = window.matchMedia(WIDE_QUERY);
     const measure = (): void => {
-      const wide = shell.clientWidth;
-      let best = 1;
+      const wide = media.matches ? row.clientWidth - CARD_MIN_PX - COLUMN_GAP_PX : row.clientWidth;
+      const tall = window.innerHeight - HALL_CHROME_PX;
+      // 1× always wins if nothing fits: a hall too big for the page is
+      // scrolled, never shrunk off its pixel grid.
+      let best: number = ZOOMS[0];
       for (const z of ZOOMS) {
-        if (z <= AUTO_MAX_ZOOM && world.world.w * z <= wide) best = z;
+        if (world.world.w * z <= wide && world.world.h * z <= tall) best = z;
       }
       setFitZoom(best);
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(shell);
-    return () => observer.disconnect();
+    observer.observe(row);
+    media.addEventListener("change", measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      media.removeEventListener("change", measure);
+      window.removeEventListener("resize", measure);
+    };
   }, [world]);
 
   // The renderer, rebuilt whenever the world or the zoom changes.
@@ -435,21 +473,32 @@ export function HallPage({
   }, [draw, program, beatNow, goMusic, goSilent]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-4 p-4">
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-2xl font-semibold">The hall</h1>
-        <p className="text-sm text-muted-foreground">
-          A contra dance that dances itself: real dances, real tunes, a caller who calls.
-        </p>
-      </header>
-
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex flex-col gap-3 lg:flex-none" ref={shellRef}>
-          <canvas
-            ref={canvasRef}
-            data-testid="hall-canvas"
-            className="block max-w-full bg-[#0c0a09] [image-rendering:pixelated]"
-          />
+    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-3">
+      {/*
+       * No title line: the tab bar above already says which page this is, and
+       * a phone has no height to spare (U1). The row is the page's only
+       * horizontal measure — the zoom rule reads its width — so it carries the
+       * laptop's padding and the phone has none, which is what lets the stage
+       * strip run to both edges.
+       */}
+      <div
+        className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-6 lg:px-4 lg:pt-4"
+        ref={rowRef}
+      >
+        <div className="flex min-w-0 flex-col gap-2 lg:flex-none">
+          {/*
+           * Edge to edge on a phone: the strip runs the full width of the
+           * viewport painted in the hall's own wall colour, so on a screen too
+           * narrow for the next zoom up the wall carries on to both edges
+           * instead of the page's paper showing beside it. On a laptop there
+           * is no edge to run to, so the strip hugs the canvas instead.
+           */}
+          <div
+            className="caller-stage-strip lg:w-fit lg:rounded"
+            style={{ "--stage-backdrop": HALL_THEMES[THEME].wallTop } as CSSProperties}
+          >
+            <canvas ref={canvasRef} data-testid="hall-canvas" />
+          </div>
           <ControlBar
             dance={position.dance.slug}
             onDance={(slug) => {
@@ -476,24 +525,23 @@ export function HallPage({
           />
         </div>
 
-        <aside className="flex min-w-0 flex-1 flex-col gap-4">
+        <aside className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-1 lg:px-0">
           <div data-testid="hall-card">
-            <p className="mb-1 text-sm text-muted-foreground" data-testid="hall-dance-title">
-              {position.dance.title} &middot; {position.dance.author}
-            </p>
-            <Card dance={position.dance} beat={position.danceBeat ?? 0} />
-            <p className="mt-1 text-xs text-muted-foreground" data-testid="hall-status">
-              {position.liningUp
-                ? `Lining up for ${position.next.title}`
-                : `Time through ${String(position.timeThrough + 1)} of 2`}
-            </p>
+            {/* The tune lives on the card now, under the phrases (U1). */}
+            <Card dance={position.dance} beat={position.danceBeat ?? 0}>
+              <div className="min-w-0" data-testid="hall-notation">
+                <span className="caller-music-card-caption" data-testid="hall-tune">
+                  {tune.title}
+                </span>
+                <Notation tune={tune} beat={beat} showTitle={false} />
+              </div>
+            </Card>
           </div>
-          <div className="hidden min-w-0 lg:block" data-testid="hall-notation">
-            <p className="mb-1 text-sm text-muted-foreground" data-testid="hall-tune">
-              {tune.title}
-            </p>
-            <Notation tune={tune} beat={beat} />
-          </div>
+          <p className="text-xs text-muted-foreground" data-testid="hall-status">
+            {position.liningUp
+              ? `Lining up for ${position.next.title}`
+              : `Time through ${String(position.timeThrough + 1)} of 2`}
+          </p>
         </aside>
       </div>
 
@@ -502,7 +550,15 @@ export function HallPage({
   );
 }
 
-/** The control bar: everything the page lets anybody change, and nothing else. */
+/**
+ * The control bar: everything the page lets anybody change, and nothing else.
+ *
+ * One row, never two. Play, dance, tune, tempo, zoom and trails come to about
+ * 500 px at their smallest, which is more than a 390 px phone has, so the row
+ * scrolls sideways there rather than wrapping under itself and pushing the
+ * card off the screen (U1). On a laptop the hall's own column is wide enough
+ * that nothing scrolls.
+ */
 function ControlBar(props: {
   dance: string;
   onDance: (slug: string) => void;
@@ -518,13 +574,21 @@ function ControlBar(props: {
   onTrails: (on: boolean) => void;
 }): JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="hall-controls">
-      <Button onClick={props.onPlay} data-testid="hall-play" size="sm">
+    <div
+      className="flex w-full items-center gap-1.5 overflow-x-auto px-2 text-xs whitespace-nowrap lg:px-0"
+      data-testid="hall-controls"
+    >
+      <Button
+        onClick={props.onPlay}
+        data-testid="hall-play"
+        size="sm"
+        className="h-7 shrink-0 px-3"
+      >
         {props.playing ? "Pause" : "Play"}
       </Button>
 
       <Select value={props.dance} onValueChange={props.onDance}>
-        <SelectTrigger className="w-[13rem]" data-testid="hall-dance-select">
+        <SelectTrigger className="h-7 w-[9.5rem] shrink-0 text-xs" data-testid="hall-dance-select">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -537,7 +601,7 @@ function ControlBar(props: {
       </Select>
 
       <Select value={props.medley} onValueChange={props.onMedley}>
-        <SelectTrigger className="w-[9rem]" data-testid="hall-tune-select">
+        <SelectTrigger className="h-7 w-[6.5rem] shrink-0 text-xs" data-testid="hall-tune-select">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -550,23 +614,22 @@ function ControlBar(props: {
         </SelectContent>
       </Select>
 
-      <label className="flex items-center gap-2" htmlFor="hall-tempo">
-        <span className="w-20 tabular-nums text-muted-foreground">{props.tempo} bpm</span>
+      <label className="flex shrink-0 items-center gap-1" htmlFor="hall-tempo">
+        <input
+          id="hall-tempo"
+          type="range"
+          min={TEMPO_MIN}
+          max={TEMPO_MAX}
+          step={1}
+          value={props.tempo}
+          onChange={(e) => props.onTempo(Number(e.target.value))}
+          data-testid="hall-tempo"
+          className="h-4 w-16"
+        />
+        <span className="tabular-nums text-muted-foreground">{props.tempo}</span>
       </label>
-      <input
-        id="hall-tempo"
-        type="range"
-        min={TEMPO_MIN}
-        max={TEMPO_MAX}
-        step={1}
-        value={props.tempo}
-        onChange={(e) => props.onTempo(Number(e.target.value))}
-        data-testid="hall-tempo"
-        className="w-32"
-      />
 
-      <span className="flex items-center gap-1">
-        <span className="text-muted-foreground">zoom</span>
+      <span className="flex shrink-0 items-center gap-0.5">
         <button
           type="button"
           onClick={() => props.onZoom("auto")}
@@ -585,7 +648,7 @@ function ControlBar(props: {
             data-testid={`hall-zoom-${String(z)}`}
             className={zoomClass(props.zoom === z)}
           >
-            {z}&times;
+            {z}
           </button>
         ))}
       </span>
@@ -595,7 +658,7 @@ function ControlBar(props: {
         onClick={() => props.onTrails(!props.trails)}
         aria-pressed={props.trails}
         data-testid="hall-trails"
-        className={zoomClass(props.trails)}
+        className={`${zoomClass(props.trails)} shrink-0`}
       >
         trails
       </button>
@@ -607,7 +670,7 @@ function SiteFooter(): JSX.Element {
   const base = import.meta.env.BASE_URL;
   const version = import.meta.env.VITE_APP_VERSION ?? "dev";
   return (
-    <footer className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
+    <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-3 pt-2 pb-3 text-xs text-muted-foreground lg:px-4">
       <span data-testid="hall-version">{version}</span>
       <a className="underline" href={`${base}spikes/hall/`}>
         Hall spike
@@ -627,7 +690,7 @@ function SiteFooter(): JSX.Element {
 }
 
 const zoomClass = (on: boolean): string =>
-  `rounded border px-2 py-1 ${on ? "border-current font-semibold" : "opacity-60"}`;
+  `h-7 rounded border px-1.5 ${on ? "border-current font-semibold" : "opacity-60"}`;
 
 /**
  * What the bubble says on this beat.

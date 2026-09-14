@@ -66,6 +66,35 @@ describe("Card", () => {
     expect(currentRow).toHaveAttribute("data-phrase", "B1");
   });
 
+  it("puts the title and the author in the header band", () => {
+    const { container } = render(<Card dance={{ ...dance, author: "A Choreographer" }} beat={0} />);
+    const head = container.querySelector(".caller-music-card-head");
+    expect(head).toBeInTheDocument();
+    expect(head?.querySelector(".caller-music-card-title")).toHaveTextContent("Test Dance");
+    expect(head?.querySelector(".caller-music-card-author")).toHaveTextContent("A Choreographer");
+  });
+
+  it("leaves the author out when the dance has none", () => {
+    const { container } = render(<Card dance={dance} beat={0} />);
+    expect(container.querySelector(".caller-music-card-author")).not.toBeInTheDocument();
+  });
+
+  it("puts whatever it is given on the card under the phrases, and nothing when not", () => {
+    const { container, rerender } = render(<Card dance={dance} beat={0} />);
+    expect(container.querySelector(".caller-music-card-extra")).not.toBeInTheDocument();
+
+    rerender(
+      <Card dance={dance} beat={0}>
+        <span>Soldier&rsquo;s Joy</span>
+      </Card>,
+    );
+    const extra = container.querySelector(".caller-music-card-extra");
+    expect(extra).toHaveTextContent("Soldier’s Joy");
+    // Under the phrases, not above them: the body comes first in the card.
+    const body = container.querySelector(".caller-music-card-body");
+    expect(body?.nextElementSibling).toBe(extra);
+  });
+
   it("fills the current phrase's bar proportionally to progress within it", () => {
     const { container } = render(<Card dance={dance} beat={4} />);
     const currentRow = container.querySelector(".caller-music-card-phrase--current");
