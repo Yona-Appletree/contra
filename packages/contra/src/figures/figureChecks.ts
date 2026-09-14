@@ -1,5 +1,13 @@
 import type { Beat, Vec2 } from "@caller/core";
-import { HOLD_SPACING_PX, SEAM_BEATS, easeSeam, seamProgress } from "@caller/core";
+import {
+  HOLD_SPACING_PX,
+  SEAM_BEATS,
+  angleDiff,
+  dirOf,
+  dist,
+  easeSeam,
+  seamProgress,
+} from "@caller/core";
 import type { BeatWindow, Group, StationId, Track, TrajectoryResult } from "@caller/choreo";
 import {
   createGroup,
@@ -10,6 +18,7 @@ import {
   joinWindow,
   passes,
   sampleTrack,
+  shoulderOf,
   staysOnPlace,
   walksBackward,
   withDefaults,
@@ -204,6 +213,10 @@ function heyChecks(): FigureChecks {
  */
 function robinsChainChecks(): FigureChecks {
   const { track, group } = figureTrack("robins-chain");
+  // The chain's own default timing: the pull by is the first half and the
+  // courtesy turn the second, and the turn lets go over its last 1.5 beats.
+  const take: Beat = 4.5;
+  const held = win(5.5, 6.5);
   const results = [
     passes(track, "1R", "2R", {
       within: CLOSE_PX,
@@ -212,14 +225,25 @@ function robinsChainChecks(): FigureChecks {
       shoulder: "R",
       beatWindow: win(1, 4),
     }),
-    walksBackward(track, "1L", win(6.3, 7.4)),
-    walksBackward(track, "2L", win(6.3, 7.4)),
+    // He backs out of the set from the moment the couple has closed up; the
+    // first beat and a half of the turn is the closing, where he is still
+    // stepping in to meet her.
+    walksBackward(track, "1L", win(6, 7.5)),
+    walksBackward(track, "2L", win(6, 7.5)),
     // 2R lands on 1R's place, and the lark she is a couple with there is the
     // one across the set from it — 1L. 1R lands on 2R's place and pairs with
     // 2L. A courtesy turn is with the lark of the place you arrive at, not the
     // nearest lark on the floor.
-    handsJoined(track, "1L", "L", "2R", "L", win(6.3, 7.4)),
-    handsJoined(track, "2L", "L", "1R", "L", win(6.3, 7.4)),
+    handsJoined(track, "1L", "L", "2R", "L", held, HAND_TOLERANCE_PX),
+    handsJoined(track, "2L", "L", "1R", "L", held, HAND_TOLERANCE_PX),
+    // The half turn itself: both bodies turn 180° between the take and the end,
+    // and it leaves her on his right facing back into the set.
+    turnsHalf(track, "1L", "2R", take),
+    turnsHalf(track, "2L", "1R", take),
+    endsBesideOnTheRight(track, "1L", "2R"),
+    endsBesideOnTheRight(track, "2L", "1R"),
+    // AC6: the couple turning beside you gets left room.
+    clearsEveryone(track, win(take, 8)),
     // The pull by's own right hands, over the window the figure declares.
     joinedThroughout(track, "1R", "R", "2R", "R", win(1.6, 2.4)),
     endsOn(track, "1R", { id: "2R", p: stationAt(group, "2R") }, 0.5),
@@ -306,14 +330,150 @@ function doSiDoChecks(): FigureChecks {
  */
 function rightAndLeftThroughChecks(): FigureChecks {
   const { track } = figureTrack("right-and-left-through");
+  // Its own default timing: the pass through is 3.5 beats and the turn the
+  // remaining 4.5, letting go over the last 1.5 of them.
+  const take: Beat = 3.5;
+  const held = win(5, 6.5);
   const results = [
     passes(track, "1L", "2R", { within: CLOSE_PX, shoulder: "R", beatWindow: win(0.5, 3.5) }),
-    walksBackward(track, "1L", win(4.5, 7)),
-    walksBackward(track, "2L", win(4.5, 7)),
-    handsJoined(track, "1L", "L", "1R", "L", win(5, 7)),
+    walksBackward(track, "1L", held),
+    walksBackward(track, "2L", held),
+    handsJoined(track, "1L", "L", "1R", "L", held, HAND_TOLERANCE_PX),
+    handsJoined(track, "2L", "L", "2R", "L", held, HAND_TOLERANCE_PX),
+    turnsHalf(track, "1L", "1R", take),
+    turnsHalf(track, "2L", "2R", take),
+    endsBesideOnTheRight(track, "1L", "1R"),
+    endsBesideOnTheRight(track, "2L", "2R"),
+    clearsEveryone(track, win(take, 8)),
   ];
   return { key: "right-and-left-through", describe: describeOf("right-and-left-through"), results };
 }
+
+/**
+ * How near two hands a figure calls one point may actually be, px.
+ *
+ * The brief's number. Everything in the library that joins hands is exact to
+ * floating point; this leaves room for a figure that arrives at the point by
+ * two routes without leaving room for a figure that misses.
+ */
+const HAND_TOLERANCE_PX = 0.01;
+
+/** How far a body may be off a half turn and still be dancing one, degrees. */
+const HALF_TURN_SLACK_DEG = 1;
+
+/**
+ * Both dancers of a courtesy turn turn a **half** between the take and the end.
+ *
+ * The user: "robins walk forward a half turn while larks walk backwards until
+ * both face in again, with robin on the right." This is that sentence's first
+ * half, and {@link endsBesideOnTheRight} is its second. It is the bodies that
+ * turn 180°; what the line between them does is geometry and depends on which
+ * side she arrived on — see `courtesyTurn`.
+ */
+function turnsHalf(track: Track, lark: string, robin: string, take: Beat): TrajectoryResult {
+  const label = `${lark} and ${robin} each turn a half between beat ${take} and the end`;
+  const first = track.indexAt(take);
+  const last = track.beats.length - 1;
+  let worst = 0;
+  let who = lark;
+  for (const id of [lark, robin]) {
+    const turned = Math.abs(angleDiff(track.pose(id, first).facing, track.pose(id, last).facing));
+    const off = Math.abs(180 - turned);
+    if (off > worst) {
+      worst = off;
+      who = id;
+    }
+  }
+  const beat = track.beats[last] ?? 0;
+  if (worst > HALF_TURN_SLACK_DEG) {
+    return fail(label, `${who} turns ${(180 - worst).toFixed(3)}°, not a half`, beat, worst, "deg");
+  }
+  return {
+    label,
+    pass: true,
+    note: `both of them turn 180.000°, within ${worst.toFixed(4)}°`,
+    worst: { beat, value: worst, unit: "deg" },
+  };
+}
+
+/**
+ * The turn leaves the robin on the lark's right, the two of them facing the
+ * same way, and that way is into the set.
+ */
+function endsBesideOnTheRight(track: Track, lark: string, robin: string): TrajectoryResult {
+  const label = `${robin} ends on ${lark}'s right, both facing in`;
+  const last = track.beats.length - 1;
+  const beat = track.beats[last] ?? 0;
+  const him = track.pose(lark, last);
+  const her = track.pose(robin, last);
+  const side = shoulderOf(him, her.p);
+  if (side !== "R") return fail(label, `she ends on his ${side}`, beat, 0, "px");
+  const apart = Math.abs(angleDiff(him.facing, her.facing));
+  if (apart > HALF_TURN_SLACK_DEG) {
+    return fail(label, `they face ${apart.toFixed(3)}° apart`, beat, apart, "deg");
+  }
+  const look = dirOf(him.facing);
+  const inward = look[0] * (SET_CENTRE[0] - him.p[0]) + look[1] * (SET_CENTRE[1] - him.p[1]);
+  if (inward <= 0) {
+    return fail(label, `they face out of the set, not in`, beat, inward, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `she is on his right, both facing ${inward.toFixed(2)} px toward the middle of the set`,
+    worst: { beat, value: inward, unit: "px" },
+  };
+}
+
+/**
+ * Nobody in the set comes closer to anybody else than AC6's clearance over the
+ * window.
+ *
+ * Two couples courtesy turn at once with their centres one place pitch apart,
+ * which is what `courtesyHold` shrinks the hold for; this is the measurement
+ * that says whether it worked.
+ */
+function clearsEveryone(track: Track, window: BeatWindow): TrajectoryResult {
+  const label = `nobody comes within ${AC6_CLEARANCE_PX} px of anybody from beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let closest = Infinity;
+  let beat = track.beats[first] ?? 0;
+  let who = "";
+  for (let i = first; i <= last; i++) {
+    for (let a = 0; a < track.ids.length; a++) {
+      for (let b = a + 1; b < track.ids.length; b++) {
+        const gap = dist(track.pose(track.ids[a]!, i).p, track.pose(track.ids[b]!, i).p);
+        if (gap < closest) {
+          closest = gap;
+          beat = track.beats[i] ?? 0;
+          who = `${track.ids[a]!} and ${track.ids[b]!}`;
+        }
+      }
+    }
+  }
+  if (closest < AC6_CLEARANCE_PX) {
+    return fail(label, `${who} are ${closest.toFixed(3)} px apart`, beat, closest, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `the closest anybody gets is ${who} at ${closest.toFixed(3)} px`,
+    worst: { beat, value: closest, unit: "px" },
+  };
+}
+
+/** AC6's number: two dancers never come closer than this, px. */
+const AC6_CLEARANCE_PX = 8;
+
+/** A failing result, shaped the way `@caller/choreo`'s own assertions shape one. */
+const fail = (
+  label: string,
+  note: string,
+  beat: Beat,
+  value: number,
+  unit: string,
+): TrajectoryResult => ({ label, pass: false, note, worst: { beat, value, unit } });
 
 /** A petronella: nobody holds anybody, and everybody lands one place on. */
 function petronellaChecks(): FigureChecks {
