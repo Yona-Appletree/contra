@@ -42,6 +42,18 @@ export interface ContraDanceSpec {
   formation: Formation;
   phrases: ContraPhrase[];
   notes?: string;
+  /**
+   * Where each station's dancer stands at beat 0, frame-local — the stations by
+   * default. A dance whose first figure is the progression starts somewhere
+   * else; see `Dance.startPlaces`.
+   *
+   * It may name the waiting group's stations as well as the dancing group's:
+   * the chain only reads the four it dances in, and the rest goes on to the
+   * dance for the decider's line-up and `wait-out` to read.
+   */
+  startPlaces?: Spots;
+  /** Parameters for the waiting couple's `wait-out`; see `Dance.waitOut`. */
+  waitOut?: object;
 }
 
 /**
@@ -105,7 +117,7 @@ export function chainCalls(
  */
 export function contraDance(spec: ContraDanceSpec): Dance {
   const stations = spec.formation.group(4);
-  let places: Spots | undefined;
+  let places: Spots | undefined = danceStart(spec, stations);
   const phrases: DancePhrase[] = [];
   for (const phrase of spec.phrases) {
     const threaded = chainCalls(spec.formation, phrase.figures, {
@@ -122,13 +134,26 @@ export function contraDance(spec: ContraDanceSpec): Dance {
     formation: spec.formation.id,
     phrases,
     ...(spec.notes === undefined ? {} : { notes: spec.notes }),
+    ...(spec.startPlaces === undefined ? {} : { startPlaces: { ...spec.startPlaces } }),
+    ...(spec.waitOut === undefined ? {} : { waitOut: { ...spec.waitOut } }),
   });
+}
+
+/** The dancing group's own first places, or `undefined` for the stations. */
+function danceStart(spec: ContraDanceSpec, stations: readonly Station[]): Spots | undefined {
+  if (spec.startPlaces === undefined) return undefined;
+  const start: Spots = {};
+  for (const station of stations) {
+    const place = spec.startPlaces[station.id];
+    if (place) start[station.id] = place;
+  }
+  return start;
 }
 
 /** Where a dance leaves every dancer, in frame-local px: what its closure is checked against. */
 export function danceEnds(spec: ContraDanceSpec): Spots {
   const stations = spec.formation.group(4);
-  let places: Spots | undefined;
+  let places: Spots | undefined = danceStart(spec, stations);
   for (const phrase of spec.phrases) {
     const threaded = chainCalls(spec.formation, phrase.figures, {
       stations,

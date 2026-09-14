@@ -143,7 +143,11 @@ export function createScriptDecider(
         // everybody else, so its crossing has to be reckoned from the place it
         // slid out of. Empty — every other dance — is the waiting place, which
         // is what `wait-out` did before there was a parameter at all.
-        const params = withDefaults(def, { startPlaces: dance.startPlaces ?? {} }, cycle);
+        const params = withDefaults(
+          def,
+          { startPlaces: dance.startPlaces ?? {}, ...(dance.waitOut ?? {}) },
+          cycle,
+        );
         emitFigure(into, group, def, params, Object.keys(group.members), start);
         continue;
       }

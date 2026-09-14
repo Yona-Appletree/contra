@@ -1,3 +1,4 @@
+import type { Angle, Vec2 } from "@caller/choreo";
 import type {
   CoupleState,
   DancerId,
@@ -37,6 +38,13 @@ export const COUPLE_PITCH_PX = PLACE_PITCH_PX * 2;
 const HALF_ACROSS = ACROSS_PX / 2;
 const HALF_COUPLE = PLACE_PITCH_PX / 2;
 
+/**
+ * How far down the hall a becket set's frame sits from the point a hall hands
+ * it, px: one waiting place plus half a couple, which is where place `-1`'s
+ * first dancer stands.
+ */
+export const BECKET_TOP_OFFSET_PX = COUPLE_PITCH_PX + HALF_COUPLE;
+
 /** Facing across the set, in frame-local degrees; the `+1` line faces this way. */
 const ACROSS = 0;
 /** The other way across, for the `-1` line. */
@@ -68,6 +76,36 @@ export const BECKET_WAIT_STATIONS: readonly Station[] = [
     p: [-HALF_ACROSS, -COUPLE_PITCH_PX / 2 + HALF_COUPLE],
   },
 ];
+
+/**
+ * Where everybody stands at beat 0 of a becket dance that **shifts left in its
+ * own first figure**, in each group's own frame-local px.
+ *
+ * A becket dance that progresses early — Butter, Tika Tika Timing, A-1 Reel —
+ * dances the body of the time through with the couple it shifted *to*, so the
+ * minor set the decider plans is the one the shift makes and every dancer
+ * begins one couple place back along their own line. That is `-1` place for the
+ * line that slides toward `-y` (stations `1L`/`1R`, so their start is one pitch
+ * further along `+y`) and `+1` for the line that slides the other way.
+ *
+ * The waiting couple is in it too, and with the same sign at both ends of the
+ * set: the bottom end's group frame is turned end for end, so "one place back
+ * along my own line" is `+y` in both wait frames. It slides off the end of the
+ * line with everybody else, which is exactly what a real end couple does.
+ *
+ * This is `Dance.startPlaces` for such a dance, and `contraDance` threads the
+ * four dancing places into the first figure's `from`.
+ */
+export const BECKET_BEFORE_SLIDE: Record<StationId, { p: Vec2; facing: Angle }> =
+  Object.fromEntries(
+    [...BECKET_STATIONS, ...BECKET_WAIT_STATIONS].map((s) => [
+      s.id,
+      {
+        p: [s.p[0], s.p[1] + (s.id === "2L" || s.id === "2R" ? -1 : 1) * COUPLE_PITCH_PX] as Vec2,
+        facing: s.facing,
+      },
+    ]),
+  );
 
 /** One part of a becket set for one time through. */
 interface Part {
@@ -177,12 +215,10 @@ export const BECKET: Formation = {
   },
 
   start(spec: SetSpec): SetState {
-    if (spec.couples < 4 || spec.couples % 2 !== 0) {
-      throw new Error(
-        `a becket set needs an even number of couples, at least four, not ${spec.couples}`,
-      );
+    if (spec.couples < 4) {
+      throw new Error(`a becket set needs at least four couples, not ${spec.couples}`);
     }
-    const places = (spec.couples - 2) / 2;
+    const places = Math.floor((spec.couples - 2) / 2);
     const couples: CoupleState[] = [];
     let i = 0;
     const add = (place: number, direction: 1 | -1): void => {
@@ -200,9 +236,25 @@ export const BECKET: Formation = {
       add(place, -1);
     }
     add(places, -1);
+    // An odd number of couples cannot fill a becket set — two couples stand at
+    // every dancing place, one from each line — so the odd one out takes a
+    // second waiting place beyond the bottom end. The set then alternates
+    // between `places` dancing places and `places − 1`, which is what a real
+    // line of five couples does: somebody is always out, and it is never the
+    // same couple twice running.
+    if (spec.couples % 2 !== 0) add(places + 1, -1);
     return {
       id: spec.id,
-      frame: frame(spec.centre, spec.axis, HOLD_SPACING_PX),
+      // `spec.centre` is where the *first* dancer of a line stands — that is what
+      // it means for a duple improper set, and a hall hands the same point to
+      // both formations. A becket set's first dancer is at place `-1`, so the
+      // frame sits one waiting place plus half a couple down the hall from it,
+      // and the two formations lay their lines out from the same place.
+      frame: frame(
+        framePoint(frame(spec.centre, spec.axis, HOLD_SPACING_PX), [0, BECKET_TOP_OFFSET_PX]),
+        spec.axis,
+        HOLD_SPACING_PX,
+      ),
       pitch: COUPLE_PITCH_PX,
       couples,
     };

@@ -1,7 +1,13 @@
 import type { DancerId, SetState, Vec2 } from "@caller/choreo";
 import { WAIT_OUT, createGroup, dist, stationPose, withDefaults } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
-import { BECKET, BECKET_STATIONS, BECKET_WAIT_STATIONS, COUPLE_PITCH_PX } from "./becket.js";
+import {
+  BECKET,
+  BECKET_STATIONS,
+  BECKET_TOP_OFFSET_PX,
+  BECKET_WAIT_STATIONS,
+  COUPLE_PITCH_PX,
+} from "./becket.js";
 import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
 
 /** AC5's number. */
@@ -73,9 +79,32 @@ describe("a becket set", () => {
     expect(state.couples.filter((c) => c.place === 3)).toHaveLength(1);
   });
 
-  it("refuses an odd or tiny hall, which cannot make a becket line", () => {
-    expect(() => set(5)).toThrow(/even number/);
+  it("refuses a hall too small to make a becket line", () => {
     expect(() => set(2)).toThrow(/at least four/);
+  });
+
+  it("stands the odd couple out of an odd hall on a second waiting place", () => {
+    // Two couples stand at every dancing place, one from each line, so an odd
+    // number cannot fill a becket set: the odd one out takes a waiting place
+    // beyond the bottom end, and the set alternates between three dancing
+    // places and two — somebody is always out, never the same couple twice.
+    const state = set(5);
+    expect(state.couples).toHaveLength(5);
+    expect(BECKET.groups(state).map((p) => p.kind)).toEqual(["wait", "set", "wait", "wait"]);
+    let next = state;
+    for (let cycle = 0; cycle < 6; cycle++) {
+      next = BECKET.progression.next(next);
+      expect(next.couples).toHaveLength(5);
+      expect(BECKET.groups(next).filter((p) => p.kind === "set").length).toBeGreaterThan(0);
+    }
+  });
+
+  it("lays its first dancer out where a duple improper line's first dancer stands", () => {
+    // A hall hands both formations the same point for a line. A becket set's
+    // first dancer is at place −1, so the frame sits `BECKET_TOP_OFFSET_PX`
+    // down the hall from it and the two lines start together.
+    const ys = [...places(set(8)).values()].map((p) => p[1]);
+    expect(Math.min(...ys)).toBeCloseTo(0, 9);
   });
 
   it("keeps the same shape every time through", () => {
@@ -115,7 +144,8 @@ describe("a becket set", () => {
       for (const p of points) {
         expect(Math.abs(p[0])).toBeCloseTo(ACROSS_PX / 2, 9);
         // Beyond the last dancing place, down the set from its own centre.
-        expect(Math.abs(p[1] - couple.place * COUPLE_PITCH_PX)).toBeCloseTo(PLACE_PITCH_PX / 2, 9);
+        const centre = BECKET_TOP_OFFSET_PX + couple.place * COUPLE_PITCH_PX;
+        expect(Math.abs(p[1] - centre)).toBeCloseTo(PLACE_PITCH_PX / 2, 9);
       }
       expect(dist(points[0]!, points[1]!)).toBeCloseTo(PLACE_PITCH_PX, 9);
     }

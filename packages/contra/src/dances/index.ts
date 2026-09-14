@@ -1,6 +1,7 @@
 import type { Dance } from "@caller/choreo";
 import { afterTheSolstice } from "./afterTheSolstice.js";
 import { airpants } from "./airpants.js";
+import { butter } from "./butter.js";
 import { contraCockaigne } from "./contraCockaigne.js";
 import { jubilation } from "./jubilation.js";
 import { kitchenStomp } from "./kitchenStomp.js";
@@ -24,6 +25,7 @@ import { theCarousel } from "./theCarousel.js";
  */
 export const DEMO_DANCES: readonly Dance[] = [
   airpants,
+  butter,
   theBabyRose,
   jubilation,
   contraCockaigne,
@@ -43,6 +45,7 @@ export const danceBySlug = (slug: string): Dance | undefined =>
 
 export { afterTheSolstice } from "./afterTheSolstice.js";
 export { airpants } from "./airpants.js";
+export { butter } from "./butter.js";
 export { contraCockaigne } from "./contraCockaigne.js";
 export { jubilation } from "./jubilation.js";
 export { kitchenStomp } from "./kitchenStomp.js";

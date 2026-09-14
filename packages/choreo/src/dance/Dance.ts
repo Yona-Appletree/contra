@@ -72,6 +72,17 @@ export interface Dance {
    * `chainCalls` threads.
    */
   startPlaces?: Record<StationId, EndPose>;
+  /**
+   * Parameters for the figure a waiting couple is given (`wait-out`), for the
+   * dances that need to say something about it. Left out is the figure's own
+   * defaults, which is every dance so far bar one.
+   *
+   * A becket dance that shifts left in two beats needs its waiting couple to
+   * slide off the end of the line in the same two beats: `wait-out` takes four
+   * to step together by default, and a couple still sliding at beat 2 is 0.06 px
+   * from the couple sliding into the place it is leaving (AC6 wants 8).
+   */
+  waitOut?: object;
 }
 
 /** One dance in a program, with the medley it is danced to. */
