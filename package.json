@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "fix": "pnpm format && eslint --fix .",
     "report:motion": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/writeMotionReport.mjs",
+    "traces:export": "node --import ./scripts/ts-src-resolve.mjs apps/web/scripts/writeTraces.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs"
   },

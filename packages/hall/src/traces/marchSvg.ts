@@ -26,18 +26,27 @@ export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
   const draw = traceDraw(options);
   const beatPx = options.beatPx ?? 9;
   const height = options.height ?? 120;
-  const padLeft = options.padLeft ?? 24;
-  const padRight = options.padRight ?? 12;
+  const header = draw.labels ? MARCH_HEADER_PX : 0;
   const beats = trace.to - trace.from;
-  const width = options.width ?? padLeft + beats * beatPx + padRight;
 
   const ey = Math.max(trace.extent.y, 1);
-  const lane = height - (draw.labels ? 12 : 0);
-  const scale = Math.min(MARCH_MAX_SCALE, (lane / 2 - 4) / ey);
-  const cy = (draw.labels ? 12 : 0) + lane / 2;
+  const lane = height - header;
+  // Every margin holds a facing tick as well as the ink: a tick is drawn out of
+  // the path, so the widest thing on the page is a sample at the edge of the
+  // set with its tick pointing further out still.
+  const margin = MARCH_MARGIN_PX + draw.facingPx;
+  const scale = Math.min(MARCH_MAX_SCALE, (lane / 2 - margin) / ey);
+  const cy = header + lane / 2;
+  // The set is drawn around the beat it is on, so the first beat's ink reaches
+  // half a set-width to the left of the axis and the last beat's the same to
+  // the right. The margins have to hold that, or the ink runs off the page.
+  const overhang = Math.max(trace.extent.x, 1) * scale + margin;
+  const padLeft = Math.max(options.padLeft ?? 0, overhang);
+  const padRight = Math.max(options.padRight ?? 0, overhang);
+  const width = options.width ?? padLeft + beats * beatPx + padRight;
   const x = (beat: Beat): number => padLeft + (beat - trace.from) * beatPx;
 
-  const parts: string[] = [beatRules(trace, draw, x, draw.labels ? 12 : 0, height)];
+  const parts: string[] = [beatRules(trace, draw, x, header, height)];
   if (draw.labels) {
     for (let i = 0; trace.from + i * draw.phraseBeats < trace.to - 1e-9; i++) {
       const beat = trace.from + i * draw.phraseBeats;
@@ -70,6 +79,12 @@ export interface MarchOptions extends TraceDrawOptions {
   padRight?: number;
 }
 
+/** The band across the top that the phrase letters sit in, px. */
+export const MARCH_HEADER_PX = 12;
+
+/** How much blank is kept beyond the widest the set reaches, px. */
+export const MARCH_MARGIN_PX = 6;
+
 /**
  * The most the set is ever magnified in a march.
  *
@@ -77,4 +92,4 @@ export interface MarchOptions extends TraceDrawOptions {
  * blown up until its across-the-set wobble swamped the marching, and two
  * marches side by side would be at different scales and unreadable together.
  */
-export const MARCH_MAX_SCALE = 2.2;
+export const MARCH_MAX_SCALE = 3;

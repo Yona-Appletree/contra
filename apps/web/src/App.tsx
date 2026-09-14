@@ -6,6 +6,7 @@ import { HallPage } from "./routes/hall.js";
 import { hashRoute } from "./routes/hashRoute.js";
 import { MovesPage } from "./routes/moves.js";
 import { PairPage } from "./routes/pair.js";
+import { TracesPage } from "./routes/traces.js";
 import { readHallRoute } from "./state/hallUrl.js";
 
 export function App() {
@@ -45,6 +46,15 @@ export function App() {
     return bare ? page : <Tabbed tab="moves">{page}</Tabbed>;
   }
 
+  // `#/dances/<slug>/traces`: one dance, all four views, at full width. Note
+  // the plural — the Stage's own dance URL is `#/dance/<slug>`, singular, and
+  // `readHallRoute` below only ever reads that one.
+  const traces = tracesSlug(route.path);
+  if (traces !== undefined) {
+    const page = <TracesPage key={traces} slug={traces} />;
+    return bare ? page : <Tabbed tab="dances">{page}</Tabbed>;
+  }
+
   if (route.path === "/dances") {
     return (
       <Tabbed tab="dances">
@@ -64,6 +74,14 @@ export function App() {
     />
   );
   return bare ? stage : <Tabbed tab="stage">{stage}</Tabbed>;
+}
+
+/** The slug of `#/dances/<slug>/traces`, or `undefined` for any other path. */
+function tracesSlug(path: string): string | undefined {
+  const parts = path.split("/").filter((part) => part.length > 0);
+  return parts.length === 3 && parts[0] === "dances" && parts[2] === "traces"
+    ? parts[1]
+    : undefined;
 }
 
 /** Which tabs there are, in order, and where each one goes. */

@@ -27,12 +27,28 @@ export const TRACE_PEN_SIDE = 480;
 export function traceDrawings(trace: Trace, title?: string): TraceDrawings {
   const named = title === undefined ? {} : { title };
   return {
-    pen: penPlotSvg(trace, { width: TRACE_PEN_SIDE, height: TRACE_PEN_SIDE, ...named }),
+    pen: penPlotSvg(trace, { width: TRACE_PEN_SIDE, height: penPlotHeight(trace), ...named }),
     march: marchSvg(trace, { beatPx: TRACE_BEAT_PX, height: 200 }),
     seismograph: seismographSvg(trace, { beatPx: TRACE_BEAT_PX, height: 220 }),
     strip: figureStripSvg(trace, { beatPx: TRACE_BEAT_PX, cellHeight: 84 }),
   };
 }
+
+/**
+ * How tall a full-size pen plot is: the set's own aspect, floored so that a
+ * dance whose ink is all across the set still gets a box worth looking at.
+ */
+export function penPlotHeight(trace: Trace): number {
+  const across = Math.max(trace.extent.x, 1);
+  const along = Math.max(trace.extent.y, 1);
+  return Math.min(
+    TRACE_PEN_SIDE,
+    Math.max(TRACE_PEN_MIN_HEIGHT, Math.round((TRACE_PEN_SIDE * along) / across)),
+  );
+}
+
+/** No full-size pen plot is shorter than this, px. */
+export const TRACE_PEN_MIN_HEIGHT = 260;
 
 /** The pen plot beside a Moves row's tile, sized to the tile column. */
 export function rowPenPlot(trace: Trace, side: number, reach: number): string {
@@ -60,7 +76,7 @@ export function rowStrip(trace: Trace, width: number): string {
     beatPx: (width - 2 * ROW_STRIP_PAD) / beats,
     padLeft: ROW_STRIP_PAD,
     padRight: ROW_STRIP_PAD,
-    cellHeight: 30,
+    cellHeight: 44,
     captionHeight: 13,
     penWidth: 1.1,
     spreadPx: 1.8,
@@ -71,10 +87,10 @@ export function rowStrip(trace: Trace, width: number): string {
 const ROW_STRIP_PAD = 1;
 
 /** The pen plot on a dance card. */
-export function cardPenPlot(trace: Trace, side = 132): string {
+export function cardPenPlot(trace: Trace, width = 300, height = 170): string {
   return penPlotSvg(trace, {
-    width: side,
-    height: side,
+    width,
+    height,
     pad: 6,
     penWidth: 1,
     spreadPx: 1.6,
@@ -93,7 +109,7 @@ export function cardStrip(trace: Trace, width = 300): string {
     beatPx: (width - 2 * ROW_STRIP_PAD) / beats,
     padLeft: ROW_STRIP_PAD,
     padRight: ROW_STRIP_PAD,
-    cellHeight: 34,
+    cellHeight: 36,
     labels: false,
     penWidth: 1,
     spreadPx: 1.6,

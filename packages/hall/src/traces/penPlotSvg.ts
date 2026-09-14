@@ -36,7 +36,8 @@ export function penPlotSvg(trace: TraceView, options: PenPlotOptions = {}): stri
   const pad = options.pad ?? PEN_PLOT_PAD;
   const marks = options.marks ?? true;
 
-  const plot = penPlotMap(trace, width, height, pad, options.reach);
+  // A facing tick is drawn out of the path, so the margin has to hold one.
+  const plot = penPlotMap(trace, width, height, pad + draw.facingPx, options.reach);
   const parts: string[] = [];
 
   if (marks) parts.push(setMarks(trace, plot, draw.palette.grid, draw.palette.mark));
@@ -87,7 +88,7 @@ export const PEN_PLOT_PAD = 14;
  * A figure that barely moves would otherwise be blown up until its wobble
  * looked like travel.
  */
-export const MAX_PEN_PLOT_SCALE = 6;
+export const MAX_PEN_PLOT_SCALE = 10;
 
 /** How a trace's set-local px land on a plot of this size. */
 export interface PenPlotMap {
@@ -105,7 +106,14 @@ export interface PenPlotMap {
   ) => (sample: TraceViewPen["samples"][number]) => Vec2;
 }
 
-/** The mapping a pen plot of this size uses. Both axes share one scale. */
+/**
+ * The mapping a pen plot of this size uses.
+ *
+ * One scale for both axes, so a set never draws stretched, but the *fit* is per
+ * axis: a box wider than it is tall is filled by a set that is wider than it is
+ * tall. Pass `reach` to fit both axes to the same number instead, which is what
+ * a column of plots that are meant to be compared wants.
+ */
 export function penPlotMap(
   trace: TraceView,
   width: number,
@@ -113,8 +121,13 @@ export function penPlotMap(
   pad: number,
   reach?: number,
 ): PenPlotMap {
-  const fit = Math.max(reach ?? Math.max(trace.extent.x, trace.extent.y), 1);
-  const scale = Math.min(MAX_PEN_PLOT_SCALE, (Math.min(width, height) - 2 * pad) / (2 * fit));
+  const fitX = Math.max(reach ?? trace.extent.x, 1);
+  const fitY = Math.max(reach ?? trace.extent.y, 1);
+  const scale = Math.min(
+    MAX_PEN_PLOT_SCALE,
+    (width - 2 * pad) / (2 * fitX),
+    (height - 2 * pad) / (2 * fitY),
+  );
   const cx = width / 2;
   const cy = height / 2;
   const map = (sample: TraceViewPen["samples"][number]): Vec2 => [
