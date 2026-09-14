@@ -114,18 +114,18 @@ where the dancers already stand (below); the defaults given are the rest.
 | `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees), `endHalf` `null` |
 | `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters                                                          |
 | `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2, `endHalf` `null`                                |
-| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `swellPx` 2.5, `endHalf` `null`                                                           |
+| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null`                                                              |
 | `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                     |
 | `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                       |
 | `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2                                                             |
 | `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                         |
 | `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                           |
 | `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                    |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 8.5, `holdDrop` 6, `stackPx` 1, `scoopPx` 12                                    |
 | `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                               |
 | `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                               |
 | `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                 |
-| `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `trackPx` 5, `joinBeats` 2                                         |
+| `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `weavePx` 6.5, `joinBeats` 2                                       |
 | `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                     |
 
 A `pairs` (or `couples`) parameter names who dances with whom: `"partners"` is
@@ -320,20 +320,28 @@ dance sets it and this loader does not read it.
 
 ### Where the library is a model rather than a transcription
 
-- **The hey** is one closed lane — out along one side of the middle, round the
-  end, back along the other — walked at a constant speed. Two dancers cross the
-  middle while the other two loop, and then they swap, which is a hey; but the
-  loops are the same width as the lanes and the four passes land at about 2.7,
-  5.3, 10.7 and 13.3 of the sixteen beats where a caller would say 2, 6, 10 and 14. Who steps off falls out of the formation: the pair standing at the ends of
-  the outgoing side, which in duple improper is the robins passing right
-  shoulders. In a becket set the robins stand on the other diagonal, so the same
-  two dancers pass the other shoulder — which is why a becket dance calls its
-  hey from an improper-like arrangement rather than from the becket start.
-- **A courtesy turn** is the couple turning as one about the point between them
-  with their left hands joined; the lark's right hand is not on the robin's back,
-  because at a place pitch apart it would not reach.
-- **A chain** leaves the lark where it found him, turning to take the incoming
-  robin's hand as she comes round, rather than backing all the way round her.
+- **The hey** is one weave — `u = U·cos ψ` along the set against
+  `v = weavePx·sin 3ψ` across it — walked by all four dancers a quarter of it
+  apart. The three in `sin 3ψ` is what alternates the shoulders: right in the
+  centre, left at the sides. The passes land on counts 2, 4, 6, 8, 10, 12 and
+  14 exactly, which is closer than a hall gets. What is a model rather than a
+  transcription is the ends: the weave reaches `√2 ×` the set's half width, so
+  a dancer loops about 6 px outside the line, and the four places are off the
+  weave, so everybody steps on to it over `joinBeats` and off it again. Who
+  steps off first is the role `start` names, and mirroring the side-step
+  mirrors the whole weave.
+- **A courtesy turn** is the couple turning as one about the point between
+  them with their left hands joined, the lark walking backward. The lark's
+  right hand is not on the robin's back, because at a place pitch apart it
+  would not reach. How far round the couple gets is the set's own doing: a
+  couple standing in the lines is 32 px wide and a couple turning is a hold
+  spacing, so the pivot, the axis and the separation all travel. Right and
+  left through, whose dancers are already standing in the lines when the turn
+  begins, turns the clean half a caller would draw; a chain, where the robin
+  arrives from the middle of the set, turns through less than that.
+- **A chain** steps the lark off his place to scoop the robin up and walks him
+  backward onto it again, rather than turning the pair a whole half round: a
+  half turn of a 32 px couple would put him in the other line.
 - **A roll away** lets the hands go as the roll turns: a dancer spinning a whole
   turn cannot keep a hand on a point 10 px away and still have an arm that
   reaches it.

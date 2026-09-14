@@ -1,10 +1,9 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleLerp, ramp } from "@caller/core";
+import { angleDiff, angleOfVec, ramp } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
 import { centreOf, contraFigure } from "./ContraFigure.js";
 import { handDown } from "../pair/PairFrame.js";
-import { trapezoid } from "../pair/trapezoid.js";
 
 /** {@link hey}'s parameters. */
 export interface HeyParams extends ContraParams {
@@ -16,8 +15,16 @@ export interface HeyParams extends ContraParams {
   start: "robins-right" | "larks-left";
   /** Half a hey stops when everybody has changed sides. */
   half: boolean;
-  /** How far each lane sits from the middle of the weave, px. */
-  trackPx: number;
+  /**
+   * How far each dancer swings off the middle of the weave, px.
+   *
+   * Two dancers passing in the centre are `2 × weavePx` apart and two passing
+   * at a side are `√2 × weavePx`, so this is the one number that sets both
+   * shoulder gaps: 6.5 px puts 13 px between the pair in the middle and 9.2 px
+   * between the pair at the side, which is inside a pass (14 px) and outside
+   * AC6's 8 px either way.
+   */
+  weavePx: number;
   /** Beats spent stepping on to the weave and off it again. */
   joinBeats: Beat;
 }
@@ -25,35 +32,44 @@ export interface HeyParams extends ContraParams {
 /**
  * A hey for four: the weave across the set.
  *
- * All four dancers travel one closed lane — out along one side of the middle,
- * round the end, and back along the other — so the two sides of the lane carry
- * traffic in opposite directions and whoever is in the middle at the same
- * moment passes shoulder to shoulder. They start spread round it, which is what
- * makes two of them cross the middle while the other two loop at the ends, and
- * then swap. A full hey is once round and home; half a hey is half way round,
- * which leaves each dancer on the place of the one who started opposite them.
+ * The user: "that's a weaving figure, they should be passing shoulders in the
+ * center of the set." So every dancer walks the *same* closed weave — out
+ * through the middle, round the end, back through the middle, round the other
+ * end — and the four of them are spaced a quarter of it apart. Two dancers half
+ * the weave apart are always on opposite sides of it, which is why they meet:
+ * every two beats somebody passes somebody.
  *
- * Who starts falls out of the formation rather than being written down: the two
- * dancers standing at the ends of the outgoing lane step off, and in a duple
- * improper or a becket set those are the robins. `'larks-left'` mirrors the
- * lane, which puts the larks in the middle first and turns every pass into a
- * left shoulder.
+ * **Why the shoulders alternate.** The weave is
+ * `u = U·cos ψ`, `v = weavePx·sin 3ψ` — the dancer's place along the hey
+ * against their side-step across it — and the *three* in `sin 3ψ` is the whole
+ * figure. It puts a full swing of the side-step between the middle and the end,
+ * so a dancer who kept to their own left through the centre is keeping to their
+ * own right by the time they reach the end: right shoulders in the middle, left
+ * shoulders on the sides, which is what a caller says a hey is. One lane walked
+ * one way round — what this was before F4 — cannot alternate anything, and F3a
+ * measured all three of its side passes on the wrong shoulder.
  *
- * **Where this is a model rather than a transcription.** A hey danced by people
- * has wider loops than lanes and its four passes are not evenly spaced; here the
- * lane is one stadium walked at a constant speed, so with the default track the
- * passes land at about 2.7, 5.3, 10.7 and 13.3 of the sixteen beats where a
- * caller would say 2, 6, 10 and 14. No ricochet yet; the parameters have room
- * for one.
+ * Counts: with `ψ` running a whole turn over sixteen beats the four passes in
+ * the centre land on 2, 6, 10 and 14 and the passes at the sides on 4, 8 and
+ * 12, which is what a caller counts. Half a hey is half the weave, and leaves
+ * each dancer on the place of the one who started opposite them.
+ *
+ * **Where this is a model rather than a transcription.** The weave's ends reach
+ * `√2 × ` the set's own half width, so a dancer loops about 6 px outside the
+ * line before coming back — dancers really do loop outside the set, but here it
+ * is a consequence of the cosine rather than a choice. And the four places are
+ * off the weave (a duple improper set's two lines are 20 px apart along the
+ * hall, the weave a third of that), so everybody steps on to it over
+ * `joinBeats` at the start and off it again at the end. No ricochet yet.
  */
 export const hey = contraFigure<HeyParams>({
   id: "hey",
   call: "HEY FOR FOUR",
   describe:
-    "The weave. All four dancers travel a figure of eight across the set, passing each other by alternate shoulders and never taking hands. The robins start it by passing right shoulders in the centre of the set; each then meets a lark and passes left; the larks loop round at the ends and come back. Sixteen beats, four passes in the centre at about counts 2, 6, 10 and 14, and everybody is home where they started.",
+    "The weave. All four dancers travel the same closed figure of eight across the set, passing each other by alternate shoulders and never taking hands: right shoulders with the one you meet in the centre of the set, left shoulders with the one you meet at the side, and a loop round the end before you come back. The robins start it, passing right shoulders in the centre; the larks loop at the ends and follow them in. Sixteen beats, four passes in the centre at counts 2, 6, 10 and 14 and three at the sides at 4, 8 and 12, and everybody is home where they started.",
   lead: 4,
   beats: 16,
-  defaults: { from: {}, start: "robins-right", half: false, trackPx: 5, joinBeats: 2 },
+  defaults: { from: {}, start: "robins-right", half: false, weavePx: 6.5, joinBeats: 2 },
 
   plan(ctx: PlanContext, params: HeyParams): FigurePlan {
     const beats = params.beats;
@@ -63,59 +79,66 @@ export const hey = contraFigure<HeyParams>({
     const spread = (axis: 0 | 1): number =>
       Math.max(...ctx.ids.map((id) => Math.abs(ctx.spot(id).p[axis] - centre[axis])));
     const axisAngle: Angle = spread(0) >= spread(1) ? 0 : 90;
-    const lane = laneOf(Math.max(spread(0), spread(1)), params.trackPx);
     const cos = Math.cos((axisAngle * Math.PI) / 180);
     const sin = Math.sin((axisAngle * Math.PI) / 180);
-
-    // Which way round the lane runs is chosen so the role that starts the hey
-    // is the pair standing at the two ends of the outgoing side. In duple
-    // improper that puts the robins in the middle first, passing right
-    // shoulders; in a becket set, whose robins stand on the other diagonal, it
-    // is the same two dancers but the other shoulder — which is what the
-    // formation makes true, and why a becket dance calls its hey from an
-    // improper-like arrangement rather than from the becket start.
-    const starting = params.start === "larks-left" ? "lark" : "robin";
-    const mirror = startingDiagonal(ctx, starting, centre, cos, sin) ? 1 : -1;
-    /** A lane-local point as a frame-local one. */
-    const toFrame = (q: Vec2): Vec2 => {
-      const y = q[1] * mirror;
-      return [centre[0] + q[0] * cos - y * sin, centre[1] + q[0] * sin + y * cos];
-    };
-    /** A frame-local point in lane-local px. */
-    const toLane = (p: Vec2): Vec2 => {
+    /** A weave-local point as a frame-local one. */
+    const toFrame = (q: Vec2): Vec2 => [
+      centre[0] + q[0] * cos - q[1] * sin,
+      centre[1] + q[0] * sin + q[1] * cos,
+    ];
+    /** A frame-local point in weave-local px. */
+    const toWeave = (p: Vec2): Vec2 => {
       const x = p[0] - centre[0];
       const y = p[1] - centre[1];
-      return [x * cos + y * sin, (-x * sin + y * cos) * mirror];
-    };
-    /** A lane tangent as a frame-local facing. */
-    const toFacing = (tangent: Angle): Angle => {
-      const rad = (tangent * Math.PI) / 180;
-      const d: Vec2 = [Math.cos(rad), Math.sin(rad) * mirror];
-      return (Math.atan2(d[0] * sin + d[1] * cos, d[0] * cos - d[1] * sin) * 180) / Math.PI;
+      return [x * cos + y * sin, -x * sin + y * cos];
     };
 
-    /** Where each dancer joins the lane, and how far their place is off it. */
-    const arcOf: Record<StationId, number> = {};
-    const offsetOf: Record<StationId, Vec2> = {};
+    // The four places sit at the quarter points of the weave, `±45°` and
+    // `±135°`, so the weave is as long as it has to be to reach them: the
+    // places are at `U·cos 45°` along it.
+    const along = Math.max(spread(0), spread(1));
+    const U = along * Math.SQRT2;
+    // Mirroring the side-step mirrors the whole weave: the larks start it, and
+    // every pass is by the other shoulder.
+    const V = params.start === "larks-left" ? -params.weavePx : params.weavePx;
+    const starting = params.start === "larks-left" ? "lark" : "robin";
+
+    /**
+     * Where on the weave each dancer starts.
+     *
+     * A dancer at `ψ = 135°` or `−45°` walks into the middle and is there at
+     * count 2; one at `45°` or `−135°` loops round the end first and follows
+     * them in. Which end they stand at picks between the two, so the whole
+     * assignment is: the side of the set they are on, and whether their role is
+     * the one that starts.
+     */
+    const phase: Record<StationId, number> = {};
     for (const id of ctx.ids) {
-      const q = toLane(ctx.spot(id).p);
-      const arc = joinArc(lane, q);
-      const on = laneAt(lane, arc);
-      arcOf[id] = arc;
-      offsetOf[id] = [q[0] - on.p[0], q[1] - on.p[1]];
+      const starts = ctx.role(id) === starting;
+      const u = toWeave(ctx.spot(id).p)[0];
+      phase[id] = u > 0 ? (starts ? -45 : 45) : starts ? 135 : -135;
     }
 
-    // Whose place each dancer lands on: whoever joined the lane where they end.
     const amount = params.half ? 0.5 : 1;
+    /** How far round the weave a dancer is `t` beats in, degrees. */
+    const psi = (station: StationId, t: Beat): number =>
+      phase[station]! - 360 * amount * (beats <= 0 ? 1 : t / beats);
+    /** The weave itself, in weave-local px. */
+    const weaveAt = (deg: number): Vec2 => {
+      const rad = (deg * Math.PI) / 180;
+      return [U * Math.cos(rad), V * Math.sin(3 * rad)];
+    };
+
+    // Whose place each dancer lands on: whoever stands where they end up on the
+    // weave. A whole hey is a whole turn of it, so that is themselves; half a
+    // hey is half a turn, so it is the dancer who started opposite them.
     const landing: Record<StationId, StationId> = {};
     for (const id of ctx.ids) {
-      const want = wrap(arcOf[id]! + amount * lane.perimeter, lane.perimeter);
+      const want = psi(id, beats);
       let best = id;
       let bestGap = Infinity;
       for (const other of ctx.ids) {
-        const gap = Math.abs(
-          wrap(arcOf[other]! - want + lane.perimeter / 2, lane.perimeter) - lane.perimeter / 2,
-        );
+        const gap = Math.abs(wrapSigned(phase[other]! - want));
         if (gap < bestGap) {
           bestGap = gap;
           best = other;
@@ -127,26 +150,75 @@ export const hey = contraFigure<HeyParams>({
     const ends: Spots = {};
     for (const id of ctx.ids) ends[id] = ctx.spot(landing[id]!);
 
+    /** How far each dancer's place is off the weave, at each end of the figure. */
+    const offOf = (station: StationId, at: Beat): Vec2 => {
+      const place = toWeave(ctx.spot(station).p);
+      const on = weaveAt(at);
+      return [place[0] - on[0], place[1] - on[1]];
+    };
+    const offStart: Record<StationId, Vec2> = {};
+    const offEnd: Record<StationId, Vec2> = {};
+    for (const id of ctx.ids) {
+      offStart[id] = offOf(id, phase[id]!);
+      offEnd[id] = offOf(landing[id]!, psi(id, beats));
+    }
+
+    /**
+     * Which way the weave is going `t` beats in, as a frame-local facing.
+     *
+     * A chord a quarter beat long rather than a derivative, and a raw
+     * `atan2`: it wraps through ±180° like any other bearing, which is fine
+     * because everything downstream reads it as a direction. What it must not
+     * do is be *lerped toward* — see the turn each dancer keeps below.
+     */
+    const travelAt = (station: StationId, t: Beat): Angle => {
+      const on = weaveAt(psi(station, t));
+      const ahead = weaveAt(psi(station, t) - 360 * amount * (LOOK_BEATS / beats));
+      const step: Vec2 = [ahead[0] - on[0], ahead[1] - on[1]];
+      return angleOfVec([step[0] * cos - step[1] * sin, step[0] * sin + step[1] * cos]);
+    };
+
+    /**
+     * How far each dancer's own facing is off the weave's, at each end.
+     *
+     * Held as a constant turn added to the weave's own direction rather than
+     * as `angleLerp(place, travel, …)`: lerping *toward a moving angle* flips
+     * the way round it goes at the instant the target passes the antipode of
+     * the place's facing, and a dancer whose previous figure left them facing
+     * the other way down the hall snapped 61° in one sample when it did. F3a's
+     * oracle caught it as 201 px/beat of hand speed inside `butter`'s hey.
+     */
+    const turnIn: Record<StationId, number> = {};
+    const turnOut: Record<StationId, number> = {};
+    for (const id of ctx.ids) {
+      turnIn[id] = angleDiff(travelAt(id, 0), ctx.spot(id).facing);
+      turnOut[id] = angleDiff(travelAt(id, beats), (ends[id] ?? ctx.spot(id)).facing);
+    }
+
     const placeAt = (station: StationId, t: Beat): Spot => {
-      const start = ctx.spot(station);
-      const end = ends[station] ?? start;
-      const travelled = amount * lane.perimeter * trapezoid(t, 0, 1, beats - 1, beats);
-      const on = laneAt(lane, arcOf[station]! + travelled);
-      // Step on to the lane over the first beats and off it at the end, so both
-      // ends of the figure land exactly where the dance says they do.
-      const leaving = 1 - ramp(t, 0, params.joinBeats);
-      const arriving = ramp(t, beats - params.joinBeats, beats);
-      const from = offsetOf[station]!;
-      const to = offsetOf[landing[station]!]!;
+      const here = psi(station, t);
+      const on = weaveAt(here);
+      // Step on to the weave over the first beats and off it at the end, so
+      // both ends of the figure land exactly where the dance says they do.
+      // Evenly, not eased: a smoothstep barely moves for the first half beat,
+      // and over that half beat the weave's own side-step carries the dancer a
+      // px *past* their own place before it brings them in, which is a lean
+      // nobody dances and a px the gallery tile would clip.
+      const leaving = 1 - even(t, 0, params.joinBeats);
+      const arriving = even(t, beats - params.joinBeats, beats);
+      const from = offStart[station]!;
+      const to = offEnd[station]!;
       const q: Vec2 = [
-        on.p[0] + from[0] * leaving + to[0] * arriving,
-        on.p[1] + from[1] * leaving + to[1] * arriving,
+        on[0] + from[0] * leaving + to[0] * arriving,
+        on[1] + from[1] * leaving + to[1] * arriving,
       ];
-      const facing = angleLerp(
-        angleLerp(start.facing, toFacing(on.tangent), ramp(t, 0, params.joinBeats)),
-        end.facing,
-        arriving,
-      );
+      // Facing is the way the weave is going, plus the turn that takes it on to
+      // the place's own facing at either end — eased, because a body turning is
+      // the one thing in the figure that should not start at full speed.
+      const facing =
+        travelAt(station, t) +
+        turnIn[station]! * (1 - ramp(t, 0, params.joinBeats)) +
+        turnOut[station]! * ramp(t, beats - params.joinBeats, beats);
       return { p: toFrame(q), facing };
     };
 
@@ -170,86 +242,20 @@ export const hey = contraFigure<HeyParams>({
   },
 });
 
-/** The closed lane a hey weaves along: two straights and two end loops. */
-export interface Lane {
-  /** Half the length of a straight, px. */
-  half: number;
-  /** How far each straight sits from the middle, px. */
-  track: number;
-  /** Length of one straight, px. */
-  straight: number;
-  /** Length of one end loop, px. */
-  loop: number;
-  perimeter: number;
-}
-
-/** A lane `2 × half` long and `2 × track` wide. */
-export function laneOf(half: number, track: number): Lane {
-  const straight = 2 * half;
-  const loop = Math.PI * track;
-  return { half, track, straight, loop, perimeter: 2 * straight + 2 * loop };
-}
-
 /**
- * Where `arc` px along the lane is, in lane-local px, and which way it runs.
+ * How far ahead on the weave a dancer looks to know which way they are facing.
  *
- * Arc 0 is the far end of the outgoing lane: the straight from `(+half, +track)`
- * to `(−half, +track)`, then the loop round the near end, then the straight
- * back, then the loop home.
+ * A quarter of a beat: near enough to be the tangent, far enough that the
+ * difference is a direction and not floating-point noise.
  */
-export function laneAt(lane: Lane, arc: number): { p: Vec2; tangent: Angle } {
-  const { half, track, straight, loop } = lane;
-  const s = wrap(arc, lane.perimeter);
+const LOOK_BEATS: Beat = 0.25;
 
-  if (s < straight) return { p: [half - s, track], tangent: 180 };
-  if (s < straight + loop) {
-    const k = (s - straight) / loop;
-    const th = (90 + 180 * k) * (Math.PI / 180);
-    return {
-      p: [-half - track * Math.sin(th - Math.PI / 2), track * Math.cos(th - Math.PI / 2)],
-      tangent: 180 + 180 * k,
-    };
-  }
-  if (s < 2 * straight + loop) {
-    return { p: [-half + (s - straight - loop), -track], tangent: 0 };
-  }
-  const k = (s - 2 * straight - loop) / loop;
-  const th = (k * 180 * Math.PI) / 180;
-  return { p: [half + track * Math.sin(th), -track * Math.cos(th)], tangent: 180 * k };
-}
+/** How far `t` is between `t0` and `t1`, clamped, with no easing. */
+const even = (t: Beat, t0: Beat, t1: Beat): number =>
+  t1 <= t0 ? (t > t0 ? 1 : 0) : Math.max(0, Math.min(1, (t - t0) / (t1 - t0)));
 
-/**
- * Whether the role that starts the hey stands on the diagonal the lane serves
- * when it runs the way {@link laneAt} describes.
- *
- * The two dancers who step off are the ones at the far ends of the two sides of
- * the lane — the `(+, +)` and `(−, −)` corners — so this asks whether the
- * starting role is on that diagonal, and the lane is mirrored when it is not.
- */
-function startingDiagonal(
-  ctx: PlanContext,
-  role: string,
-  centre: Vec2,
-  cos: number,
-  sin: number,
-): boolean {
-  const on = ctx.ids
-    .filter((id) => ctx.role(id) === role)
-    .map((id) => {
-      const x = ctx.spot(id).p[0] - centre[0];
-      const y = ctx.spot(id).p[1] - centre[1];
-      return (x * cos + y * sin) * (-x * sin + y * cos);
-    });
-  if (on.length === 0) return true;
-  return on.every((v) => v > 0);
-}
-
-/** Which of the lane's four corners a dancer standing at `q` joins it at. */
-function joinArc(lane: Lane, q: Vec2): number {
-  const { straight, loop } = lane;
-  if (q[0] > 0) return q[1] > 0 ? 0 : 2 * straight + loop;
-  return q[1] > 0 ? straight : straight + loop;
-}
-
-/** `v` wrapped into `[0, period)`. */
-const wrap = (v: number, period: number): number => ((v % period) + period) % period;
+/** `a` wrapped into `(-180, 180]` degrees. */
+const wrapSigned = (a: number): number => {
+  const wrapped = ((a % 360) + 360) % 360;
+  return wrapped > 180 ? wrapped - 360 : wrapped;
+};

@@ -25,7 +25,7 @@ describe("do-si-do", () => {
       from: {},
       pairs: "neighbors" as const,
       amount: 1,
-      swellPx: 2.5,
+      passPx: 5,
       endHalf: null,
       beats: 8,
     };
