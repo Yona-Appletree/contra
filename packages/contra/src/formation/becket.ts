@@ -45,6 +45,26 @@ const HALF_COUPLE = PLACE_PITCH_PX / 2;
  */
 export const BECKET_TOP_OFFSET_PX = COUPLE_PITCH_PX + HALF_COUPLE;
 
+/**
+ * What the caller says between two dances to get a hall standing in becket.
+ *
+ * A becket line is a duple improper line that everybody has turned a quarter
+ * out of: you take hands four the ordinary way, then the whole ring turns one
+ * place to its own left, which leaves your partner beside you and the couple
+ * you were facing now across the set. So the caller's words are the duple
+ * improper ones plus that turn — three short bubbles rather than one long
+ * one, because the caller's bubble is sixteen columns wide (DD16) and three
+ * lines of it is as much as anybody reads in four beats.
+ *
+ * The user's own words, shortened to fit: "turn one place to your left so
+ * you're next to your partner on the side of the set".
+ */
+export const BECKET_LINE_UP_CALLS: readonly string[] = [
+  "TAKE HANDS FOUR",
+  "TURN ONE PLACE TO YOUR LEFT",
+  "PARTNER BESIDE YOU ON THE SIDE OF THE SET",
+];
+
 /** Facing across the set, in frame-local degrees; the `+1` line faces this way. */
 const ACROSS = 0;
 /** The other way across, for the `-1` line. */
@@ -153,6 +173,7 @@ const at = (set: SetState, place: number): Frame =>
 export const BECKET: Formation = {
   id: "becket",
   roleSet: CONTRA_ROLES,
+  lineUpCalls: BECKET_LINE_UP_CALLS,
 
   group(n: number): Station[] {
     if (n === 4) return BECKET_STATIONS.map((s) => ({ ...s }));

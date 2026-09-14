@@ -42,6 +42,8 @@ export type {
   FigureRegistry,
 } from "./figure/FigureDef.js";
 export { createFigureRegistry, withDefaults } from "./figure/FigureDef.js";
+export type { ApplaudParams } from "./figure/applaud.js";
+export { APPLAUD, clapPhase } from "./figure/applaud.js";
 export { joinHands, joinedOrder } from "./figure/joinHands.js";
 export { standing, walking } from "./figure/standing.js";
 export type { WalkStep } from "./figure/walkPath.js";
@@ -76,8 +78,17 @@ export type {
   ScriptDeciderOptions,
   ScriptPosition,
 } from "./decider/Decider.js";
-export { SCRIPT_DECIDER_DEFAULTS, createLibrary, danceOf, formationOf } from "./decider/Decider.js";
-export { HANDS_FOUR, HANDS_FOUR_LEAD, createScriptDecider } from "./decider/createScriptDecider.js";
+export {
+  APPLAUSE_CALLS,
+  HANDS_FOUR,
+  HERE_WE_GO,
+  SCRIPT_DECIDER_DEFAULTS,
+  betweenDancesBeats,
+  createLibrary,
+  danceOf,
+  formationOf,
+} from "./decider/Decider.js";
+export { createScriptDecider, nextDanceCall } from "./decider/createScriptDecider.js";
 export { complementOf, resolveSelector } from "./decider/resolveSelector.js";
 
 // oracles and the neutrality fixture

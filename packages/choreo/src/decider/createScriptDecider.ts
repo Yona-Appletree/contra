@@ -7,11 +7,13 @@ import type {
   GroupPlan,
   HallState,
   SetSpec,
+  SetState,
   StationId,
 } from "../formation/Formation.js";
 import { createHall } from "../formation/Formation.js";
 import type { AnyFigureDef, EndPose, FigureRegistry } from "../figure/FigureDef.js";
 import { withDefaults } from "../figure/FigureDef.js";
+import { APPLAUD } from "../figure/applaud.js";
 import { WAIT_OUT } from "../figure/waitOut.js";
 import { WALK_TO_STATION } from "../figure/walkToStation.js";
 import type { Group } from "../group/Group.js";
@@ -28,10 +30,17 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
  * Every time through, it asks the formation for the groups, plays the dance's
  * figure calls into each of them, gives every waiting couple the built-in
  * `wait-out`, says each call `lead` beats early, and then asks the formation's
- * progression what the set looks like next. After a dance's `timesThrough` it
- * announces the next dance over the last eight beats, walks everybody to that
- * dance's own first places over an eight-beat gap, and calls hands four from
- * the top. The program loops, so the demo cycles without anyone touching it.
+ * progression what the set looks like next. The program loops, so the demo
+ * cycles without anyone touching it.
+ *
+ * **Between two dances** the dancing stops and a real interval runs, in four
+ * stretches whose lengths are {@link ScriptDeciderOptions}': the hall applauds
+ * where it stands (`applaud`, facing the band); the caller announces the next
+ * dance's title and author and then how to stand for it, in the *formation's*
+ * own words (`Formation.lineUpCalls`); everybody walks to that dance's first
+ * places; and then they stand ready while the caller says "here we go". Nothing
+ * of the dance happens in any of it — no tune plays either, which is
+ * `apps/web/src/program.ts`'s side of the same arithmetic.
  *
  * A dance's first places are the formation's stations unless it says otherwise
  * (`Dance.startPlaces`), which is what lets a becket dance whose first figure is
@@ -60,6 +69,7 @@ export function createScriptDecider(
 
   if (!registry.has(WAIT_OUT.id)) registry.register(WAIT_OUT);
   if (!registry.has(WALK_TO_STATION.id)) registry.register(WALK_TO_STATION);
+  if (!registry.has(APPLAUD.id)) registry.register(APPLAUD);
 
   const timeline = createTimeline(registry);
   const specs = hallSpecs(hall);
@@ -127,16 +137,38 @@ export function createScriptDecider(
   };
 
   /** The groups of the whole hall for one time through, registered on the timeline. */
-  const planGroups = (): Array<{ plan: GroupPlan; group: Group }> => {
-    const out: Array<{ plan: GroupPlan; group: Group }> = [];
+  const planGroups = (): Array<{ set: SetState; plan: GroupPlan; group: Group }> => {
+    const out: Array<{ set: SetState; plan: GroupPlan; group: Group }> = [];
     for (const set of state.sets) {
       for (const plan of formation.groups(set)) {
         const group = createGroup({ ...plan, id: `${plan.id}#${groupSeq++}` }, formation.roleSet);
         timeline.addGroup(group);
-        out.push({ plan, group });
+        out.push({ set, plan, group });
       }
     }
     return out;
+  };
+
+  /** Where the last figure left each of a group's dancers, in world px. */
+  const originsOf = (group: Group): Record<StationId, EndPose> => {
+    const origins: Record<StationId, EndPose> = {};
+    for (const station of group.stations) {
+      const here = standingAt.get(group.members[station.id]!);
+      if (here) origins[station.id] = here;
+    }
+    return origins;
+  };
+
+  /** Say each text in turn, sharing `beats` out evenly between them. */
+  const sayEach = (
+    into: TimelineEvent[],
+    texts: readonly string[],
+    start: Beat,
+    beats: Beat,
+  ): void => {
+    if (texts.length === 0 || beats <= 0) return;
+    const each = beats / texts.length;
+    texts.forEach((text, i) => say(into, text, start + i * each, start + (i + 1) * each));
   };
 
   /** One time through of `dance`, starting at `at.beat`. */
@@ -197,31 +229,95 @@ export function createScriptDecider(
     return cycle;
   };
 
-  /** The eight-beat line-up between two dances. */
-  const emitLineUp = (into: TimelineEvent[], next: Dance): void => {
-    const nextFormation = formationOf(library, next);
-    if (nextFormation.id !== formation.id) {
-      state = createHall(nextFormation, specs);
-      formation = nextFormation;
+  /**
+   * The applause: the hall stops where it is, turns to the band and claps.
+   *
+   * Danced in the formation just finished, before any re-seating, because the
+   * dancers are still standing where that dance left them. `face` comes from
+   * the **set** frame rather than the group's: a group at the bottom end of a
+   * becket line runs in a frame turned end for end, and those dancers would
+   * applaud the back wall.
+   */
+  const emitApplause = (into: TimelineEvent[]): void => {
+    if (opts.applauseBeats <= 0) return;
+    const start = at.beat;
+    const def = registry.get(APPLAUD.id);
+    for (const { set, group } of planGroups()) {
+      const params = withDefaults(
+        def,
+        { origins: originsOf(group), face: set.frame.axis + 180 },
+        opts.applauseBeats,
+      );
+      emitFigure(into, group, def, params, Object.keys(group.members), start);
     }
+    sayEach(into, opts.applauseCalls, start, opts.applauseBeats);
+    at.beat = start + opts.applauseBeats;
+  };
+
+  /** Everybody stands where they are for `beats`, so the timeline stays covered. */
+  const emitStand = (into: TimelineEvent[], beats: Beat): void => {
+    if (beats <= 0) return;
+    const start = at.beat;
+    for (const { group } of planGroups()) {
+      const params = withDefaults(WALK_TO_STATION, { origins: originsOf(group) }, beats);
+      emitFigure(into, group, WALK_TO_STATION, params, Object.keys(group.members), start);
+    }
+    at.beat = start + beats;
+  };
+
+  /** The walk to the next dance's own first places. */
+  const emitWalk = (into: TimelineEvent[], next: Dance): void => {
+    if (opts.lineUpBeats <= 0) return;
     const start = at.beat;
     // Everybody walks to the *next dance's* own first places, which are the
     // stations unless that dance progresses in its first figure.
     const endPlaces = next.startPlaces ?? {};
     for (const { group } of planGroups()) {
-      const origins: Record<StationId, EndPose> = {};
       const to: Record<StationId, StationId> = {};
-      for (const station of group.stations) {
-        to[station.id] = station.id;
-        const here = standingAt.get(group.members[station.id]!);
-        if (here) origins[station.id] = here;
-      }
-      const params = withDefaults(WALK_TO_STATION, { origins, to, endPlaces }, opts.lineUpBeats);
+      for (const station of group.stations) to[station.id] = station.id;
+      const params = withDefaults(
+        WALK_TO_STATION,
+        { origins: originsOf(group), to, endPlaces },
+        opts.lineUpBeats,
+      );
       emitFigure(into, group, WALK_TO_STATION, params, Object.keys(group.members), start);
     }
-    const tail = Math.min(HANDS_FOUR_LEAD, opts.lineUpBeats);
-    say(into, HANDS_FOUR, start + opts.lineUpBeats - tail, start + opts.lineUpBeats);
     at.beat = start + opts.lineUpBeats;
+  };
+
+  /**
+   * The whole gap between two dances: applause, announcement, walk, ready.
+   *
+   * The re-seating that a formation change needs happens between the applause
+   * and the announcement — after the hall has finished clapping in the
+   * formation it danced, and before the caller says the words that get it
+   * standing in the new one.
+   */
+  const emitBetweenDances = (into: TimelineEvent[], next: Dance): void => {
+    emitApplause(into);
+
+    const nextFormation = formationOf(library, next);
+    if (nextFormation.id !== formation.id) {
+      state = createHall(nextFormation, specs);
+      formation = nextFormation;
+    }
+
+    // The announcement: the title and author, then the formation's own words
+    // for how to stand for it, one bubble each over the announcement's beats.
+    const announceStart = at.beat;
+    emitStand(into, opts.announceBeats);
+    sayEach(
+      into,
+      [nextDanceCall(next), ...(formation.lineUpCalls ?? opts.lineUpCalls)],
+      announceStart,
+      opts.announceBeats,
+    );
+
+    emitWalk(into, next);
+
+    const readyStart = at.beat;
+    emitStand(into, opts.readyBeats);
+    if (opts.readyBeats > 0) say(into, opts.readyCall, readyStart, readyStart + opts.readyBeats);
   };
 
   /** One time through plus, when the dance is ending, the switch to the next. */
@@ -234,8 +330,7 @@ export function createScriptDecider(
       formation = thisFormation;
     }
 
-    const cycleStart = at.beat;
-    const cycle = emitCycle(into, dance);
+    emitCycle(into, dance);
 
     at.timeThrough += 1;
     if (at.timeThrough < item.timesThrough) return;
@@ -245,14 +340,7 @@ export function createScriptDecider(
     const next = danceOf(library, program.items[at.itemIndex]!.dance);
     if (next.slug === dance.slug) return;
 
-    const announce = Math.min(opts.announceBeats, cycle);
-    say(
-      into,
-      `NEXT DANCE: ${next.title.toUpperCase()} BY ${next.author.toUpperCase()}`,
-      cycleStart + cycle - announce,
-      cycleStart + cycle,
-    );
-    emitLineUp(into, next);
+    emitBetweenDances(into, next);
   };
 
   return {
@@ -270,10 +358,12 @@ export function createScriptDecider(
   };
 }
 
-/** What the caller says once everybody has lined up for a new dance. */
-export const HANDS_FOUR = "HANDS FOUR FROM THE TOP";
-/** How long before the new dance the caller says it. */
-export const HANDS_FOUR_LEAD = 4;
+/**
+ * How the caller names the next dance, in the bubble: the title and who wrote
+ * it. Sixteen columns wide, so it wraps to two or three lines.
+ */
+export const nextDanceCall = (next: Dance): string =>
+  `NEXT: ${next.title.toUpperCase()}, BY ${next.author.toUpperCase()}`;
 
 /** A runaway guard: no program needs this many times through to reach a beat. */
 const MAX_CYCLES = 10_000;

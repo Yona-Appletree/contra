@@ -1,6 +1,12 @@
 import type { Beat } from "@caller/core";
 import type { Dance, Decider, HallState, Program, Timeline } from "@caller/choreo";
-import { createHall, createLibrary, createScriptDecider } from "@caller/choreo";
+import {
+  SCRIPT_DECIDER_DEFAULTS,
+  betweenDancesBeats,
+  createHall,
+  createLibrary,
+  createScriptDecider,
+} from "@caller/choreo";
 import { BECKET, DEMO_DANCES, DUPLE_IMPROPER, createContraRegistry } from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
 import type { Medley, Tune } from "@caller/music";
@@ -10,10 +16,10 @@ import { medleys as musicMedleys } from "@caller/music";
  * The evening: every encoded dance, each two times through, looping for as
  * long as the page is open.
  *
- * The script decider does the work — it announces the next dance over the
- * last eight beats, walks everybody to their new places over an eight-beat
- * line-up, calls hands four from the top, and loops the programme — so the
- * page only has to say which dances, in which order, and read the timeline.
+ * The script decider does the work — it dances each dance, stops, runs the
+ * whole between-dances interval (applause, announcement, walk, ready) and
+ * loops the programme — so the page only has to say which dances, in which
+ * order, and read the timeline.
  */
 
 /** How many times through each dance is danced before the next one. */
@@ -22,25 +28,43 @@ export const TIMES_THROUGH = 2;
 /** One time through, in beats. Every encoded dance is four sixteen-beat phrases. */
 export const CYCLE_BEATS = 64;
 
-/** The eight-beat gap between two dances: `SCRIPT_DECIDER_DEFAULTS.lineUpBeats`. */
-export const LINE_UP_BEATS = 8;
+/**
+ * The gap between two dances, in beats of the silent clock, and the four
+ * stretches it is made of.
+ *
+ * Read off the decider's own options rather than written down again here: the
+ * page's arithmetic and the decider's have to agree exactly or the tune drifts
+ * against the dance, and the only way to keep two numbers equal is to have
+ * one. The lengths themselves are `SCRIPT_DECIDER_DEFAULTS`' — 8 beats of
+ * applause, 16 of announcement, 8 of walking and 4 standing ready, 36 in all,
+ * which at 112 bpm is a little over nineteen seconds of hall noise between two
+ * dances.
+ */
+export const APPLAUSE_BEATS = SCRIPT_DECIDER_DEFAULTS.applauseBeats;
+export const ANNOUNCE_BEATS = SCRIPT_DECIDER_DEFAULTS.announceBeats;
+export const WALK_BEATS = SCRIPT_DECIDER_DEFAULTS.lineUpBeats;
+export const READY_BEATS = SCRIPT_DECIDER_DEFAULTS.readyBeats;
+export const BETWEEN_DANCES_BEATS = betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
 
-/** Beats one programme item takes: its times through plus the line-up after it. */
-export const ITEM_BEATS = TIMES_THROUGH * CYCLE_BEATS + LINE_UP_BEATS;
+/** Beats one programme item takes: its times through plus the interval after it. */
+export const ITEM_BEATS = TIMES_THROUGH * CYCLE_BEATS + BETWEEN_DANCES_BEATS;
 
 /**
  * Beats of **music** one programme item takes: the dancing beats, and no more.
  *
- * The line-up is silent, which is the whole point. A dance is two times through
- * of 64 beats and the medley switches tune every 64; the line-up is 8. If the
- * tune kept looping through the line-up, every dance switch would put the music
- * eight beats out of phase with the dance, and after eight switches the drift
- * would be a whole time through — which is what M9 measured on the page. So the
- * music runs on its own count of dancing beats, the player stops at the end of
- * the last time through, the eight line-up beats run on the silent clock, and
- * the next tune starts at **its own beat 0** exactly as the next dance starts.
- * `MUSIC_BEATS_PER_ITEM` is a whole number of tune cycles, which is what makes
- * that true for every dance rather than for the first one.
+ * The gap between two dances is silent, which is the whole point, and B1 made
+ * it four and a half times longer than it was. A dance is two times through of
+ * 64 beats and the medley switches tune every 64; the gap is
+ * {@link BETWEEN_DANCES_BEATS} = 36, which is not a whole number of anything
+ * musical. If the tune kept looping through it, every dance switch would put
+ * the music 36 beats out of phase with the dance, and two switches would be
+ * more than a whole time through — the drift M9 measured on the page, only
+ * worse. So the music runs on its own count of dancing beats, the player stops
+ * at the end of the last time through, the whole interval runs on the silent
+ * clock, and the next tune starts at **its own beat 0** exactly as the next
+ * dance starts (F2's rule). `MUSIC_BEATS_PER_ITEM` is a whole number of tune
+ * cycles, which is what makes that true for every dance rather than for the
+ * first one.
  */
 export const MUSIC_BEATS_PER_ITEM = TIMES_THROUGH * CYCLE_BEATS;
 
@@ -261,12 +285,43 @@ export interface ProgramPosition {
   index: number;
   /** Which time through of that dance, counting from 0. */
   timeThrough: number;
-  /** The beat within the dance's own sixty-four, or `null` during the line-up. */
+  /** The beat within the dance's own sixty-four, or `null` between two dances. */
   danceBeat: Beat | null;
-  /** True while the hall is lining up for the next dance. */
+  /** True for the whole between-dances interval, from the applause to the tune. */
   liningUp: boolean;
+  /** Which stretch of the between-dances interval this is, or `null` while dancing. */
+  between: BetweenDances | null;
   /** The dance that comes after this one. */
   next: Dance;
+}
+
+/** The four stretches of the between-dances interval, in the order they run. */
+export type BetweenDances = "applause" | "announcement" | "walk" | "ready";
+
+/** Which stretch of the interval a beat `into` a programme item falls in. */
+export function betweenDancesAt(into: Beat): BetweenDances | null {
+  const gap = into - TIMES_THROUGH * CYCLE_BEATS;
+  if (gap < 0) return null;
+  if (gap < APPLAUSE_BEATS) return "applause";
+  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS) return "announcement";
+  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS + WALK_BEATS) return "walk";
+  return "ready";
+}
+
+/** What the page says it is doing, under the card, between two dances. */
+export function betweenDancesStatus(position: ProgramPosition): string {
+  switch (position.between) {
+    case "applause":
+      return `Applause for ${position.dance.title}`;
+    case "announcement":
+      return `The caller announces ${position.next.title}`;
+    case "walk":
+      return `Lining up for ${position.next.title}`;
+    case "ready":
+      return `Ready for ${position.next.title}`;
+    default:
+      return `Time through ${String(position.timeThrough + 1)} of ${String(TIMES_THROUGH)}`;
+  }
 }
 
 /**
@@ -364,8 +419,9 @@ export function createDemoProgram(
  * Which dance a beat belongs to.
  *
  * Read off the programme's own arithmetic rather than the timeline: every
- * encoded dance is 64 beats and every item is `TIMES_THROUGH` of them plus
- * the line-up, so an item is `ITEM_BEATS` long and the programme loops.
+ * encoded dance is 64 beats and every item is `TIMES_THROUGH` of them plus the
+ * between-dances interval, so an item is `ITEM_BEATS` long and the programme
+ * loops.
  */
 export function positionAt(program: DemoProgram, beat: Beat): ProgramPosition {
   const n = program.dances.length;
@@ -379,6 +435,7 @@ export function positionAt(program: DemoProgram, beat: Beat): ProgramPosition {
     timeThrough: dancing ? Math.floor(into / CYCLE_BEATS) : TIMES_THROUGH - 1,
     danceBeat: dancing ? into % CYCLE_BEATS : null,
     liningUp: !dancing,
+    between: betweenDancesAt(into),
     next: program.dances[(index + 1) % n]!,
   };
 }
