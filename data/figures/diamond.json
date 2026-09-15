@@ -1,0 +1,11 @@
+{
+  "id": "diamond",
+  "walkthrough": {
+    "short": "Take hands with both neighbors in the wave and balance, then the points slide and the centre turns to reform it.",
+    "long": "From the wave of four you are already standing in, take hands with both neighbors and balance forward and back. Then the two of you at the points slide across to the far point, and the two of you at the centre turn across to the far centre. The diamond reforms with everybody's own kind on the other side. {where}"
+  },
+  "call": {
+    "short": "DIAMOND",
+    "long": "BALANCE THE DIAMOND"
+  }
+}
