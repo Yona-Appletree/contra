@@ -85,8 +85,8 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 32 | 0.12 | 0 | 0.84 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
-| `do-si-do → wait-out` | 52.2 | 76.7 | **13.42** | 0.0 | 0 | 0.00 | 0 | 1.05 | `set0/c1/lark` R at beat 64.281 |
 | `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
+| `allemande → balance-wave` | 35.3 | 49.9 | 2.65 | 22.0 | 4 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
 
 Over all ten dances: 1,015,808 measurements, 1080 hand-state flips, **0 of them not a finite number**.
 

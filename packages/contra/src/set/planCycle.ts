@@ -1,4 +1,5 @@
 import type { Beat } from "@caller/core";
+import { angleDiff } from "@caller/core";
 import type {
   AnyFigureDef,
   CycleEmission,
@@ -474,16 +475,7 @@ function planContraCycle(
         const def = registry.get(WAIT_OUT.id);
         const swept = Object.values(group.members).some((d) => everClaimed.has(d));
         for (const [from, to] of gapsIn(fill.span, Object.values(group.members), fill.claimed)) {
-          const params = withDefaults(
-            def,
-            {
-              startPlaces: dance.startPlaces ?? {},
-              join: from === fill.span.start,
-              cross: to === fill.span.end,
-              ...(dance.waitOut ?? {}),
-            },
-            to - from,
-          );
+          const join = from === fill.span.start;
           pending.push({
             // A couple **no call of the whole record** swept in is sorted after
             // every call of the cycle, so that its wait-out is added last;
@@ -492,8 +484,23 @@ function planContraCycle(
             // to reach the timeline in order. Every real call starts before
             // `cycle`, so this still sorts after all of them.
             at: swept ? from : cycle + from,
-            make: () => [
-              { group, def, params, stations: Object.keys(group.members), start: start + from },
+            make: (standing) => [
+              {
+                group,
+                def,
+                params: withDefaults(
+                  def,
+                  {
+                    startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
+                    join,
+                    cross: to === fill.span.end,
+                    ...(dance.waitOut ?? {}),
+                  },
+                  to - from,
+                ),
+                stations: Object.keys(group.members),
+                start: start + from,
+              },
             ],
           });
         }
@@ -649,6 +656,71 @@ function fromSpots(group: Group, model: SetModel, local: Map<DancerId, LocalSpot
           };
   }
   return from;
+}
+
+/**
+ * Where a waiting couple is really standing when its `wait-out` begins, in the
+ * wait group's own frame — `WaitOutParams.startPlaces` (M8b, DD30).
+ *
+ * The default that field carries is "the waiting places", and for almost every
+ * dance that is also the truth: the last figure of the time through is a
+ * gatherer, it settles the whole set on the formation's places, and the couple
+ * that ends up out is standing on the waiting place already. `wait-out` then
+ * steps together from exactly where it is and nothing moves that would not have
+ * moved anyway — measured, and the reason every plate, strip and hall golden in
+ * the repository is byte-identical across this change.
+ *
+ * Contrablend is the dance that is not like that. Its progression moves the
+ * larks one place and the robins three, so the couple that ends up waiting is a
+ * **new** couple — two dancers the whole time through never treated as a pair —
+ * and at five and six couples the four of them are left out of B2's last
+ * thirteen beats by a relation that names nobody. With the default they were
+ * teleported on to the waiting places at the cycle boundary: 32 px for the two
+ * robins and 37.7359 px (`sqrt(32² + 20²)`, across the set *and* one place
+ * along) for the two larks, while every other dancer was continuous to 0.000.
+ *
+ * This is the cross-set plan's ruling 2 — *the outs do what the ins need* —
+ * in its smallest honest form: the couple that is out walks in from where the
+ * dance left it, rather than the dance being asked to leave it somewhere
+ * `wait-out` would like. A dance that says its own `startPlaces` still gets
+ * exactly those: a becket dance whose first figure *is* the progression needs
+ * the couple to slide off the end with everybody else, which is a claim about
+ * where they start rather than a reading of where they are.
+ */
+function waitingFrom(
+  group: Group,
+  standing: ReadonlyMap<DancerId, EndPose>,
+  local: Map<DancerId, LocalSpot>,
+): Spots {
+  const out: Spots = {};
+  for (const station of group.stations) {
+    const dancer = group.members[station.id];
+    if (dancer === undefined) continue;
+    const memo = localIn(local, dancer, group.frame);
+    if (memo) {
+      out[station.id] = {
+        p: memo.p,
+        facing: station.facing + angleDiff(station.facing, memo.facing),
+      };
+      continue;
+    }
+    const spot = standing.get(dancer);
+    if (spot === undefined) continue;
+    const facing = localAngle(group.frame, spot.facing);
+    out[station.id] = {
+      p: localPoint(group.frame, spot.p),
+      // **The same facing, written the station's way round.** A dancer's facing
+      // accumulates whole turns — a swing leaves them at 630°, not 270° — and
+      // `wait-out` walks from this pose to the hold by interpolating it, so a
+      // couple already standing on its waiting place would be handed 630° where
+      // the station says 270° and turn twice on the spot. Read as the nearest
+      // equivalent of the station's own facing it is the same angle, and a
+      // couple that is where the default would have put it gets exactly the
+      // default (`planCycle.golden.test.ts` is what says so, to 1e-9).
+      facing: station.facing + angleDiff(station.facing, facing),
+    };
+  }
+  return out;
 }
 
 /**

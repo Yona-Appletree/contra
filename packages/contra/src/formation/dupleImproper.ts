@@ -482,10 +482,23 @@ export const DUPLE_IMPROPER_LATTICE: SetLattice = {
     const onPlus = (role === "lark") === (couple.direction === 1);
     return { line: onPlus ? 1 : 0, position: couple.place };
   },
-  placeOf(slot, role: RoleName) {
+  placeOf(slot, _role: RoleName, travel: 1 | -1) {
+    // **The dancer's own travel, not the line they are standing in** (M8b).
     // `slotOf` puts a dancer on the `+x` line exactly when their role and their
-    // couple's direction agree, so the line says the direction back.
-    return { place: slot.position, direction: (role === "lark") === (slot.line === 1) ? 1 : -1 };
+    // couple's direction agree, so for every set either formation builds the
+    // line says the direction back and the two readings are the same answer —
+    // which is why this argument has been here since M7 (for `proper`), was
+    // ignored, and swapping to it moves no dance, no plate and no golden.
+    //
+    // They come apart for exactly one kind of progression: a **line swap**
+    // (`set/lattice.ts`'s `RoleShift.line`, Anna's Reel's "swap sides"), which
+    // crosses everybody over while leaving them travelling the way they were.
+    // Read off the line, the inverse would then report every dancer travelling
+    // the other way and `setFromModel` would seat the set backwards; read off
+    // the travel, a swap is what it says it is — the same dancers going the
+    // same way, with the other role now standing on each line, which is why
+    // such a dance writes its second time through out with the roles exchanged.
+    return { place: slot.position, direction: travel };
   },
   homeAt(slot, travel) {
     return {

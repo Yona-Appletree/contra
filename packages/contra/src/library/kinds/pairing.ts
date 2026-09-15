@@ -70,7 +70,25 @@ function fromParam(
  * The other dancer on your own side of the set: long lines' pairing.
  *
  * "Your own side" is which side of the group's centre you stand on, measured
- * across the set — the axis the lines lie either side of.
+ * across the set — the axis the lines lie either side of. Read off where people
+ * are **standing**, deliberately and still: in Are You 'Most Done? the two
+ * larks allemande across the set before the long lines, so the line a dancer is
+ * in is not the line their station is in, and a long line is the line you are
+ * standing in. (Reading it off the stations instead was tried in M8b and is
+ * wrong for exactly that dance: it pairs a becket couple who are at that moment
+ * on opposite sides of the set, and the hold then has no inside hands.)
+ *
+ * **The pairing is partial and now says so (M8b).** Until this milestone a
+ * dancer with nobody on their side threw
+ * `long lines: station "1L" has no line mate`, which is what turned Are You
+ * 'Most Done?'s second time through into a stack trace at every line length of
+ * five couples and up. It is the one place in the library where a dancer in the
+ * wrong place was an exception and not a measurement (M8's own finding), and
+ * what put them in the wrong place is a real fault of that dance — two dancers
+ * settled on one floor point — which the collision oracle is built to report and
+ * a stack trace is not. The header above already promises a partial pairing and
+ * every other rule in this file keeps that promise; the figure stands the odd
+ * dancer still.
  */
 function lineMates(ctx: PlanContext): Record<StationId, StationId> {
   const centre = centreOf(ctx.ids.map((id) => ctx.spot(id)));
@@ -79,8 +97,7 @@ function lineMates(ctx: PlanContext): Record<StationId, StationId> {
   for (const id of ctx.ids) {
     const side = across(id);
     const mate = ctx.ids.find((other) => other !== id && across(other) * side > 0);
-    if (mate === undefined) throw new Error(`long lines: station "${id}" has no line mate`);
-    out[id] = mate;
+    if (mate !== undefined) out[id] = mate;
   }
   return out;
 }

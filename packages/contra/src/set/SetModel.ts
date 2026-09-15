@@ -11,6 +11,7 @@ import type {
 } from "@caller/choreo";
 import { frameAngle, framePoint } from "@caller/choreo";
 import type { RelationTable } from "./relations.js";
+import { latticeSpan } from "./span.js";
 import type { SetShape } from "./shape.js";
 import { LINES_SHAPE } from "./shape.js";
 import { setRulesOf } from "./SetRules.js";
@@ -236,7 +237,8 @@ export function latticePartner(
   me: DancerId,
 ): DancerId | undefined {
   const from = mustDancer(model, me);
-  return dancerOnSlot(model, table.slotFor({ kind: "partner" }, from));
+  const slot = table.slotFor({ kind: "partner" }, from, latticeSpan(model));
+  return slot === undefined ? undefined : dancerOnSlot(model, slot);
 }
 
 /** Where this dancer's slot puts them, in world px: their home this time through. */

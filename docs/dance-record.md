@@ -50,6 +50,15 @@ everything in it is either a fact about the dance or a parameter of a figure.
 - **`progression`** is per role, in dancing places, and lives on the record
   rather than in `@caller/choreo` because "lark" is a contra word (AC7). Left
   out is `{ lark: 1, robin: 1 }`, the single progression.
+  - **The long form carries a line swap** (M8b):
+    `{ "places": { "lark": 1, "robin": 1 }, "line": "swap" }` is the same shift
+    plus _everybody crosses to the other side of the set_, keeping the way they
+    were travelling — the Caller's Box's `other; single, swap sides`, which is
+    Rick Mohr's Anna's Reel. The flat form is the short form of the same thing
+    with `"line": "along"`, so every record that writes one keeps meaning what it
+    meant. A swap puts the other role on each line, which is why such a dance
+    writes its second time through out with the roles exchanged rather than
+    deriving it (Anna's Reel does, in the corpus, phrase for phrase).
 - **`startPlaces`** says where the dance picks everybody up at beat 0 of every
   time through, in the group frame's own axes. Only a dance that starts
   somewhere other than the formation's stations needs it — a becket dance whose

@@ -26,8 +26,9 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
-import type { RelationTable } from "../set/relations.js";
-import type { SetLattice } from "../set/SetModel.js";
+import type { Relation, RelationTable } from "../set/relations.js";
+import type { DancerState, SetLattice, Slot } from "../set/SetModel.js";
+import type { LatticeSpan } from "../set/span.js";
 import { ACROSS_PX, PLACE_PITCH_PX, partnerSide } from "./dupleImproper.js";
 import type { ShadowPart } from "./shadowSeam.js";
 import { partitionShadowSeams } from "./shadowSeam.js";
@@ -723,76 +724,213 @@ export const BECKET_LATTICE: SetLattice = {
 };
 
 /**
- * Becket's relations, as offsets on the lattice (Q1) — and the trap the
- * relation table exists for. **Complete** since M6.
+ * **A becket set's own loop**: the one closed ring every couple travels round,
+ * one step per time through.
+ *
+ * This is the doc comment at the top of this file — *"down one line, across at
+ * the end, back up the other, across again"* — turned into arithmetic, because
+ * M8b found that becket's relations cannot be written without it.
+ *
+ * Number the couple slots `j = 0 … length − 1` so that **one progression is
+ * `j → j + 1` (mod length)**, for every couple, at both ends, in both
+ * parities:
+ *
+ * ```text
+ *   A@(places−1) → … → A@0 → A@(topA) → B@0 → B@1 → … → B@places → A@(places−1)
+ *        j = 0             j = places−1−topA          j = length−1     wraps to 0
+ * ```
+ *
+ * where `A` is line 0 (the couples travelling `+1`), `B` line 1, `places` the
+ * highest dancing place, and `topA` the lowest place line `A` reaches — `−1`
+ * for an even hall, whose top end is a waiting place, and `0` for an odd one,
+ * whose top couple crosses straight over. Both are read off the occupied
+ * lattice rather than off a couple count, so a set the formation did not build
+ * answers for itself, and a set the arithmetic does not recognise gets
+ * `undefined` and falls back to the plain offsets.
+ *
+ * The length comes out at `2 × places + 2` for an even hall and
+ * `2 × places + 1` for an odd one, which is the couple count in both cases —
+ * so the loop really is *every* couple, exactly once.
+ */
+interface BecketLoop {
+  /** How many couple slots the ring has: the set's own couple count. */
+  length: number;
+  /** The lowest dancing place line 0 reaches: `−1` even, `0` odd. */
+  topA: number;
+  /** The highest dancing place, which only line 1 reaches. */
+  places: number;
+}
+
+/** The loop this occupied lattice describes, or `undefined` for a set that is not one. */
+function becketLoop(span: LatticeSpan): BecketLoop | undefined {
+  const a = span.line[0];
+  const b = span.line[1];
+  if (a === undefined || b === undefined) return undefined;
+  const topA = Math.floor(a.lowest / 2);
+  const places = Math.floor(b.highest / 2);
+  const length = 2 * places + 1 - topA;
+  return length > 0 ? { length, topA, places } : undefined;
+}
+
+/** Which slot of the loop this dancer's slot is: `place`, read the loop's way round. */
+function loopIndexOf(loop: BecketLoop, slot: Slot): number {
+  const place = Math.floor(slot.position / 2);
+  return slot.line === 0 ? loop.places - 1 - place : loop.places - loop.topA + place;
+}
+
+/** Any number of steps round the loop, brought back into `0 … length − 1`. */
+const ring = (loop: BecketLoop, j: number): number =>
+  ((j % loop.length) + loop.length) % loop.length;
+
+/** The slot the dancer of `role` stands on in loop slot `j`. */
+function slotAtLoop(loop: BecketLoop, j: number, role: RoleName): Slot {
+  const k = ring(loop, j);
+  const lastOnA = loop.places - 1 - loop.topA;
+  const onA = k <= lastOnA;
+  const place = onA ? loop.places - 1 - k : k - (loop.places - loop.topA);
+  const direction = onA ? 1 : -1;
+  const first = (role === "lark") === (direction === 1);
+  return { line: onA ? 0 : 1, position: 2 * place + (first ? 0 : 1) };
+}
+
+/** The other contra role, which is who every one of becket's cross-set rows names. */
+const otherRole = (role: RoleName): RoleName => (role === "lark" ? "robin" : "lark");
+
+/**
+ * Becket's relations, on the set's own loop (Q1) — and the trap the relation
+ * table exists for. Complete since M6; **rewritten on the loop in M8b (DD28)**.
  *
  * Two positions per couple place, two lines, and a couple place is therefore
- * `2` positions while duple improper's is `1`. Everything below is read from
- * that.
+ * `2` positions while duple improper's is `1`. Every row below is a step round
+ * {@link BecketLoop}, and `undefined` — nobody — where the step lands back on
+ * the asking dancer's own couple.
  *
- * - **Partner** is the *same* line, one position along: in becket your partner
- *   is beside you, not across from you. Which way along is
- *   {@link partnerSide} × `travel`, because the robin stands on the lark's
- *   right and the two lines face opposite ways.
- * - **Neighbour k** is straight *across* the set: `k = 1` is the couple you are
- *   facing, at the same position. One progression slides your line one couple
- *   place one way and the line opposite one couple place the other, so the two
- *   lines move **two** couple places — four positions — relative to each other:
- *   neighbour k is `−(k − 1) × 4 × travel` positions along the other line, and
- *   `N0` is four positions the other way. The sign is negative because a becket
- *   couple slides to its own **left**, which is `place − direction`
- *   (`BECKET.progression`), where a duple improper couple travels
- *   `place + direction` — so one progression is {@link BECKET_LATTICE}'s
- *   `progressionStep` of `−2` positions per unit of travel, and the general
- *   rule `N_k = N_1 + (k − 1) × 2 × step × travel` lands here. This is the
- *   exact reverse of duple improper's
- *   answer for both `partner` and `neighbor`, from the same lattice — which is
- *   why "across" cannot be a `@caller/choreo` meaning (AC7).
+ * - **Partner** is the other role of your own couple: in becket your partner is
+ *   beside you, not across from you.
+ * - **Neighbour k** is the couple you face `k − 1` progressions from now, and
+ *   the dancer of the other role in it. Since a progression is `j → j + 1` and
+ *   two couples face each other when `jA + jB ≡ length − 2`, that is
+ *   `N_k(j) = length − 2 − j − 2(k − 1)`, mod the loop. `N0` is the neighbour
+ *   you had last time through, which the same formula gives at `k = 0`. Each is
+ *   its own inverse by construction — apply it twice and the `−j` and the
+ *   `−2(k−1)` cancel — and it names **nobody** exactly when `N_k(j) = j`, which
+ *   is a couple that will be standing out at an end that time through.
  * - **Opposite** is the dancer straight across the set, which in becket is
  *   neighbour 1. (In an improper set it is your partner.)
+ *
+ * **Why the loop and not an offset (DD28, and the measurement that settled
+ * it).** M6 wrote neighbour k as `−(k − 1) × 4 × travel` positions along the
+ * other line, reasoning that one progression slides the two lines two couple
+ * places relative to each other. That reasoning is *correct in the middle of an
+ * unbounded line* and this row reproduces it exactly there — asserted in
+ * `relations.test.ts`. What it cannot see is the **end**: the couple you will
+ * face next time through may be one that has just run off the end of its own
+ * line and come back on the other, and no signed offset on two straight lines
+ * can name it. Measured on a bare eight-couple becket lattice, M6's offsets
+ * paired `N1 6/8, N2 2/8, N3 0/8` where the hall — the set progressed by
+ * becket's own `Progression.next`, then asked who is across from whom — pairs
+ * `6/8` at every k. The offsets were never *wrong*, in 1,728 checked cases they
+ * never named the wrong dancer; they said **nobody** where the hall says
+ * somebody, 8 times of 12 at N2 and 12 of 12 at N3. The loop is those same
+ * offsets with the ends joined up.
+ *
  * - **Shadow k** is, as in duple improper, the opposite-role dancer who
  *   progresses the way you do, on the opposite side of you from your partner —
  *   which in becket is *along your own line*, since your own line is what
- *   travels with you: `position − partnerSide × (2k − 1) × travel`. Its own
- *   inverse, by the same argument the improper row gives.
- * - **Trail buddy k** (same role, `k` couple places along your own line, so
- *   `2k × travel` positions) and **corner k** are **(unsure)**: nothing calls
- *   them, and M7/M9 own the figures that will pin them down.
+ *   travels with you. One couple place along the line in the direction
+ *   {@link partnerSide} gives is one step round the loop, so shadow k is the
+ *   other role of couple `j + partnerSide(role) × k`. Its own inverse, by the
+ *   same argument the improper row gives, and — on the loop — it names
+ *   somebody for **everybody**, which is what a shadow is: the dancer you keep
+ *   for the whole dance.
  *
- * `"shadow-pair"`'s seam group pairs a dancer with the one *across* the set one
- * couple place along (`groupsFor`, from the cross-set plan). That is **not**
- * this row, and this row is the one M6 trusts: the seam group is a partition
- * built to reach a neighbouring minor set, and Q15 replaces it with `who:` plus
- * a relation. Recorded rather than reconciled — nothing dances either yet.
+ * **The `"shadow-pair"` seam group is a different partition, and this row is
+ * the one that is right (M8b, the ruling M6 asked for).** `groupsFor(
+ * "shadow-pair", set)` pairs a dancer with the one *across* the set one couple
+ * place along. That dancer is on the other line and therefore travels the other
+ * way, so the pair breaks up at the very next progression, which is the one
+ * thing a shadow never does; measured, the seam group's pairing is not stable
+ * across `BECKET.progression.next` and this row's is, for every dancer at every
+ * round (`relations.test.ts`). The seam group stays what it is — a partition
+ * built to reach across a seam, which several figures want — and it should not
+ * be called a shadow. Q15 replaces the selector with `who:` plus a relation.
+ *
+ * - **Trail buddy k** (the same role `k` couple places back along the loop) and
+ *   **corner k** (the two dancers of the couple across from you) are
+ *   **(unsure)**: nothing calls them, and M7/M9 own the figures that will pin
+ *   them down. Both keep exactly M6's arithmetic, re-expressed on the loop so
+ *   that they too are total.
  */
 export const BECKET_RELATIONS: RelationTable = {
   id: "becket",
-  slotFor(rel, from) {
-    const { line, position } = from.slot;
-    const other = line === 1 ? 0 : 1;
-    const t = from.travel;
+  slotFor(rel, from, span) {
+    if (rel.kind === "self") return from.slot;
+    const loop = becketLoop(span);
+    if (loop === undefined) return offsetOnly(rel, from);
+    const j = ring(loop, loopIndexOf(loop, from.slot));
+    /**
+     * The couple you face `k − 1` progressions from now, or `undefined` when
+     * that is your own couple — which is what a couple standing out at an end
+     * that time through looks like on the loop.
+     */
+    const neighbour = (k: number): number | undefined => {
+      const facing = ring(loop, loop.length - 2 - j - 2 * (k - 1));
+      return facing === j ? undefined : facing;
+    };
     switch (rel.kind) {
       case "partner":
-        return { line, position: position + partnerSide(from.role) * t };
+        return slotAtLoop(loop, j, otherRole(from.role));
       case "neighbor":
-        return { line: other, position: position - (rel.k - 1) * 4 * t };
-      case "opposite":
-        return { line: other, position };
+      case "opposite": {
+        const facing = neighbour(rel.kind === "opposite" ? 1 : rel.k);
+        return facing === undefined ? undefined : slotAtLoop(loop, facing, otherRole(from.role));
+      }
       case "shadow":
-        return { line, position: position - partnerSide(from.role) * (2 * rel.k - 1) * t };
+        return slotAtLoop(loop, j + partnerSide(from.role) * rel.k, otherRole(from.role));
       case "trail-buddy":
-        return { line, position: position + 2 * rel.k * t };
-      case "corner":
+        return slotAtLoop(loop, j - rel.k, from.role);
+      case "corner": {
         // The two dancers of the couple across from you: your neighbour, and
         // their partner. (unsure)
-        return rel.k === 1
-          ? { line: other, position }
-          : { line: other, position: position + partnerSide(from.role) * t };
-      case "self":
-        return from.slot;
+        const facing = neighbour(1);
+        if (facing === undefined) return undefined;
+        return slotAtLoop(loop, facing, rel.k === 1 ? otherRole(from.role) : from.role);
+      }
     }
   },
 };
+
+/**
+ * M6's own offsets, for a set whose lattice is not a becket loop at all.
+ *
+ * A hand-built model in a test, or a line nobody stands on one side of, still
+ * gets an answer rather than a throw — the same answer it got before M8b — and
+ * `becketLoop` is what decides which of the two is in play. Every set either
+ * formation builds is a loop.
+ */
+function offsetOnly(rel: Relation, from: DancerState): Slot {
+  const { line, position } = from.slot;
+  const other = line === 1 ? 0 : 1;
+  const t = from.travel;
+  switch (rel.kind) {
+    case "partner":
+      return { line, position: position + partnerSide(from.role) * t };
+    case "neighbor":
+      return { line: other, position: position - (rel.k - 1) * 4 * t };
+    case "opposite":
+      return { line: other, position };
+    case "shadow":
+      return { line, position: position - partnerSide(from.role) * (2 * rel.k - 1) * t };
+    case "trail-buddy":
+      return { line, position: position + 2 * rel.k * t };
+    case "corner":
+      return rel.k === 1
+        ? { line: other, position }
+        : { line: other, position: position + partnerSide(from.role) * t };
+    case "self":
+      return from.slot;
+  }
+}
 
 /** The group selectors becket defines beyond `"hands-four"`. */
 export const SHADOW_PAIR_GROUP: GroupSelector = "shadow-pair";

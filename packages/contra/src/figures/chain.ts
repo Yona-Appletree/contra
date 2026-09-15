@@ -97,9 +97,27 @@ export interface ContraDanceSpec {
    * — writes both, and the set re-partners at the boundary because a lark and
    * the robin they started beside no longer end on one place. See
    * `set/lattice.ts`, which is what reads it.
+   *
+   * **The long form carries a line swap** (M8b): `{ places: { lark, robin },
+   * line: "swap" }` is the same shift plus *everybody crosses to the other side
+   * of the set*, which is Rick Mohr's Anna's Reel — the Caller's Box calls its
+   * formation "other; single, swap sides". The flat form above is the short
+   * form of `{ places: <this>, line: "along" }` and every record that writes one
+   * keeps meaning exactly what it meant.
    */
-  progression?: Readonly<Record<string, number>>;
+  progression?: DanceProgression;
 }
+
+/**
+ * A dance's own progression, in the two forms a record may write.
+ *
+ * The flat map is the short form and the one eleven records already use; the
+ * long form exists because a progression turned out to have a second axis.
+ * `set/lattice.ts`'s `progressionOf` normalises both to the long one.
+ */
+export type DanceProgression =
+  | Readonly<Record<string, number>>
+  | Readonly<{ places: Readonly<Record<string, number>>; line?: "along" | "swap" }>;
 
 /**
  * A contra dance, with the one contra fact a `Dance` does not carry.
@@ -111,7 +129,7 @@ export interface ContraDanceSpec {
  * the engine learning what a robin is.
  */
 export interface ContraDance extends Dance {
-  progression?: Readonly<Record<string, number>>;
+  progression?: DanceProgression;
 }
 
 /**
