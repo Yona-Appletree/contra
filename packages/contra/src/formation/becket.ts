@@ -393,6 +393,10 @@ export const BECKET: Formation = {
   roleSet: CONTRA_ROLES,
   lineUpCalls: BECKET_LINE_UP_CALLS,
   handsFourCalls: becketHandsFourCalls,
+  // A minor set's two couples share one place; the slide moves a couple
+  // exactly one place, `COUPLE_PITCH_PX`, so that is the along-hall period
+  // (T6) — unlike duple improper, whose minor set spans two places.
+  hallPitch: COUPLE_PITCH_PX,
 
   group(n: number): Station[] {
     if (n === 4) return BECKET_STATIONS.map((s) => ({ ...s }));

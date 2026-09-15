@@ -344,7 +344,9 @@ interface WakeRun {
  *
  * The same jump test the ink itself takes ({@link inkRuns}): no band across a
  * gap no pair of feet could have walked, or a progression would hang a band
- * across the whole set.
+ * across the whole set. A wrap (T6) breaks it the same way the ink breaks
+ * with it — the wake is drawn off the ink, so it cannot span a fold the ink
+ * itself does not.
  */
 function wakeRuns(
   pen: TraceViewPen,
@@ -361,7 +363,8 @@ function wakeRuns(
   for (const sample of pen.samples) {
     if (
       previous !== undefined &&
-      Math.hypot(sample.p[0] - previous.p[0], sample.p[1] - previous.p[1]) > TRACE_JUMP_PX
+      (sample.wrapped === true ||
+        Math.hypot(sample.p[0] - previous.p[0], sample.p[1] - previous.p[1]) > TRACE_JUMP_PX)
     ) {
       flush();
     }
@@ -596,7 +599,11 @@ export interface InkOptions {
  * `map` is what makes the four drawings four drawings: the pen plot maps a
  * sample to the floor, the march adds the beat to `x`, and the seismograph
  * throws one axis away. The jump test is on the *floor* position, never on the
- * mapped point, or the march would break on every step it takes.
+ * mapped point, or the march would break on every step it takes. A sample's
+ * own {@link TraceViewPen.samples}' `wrapped` flag (T6) breaks the run too,
+ * whether or not the fold happens to also be a jump — a dancer easing to a
+ * stop right at the fold barely moves at all in the folded picture, and the
+ * ink still should not stitch the two laps together.
  */
 export function inkRuns(
   pen: TraceViewPen,
@@ -613,7 +620,8 @@ export function inkRuns(
         (sample.beat >= options.window.from - 1e-9 && sample.beat <= options.window.to + 1e-9));
     const jumped =
       previous !== undefined &&
-      Math.hypot(sample.p[0] - previous.p[0], sample.p[1] - previous.p[1]) > TRACE_JUMP_PX;
+      (sample.wrapped === true ||
+        Math.hypot(sample.p[0] - previous.p[0], sample.p[1] - previous.p[1]) > TRACE_JUMP_PX);
     if (!wanted || jumped) {
       if (run.length > 1) runs.push(run);
       run = [];

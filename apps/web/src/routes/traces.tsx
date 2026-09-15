@@ -7,7 +7,7 @@ import { galleryTiles, groupedTiles, tileByKey } from "../galleryTiles.js";
 import { TraceSvg } from "../traces/TraceSvg.js";
 import { danceTrace } from "../traces/danceTrace.js";
 import { figureTrace } from "../traces/figureTrace.js";
-import { facingFromQuery, traceDrawings } from "../traces/traceDrawings.js";
+import { facingFromQuery, traceDrawings, wrapFromQuery } from "../traces/traceDrawings.js";
 import { soloHref } from "./moves.js";
 
 /**
@@ -19,6 +19,9 @@ import { soloHref } from "./moves.js";
  *
  * `?facing=wake` or `?facing=arrowheads` swaps the pen plot's and the march's
  * facing style away from the shipped default (ticks) — T3's live comparison.
+ * `?wrap=0` turns off T6's along-hall fold, for the same kind of comparison —
+ * a dance trace wraps by default, and this is the one place that default can
+ * be overridden.
  */
 export function TracesPage({
   slug,
@@ -29,9 +32,11 @@ export function TracesPage({
 }): JSX.Element {
   const dance = danceBySlug(slug);
   const facing = facingFromQuery(params.get("facing"));
+  const wrap = wrapFromQuery(params.get("wrap"));
   const drawings = useMemo(
-    () => (dance === undefined ? null : traceDrawings(danceTrace(dance), undefined, facing)),
-    [dance, facing],
+    () =>
+      dance === undefined ? null : traceDrawings(danceTrace(dance, { wrap }), undefined, facing),
+    [dance, facing, wrap],
   );
 
   if (dance === undefined || drawings === null) {

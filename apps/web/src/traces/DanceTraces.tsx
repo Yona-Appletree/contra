@@ -12,12 +12,16 @@ import { cardPenPlot, cardStrip } from "./traceDrawings.js";
  * Small on purpose. The card is the thing a caller reads; these two are the
  * glance that says "this one is all circles" or "this one crosses the set four
  * times", and `#/dances/<slug>/traces` is where they are read properly.
+ *
+ * `wrap` defaults to `danceTrace`'s own default (wrapped, T6) — every dance
+ * card wraps unless a caller explicitly says otherwise, which is the hook a
+ * `?wrap=` query on whichever route hosts this card can pass through.
  */
-export function DanceTraces({ dance }: { dance: Dance }): JSX.Element {
+export function DanceTraces({ dance, wrap }: { dance: Dance; wrap?: boolean }): JSX.Element {
   const drawings = useMemo(() => {
-    const trace = danceTrace(dance);
+    const trace = danceTrace(dance, { wrap });
     return { pen: cardPenPlot(trace), strip: cardStrip(trace) };
-  }, [dance]);
+  }, [dance, wrap]);
 
   return (
     <div className="dance-traces" data-testid="dance-traces" data-slug={dance.slug}>

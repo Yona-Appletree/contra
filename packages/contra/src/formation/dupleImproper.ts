@@ -299,6 +299,10 @@ export const DUPLE_IMPROPER: Formation = {
   id: "duple-improper",
   roleSet: CONTRA_ROLES,
   lineUpCalls: DUPLE_IMPROPER_LINE_UP_CALLS,
+  // A minor set is the ones and the twos, one place apart, so it spans two
+  // places along the hall — twice PLACE_PITCH_PX, not the place pitch itself
+  // (T6).
+  hallPitch: PLACE_PITCH_PX * 2,
 
   group(n: number): Station[] {
     if (n === 4) return DUPLE_IMPROPER_STATIONS.map((s) => ({ ...s }));

@@ -65,6 +65,13 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `w1-moves-390.png`                     | W1: the top of `#/moves?beat=6` at 390 × 844, the AI paragraphs gone         |
 | `w1-moves-1280.png`                    | W1: the same page at 1280 × 800                                              |
 | `w1-move-traces-hey-390.png`           | W1: `#/moves/hey/traces` at 390 × 844, opening on the long walkthrough       |
+| `t6-wrap-butter-before-full.png`       | T6: `#/dances/butter/traces?wrap=0`, full page — the pre-T6 tall smear       |
+| `t6-wrap-butter-after-full.png`        | T6: the same page, `?wrap=1` (the shipped default) — folded to one period    |
+| `t6-wrap-butter-before-pen.png`        | T6: Butter's pen plot alone, wrap off — the two spines run the full height   |
+| `t6-wrap-butter-after-pen.png`         | T6: the same plot, wrapped — the slide is two short strokes at the fold      |
+| `t6-wrap-butter-after-march.png`       | T6: Butter's march, wrapped (the march was never stretched; unaffected)      |
+| `t6-wrap-butter-after-strip.png`       | T6: Butter's figure strip, wrapped — the `slide` cell breaks the same way    |
+| `t6-wrap-airpants-unchanged-pen.png`   | T6: Airpants' pen plot, `?wrap=1` — byte-identical to `?wrap=0` (asserted)   |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -172,6 +179,26 @@ same row closed and open, which is the whole change in two pictures;
 `fullPage`, for the same reason the U2 and T5 Moves pictures are.
 `w1-move-traces-hey-390.png` is the per-move page, which opens on the long
 walkthrough instead.
+
+The seven `t6-wrap-*.png` are T6's acceptance case: "for eg butter, the
+diagram shouldn't be stretched vertically because of the slides. they should
+wrap around into the same shape for the icon." Butter's `SHIFT LEFT` carries
+the group frame most of the way down one couple-place before the decider's own
+frame catches up, and the pre-T6 pen plot drew that as real travel in one
+fixed frame — two straight red-and-gold spines running the full height of the
+set, top to bottom, either side of the figure-eight knot the rest of the dance
+draws. `-before-pen.png` is that. `-after-pen.png` is the same trace with
+`?wrap=1` (the shipped default): the slide is folded into one period centred
+on the frame, and what was a smear the height of the page is now two short
+strokes that stop well short of the top and bottom edges — the fold, not a
+line drawn across it. The figure strip's `slide` cell breaks the same way
+(`-after-strip.png`); the march is unaffected (`-after-march.png`) because it
+was never stretching in the first place — a march never magnifies the set
+enough for the along-hall axis to run off the page. `-airpants-unchanged-pen.png`
+is the control: a duple improper dance's minor set never travels down the hall
+at all (the ones and twos merely swap places), so its trace is byte-identical
+whether or not wrapping is asked for — asserted in the spec that took the
+picture, not just eyeballed.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.

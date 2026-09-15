@@ -115,6 +115,14 @@ describe("duple improper stations", () => {
     expect(PLACE_PITCH_PX).toBe(20);
   });
 
+  it("exposes the along-hall length of one minor set, two places wide (T6)", () => {
+    // A minor set is the ones and the twos, one place apart, so it spans two
+    // places' worth of hall — twice the place pitch, not the place pitch
+    // itself (a single place is only half a minor set's own repeat).
+    expect(DUPLE_IMPROPER.hallPitch).toBe(PLACE_PITCH_PX * 2);
+    expect(DUPLE_IMPROPER.hallPitch).toBe(40);
+  });
+
   it("alternates larks down each line, which is what improper means", () => {
     const by = (id: string) => DUPLE_IMPROPER_STATIONS.find((s) => s.id === id)!;
     // The +x line reads lark, robin going down; the −x line robin, lark.
