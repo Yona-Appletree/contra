@@ -1,0 +1,169 @@
+{
+  "slug": "fatal-attraction",
+  "title": "Fatal Attraction",
+  "author": "Roger Auman",
+  "formation": "becket",
+  "status": "lab",
+  "notes": "The Caller's Box 10426, permission: full. The dance travels round the **major** set twice \u2014 156 duple dances in the corpus do \u2014 and the promenade is what carries you to N2. A2's first two beats are the milestone's concurrency test: `(2) Women cast back || Men go forward`, two figures over disjoint dancers at the same beats. \"Men go forward\" is a **dance-local figure** (D10): two beats of walking one place along your own line, which no other dance in the corpus asks for by itself.",
+  "source": {
+    "callersBoxId": 10426,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10426",
+    "permission": "full",
+    "transcript": "A1  (8) Ladies chain to neighbor  (8) Neighbor promenade counterclockwise around the major set\nA2  (2) Women cast back || Men go forward  (6) N2 neighbor right shoulder round  (8) N2 neighbor swing\nB1  (8) N2 neighbor promenade clockwise around the major set  (8) Women allemande right 1 & 1/2\nB2  (4) Partner balance  (12) Partner swing"
+  },
+  "figures": {
+    "go-forward": {
+      "call": "GO FORWARD",
+      "describe": "On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them.",
+      "lead": 2,
+      "nominalBeats": 2,
+      "roles": ["one"],
+      "actors": "each",
+      "anchor": "centroid",
+      "params": {
+        "kind": "canonical",
+        "defaults": {}
+      },
+      "shape": {
+        "kind": "waypoints",
+        "tracks": {
+          "*": [
+            {
+              "at": {
+                "fromEnd": 0
+              },
+              "pose": {
+                "p": {
+                  "point": "slot",
+                  "line": "same",
+                  "along": 1
+                },
+                "facing": {
+                  "angle": "facingOf",
+                  "role": {
+                    "role": "self"
+                  },
+                  "at": "start"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "holds": [],
+      "ends": "home",
+      "timing": {
+        "stretch": "distance",
+        "profile": "smooth"
+      },
+      "texts": {
+        "walkthrough": {
+          "short": "Walk forward one place along your own line while the dancer beside you casts back.",
+          "long": "On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them. Nobody's hand: the two of you are dancing different figures in the same two beats."
+        },
+        "call": {
+          "short": "GO FORWARD",
+          "long": "GO FORWARD ONE PLACE"
+        }
+      }
+    }
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "robins-chain",
+          "beats": 8,
+          "call": "ROBINS CHAIN TO YOUR NEIGHBOUR"
+        },
+        {
+          "figure": "promenade",
+          "beats": 8,
+          "params": {
+            "pairs": "neighbors",
+            "direction": "counterclockwise",
+            "places": 2
+          },
+          "call": "NEIGHBOUR PROMENADE COUNTERCLOCKWISE AROUND THE SET"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "cast-back",
+          "beats": 2,
+          "who": "robins",
+          "call": "ROBINS CAST BACK, LARKS GO FORWARD",
+          "while": [
+            {
+              "figure": "fatal-attraction/go-forward",
+              "who": "larks"
+            }
+          ]
+        },
+        {
+          "figure": "shoulder-round",
+          "beats": 6,
+          "params": {
+            "pairs": "N2",
+            "hand": "R",
+            "amount": 1
+          },
+          "call": "RIGHT SHOULDER ROUND WITH NUMBER TWO"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "N2",
+            "endFacing": "across"
+          },
+          "call": "SWING NUMBER TWO"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "promenade",
+          "beats": 8,
+          "params": {
+            "pairs": "N2",
+            "direction": "clockwise",
+            "places": 2
+          },
+          "call": "PROMENADE NUMBER TWO CLOCKWISE AROUND THE SET"
+        },
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": {
+            "pairs": [["1R", "2R"]],
+            "hand": "R",
+            "amount": 1.5
+          },
+          "call": "ROBINS ALLEMANDE RIGHT ONCE AND A HALF"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": {
+            "pairs": "partners",
+            "balanceBeats": 4,
+            "endFacing": "across"
+          },
+          "call": "PARTNER BALANCE AND SWING"
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleDiff, angleLerp, angleOfVec, clamp01, dist, ramp, smooth } from "@caller/core";
+import { angleDiff, angleLerp, angleOfVec, clamp01, dirOf, dist, ramp, smooth } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type {
   FigurePlan,
@@ -796,11 +796,35 @@ function laneOf(shape: ScheduleShape, input: ShapeInput, env: ExprEnv): Lane {
     Math.max(...roles.map((role) => Math.abs(ctx.spot(role).p[axis] - centre[axis])));
   const word = String(input.params[shape.shorthand.axis] ?? "spread");
   if (word === "diagonal") {
-    // The **diagonal hey** (M8): its four dancers are two from one minor set and
-    // two from the next, so it is a call resolved in the lane, and M6's lane
-    // frame is built for a line rather than for a diagonal. The parameter parses
-    // — a record may write it today — and the figure says what is missing.
-    throw new Error(`unsupported: a hey on a diagonal, which spans two minor sets (M8)`);
+    // **The diagonal hey** (M8, Q12). `"spread"` reads the axis off the dancers
+    // and then snaps it to one of the frame's own two, which is right for every
+    // hey in the corpus but the 94 diagonal ones: a hey on the right diagonal
+    // runs at whatever angle the four dancers really make, and snapping it to
+    // "across" puts the weave's own lane at 45° to the dancers standing on it.
+    //
+    // So the diagonal is the same reading **without** the snap: the lane runs
+    // along the direction the four are most strung out on, found by the
+    // principal axis of where they are standing, and its half-length is how far
+    // they stand from the middle along it. Everything downstream of `laneOf` is
+    // written in lane-local coordinates and does not care what angle it is at.
+    //
+    // **Fixed, not straightening** — Q12's ruling. The Caller's Box's own note
+    // on Are You 'Most Done? says the hey "can straighten out as it proceeds",
+    // which is an anchor rule that interpolates the lane's orientation over the
+    // figure; the ruling is that the fixed diagonal comes first and the drift is
+    // added only if the strip looks wrong.
+    const axis = diagonalAxis(
+      roles.map((role) => ctx.spot(role).p),
+      centre,
+    );
+    const dir = dirOf(axis);
+    const half = Math.max(
+      ...roles.map((role) => {
+        const p = ctx.spot(role).p;
+        return Math.abs((p[0] - centre[0]) * dir[0] + (p[1] - centre[1]) * dir[1]);
+      }),
+    );
+    return { centre, axis, half, reach: half * evalNumber(shape.loopReach, env) };
   }
   if (word !== "spread" && word !== "across" && word !== "along") {
     throw new Error(
@@ -925,3 +949,56 @@ const wrapSigned = (a: number): number => {
   const wrapped = ((a % 360) + 360) % 360;
   return wrapped > 180 ? wrapped - 360 : wrapped;
 };
+
+/**
+ * **The lane of a diagonal hey**: the direction from one of its two lines to the
+ * other, degrees (M8, Q12).
+ *
+ * A hey's lane runs between the two lines the four dancers stand on, which for
+ * every hey in the corpus but the diagonal ones is one of the frame's own two
+ * axes and is what `"spread"` answers. On a diagonal it is neither, and it is
+ * **not** the principal axis of the four either: the spread *within* each pair
+ * counts toward that, so four dancers in two pairs 32 px apart across and 20
+ * along come out at 40.0° where the line between the pairs is 32.0°.
+ *
+ * So: the principal axis says which way to *split* them, the split says which
+ * two are a line, and the lane is the line between the two lines' own middles.
+ * On a square minor set the two agree exactly, which `hey.test.ts` asserts.
+ */
+function diagonalAxis(points: readonly Vec2[], centre: Vec2): Angle {
+  const along = principalAxis(points, centre);
+  if (points.length !== 4) return along;
+  const dir = dirOf(along);
+  const order = [...points].sort(
+    (a, b) =>
+      (a[0] - centre[0]) * dir[0] +
+      (a[1] - centre[1]) * dir[1] -
+      ((b[0] - centre[0]) * dir[0] + (b[1] - centre[1]) * dir[1]),
+  );
+  const mid = (a: Vec2, b: Vec2): Vec2 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const near = mid(order[0]!, order[1]!);
+  const far = mid(order[2]!, order[3]!);
+  return angleOfVec([far[0] - near[0], far[1] - near[1]]);
+}
+
+/**
+ * The direction some points are most strung out on, degrees.
+ *
+ * The larger eigenvector of their covariance, written out rather than taken from
+ * a library because it is four lines of arithmetic and one closed form.
+ */
+function principalAxis(points: readonly Vec2[], centre: Vec2): Angle {
+  let xx = 0;
+  let xy = 0;
+  let yy = 0;
+  for (const p of points) {
+    const dx = p[0] - centre[0];
+    const dy = p[1] - centre[1];
+    xx += dx * dx;
+    xy += dx * dy;
+    yy += dy * dy;
+  }
+  // `atan2(2·xy, xx − yy) / 2` is the angle of the larger eigenvector, and it is
+  // the same formula whichever way the spread runs.
+  return (Math.atan2(2 * xy, xx - yy) / 2) * (180 / Math.PI);
+}

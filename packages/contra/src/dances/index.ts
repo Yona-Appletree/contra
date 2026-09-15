@@ -1,57 +1,7 @@
 import type { Dance } from "@caller/choreo";
-import type { DanceFile } from "./loadDances.js";
+import { DANCE_FILES } from "./danceFiles.js";
 import { danceFromFile } from "./loadDances.js";
-
-// The ten demo dances, as data. Every file is `ContraDanceSpec` as written —
-// title, author, formation id, phrases with figure calls and params, notes,
-// `startPlaces`/`waitOut` where a dance has them — plus a `source` block with
-// the Caller's Box id, URL, permission and the quoted transcript. Nothing here
-// is reconstructed from memory (see
-// `docs/adr/2026-09-13-corpus-and-permission.md`); the threaded `from` and
-// `carried` places are derived by {@link danceFromFile} at load, never stored.
-import aRareBirdFile from "../../../../data/dances/a-rare-bird.json" with { type: "json" };
-import afterTheSolsticeFile from "../../../../data/dances/after-the-solstice.json" with { type: "json" };
-import airpantsFile from "../../../../data/dances/airpants.json" with { type: "json" };
-import annasReelFile from "../../../../data/dances/annas-reel.json" with { type: "json" };
-import butterFile from "../../../../data/dances/butter.json" with { type: "json" };
-import chorusJigFile from "../../../../data/dances/chorus-jig.json" with { type: "json" };
-import contraCockaigneFile from "../../../../data/dances/contra-cockaigne.json" with { type: "json" };
-import contrablendFile from "../../../../data/dances/contrablend.json" with { type: "json" };
-import jubilationFile from "../../../../data/dances/jubilation.json" with { type: "json" };
-import kitchenStompFile from "../../../../data/dances/kitchen-stomp.json" with { type: "json" };
-import neighborNeighborOnTheWallFile from "../../../../data/dances/neighbor-neighbor-on-the-wall.json" with { type: "json" };
-import onTheProwlFile from "../../../../data/dances/on-the-prowl.json" with { type: "json" };
 import programmeFile from "../../../../data/dances/programme.json" with { type: "json" };
-import thanksToTheGeneFile from "../../../../data/dances/thanks-to-the-gene.json" with { type: "json" };
-import theBabyRoseFile from "../../../../data/dances/the-baby-rose.json" with { type: "json" };
-import theCarouselFile from "../../../../data/dances/the-carousel.json" with { type: "json" };
-import theNiceCombinationFile from "../../../../data/dances/the-nice-combination.json" with { type: "json" };
-import whooshFile from "../../../../data/dances/whoosh.json" with { type: "json" };
-
-/** Every dance file this package bundles, by its own slug. */
-const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
-  (
-    [
-      aRareBirdFile,
-      afterTheSolsticeFile,
-      airpantsFile,
-      annasReelFile,
-      butterFile,
-      chorusJigFile,
-      contraCockaigneFile,
-      contrablendFile,
-      jubilationFile,
-      kitchenStompFile,
-      neighborNeighborOnTheWallFile,
-      onTheProwlFile,
-      thanksToTheGeneFile,
-      theBabyRoseFile,
-      theCarouselFile,
-      theNiceCombinationFile,
-      whooshFile,
-    ] as DanceFile[]
-  ).map((file) => [file.slug, file]),
-);
 
 /** `data/dances/programme.json`: the demo's own dance order. */
 const PROGRAMME = programmeFile as { slugs: readonly string[] };

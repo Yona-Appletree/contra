@@ -7,6 +7,7 @@ import type {
   Dance,
   DancerId,
   EndPose,
+  FigureCall,
   Formation,
   Frame,
   Group,
@@ -21,7 +22,9 @@ import {
   HANDS_FOUR_GROUP,
   WAIT_OUT,
   WALK_TO_STATION,
+  callBeats,
   danceBeats,
+  dancePassSpans,
   danceSchedule,
   frameAngle,
   framePoint,
@@ -42,10 +45,10 @@ import type { Library } from "../library/Library.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { figureFor } from "../library/interpret.js";
 import { legacyLibrary } from "../library/legacy.js";
-import { progressionOf, progressSet } from "./lattice.js";
+import { progressionOf, progressModel, progressSet } from "./lattice.js";
 import { parseRelation, relate } from "./relations.js";
 import type { FigureInstance } from "./resolve.js";
-import { gathersOnPlaces, resolveCall, TRADE_PARAM } from "./resolve.js";
+import { gathersOnPlaces, resolveConcurrent, TRADE_PARAM } from "./resolve.js";
 import type { SetShapeKind, ShapeGroup, TargetShape } from "./shape.js";
 import { LINES_SHAPE, shapeFromEnds } from "./shape.js";
 import { setRulesOf } from "./SetRules.js";
@@ -214,7 +217,12 @@ function planContraCycle(
   const { dance, formation, registry, hall, start, standingAt, mintGroup } = input;
   const library = options.library ?? contraLibrary(registry);
   const cycle = danceBeats(dance);
-  const schedule = danceSchedule(dance);
+  // **The passes of the record** (M8). One for every dance written before this
+  // milestone, in which case the loop below runs once over `[0, cycle]` with the
+  // hall's own seating and the arithmetic is unchanged to the last digit.
+  const spans = dancePassSpans(dance);
+  const perPass = dance.phrases.length / spans.length;
+  const schedule = passSchedule(dance, perPass);
 
   /** One model per set, every dancer where this time through picks them up. */
   const models = new Map<SetId, SetModel>();
@@ -245,13 +253,30 @@ function planContraCycle(
     models.set(set.id, modelFromSet(formation, set, world));
   }
 
-  /** Which beats of this cycle each dancer has already been given a figure for. */
-  const claimed = new Map<DancerId, Span[]>();
+  /**
+   * Which beats each dancer has already been given a figure for.
+   *
+   * **Per pass, not per cycle** (M8): a two-pass record progresses between its
+   * passes, so the couples standing out are not the same couples, and a waiting
+   * couple's gap is a gap in its own pass.
+   */
+  let claimed = new Map<DancerId, Span[]>();
+  /**
+   * Everybody any call of the **whole** record gave a figure to.
+   *
+   * `claimed` is per pass and answers "which beats of this pass are spoken
+   * for"; this answers "was this couple ever swept into a call", which is a
+   * question about the cycle: a couple that dances in the second pass and waits
+   * out the first has to have its first pass's `wait-out` sorted before that
+   * second-pass figure, or the two reach one dancer's timeline out of order.
+   */
+  const everClaimed = new Set<DancerId>();
   const claim = (dancers: Iterable<DancerId>, from: Beat, to: Beat): void => {
     for (const dancer of dancers) {
       const spans = claimed.get(dancer) ?? [];
       spans.push([from, to]);
       claimed.set(dancer, spans);
+      everClaimed.add(dancer);
     }
   };
 
@@ -260,172 +285,219 @@ function planContraCycle(
   const pending: Array<{ at: Beat; make: (standing: Map<DancerId, EndPose>) => CycleEmission[] }> =
     [];
 
-  for (const { call, start: offset } of schedule) {
-    const selector = call.group ?? HANDS_FOUR_GROUP;
-    for (const set of hall.sets) {
-      const model = models.get(set.id)!;
-      const groups = formation.groupsFor(selector, set);
-      const instances = resolveCall(
-        call,
-        { model, formation, library, groups, localOf: (dancer, f) => localIn(local, dancer, f) },
-        start + offset,
-      );
-      const minted = new Map<GroupId, Group>();
-      /** The shape this call formed, one group per instance that formed one (M7). */
-      const formed: ShapeGroup[] = [];
-      let formedKind: SetShapeKind | undefined;
-      for (const instance of instances) {
-        let group = minted.get(instance.group.id);
-        if (group === undefined) {
-          group = mintGroup(instance.group);
-          minted.set(instance.group.id, group);
-        }
-        const stations = Object.keys(instance.cast);
+  /** How the hall is seated for the pass being planned; the last is what `next` is. */
+  const states = new Map<SetId, SetState>(hall.sets.map((set) => [set.id, set]));
+  /** One per pass: its beats, what it claimed, and the seating it ran in. */
+  const fills: Array<{
+    span: { start: Beat; end: Beat };
+    claimed: Map<DancerId, Span[]>;
+    states: Map<SetId, SetState>;
+  }> = [];
+  const shift = progressionOf(dance);
+  const progressEvery = dance.progressEvery ?? 1;
 
-        if (instance.holdPlace) {
-          // The dancers this call left out stand where they are — the decider's
-          // own `origins`, read at emission time out of the real `standingAt`,
-          // because that is where they physically are rather than where the
-          // chain thinks they should be.
+  for (const [passIndex, span] of spans.entries()) {
+    claimed = new Map<DancerId, Span[]>();
+    for (const { call, start: offset, pass } of schedule) {
+      if (pass !== passIndex) continue;
+      const selector = call.group ?? HANDS_FOUR_GROUP;
+      for (const set of hall.sets) {
+        const model = models.get(set.id)!;
+        const groups = formation.groupsFor(selector, states.get(set.id)!);
+        const instances = resolveConcurrent(
+          call,
+          { model, formation, library, groups, localOf: (dancer, f) => localIn(local, dancer, f) },
+          start + offset,
+        );
+        const minted = new Map<GroupId, Group>();
+        /** The shape this call formed, one group per instance that formed one (M7). */
+        const formed: ShapeGroup[] = [];
+        let formedKind: SetShapeKind | undefined;
+        for (const instance of instances) {
+          let group = minted.get(instance.group.id);
+          if (group === undefined) {
+            group = mintGroup(instance.group);
+            minted.set(instance.group.id, group);
+          }
+          const stations = Object.keys(instance.cast);
+
+          if (instance.holdPlace) {
+            // The dancers this call left out stand where they are — the decider's
+            // own `origins`, read at emission time out of the real `standingAt`,
+            // because that is where they physically are rather than where the
+            // chain thinks they should be.
+            pending.push({
+              at: offset,
+              make: (standing) => {
+                const origins: Record<StationId, EndPose> = {};
+                for (const id of stations) {
+                  const here = standing.get(group.members[id]!);
+                  if (here) origins[id] = here;
+                }
+                return [
+                  {
+                    group,
+                    def: WALK_TO_STATION as AnyFigureDef,
+                    params: withDefaults(WALK_TO_STATION, { origins }, instance.beats),
+                    stations,
+                    start: instance.start,
+                  },
+                ];
+              },
+            });
+            // A dancer standing still moves nowhere and holds nothing: their spot
+            // is left where the chain has it, and whatever they were holding is
+            // let go.
+            for (const dancer of Object.values(instance.cast)) {
+              model.dancers[dancer]!.holds = {};
+              lastInstance.delete(dancer);
+            }
+            continue;
+          }
+
+          const definition = library.get(instance.figure);
+          const fig = figureFor(definition, registry);
+          const def = registry.get(instance.figure);
+          // `poseAt` looks a figure up by **id in the registry**, not in the
+          // emission, so a definition the planner resolves against and a figure
+          // the timeline samples have to be the same thing. Saying so loudly is
+          // better than dancing a coded swing to a data swing's plan.
+          if (definition.shape.kind !== "legacy" && (def as unknown) !== (fig as unknown)) {
+            throw new Error(
+              `figure "${instance.figure}" is a definition in the library, but the registry holds a ` +
+                `different figure under that id — build the registry with \`contraDataEngine()\``,
+            );
+          }
+          const from = fromSpots(group, model, local);
+          // The parameters the *chain* runs on: no carried holds, exactly as
+          // `chainCalls` computes `moves` and `joins` before `carryHolds` writes
+          // anything into them.
+          const chainParams = withDefaults<ContraParams>(
+            def,
+            { ...callParams(instance), from, carried: NO_CARRIED },
+            instance.beats,
+          );
+          const carried: Carried = { in: {}, out: {} };
+          const planned: Planned = {
+            group,
+            def,
+            carried,
+            stationOf: new Map(Object.entries(instance.cast).map(([id, d]) => [d, id])),
+          };
+
+          carryInto(fig, chainParams, group, model, planned, lastInstance, instance.beats);
+
           pending.push({
             at: offset,
-            make: (standing) => {
-              const origins: Record<StationId, EndPose> = {};
-              for (const id of stations) {
-                const here = standing.get(group.members[id]!);
-                if (here) origins[id] = here;
-              }
-              return [
-                {
-                  group,
-                  def: WALK_TO_STATION as AnyFigureDef,
-                  params: withDefaults(WALK_TO_STATION, { origins }, instance.beats),
-                  stations,
-                  start: instance.start,
-                },
-              ];
-            },
+            make: () => [
+              {
+                group,
+                def,
+                params: withDefaults(
+                  def,
+                  { ...callParams(instance), from, carried },
+                  instance.beats,
+                ),
+                stations,
+                start: instance.start,
+              },
+            ],
           });
-          // A dancer standing still moves nowhere and holds nothing: their spot
-          // is left where the chain has it, and whatever they were holding is
-          // let go.
-          for (const dancer of Object.values(instance.cast)) {
-            model.dancers[dancer]!.holds = {};
-            lastInstance.delete(dancer);
+
+          advance(fig, chainParams, group, model, local, instance, planned, lastInstance);
+          rebind(instance, model);
+          // **The set's shape, recorded** (M7). A figure whose `ends` name a
+          // target shape has just put its dancers into one, and the next call —
+          // and `pnpm dance`'s own table — may ask what shape the set is in. It is
+          // read off where the figure really left them rather than off its claim,
+          // so the model's shape is a measurement like everything else in the hub.
+          const target = targetOf(definition);
+          if (target !== undefined) {
+            formedKind = target.shape;
+            formed.push(
+              shapeFromEnds(
+                target.shape,
+                Object.values(instance.cast).map((dancer) => ({
+                  dancer,
+                  p: model.dancers[dancer]!.spot.p,
+                  facing: model.dancers[dancer]!.spot.facing,
+                })),
+              ),
+            );
           }
-          continue;
+          claim(Object.values(instance.cast), offset, offset + instance.beats);
         }
-
-        const definition = library.get(instance.figure);
-        const fig = figureFor(definition, registry);
-        const def = registry.get(instance.figure);
-        // `poseAt` looks a figure up by **id in the registry**, not in the
-        // emission, so a definition the planner resolves against and a figure
-        // the timeline samples have to be the same thing. Saying so loudly is
-        // better than dancing a coded swing to a data swing's plan.
-        if (definition.shape.kind !== "legacy" && (def as unknown) !== (fig as unknown)) {
-          throw new Error(
-            `figure "${instance.figure}" is a definition in the library, but the registry holds a ` +
-              `different figure under that id — build the registry with \`contraDataEngine()\``,
-          );
+        if (formedKind !== undefined) {
+          model.shape = { kind: formedKind, groups: formed };
+        } else if (instances.some((i) => !i.holdPlace && gathersOnPlaces(library.get(i.figure)))) {
+          // A **gatherer** puts the set back into its own two lines: settling
+          // everybody on the formation's places is what un-forms a ring or a line
+          // of four, and is why "bend the line, circle, swing" leaves a set in
+          // lines again without anything having to say so.
+          model.shape = LINES_SHAPE;
         }
-        const from = fromSpots(group, model, local);
-        // The parameters the *chain* runs on: no carried holds, exactly as
-        // `chainCalls` computes `moves` and `joins` before `carryHolds` writes
-        // anything into them.
-        const chainParams = withDefaults<ContraParams>(
-          def,
-          { ...callParams(instance), from, carried: NO_CARRIED },
-          instance.beats,
-        );
-        const carried: Carried = { in: {}, out: {} };
-        const planned: Planned = {
-          group,
-          def,
-          carried,
-          stationOf: new Map(Object.entries(instance.cast).map(([id, d]) => [d, id])),
-        };
-
-        carryInto(fig, chainParams, group, model, planned, lastInstance, instance.beats);
-
-        pending.push({
-          at: offset,
-          make: () => [
-            {
-              group,
-              def,
-              params: withDefaults(def, { ...callParams(instance), from, carried }, instance.beats),
-              stations,
-              start: instance.start,
-            },
-          ],
-        });
-
-        advance(fig, chainParams, group, model, local, instance, planned, lastInstance);
-        rebind(instance, model);
-        // **The set's shape, recorded** (M7). A figure whose `ends` name a
-        // target shape has just put its dancers into one, and the next call —
-        // and `pnpm dance`'s own table — may ask what shape the set is in. It is
-        // read off where the figure really left them rather than off its claim,
-        // so the model's shape is a measurement like everything else in the hub.
-        const target = targetOf(definition);
-        if (target !== undefined) {
-          formedKind = target.shape;
-          formed.push(
-            shapeFromEnds(
-              target.shape,
-              Object.values(instance.cast).map((dancer) => ({
-                dancer,
-                p: model.dancers[dancer]!.spot.p,
-                facing: model.dancers[dancer]!.spot.facing,
-              })),
-            ),
-          );
-        }
-        claim(Object.values(instance.cast), offset, offset + instance.beats);
+        // A call `ends` kept away from a widened group's true end claims those
+        // beats for nobody, exactly as `defaultCyclePlanner` leaves them: the fill
+        // below gives that couple its own whole-pass `wait-out`.
       }
-      if (formedKind !== undefined) {
-        model.shape = { kind: formedKind, groups: formed };
-      } else if (instances.some((i) => !i.holdPlace && gathersOnPlaces(library.get(i.figure)))) {
-        // A **gatherer** puts the set back into its own two lines: settling
-        // everybody on the formation's places is what un-forms a ring or a line
-        // of four, and is why "bend the line, circle, swing" leaves a set in
-        // lines again without anything having to say so.
-        model.shape = LINES_SHAPE;
+    }
+
+    // What this pass's schedule did not claim is filled in **after every pass
+    // has been planned** — see the fill loop below, and `everClaimed` for why.
+    fills.push({ span, claimed, states: new Map(states) });
+
+    // **The pass boundary** (M8). The set progresses at the end of every pass
+    // unless the record says otherwise, and the dancers stay exactly where the
+    // last figure left them: what moves is the **slots**, which is what makes the
+    // second pass's "N2" a different dancer from the first pass's.
+    if ((passIndex + 1) % progressEvery === 0) {
+      for (const set of hall.sets) {
+        const model = models.get(set.id)!;
+        states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
+        if (passIndex + 1 < spans.length) models.set(set.id, progressModel(model, shift));
       }
-      // A call `ends` kept away from a widened group's true end claims those
-      // beats for nobody, exactly as `defaultCyclePlanner` leaves them: the fill
-      // below gives that couple its own whole-cycle `wait-out`.
     }
   }
 
-  // Whatever the schedule did not claim: the outs wait it out, in their own
-  // resting group — `defaultCyclePlanner`'s own second pass, unchanged, because
-  // a waiting couple's crossing is the formation's business and not the set
-  // model's until M6.
-  for (const set of hall.sets) {
-    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
-      if (plan.kind === "set") continue;
-      const group = mintGroup(plan);
-      const def = registry.get(WAIT_OUT.id);
-      const swept = Object.values(group.members).some((d) => claimed.has(d));
-      for (const [from, to] of gapsIn(cycle, Object.values(group.members), claimed)) {
-        const params = withDefaults(
-          def,
-          {
-            startPlaces: dance.startPlaces ?? {},
-            join: from === 0,
-            cross: to === cycle,
-            ...(dance.waitOut ?? {}),
-          },
-          to - from,
-        );
-        pending.push({
-          at: swept ? from : Number.POSITIVE_INFINITY,
-          make: () => [
-            { group, def, params, stations: Object.keys(group.members), start: start + from },
-          ],
-        });
+  // Whatever no call claimed: the outs wait it out, in their own resting group —
+  // `defaultCyclePlanner`'s own second sweep, unchanged, because a waiting
+  // couple's crossing is the formation's business and not the set model's since
+  // M6. Each pass is read against **its own** seating, which is what a record
+  // with a progression between its passes needs, and the whole lot runs after
+  // every pass has been planned so that `everClaimed` is complete — a couple that
+  // waits out the first pass and dances the second has to have its first pass's
+  // `wait-out` sorted before that second-pass figure.
+  for (const fill of fills) {
+    for (const set of hall.sets) {
+      for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, fill.states.get(set.id)!)) {
+        if (plan.kind === "set") continue;
+        const group = mintGroup(plan);
+        const def = registry.get(WAIT_OUT.id);
+        const swept = Object.values(group.members).some((d) => everClaimed.has(d));
+        for (const [from, to] of gapsIn(fill.span, Object.values(group.members), fill.claimed)) {
+          const params = withDefaults(
+            def,
+            {
+              startPlaces: dance.startPlaces ?? {},
+              join: from === fill.span.start,
+              cross: to === fill.span.end,
+              ...(dance.waitOut ?? {}),
+            },
+            to - from,
+          );
+          pending.push({
+            // A couple **no call of the whole record** swept in is sorted after
+            // every call of the cycle, so that its wait-out is added last;
+            // `cycle + from` rather than infinity since M8, because a two-pass
+            // record has one such fill per pass and a dancer's own events have
+            // to reach the timeline in order. Every real call starts before
+            // `cycle`, so this still sorts after all of them.
+            at: swept ? from : cycle + from,
+            make: () => [
+              { group, def, params, stations: Object.keys(group.members), start: start + from },
+            ],
+          });
+        }
       }
     }
   }
@@ -451,13 +523,40 @@ function planContraCycle(
   // read back off where that leaves them. For the single progression every
   // dance in the programme dances, that is the formation's own
   // `Progression.next`, unchanged — see `lattice.ts` for the two paths and why.
-  const shift = progressionOf(dance);
-  return {
-    emissions,
-    next: {
-      sets: hall.sets.map((set) => progressSet(formation, models.get(set.id)!, set, shift)),
-    },
-  };
+  //
+  // Since M8 the shift is applied at the end of **every pass** rather than once
+  // at the end of the record, so there is nothing left to do here: `states`
+  // already holds what each set looks like afterwards.
+  return { emissions, next: { sets: hall.sets.map((set) => states.get(set.id)!) } };
+}
+
+/** One schedule entry: the call, the beat it starts on, and the pass it is in. */
+interface PassScheduled {
+  call: FigureCall;
+  start: Beat;
+  pass: number;
+}
+
+/**
+ * The dance's calls with the **pass** each one belongs to.
+ *
+ * Which pass a phrase is in is the record's `passes` divided over its phrase
+ * list in order, and the beat arithmetic is `danceSchedule`'s own (a call's
+ * length is the longest of it and its concurrent branches). Computed from the
+ * phrase's *index* rather than from its start beat, so a zero-beat call at the
+ * very end of a pass belongs to the pass it is written in.
+ */
+function passSchedule(dance: Dance, perPass: number): PassScheduled[] {
+  const out: PassScheduled[] = [];
+  let beat: Beat = 0;
+  dance.phrases.forEach((phrase, index) => {
+    const pass = Math.floor(index / perPass);
+    for (const call of phrase.figures) {
+      out.push({ call, start: beat, pass });
+      beat += callBeats(call);
+    }
+  });
+  return out;
 }
 
 /** Nothing carried either way; `contraFigure`'s own default, spelled out. */
@@ -685,17 +784,21 @@ function firstPlaces(
  * `createScriptDecider`'s own, which is not exported; see its doc comment for
  * why the claims of a group's dancers are pooled.
  */
-function gapsIn(cycle: Beat, dancers: readonly DancerId[], claimed: Map<DancerId, Span[]>): Span[] {
+function gapsIn(
+  pass: { start: Beat; end: Beat },
+  dancers: readonly DancerId[],
+  claimed: Map<DancerId, Span[]>,
+): Span[] {
   const spans: Span[] = [];
   for (const dancer of dancers) spans.push(...(claimed.get(dancer) ?? []));
-  if (spans.length === 0) return [[0, cycle]];
+  if (spans.length === 0) return [[pass.start, pass.end]];
 
   const gaps: Span[] = [];
-  let at: Beat = 0;
+  let at: Beat = pass.start;
   for (const [from, to] of [...spans].sort((a, b) => a[0] - b[0])) {
     if (from > at) gaps.push([at, from]);
     at = Math.max(at, to);
   }
-  if (at < cycle) gaps.push([at, cycle]);
+  if (at < pass.end) gaps.push([at, pass.end]);
   return gaps;
 }

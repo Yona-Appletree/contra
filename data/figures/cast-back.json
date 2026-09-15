@@ -1,0 +1,11 @@
+{
+  "id": "cast-back",
+  "walkthrough": {
+    "short": "Turn away from the middle and walk round the outside into the place behind you.",
+    "long": "On your own, turn away from the middle of the set and walk round the outside of your own line into the place one behind you, still looking the way you were looking. Nobody's hand, and nobody goes with you: whoever was in that place has moved on."
+  },
+  "call": {
+    "short": "CAST BACK",
+    "long": "CAST BACK ONE PLACE"
+  }
+}

@@ -41,7 +41,20 @@ export interface ContraCall {
   call?: string;
   /** Overrides the spoken-length estimate for this call; see `FigureCall.spokenBeats`. */
   spokenBeats?: Beat;
+  /**
+   * Calls danced beside this one, by other dancers; see `FigureCall.while` (M8).
+   *
+   * The hands-four template cannot thread one: two figures over disjoint dancers
+   * at the same beats is exactly what a single running `from` cannot express. So
+   * a call that carries one takes the chain's unthreaded path, its branches are
+   * carried through as written, and resolution does the work — which is the same
+   * answer the chain already gives a figure it has no coded twin for.
+   */
+  while?: ConcurrentContraCall[];
 }
+
+/** One branch of a {@link ContraCall.while}: beats left out are the parent's. */
+export type ConcurrentContraCall = Omit<ContraCall, "beats" | "while"> & { beats?: Beat };
 
 /** One phrase of a dance, before threading. */
 export interface ContraPhrase {
@@ -69,6 +82,10 @@ export interface ContraDanceSpec {
   startPlaces?: Spots;
   /** Parameters for the waiting couple's `wait-out`; see `Dance.waitOut`. */
   waitOut?: object;
+  /** How many passes the phrase list holds; see `Dance.passes` (M8). */
+  passes?: number;
+  /** How many passes between progressions; see `Dance.progressEvery` (M8). */
+  progressEvery?: number;
   /**
    * How far each role progresses in one time through, in dancing places.
    *
@@ -130,7 +147,7 @@ export function chainCalls(
   for (const call of calls) {
     const def = (contraFigureOf(call.figure) ??
       (templateFigureOf(call.figure) as ContraFigure | undefined)) as ContraFigure | undefined;
-    if (!def || reachesPastTheFour(call)) {
+    if (!def || call.while !== undefined || reachesPastTheFour(call)) {
       // **A call the hands-four template cannot answer threads nothing.**
       //
       // Two of them since M6. One is a figure with no coded twin: a
@@ -156,6 +173,10 @@ export function chainCalls(
         ...(call.group === undefined ? {} : { group: call.group }),
         ...(call.call === undefined ? {} : { call: call.call }),
         ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
+        // Branches keep their own parameters exactly as written: no `from`,
+        // because the whole point of a concurrent call is that there is no one
+        // running set of places for the template to hand on.
+        ...(call.while === undefined ? {} : { while: call.while }),
       });
       ending.push([]);
       middle.push([]);
@@ -294,6 +315,8 @@ export function contraDance(spec: ContraDanceSpec): ContraDance {
     ...(spec.notes === undefined ? {} : { notes: spec.notes }),
     ...(spec.startPlaces === undefined ? {} : { startPlaces: { ...spec.startPlaces } }),
     ...(spec.waitOut === undefined ? {} : { waitOut: { ...spec.waitOut } }),
+    ...(spec.passes === undefined ? {} : { passes: spec.passes }),
+    ...(spec.progressEvery === undefined ? {} : { progressEvery: spec.progressEvery }),
     ...(spec.progression === undefined ? {} : { progression: { ...spec.progression } }),
   };
   validateDance(dance);

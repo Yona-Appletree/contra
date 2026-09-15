@@ -1,0 +1,84 @@
+{
+  "slug": "are-you-most-done",
+  "title": "Are You 'Most Done?",
+  "author": "Russell Owen",
+  "formation": "becket",
+  "status": "lab",
+  "notes": "The Caller's Box 2842, permission: full. The Caller's Box's own notes: \"Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey.\" The hey is on the right diagonal — the couple across the seam from your own minor set — and it is what carries the progression, so the dance writes no shift. Q12's ruling is a fixed diagonal first: the lane runs at the angle the four dancers really make and does not straighten. Lisa Greenleaf's alternate B2 (#4700) is in the source transcript and is not encoded; it is the same concurrent call with a shoulder round and a shift in place of the allemande and the loop.",
+  "source": {
+    "callersBoxId": 2842,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=2842",
+    "permission": "full",
+    "transcript": "A1  (8) Men allemande left 1 & 1/2  (8) Neighbor swing\nA2  (8) In long lines, go forward and back  (8) Star left 7/8\nB1  (16) On right diagonal, hey (MR;N2L;WR;PL;MR;N2L;WR;PL)\nB2  (4) Men allemande right 1 || Women loop right  (12) Partner swing\n(#4700 alternate B2: (4) Men right shoulder round 3/4 || Women shift right)\nnotes: Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey."
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+          "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": { "hand": "L", "amount": 0.875 },
+          "call": "STAR LEFT SEVEN EIGHTHS"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "hey",
+          "beats": 16,
+          "group": "shadow-pair",
+          "params": {
+            "axis": "diagonal",
+            "passes": "LR N2L RR PL LR N2L RR PL"
+          },
+          "call": "ON THE RIGHT DIAGONAL, HEY FOR FOUR"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 4,
+          "params": { "pairs": [["1L", "2L"]], "hand": "R", "amount": 1 },
+          "call": "LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT",
+          "while": [
+            {
+              "figure": "loop",
+              "who": "robins",
+              "params": { "hand": "R", "amount": 1 }
+            }
+          ]
+        },
+        {
+          "figure": "swing",
+          "beats": 12,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    }
+  ]
+}

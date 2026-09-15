@@ -3,6 +3,7 @@ import { WALK_TO_STATION } from "@caller/choreo";
 import { CONTRA_FIGURE_IDS, contraFigureOf } from "../figures/registry.js";
 import { waitOut } from "../figures/wait-out.js";
 import { DATA_DEFINITIONS, dataOnlyFigureIds } from "../library/figures/index.js";
+import { localFigureTexts } from "../dances/danceFiles.js";
 import { interpretDefinition } from "../library/interpret.js";
 import { landmark } from "./landmark.js";
 
@@ -43,6 +44,9 @@ import goUpOutsideText from "../../../../data/figures/go-up-outside.json" with {
 import leadDownText from "../../../../data/figures/lead-down.json" with { type: "json" };
 import leadUpText from "../../../../data/figures/lead-up.json" with { type: "json" };
 import loopText from "../../../../data/figures/loop.json" with { type: "json" };
+import castBackText from "../../../../data/figures/cast-back.json" with { type: "json" };
+import promenadeText from "../../../../data/figures/promenade.json" with { type: "json" };
+import balanceWaveOfFourText from "../../../../data/figures/balance-wave-of-four.json" with { type: "json" };
 import turnAloneText from "../../../../data/figures/turn-alone.json" with { type: "json" };
 import turnAsCouplesText from "../../../../data/figures/turn-as-couples.json" with { type: "json" };
 import turnContraCornersText from "../../../../data/figures/turn-contra-corners.json" with { type: "json" };
@@ -168,6 +172,13 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       turnAsCouplesText,
       turnContraCornersText,
       upTheHallText,
+      castBackText,
+      promenadeText,
+      balanceWaveOfFourText,
+      // **A dance-local figure's texts are in its own dance file** (D10, M8),
+      // beside the definition literal they belong to, so that promoting one is
+      // still a copy of one thing rather than of two things in two directories.
+      ...localFigureTexts(),
     ] as FigureTextFile[]
   ).map((file) => [file.id, file]),
 );

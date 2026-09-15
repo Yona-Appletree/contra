@@ -12,6 +12,8 @@ import type {
 } from "@caller/choreo";
 import {
   HANDS_FOUR_GROUP,
+  callBeats,
+  concurrentCalls,
   excludedByEnds,
   frameAngle,
   framePoint,
@@ -263,6 +265,78 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     }
   }
   return out;
+}
+
+/**
+ * **One call and everything that runs beside it** (M8): the `||` of the corpus,
+ * resolved as one thing.
+ *
+ * `resolveCall` answers "who dances this call, and who is standing through it".
+ * The second half of that question cannot be answered one branch at a time: the
+ * robins looping right while the larks allemande are not standing through the
+ * allemande, and a per-branch resting complement would put every one of them on
+ * hold-place *and* in a figure at the same beat, which the timeline refuses per
+ * dancer.
+ *
+ * So the branches are resolved independently — each is an ordinary call and
+ * nothing in `resolveCall` knows about `while` — and then the two things only a
+ * whole call can say are said here:
+ *
+ * - **the actors are disjoint**, checked by name before anything is emitted
+ *   (Q13: the timeline admits concurrency *over disjoint dancers*), and
+ * - **the hold-place complement is the complement of all of them**, so a dancer
+ *   in none of the branches stands, and a dancer in one of them does not.
+ */
+export function resolveConcurrent(
+  call: FigureCall,
+  ctx: ResolveContext,
+  at: Beat,
+): FigureInstance[] {
+  const branches = call.while ?? [];
+  if (branches.length === 0) return resolveCall(call, ctx, at);
+
+  const dancing: FigureInstance[] = [];
+  const holding: FigureInstance[] = [];
+  for (const branch of concurrentCalls(call)) {
+    for (const instance of resolveCall(branch, ctx, at)) {
+      (instance.holdPlace ? holding : dancing).push(instance);
+    }
+  }
+
+  // **Disjointness**, named rather than discovered downstream. Two figures over
+  // one dancer is not a thing a hall can do and `Timeline.add()` would refuse it
+  // with a message about events; this says which dancer and which two figures.
+  const by = new Map<DancerId, string>();
+  for (const instance of dancing) {
+    for (const dancer of Object.values(instance.cast)) {
+      const already = by.get(dancer);
+      if (already !== undefined) {
+        throw new Error(
+          `concurrent calls "${already}" and "${instance.figure}" both cast "${dancer}" — ` +
+            `a \`while\`'s branches must be over disjoint dancers`,
+        );
+      }
+      by.set(dancer, instance.figure);
+    }
+  }
+
+  // **The complement of all of them.** A hold-place instance is per group, so
+  // the ones the branches produced are merged group by group and whoever any
+  // branch cast is struck out of them.
+  const rest = new Map<string, FigureInstance>();
+  for (const instance of holding) {
+    const kept: Record<FigureRole, DancerId> = {};
+    for (const [station, dancer] of Object.entries(instance.cast)) {
+      if (!by.has(dancer)) kept[station] = dancer;
+    }
+    if (Object.keys(kept).length === 0) continue;
+    const seen = rest.get(instance.group.id);
+    // Standing through the **whole** call, not through the shortest branch of
+    // it: a dancer nobody named waits out all of `(2) cast back || go forward`.
+    if (seen) Object.assign(seen.cast, kept);
+    else rest.set(instance.group.id, { ...instance, cast: kept, beats: callBeats(call) });
+  }
+  return [...dancing, ...rest.values()];
 }
 
 /**

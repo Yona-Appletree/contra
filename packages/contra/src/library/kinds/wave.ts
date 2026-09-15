@@ -1,5 +1,5 @@
 import type { Beat, Side, Vec2 } from "@caller/core";
-import { addScaled, angleLerp, angleOf, dirOf, lerp, ramp } from "@caller/core";
+import { HOLD_SPACING_PX, addScaled, angleLerp, angleOf, dirOf, lerp, ramp } from "@caller/core";
 import type {
   FigurePlan,
   HandJoin,
@@ -54,6 +54,7 @@ export function planWave(
   if (holds.length > 0) {
     throw new Error(`wave: a wave's hands are the shape's own, not a hold list (M7)`);
   }
+  if (shape.axis === "across") return planWaveAcross(shape, input);
   const { ctx, roles } = input;
   const slots = input.slots;
   if (!slots) {
@@ -195,3 +196,213 @@ const envFor = (input: ShapeInput, self: FigureRole, t: Beat): ExprEnv => ({
   anchor: input.anchor.centre,
   ...(input.slots === undefined ? {} : { slots: input.slots }),
 });
+
+/**
+ * **The wave of four across the set** (M8): four dancers in a row *between* the
+ * lines, looking along the set.
+ *
+ * Anna's Reel's A1 — *"(4) Balance wave of four (NL,WR)"* — and the shape M7
+ * stopped at rather than guess. It is not the long wave with a different angle:
+ * a long wave's hands go to the dancer one place along **your own line** and its
+ * dancers look across the set, and this one's hands go to the dancer beside you
+ * **in the row** and its dancers look along it. Different hands, different
+ * facings, different dancers in the figure.
+ *
+ * ## The hand rule, stated
+ *
+ * Two dancers stand in the middle and two on the ends, and the corpus writes the
+ * wave as two tokens: `(NL,WR)` is "the robins' **right** hands in the middle,
+ * your **neighbour's left** on the end". So the record says two things — which
+ * role is in the middle, and which hand that middle pair joins — and everything
+ * else follows, because **a wave alternates**: the hand you have free at the
+ * middle is the hand you give at the end, so the ends' hand is the other one and
+ * the record need not repeat it.
+ *
+ * Who stands where is read off where they already are rather than written down:
+ * each dancer keeps the **side** of the set they are on, the two of the middle
+ * role come to the middle and the other two take the ends. Anna's Reel's robins
+ * arrive there by allemanding once and a half in the centre, which is exactly
+ * where the wave wants them.
+ *
+ * ## Which way each dancer looks, derived rather than chosen
+ *
+ * A dancer's right hand points 90° clockwise of their facing (the library's own
+ * convention, `loop`'s `SPIN`). So "my hand `h` is joined with the dancer on my
+ * `d` side" fixes my facing: `d − 90` if `h` is the right hand and `d + 90` if it
+ * is the left. Every one of the four is fixed that way, and the four answers
+ * agree — which is the check that the hand rule above is a wave at all, and is
+ * asserted in `wave.test.ts` rather than assumed.
+ */
+function planWaveAcross(shape: WaveShape, input: ShapeInput): FigurePlan {
+  const { ctx, roles } = input;
+  const slots = input.slots;
+  if (!slots) {
+    throw new Error(
+      `a wave of four across the set is a shape of the **set** — which line is which — and this ` +
+        `call was not resolved against one, so there is no lattice to read it off`,
+    );
+  }
+  if (roles.length !== 4) {
+    throw new Error(`a wave of four is four dancers, not [${roles.join(", ")}]`);
+  }
+  const env = envFor(input, roles[0]!, 0);
+  const hand = evalSide(shape.hand, env);
+  const ends: Side = hand === "L" ? "R" : "L";
+  const rock = evalNumber(shape.rock, env);
+  const closeBeats = evalNumber(shape.closeBeats, env);
+  const drop = evalNumber(shape.handDrop, env);
+  const middleRole = String(input.params[shape.centre ?? "centre"] ?? "robin");
+
+  // **The row runs from one line of the set to the other.** Read off the
+  // lattice rather than off the dancers, so that four who are standing anywhere
+  // near their places form the same row: `slots.origin` is the point of position
+  // zero on each line, and the vector between the two is "across the set".
+  const acrossVec: Vec2 = [
+    slots.origin[1][0] - slots.origin[0][0],
+    slots.origin[1][1] - slots.origin[0][1],
+  ];
+  const across = angleOf(acrossVec[0], acrossVec[1]);
+  const dir = dirOf(across);
+  const spacing = evalNumber(shape.spacing ?? HOLD_SPACING_PX, env);
+
+  // **The row is centred on the minor set's own middle**, read off the lattice
+  // rather than off the dancers: a wave of four is a place in the set, and
+  // reading it off wherever the figure before happened to leave people makes the
+  // row creep a pixel every time through.
+  const centre = centreOf(roles.map((role) => slotPoint(slots, slotOfRole(slots, role))));
+
+  /**
+   * **Which side of the row each dancer takes is their own line of the set**,
+   * not where they happen to be standing.
+   *
+   * The same authority the long wave reads, and for a stronger reason here: the
+   * figure before a wave of four is an allemande in the middle of the set, and a
+   * gatherer settles its two dancers on the nearest two places that suit — which
+   * in Anna's Reel's second pass is **both larks on one line**, because the dance
+   * swaps sides. Read off the spots, the row then has two dancers on one side of
+   * the middle and none on the other and cannot be built at all; read off the
+   * lattice it is always one dancer of each role on each line, because a minor
+   * set is two consecutive places and the lines alternate roles along the set.
+   */
+  const online = (line: 0 | 1, middle: boolean): FigureRole => {
+    const found = roles.find(
+      (role) => slotOfRole(slots, role).line === line && (ctx.role(role) === middleRole) === middle,
+    );
+    if (found === undefined) {
+      throw new Error(
+        `a wave of four with the ${middleRole}s in the middle wants one ${middleRole} and one ` +
+          `other on each line of the set, and line ${String(line)} has no ` +
+          `${middle ? middleRole : `dancer who is not a ${middleRole}`}`,
+      );
+    }
+    return found;
+  };
+  /** The row, outside in: end, middle, middle, end. */
+  const row: FigureRole[] = [online(0, false), online(0, true), online(1, true), online(1, false)];
+
+  // The hands, by position in the row: the ends' hand outside, the named hand in
+  // the middle. Everybody's other hand hangs.
+  const joinHand = (i: number): Side => (i === 1 ? hand : ends);
+  /**
+   * Which way the dancer at `i` looks.
+   *
+   * Derived, not chosen: the dancer at position 0 gives hand `ends` to the
+   * dancer at 1, who is toward `+across`, and a right hand points 90° clockwise
+   * of the facing — so the facing is `across − 90` for a right hand and
+   * `across + 90` for a left. A wave alternates from there.
+   */
+  const lead = ends === "R" ? across - 90 : across + 90;
+  const faceAt = (i: number): number => lead + (i % 2 === 0 ? 0 : 180);
+
+  const onWave: Spots = {};
+  row.forEach((role, i) => {
+    onWave[role] = { p: addScaled(centre, dir, (i - 1.5) * spacing), facing: faceAt(i) };
+  });
+  const endsAt = settleEnds(input, onWave, row);
+
+  /** Who each dancer has by which hand. */
+  const reach = new Map<FigureRole, Partial<Record<Side, FigureRole>>>();
+  for (const role of row) reach.set(role, {});
+  for (let i = 0; i + 1 < row.length; i++) {
+    const side = joinHand(i);
+    reach.get(row[i]!)![side] = row[i + 1]!;
+    reach.get(row[i + 1]!)![side] = row[i]!;
+  }
+
+  const placeAt = (role: FigureRole, t: Beat): Spot => {
+    const start = ctx.spot(role);
+    const to = onWave[role] ?? start;
+    const k = ramp(t, 0, closeBeats);
+    const place = { p: lerp(start.p, to.p, k), facing: angleLerp(start.facing, to.facing, k) };
+    const f = balanceRock(t);
+    const off = rock * f * (f > 0 ? 1 : BALANCE_BACK_RATIO);
+    return { p: addScaled(place.p, dirOf(place.facing), off), facing: place.facing };
+  };
+
+  const held: HandJoin[] = [];
+  for (let i = 0; i + 1 < row.length; i++) {
+    const side = joinHand(i);
+    held.push({ a: row[i]!, aSide: side, b: row[i + 1]!, bSide: side });
+  }
+
+  const window: HoldWindow = {
+    takeFrom: 0,
+    takeTo: closeBeats,
+    releaseFrom: input.beats - closeBeats,
+    releaseTo: input.beats,
+  };
+  const windowFor = (role: FigureRole, side: Side, other: FigureRole): HoldWindow => {
+    const key = joinKey(role, side, other, side);
+    return {
+      takeFrom: input.joinedIn.has(key) ? 0 : window.takeFrom,
+      takeTo: input.joinedIn.has(key) ? 0 : window.takeTo,
+      releaseFrom: input.joinedOut.has(key) ? 0 : window.releaseFrom,
+      releaseTo: input.joinedOut.has(key) ? 0 : window.releaseTo,
+    };
+  };
+
+  return {
+    ends: endsAt,
+    joinsAt: (t) => (t >= closeBeats ? held : []),
+    at(role, t) {
+      const self = placeAt(role, t);
+      const at = envFor(input, role, t);
+      const hands: { L: LocalHand; R: LocalHand } = {
+        L: idleHandAt(shape.idleHands, self, "L", t, at),
+        R: idleHandAt(shape.idleHands, self, "R", t, at),
+      };
+      for (const [side, other] of Object.entries(reach.get(role) ?? {})) {
+        const point: Vec2 = midpoint(self.p, placeAt(other, t).p);
+        const both = joinedHands(ctx, role, other, point, drop, 0);
+        const mine = both[role];
+        if (mine) {
+          hands[side as Side] = takeAndRelease(
+            self,
+            side as Side,
+            t,
+            mine,
+            windowFor(role, side as Side, other),
+          );
+        }
+      }
+      return {
+        p: self.p,
+        facing: self.facing,
+        lean: Math.max(-BALANCE_LEAN_CAP, Math.min(BALANCE_LEAN_CAP, balanceRock(t))),
+        hands,
+        amp: 0,
+      };
+    },
+  };
+}
+
+/** The middle of some points. */
+function centreOf(points: readonly Vec2[]): Vec2 {
+  let x = 0;
+  let y = 0;
+  for (const p of points) {
+    x += p[0];
+    y += p[1];
+  }
+  return [x / points.length, y / points.length];
+}
