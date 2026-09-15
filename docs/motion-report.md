@@ -97,6 +97,8 @@ it, so every number is the figure's own and no seam is folded in.
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `down-the-hall` | **66.8** | **330.7** | **87.73** | 20.9 | 16 | 0.37 | 0 | **7.17** | `1L` R at beat 15.594 |
+| `diamond` | 31.6 | 54.4 | 3.75 | 13.5 | 8 | 0.13 | 0 | **13.96** | `1L` L at beat 6.063 |
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
@@ -309,9 +311,17 @@ Take inside hands with your partner and raise them, then walk forward: one of yo
 
 All four join hands in a ring and walk round — circle left means the way your left hand is pointing, clockwise seen from above. Three quarters is the usual amount, which lands you one place back from where you started. Keep the hands joined and the ring the same size the whole way round.
 
+### `diamond` — BALANCE THE DIAMOND
+
+From the wave of four you are already standing in, take hands with both neighbors and balance in place, forward and back. Then the two of you at the points slide across to the far point, and the two of you at the centre turn across to the far centre — the points slide, the centre turns, and the diamond reforms with everybody's own kind swapped to the other side. Eight beats, and nobody is holding on for the second half.
+
 ### `do-si-do` — DO-SI-DO
 
 Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.
+
+### `down-the-hall` — DOWN THE HALL
+
+With the group's own four, form a line side by side, take hands, and walk forward down the hall together. Turn as couples to face back the way you came, still holding your partner's hands, and walk back up the hall to place. Bend the line: each of you ends on your partner's own spot, ready for whatever comes next.
 
 ### `hey` — HEY FOR FOUR
 
