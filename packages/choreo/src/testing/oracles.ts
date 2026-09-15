@@ -194,6 +194,11 @@ function forEachStep(from: Beat, to: Beat, step: Beat, visit: (beat: Beat) => vo
  *
  * It reports; it does not judge. The bounds live with the caller, and
  * `@caller/contra`'s own test is where today's defects are listed.
+ *
+ * Since M10 it also measures the **body**, once, in the `travel` column: the
+ * fastest any dancer moves averaged over a sliding one-beat window. Every other
+ * column is about a drawn arm, and a figure can pass all of them while walking
+ * its dancers across the hall at a run.
  */
 
 /** How finely the motion oracle samples: every 1/32 beat. */
@@ -230,6 +235,24 @@ export interface MotionStats {
   elbowPerHand: MotionWorst;
   /** Worst rate of change of a hand's height, px per beat. */
   heightRate: MotionWorst;
+  /**
+   * **Sustained travel**: the fastest any dancer's body moves, averaged over a
+   * sliding one-beat window, px per beat.
+   *
+   * The column R6 asked for (director debt 8), and the one the motion profiles
+   * are about. Every other column here measures a *hand* or an *elbow* — the
+   * drawn arm — and a figure can pass all of them while walking its dancers
+   * across the hall at a run. What separates a walk from a take is that a take
+   * is over inside a beat and a walk is not, so the number is an average over a
+   * beat rather than the difference of two 1/32-beat samples: a dancer who is
+   * briefly fast because a figure hands them on to another is not running, and
+   * a dancer who holds 20 px/beat for a whole beat is.
+   *
+   * Body speed, not hand speed, so it is a fact about the **figure's own path**
+   * rather than about what the arms are doing over it. `side` is left out: a
+   * body has no side.
+   */
+  travel: MotionWorst;
   /** Worst rate of change of an elbow's height, px per beat. Not tabled. */
   elbowHeightRate: MotionWorst;
   /** How many times a hand flipped between placed and hanging. */
@@ -298,6 +321,11 @@ export interface MotionBounds {
   elbowPerHand: number;
   /** Rate of change of a hand's height, px per beat. */
   heightRatePx: number;
+  /**
+   * Sustained body travel over a one-beat window, px per beat; see
+   * {@link MotionStats.travel}.
+   */
+  travelPx: number;
   /** An out-and-back inside one beat, px. */
   dipPx: number;
 }
@@ -322,6 +350,9 @@ export const DEFAULT_MOTION_BOUNDS: MotionBounds = {
   elbowPerHand: 10,
   heightRatePx: 60,
   dipPx: 6,
+  // Wide enough that nothing hand-written trips it: `@caller/contra` derives
+  // its own from the library (`CONTRA_TRAVEL_MOTION`) and passes it in.
+  travelPx: 40,
 };
 
 /**
@@ -355,6 +386,13 @@ export function motionReport(
   const steps = Math.round((until - from) / step);
   /** The previous sample for each (dancer, hand), and its running direction. */
   const trail = new Map<string, HandTrail>();
+  /**
+   * Each dancer's distance travelled so far, one entry per step, so the
+   * sustained-travel column can look a whole beat back.
+   */
+  const travelled = new Map<DancerId, BodyTrail>();
+  /** How many steps make a beat, which is the window `travel` is averaged over. */
+  const travelWindow = Math.max(1, Math.round(1 / step));
 
   for (let i = 0; i <= steps; i++) {
     const beat = from + i * step;
@@ -371,6 +409,18 @@ export function motionReport(
         statsFor(figures, event.figure),
         ...(previous ? [statsFor(seams, `${previous.figure} → ${event.figure}`)] : []),
       ];
+
+      // **Sustained travel** (R6): how far this body has come in the last beat.
+      // The window is allowed to reach back across a figure boundary, and the
+      // row it counts against is the figure that owns the *end* of it: a dancer
+      // still running a beat into the next figure is that figure's problem as
+      // much as the last one's.
+      const body = bodyTrailOf(travelled, dancer, pose.p);
+      if (body.along.length > travelWindow) {
+        const here = body.along[body.along.length - 1]!;
+        const back = body.along[body.along.length - 1 - travelWindow]!;
+        for (const row of rows) keep(row.travel, here - back, { dancer, beat });
+      }
 
       for (const [index, side] of SIDES.entries()) {
         const arm = drawn.arms[index]!;
@@ -451,6 +501,7 @@ export function motionReport(
       s.elbowSpeed.value / bounds.elbowSpeedPx,
       s.elbowPerHand.value / bounds.elbowPerHand,
       s.heightRate.value / bounds.heightRatePx,
+      s.travel.value / bounds.travelPx,
       s.dip.value / bounds.dipPx,
       s.stateFlips > 0 ? 1 : 0,
       // An arm that is not a number is drawn as nothing, which is worse than
@@ -478,7 +529,8 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
     `Sampled beats ${report.from} to ${report.to} every ${fraction(report.step)} beat. ` +
       `Bounds: hand ${report.bounds.handSpeedPx} px/beat, elbow ${report.bounds.elbowSpeedPx} px/beat, ` +
       `elbow/hand ${report.bounds.elbowPerHand}×, ` +
-      `height ${report.bounds.heightRatePx} px/beat, dip ${report.bounds.dipPx} px.`,
+      `height ${report.bounds.heightRatePx} px/beat, dip ${report.bounds.dipPx} px, ` +
+      `travel ${report.bounds.travelPx.toFixed(2)} px/beat.`,
   );
   lines.push("");
   lines.push("**Per figure**");
@@ -492,8 +544,8 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
 }
 
 const MOTION_HEADER = [
-  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | NaN | dip px | where the worst hand was |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | flips | NaN | dip px | where the worst hand was |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function motionTable(rows: readonly MotionStats[]): string[] {
@@ -504,7 +556,8 @@ function motionTable(rows: readonly MotionStats[]): string[] {
       (r) =>
         `| \`${r.key}\` | ${r.handSpeed.value.toFixed(1)} | ${r.elbowSpeed.value.toFixed(1)} | ` +
         `${r.elbowPerHand.value.toFixed(2)} | ` +
-        `${r.heightRate.value.toFixed(1)} | ${r.stateFlips} | ${r.nonFinite} | ` +
+        `${r.heightRate.value.toFixed(1)} | ${r.travel.value.toFixed(1)} | ` +
+        `${r.stateFlips} | ${r.nonFinite} | ` +
         `${r.dip.value.toFixed(2)} | ${motionPlace(r.handSpeed)} |`,
     ),
   ];
@@ -578,6 +631,7 @@ const emptyStats = (key: string): MotionStats => ({
   elbowSpeed: { value: 0 },
   elbowPerHand: { value: 0 },
   heightRate: { value: 0 },
+  travel: { value: 0 },
   elbowHeightRate: { value: 0 },
   stateFlips: 0,
   flipJump: { value: 0 },
@@ -590,13 +644,36 @@ const emptyStats = (key: string): MotionStats => ({
 function keep(
   worst: MotionWorst,
   value: number,
-  where: { dancer: DancerId; beat: Beat; side: Side },
+  where: { dancer: DancerId; beat: Beat; side?: Side },
 ): void {
   if (value <= worst.value) return;
   worst.value = value;
   worst.dancer = where.dancer;
   worst.beat = where.beat;
-  worst.side = where.side;
+  // A body has no side, which is what the `travel` column measures.
+  if (where.side === undefined) delete worst.side;
+  else worst.side = where.side;
+}
+
+/** One dancer's path length so far, one entry per sampled step. */
+interface BodyTrail {
+  previous: Vec2;
+  /** Cumulative distance travelled, in step order, starting at 0. */
+  along: number[];
+}
+
+/** Extend a dancer's path trail by one step and return it. */
+function bodyTrailOf(trails: Map<DancerId, BodyTrail>, dancer: DancerId, p: Vec2): BodyTrail {
+  const found = trails.get(dancer);
+  if (!found) {
+    const made: BodyTrail = { previous: p, along: [0] };
+    trails.set(dancer, made);
+    return made;
+  }
+  const last = found.along[found.along.length - 1]!;
+  found.along.push(last + dist(found.previous, p));
+  found.previous = p;
+  return found;
 }
 
 /** The first beat any figure in the timeline starts at. */

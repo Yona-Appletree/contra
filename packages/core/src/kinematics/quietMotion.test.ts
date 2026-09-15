@@ -4,6 +4,8 @@ import type { Vec2 } from "../geometry/Vec2.js";
 import type { PoseSample, Style } from "./PoseSample.js";
 import { NEUTRAL_STYLE } from "./PoseSample.js";
 import { FOOT_SWING_PX, TORSO_SWAY_DEG } from "./RenderingContract.js";
+import type { BodyPath } from "./plantedGait.js";
+import { plantedGait } from "./plantedGait.js";
 import {
   BUZZ_STEPS_PER_BEAT,
   BUZZ_TRAILING_FOOT,
@@ -72,6 +74,31 @@ describe("quietMotion: amplitude (property, 500 cases)", () => {
   });
 });
 
+describe("the gait: the same amplitude invariant (property, 500 cases)", () => {
+  it("never puts a planted foot more than 2.6 px from its rest position", () => {
+    // The invariant `quietMotion` used to be the sole keeper of. Since M10 the
+    // feet are the timeline's, so the bound is asserted against the thing that
+    // now places them, over the same random speeds and headings.
+    const seed = 0x9c1e7;
+    const rng = mulberry32(seed);
+    for (let i = 0; i < CASES; i++) {
+      const facing = rng() * 720 - 360;
+      const speed = rng() * 16;
+      const heading = rng() * 360;
+      const d = dirOf(heading);
+      const body: BodyPath = (t) => ({
+        p: [d[0] * speed * t, d[1] * speed * t],
+        facing,
+      });
+      const beat = rng() * 128;
+      const feet = plantedGait(body, beat, { rightOnEven: rng() < 0.5 });
+      const why = `seed=${seed} case=${i} speed=${speed} beat=${beat}`;
+      expect(offset(feet.L, REST_L), why).toBeLessThanOrEqual(FOOT_SWING_PX + 1e-9);
+      expect(offset(feet.R, REST_R), why).toBeLessThanOrEqual(FOOT_SWING_PX + 1e-9);
+    }
+  });
+});
+
 describe("quietMotion: standing still", () => {
   it("plants the feet and stops the sway at zero velocity", () => {
     for (const beat of [0, 0.25, 0.5, 1.75, 9.1]) {
@@ -97,21 +124,21 @@ describe("quietMotion: standing still", () => {
 });
 
 describe("quietMotion: the beat peak", () => {
-  it("reaches exactly 1.5 degrees of sway and 2.6 px of swing at the peak", () => {
+  it("reaches exactly 1.5 degrees of sway at the peak, and leaves the feet at rest", () => {
     // sin(2*pi*beat*stepRate) = 1 at beat 0.25 with stepRate 1, and the
     // amplitude saturates at 4 px per beat.
     const m = quietMotion(pose(), 0.25, [FULL_AMPLITUDE_SPEED, 0], NEUTRAL_STYLE);
     expect(m.sway).toBeCloseTo(TORSO_SWAY_DEG, 12);
-    // Moving straight ahead: the swing is entirely fore-and-aft.
-    expect(m.feet.L[0]).toBeCloseTo(FOOT_REST_FORWARD_PX + FOOT_SWING_PX, 12);
-    expect(m.feet.R[0]).toBeCloseTo(FOOT_REST_FORWARD_PX - FOOT_SWING_PX, 12);
-    expect(m.feet.L[1]).toBeCloseTo(-FOOT_REST_LATERAL_PX, 12);
+    // M10: the walking swing is gone from here. A sample with nothing to say
+    // about its feet gets the rest position; the gait is the timeline's.
+    expect(m.feet.L).toEqual(REST_L);
+    expect(m.feet.R).toEqual(REST_R);
   });
 
-  it("swings the other way half a beat later, and the feet swap lead", () => {
+  it("sways the other way half a beat later", () => {
     const m = quietMotion(pose(), 0.75, [FULL_AMPLITUDE_SPEED, 0], NEUTRAL_STYLE);
     expect(m.sway).toBeCloseTo(-TORSO_SWAY_DEG, 12);
-    expect(m.feet.L[0]).toBeCloseTo(FOOT_REST_FORWARD_PX - FOOT_SWING_PX, 12);
+    expect(m.feet.L).toEqual(REST_L);
   });
 
   it("crosses zero on the beat, so the dancer is square on 1", () => {
@@ -130,11 +157,13 @@ describe("quietMotion: the beat peak", () => {
 });
 
 describe("quietMotion: direction of travel", () => {
-  it("swings the feet sideways when the dancer travels sideways", () => {
-    // Facing +x, moving +y: the travel is entirely to the dancer's right.
+  it("no longer moves the feet with it (M10): only the sway reads the speed", () => {
+    // Facing +x, moving +y: the travel is entirely to the dancer's right, and
+    // before M10 the feet swung sideways with it.
     const m = quietMotion(pose(), 0.25, [0, FULL_AMPLITUDE_SPEED], NEUTRAL_STYLE);
-    expect(m.feet.L[0]).toBeCloseTo(FOOT_REST_FORWARD_PX, 12);
-    expect(m.feet.L[1]).toBeCloseTo(-FOOT_REST_LATERAL_PX + FOOT_SWING_PX, 12);
+    expect(m.feet.L).toEqual(REST_L);
+    expect(m.feet.R).toEqual(REST_R);
+    expect(m.sway).toBeCloseTo(TORSO_SWAY_DEG, 12);
   });
 });
 

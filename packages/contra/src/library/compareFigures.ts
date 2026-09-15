@@ -49,8 +49,25 @@ export interface CompareTolerance {
 /** DD21's numbers, and this milestone's default. */
 export const DD21_TOLERANCE: CompareTolerance = { px: 0.01, deg: 0.1 };
 
-/** One thing a case is allowed to differ in. */
-export type AllowedDifference = "ends" | "holdPlace" | "path";
+/**
+ * One thing a case is allowed to differ in.
+ *
+ * Two of them are M10's, and both say the same thing: the **motion layer** moved
+ * and the coded layer was deliberately left where it was, because M11 deletes
+ * it (A7). What DD21's golden is for is that the two figures are the same
+ * *figure* — the same places, the same holds at the same beats, the same ends —
+ * and neither of these touches that.
+ *
+ * - `"feet"` — the definition's orbit places its walking feet with the planted
+ *   gait; the coded twin still slides them on a body-local sine.
+ * - `"profile"` — the definition's body rides the cruise and the coded twin
+ *   rides a smoothstep, so every sample **between** the ends is somewhere else
+ *   along the same path, and the hands that ride the body with it. The ends and
+ *   the joins are still checked, which is the whole of the point: the two
+ *   figures start together, finish together, and take the same hands on the
+ *   same beats, and differ only in the pace between.
+ */
+export type AllowedDifference = "ends" | "holdPlace" | "path" | "feet" | "profile";
 
 /** One parameter case, and where the dancers start it from. */
 export interface CompareCase {
@@ -277,7 +294,8 @@ function compareOne(
         want,
         got,
         tolerance,
-        allowed.has("path"),
+        allowed.has("path") || allowed.has("profile"),
+        allowed.has("feet") || allowed.has("profile"),
       );
       result.samples++;
     }
@@ -320,6 +338,7 @@ function compareSample(
   got: PoseSample,
   tolerance: CompareTolerance,
   allowPath: boolean,
+  allowFeet = false,
 ): void {
   /**
    * A difference in the trajectory, which an `allowed: ["path"]` case expects.
@@ -358,7 +377,7 @@ function compareSample(
   }
   if ((want.feet === undefined) !== (got.feet === undefined)) {
     result.problems.push(`${where}: one has feet and the other does not`);
-  } else if (want.feet && got.feet) {
+  } else if (want.feet && got.feet && !allowFeet) {
     for (const side of ["L", "R"] as const) {
       const off = dist(want.feet[side], got.feet[side]);
       result.maxPosition = Math.max(result.maxPosition, off);

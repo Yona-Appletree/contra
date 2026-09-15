@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
+import type { Angle, Beat, Hand, MotionProfile, Vec2 } from "@caller/core";
 import {
   ARM_REACH_PX,
   HOLD_SPACING_PX,
@@ -6,11 +6,12 @@ import {
   angleLerp,
   angleOfVec,
   bodyPoint,
-  clamp01,
   dist,
   len,
   mix,
   norm,
+  profileProgress,
+  profileSpeed,
   ramp,
   rightOf,
   smooth,
@@ -141,6 +142,11 @@ export interface CourtesyTurnSpec {
    * couple still opening out is not a rigid body.
    */
   openBeats: Beat;
+  /**
+   * How the rotation spends its beats (M10); default `"smooth"`, which is what
+   * the coded figure that still calls this gets by saying nothing (A7).
+   */
+  profile?: MotionProfile;
 }
 
 /**
@@ -165,7 +171,7 @@ export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
   // pivot: the two of them are one rigid body at every sample of the turn
   // whatever the two radii are, because they share the pivot and the angle.
   const at = (t: Beat, from: Angle, radius: number, end: Spot): Spot => {
-    const k = turnBeats <= 0 ? 1 : smooth(t / turnBeats);
+    const k = turnBeats <= 0 ? 1 : profileProgress(spec.profile ?? "smooth", t, turnBeats);
     const open = ramp(t, turnBeats, spec.beats);
     return {
       p: polar(pivot, from + COURTESY_HALF_TURN * k, mix(radius, sepTo / 2, open)),
@@ -255,13 +261,18 @@ export function orbitTurn(spec: OrbitTurnSpec): CourtesyTurn {
   const join = Math.min(Math.max(spec.joinBeat, 0), beats);
   const openFrom = Math.max(beats - Math.max(spec.openBeats, 0), join);
 
-  /** How far round he is `t` beats in, signed degrees; zero speed at both ends. */
-  const spin = (t: Beat): number => ORBIT_FULL_TURN * smooth(t / beats);
+  /**
+   * How far round he is `t` beats in, signed degrees; zero speed at both ends.
+   *
+   * On the cruise (M10) the orbit turns at a **constant rate** for the middle of
+   * the figure, which is the direction debt 5 asked for: the lark is further
+   * round at the two-beat join than a smoothstep leaves him, so the robin
+   * arrives on an orbit that has already carried him past the middle of the set.
+   */
+  const profile = spec.profile ?? "smooth";
+  const spin = (t: Beat): number => ORBIT_FULL_TURN * profileProgress(profile, t, beats);
   /** `spin`'s own derivative, degrees per beat, so the join is exact and not sampled. */
-  const spinRate = (t: Beat): number => {
-    const k = clamp01(t / beats);
-    return (ORBIT_FULL_TURN * 6 * k * (1 - k)) / beats;
-  };
+  const spinRate = (t: Beat): number => ORBIT_FULL_TURN * profileSpeed(profile, t, beats);
 
   const larkAt = (t: Beat): Spot => ({
     p: polar(centre, from + spin(t), radius),
@@ -393,6 +404,11 @@ export interface OrbitTurnSpec {
   beats: Beat;
   /** How long the opening out on to the two places takes, at the end. */
   openBeats: Beat;
+  /**
+   * How the orbit spends its beats (M10); default `"smooth"`, so the coded
+   * `robins-chain` that still calls this is untouched (A7).
+   */
+  profile?: MotionProfile;
 }
 
 /** One cubic of the robin's approach: two points, two velocities and a duration. */

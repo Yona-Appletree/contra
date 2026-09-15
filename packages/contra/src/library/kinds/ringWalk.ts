@@ -1,5 +1,14 @@
-import type { Beat, Vec2 } from "@caller/core";
-import { addScaled, angleDiff, angleLerp, dirOf, dist, lerp, smooth } from "@caller/core";
+import type { Beat, MotionProfile, Vec2 } from "@caller/core";
+import {
+  addScaled,
+  angleDiff,
+  angleLerp,
+  dirOf,
+  dist,
+  lerp,
+  profileProgress,
+  smooth,
+} from "@caller/core";
 import type { Ring } from "@caller/choreo";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
 import { bearing, isHeld, takeAndRelease } from "../../figures/ContraFigure.js";
@@ -84,13 +93,16 @@ export function planRingWalk(
 
   const placeAt =
     chain !== undefined
-      ? chainTravel(chain, beats, faceOffset)
+      ? chainTravel(chain, beats, faceOffset, input.profile)
       : shape.travel.kind === "ring"
         ? ringTravel(ring, ctx, ends, beats, {
             inBeats,
             outBeats,
             turn: sign * places * step,
             faceOffset,
+            // M10: the turn window rides the definition's profile; the step in
+            // and the step out keep their own ramps (Q3).
+            profile: input.profile,
           })
         : chordTravel(shape, ring, input, ends, envFor);
 
@@ -158,7 +170,13 @@ function ringTravel(
   ctx: ShapeInput["ctx"],
   ends: Spots,
   beats: Beat,
-  walk: { inBeats: Beat; outBeats: Beat; turn: number; faceOffset: number },
+  walk: {
+    inBeats: Beat;
+    outBeats: Beat;
+    turn: number;
+    faceOffset: number;
+    profile: MotionProfile;
+  },
 ): (role: FigureRole, t: Beat) => Spot {
   return (role, t) =>
     ringWalk(ring, role, ctx.spot(role), ends[role] ?? ctx.spot(role), t, beats, walk);
@@ -283,11 +301,12 @@ function chainTravel(
   chains: Record<FigureRole, Chain>,
   beats: Beat,
   faceOffset: number,
+  profile: MotionProfile,
 ): (role: FigureRole, t: Beat) => Spot {
   return (role, t) => {
     const chain = chains[role];
     if (chain === undefined) throw new Error(`ringWalk: "${role}" is not on the chain`);
-    const at = chainAt(chain, smooth(beats === 0 ? 1 : t / beats));
+    const at = chainAt(chain, profileProgress(profile, t, beats));
     return { p: at.p, facing: at.facing + faceOffset };
   };
 }
@@ -339,7 +358,9 @@ function chordTravel(
   return (role, t) => {
     const start = ctx.spot(role);
     const end = ends[role] ?? start;
-    const k = smooth(t / beats);
+    // The petronella's spin rides the travel's own `k`, which is how it comes
+    // to share the travel's profile (Q8).
+    const k = profileProgress(input.profile, t, beats);
     const straight = lerp(start.p, end.p, k);
     const out = bow * Math.sin(Math.PI * k);
     const p: Vec2 =

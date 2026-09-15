@@ -1,5 +1,5 @@
-import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleLerp, angleOfVec, len, rightOf, smooth, sub } from "@caller/core";
+import type { Angle, Beat, MotionProfile, Vec2 } from "@caller/core";
+import { angleLerp, angleOfVec, len, profileProgress, rightOf, smooth, sub } from "@caller/core";
 import type { EndPose } from "./FigureDef.js";
 
 /** One instant of a walk from one floor pose to another. */
@@ -32,6 +32,15 @@ const STILL_PX = 1e-9;
  * The ends are exact: `t <= 0` is `from` and `t >= beats` is `to`, with no
  * floating-point residue from the eased path, because closure is checked at
  * 0.01 px and a figure's end must be the next figure's start to the bit.
+ *
+ * `profile` is **how the walk spends its beats** (M10): `"smooth"` is the
+ * smoothstep every caller used before, and is the default so that a caller who
+ * says nothing is byte-identical; `"cruise"` is the constant-speed trapezoid,
+ * which is what a body walking on the beat rather than easing through it does.
+ * The **facing**'s turn-in and turn-out keep their own smoothstep whatever the
+ * profile: a dancer turns *through* a step, not between steps, and the turn
+ * being fastest exactly where the feet are slowest is what keeps the two from
+ * adding their peaks together.
  */
 export function walkStep(
   from: EndPose,
@@ -39,13 +48,14 @@ export function walkStep(
   t: Beat,
   beats: Beat,
   bowPx = DEFAULT_BOW_PX,
+  profile: MotionProfile = "smooth",
 ): WalkStep {
   if (t <= 0) return { p: from.p, facing: from.facing, moving: false };
   if (t >= beats) return { p: to.p, facing: to.facing, moving: false };
 
   const d = sub(to.p, from.p);
   const distance = len(d);
-  const k = smooth(t / beats);
+  const k = profileProgress(profile, t, beats);
 
   if (distance <= STILL_PX) {
     return { p: from.p, facing: angleLerp(from.facing, to.facing, k), moving: false };

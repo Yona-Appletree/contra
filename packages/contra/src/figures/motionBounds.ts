@@ -1,5 +1,7 @@
 import type { Beat, Hand, Side, Vec2 } from "@caller/core";
 import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/core";
+import { DATA_DEFINITIONS } from "../library/figures/index.js";
+import { interpretDefinition } from "../library/interpret.js";
 import type { MotionBounds } from "@caller/choreo";
 import { STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot } from "./ContraFigure.js";
@@ -29,6 +31,20 @@ export const DERIVE_STEP: Beat = 1 / 32;
 
 /** The factor between the legitimate maximum and the guard. */
 export const GUARD_FACTOR = 3;
+
+/**
+ * The guard factor for **sustained travel** (R6, director debt 8), and it is
+ * `1.5` rather than the takes' `3` on purpose.
+ *
+ * A take is a hand leaving a hip and arriving somewhere inside a beat, and
+ * three times the worst honest one is still obviously a take. Travel is not
+ * like that: the legitimate maximum is the fastest a *body* legitimately moves
+ * for a whole beat, which is the swing's own orbit, and three times a swing is
+ * not a fast walk but a sprint. One and a half is the judgement — a walk faster
+ * than one and a half swings is a run — and G1's fourth question is whether it
+ * is the right one.
+ */
+export const TRAVEL_GUARD_FACTOR = 1.5;
 
 /** What one take actually does, measured. */
 export interface TakeMotion {
@@ -105,6 +121,150 @@ export function takeExtremes(step: Beat = DERIVE_STEP): TakeExtremes {
   return found;
 }
 
+/** One figure's own worst sustained travel, run alone at its nominal count. */
+export interface TravelRow {
+  id: string;
+  /** Peak body speed averaged over a one-beat window, px per beat. */
+  travelPx: number;
+  /** Which figure-role, and at which beat the window ended. */
+  at: string;
+}
+
+/** The travel derivation: the reference figure, and every figure ranked against it. */
+export interface TravelMotion {
+  /**
+   * The legitimate maximum: **the swing's own orbit**, px per beat over a
+   * one-beat window. See {@link deriveTravel} for why the swing and not the
+   * fastest row in the ranking.
+   */
+  travelPx: number;
+  /** Which figure-role of the swing, and at which beat. */
+  travelAt: string;
+  /** Every figure that can be run alone, worst first. */
+  ranking: readonly TravelRow[];
+}
+
+/** The figure the travel bound is measured on; see {@link deriveTravel}. */
+export const TRAVEL_REFERENCE_FIGURE = "swing";
+
+/**
+ * **How fast a body may legitimately travel, sustained** (R6, director debt 8).
+ *
+ * The reference is **the swing's orbit**, measured rather than typed: a buzz-step
+ * swing is the fastest thing in contra that everybody agrees is danced rather
+ * than run, and a walk faster than one and a half of it
+ * ({@link TRAVEL_GUARD_FACTOR}) is a run. The whole library is measured beside
+ * it and the ranking is returned, so that a figure above the reference is a
+ * named fact rather than a silent one.
+ *
+ * **This is a deviation from M10's plan, and a deliberate one.** The plan said
+ * to take the *fastest* sustained travel any definition makes at its nominal
+ * count and expected that to be the swing at about 12.86 px/beat. Measured
+ * against the library as it merged, it is not: `bend-the-line` reaches
+ * 28.9 px/beat run alone in a duple improper group of four, which is not a line
+ * of four and therefore not the formation the figure is danced in — and a guard
+ * at 1.5 × 28.9 = 43 px/beat is a guard nothing in the library could ever trip,
+ * which is exactly the advisory column R6 asked to replace. So the reference is
+ * the figure the plan's own parenthesis named, and the handful of figures above
+ * it are allowlisted by name with what is known about each.
+ *
+ * Each figure is run alone at its nominal count in a duple improper group of
+ * four — the same probe {@link takeExtremes} uses — through the registry, so a
+ * figure that still has a coded twin is measured on the twin (DD21 pins the two
+ * together to 0.01 px) and a data-only figure on its definition. A definition
+ * whose anchor wants the two dancers resolution hands it, rather than a whole
+ * minor set, cannot be run alone at all and is simply not in the ranking.
+ */
+export function deriveTravel(step: Beat = DERIVE_STEP): TravelMotion {
+  const group = probeGroup(DUPLE_IMPROPER, 4, DUPLE_IMPROPER_FRAME);
+  const window = Math.max(1, Math.round(1 / step));
+  const ranking: TravelRow[] = [];
+
+  for (const id of travelFigureIds()) {
+    const def = travelFigureOf(id);
+    if (def === undefined) continue;
+    const params = withDefaults(def, {}, def.beats);
+    const steps = Math.round(def.beats / step);
+    let best = 0;
+    let at = "";
+    let plannable = true;
+    for (const station of group.stations) {
+      const along: number[] = [0];
+      let previous: Vec2 | undefined;
+      for (let i = 0; i <= steps; i++) {
+        const t = i * step;
+        let p: Vec2;
+        try {
+          p = def.sample(group, station.id, t, params).p;
+        } catch {
+          plannable = false;
+          break;
+        }
+        if (previous !== undefined) along.push(along[along.length - 1]! + dist(previous, p));
+        previous = p;
+      }
+      if (!plannable) break;
+      for (let i = window; i < along.length; i++) {
+        const travelled = along[i]! - along[i - window]!;
+        if (travelled <= best) continue;
+        best = travelled;
+        at = `${station.id} to t=${(i * step).toFixed(3)}`;
+      }
+    }
+    if (plannable) ranking.push({ id, travelPx: best, at });
+  }
+
+  ranking.sort((a, b) => b.travelPx - a.travelPx || a.id.localeCompare(b.id));
+  const reference = ranking.find((row) => row.id === TRAVEL_REFERENCE_FIGURE);
+  if (reference === undefined) {
+    throw new Error(`the travel bound's reference figure "${TRAVEL_REFERENCE_FIGURE}" is missing`);
+  }
+  return {
+    travelPx: reference.travelPx,
+    travelAt: `${TRAVEL_REFERENCE_FIGURE} ${reference.at}`,
+    ranking,
+  };
+}
+
+/** Every figure the travel derivation ranks: the registry's, in its own order. */
+function travelFigureIds(): readonly string[] {
+  return [...CONTRA_FIGURE_IDS, ...DATA_DEFINITIONS.map((def) => def.id)].filter(
+    (id, at, all) => all.indexOf(id) === at,
+  );
+}
+
+/**
+ * The figure behind an id: **the definition** where there is one, the coded
+ * figure otherwise.
+ *
+ * The definition first, and that matters here: the nine figures M10 put on the
+ * cruise travel at a different sustained speed from their coded twins, and what
+ * the oracle measures in a dance is the definition, because the engine has run
+ * on it since M3. The coded twin is the fallback for the two ids that have one
+ * and no definition, and for the swing, whose `meet` anchor cannot be planned
+ * over a whole minor set standing alone. DD21 pins the two together to 0.01 px
+ * from the stations, so the swing's own orbit is the same orbit either way.
+ */
+function travelFigureOf(id: string): ContraFigure<ContraParams> | undefined {
+  const written = DATA_DEFINITIONS.find((def) => def.id === id);
+  const coded = (CONTRA_FIGURES as Record<string, ContraFigure>)[id] as
+    ContraFigure<ContraParams> | undefined;
+  if (written === undefined || written.shape.kind === "legacy") return coded;
+  const interpreted = interpretDefinition(written) as unknown as ContraFigure<ContraParams>;
+  return plansAlone(interpreted) ? interpreted : coded;
+}
+
+/** Whether a figure can be planned over a whole minor set standing alone. */
+function plansAlone(def: ContraFigure<ContraParams>): boolean {
+  try {
+    const group = probeGroup(DUPLE_IMPROPER, 4, DUPLE_IMPROPER_FRAME);
+    def.sample(group, group.stations[0]!.id, 0, withDefaults(def, {}, def.beats));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * One `takeAndRelease` take, measured: a dancer standing still lifts one hand
  * from their hip to a joined point `floorPx` away and `drop` px below the
@@ -177,13 +337,16 @@ export function deriveTakeMotion(floorPx: number, drop: number, step = DERIVE_ST
 export function deriveBounds(step = DERIVE_STEP): {
   extremes: TakeExtremes;
   take: TakeMotion;
+  travel: TravelMotion;
   bounds: MotionBounds;
 } {
   const extremes = takeExtremes(step);
   const take = deriveTakeMotion(extremes.floorPx, extremes.drop, step);
+  const travel = deriveTravel(step);
   return {
     extremes,
     take,
+    travel,
     bounds: {
       handSpeedPx: GUARD_FACTOR * take.handSpeed,
       elbowSpeedPx: GUARD_FACTOR * take.elbowSpeed,
@@ -192,6 +355,7 @@ export function deriveBounds(step = DERIVE_STEP): {
       // A hanging hand swings forward and back once a beat: an out-and-back of
       // exactly `2 × HAND_HANG_SWING_PX`, and the only one the model asks for.
       dipPx: GUARD_FACTOR * 2 * HAND_HANG_SWING_PX,
+      travelPx: TRAVEL_GUARD_FACTOR * travel.travelPx,
     },
   };
 }
@@ -255,7 +419,61 @@ export const CONTRA_MOTION_BOUNDS: MotionBounds = {
   elbowPerHand: 9.8864,
   heightRatePx: 65.165,
   dipPx: 3.6,
+  // M10, R6: 1.5 × the swing's own orbit; see `CONTRA_TRAVEL_MOTION`.
+  travelPx: 23.3194,
 };
+
+/**
+ * **The sustained-travel bound** (M10, R6, director debt 8), derived by
+ * {@link deriveTravel} and re-derived by `motionBounds.test.ts`.
+ *
+ * The reference is the swing's own orbit at **15.5463 px/beat** over a one-beat
+ * window (`swing 1R to t=1.500`), and the guard is
+ * {@link TRAVEL_GUARD_FACTOR} = 1.5, giving **23.3194 px/beat**. A walk faster
+ * than one and a half swings is a run.
+ *
+ * ### What M10's cruise did to the ranking
+ *
+ * Every figure run alone at its nominal count, before and after, px per beat:
+ *
+ * | figure | before | after |
+ * | --- | ---: | ---: |
+ * | `star` | 22.3149 | 18.8480 |
+ * | `robins-chain` | 18.3288 | 19.7104 |
+ * | `california-twirl` | 18.4557 | 12.7854 |
+ * | `circle` | 16.7369 | 14.1360 |
+ * | `petronella` | 14.4224 | 13.2115 |
+ * | `right-and-left-through` | 13.1254 | 13.1254 |
+ * | `pass-through` | 11.8952 | 11.0728 |
+ * | `roll-away` | 11.8678 | 10.9908 |
+ * | `long-lines` | 3.4437 | 3.0000 |
+ *
+ * The chain went **up**, and that is the ruling rather than a regression: its
+ * orbit turns at a constant rate now, which is what puts the lark 77° round at
+ * the two-beat join instead of 56°, and a constant rate over the middle of the
+ * figure is faster in the middle than a smoothstep's own peak is wide.
+ *
+ * ### The figures above the bound, run alone
+ *
+ * Three, and each is a fact about the probe rather than about a dance — a
+ * figure run alone in a duple improper group of four is not always in the
+ * formation it is danced in. They are named in
+ * `dances/motionAllowlist.ts` where a dance actually calls them.
+ *
+ * | figure | alone | why |
+ * | --- | ---: | --- |
+ * | `bend-the-line` | 28.8617 | a two-beat figure probed outside a line of four: the ends swing a whole set's width round in two beats. No programme dance calls it. |
+ * | `square-through` | 22.7908 | under the bound, but only just; a square figure probed in a contra four. |
+ * | `interrupted-square-through` | 22.7908 | the same figure's own variant. |
+ */
+export const CONTRA_TRAVEL_MOTION = {
+  /** The swing's own orbit, px per beat over a one-beat window. */
+  travelPx: 15.5463,
+  travelAt: "swing 1R to t=1.500",
+  /** The fastest figure in the ranking, which is not the reference; see above. */
+  fastestPx: 28.8617,
+  fastestId: "bend-the-line",
+} as const;
 
 /**
  * The measured legitimate maxima the bounds above are three times.

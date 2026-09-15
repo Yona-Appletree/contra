@@ -49,7 +49,19 @@ Runs, in order, and prints a one-screen summary of all five to stdout:
    numbers marked `**like this**`. Then **its seam rows**: every `A → id` and
    `id → B` seam that occurs in the demo dances that call the figure, one
    time through each (not all ten dances, and not the full two-times-through
-   sweep `pnpm report:motion` does).
+   sweep `pnpm report:motion` does). Section 2 also prints **the pace** (M10):
+   the body's peak speed over a one-beat window against the figure's own count,
+   per figure-role, beside the `timing.profile` it claims. A smoothstep gives
+   1.50× on a single leg and the cruise gives 1.33× (1.14× on an eight-beat
+   one), so the number says at a glance whether a definition is riding the
+   profile it declares. A figure whose travel is not one leg — a figure that
+   steps in, turns and steps out; a balance that rocks — reads higher or lower
+   than either, and the number is descriptive rather than a bound. It measures
+   **the definition**, unlike everything else in this section, which is still
+   the coded twin for every figure that has one; a definition that cannot be
+   planned over a whole minor set standing alone (the swing's anchor is `meet`,
+   which wants the two dancers resolution hands it) falls back to the coded
+   figure and the line says so.
 3. **Its oracles** — closure (AC5), reach (AC1) and collision (AC6) over the
    same dances, one time through each, pass/fail with the worst number.
 4. **Its pictures** — the figure's strip (the half-beat frames at 4×, the

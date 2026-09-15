@@ -141,12 +141,14 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     const self = g.side(station);
 
     if (params.cross && t >= g.crossStart) {
+      // M10: the engine's own walks cruise, like the library's.
       const step = walkStep(
         self.home,
         g.target(station),
         t - g.crossStart,
         g.crossBeats,
         params.bowPx,
+        "cruise",
       );
       return {
         ...standing(step.p, step.facing),
@@ -166,9 +168,9 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     const walk = !params.join
       ? undefined
       : t < g.joinBeats
-        ? walkStep(self.start, self.hold, t, g.joinBeats, 0)
+        ? walkStep(self.start, self.hold, t, g.joinBeats, 0, "cruise")
         : t >= g.partStart
-          ? walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0)
+          ? walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0, "cruise")
           : undefined;
     // The fallback is reached mid-hold (`join` true, between the two ramps) or
     // for the whole span (`join` false, which never ramps in at all) — `hold`

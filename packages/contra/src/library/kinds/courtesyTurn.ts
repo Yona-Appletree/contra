@@ -156,6 +156,8 @@ function rigidTurn(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
       beats: turnBeats - closeBeats,
       openBeats,
       pivotFromLark,
+      // M10: the rotation rides the definition's profile.
+      profile: input.profile,
     });
     turns.set(lark, { turn, mine: "lark" });
     turns.set(robin, { turn, mine: "robin" });
@@ -169,7 +171,8 @@ function rigidTurn(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
   const placeAt = (role: StationId, t: Beat): Spot => {
     const arrive = arrival[role] ?? ctx.spot(role);
     if (t <= passBeats) {
-      const step = passRight(ctx.spot(role), arrive, t, passBeats, bow);
+      // M10: the pass over rides the definition's profile, like every other walk.
+      const step = passRight(ctx.spot(role), arrive, t, passBeats, bow, input.profile);
       return { p: step.p, facing: step.facing };
     }
     const turning = turns.get(role);
@@ -293,6 +296,9 @@ function orbitChain(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
       passPx,
       beats,
       openBeats,
+      // M10: the lark's orbit runs at a constant rate for the middle of the
+      // figure, so he is further round at the join than a smoothstep left him.
+      profile: input.profile,
     });
     turns.set(lark, { turn, mine: "lark" });
     turns.set(robin, { turn, mine: "robin" });

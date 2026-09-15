@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   CONTRA_MOTION_BOUNDS,
   CONTRA_TAKE_MOTION,
+  CONTRA_TRAVEL_MOTION,
   GUARD_FACTOR,
+  TRAVEL_GUARD_FACTOR,
+  TRAVEL_REFERENCE_FIGURE,
   deriveBounds,
 } from "./motionBounds.js";
 import { handDown } from "../pair/PairFrame.js";
@@ -42,6 +45,54 @@ describe("the derived motion bounds", () => {
     expect(derived.bounds.elbowPerHand).toBeCloseTo(CONTRA_MOTION_BOUNDS.elbowPerHand, 3);
     expect(derived.bounds.heightRatePx).toBeCloseTo(CONTRA_MOTION_BOUNDS.heightRatePx, 3);
     expect(derived.bounds.dipPx).toBeCloseTo(CONTRA_MOTION_BOUNDS.dipPx, 9);
+    expect(derived.bounds.travelPx).toBeCloseTo(CONTRA_MOTION_BOUNDS.travelPx, 3);
+  });
+
+  describe("the sustained-travel bound (M10, R6)", () => {
+    it("still measures the swing's own orbit as the legitimate maximum", () => {
+      expect(derived.travel.travelPx).toBeCloseTo(CONTRA_TRAVEL_MOTION.travelPx, 3);
+      expect(derived.travel.travelAt).toBe(CONTRA_TRAVEL_MOTION.travelAt);
+    });
+
+    it("is a guard at one and a half swings, not three takes", () => {
+      expect(TRAVEL_GUARD_FACTOR).toBe(1.5);
+      // Both written down to four decimals, so the ratio is 1.5 to four too.
+      expect(CONTRA_MOTION_BOUNDS.travelPx / CONTRA_TRAVEL_MOTION.travelPx).toBeCloseTo(1.5, 4);
+    });
+
+    it("still finds the same fastest figure, which is not the reference", () => {
+      // The deviation from M10's plan, kept honest: the plan said to take the
+      // fastest figure in the library, and the fastest is `bend-the-line` run
+      // alone outside the line of four it is danced in. A guard at 1.5 × that
+      // is a guard nothing could trip.
+      const fastest = derived.travel.ranking[0]!;
+      expect(fastest.id).toBe(CONTRA_TRAVEL_MOTION.fastestId);
+      expect(fastest.travelPx).toBeCloseTo(CONTRA_TRAVEL_MOTION.fastestPx, 3);
+      expect(fastest.id).not.toBe(TRAVEL_REFERENCE_FIGURE);
+    });
+
+    it("ranks exactly these figures above the bound, run alone", () => {
+      // A new figure over the bound is a failure; an old one is a named debt.
+      const over = derived.travel.ranking
+        .filter((row) => row.travelPx > CONTRA_MOTION_BOUNDS.travelPx)
+        .map((row) => row.id);
+      expect(over).toEqual(["bend-the-line"]);
+    });
+
+    it("measures the cruise: the nine switched figures travel no faster than before", () => {
+      // The numbers are in `motionBounds.ts`'s own table. `robins-chain` is the
+      // one that went up, and deliberately — a constant-rate orbit.
+      const by = (id: string): number =>
+        derived.travel.ranking.find((row) => row.id === id)?.travelPx ?? Infinity;
+      expect(by("star")).toBeLessThan(22.3149);
+      expect(by("circle")).toBeLessThan(16.7369);
+      expect(by("california-twirl")).toBeLessThan(18.4557);
+      expect(by("petronella")).toBeLessThan(14.4224);
+      expect(by("pass-through")).toBeLessThan(11.8952);
+      expect(by("roll-away")).toBeLessThan(11.8678);
+      expect(by("long-lines")).toBeCloseTo(3, 3);
+      expect(by("robins-chain")).toBeCloseTo(19.7104, 3);
+    });
   });
 
   it("is a guard at three times the legitimate maximum, not a tuning target", () => {

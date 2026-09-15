@@ -56,7 +56,16 @@ import { bothWays, carrierGolden, worstOf } from "./carriers.js";
  * stations and displaced — measured, not chosen.
  */
 interface Moved {
-  /** The user's words, and what changed because of them. */
+  /**
+   * The user's words, and what changed because of them — or, for the nine
+   * figures M10 put on the **cruise**, the ruling and what it moved.
+   *
+   * A cruised figure's `endPx` and `endDeg` are zero by construction: the
+   * profile changes the *pace* along a leg and nothing about where it starts or
+   * finishes. What it moves is every sample between the two ends, and the hands
+   * that ride the body with them. That is why this number is worth pinning:
+   * a definition that quietly stopped cruising would land back on zero here.
+   */
   why: string;
   /** The worst body-position difference, px. */
   position: number;
@@ -70,6 +79,10 @@ interface Moved {
   endDeg: number;
 }
 
+/** What M10 did to the nine figures it put on the cruise; see {@link Moved.why}. */
+const CRUISE_WHY =
+  "M10: the definition rides the **cruise** — a constant-speed trapezoid with ramps of min(1 beat, leg / 4) — where the coded figure still eases on one smoothstep over the whole leg. Peak-over-average speed falls from 1.50x to 1.33x. The two figures start together, finish together and take the same hands on the same beats — both end numbers are exactly zero — and differ only in where along the same path a dancer is at a given beat";
+
 /** One figure's whole gate: the four claims, then its own cases. */
 function carrier(
   coded: ContraFigure,
@@ -79,7 +92,14 @@ function carrier(
   moved?: Moved,
 ): void {
   const measured: readonly CompareCase[] = moved
-    ? cases.map((test) => ({ ...test, allowed: [...(test.allowed ?? []), "path", "ends"] }))
+    ? cases.map((test) => ({
+        ...test,
+        // `"profile"` is M10's: a definition on the cruise is somewhere else
+        // along the *same* path at every sample between the two ends, and so
+        // are the hands that ride the body. The ends and the joins are still
+        // asserted, by the measured claim below.
+        allowed: [...(test.allowed ?? []), "path", "ends", "profile"],
+      }))
     : cases;
   const all = bothWays(carrierGolden(coded, definition, measured));
 
@@ -153,6 +173,14 @@ describe("the circle as data", () => {
       { params: { holdDrop: 3, stackPx: 0 } },
     ],
     4000,
+    {
+      why: CRUISE_WHY,
+      position: 3.0278,
+      facing: 12.24,
+      hand: 2.925,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -171,6 +199,14 @@ describe("the star as data", () => {
       { params: { holdDrop: 6, stackPx: 0 } },
     ],
     6000,
+    {
+      why: CRUISE_WHY,
+      position: 3.0278,
+      facing: 12.24,
+      hand: 0.8301,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -180,6 +216,18 @@ describe("long lines as data", () => {
     findDefinition("long-lines"),
     [{ params: {} }, { params: { forwardPx: 6 } }, { params: { holdDrop: 4, stackPx: 0 } }],
     3000,
+    {
+      why:
+        CRUISE_WHY +
+        ". Long lines is also the one figure whose out-and-back becomes **two " +
+        "legs** rather than one curve: four beats down the hall and four back, " +
+        "each with its own ramps, instead of a single cosine over the eight",
+      position: 0.2501,
+      facing: 0,
+      hand: 0.2501,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -208,6 +256,14 @@ describe("the pass through as data", () => {
     findDefinition("pass-through"),
     [{ params: {} }, { params: { direction: "along" } }, { params: { bowPx: 0 } }],
     1500,
+    {
+      why: CRUISE_WHY,
+      position: 0.6804,
+      facing: 0,
+      hand: 0,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -217,6 +273,17 @@ describe("the petronella as data", () => {
     findDefinition("petronella"),
     [{ params: {} }, { params: { places: 2 } }, { params: { spins: 2 } }, { params: { bowPx: 0 } }],
     2000,
+    {
+      why:
+        CRUISE_WHY +
+        ". The petronella's spin rides the travel's own progress, so the body " +
+        "turns with the chord it is walking (Q8)",
+      position: 0.6845,
+      facing: 12.6675,
+      hand: 1.7012,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -254,10 +321,12 @@ describe("the roll away as data", () => {
         "at the worst beat of the two-turn case) and the joined hand it carries with " +
         'it while it is still held. The `roller: "lark"` case differs by nothing at ' +
         "all, and that is the proof: the coded turn was already inward for a lark, " +
-        "whose robin stands on his right, and outward for every robin",
-      position: 0,
+        "whose robin stands on his right, and outward for every robin. " +
+        "M10 adds the cruise to the bowed walk (the spin keeps its own " +
+        "smoothstep, per Q8), which is the 0.66 px the path has moved.",
+      position: 0.6599,
       facing: 176.5723,
-      hand: 11.2224,
+      hand: 11.3353,
       endPx: 0,
       endDeg: 0,
     },
@@ -288,10 +357,12 @@ describe("the california twirl as data", () => {
         "exchanges their places and reverses both facings. What moved is the " +
         "middle of the path (12.46 px at the closest approach) and the hand it " +
         "carries (7.11 px), which is now over the head of the dancer under the " +
-        "arch instead of half way between the two",
+        "arch instead of half way between the two. M10 puts the arc on the " +
+        "cruise, and the twirl's `withArc` facing rides it (Q8), which is the " +
+        "3.31 degrees of facing and the last hundredth of the hand.",
       position: 12.4592,
-      facing: 0,
-      hand: 7.1083,
+      facing: 3.3142,
+      hand: 7.11,
       endPx: 0,
       endDeg: 0,
     },
@@ -310,6 +381,14 @@ describe("right and left through as data", () => {
       { params: { holdDrop: 4, stackPx: 0, bowPx: 0 } },
     ],
     5000,
+    {
+      why: CRUISE_WHY + ". Both halves cruise: the pass over and the couple's rigid rotation",
+      position: 0.6847,
+      facing: 3.3333,
+      hand: 0.6847,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
@@ -324,6 +403,21 @@ describe("the robins chain as data", () => {
       { params: { holdDrop: 4, stackPx: 0 } },
     ],
     4000,
+    {
+      why:
+        CRUISE_WHY +
+        ". The chain moves furthest of the nine, and deliberately: the lark's " +
+        "orbit now turns at a **constant rate** for the middle of the figure, " +
+        "so at the two-beat join he is about 77 degrees round instead of 56, " +
+        "which is the direction director debt 5 asked for. The robin is handed " +
+        "on to that orbit at its own analytic speed, so she still joins it " +
+        "rather than being picked up standing still",
+      position: 13.4947,
+      facing: 50.0745,
+      hand: 13.5385,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 

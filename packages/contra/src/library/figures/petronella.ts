@@ -61,7 +61,7 @@ export const petronellaDefinition: FigureDefinition = {
   },
   holds: [],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   symmetry: {
     // Everybody turns to their own **right**, so the mirror image travels the
     // other way round the ring — which is `places` with its sign changed, and

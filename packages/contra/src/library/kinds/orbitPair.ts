@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
+import type { Angle, Beat, BodyPath, Hand, Plant, Vec2 } from "@caller/core";
 import {
   addScaled,
   angleDiff,
@@ -10,7 +10,9 @@ import {
   leftOf,
   lerp,
   lerpHand,
+  memoPlants,
   mix,
+  plantedGait,
   ramp,
   swingFeet,
   trapezoid,
@@ -145,6 +147,35 @@ export function planOrbitPair(
     return [(next.p[0] - here.p[0]) / dt, (next.p[1] - here.p[1]) / dt];
   };
 
+  /**
+   * **The walking half of the swing's feet, planted** (M10).
+   *
+   * An orbit is the one kind that places its own `feet`, so `poseAt`'s gait
+   * never reaches it; and it is the one kind that can answer for its own body
+   * at any beat analytically. So it runs `plantedGait` over its own `placeAt`
+   * and hands the result to `swingFeet`, which fades it into the buzz step
+   * exactly as before. The parity is even-at-zero: the figure's own beats, not
+   * absolute ones, because the interpreter has no absolute start — and by the
+   * time it would matter the buzz has taken the feet over anyway.
+   */
+  const gaitBody = (role: FigureRole): BodyPath => {
+    const clamp = (t: Beat): Beat => Math.min(Math.max(t, 0), beats);
+    return (t) => {
+      const spot = placeAt(role, clamp(t));
+      return { p: spot.p, facing: spot.facing };
+    };
+  };
+  const gaits = new Map<FigureRole, { body: BodyPath; plants: (k: number) => Plant }>();
+  const gaitFeet = (role: FigureRole, t: Beat): { L: Vec2; R: Vec2 } => {
+    let gait = gaits.get(role);
+    if (!gait) {
+      const body = gaitBody(role);
+      gait = { body, plants: memoPlants(body) };
+      gaits.set(role, gait);
+    }
+    return plantedGait(gait.body, t, { plants: gait.plants });
+  };
+
   return {
     ends,
     joinsAt: (t) => joinsHeldAt(active, t),
@@ -208,7 +239,9 @@ export function planOrbitPair(
           evalNumber(motion.flare, at) *
           trapezoidSpeed(t, profile.a0, profile.a1, profile.b0, profile.b1),
         amp: 1 - buzz,
-        ...(motion.feet ? { feet: swingFeet(t, self.facing, velocityAt(role, t), buzz) } : {}),
+        ...(motion.feet
+          ? { feet: swingFeet(t, self.facing, velocityAt(role, t), buzz, gaitFeet(role, t)) }
+          : {}),
         hands,
       };
     },

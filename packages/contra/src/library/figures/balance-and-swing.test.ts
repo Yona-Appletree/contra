@@ -21,11 +21,17 @@ import { gathererGolden, worstOf } from "./gatherers.js";
  * coming back up.
  */
 
+/**
+ * Every case allows `"feet"` since M10, for the swing's own reason: the orbit
+ * half of this sequence places its walking feet with the planted gait and the
+ * coded figure still slides them on a body-local sine (A7 — M11 deletes the
+ * coded layer). Everything else is asserted to 0.01 px as before.
+ */
 const CASES: readonly CompareCase[] = [
-  { params: { pairs: "neighbors" } },
-  { params: { pairs: "partners" } },
-  { params: { pairs: "neighbors", balanceBeats: 6 } },
-  { params: { pairs: "partners", turns: 3, handOffset: 3 } },
+  { params: { pairs: "neighbors" }, allowed: ["feet"] },
+  { params: { pairs: "partners" }, allowed: ["feet"] },
+  { params: { pairs: "neighbors", balanceBeats: 6 }, allowed: ["feet"] },
+  { params: { pairs: "partners", turns: 3, handOffset: 3 }, allowed: ["feet"] },
 ];
 
 const GOLDEN = gathererGolden(balanceAndSwing, balanceAndSwingDefinition, CASES);

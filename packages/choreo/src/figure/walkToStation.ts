@@ -69,12 +69,15 @@ export const WALK_TO_STATION: FigureDef<WalkToStationParams> = {
   },
 
   sample(group: Group, station: StationId, t: Beat, params: WalkToStationParams): PoseSample {
+    // M10: the engine's own walks cruise, like the library's. A waiting couple
+    // crossing the set should not walk differently from a pass through.
     const step = walkStep(
       startPose(group, station, params),
       endPose(group, station, params),
       t,
       params.beats,
       params.bowPx,
+      "cruise",
     );
     return step.moving ? walking(step.p, step.facing) : standing(step.p, step.facing);
   },

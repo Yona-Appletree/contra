@@ -14,12 +14,24 @@ import { swingDefinition } from "./swing.js";
  * rewritten as often as it likes and the swing itself may not change.
  */
 
-/** The coded swing's own test's cases, and the two a dance actually calls. */
+/**
+ * The coded swing's own test's cases, and the two a dance actually calls.
+ *
+ * Every one of them allows `"feet"` since M10: the definition's orbit places
+ * its walking feet with the **planted gait** — a foot on the floor, held while
+ * the body turns over it, swinging through in the last half beat — and the
+ * coded swing it is compared against still slides them on a body-local sine,
+ * because the coded layer is deliberately not retrofitted (M11 deletes it).
+ * Everything DD21 is actually about is unchanged and still asserted to 0.01 px:
+ * the turn rate, the 30° body turn, the hand offsets and the end spacing. The
+ * buzz step itself is unchanged — the fade into it is the same `lerpFeet` — so
+ * the two agree again as soon as the buzz has taken the feet over.
+ */
 const CASES: readonly CompareCase[] = [
-  { params: { pairs: "neighbors" } },
-  { params: { pairs: "partners" } },
-  { params: { pairs: "neighbors", turns: 3 } },
-  { params: { pairs: "neighbors", handOffset: 3 } },
+  { params: { pairs: "neighbors" }, allowed: ["feet"] },
+  { params: { pairs: "partners" }, allowed: ["feet"] },
+  { params: { pairs: "neighbors", turns: 3 }, allowed: ["feet"] },
+  { params: { pairs: "neighbors", handOffset: 3 }, allowed: ["feet"] },
   // "Open out facing down the hall" is a real thing to ask a duple improper
   // pair, whose own two places lie across the hall. Asked of a *becket* pair,
   // whose places lie along it, it names no pair of places at all: the coded
@@ -27,7 +39,11 @@ const CASES: readonly CompareCase[] = [
   // set, which is not an end any swing has, and the data swing settles on to
   // those places instead of opening out about the pair. Neither answer is
   // right and no dance asks the question, so the case is duple improper's.
-  { params: { pairs: "partners", endFacing: "down" }, formations: [DUPLE_IMPROPER] },
+  {
+    params: { pairs: "partners", endFacing: "down" },
+    formations: [DUPLE_IMPROPER],
+    allowed: ["feet"],
+  },
 ];
 
 const GOLDEN = gathererGolden(swing, swingDefinition, CASES);

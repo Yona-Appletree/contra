@@ -101,7 +101,7 @@ export const rollAwayDefinition: FigureDefinition = {
     },
   ],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   symmetry: {
     // Which of the couple passes in front is the role the call names, not a
     // handedness — and her turn is not a parameter at all any more: it is

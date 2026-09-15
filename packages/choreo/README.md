@@ -194,6 +194,19 @@ group's space (AC6), and its phase turned to where the dancers already stand.
 there. The geometry lives at this layer because the decider's own `take-hands`
 needs it and may not import a form.
 
+Both walks take a **motion profile** since M10 (`@caller/core`'s
+`MotionProfile`): `walkStep(from, to, t, beats, bowPx?, profile?)` and
+`RingWalk.profile`, each defaulting to `"smooth"` so that a caller who says
+nothing is byte-identical to before. `"cruise"` is the constant-speed trapezoid
+— a body walking _on_ the beat rather than easing through it. On `ringWalk` it
+applies to the **turn window only**: the step in and the step out keep their own
+ramps, because they are closing up on to a ring and opening out of it rather
+than travel. On `walkStep` the facing's turn-in and turn-out keep their
+smoothstep too: a dancer turns _through_ a step, and the turn being fastest
+where the feet are slowest is what keeps the two peaks from adding.
+The engine's own four figures all walk on the cruise (M10, A5): a waiting couple
+crossing the set should not walk differently from a pass through.
+
 `ringOrder` runs **anticlockwise on the floor**: with y increasing downward, a
 dancer facing the ring's centre moves to their own left as their angle about
 the centre increases. That is the direction `ringShift(ring, id, +1)` goes, and
@@ -261,6 +274,37 @@ it out of the previous instance with `@caller/core`'s `easeSeam` and
 `seamProgress` over the first `SEAM_BEATS`. Hands, facing and lean
 cross-fade; position comes from the figure that is running, which is why
 closure has to hold to 0.01 px — nothing here hides a gap.
+
+#### The timeline's gait (M10)
+
+`poseAt` also **puts the feet down**. Every sample whose figure left `feet`
+undefined and whose `amp` is above zero gets `@caller/core`'s `plantedGait`: a
+foot lands on a whole beat, stays on the floor while the body travels over it —
+inside the contract's 2.6 px band, dragged at its edge past that — and swings to
+its next landing in the last half beat. The right foot lands on **even absolute
+beats**, which is count 1 of a phrase, and the parity is carried by the absolute
+beat, so a three-beat figure hands the alternation on rather than restarting it.
+
+It lives here and not in a figure, or in `@caller/contra`'s interpreter, for
+three reasons. The gait needs the body at beats _other_ than the one being drawn
+(the plant at beat `k` reads the velocity at `k + 0.5`), and only a timeline has
+that. The plant a dancer is standing on at the start of a figure was put down
+during the previous one, and only a timeline can reach it. And three different
+things produce poses — interpreted definitions, the engine's own four figures,
+and the bridged coded figures — so a gait written for one of them would have
+left the other two with no foot motion at all once `quietMotion` stopped
+supplying it.
+
+The body path either side of an event is the **neighbouring figure's**, clamped
+to its own range, in both directions. That is what makes a plant on a figure
+boundary the same plant whichever figure is asked for it, and it is why the feet
+are continuous through a seam rather than switching at it.
+
+A figure that sets `feet` — the swing's buzz step — still wins. A sample with
+`amp === 0` is standing, and `quietMotion` rests its feet downstream; in between
+the gait is scaled by `amp`, so a dancer settling eases their feet to rest with
+everything else. Plants are memoised per (event, dancer) on a `WeakMap` keyed on
+the `FigureEvent`: a cache, not state.
 
 ### The decider — `src/decider/`
 
@@ -390,6 +434,16 @@ The non-finite count exists because `NaN > max` is false: a hand that is not a
 number slides through every maximum in every other oracle silently, and an arm
 that is not a number is drawn as nothing at all. It is the one failure the rest
 of this file is blind to, so it gets its own column and sorts above everything.
+
+**`travel` is the one column about the body** (M10, R6): the fastest any dancer
+moves, averaged over a sliding **one-beat window**. Everything above it measures
+a drawn arm, and a figure can pass every one of them while walking its dancers
+across the hall at a run. Sustained, not instantaneous: a beat is the unit a
+count is written in, and what separates a walk from a take is that a take is
+over inside one. The window may reach back across a figure boundary and the row
+it counts against is the figure that owns the _end_ of it — a dancer still
+running a beat into the next figure is that figure's problem as much as the last
+one's. `MotionWorst.side` is left out for it: a body has no side.
 
 `motionReport` takes its bounds from the caller and never judges. `@caller/contra`'s
 `motionBounds.ts` derives the contra library's own.

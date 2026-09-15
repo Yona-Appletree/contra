@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
+import type { Angle, Beat, Hand, MotionProfile, Vec2 } from "@caller/core";
 import type { FigureRegistry, Side } from "@caller/choreo";
 import type {
   ContraFigure,
@@ -106,6 +106,20 @@ export interface ShapeInput {
   beats: Beat;
   /** The roles this shape actually dances, in cast order. */
   roles: readonly FigureRole[];
+  /**
+   * **How this figure's travel spends its beats** (M10): the definition's own
+   * `timing.profile`, narrowed to the two a kind can apply to a leg whose length
+   * it only learns at plan time.
+   *
+   * `"cruise"` is the constant-speed trapezoid; everything else — `"smooth"`,
+   * and `"trapezoid"`, which names a figure's *explicit* four-corner speed
+   * window and is read by `orbitPair` from the shape itself — is `"smooth"`
+   * here, so a definition that has not chosen is byte-identical to before M10.
+   *
+   * A shape kind never picks a ramp: `profileProgress` reads `cruiseRamp` for
+   * it, so every cruising leg in the library ramps by the same rule.
+   */
+  profile: MotionProfile;
   /** Where the shape is anchored, frame-local. */
   anchor: ResolvedAnchor;
   /** The formation's own places, or `undefined` when none were handed in. */
@@ -177,6 +191,19 @@ export function figureFor(def: FigureDefinition, registry: FigureRegistry): Cont
   return interpretDefinition(def) as unknown as ContraFigure;
 }
 
+/**
+ * The motion profile a definition's travel rides, narrowed to what a shape kind
+ * can apply to a leg whose length it only learns at plan time (M10).
+ *
+ * `"trapezoid"` is a figure's own **explicit** four-corner speed window, read
+ * from the shape by `kinds/orbitPair.ts` and never from here; `"gait"` names
+ * what the feet do rather than what the body does. Both leave the body's legs on
+ * the smoothstep, which is what they rode before M10.
+ */
+export function motionProfileOf(def: FigureDefinition): MotionProfile {
+  return def.timing.profile === "cruise" ? "cruise" : "smooth";
+}
+
 /** The parameter defaults a definition declares. */
 export function paramDefaults(def: FigureDefinition): Readonly<Record<string, ParamValue>> {
   return def.params.kind === "canonical" ? def.params.defaults : {};
@@ -226,6 +253,7 @@ export function planDefinition(
     params,
     beats: params.beats,
     roles,
+    profile: motionProfileOf(def),
     anchor: anchorIn(ctx),
     anchorOf: anchorIn,
     ...(places === undefined ? {} : { places }),

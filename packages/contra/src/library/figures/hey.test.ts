@@ -136,6 +136,9 @@ function plannedFor(
     params: all as ShapeInput["params"],
     beats,
     roles: ctx.ids,
+    // The hey's own definition: its weave is already traversed at a constant
+    // rate and its two-beat step on and off is deliberately linear (M10).
+    profile: "smooth",
     anchor: anchorOf("hands-four", ctx, ctx.ids),
     anchorOf: (inner) => anchorOf("hands-four", inner, ctx.ids),
     nearby: [],

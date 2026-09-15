@@ -21,7 +21,16 @@ export const RENDERING_CONTRACT = {
   lineOffsetPx: 18,
   /** World scale. */
   cmPerPx: 4,
-  /** Foot swing amplitude on the beat, along the direction of travel. */
+  /**
+   * How far a foot may be from its rest position, px.
+   *
+   * Before M10 this was the amplitude of a foot's swing along the direction of
+   * travel. Since M10 the feet are planted (`plantedGait.ts`) and the number is
+   * **the band a planted foot may be from its rest**: the foot is fixed on the
+   * floor while it is inside this radius and dragged at its edge past that, so
+   * the same 2.6 px still bounds every foot the model draws. The number has not
+   * moved — only what it is the radius of.
+   */
   footSwingPx: 2.6,
   /** Torso sway amplitude on the beat, in degrees. */
   torsoSwayDeg: 1.5,

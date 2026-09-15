@@ -32,6 +32,7 @@ export function swingFeet(
   facing: Angle,
   velocity: Vec2,
   buzz: number,
+  walkingFeet?: { L: Vec2; R: Vec2 },
 ): { L: Vec2; R: Vec2 } {
   const speed = Math.hypot(velocity[0], velocity[1]);
   const moving = speed > 1e-3;
@@ -39,7 +40,11 @@ export function swingFeet(
   const vw = moving ? dot(velocity, rightOf(facing)) / speed : 0;
   const amplitude = Math.min(1, speed / FULL_AMPLITUDE_SPEED);
   const swing = FOOT_SWING_PX * Math.sin(TAU * t * BUZZ_STEPS_PER_BEAT) * amplitude;
-  const walking = {
+  // `walkingFeet` is **the planted gait's** (M10): a swing's walking half is a
+  // walk like any other, and the library's orbit hands its own feet in. The
+  // body-local sine below is what the two callers M11 deletes — the coded swing
+  // and the pair page — still get by saying nothing (A7).
+  const walking = walkingFeet ?? {
     L: [FOOT_REST_FORWARD_PX + swing * vu, -FOOT_REST_LATERAL_PX + swing * vw] as Vec2,
     R: [FOOT_REST_FORWARD_PX - swing * vu, FOOT_REST_LATERAL_PX - swing * vw] as Vec2,
   };

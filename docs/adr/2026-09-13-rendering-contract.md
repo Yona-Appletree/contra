@@ -140,3 +140,53 @@ anything below the cap height has no room. That is accepted.
   means regenerating them and saying so — which is the point.
 - A hall at 1× with 36 dancers has not been measured yet; AC7's second half is
   M9's to prove.
+
+## Amendment, M10 (the planted gait): `footSwingPx` is a band
+
+`RENDERING_CONTRACT.footSwingPx` is **2.6 px** and has not moved. What has
+changed is what it is the radius of.
+
+Before M10 the feet were a sine wave in the dancer's own frame: both shoes slid
+forward and back under a body gliding across the floor, and 2.6 px was the
+amplitude of that swing. A real foot does not do that — it lands on its count
+and stays where the floor is while the body travels over it — so M10 replaced it
+with the **planted gait** (`@caller/core`'s `plantedGait.ts`).
+
+That creates a conflict the contract has to settle, and settling it is the whole
+of this amendment. A planted foot's body-local offset is its landing lead minus
+however far the body has carried it since, so over a 1.5-beat hold it falls
+`speed × 1.5` behind. Long lines walks about 3 px/beat and never leaves the
+band; a pass through peaks at 10.7, a circle at 9–12, the waiting couple's slide
+at 32. A true 1.5-beat plant at 8 px/beat would leave the shoe 12 px behind the
+body — outside the torso, and nearly five times this number.
+
+**The ruling is that the contract wins** (the move-motion plan's D1, option (a),
+on the user's lean). A foot is fixed on the floor only while it is inside
+±`footSwingPx` of its rest position; past that it is **dragged along at the
+band's edge** until its swing begins. At 3 px/beat the whole hold is a true
+plant; at 8 px/beat the true plant lasts about 0.65 beat and the rest of the
+hold is a drag. So:
+
+> **`footSwingPx` is the band a foot may be from its rest position.** Every foot
+> the model draws is inside it, planted or swinging, at every sample.
+
+It is enforced structurally rather than as a property to be trusted:
+`plantedGait` clamps every foot it returns to `PLANT_BAND_PX` (= `FOOT_SWING_PX`)
+of rest, so no branch of the gait can get round it. The invariant test in
+`quietMotion.test.ts` asserts the same 2.6 px over the gait's own output, at
+0–16 px/beat, over straight, diagonal, circular and stopping body paths and both
+parities.
+
+`PLANT_BAND_PX` is a **named constant** so that comparing the rejected option
+(b) — exempting planted feet from the band altogether, which would be a reversal
+of this invariant's meaning — is one edit and one re-cut of the strips.
+
+### What did not change
+
+- The number: 2.6 px, in `RENDERING_CONTRACT` and in `AGENTS.md`.
+- The torso sway (1.5°), the vertical bounce (0), and every other constant here.
+- `PoseSample.feet` is still two body-local `Vec2`s and the renderer is
+  untouched: there is no "in the air" cue, because at contract sizes the head
+  and arms cover the shoes from above anyway (the known limit).
+- The buzz step, which is a figure's own foot motion rather than a walk, keeps
+  its own amplitudes.

@@ -660,12 +660,13 @@ function motionLine(row: MotionStats, slug: string, problems: readonly MotionMet
     `elbow ${over(row.elbowSpeed.value, b.elbowSpeedPx)} · ` +
     `elbow/hand ${over(row.elbowPerHand.value, b.elbowPerHand, 2)}× · ` +
     `height ${over(row.heightRate.value, b.heightRatePx)} · ` +
+    `travel ${over(row.travel.value, b.travelPx)} · ` +
     `dip ${over(row.dip.value, b.dipPx, 2)} · ` +
     `flips ${String(row.stateFlips)} · NaN ${String(row.nonFinite)}${verdict}`
   );
 }
 
-/** Which of a row's five bounded columns are over their bound. */
+/** Which of a row's six bounded columns are over their bound. */
 function overBound(row: MotionStats): MotionMetric[] {
   const b = CONTRA_MOTION_BOUNDS;
   const out: MotionMetric[] = [];
@@ -673,6 +674,7 @@ function overBound(row: MotionStats): MotionMetric[] {
   if (row.elbowSpeed.value > b.elbowSpeedPx) out.push("elbowSpeed");
   if (row.elbowPerHand.value > b.elbowPerHand) out.push("elbowPerHand");
   if (row.heightRate.value > b.heightRatePx) out.push("heightRate");
+  if (row.travel.value > b.travelPx) out.push("travel");
   if (row.dip.value > b.dipPx) out.push("dip");
   return out;
 }

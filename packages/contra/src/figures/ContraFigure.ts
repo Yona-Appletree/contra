@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
+import type { Angle, Beat, Hand, MotionProfile, PoseSample, Side, Vec2 } from "@caller/core";
 import { HOLD_SPACING_PX, angleDiff, dist, lerpHand, mix, ramp } from "@caller/core";
 import type {
   EndPose,
@@ -439,8 +439,14 @@ export const asPose = (s: Spot): EndPose => ({ p: s.p, facing: s.facing });
  * right put their *left* shoulders together. Right-shoulder passing is the
  * contra convention, hence the negative bow here.
  */
-export const passRight = (from: Spot, to: Spot, t: Beat, beats: Beat, bowPx = 0) =>
-  walkStep(asPose(from), asPose(to), t, beats, -bowPx);
+export const passRight = (
+  from: Spot,
+  to: Spot,
+  t: Beat,
+  beats: Beat,
+  bowPx = 0,
+  profile: MotionProfile = "smooth",
+) => walkStep(asPose(from), asPose(to), t, beats, -bowPx, profile);
 
 /** The shared floor point where two dancers' named hands meet. */
 export { joinPoint } from "@caller/choreo";
