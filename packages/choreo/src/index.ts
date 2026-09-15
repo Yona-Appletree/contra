@@ -63,6 +63,9 @@ export { THANKS } from "./figure/thanks.js";
 export { joinHands, joinedOrder } from "./figure/joinHands.js";
 export type { Ring, RingJoin, RingPlaces, RingWalk } from "./figure/ring.js";
 export {
+  RING_ARM_EXTENSION,
+  RING_FOOTPRINT_MARGIN_PX,
+  RING_NEIGHBOR_SPACING_PX,
   bearing,
   centreOf,
   joinPoint,

@@ -4,6 +4,7 @@ import type { Station } from "../formation/Formation.js";
 import { frame } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
 import { withDefaults } from "./FigureDef.js";
+import { RING_NEIGHBOR_SPACING_PX } from "./ring.js";
 import { TAKE_HANDS, lineUpPlaces } from "./takeHands.js";
 
 /**
@@ -43,7 +44,7 @@ const params = (over: Partial<Parameters<typeof TAKE_HANDS.sample>[3]> = {}) =>
 const ids = STATIONS.map((s) => s.id);
 
 describe("taking hands four in a ring", () => {
-  it("brings everybody on to a regular ring, every neighbour a hold spacing apart", () => {
+  it("brings everybody on to a regular ring, every neighbour the ring's own arm-based spacing apart", () => {
     const g = group();
     const p = params();
     // Half way through the hold, after the step in and before the step out.
@@ -54,8 +55,11 @@ describe("taking hands four in a ring", () => {
       ring.reduce((s, q) => s + q[1], 0) / 4,
     ];
     for (const q of ring) {
-      // radius = spacing / (2 sin(π/4)) = 14 / √2 = 9.899 px.
-      expect(dist(centre, q)).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 6);
+      // The natural radius (spacing / (2 sin(π/4)) = 24 / √2 = 16.971 px) is
+      // clamped: these stations are a 32×20 px rectangle, whose narrower
+      // (along-the-hall) half-extent is 10 px, so F11's footprint clamp caps
+      // the ring at 10 + RING_FOOTPRINT_MARGIN_PX (2) = 12 px.
+      expect(dist(centre, q)).toBeCloseTo(12, 6);
     }
   });
 
@@ -147,8 +151,8 @@ describe("taking hands four in a ring", () => {
     if (r.hands.L === "down" || r.hands.R === "down") throw new Error("both hands are held");
     expect(l.hands.L.p).toEqual(r.hands.R.p);
     expect(l.hands.R.p).toEqual(r.hands.L.p);
-    // A ring of two is the two of them a hold spacing apart.
-    expect(dist(l.p, r.p)).toBeCloseTo(HOLD_SPACING_PX, 6);
+    // A ring of two is the two of them the ring's own neighbour spacing apart.
+    expect(dist(l.p, r.p)).toBeCloseTo(RING_NEIGHBOR_SPACING_PX, 6);
   });
 });
 

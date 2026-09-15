@@ -1,12 +1,13 @@
 import { HOLD_SPACING_PX, dist } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
-import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { DUPLE_IMPROPER, PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 import { balance, balanceRing } from "./balance.js";
 import { withDefaults } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 import type { Spot } from "./ContraFigure.js";
 import { planContext } from "./ContraFigure.js";
+import { RING_FOOTPRINT_MARGIN_PX } from "./ring.js";
 import {
   figureMoves,
   figureProblems,
@@ -50,14 +51,16 @@ describe("balance", () => {
     );
   });
 
-  it("closes the ring to a hold spacing between neighbours while it rocks", () => {
+  it("closes the ring to the footprint-clamped radius while it rocks", () => {
     // Mid-figure, which is what AC1 has to hold for: everybody on one ring,
-    // neighbours exactly a hold spacing apart.
+    // all the same distance out. F11: the ring's natural (arm-based) radius
+    // is clamped to this rectangle's narrower half-extent
+    // (PLACE_PITCH_PX / 2 = 10 px) plus RING_FOOTPRINT_MARGIN_PX.
     // `rock: 0` takes the ±1 px rock out, so the number under test is the ring.
     const ring = ringSpotsAt(2, { rock: 0 });
     const radii = Object.values(ring).map((spot) => dist(spot.p, CENTRE));
     for (const r of radii) expect(r).toBeCloseTo(radii[0]!, 9);
-    expect(radii[0]!).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 9);
+    expect(radii[0]!).toBeCloseTo(PLACE_PITCH_PX / 2 + RING_FOOTPRINT_MARGIN_PX, 9);
   });
 
   it("steps back out to the places it started from", () => {
@@ -80,7 +83,7 @@ describe("balance", () => {
     const ends = figureMoves(balanceRing, { openOut: false });
     const radii = Object.values(ends).map((spot) => dist(spot.p, CENTRE));
     for (const r of radii) expect(r).toBeCloseTo(radii[0]!, 9);
-    expect(radii[0]!).toBeCloseTo(HOLD_SPACING_PX / Math.SQRT2, 9);
+    expect(radii[0]!).toBeCloseTo(PLACE_PITCH_PX / 2 + RING_FOOTPRINT_MARGIN_PX, 9);
   });
 });
 

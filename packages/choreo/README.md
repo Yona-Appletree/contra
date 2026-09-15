@@ -182,8 +182,12 @@ The contra figure library is M8's; these four are the engine's own.
 ### The ring — `src/figure/ring.ts`
 
 The regular ring a group makes when it takes hands round: `n` places evenly
-spaced, the radius that puts neighbours exactly a hold spacing apart so every
-arm reaches, and its phase turned to where the dancers already stand.
+spaced, the radius that puts neighbours `RING_NEIGHBOR_SPACING_PX` apart — two
+arms, each extended to `RING_ARM_EXTENSION` (0.8) of their reach, not the
+couple spacing — so every arm reaches without cramming elbows out straight
+(F11), clamped to the group's own narrower half-extent (across or along)
+plus a small margin so a ring that turns never sweeps into a neighbouring
+group's space (AC6), and its phase turned to where the dancers already stand.
 `ringOf`, `ringOrder`, `ringShift`, `ringWalk` and `ringHands` are all here and
 `@caller/contra`'s `figures/ring.ts` re-exports every one of them — `circle`,
 `star`, `petronella`, `balance` and the figure-spec language read them from

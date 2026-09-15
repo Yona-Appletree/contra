@@ -66,7 +66,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `robins-chain` | 30.8 | 69.8 | 7.05 | 20.2 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 25.125 |
 | `swing` | 59.5 | **225.5** | **11.94** | 25.6 | 36 | 0.09 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 138 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
-| `circle` | 25.1 | 40.5 | 2.25 | 9.0 | 32 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 59.000 |
+| `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 32 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 51.000 |
 | `do-si-do` | 18.5 | 16.9 | 1.72 | 0.6 | 24 | 0.14 | 0 | 1.20 | `set0/c0/robin` R at beat 37.469 |
 | `hey` | 34.0 | 32.2 | 3.79 | 0.6 | 30 | 0.12 | 0 | 1.59 | `set0/c0/lark` R at beat 32.313 |
 | `long-lines` | 22.5 | 51.3 | 8.27 | 12.3 | 16 | 0.14 | 0 | 0.00 | `set0/c3/lark` L at beat 64.156 |
@@ -100,7 +100,7 @@ it, so every number is the figure's own and no seam is folded in.
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
-| `star` | 31.9 | 31.9 | 2.10 | 12.1 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 3.531 |
+| `star` | 35.7 | 35.2 | 1.68 | 12.1 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
 | `robins-chain` | 30.8 | 62.5 | 4.58 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.125 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
@@ -111,8 +111,8 @@ it, so every number is the figure's own and no seam is folded in.
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
 | `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
 | `right-and-left-through` | 21.5 | 59.1 | 2.87 | 13.5 | 0 | 0.00 | 0 | 0.00 | `2L` R at beat 3.969 |
-| `balance-ring` | 19.3 | 20.9 | 1.50 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 0.500 |
-| `circle` | 15.7 | 24.3 | 1.74 | 9.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 7.500 |
+| `balance-ring` | 17.5 | 21.2 | 1.61 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
+| `circle` | 17.2 | 25.6 | 1.85 | 9.0 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
 | `balance` | 11.8 | 14.8 | 1.26 | 9.9 | 0 | 0.00 | 0 | 0.00 | `2R` L at beat 0.469 |
 
 ## Known wrong
