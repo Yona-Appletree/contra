@@ -681,7 +681,13 @@ export function HallPage({
                 <span className="caller-music-card-caption" data-testid="hall-tune">
                   {tune.title}
                 </span>
-                <Notation tune={tune} beat={beat} showTitle={false} />
+                {/* The music beat, not the evening's: the notation takes its
+                    beat modulo the cycle, and the evening's beat counts the
+                    interval too, which put the cursor bars off after the first
+                    dance and kept it walking through the silence. During the
+                    interval this is the next tune's beat 0, so the cursor waits
+                    on bar 1 for the potatoes. */}
+                <Notation tune={tune} beat={shownMusicBeat(beat)} showTitle={false} />
               </div>
             </Card>
           </div>

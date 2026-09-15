@@ -391,3 +391,33 @@ declare global {
     };
   }
 }
+
+/**
+ * The notation's cursor follows the **music** beat, not the evening's. The
+ * evening's beat counts the between-dances interval too, so handing it to the
+ * notation (which takes its beat modulo the 64-beat cycle) put the cursor bars
+ * off after the first dance and kept it walking through the silence — the
+ * user's report of 2026-09-15. Beat 178 is the second dance's sixth beat
+ * (bar 4 of the first line); beat 140 is inside the interval, where the cursor
+ * waits on bar 1 for the potatoes.
+ */
+test("the notation's cursor follows the music beat, and waits on bar 1 through the interval", async ({
+  page,
+}) => {
+  const classes = async (): Promise<string[]> =>
+    page
+      .locator('[data-testid="hall-notation"] .caller-music-current-measure')
+      .evaluateAll((els) => [...new Set(els.map((el) => el.getAttribute("class") ?? ""))]);
+
+  await openHall(page, { dance: FIRST_DANCE, beat: 178, zoom: 2 });
+  const dancing = await classes();
+  expect(dancing.length).toBeGreaterThan(0);
+  for (const c of dancing) expect(c).toMatch(/abcjs-l0\b/);
+  for (const c of dancing) expect(c).toMatch(/abcjs-m3\b/);
+
+  await openHall(page, { dance: FIRST_DANCE, beat: 140, zoom: 2 });
+  const waiting = await classes();
+  expect(waiting.length).toBeGreaterThan(0);
+  for (const c of waiting) expect(c).toMatch(/abcjs-l0\b/);
+  for (const c of waiting) expect(c).toMatch(/abcjs-m0\b/);
+});
