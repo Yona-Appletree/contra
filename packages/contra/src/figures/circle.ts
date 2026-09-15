@@ -9,7 +9,7 @@ import type {
   Spots,
 } from "./ContraFigure.js";
 import { bearing, contraFigure, holdWindow, isHeld, takeAndRelease } from "./ContraFigure.js";
-import { ringFor, ringHands, ringShift, ringWalk } from "./ring.js";
+import { ringFor, ringHands, ringHangDrop, ringShift, ringWalk } from "./ring.js";
 
 /** {@link circle}'s parameters. */
 export interface CircleParams extends ContraParams {
@@ -17,7 +17,10 @@ export interface CircleParams extends ContraParams {
   direction: "left" | "right";
   /** How many places round, in quarters of the ring: 3 or 4 in most dances. */
   places: number;
-  /** How far below shoulder height the joined hands sit, px. */
+  /**
+   * The lowest the joined hands hang, px below the shoulder — a floor rather
+   * than a height (FR-A2): see `ring.ts`'s `ringHangDrop`.
+   */
   holdDrop: number;
   /** How much higher the robin's hand sits, px. */
   stackPx: number;
@@ -44,7 +47,7 @@ export const circle = contraFigure<CircleParams>({
     "All four join hands in a ring and walk round — circle left means the way your left hand is pointing, clockwise seen from above. Three quarters is the usual amount, which lands you one place back from where you started. Keep the hands joined and the ring the same size the whole way round.",
   lead: 4,
   beats: 8,
-  defaults: { from: {}, direction: "left", places: 3, holdDrop: 6, stackPx: 1 },
+  defaults: { from: {}, direction: "left", places: 3, holdDrop: 13, stackPx: 1 },
 
   plan(ctx: PlanContext, params: CircleParams): FigurePlan {
     const ring = ringFor(ctx);
@@ -66,8 +69,12 @@ export const circle = contraFigure<CircleParams>({
 
     const joinedAt = (
       t: Beat,
-    ): { hands: ReturnType<typeof ringHands>["hands"]; joins: HandJoin[] } =>
-      ringHands(ctx, ring, (id) => placeAt(id, t), params.holdDrop, params.stackPx);
+    ): { hands: ReturnType<typeof ringHands>["hands"]; joins: HandJoin[] } => {
+      const at = (id: StationId): Spot => placeAt(id, t);
+      // The hands **hang** rather than being held at a height (FR-A2): see
+      // `ringHangDrop`. `holdDrop` is the floor, not the answer.
+      return ringHands(ctx, ring, at, ringHangDrop(ring, at, params.holdDrop), params.stackPx);
+    };
 
     return {
       ends,

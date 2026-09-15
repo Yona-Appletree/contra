@@ -37,7 +37,21 @@ export const circleDefinition: FigureDefinition = {
   anchor: "hands-four",
   params: {
     kind: "canonical",
-    defaults: { direction: "left", places: 3, holdDrop: 6, stackPx: 1 },
+    defaults: {
+      direction: "left",
+      places: 3,
+      /**
+       * **The lowest the joined hands hang, px below the shoulder** (FR-A2).
+       *
+       * A floor rather than a height: `kinds/ringWalk.ts` hangs a ring's hands
+       * as far down as the arms have left after reaching, and this is as far as
+       * they are allowed to go. It was **six**, which folded a fifteen px arm
+       * almost in half to reach a hand 4.4 px away and bowed every elbow six px
+       * outward — the user's *"jagged pollen looking thing"*.
+       */
+      holdDrop: 13,
+      stackPx: 1,
+    },
   },
   shape: {
     kind: "ringWalk",

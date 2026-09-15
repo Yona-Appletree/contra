@@ -3,7 +3,7 @@ import { addScaled, angleDiff, angleLerp, dirOf, dist, lerp, smooth } from "@cal
 import type { Ring } from "@caller/choreo";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
 import { bearing, isHeld, takeAndRelease } from "../../figures/ContraFigure.js";
-import { ringFor, ringHands, ringShift, ringWalk } from "../../figures/ring.js";
+import { ringFor, ringHands, ringHangDrop, ringShift, ringWalk } from "../../figures/ring.js";
 import type { FigureRole, HoldSpec, RingWalkShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
 import { evalAngle, evalNumber } from "../expr.js";
@@ -101,7 +101,10 @@ export function planRingWalk(
     ringHold === undefined || ringHold.spec.stackPx === undefined
       ? 0
       : evalNumber(ringHold.spec.stackPx, env);
-  const round = (t: Beat) => ringHands(ctx, ring, (id) => placeAt(id, t), drop, stackPx);
+  const round = (t: Beat) => {
+    const at = (id: FigureRole): Spot => placeAt(id, t);
+    return ringHands(ctx, ring, at, ringHangDrop(ring, at, drop), stackPx);
+  };
 
   const flare = shape.travel.kind === "chord" ? evalNumber(shape.travel.flare, env) : 0;
 

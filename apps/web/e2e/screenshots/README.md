@@ -4,88 +4,90 @@ Pictures of the whole page, kept as the record a look gate was judged on.
 Nothing compares them — they are evidence, not goldens. The goldens are in
 `../golden/`, and the figure strips in `../strips/`.
 
-| File                                   | What it is                                                                   |
-| -------------------------------------- | ---------------------------------------------------------------------------- |
-| `u1-phone-390.png`                     | U1: the Stage tab at 390 × 844, `#/dance/airpants?beat=8&seed=1`             |
-| `u1-laptop-1280.png`                   | U1: the Stage tab at 1280 × 800, the same URL                                |
-| `u1-dances-390.png`                    | U1: the Dances tab at 390 × 844, `#/dances`                                  |
-| `p1-phone-390.png`                     | P1: the bigger hall — lines of 8 and 7 — at 390 × 844, the same URL, auto 1× |
-| `p1-laptop-1280.png`                   | P1: the same hall at 1280 × 800, auto 2×                                     |
-| `p1-phone-390-lines3.png`              | P1: `&lines=3` at 390 × 844 — a 372 px world in a 390 px phone, still 1×     |
-| `p1-laptop-1280-lines3.png`            | P1: `&lines=3` at 1280 × 800, auto 2×                                        |
-| `u2-stage-390.png`                     | U2: the Stage tab at 390 × 844, `#/dance/airpants?beat=8&seed=1`, dark wood  |
-| `u2-stage-1280.png`                    | U2: the Stage tab at 1280 × 800, the same URL                                |
-| `u2-moves-390.png`                     | U2: the Moves tab at 390 × 844, `#/moves?beat=6` — the top of the rows       |
-| `u2-moves-1280.png`                    | U2: the Moves tab at 1280 × 800, the same URL                                |
-| `u2-dances-390.png`                    | U2: the Dances tab at 390 × 844, `#/dances`                                  |
-| `u2-dances-1280.png`                   | U2: the Dances tab at 1280 × 800, `#/dances`                                 |
-| `t2-moves-row-390.png`                 | T2: one Moves row at 390 × 844, `#/moves/swing?beat=6&zoom=2`                |
-| `t2-moves-row-1280.png`                | T2: the same row at 1280 × 800                                               |
-| `t2-dance-card-390.png`                | T2: the Dances tab at 390 × 844, `#/dances`, cards with their traces         |
-| `t2-dance-card-1280.png`               | T2: the same tab at 1280 × 800                                               |
-| `t2-traces-view-390.png`               | T2: all four views at 390 × 844, `#/dances/airpants/traces`                  |
-| `t2-traces-view-1280.png`              | T2: the same page at 1280 × 800                                              |
-| `v1-badge-390.png`                     | V1: the build-info badge open at 390 × 844, `#/dance/airpants?beat=8&seed=1` |
-| `v1-badge-1280.png`                    | V1: the same badge open at 1280 × 800                                        |
-| `t3-facing-hey-row.png`                | T3: `hey`'s pen plot, ticks/wake/arrowheads side by side, row size           |
-| `t3-facing-hey-full.png`               | T3: the same, full width                                                     |
-| `t3-facing-balance-and-swing-row.png`  | T3: `balance-and-swing`'s pen plot, all three, row size                      |
-| `t3-facing-balance-and-swing-full.png` | T3: the same, full width                                                     |
-| `t3-facing-circle-row.png`             | T3: `circle`'s pen plot, all three, row size                                 |
-| `t3-facing-circle-full.png`            | T3: the same, full width                                                     |
-| `t3-facing-the-baby-rose-row.png`      | T3: The Baby Rose's pen plot, one time through, all three, row size          |
-| `t3-facing-the-baby-rose-full.png`     | T3: the same, full width                                                     |
-| `t3-facing-butter-row.png`             | T3: Butter's pen plot, one time through, all three, row size                 |
-| `t3-facing-butter-full.png`            | T3: the same, full width                                                     |
-| `t3-facing-hey-390-ticks.png`          | T3: the real `#/moves/hey` row at 390 × 844, `?facing=ticks` (then default)  |
-| `t3-facing-hey-390-wake.png`           | T3: the same row, `?facing=wake`                                             |
-| `t3-facing-hey-390-arrowheads.png`     | T3: the same row, `?facing=arrowheads`                                       |
-| `t4-moves-row-plot-390.png`            | T4: `#/moves/hey?beat=6&zoom=2` at 390 × 844, the switch on `plot` (default) |
-| `t4-moves-row-march-390.png`           | T4: the same row, the switch on `march`                                      |
-| `t4-moves-row-seismograph-390.png`     | T4: the same row, the switch on `seismograph`                                |
-| `t4-moves-row-march-1280.png`          | T4: the same row and view at 1280 × 800                                      |
-| `t4-move-traces-390.png`               | T4: `#/moves/hey/traces` at 390 × 844                                        |
-| `t4-move-traces-1280.png`              | T4: the same page at 1280 × 800                                              |
-| `t5-wake-hey-row.png`                  | T5: `hey`'s pen plot, T3's wake beside T5's, row size                        |
-| `t5-wake-hey-full.png`                 | T5: the same before and after, full width, and both marches                  |
-| `t5-wake-circle-row.png`               | T5: `circle`'s pen plot, before and after, row size                          |
-| `t5-wake-circle-full.png`              | T5: the same, full width, and both marches                                   |
-| `t5-wake-butter-row.png`               | T5: Butter's pen plot, one time through, before and after, row size          |
-| `t5-wake-butter-full.png`              | T5: the same, full width, and both marches                                   |
-| `t5-wake-reach-pen.png`                | T5: `circle` at four wake reaches — ×3, ×4.5, ×6, ×8 the pen width           |
-| `t5-wake-reach-march.png`              | T5: `balance-and-swing`'s march at ×2, ×3, ×4.5, ×6                          |
-| `t5-wake-hey-390.png`                  | T5: the real `#/moves/hey` row at 390 × 844, the wake as the default         |
-| `t5-wake-hey-390-ticks.png`            | T5: the same row, `?facing=ticks`, the style the default replaced            |
-| `t5-wake-hey-390-march.png`            | T5: the same row with T4's switch on `march`, at the march's own reach       |
-| `t5-wake-moves-390.png`                | T5: the top of `#/moves?beat=6` at 390 × 844, rows of wakes                  |
-| `t5-wake-dances-390.png`               | T5: `#/dances` at 390 × 844, the cards' own pen plots                        |
-| `t5-wake-traces-390.png`               | T5: `#/dances/airpants/traces` at 390 × 844, all four views                  |
-| `w1-move-text-circle-390.png`          | W1: `#/moves/circle?beat=6&zoom=2` at 390 × 844, the teach closed            |
-| `w1-move-text-circle-390-teach.png`    | W1: the same row with "teach" open — the long walkthrough and its landmark   |
-| `w1-moves-390.png`                     | W1: the top of `#/moves?beat=6` at 390 × 844, the AI paragraphs gone         |
-| `w1-moves-1280.png`                    | W1: the same page at 1280 × 800                                              |
-| `w1-move-traces-hey-390.png`           | W1: `#/moves/hey/traces` at 390 × 844, opening on the long walkthrough       |
-| `t6-wrap-butter-before-full.png`       | T6: `#/dances/butter/traces?wrap=0`, full page — the pre-T6 tall smear       |
-| `t6-wrap-butter-after-full.png`        | T6: the same page, `?wrap=1` (the shipped default) — folded to one period    |
-| `t6-wrap-butter-before-pen.png`        | T6: Butter's pen plot alone, wrap off — the two spines run the full height   |
-| `t6-wrap-butter-after-pen.png`         | T6: the same plot, wrapped — the slide is two short strokes at the fold      |
-| `t6-wrap-butter-after-march.png`       | T6: Butter's march, wrapped (the march was never stretched; unaffected)      |
-| `t6-wrap-butter-after-strip.png`       | T6: Butter's figure strip, wrapped — the `slide` cell breaks the same way    |
-| `t6-wrap-airpants-unchanged-pen.png`   | T6: Airpants' pen plot, `?wrap=1` — byte-identical to `?wrap=0` (asserted)   |
-| `u3-stage-390-silent.png`              | U3: the Stage at 390 × 844, no diagrams, the speaker icon silent             |
-| `u3-stage-390-playing.png`             | U3: the same page after tapping the speaker, the icon's playing state        |
-| `u3-dance-page-top-390.png`            | U3: `#/dances/airpants` at 390 × 844, the top of the page                    |
-| `u3-dance-page-bottom-390.png`         | U3: the same page scrolled to the bottom                                     |
-| `u3-dance-page-butter-390-march.png`   | U3: `#/dances/butter`, a becket dance, the shapes switched to march          |
-| `u3-dances-390.png`                    | U3: the Dances tab at 390 × 844, no diagrams, each card linking its page     |
-| `f9-chain-strips.png`                  | F9: the chain's four candidate courtesy turns, strips stacked, beats aligned |
-| `f9-chain-pens.png`                    | F9: the same four as pen plots, one shared scale                             |
-| `f9-chain-table.png`                   | F9: the same four, measured — pull by, travel, clearance, oracles            |
-| `u4-control-bar-390.png`               | U4: the control bar at 390 × 844 — native dance select, tempo, trails only   |
-| `u4-tempo-96-390.png`                  | U4: the bar with the tempo at 96 (two digits)                                |
-| `u4-tempo-124-390.png`                 | U4: the same bar at 124 (three digits) — `trails` has not moved              |
-| `u4-select-announces-390.png`          | U4: the moment Kitchen Stomp is picked — the bubble announces it, band still |
-| `u4-stage-buttons-390.png`             | U4: the speaker and the new reset button side by side in the stage's corner  |
+| File                                   | What it is                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| `u1-phone-390.png`                     | U1: the Stage tab at 390 × 844, `#/dance/airpants?beat=8&seed=1`                  |
+| `u1-laptop-1280.png`                   | U1: the Stage tab at 1280 × 800, the same URL                                     |
+| `u1-dances-390.png`                    | U1: the Dances tab at 390 × 844, `#/dances`                                       |
+| `p1-phone-390.png`                     | P1: the bigger hall — lines of 8 and 7 — at 390 × 844, the same URL, auto 1×      |
+| `p1-laptop-1280.png`                   | P1: the same hall at 1280 × 800, auto 2×                                          |
+| `p1-phone-390-lines3.png`              | P1: `&lines=3` at 390 × 844 — a 372 px world in a 390 px phone, still 1×          |
+| `p1-laptop-1280-lines3.png`            | P1: `&lines=3` at 1280 × 800, auto 2×                                             |
+| `u2-stage-390.png`                     | U2: the Stage tab at 390 × 844, `#/dance/airpants?beat=8&seed=1`, dark wood       |
+| `u2-stage-1280.png`                    | U2: the Stage tab at 1280 × 800, the same URL                                     |
+| `u2-moves-390.png`                     | U2: the Moves tab at 390 × 844, `#/moves?beat=6` — the top of the rows            |
+| `u2-moves-1280.png`                    | U2: the Moves tab at 1280 × 800, the same URL                                     |
+| `u2-dances-390.png`                    | U2: the Dances tab at 390 × 844, `#/dances`                                       |
+| `u2-dances-1280.png`                   | U2: the Dances tab at 1280 × 800, `#/dances`                                      |
+| `t2-moves-row-390.png`                 | T2: one Moves row at 390 × 844, `#/moves/swing?beat=6&zoom=2`                     |
+| `t2-moves-row-1280.png`                | T2: the same row at 1280 × 800                                                    |
+| `t2-dance-card-390.png`                | T2: the Dances tab at 390 × 844, `#/dances`, cards with their traces              |
+| `t2-dance-card-1280.png`               | T2: the same tab at 1280 × 800                                                    |
+| `t2-traces-view-390.png`               | T2: all four views at 390 × 844, `#/dances/airpants/traces`                       |
+| `t2-traces-view-1280.png`              | T2: the same page at 1280 × 800                                                   |
+| `v1-badge-390.png`                     | V1: the build-info badge open at 390 × 844, `#/dance/airpants?beat=8&seed=1`      |
+| `v1-badge-1280.png`                    | V1: the same badge open at 1280 × 800                                             |
+| `t3-facing-hey-row.png`                | T3: `hey`'s pen plot, ticks/wake/arrowheads side by side, row size                |
+| `t3-facing-hey-full.png`               | T3: the same, full width                                                          |
+| `t3-facing-balance-and-swing-row.png`  | T3: `balance-and-swing`'s pen plot, all three, row size                           |
+| `t3-facing-balance-and-swing-full.png` | T3: the same, full width                                                          |
+| `t3-facing-circle-row.png`             | T3: `circle`'s pen plot, all three, row size                                      |
+| `t3-facing-circle-full.png`            | T3: the same, full width                                                          |
+| `t3-facing-the-baby-rose-row.png`      | T3: The Baby Rose's pen plot, one time through, all three, row size               |
+| `t3-facing-the-baby-rose-full.png`     | T3: the same, full width                                                          |
+| `t3-facing-butter-row.png`             | T3: Butter's pen plot, one time through, all three, row size                      |
+| `t3-facing-butter-full.png`            | T3: the same, full width                                                          |
+| `t3-facing-hey-390-ticks.png`          | T3: the real `#/moves/hey` row at 390 × 844, `?facing=ticks` (then default)       |
+| `t3-facing-hey-390-wake.png`           | T3: the same row, `?facing=wake`                                                  |
+| `t3-facing-hey-390-arrowheads.png`     | T3: the same row, `?facing=arrowheads`                                            |
+| `t4-moves-row-plot-390.png`            | T4: `#/moves/hey?beat=6&zoom=2` at 390 × 844, the switch on `plot` (default)      |
+| `t4-moves-row-march-390.png`           | T4: the same row, the switch on `march`                                           |
+| `t4-moves-row-seismograph-390.png`     | T4: the same row, the switch on `seismograph`                                     |
+| `t4-moves-row-march-1280.png`          | T4: the same row and view at 1280 × 800                                           |
+| `t4-move-traces-390.png`               | T4: `#/moves/hey/traces` at 390 × 844                                             |
+| `t4-move-traces-1280.png`              | T4: the same page at 1280 × 800                                                   |
+| `t5-wake-hey-row.png`                  | T5: `hey`'s pen plot, T3's wake beside T5's, row size                             |
+| `t5-wake-hey-full.png`                 | T5: the same before and after, full width, and both marches                       |
+| `t5-wake-circle-row.png`               | T5: `circle`'s pen plot, before and after, row size                               |
+| `t5-wake-circle-full.png`              | T5: the same, full width, and both marches                                        |
+| `t5-wake-butter-row.png`               | T5: Butter's pen plot, one time through, before and after, row size               |
+| `t5-wake-butter-full.png`              | T5: the same, full width, and both marches                                        |
+| `t5-wake-reach-pen.png`                | T5: `circle` at four wake reaches — ×3, ×4.5, ×6, ×8 the pen width                |
+| `t5-wake-reach-march.png`              | T5: `balance-and-swing`'s march at ×2, ×3, ×4.5, ×6                               |
+| `t5-wake-hey-390.png`                  | T5: the real `#/moves/hey` row at 390 × 844, the wake as the default              |
+| `t5-wake-hey-390-ticks.png`            | T5: the same row, `?facing=ticks`, the style the default replaced                 |
+| `t5-wake-hey-390-march.png`            | T5: the same row with T4's switch on `march`, at the march's own reach            |
+| `t5-wake-moves-390.png`                | T5: the top of `#/moves?beat=6` at 390 × 844, rows of wakes                       |
+| `t5-wake-dances-390.png`               | T5: `#/dances` at 390 × 844, the cards' own pen plots                             |
+| `t5-wake-traces-390.png`               | T5: `#/dances/airpants/traces` at 390 × 844, all four views                       |
+| `w1-move-text-circle-390.png`          | W1: `#/moves/circle?beat=6&zoom=2` at 390 × 844, the teach closed                 |
+| `w1-move-text-circle-390-teach.png`    | W1: the same row with "teach" open — the long walkthrough and its landmark        |
+| `w1-moves-390.png`                     | W1: the top of `#/moves?beat=6` at 390 × 844, the AI paragraphs gone              |
+| `w1-moves-1280.png`                    | W1: the same page at 1280 × 800                                                   |
+| `w1-move-traces-hey-390.png`           | W1: `#/moves/hey/traces` at 390 × 844, opening on the long walkthrough            |
+| `fr-a2-circle-before.png`              | FR-A2: the Stage mid circle, `#/dance/airpants?beat=50.5&seed=1` — the elbows out |
+| `fr-a2-circle-after.png`               | FR-A2: the same frame with the ring's hands hanging — the elbows down             |
+| `t6-wrap-butter-before-full.png`       | T6: `#/dances/butter/traces?wrap=0`, full page — the pre-T6 tall smear            |
+| `t6-wrap-butter-after-full.png`        | T6: the same page, `?wrap=1` (the shipped default) — folded to one period         |
+| `t6-wrap-butter-before-pen.png`        | T6: Butter's pen plot alone, wrap off — the two spines run the full height        |
+| `t6-wrap-butter-after-pen.png`         | T6: the same plot, wrapped — the slide is two short strokes at the fold           |
+| `t6-wrap-butter-after-march.png`       | T6: Butter's march, wrapped (the march was never stretched; unaffected)           |
+| `t6-wrap-butter-after-strip.png`       | T6: Butter's figure strip, wrapped — the `slide` cell breaks the same way         |
+| `t6-wrap-airpants-unchanged-pen.png`   | T6: Airpants' pen plot, `?wrap=1` — byte-identical to `?wrap=0` (asserted)        |
+| `u3-stage-390-silent.png`              | U3: the Stage at 390 × 844, no diagrams, the speaker icon silent                  |
+| `u3-stage-390-playing.png`             | U3: the same page after tapping the speaker, the icon's playing state             |
+| `u3-dance-page-top-390.png`            | U3: `#/dances/airpants` at 390 × 844, the top of the page                         |
+| `u3-dance-page-bottom-390.png`         | U3: the same page scrolled to the bottom                                          |
+| `u3-dance-page-butter-390-march.png`   | U3: `#/dances/butter`, a becket dance, the shapes switched to march               |
+| `u3-dances-390.png`                    | U3: the Dances tab at 390 × 844, no diagrams, each card linking its page          |
+| `f9-chain-strips.png`                  | F9: the chain's four candidate courtesy turns, strips stacked, beats aligned      |
+| `f9-chain-pens.png`                    | F9: the same four as pen plots, one shared scale                                  |
+| `f9-chain-table.png`                   | F9: the same four, measured — pull by, travel, clearance, oracles                 |
+| `u4-control-bar-390.png`               | U4: the control bar at 390 × 844 — native dance select, tempo, trails only        |
+| `u4-tempo-96-390.png`                  | U4: the bar with the tempo at 96 (two digits)                                     |
+| `u4-tempo-124-390.png`                 | U4: the same bar at 124 (three digits) — `trails` has not moved                   |
+| `u4-select-announces-390.png`          | U4: the moment Kitchen Stomp is picked — the bubble announces it, band still      |
+| `u4-stage-buttons-390.png`             | U4: the speaker and the new reset button side by side in the stage's corner       |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
