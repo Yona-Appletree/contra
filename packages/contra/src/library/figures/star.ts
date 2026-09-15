@@ -114,7 +114,7 @@ export const starDefinition: FigureDefinition = {
     },
   ],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   // A left-hand star is a right-hand star in a mirror: the hand decides which
   // way the ring turns, which way the bodies point and whose wrist you take.
   symmetry: { mirror: { kind: "parameters", hands: ["hand"] } },

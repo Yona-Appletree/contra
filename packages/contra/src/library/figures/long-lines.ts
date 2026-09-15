@@ -81,7 +81,7 @@ export const longLinesDefinition: FigureDefinition = {
     },
   ],
   ends: "relative",
-  timing: { stretch: "pace", profile: "smooth" },
+  timing: { stretch: "pace", profile: "cruise" },
   // Nothing in a long lines is handed at all: both lines walk straight in and
   // straight out, and which hand goes where is read off which way they face.
   symmetry: { mirror: { kind: "parameters" } },

@@ -76,7 +76,7 @@ export const robinsChainDefinition: FigureDefinition = {
   },
   holds: [],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   symmetry: {
     mirror: {
       kind: "handed",

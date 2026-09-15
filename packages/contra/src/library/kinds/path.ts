@@ -7,6 +7,7 @@ import {
   dist,
   lerp,
   mix,
+  profileProgress,
   ramp,
   smooth,
   sub,
@@ -292,11 +293,11 @@ function walker(
 
     switch (curve.kind) {
       case "walkStep": {
-        const step = passRight(start, end, t, beats, evalNumber(curve.bow, env));
+        const step = passRight(start, end, t, beats, evalNumber(curve.bow, env), input.profile);
         return { p: step.p, facing: step.facing, moving: step.moving };
       }
       case "bowed": {
-        const k = smooth(t / beats);
+        const k = profileProgress(input.profile, t, beats);
         // One passes in front and one behind, so they never share a point.
         const bow =
           evalNumber(curve.sign, env) * evalNumber(curve.bow, env) * Math.sin(Math.PI * k);
@@ -316,8 +317,18 @@ function walker(
         };
       }
       case "oscillate": {
+        // **Two legs, not one curve** (M10): out over the first half of the
+        // figure and back over the second, each on the profile's own ramps.
+        // Long lines' eight beats are two four-beat walks and a dancer walks
+        // *on* the beat down and back; one cosine over the whole eight is a
+        // single glide out and in, which is what the cruise replaces. The
+        // smoothstep keeps the cosine it has always had, so a definition that
+        // has not switched is byte-identical.
+        const distance = evalNumber(curve.distance, env);
         const out =
-          (evalNumber(curve.distance, env) * (1 - Math.cos((2 * Math.PI * t) / beats))) / 2;
+          input.profile === "cruise"
+            ? distance * legsOut(input.profile, t, beats)
+            : (distance * (1 - Math.cos((2 * Math.PI * t) / beats))) / 2;
         return {
           p: addScaled(start.p, dirOf(evalAngle(curve.along, env)), out),
           facing: body(0),
@@ -328,7 +339,9 @@ function walker(
         const mate = env.mate?.(role);
         if (mate === undefined) return still;
         const centre = midpoint(start.p, ctx.spot(mate).p);
-        const sweep = evalAngle(curve.sweep, env) * smooth(t / beats);
+        // A `withArc` facing rides this sweep, which is how the california
+        // twirl's spin comes to share its travel's profile (Q8).
+        const sweep = evalAngle(curve.sweep, env) * profileProgress(input.profile, t, beats);
         return {
           p: polar(
             centre,
@@ -392,6 +405,16 @@ function arcRadius(
 function readMaybe(expr: Parameters<typeof evalNumber>[0], env: ExprEnv): number | null {
   if (typeof expr === "object" && "param" in expr && env.params[expr.param] === null) return null;
   return evalNumber(expr, env);
+}
+
+/**
+ * An out-and-back as **two legs**: 0 at the start, 1 half way, 0 at the end,
+ * each half its own profiled walk. The spike's `legs(t, ramp)`.
+ */
+function legsOut(profile: Parameters<typeof profileProgress>[0], t: Beat, beats: Beat): number {
+  const half = beats / 2;
+  if (t <= half) return profileProgress(profile, t, half);
+  return 1 - profileProgress(profile, t - half, half);
 }
 
 /** How many equal steps a walk of `beats` covers its distance in. */

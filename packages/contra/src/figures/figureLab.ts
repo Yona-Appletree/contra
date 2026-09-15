@@ -1,5 +1,6 @@
 import type { Beat } from "@caller/core";
-import type { Dance, Formation, Group, MotionStats, StationId } from "@caller/choreo";
+import { dist } from "@caller/core";
+import type { AnyFigureDef, Dance, Formation, Group, MotionStats, StationId } from "@caller/choreo";
 import {
   SEAM_BEATS,
   createGroup,
@@ -13,6 +14,8 @@ import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
 import { createContraRegistry } from "./registry.js";
+import { interpretDefinition } from "../library/interpret.js";
+
 import type { FigureDefinition, HoldSpec, SideRule } from "../library/FigureDefinition.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { DEMO_DANCES } from "../dances/index.js";
@@ -90,6 +93,101 @@ export function figureAloneRow(
   });
   const report = motionReport(timeline, def.beats, { bounds: CONTRA_MOTION_BOUNDS });
   return report.figures[0];
+}
+
+/** One dancer's pace through a figure: how fast at their fastest, against the count. */
+export interface PaceRow {
+  /** The figure-role, which is the station the figure was planned on. */
+  role: string;
+  /** Peak body speed over a one-beat window, px per beat. */
+  peakPx: number;
+  /** The whole distance travelled divided by the figure's own count, px per beat. */
+  averagePx: number;
+  /** `peakPx / averagePx`: how much faster than the count they are at their fastest. */
+  peakOverAverage: number;
+  /** Which figure was measured; see {@link figurePaceRows}. */
+  from: "definition" | "registry";
+}
+
+/**
+ * **How a figure spends its beats** (M10): the body's peak-over-average speed,
+ * per figure-role, run alone at its nominal count.
+ *
+ * The number the move-motion gate judged. A smoothstep gives 1.50× at any
+ * length; the cruise gives 4/3 on any leg of four beats or fewer and 8/7 on an
+ * eight-beat one. A figure whose travel is not one leg — a figure that steps in,
+ * turns and steps out; a balance that rocks — reads higher or lower than either,
+ * and the number is descriptive, not a bound: what it is for is that a reviewer
+ * can see at a glance whether a definition is riding the profile its `timing`
+ * claims.
+ *
+ * The peak is over a **one-beat window**, like the oracle's own `travel` column,
+ * because an instantaneous difference of two 1/32-beat samples is noise and a
+ * beat is the unit the count is written in.
+ *
+ * **It measures the definition where it can.** Everything else in this lab goes
+ * through `createContraRegistry`, which is still the *coded* registry for every
+ * figure that has a coded twin (M11 is what empties it); this number is about
+ * the definition's own `timing.profile`, so measuring the figure the profile is
+ * written on is the only way it can mean anything. A definition that cannot be
+ * planned over a whole minor set standing alone — the swing's anchor is `meet`,
+ * which wants the two dancers resolution hands it and not four — falls back to
+ * the registry's figure, and the row says which was measured.
+ */
+export function figurePaceRows(
+  id: string,
+  kind: "duple" | "becket",
+  overrides: CheckOverrides = {},
+): PaceRow[] {
+  const registry = createContraRegistry([], overrides);
+  if (!registry.has(id)) return [];
+  const group = aloneGroup(kind);
+  const written = definitionOf(id);
+  const interpreted =
+    written && written.shape.kind !== "legacy"
+      ? (interpretDefinition(written) as unknown as AnyFigureDef)
+      : undefined;
+  const plans = (def: AnyFigureDef): boolean => {
+    try {
+      def.sample(group, group.stations[0]!.id, 0, withDefaults(def, {}, def.beats));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const from: PaceRow["from"] =
+    interpreted !== undefined && plans(interpreted) ? "definition" : "registry";
+  const def = from === "definition" ? interpreted! : registry.get(id);
+  const params = withDefaults(def, {}, def.beats);
+  const step = 1 / 32;
+  const window = Math.round(1 / step);
+  const steps = Math.round(def.beats / step);
+  const rows: PaceRow[] = [];
+  for (const station of group.stations) {
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+      points.push(def.sample(group, station.id, i * step, params).p);
+    }
+    let total = 0;
+    const along: number[] = [0];
+    for (let i = 1; i < points.length; i++) {
+      total += dist(points[i - 1]!, points[i]!);
+      along.push(total);
+    }
+    let peak = 0;
+    for (let i = 0; i + window < along.length; i++) {
+      peak = Math.max(peak, along[i + window]! - along[i]!);
+    }
+    const average = def.beats <= 0 ? 0 : total / def.beats;
+    rows.push({
+      role: station.id,
+      peakPx: peak,
+      averagePx: average,
+      peakOverAverage: average <= 1e-9 ? 0 : peak / average,
+      from,
+    });
+  }
+  return rows;
 }
 
 /** A group of four on {@link CHECK_FRAME}, in the formation asked for. */
@@ -317,6 +415,29 @@ export function figureLabReport(
   lines.push(motionLine("duple", duple));
   if (becketUsed) lines.push(motionLine("becket", becket));
   lines.push("");
+
+  // **The pace** (M10): how fast the body is at its fastest against its own
+  // count. `smooth` gives 1.50x; `cruise` gives 1.33x on a single leg of four
+  // beats or fewer, 1.14x on eight.
+  if (known) {
+    const pace = figurePaceRows(id, "duple", overrides);
+    if (pace.length > 0) {
+      const profile = definition ? definition.timing.profile : "—";
+      const measured = pace[0]!.from === "definition" ? "the definition" : "the coded figure";
+      lines.push(
+        `**Pace** of ${measured} (body speed, one-beat window, ` +
+          `\`timing.profile\` \`${profile}\`): ` +
+          pace
+            .map(
+              (row) =>
+                `\`${row.role}\` ${row.peakOverAverage.toFixed(3)}x ` +
+                `(${row.peakPx.toFixed(2)} peak / ${row.averagePx.toFixed(2)} avg px per beat)`,
+            )
+            .join(" · "),
+        "",
+      );
+    }
+  }
 
   lines.push(
     scoped.length === 0

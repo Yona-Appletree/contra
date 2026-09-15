@@ -48,7 +48,7 @@ export const passThroughDefinition: FigureDefinition = {
   },
   holds: [],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   // The bow is a handedness and it is easy to miss: two dancers pass **right**
   // shoulders when each bows to their own left, so in a mirror the same bow
   // passes them left shoulders and the number has to change sign.

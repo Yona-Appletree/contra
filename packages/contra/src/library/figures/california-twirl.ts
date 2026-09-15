@@ -172,7 +172,7 @@ export const californiaTwirlDefinition: FigureDefinition = {
     },
   ],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   // The two places a twirl ends on are the same either way round; the arc
   // between them is the mirror image, which is `direction` — and a mirror swaps
   // the two hands, which is what `hand`'s two words say.

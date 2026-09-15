@@ -927,6 +927,36 @@ against that — rather than a template.
   coded figure it replaces, in a real set, resolved through the real
   `resolveCall`.
 
+### Timing profiles (M10)
+
+`FigureDefinition.timing.profile` says **how a figure's travel spends its
+beats**, and since M10 the walking kinds read it rather than each easing on a
+smoothstep of their own.
+
+| profile     | what it means                                                                                                                                                                                                                       | which definitions                                                                                                                                                                                                                                                  |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cruise`    | `@caller/core`'s constant-speed trapezoid, ramps of `min(1 beat, leg / 4)` — up to speed in about a beat, hold it, down in about a beat. Peak-over-average 4/3 on a leg of four beats or fewer, 8/7 on eight.                       | `long-lines`, `circle`, `star`, `petronella`, `pass-through`, `roll-away`, `california-twirl`, `right-and-left-through`, `robins-chain`                                                                                                                            |
+| `trapezoid` | the figure's own **explicit** four-corner speed window, written out in the shape (`SpeedWindow`) and read by `kinds/orbitPair.ts`. A figure that already says exactly how it accelerates does not need a general rule laid over it. | `swing`, `allemande`, `do-si-do`, `shoulder-round`, `balance-and-swing`, `turn-contra-corners`                                                                                                                                                                     |
+| `smooth`    | one smoothstep over the leg: the pre-M10 default, and what a figure that is not a walk keeps.                                                                                                                                       | everything else — `balance` and `balance-ring` (a 1 px rock; the feet are the point), the hey (its weave is already traversed at a constant rate and its two-beat step on and off is deliberately linear), `slide-left` (its `stepped()` pace was ruled by S2 #52) |
+
+Three things ride the travel's profile rather than having one of their own, per
+the move-motion plan's Q8: the petronella's spin (it rides the chord's own
+progress), the california twirl's `withArc` facing (it rides the arc's sweep),
+and the courtesy turn's rotation. The roll-away's spin keeps its own smoothstep,
+which is why the roller still turns at her own rate under a cruising walk.
+
+Two of the switches are worth naming. **Long lines** becomes two legs rather
+than one curve — four beats down the hall and four back, each with its own ramps
+— instead of a single cosine over the eight. And **the chain's orbit** now turns
+at a constant rate for the middle of the figure, which puts the lark about 77°
+round at the two-beat join instead of 56°; the robin is still handed on to it at
+its own analytic speed (`profileSpeed`), so she joins the orbit rather than being
+picked up standing still.
+
+The **feet** are not a profile: they are `@caller/core`'s planted gait, applied
+by `@caller/choreo`'s `poseAt` to every figure that does not place its own, and
+by `kinds/orbitPair.ts` to the walking half of a swing.
+
 **`src/figures/language/` and `src/figures/specs/` are gone** (M4). They were
 M1's first pass at the same idea, with the calculus written against stations
 rather than figure-roles; their only figure was `circle-data`, which the real

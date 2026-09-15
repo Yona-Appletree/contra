@@ -80,7 +80,7 @@ export const circleDefinition: FigureDefinition = {
     },
   ],
   ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
+  timing: { stretch: "distance", profile: "cruise" },
   // A circle right *is* a circle left in a mirror, which is the whole reason
   // `direction` is a parameter rather than two figures.
   symmetry: {
