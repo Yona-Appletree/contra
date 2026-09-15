@@ -1,5 +1,5 @@
 import type { Beat, Vec2 } from "@caller/core";
-import { addScaled, angleDiff, dirOf, lerp, smooth } from "@caller/core";
+import { addScaled, angleDiff, angleLerp, dirOf, dist, lerp, smooth } from "@caller/core";
 import type { Ring } from "@caller/choreo";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
 import { bearing, isHeld, takeAndRelease } from "../../figures/ContraFigure.js";
@@ -62,21 +62,37 @@ export function planRingWalk(
   const outBeats = evalNumber(shape.outBeats, env);
   const step = 360 / ring.order.length;
 
+  // **The chain is a loop through the dancers' own places** (FR-A2), so it
+  // answers which way a dancer is left looking off the path itself rather than
+  // off a radius. Built before the ends, because the ends read it.
+  const chain =
+    shape.travel.kind === "chain"
+      ? chainOf(ring, ctx, sign, places, evalNumber(shape.travel.corner, env))
+      : undefined;
+
   const ends: Spots = {};
   for (const role of ctx.ids) {
     const p = ctx.spot(ringShift(ring, role, sign * places)).p;
-    ends[role] = { p, facing: endFacingOf(shape, ring, p, envFor(role, 0)) };
+    ends[role] = {
+      p,
+      facing:
+        chain === undefined
+          ? endFacingOf(shape, ring, p, envFor(role, 0))
+          : chainEndFacing(shape, chain, role, envFor(role, 0)),
+    };
   }
 
   const placeAt =
-    shape.travel.kind === "ring"
-      ? ringTravel(ring, ctx, ends, beats, {
-          inBeats,
-          outBeats,
-          turn: sign * places * step,
-          faceOffset,
-        })
-      : chordTravel(shape, ring, input, ends, envFor);
+    chain !== undefined
+      ? chainTravel(chain, beats, faceOffset)
+      : shape.travel.kind === "ring"
+        ? ringTravel(ring, ctx, ends, beats, {
+            inBeats,
+            outBeats,
+            turn: sign * places * step,
+            faceOffset,
+          })
+        : chordTravel(shape, ring, input, ends, envFor);
 
   const active = activeHolds(holds, input, env);
   const ringHold = active.find((hold) => hold.kind === "ring");
@@ -143,6 +159,160 @@ function ringTravel(
 ): (role: FigureRole, t: Beat) => Spot {
   return (role, t) =>
     ringWalk(ring, role, ctx.spot(role), ends[role] ?? ctx.spot(role), t, beats, walk);
+}
+
+/**
+ * **The bike chain** (FR-A2): one dancer's whole path round the set, as the
+ * places they walk through.
+ *
+ * The user, on the single file promenade: *"not at all right. you don't just
+ * rotate about the center. you walk around the set single file like in a bike
+ * chain."* A ring travel answers that by stepping every dancer **in** to a
+ * regular circle about the set's middle and turning the circle; what a
+ * promenade round the set really is, is the four of them walking the set's own
+ * outline nose to tail, each one going to the place of the dancer in front.
+ *
+ * So the path is a polyline through the dancers' own places, in ring order, and
+ * a dancer going `places` places walks through every place in between. Nothing
+ * is stepped in to and nothing is stepped out of — every dancer is already
+ * standing on the path — which is also why a quarter is a straight run rather
+ * than an arc.
+ */
+interface Chain {
+  /** The places this dancer walks through, their own first. */
+  through: readonly Vec2[];
+  /** The place after the last one: not walked to, but the way the loop goes on. */
+  beyond: Vec2;
+  /** How far either side of a place the body is turned over, px. */
+  corner: number;
+}
+
+/** Every dancer's chain: their own place, then each place in front of them. */
+function chainOf(
+  ring: Ring,
+  ctx: ShapeInput["ctx"],
+  sign: number,
+  places: number,
+  corner: number,
+): Record<FigureRole, Chain> {
+  const n = ring.order.length;
+  const out: Record<FigureRole, Chain> = {};
+  // A fraction of a place is a fraction of the last run: the whole runs, then
+  // part of one more. `ringShift` rounds, and this is what it rounds off.
+  const whole = Math.floor(Math.abs(places) + 1e-9);
+  const part = Math.abs(places) - whole;
+  const way = sign >= 0 ? 1 : -1;
+  const round = (k: number): Vec2 => ctx.spot(ring.order[((k % n) + n) % n]!).p;
+  for (const role of ring.order) {
+    const at = ring.order.indexOf(role);
+    const through: Vec2[] = [];
+    for (let k = 0; k <= whole; k++) through.push(round(at + way * k));
+    if (part > 1e-9) {
+      through.push(lerp(through[through.length - 1]!, round(at + way * (whole + 1)), part));
+    }
+    out[role] = { through, beyond: round(at + way * (whole + 1)), corner };
+  }
+  return out;
+}
+
+/**
+ * Where a dancer is on their chain `k` of the way along it, and which way they
+ * are looking.
+ *
+ * Every place on the path is walked **through** — it is somebody's place, and
+ * taking it is the whole of what the figure does — and the corner itself is
+ * where the body turns: over `corner` px either side of a place the dancer eases
+ * from carrying straight on to setting off down the next run, so the turn is a
+ * turn and not a hinge. A dancer who never reaches a corner (a quarter of a ring
+ * of four is one straight run) never sees it.
+ */
+function chainAt(chain: Chain, k: number): Spot {
+  const pts = chain.through;
+  const first = pts[0];
+  if (first === undefined) throw new Error(`a chain with no places`);
+  if (pts.length < 2) return { p: first, facing: 0 };
+  const legs = pts.slice(1).map((p, i) => dist(pts[i]!, p));
+  const total = legs.reduce((a, b) => a + b, 0);
+  if (total < 1e-9) return { p: first, facing: 0 };
+  let s = Math.max(0, Math.min(1, k)) * total;
+  let leg = 0;
+  while (leg < legs.length - 1 && s > legs[leg]!) {
+    s -= legs[leg]!;
+    leg += 1;
+  }
+  const from = pts[leg]!;
+  const to = pts[leg + 1]!;
+  const len = legs[leg]!;
+  const way = bearing(from, to);
+  const straight: Vec2 = addScaled(from, dirOf(way), s);
+
+  // The turn, at the place this run starts on and at the one it ends on: blend
+  // with carrying straight on from the run before, and with setting off along
+  // the run after. The place itself is still walked over exactly.
+  const w = Math.min(chain.corner, len / 2);
+  const before = leg > 0 ? bearing(pts[leg - 1]!, from) : undefined;
+  // The last place is a corner too: the loop carries on round the set past it,
+  // and a dancer who stops there has already started to turn it. So the same
+  // blend runs at the end, which leaves the body half way into the turn —
+  // exactly where the ring travel's tangent used to leave it, and what
+  // `chainEndFacing` reads.
+  const next = leg + 2 < pts.length ? pts[leg + 2]! : chain.beyond;
+  const after = dist(to, next) < 1e-9 ? undefined : bearing(to, next);
+  if (w > 0 && before !== undefined && s < w) {
+    const u = smooth((s + w) / (2 * w));
+    return {
+      p: lerp(addScaled(from, dirOf(before), s), straight, u),
+      facing: angleLerp(before, way, u),
+    };
+  }
+  if (w > 0 && after !== undefined && s > len - w) {
+    const u = smooth((s - (len - w)) / (2 * w));
+    return {
+      p: lerp(straight, addScaled(to, dirOf(after), s - len), u),
+      facing: angleLerp(way, after, u),
+    };
+  }
+  return { p: straight, facing: way };
+}
+
+/** Riding the chain: the whole path, eased over the figure's own beats. */
+function chainTravel(
+  chains: Record<FigureRole, Chain>,
+  beats: Beat,
+  faceOffset: number,
+): (role: FigureRole, t: Beat) => Spot {
+  return (role, t) => {
+    const chain = chains[role];
+    if (chain === undefined) throw new Error(`ringWalk: "${role}" is not on the chain`);
+    const at = chainAt(chain, smooth(beats === 0 ? 1 : t / beats));
+    return { p: at.p, facing: at.facing + faceOffset };
+  };
+}
+
+/**
+ * Which way a chain leaves a dancer looking: **the way the loop is going where
+ * they stopped**, which is half way between the run they came in on and the run
+ * that carries on round the set.
+ *
+ * A dancer who stops on a corner of the set has already started to turn it —
+ * that is what going round something means, and it is the same answer the ring
+ * travel gave (a circle's tangent at the place) for a path that is a circle. The
+ * incoming run alone reads as stopping dead facing the wall: measured, it costs
+ * the swing after Jeremy Corners' promenade thirty degrees more turning than it
+ * has beats for, and the arm solver reported 2.94 px of hand out of reach at
+ * beat 56.625.
+ */
+function chainEndFacing(
+  shape: RingWalkShape,
+  chains: Record<FigureRole, Chain>,
+  role: FigureRole,
+  env: ExprEnv,
+): number {
+  const chain = chains[role];
+  if (chain === undefined) throw new Error(`ringWalk: "${role}" is not on the chain`);
+  const end = chainAt(chain, 1);
+  if (shape.endFacing.kind === "inward") return bearing(end.p, chain.through[0] ?? end.p);
+  return end.facing + evalAngle(shape.endFacing.offset, env);
 }
 
 /**

@@ -472,7 +472,27 @@ export type RingTravel =
    * bulges `R(1 − cos(arc / 2))` beyond the set — most of the gap to the next
    * minor set — which is `petronella.ts`'s own `bowPx` note.
    */
-  | { kind: "chord"; bow: NumberExpr; spins: NumberExpr; flare: NumberExpr };
+  | { kind: "chord"; bow: NumberExpr; spins: NumberExpr; flare: NumberExpr }
+  /**
+   * **Round the set itself, one behind another: the bike chain** (FR-A2).
+   *
+   * The user, on the single file promenade: *"not at all right. you don't just
+   * rotate about the center. you walk around the set single file like in a bike
+   * chain."* So the path is the **loop through the dancers' own places** — the
+   * set's own outline — and not a ring the four step in to: each dancer walks
+   * the straight run to the place in front of them, rounds the corner where the
+   * set turns, and walks the next run, exactly as a chain runs round its
+   * sprockets. Nobody steps in, nobody steps out, and the shape of the set is
+   * what the path is shaped like.
+   *
+   * `corner` is how far either side of a place the body is turned over, px.
+   *
+   * With this travel, {@link RingWalkShape.faceOffset} and a `tangent`
+   * {@link RingFacing}'s offset are read against the **direction of travel**
+   * rather than against a radius: on a loop with corners there is no radius to
+   * measure a tangent off.
+   */
+  | { kind: "chain"; corner: NumberExpr };
 
 /**
  * A dancer's own written path: a walk to a computed point, along a named curve,
