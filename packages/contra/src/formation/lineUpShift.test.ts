@@ -37,8 +37,17 @@ describe("the line-up shift comes off the progression", () => {
   });
 
   it("is left for becket: you progress across the way you are facing", () => {
-    for (const couples of [4, 6, 8]) {
+    // Odd lengths are in the list because of S2: an odd becket line sends one
+    // couple *straight across* the set at the end that has no waiting place,
+    // and that couple's travel is across their own facing the wrong way round.
+    // Measuring them would answer `null` for the whole hall — which is exactly
+    // what happened, and why `lineUpShiftOf` now skips a crossed-over dancer
+    // the same way it already skipped one standing out.
+    for (const couples of [4, 5, 6, 7, 8, 9]) {
       expect(lineUpShiftOf(BECKET, BECKET.start(spec(couples))), `${couples}`).toBe("left");
+      // And again a time through in, when a couple really has just crossed.
+      const on = BECKET.progression.next(BECKET.start(spec(couples)));
+      expect(lineUpShiftOf(BECKET, on), `${couples}, progressed`).toBe("left");
     }
     expect(shiftPlaces("left")).toBe(1);
   });
