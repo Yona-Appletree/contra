@@ -1,8 +1,8 @@
 {
   "id": "roll-away",
   "walkthrough": {
-    "short": "Take near hands with {pairs}: {roller} rolls across in front, the other slides behind.",
-    "long": "Take near hands with {pairs}. Then {roller} rolls across in front of the other, turning once round on the way, while the other slides sideways into the place they came from. You have traded places and you both still face the way you were. Four beats, hands joined through the roll. {where}"
+    "short": "Take near hands with {pairs}: {roller} rolls across in front, turning inward, the other slides behind.",
+    "long": "Take near hands with {pairs}. Then {roller} rolls across in front of the other, turning inward — nose to nose first, then on round once — while the other slides sideways into the place they came from. You have traded places and you both still face the way you were. Four beats, hands joined through the roll. {where}"
   },
   "call": {
     "short": "ROLL AWAY",

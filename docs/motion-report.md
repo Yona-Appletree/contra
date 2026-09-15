@@ -69,7 +69,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
 | `circle` | 28.6 | 37.2 | 1.90 | 8.0 | 38 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
 | `bend-the-line` | 33.3 | 34.9 | 4.57 | 9.7 | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
-| `star` | 45.2 | 44.6 | 1.76 | 12.1 | 72 | 0.23 | 0 | **8.27** | `set0/c2/robin` R at beat 59.031 |
+| `star` | 45.2 | 44.6 | 2.23 | 12.1 | 72 | 0.23 | 0 | **8.27** | `set0/c2/robin` R at beat 59.031 |
 | `allemande` | 67.4 | 69.9 | 5.35 | 23.4 | 166 | 0.45 | 0 | **7.86** | `set0/c0/lark` R at beat 14.438 |
 | `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 49.688 |
 
@@ -78,7 +78,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `bend-the-line → circle` | 12.6 | 11.4 | 0.91 | 3.0 | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
-| `long-lines → star` | 25.5 | 35.8 | 1.42 | 7.2 | 0 | 0.00 | 0 | **8.27** | `set0/c3/lark` L at beat 56.375 |
+| `long-lines → star` | 26.6 | 37.4 | 1.42 | 7.2 | 0 | 0.00 | 0 | **8.27** | `set0/c3/lark` L at beat 56.375 |
 | `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
 | `long-lines → robins-chain` | 48.0 | 45.0 | 2.16 | 0.7 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 24.344 |
 | `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
@@ -108,7 +108,7 @@ it, so every number is the figure's own and no seam is folded in.
 | `right-and-left-through` | 34.0 | 75.1 | 7.33 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 3.813 |
 | `down-the-hall` | 26.5 | 129.2 | 7.06 | 6.5 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.563 |
 | `up-the-hall` | 26.5 | 129.2 | 7.06 | 6.5 | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.563 |
-| `star` | 35.7 | 35.2 | 1.68 | 12.1 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
+| `star` | 35.7 | 35.2 | 2.34 | 12.1 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
 | `jersey-twirl` | 29.2 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 2.000 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
@@ -117,8 +117,8 @@ it, so every number is the figure's own and no seam is folded in.
 | `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
 | `hey` | 22.0 | 26.3 | 2.30 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.750 |
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
+| `mad-robin` | 17.9 | 17.7 | 1.78 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.531 |
 | `single-file-promenade` | 11.1 | 9.8 | 1.57 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 6.500 |
-| `mad-robin` | 9.6 | 7.9 | 1.51 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 4.000 |
 | `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
 | `balance-ring` | 17.5 | 21.2 | 1.61 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
 | `circle` | 17.2 | 22.3 | 1.44 | 3.8 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
@@ -351,7 +351,7 @@ On your own, turn away from the middle of the set and walk round the outside of 
 
 ### `cast-off` — CAST OFF
 
-Turn away from the middle of the set and walk round the dancer standing along the line from you, outside the line, into the place they were in. They step up the inside into the place you have left. The two of you have traded places, and that is the progression.
+Turn away from the middle of the set — if the set is on your left you turn to your right — and swoop out and round the dancer standing along the line from you, on the outside, then loop back in to the place they were in. They step in toward the middle and come up the inside into the place you have left. The two of you have traded places, and that is the progression.
 
 ### `circle` — CIRCLE LEFT
 
@@ -419,7 +419,7 @@ On your own, walk a small circle to the named side — right unless the caller s
 
 ### `mad-robin` — MAD ROBIN
 
-Circle round the dancer you are dancing this with, one of you passing in front and the other behind, and do not turn round: keep facing exactly the way you were facing the whole way. Half way leaves you on each other's places, still looking the same way; all the way brings you home. Nobody takes hands. (unsure: many callers teach this as the robins circulating while the larks stand still.)
+Look straight across the set, at the dancer opposite you, and keep looking at them: that is the whole figure. Now circle round the dancer beside you the way a do-si-do goes — forward and past them on one side, sideways along the line, back behind them on the other — without ever turning your body. It is a sideways do-si-do, danced looking across the set. Half way leaves you on their place, still looking across; all the way brings you home. Nobody takes hands.
 
 ### `pass-through` — PASS THROUGH
 

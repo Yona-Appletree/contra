@@ -1,16 +1,15 @@
-import type { Beat, Hand } from "@caller/core";
-import { addScaled, dirOf, dist, norm, ramp, sub } from "@caller/core";
+import type { Beat, Hand, Vec2 } from "@caller/core";
+import { addScaled, dirOf, dist, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type { HandJoin, HoldWindow, LocalHand, Spot } from "../../figures/ContraFigure.js";
 import {
-  bearing,
   holdWindow,
   isHeld,
   joinPoint,
   joinedHands,
   midpoint,
-  polar,
 } from "../../figures/ContraFigure.js";
+import { wristPoint } from "../../figures/star.js";
 import { handDown } from "../../pair/PairFrame.js";
 import type {
   HoldSpec,
@@ -261,7 +260,13 @@ export function soloHandAt(
     return {
       side,
       hand: {
-        p: polar(env.anchor, bearing(env.anchor, ahead.p), evalNumber(point.radius, env)),
+        p: wristPoint(
+          env.anchor,
+          live(role).p,
+          shouldersAt(ahead.p, ahead.facing)[side],
+          ahead.p,
+          evalNumber(point.along, env),
+        ),
         drop,
       },
     };
@@ -282,7 +287,17 @@ export function soloHandAt(
  * couple already stands and reads the start.
  */
 export function resolveSide(rule: SideRule, env: ExprEnv): Side {
-  if (typeof rule === "string" || "param" in rule) return evalSide(rule, env);
+  if (typeof rule === "string" || "param" in rule || "select" in rule) return evalSide(rule, env);
+  if ("ifRole" in rule) {
+    const want = env.params[rule.ifRole];
+    if (!(rule.ifRole in env.params)) {
+      throw new Error(
+        `a hold's hand is chosen by "${rule.ifRole}", which is not a parameter ` +
+          `(have: ${Object.keys(env.params).join(", ")})`,
+      );
+    }
+    return evalSide(env.ctx.role(env.self) === want ? rule.then : rule.else, env);
+  }
   const nearest = "nearest" in rule;
   const other = evalRole(nearest ? rule.nearest : rule.furthest, env);
   const facing = evalSpot(rule.facing, env.self, env).facing;
@@ -327,15 +342,43 @@ export function mateHandAt(
   const theirSide = resolveSide(hold.spec.side, mateEnv);
   const self = live(role);
   const other = live(mate);
-  const point =
-    hold.spec.point.kind === "midpoint"
-      ? midpoint(self.p, other.p)
-      : joinPoint(self, mySide, other, theirSide);
+  const point = matePoint(hold, role, self, mySide, other, theirSide, env, live);
   const stack = hold.spec.stackPx === undefined ? 0 : evalNumber(hold.spec.stackPx, env);
   const joined = joinedHands(env.ctx, role, mate, point, evalNumber(hold.spec.drop, env), stack);
   const mine = joined[role];
   if (!mine) throw new Error(`no joined hand for "${role}"`);
   return { side: mySide, hand: mine };
+}
+
+/**
+ * The one shared floor point a {@link MateHold} names, for this pair.
+ *
+ * `"over"` is the california twirl's arch and the reason the kind exists: the
+ * raiser holds the joined hand **over the head of the dancer walking under it**,
+ * `back` px along the line toward himself, rather than half way between the two
+ * of them. Both ends compute it from the same two live positions, so it is still
+ * one point read twice and not two that agree.
+ */
+function matePoint(
+  hold: ActiveMateHold,
+  role: string,
+  self: Spot,
+  mySide: Side,
+  other: Spot,
+  theirSide: Side,
+  env: ExprEnv,
+  live: (role: string) => Spot,
+): Vec2 {
+  const point = hold.spec.point;
+  if (point.kind === "midpoint") return midpoint(self.p, other.p);
+  if (point.kind === "over") {
+    const underRole = evalRole(point.role, env);
+    const under = live(underRole).p;
+    const raiser = underRole === role ? other.p : self.p;
+    if (dist(under, raiser) === 0) return under;
+    return addScaled(under, norm(sub(raiser, under)), evalNumber(point.back, env));
+  }
+  return joinPoint(self, mySide, other, theirSide);
 }
 
 /**

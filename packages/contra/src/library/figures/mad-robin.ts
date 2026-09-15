@@ -2,19 +2,38 @@ import type { AngleExpr, FigureDefinition, NumberExpr, PointExpr } from "../Figu
 import { MINOR_SET_ROLES } from "./carriers.js";
 
 /**
- * **Mad robin**, as data: circulate round each other without turning round.
+ * **Mad robin**, as data: a sideways do-si-do, danced looking across the set.
  *
- * The pair walk a circle about the point between them — one in front of the
- * other and one behind — and **keep their facing the whole way**, which is the
- * whole figure and the reason it feels the way it does: you are travelling
- * sideways and backwards past somebody while still looking where you were
- * looking. On the Prowl asks for a half of one in three beats, twice, once
- * round a neighbour and once round a partner.
+ * The user, on the Moves page:
  *
- * So it is an `arc` about the pair's own centre with `facing: { kind: "held" }`
- * — the same curve a california twirl walks, with the body *not* carried round
- * by it. Which way round is `direction`, and how far is `amount`; the ends fall
- * out of both, which is what the polar expression below says.
+ * > "also totally wrong. you're facing someone across the set. you and them
+ * > orbit sideways around the person next to you, staying looking at the person
+ * > across the set. often called a sideways do-si-do while looking across the
+ * > set."
+ *
+ * Three sentences, and they name three separate things:
+ *
+ * 1. **Who you go round** is the dancer *beside* you — in a long line, your
+ *    neighbour up or down it — and you go round them the way a do-si-do does,
+ *    on the circle whose diameter is the two of you. That is `pairs`, and it is
+ *    what On the Prowl's *"mad robin clockwise 1/2 around neighbor"* names. It
+ *    has not moved.
+ * 2. **Which way your body points** is *across the set*, and that is the whole
+ *    figure. It was `held` — whatever you happened to be facing — which on the
+ *    Moves page meant a set standing in its own hands-four places danced the
+ *    whole figure looking **up and down the line at the very dancer it was
+ *    going round**. So the facing is written down now instead of inherited: the
+ *    bearing from where you stand to the set's own midline, abeam of you, which
+ *    is `long-lines`' own idiom and comes out right on both lines and in either
+ *    formation. A dancer already standing across the set is not turned at all —
+ *    On the Prowl's A2 mad robin is unchanged to the last pixel — and one who
+ *    is not turns on to it over the first beat and then holds it.
+ * 3. **You do not turn again.** Once across, the facing is pinned there for the
+ *    whole figure: you travel forward past your neighbour, sideways along the
+ *    line, and backwards behind them, still looking at the same person.
+ *
+ * `direction` says which way round and `amount` how far; the ends fall out of
+ * both, which is what the polar expression below says.
  *
  * (unsure: a mad robin is most often taught as the robins circulating while the
  * larks stand, and the corpus writes it both ways. This dances whoever `pairs`
@@ -40,12 +59,33 @@ const CENTRE: PointExpr = {
   b: { point: "start", role: { role: "mate" } },
 };
 
+/**
+ * **Straight across the set from where I stand**: the set's own midline, abeam
+ * of me.
+ *
+ * `x` is across the set and `y` along it in the frame's local axes, so the
+ * anchor's across-coordinate at my own along-coordinate is the point opposite
+ * me — and the dancer across the set is standing on or near it. Long lines is
+ * written in the same sentence.
+ */
+const ACROSS: AngleExpr = {
+  angle: "bearing",
+  from: { point: "start", role: { role: "self" } },
+  to: { point: "compose", x: { point: "anchor" }, y: { point: "start", role: { role: "self" } } },
+};
+
+/** How long a dancer who is not already across the set takes to turn on to it. */
+const SETTLE: NumberExpr = {
+  number: "min",
+  of: [1, { number: "mul", of: [{ number: "beats" }, 1 / 3] }],
+};
+
 /** Mad robin, as a figure definition. */
 export const madRobinDefinition: FigureDefinition = {
   id: "mad-robin",
   call: "MAD ROBIN",
   describe:
-    "Circle round the dancer you are dancing this with, one of you passing in front and the other behind, and do not turn round: keep facing exactly the way you were facing the whole way. Half way leaves you on each other's places, still looking the same way; all the way brings you home. Nobody takes hands. (unsure: many callers teach this as the robins circulating while the larks stand still.)",
+    "Look straight across the set, at the dancer opposite you, and keep looking at them: that is the whole figure. Now circle round the dancer beside you the way a do-si-do goes — forward and past them on one side, sideways along the line, back behind them on the other — without ever turning your body. It is a sideways do-si-do, danced looking across the set. Half way leaves you on their place, still looking across; all the way brings you home. Nobody takes hands.",
   lead: 4,
   nominalBeats: 8,
   roles: MINOR_SET_ROLES,
@@ -79,11 +119,13 @@ export const madRobinDefinition: FigureDefinition = {
             to: { point: "start", role: { role: "self" } },
           },
         },
-        // Facing is untouched: that is the figure.
-        facing: { angle: "facingOf", role: { role: "self" }, at: "start" },
+        // Still looking straight across the set: that is the figure.
+        facing: ACROSS,
       },
       curve: { kind: "arc", sweep: SWEEP },
-      facing: { kind: "held" },
+      // On to the across-the-set facing over the first beat, and pinned there:
+      // a dancer the dance already left facing across is not turned at all.
+      facing: { kind: "settle", beats: SETTLE },
       idleHands: { kind: "down" },
     },
     // Whoever the pairing left out stands where they are while it goes on
@@ -96,7 +138,8 @@ export const madRobinDefinition: FigureDefinition = {
   // a slower turn, because the body is not turning at all.
   timing: { stretch: "distance", profile: "smooth" },
   // Clockwise and counterclockwise are each other's mirror image, and nothing
-  // else about the figure is handed: the bodies never turn.
+  // else about the figure is handed: "across the set" is a direction a mirror
+  // maps on to itself.
   symmetry: {
     mirror: {
       kind: "parameters",

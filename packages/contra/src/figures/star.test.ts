@@ -4,7 +4,7 @@ import { dist } from "@caller/core";
 import { frame as makeFrame, withDefaults } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
-import { WRIST_RADIUS_PX, star } from "./star.js";
+import { WRIST_ALONG, star } from "./star.js";
 import {
   figureMoves,
   figureProblems,
@@ -57,9 +57,14 @@ describe("star", () => {
     for (const id of ["1L", "1R", "2L", "2R"] as const) {
       const hand = star.sample(group, id, t, resolved).hands.R;
       if (hand === "down") throw new Error(`${id}'s R hand is down at beat ${t}`);
-      // The ring's centre is the group's own centre, [0, 0] on this frame:
-      // every wrist point sits exactly one forearm out from it.
-      expect(Math.hypot(hand.p[0], hand.p[1])).toBeCloseTo(WRIST_RADIUS_PX, 5);
+      // The ring's centre is the group's own centre, [0, 0] on this frame, and
+      // the four grips sit on a ring about it: `WRIST_ALONG` of the way down
+      // the arm of the dancer ahead, which for a four-star's 6.51 px shoulder
+      // radius is `s × (1 − t) / |1 − t·i|` = 2.9100 px at `t = 0.5`
+      // (`figures/star.ts`'s `wristPoint`). Well clear of the middle, and well
+      // clear of anybody's shoulder.
+      expect(WRIST_ALONG).toBe(0.5);
+      expect(Math.hypot(hand.p[0], hand.p[1])).toBeCloseTo(2.91, 2);
       points.push(hand.p);
     }
     for (let i = 0; i < points.length; i++) {

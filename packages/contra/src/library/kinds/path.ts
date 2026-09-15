@@ -37,10 +37,11 @@ import type {
   HoldSpec,
   PathCurve,
   PathShape,
+  PathSpin,
   PathTrack,
 } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
-import { evalAngle, evalNumber, evalPoint } from "../expr.js";
+import { evalAngle, evalNumber, evalPoint, evalRole } from "../expr.js";
 import type { ShapeInput } from "../interpret.js";
 import {
   activeHolds,
@@ -329,7 +330,11 @@ function walker(
         const centre = midpoint(start.p, ctx.spot(mate).p);
         const sweep = evalAngle(curve.sweep, env) * smooth(t / beats);
         return {
-          p: polar(centre, bearing(centre, start.p) + sweep, Math.hypot(...sub(start.p, centre))),
+          p: polar(
+            centre,
+            bearing(centre, start.p) + sweep,
+            arcRadius(curve, start, centre, t, env),
+          ),
           facing: body(sweep),
           moving: true,
         };
@@ -341,6 +346,37 @@ function walker(
       }
     }
   };
+}
+
+/**
+ * How far from the centre a dancer rides an `arc`, `t` beats in.
+ *
+ * The radius they are standing at, unless the curve says how close the two of
+ * them come: then they close on to that over the first `closeBeats`, hold it
+ * round the turn, and open out on to their own ends over the last. `bow` is
+ * laid on top of it, out and back over the whole figure.
+ */
+function arcRadius(
+  curve: Extract<PathCurve, { kind: "arc" }>,
+  start: Spot,
+  centre: Vec2,
+  t: Beat,
+  env: ExprEnv,
+): number {
+  const own = Math.hypot(...sub(start.p, centre));
+  const beats = env.beats;
+  let radius = own;
+  if (curve.hold !== undefined) {
+    const close = curve.closeBeats === undefined ? 1 : evalNumber(curve.closeBeats, env);
+    const held = evalNumber(curve.hold, env);
+    radius = mix(
+      mix(own, held, smooth(ramp(t, 0, close))),
+      own,
+      smooth(ramp(t, beats - close, beats)),
+    );
+  }
+  if (curve.bow === undefined) return radius;
+  return radius + evalNumber(curve.bow, env) * Math.sin(Math.PI * clamp01(t / beats));
 }
 
 /**
@@ -420,7 +456,32 @@ function facingOf(
   }
   const from = spin.from === undefined ? 0 : evalNumber(spin.from, env);
   const k = beats <= from ? 1 : clamp01((t - from) / (beats - from));
-  return start.facing + 360 * evalNumber(spin.turns, env) * smooth(k);
+  const turns = Math.abs(evalNumber(spin.turns, env)) * inwardSign(spin, start, env);
+  return start.facing + 360 * turns * smooth(k);
+}
+
+/**
+ * Which way a {@link PathSpin} goes when it names a dancer to turn **toward**:
+ * `+1` when they are on the spinner's right, `−1` when they are on the left, so
+ * the first quarter of the turn brings the nose round on to them.
+ *
+ * A spin that names nobody keeps the sign its `turns` carries, which is what
+ * every other spin in the library is written with — and so does a dancer the
+ * pairing left out, who has nobody to turn toward and still turns, because
+ * {@link walker} dances a partial pairing's odd dancers rather than freezing
+ * them.
+ */
+function inwardSign(spin: PathSpin, start: Spot, env: ExprEnv): number {
+  const toward = spin.toward;
+  const written = Math.sign(evalNumber(spin.turns, env) || 1);
+  if (toward === undefined) return written;
+  if (typeof toward === "object" && "role" in toward && toward.role === "mate") {
+    if (env.mate?.(env.self) === undefined) return written;
+  }
+  const other = env.ctx.spot(evalRole(toward, env)).p;
+  const toOther = sub(other, start.p);
+  const right = dirOf(start.facing + 90);
+  return right[0] * toOther[0] + right[1] * toOther[1] >= 0 ? 1 : -1;
 }
 
 /** What one do-si-do pair needs to know about itself. */
