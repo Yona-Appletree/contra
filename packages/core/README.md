@@ -118,6 +118,18 @@ function hangingHand(p: Vec2, facing: Angle, side: "L" | "R", beat: Beat, amp: n
 function elbowPole(shoulder: Vec2, hand: Hand, side: "L" | "R", facing: Angle): Vec2;
 function resolveHand(pose: PoseSample, p: Vec2, side: "L" | "R", beat: Beat): Hand;
 function drawnArms(pose: PoseSample, beat: Beat, p?: Vec2, torsoAngle?: Angle): DrawnArms;
+const handDown = hangingHand; // the name a figure calls it by
+
+// what a figure moves on — src/kinematics/trapezoid.ts, swingFeet.ts, armShortfall.ts
+function trapezoid(t: number, a0: number, a1: number, b0: number, b1: number): number;
+function trapezoidSpeed(t: number, a0: number, a1: number, b0: number, b1: number): number;
+function swingFeet(t: Beat, facing: Angle, velocity: Vec2, buzz: number): { L: Vec2; R: Vec2 };
+function armShortfall(
+  pose: PoseSample,
+  beat: Beat,
+  velocity: Vec2,
+  style?: Style,
+): { L: number; R: number };
 ```
 
 `stackJoined` takes the role set's `top` role, so `core` never mentions larks or
@@ -170,6 +182,31 @@ the body position before it solves anything and hangs the shoulders off the
 _swaying_ torso, while a hanging hand is placed on the plain facing. Left to
 default they are the pose's own, which is the figure's answer rather than the
 renderer's.
+
+#### What a figure moves on
+
+Four more pieces sit here for the same reason the resting arm does: more than
+one figure layer needs the identical answer, and a second copy of the numbers is
+the only way two of them could ever disagree. None of them knows anything about
+dancing.
+
+`trapezoid` is the speed profile every travelling figure walks on — still until
+`a0`, up to full speed by `a1`, full speed until `b0`, still again at `b1` —
+returned as the normalised distance travelled, so a figure that ends where it
+started uses it directly as a turn fraction. `trapezoidSpeed` is the same
+profile's speed, which is what a skirt flares on.
+
+`swingFeet` cross-fades the walking feet into the buzz step's pivot-and-push,
+because `buzz` is a boolean that replaces the feet outright and a swing has to
+take the step up over the beat the hold takes.
+
+`armShortfall` solves one pose's arms the way `@caller/hall` draws them — body
+position quantised, shoulders hung off the _swaying_ torso, a `'down'` hand
+resolved to where it hangs — and returns how far each arm falls short of its
+hand. Plan AC1 is 0 for every dancer at every eighth of a beat, and every
+figure's test in `@caller/contra` runs this over the figure's whole length.
+
+`handDown` is `hangingHand` under the name the figures call it by.
 
 ### The rendering contract numbers
 

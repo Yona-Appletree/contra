@@ -39,7 +39,9 @@ import type {
   Spots,
 } from "../figures/ContraFigure.js";
 import type { Library } from "../library/Library.js";
-import { legacyFigureOf, legacyLibrary } from "../library/legacy.js";
+import { contraLibrary } from "../library/figures/index.js";
+import { figureFor } from "../library/interpret.js";
+import { legacyLibrary } from "../library/legacy.js";
 import type { FigureInstance } from "./resolve.js";
 import { resolveCall } from "./resolve.js";
 import type { SetModel } from "./SetModel.js";
@@ -80,8 +82,12 @@ import { modelFromSet } from "./SetModel.js";
 /** How the contra planner is built. */
 export interface ContraCyclePlannerOptions {
   /**
-   * The figure definitions to resolve against. Left out, every coded contra
-   * figure in the call's own registry, bridged (`legacyLibrary`).
+   * The figure definitions to resolve against.
+   *
+   * Left out, `contraLibrary`: every coded contra figure in the call's own
+   * registry bridged, with the five migrated **definitions** replacing their own
+   * bridges. Pass `legacyLibrary(registry)` for the all-bridged library M1
+   * proved pose-identical, which is what `planCycle.golden.test.ts` does.
    */
   library?: Library;
 }
@@ -91,8 +97,28 @@ export function createContraCyclePlanner(options: ContraCyclePlannerOptions = {}
   return (input: CycleInput) => planContraCycle(input, options);
 }
 
-/** The contra planner with the legacy bridge: what M1 proves and M3 switches on. */
+/**
+ * The contra planner over the **whole** library: the five migrated definitions
+ * and the bridge for everything else. What `pnpm dance` runs and M3 switches
+ * the Stage on to.
+ *
+ * A caller that uses this has to hand the decider a registry holding the five
+ * interpreted figures as well — `contraDataEngine()` builds the pair — because
+ * `poseAt` resolves a figure by id in the registry rather than in the emission.
+ * Planning against one and drawing the other is refused by name below.
+ */
 export const contraCyclePlanner: CyclePlanner = createContraCyclePlanner();
+
+/**
+ * The contra planner with **every** figure bridged, which is what AC1 is about.
+ *
+ * AC1 is the hub's golden, not the gatherers': it asks whether resolving
+ * against set state reproduces `chainCalls` when the figures are the same
+ * figures. Every test of the hub itself names this one, and it keeps meaning
+ * exactly what it meant in M1 for as long as any coded figure is left.
+ */
+export const legacyCyclePlanner: CyclePlanner = (input) =>
+  planContraCycle(input, { library: legacyLibrary(input.registry) });
 
 /** A half-open run of beats, measured from the start of a time through. */
 type Span = readonly [Beat, Beat];
@@ -120,6 +146,16 @@ interface LocalSpot {
   spot: Spot;
 }
 
+/** A dancer's memoised frame-local spot, when it was computed in this very frame. */
+function localIn(
+  local: Map<DancerId, LocalSpot>,
+  dancer: DancerId,
+  frame: Frame,
+): Spot | undefined {
+  const memo = local.get(dancer);
+  return memo && sameFrame(memo.frame, frame) ? memo.spot : undefined;
+}
+
 /** Whether two frames are the same frame, by value: `groupsFor` mints a fresh object per call. */
 const sameFrame = (a: Frame, b: Frame): boolean =>
   a.centre[0] === b.centre[0] &&
@@ -142,7 +178,7 @@ function planContraCycle(
   options: ContraCyclePlannerOptions,
 ): { emissions: CycleEmission[]; next: HallState } {
   const { dance, formation, registry, hall, start, standingAt, mintGroup } = input;
-  const library = options.library ?? legacyLibrary(registry);
+  const library = options.library ?? contraLibrary(registry);
   const cycle = danceBeats(dance);
   const schedule = danceSchedule(dance);
 
@@ -176,7 +212,11 @@ function planContraCycle(
     for (const set of hall.sets) {
       const model = models.get(set.id)!;
       const groups = formation.groupsFor(selector, set);
-      const instances = resolveCall(call, { model, formation, library, groups }, start + offset);
+      const instances = resolveCall(
+        call,
+        { model, formation, library, groups, localOf: (dancer, f) => localIn(local, dancer, f) },
+        start + offset,
+      );
       const minted = new Map<GroupId, Group>();
       for (const instance of instances) {
         let group = minted.get(instance.group.id);
@@ -220,8 +260,19 @@ function planContraCycle(
           continue;
         }
 
+        const definition = library.get(instance.figure);
+        const fig = figureFor(definition, registry);
         const def = registry.get(instance.figure);
-        const fig = legacyFigureOf(registry, instance.figure);
+        // `poseAt` looks a figure up by **id in the registry**, not in the
+        // emission, so a definition the planner resolves against and a figure
+        // the timeline samples have to be the same thing. Saying so loudly is
+        // better than dancing a coded swing to a data swing's plan.
+        if (definition.shape.kind !== "legacy" && (def as unknown) !== (fig as unknown)) {
+          throw new Error(
+            `figure "${instance.figure}" is a definition in the library, but the registry holds a ` +
+              `different figure under that id — build the registry with \`contraDataEngine()\``,
+          );
+        }
         const from = fromSpots(group, model, local);
         // The parameters the *chain* runs on: no carried holds, exactly as
         // `chainCalls` computes `moves` and `joins` before `carryHolds` writes

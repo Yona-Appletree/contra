@@ -13,6 +13,8 @@ import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
 import { createContraRegistry } from "./registry.js";
+import type { FigureDefinition } from "../library/FigureDefinition.js";
+import { contraLibrary } from "../library/figures/index.js";
 import { DEMO_DANCES } from "../dances/index.js";
 import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "../dances/oracle.js";
 import type { DanceOracles } from "../dances/oracle.js";
@@ -251,6 +253,7 @@ export function figureLabReport(
   const registry = createContraRegistry([], overrides);
   const known = registry.has(id);
   const def = known ? registry.get(id) : undefined;
+  const definition = definitionOf(id);
 
   const usedDances = dancesUsingFigure(id, demoDances);
   const scoped = dance === undefined ? usedDances : usedDances.filter((d) => d.slug === dance);
@@ -272,6 +275,8 @@ export function figureLabReport(
     lines.push(def!.describe ?? "_no description._");
     lines.push(`params: \`${JSON.stringify({ ...def!.defaults, beats: def!.beats })}\``, "");
   }
+
+  lines.push(...definitionSection(id, definition));
 
   lines.push("## 1. Assertions", "");
   if (assertionGroups.length === 0) {
@@ -328,6 +333,63 @@ export function figureLabReport(
 }
 
 const mark = (good: boolean): string => (good ? "pass" : "FAIL");
+
+/**
+ * The figure's own **definition**, when the library has one.
+ *
+ * `pnpm figure <id>` has to work on a definition, not only on a coded figure:
+ * from M2 the library is where a figure's actors, anchor, roles, holds, ends
+ * and timing live, and by M5 it is the only place. A figure that is still
+ * bridged prints the bridge, which says so in one line.
+ */
+function definitionSection(id: string, definition: FigureDefinition | undefined): string[] {
+  if (!definition) return [`## 0. Definition`, "", `_the library has no \`${id}\`._`, ""];
+  if (definition.shape.kind === "legacy") {
+    return [
+      `## 0. Definition`,
+      "",
+      `\`${id}\` is still a **coded** figure, reached through the legacy bridge. ` +
+        `Everything below measures that figure; M4 and M5 are what empty the bridge.`,
+      "",
+    ];
+  }
+  return [
+    `## 0. Definition`,
+    "",
+    `\`${id}\` is a figure **as data**: the shape kind is \`${definition.shape.kind}\`, ` +
+      `so nothing below runs any code of this figure's own.`,
+    "",
+    `- roles: ${definition.roles.map((role) => `\`${role}\``).join(", ")}`,
+    `- actors: \`${definition.actors}\` · anchor: \`${JSON.stringify(definition.anchor)}\``,
+    `- ends: \`${JSON.stringify(definition.ends)}\` · timing: ` +
+      `\`${definition.timing.stretch}\`/\`${definition.timing.profile}\` · ` +
+      `nominal ${String(definition.nominalBeats)} beats`,
+    ...definition.holds.map((hold) =>
+      hold.kind === "ring"
+        ? `- holds: the ring, hands all the way round`
+        : `- holds: \`${hold.a}.${sideWord(hold.aSide)}\` in \`${hold.b}.${sideWord(hold.bSide)}\`` +
+          (hold.when
+            ? ` — only when \`${hold.when.param}\` is ${hold.when.is.map(String).join(" or ")}`
+            : ""),
+    ),
+    "",
+  ];
+}
+
+/** A hand, as `L` when the definition names one and `<hand>` when a call does. */
+const sideWord = (side: "L" | "R" | { param: string }): string =>
+  typeof side === "string" ? side : `<${side.param}>`;
+
+/**
+ * The library's definition of a figure, or `undefined`.
+ *
+ * Built off the plain registry rather than the data one, so that asking for a
+ * figure the library has not got is an ordinary "no" and not an error.
+ */
+function definitionOf(id: string): FigureDefinition | undefined {
+  const library = contraLibrary(createContraRegistry());
+  return library.has(id) ? library.get(id) : undefined;
+}
 
 /** One motion row, formatted with over-bound values marked `**like this**`. */
 function motionLine(label: string, row: MotionStats | undefined): string {

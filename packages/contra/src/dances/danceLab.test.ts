@@ -17,6 +17,15 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 
 const BUTTER = danceBySlug("butter")!;
 
+/** The minor set a group id belongs to: `set0/p0` out of `set0/p0/swing/1L-2R#3`. */
+const minorSetOf = (group: string): string => group.split("#")[0]!.split("/").slice(0, 2).join("/");
+
+/** Whether two resolution rows cast exactly the same dancers. */
+const sameDancers = (a: { cast: Record<string, string> }, b: { cast: Record<string, string> }) => {
+  const one = Object.values(a.cast).sort().join(",");
+  return one === Object.values(b.cast).sort().join(",");
+};
+
 /** Every loaded dance's report, run once: the lab is the slowest thing here. */
 const REPORTS: Map<string, DanceLabReport> = new Map(
   ALL_DANCES.map((dance) => [dance.slug, danceLabReport(dance.slug, labCouples(dance))]),
@@ -46,10 +55,22 @@ describe("the dance lab", () => {
       ]),
     );
     for (const row of rows) {
-      expect(Object.keys(row.cast).sort()).toEqual(["1L", "1R", "2L", "2R"]);
-      expect(row.anchor).toBe('"hands-four"');
-      expect(row.ends).toBe('"relative"');
-      expect(row.holdPlace).toEqual([]);
+      // A bridged coded figure still takes the whole minor set, in the
+      // formation's own frame, and leaves people wherever its shape put them.
+      // A migrated one takes a **pair**, anchored where the pair meets, and
+      // settles them on to the formation's places: its cast is the figure's own
+      // roles rather than four station ids, which is the whole point of the
+      // rebuild. Butter leaves nobody standing in any call either way.
+      if (row.figure === "swing" || row.figure === "balance-and-swing") {
+        expect(Object.keys(row.cast).sort(), row.figure).toEqual(["lark", "robin"]);
+        expect(row.anchor, row.figure).toBe('"meet"');
+        expect(row.ends, row.figure).toBe('"home"');
+      } else {
+        expect(Object.keys(row.cast).sort(), row.figure).toEqual(["1L", "1R", "2L", "2R"]);
+        expect(row.anchor, row.figure).toBe('"hands-four"');
+        expect(row.ends, row.figure).toBe('"relative"');
+      }
+      expect(row.holdPlace, row.figure).toEqual([]);
     }
   });
 
@@ -57,18 +78,26 @@ describe("the dance lab", () => {
     let carried = 0;
     for (const dance of DEMO_DANCES) {
       const rows = danceResolution(dance, labCouples(dance));
-      // A group id is `<set>/<place>#<instance>`; the instances of one place,
-      // in schedule order, are one minor set's own run of calls.
-      const places = new Set(rows.map((r) => r.group.split("#")[0]!));
+      // A bridged figure's group id is `<set>/<place>#<instance>`; a data
+      // figure's is `<set>/<place>/<figure>/<stations>#<instance>`, because one
+      // call becomes an instance per pair. Either way the **minor set** is the
+      // first two segments, and its rows in schedule order are its own run of
+      // calls — with an extra row for each call that resolved into two pairs.
+      const places = new Set(rows.map((r) => minorSetOf(r.group)));
       for (const place of places) {
-        const run = rows.filter((r) => r.group.startsWith(`${place}#`));
-        expect(run.length, `${dance.slug} ${place}`).toBe(danceSchedule(dance).length);
+        const run = rows.filter((r) => minorSetOf(r.group) === place);
+        expect(run.length, `${dance.slug} ${place}`).toBeGreaterThanOrEqual(
+          danceSchedule(dance).length,
+        );
         for (let i = 1; i < run.length; i++) {
-          // What one call hands on is exactly what the next one takes over.
-          expect(run[i]!.carriedIn, `${dance.slug} ${run[i]!.figure}`).toEqual(
-            run[i - 1]!.carriedOut,
-          );
-          carried += run[i]!.carriedIn.length;
+          // What one call hands on is exactly what the next one takes over —
+          // for the instances that share a pair of dancers, which for a
+          // migrated figure is the pair and for a bridged one is all four.
+          const before = run[i - 1]!;
+          const now = run[i]!;
+          if (!sameDancers(before, now)) continue;
+          expect(now.carriedIn, `${dance.slug} ${now.figure}`).toEqual(before.carriedOut);
+          carried += now.carriedIn.length;
         }
       }
     }
@@ -100,7 +129,7 @@ describe("the dance lab", () => {
     const balance = rows.find((r) => r.figure === "balance")!;
     expect(swing.carriedIn.length).toBeGreaterThan(0);
     expect(swing.carriedIn).toEqual(balance.carriedOut);
-    expect(swing.carriedIn).toContain("1L.L↔1R.R");
+    expect(swing.carriedIn).toContain("c0/lark.L↔c0/robin.R");
   });
 
   it("prints the four sections `pnpm dance` promises", () => {

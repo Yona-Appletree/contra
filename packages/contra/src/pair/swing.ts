@@ -1,26 +1,18 @@
 import type { Angle, Beat, PoseSample, Vec2 } from "@caller/core";
 import {
-  BUZZ_PIVOT_FOOT,
   BUZZ_STEPS_PER_BEAT,
-  BUZZ_SWING_PX,
-  BUZZ_TRAILING_FOOT,
-  FOOT_REST_FORWARD_PX,
-  FOOT_REST_LATERAL_PX,
-  FOOT_SWING_PX,
-  FULL_AMPLITUDE_SPEED,
   SHOULDER_FORWARD_PX,
   SHOULDER_WIDTH_PX,
   addScaled,
   angleLerp,
   bodyPoint,
   dirOf,
-  dot,
   leftOf,
   lerp,
-  lerpFeet,
   lerpHand,
   ramp,
   rightOf,
+  swingFeet,
 } from "@caller/core";
 import type { PairFrame, PairRole } from "./PairFrame.js";
 import {
@@ -85,7 +77,10 @@ export const SWING_LEAN_PX = 0.6;
 /** Extra skirt radius at full turning speed, in px. */
 export const SWING_FLARE_PX = 2.6;
 
-const TAU = Math.PI * 2;
+// The buzz-step feet are `@caller/core`'s, because the library's swing in
+// `../figures/` has to put them in exactly the same place as this one. They are
+// re-exported here under the name both swings already import.
+export { swingFeet };
 
 interface Places {
   lark: { p: Vec2; facing: Angle };
@@ -212,34 +207,6 @@ function swingPair(frame: PairFrame, t: Beat, params: SwingParams): PairPose {
   };
 
   return pairPose(dancer("lark"), dancer("robin"));
-}
-
-/** The walking feet fading into the buzz step's pivot-and-push. */
-export function swingFeet(
-  t: Beat,
-  facing: Angle,
-  velocity: Vec2,
-  buzz: number,
-): { L: Vec2; R: Vec2 } {
-  const speed = Math.hypot(velocity[0], velocity[1]);
-  const moving = speed > 1e-3;
-  const vu = moving ? dot(velocity, dirOf(facing)) / speed : 1;
-  const vw = moving ? dot(velocity, rightOf(facing)) / speed : 0;
-  const amplitude = Math.min(1, speed / FULL_AMPLITUDE_SPEED);
-  const swing = FOOT_SWING_PX * Math.sin(TAU * t * BUZZ_STEPS_PER_BEAT) * amplitude;
-  const walking = {
-    L: [FOOT_REST_FORWARD_PX + swing * vu, -FOOT_REST_LATERAL_PX + swing * vw] as Vec2,
-    R: [FOOT_REST_FORWARD_PX - swing * vu, FOOT_REST_LATERAL_PX - swing * vw] as Vec2,
-  };
-  const bz = Math.sin(TAU * BUZZ_STEPS_PER_BEAT * t);
-  const buzzing = {
-    L: [
-      BUZZ_PIVOT_FOOT[0] + BUZZ_SWING_PX * bz * vu,
-      BUZZ_PIVOT_FOOT[1] + BUZZ_SWING_PX * bz * vw,
-    ] as Vec2,
-    R: BUZZ_TRAILING_FOOT,
-  };
-  return lerpFeet(walking, buzzing, buzz);
 }
 
 /**

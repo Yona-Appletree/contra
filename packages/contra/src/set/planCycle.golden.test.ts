@@ -10,7 +10,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor } from "../dances/oracle.js";
-import { contraCyclePlanner } from "./planCycle.js";
+import { legacyCyclePlanner } from "./planCycle.js";
 
 /**
  * **AC1**: the ten demo dances, danced through the contra cycle planner with
@@ -36,6 +36,19 @@ import { contraCyclePlanner } from "./planCycle.js";
  * - `coverageProblems`, which must be empty for both.
  */
 
+/**
+ * The planner with **every** figure bridged, which is what AC1 is about.
+ *
+ * M2 migrated five figures to data, and the contra planner's own default
+ * library now resolves those five against their definitions rather than their
+ * bridges — which changes what they dance, on purpose (the honest end). AC1 is
+ * the hub's golden, not the gatherers': it asks whether resolution against set
+ * state reproduces `chainCalls` when the figures are the same figures. So this
+ * test names the all-bridged library explicitly, and keeps meaning exactly what
+ * it meant in M1 for as long as any coded figure is left.
+ */
+const BRIDGED = legacyCyclePlanner;
+
 /** The director's own number for AC1: 1e-9 px, 1e-9°, hands identical. */
 const TOLERANCE = 1e-9;
 
@@ -47,7 +60,7 @@ describe("AC1: the demo dances through the contra planner are pose-identical", (
     for (const couples of linesFor(dance)) {
       it(`${dance.slug} at ${String(couples)} couples`, () => {
         const old = danceAlone(dance, couples, UNTIL).timeline();
-        const now = danceAlone(dance, couples, UNTIL, {}, { cycle: contraCyclePlanner }).timeline();
+        const now = danceAlone(dance, couples, UNTIL, {}, { cycle: BRIDGED }).timeline();
 
         // The same dancers, found in the same order: `timeline.dancers()` is
         // insertion-ordered, and the oracle reports below break their ties by

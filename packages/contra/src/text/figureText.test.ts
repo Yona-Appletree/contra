@@ -2,6 +2,7 @@ import { WALK_TO_STATION, withDefaults } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES } from "../dances/index.js";
 import { formationFor } from "../dances/oracle.js";
+import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { CONTRA_FIGURE_IDS } from "../figures/registry.js";
 import { probeGroup } from "../figures/testing.js";
@@ -177,6 +178,40 @@ describe("a call's own parameters fill every slot", () => {
   it("refuses `{where}` without a group to work it out from", () => {
     const def = figureDefOf("circle")!;
     expect(() => resolveFigureText("circle", withDefaults(def, {}, def.beats))).toThrow(/where/);
+  });
+
+  it("refuses `{where}` outside a minor set of four, which is misuse", () => {
+    const def = figureDefOf("swing")!;
+    expect(() =>
+      resolveFigureText("swing", withDefaults(def, {}, def.beats), probeGroup(BECKET, 2)),
+    ).toThrow(/outside a minor set of four/);
+  });
+
+  it("says nothing, rather than refusing, when the ends are no sentence", () => {
+    // A becket neighbour swing **from the stations**: the two of them start
+    // across the set from each other, so they end 32 px apart on their own two
+    // places. That is a true answer and not a sentence a caller says, so the
+    // landmark stands down — `landmark` is written to — and the walkthrough is
+    // the same walkthrough with its last sentence missing rather than a page
+    // that refused to build. The Moves gallery really does run figures from the
+    // stations whether or not a dance hands them over there.
+    const def = figureDefOf("swing")!;
+    const texts = resolveFigureText(
+      "swing",
+      withDefaults(def, { pairs: "neighbors" }, def.beats),
+      probeGroup(BECKET, 4),
+    );
+    expect(texts).toBeDefined();
+    expect(texts!.walkthrough.long).toContain("Open out side by side");
+    expect(texts!.walkthrough.long).not.toContain("{");
+    expect(texts!.walkthrough.long.trim()).toBe(texts!.walkthrough.long);
+    // And a figure whose ends *are* a sentence still says one.
+    const said = resolveFigureText(
+      "swing",
+      withDefaults(def, { pairs: "partners" }, def.beats),
+      probeGroup(DUPLE_IMPROPER, 4),
+    );
+    expect(said!.walkthrough.long.length).toBeGreaterThan(texts!.walkthrough.long.length);
   });
 
   it("knows nothing about a figure with no file", () => {

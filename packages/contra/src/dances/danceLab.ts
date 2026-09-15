@@ -3,8 +3,8 @@ import type { Dance, DancerId, MotionStats, PhraseName, StationId } from "@calle
 import { MOTION_STEP, danceBeats, danceSchedule, motionReport } from "@caller/choreo";
 import type { Carried } from "../figures/ContraFigure.js";
 import { CONTRA_MOTION_BOUNDS } from "../figures/motionBounds.js";
-import { createContraRegistry } from "../figures/registry.js";
-import { legacyLibrary } from "../library/legacy.js";
+import { contraDataEngine } from "../library/engine.js";
+import { contraDataFigures } from "../library/figures/index.js";
 import { contraCyclePlanner } from "../set/planCycle.js";
 import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
 import { ALL_DANCES } from "./index.js";
@@ -52,7 +52,7 @@ export interface ResolutionRow {
   anchor: string;
   /** The definition's ends rule. */
   ends: string;
-  /** Hands the instance took over from the one before it, as `1L.R↔2R.L`. */
+  /** Hands the instance took over from the one before it, as `c1/lark.R↔c1/robin.L`. */
   carriedIn: string[];
   /** Hands the instance handed on to the next one. */
   carriedOut: string[];
@@ -68,14 +68,8 @@ export interface ResolutionRow {
  * happened rather than what a parallel code path thinks would.
  */
 export function danceResolution(dance: Dance, couples: number): ResolutionRow[] {
-  const library = legacyLibrary(createContraRegistry());
-  const timeline = danceAlone(
-    dance,
-    couples,
-    danceBeats(dance),
-    {},
-    { cycle: contraCyclePlanner },
-  ).timeline();
+  const { library } = contraDataEngine();
+  const timeline = danceAlone(dance, couples, danceBeats(dance), {}, LAB_RUN).timeline();
   const rows: ResolutionRow[] = [];
   for (const { call, start, phrase } of danceSchedule(dance)) {
     const here = timeline
@@ -96,8 +90,8 @@ export function danceResolution(dance: Dance, couples: number): ResolutionRow[] 
         cast: { ...event.bindings },
         anchor: def === undefined ? "—" : JSON.stringify(def.anchor),
         ends: def === undefined ? "—" : JSON.stringify(def.ends),
-        carriedIn: joinsOf(carried?.in),
-        carriedOut: joinsOf(carried?.out),
+        carriedIn: joinsOf(carried?.in, event.bindings),
+        carriedOut: joinsOf(carried?.out, event.bindings),
         holdPlace: standing.flatMap((h) => Object.values(h.bindings)),
       });
     }
@@ -105,15 +99,30 @@ export function danceResolution(dance: Dance, couples: number): ResolutionRow[] 
   return rows;
 }
 
-/** A `Carried` side as readable `1L.R↔2R.L` strings, deduplicated and sorted. */
-function joinsOf(side: Carried["in"] | undefined): string[] {
+/**
+ * A `Carried` side as readable `c1/lark.R↔c1/robin.L` strings, deduplicated and
+ * sorted.
+ *
+ * Named by **dancer**, not by the instance's own station or figure-role. A hold
+ * crossing a call boundary is one pair of hands seen from two figures, and
+ * since M2 those two figures need not name their parts the same way: a balance
+ * calls them `a` and `b` and the swing that takes the hold over calls them
+ * `lark` and `robin`. The dancer is the thing both figures agree about, so a
+ * reader — and the test that checks the two sides of every seam agree — can
+ * line the two rows up.
+ */
+function joinsOf(
+  side: Carried["in"] | undefined,
+  cast: Readonly<Record<StationId, DancerId>>,
+): string[] {
   if (!side) return [];
+  const who = (role: StationId): string => short(cast[role] ?? role);
   const out = new Set<string>();
-  for (const [station, hands] of Object.entries(side)) {
+  for (const [role, hands] of Object.entries(side)) {
     for (const [mine, held] of Object.entries(hands)) {
       if (!held) continue;
-      const a = `${station}.${mine}`;
-      const b = `${held.with}.${held.side}`;
+      const a = `${who(role)}.${mine}`;
+      const b = `${who(held.with)}.${held.side}`;
       out.add([a, b].sort().join("↔"));
     }
   }
@@ -225,7 +234,7 @@ export function danceLabReport(
       "A value over its bound fails unless `motionAllowlist.ts` says why.",
     "",
   );
-  const timeline = danceAlone(dance, at, until, {}, { cycle: contraCyclePlanner }).timeline();
+  const timeline = danceAlone(dance, at, until, {}, LAB_RUN).timeline();
   const motion = motionReport(timeline, until, {
     step: MOTION_STEP,
     bounds: CONTRA_MOTION_BOUNDS,
@@ -265,7 +274,17 @@ export function danceLabReport(
  * contra planner by name.
  */
 const danceOracles = (dance: Dance, couples: number, until: Beat): DanceOracles =>
-  oraclesFor(dance, couples, until, {}, { cycle: contraCyclePlanner });
+  oraclesFor(dance, couples, until, {}, LAB_RUN);
+
+/**
+ * How the lab runs a dance: the contra planner, and a registry whose five
+ * migrated ids are the **interpreted** figures rather than the coded ones.
+ *
+ * Both halves or neither. `poseAt` resolves a figure by id in the registry, so
+ * a run with the new library and the old registry would plan a data swing and
+ * draw a coded one; `planCycle` refuses that by name rather than dancing it.
+ */
+const LAB_RUN = { cycle: contraCyclePlanner, figures: contraDataFigures() };
 
 /** One motion row, with every over-bound value marked and said to be allowed or not. */
 function motionLine(row: MotionStats, slug: string, problems: readonly MotionMetric[]): string {

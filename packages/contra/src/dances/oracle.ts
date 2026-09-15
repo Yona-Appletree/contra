@@ -1,4 +1,11 @@
-import type { CyclePlanner, Dance, Decider, Formation, Program } from "@caller/choreo";
+import type {
+  AnyFigureDef,
+  CyclePlanner,
+  Dance,
+  Decider,
+  Formation,
+  Program,
+} from "@caller/choreo";
 import {
   HANDS_FOUR_GROUP,
   closureReport,
@@ -66,6 +73,18 @@ export const linesFor = (dance: Dance): readonly number[] =>
  */
 export interface DanceRunOptions {
   cycle?: CyclePlanner;
+  /**
+   * Figures added to the registry the decider runs on, replacing any coded
+   * figure of the same id.
+   *
+   * `poseAt` looks a figure up **by id in the registry**, not in the planner's
+   * emission, so a run on the new planner has to be given the interpreted
+   * figures too — `contraDataFigures()` — or the planner would resolve against
+   * the data swing while the timeline sampled the coded one. M2's `pnpm dance`
+   * and the per-figure goldens pass both; every other caller passes neither and
+   * runs exactly as it did.
+   */
+  figures?: readonly AnyFigureDef[];
 }
 
 /** One dance, danced by the script decider for as long as the caller asks. */
@@ -81,7 +100,7 @@ export function danceAlone(
     slug: `${dance.slug}-alone`,
     items: [{ dance: dance.slug, medley: "none", timesThrough: 8 }],
   };
-  const registry = createContraRegistry([], overrides);
+  const registry = createContraRegistry(options.figures ?? [], overrides);
   const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
   const decider = createScriptDecider(
     program,

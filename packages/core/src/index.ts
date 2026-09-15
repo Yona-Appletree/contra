@@ -21,6 +21,7 @@ export {
   hangingHand,
   resolveHand,
 } from "./kinematics/drawnArms.js";
+export { handDown } from "./kinematics/handDown.js";
 export type { HandStackRoleSet, JoinedHand } from "./kinematics/stackJoined.js";
 export { stackJoined } from "./kinematics/stackJoined.js";
 export { easeSeam, seamProgress } from "./kinematics/easeSeam.js";
@@ -36,6 +37,10 @@ export {
   lerpFeet,
   quietMotion,
 } from "./kinematics/quietMotion.js";
+export { swingFeet } from "./kinematics/swingFeet.js";
+export { trapezoid, trapezoidSpeed } from "./kinematics/trapezoid.js";
+export type { ReachCheck } from "./kinematics/armShortfall.js";
+export { armShortfall } from "./kinematics/armShortfall.js";
 
 // the rendering contract numbers
 export {

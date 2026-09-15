@@ -33,7 +33,7 @@
         {
           "figure": "swing",
           "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across", "endHalf": 10 },
+          "params": { "pairs": "neighbors", "endFacing": "across" },
           "call": "NEIGHBOR SWING"
         }
       ]

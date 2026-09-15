@@ -37,16 +37,20 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
     key: "swing",
     metric: "elbowPerHand",
     reason:
-      "The coded swing's elbow swings hard under a nearly still hand at the take " +
-      "(docs/motion-report.md: 11.94× against a bound of 8.06). DD21 protects the " +
-      "swing's geometry, not its code; M2 rewrites the swing as data with the same " +
-      "geometry as its golden and this row is expected to go with it.",
+      "The swing's elbow swings hard under a nearly still hand at the take " +
+      "(docs/motion-report.md: 11.94× against a bound of 8.06). M1 expected M2 to " +
+      "take this row away with the rewrite; it did not, and could not: DD21 " +
+      "protects the swing's *geometry*, so the data swing reproduces the coded " +
+      "one to 0.01 px from the stations and reproduces this take with it. It is a " +
+      "motion-profile row, not a figure-model row, and M10 is what owns it.",
   },
   {
     dance: "*",
     key: "swing",
     metric: "elbowSpeed",
-    reason: "The same take as the row above, measured as a speed rather than a ratio. M2.",
+    reason:
+      "The same take as the row above, measured as a speed rather than a ratio. " +
+      "M10, for the same reason.",
   },
   {
     dance: "*",
