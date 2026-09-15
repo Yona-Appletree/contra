@@ -117,4 +117,7 @@ export const balanceDefinition: FigureDefinition = {
   ],
   ends: "relative",
   timing: { stretch: "pace", profile: "smooth" },
+  // A balance is a rock along the line between two dancers: nothing in it is
+  // handed except which hand a one-hand balance takes.
+  symmetry: { mirror: { kind: "parameters", hands: ["hand"] } },
 };

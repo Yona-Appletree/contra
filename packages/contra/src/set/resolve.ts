@@ -118,7 +118,7 @@ export const HOLD_PLACE_FIGURE = "walk-to-station";
  *
  * What a figure danced by a whole line needs: how many parts a long wave has is
  * how long the hall is, so a definition cannot name them. Its shape reads the
- * wildcard track instead (`kinds/pathM6.ts`).
+ * wildcard track instead (`kinds/waypoints.ts`).
  */
 export const LANE_ROLES = "*";
 
@@ -150,7 +150,7 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     def.anchor !== "centroid" &&
     def.anchor !== "lane"
   ) {
-    throw new Error(`unsupported: anchor "${JSON.stringify(def.anchor)}" on "${def.id}" (M4)`);
+    throw new Error(`unsupported: anchor "${JSON.stringify(def.anchor)}" on "${def.id}" (M7)`);
   }
 
   const selector: GroupSelector = call.group ?? HANDS_FOUR_GROUP;
@@ -165,7 +165,7 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
   // `"pairs" must be a relation word …, not undefined` on the new path while
   // the old one danced it with the figure's own `"neighbors"`. Tuning numbers
   // only: `paramDefaults` is the `canonical` block, which never holds `from`,
-  // `carried`, `places` or `nearby` — the four resolution supplies itself.
+  // `carried`, `homes` or `nearby` — the four resolution supplies itself.
   const params = {
     ...paramDefaults(def),
     ...(call.params as Record<string, unknown> | undefined),
@@ -406,13 +406,15 @@ function resolveInLane(
         ? [plan.stations.map((s) => s.id)]
         : (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]);
 
-  const places = def.ends === "home" ? lanePlaces(ctx.model, plan.frame) : [];
+  // `homes`, not `places`: see `dataInstance`. A figure may have a parameter of
+  // its own called `places`.
+  const homes = def.ends === "home" ? lanePlaces(ctx.model, plan.frame) : [];
   const instances: FigureInstance[] = [];
   for (const stations of dancing) {
     if (stations.length === 0) continue;
     instances.push({
       ...dataInstance(call, def, stations, plan, ctx, at, params),
-      params: { ...params, places, nearby: [] },
+      params: { ...params, homes, nearby: [] },
     });
   }
   const centres = instances.map((instance) => instanceCentre(instance));
@@ -482,17 +484,21 @@ function dataInstance(
   // the nearest two places that suit it, whoever's they are, which is what
   // makes "balance and swing your neighbour" the progression; see
   // `library/kinds/places.ts`.
-  const places: Vec2[] = [];
+  //
+  // **`homes`, not `places`** (M4): a figure may have a parameter of its own
+  // called `places` — a circle's is how many quarters of the ring it walks —
+  // and the two would share one name in one object.
+  const homes: Vec2[] = [];
   if (def.ends === "home") {
     for (const dancer of Object.values(plan.members)) {
       if (ctx.model.dancers[dancer] === undefined) continue;
-      places.push(localPoint(plan.frame, homeOf(ctx.model, dancer).p));
+      homes.push(localPoint(plan.frame, homeOf(ctx.model, dancer).p));
     }
   }
 
   return {
     figure: call.figure,
-    params: { ...params, places, nearby: [] },
+    params: { ...params, homes, nearby: [] },
     cast,
     group: {
       id: `${plan.id}/${def.id}/${stations.join("-")}`,
@@ -530,7 +536,7 @@ function castRoles(
   // **A lane figure's parts are its dancers' own slots.** A long wave or a
   // grand right and left has one part per dancer of a line and no definition
   // can write their names down, because how many there are is how long the
-  // hall is. `roles: ["*"]` says so, and the wildcard track in `kinds/pathM6.ts`
+  // hall is. `roles: ["*"]` says so, and the wildcard track in `kinds/waypoints.ts`
   // is what a definition writes instead of a part per name.
   if (def.roles.length === 1 && def.roles[0] === LANE_ROLES) return castOf(plan, stations);
   if (stations.length > def.roles.length) {

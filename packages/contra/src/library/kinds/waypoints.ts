@@ -7,8 +7,8 @@ import type {
   HoldSpec,
   Moment,
   NumberExpr,
-  PathShape,
   SideExpr,
+  WaypointShape,
 } from "../FigureDefinition.js";
 import type { ExprEnv, PoseExpr } from "../expr.js";
 import { evalAngle, evalMoment, evalNumber, evalPoint, evalSide } from "../expr.js";
@@ -16,15 +16,18 @@ import type { ShapeInput } from "../interpret.js";
 import { settleOnPlaces } from "./places.js";
 
 /**
- * **The path kind, M6's own**: a dancer's own written route, waypoint by
+ * **The waypoint route** (M6): a dancer's own written route, waypoint by
  * waypoint, with the passes marked.
  *
- * `path` is in `FigureDefinition.ts`'s shape union from M2 and **M4 owns the
- * evaluator**. M4 had not merged when M6 needed one, so this is a minimal one
- * in a file of its own, named so it cannot collide: the director reconciles the
- * two on the rebase (M2's report and M6's brief both call for exactly that).
- * Keep whichever is better; nothing outside `kinds/index.ts`'s one dispatch arm
- * refers to this file by name.
+ * M6 wrote this against `path`, which M2 had admitted to the shape union and M4
+ * owned; the two milestones ran in parallel and arrived with different ideas of
+ * what a written route is. On the rebase they became **two kinds**, because they
+ * answer different questions rather than the same one twice: a `path` names a
+ * *curve* and a *pairing* (`kinds/path.ts`), which is what M4's eleven figures
+ * needed, and a waypoint route names *where you are, when*, and lets its passes
+ * find their own partners — which is what a pull-by and a grand right and left
+ * need and what a curve vocabulary cannot say. Nothing about the geometry
+ * changed in the reconciliation; only the kind's name and this file's.
  *
  * ## What it draws
  *
@@ -92,7 +95,7 @@ const envFor = (input: ShapeInput, self: FigureRole, t: Beat): ExprEnv => ({
 });
 
 /** Which track a role dances: its own name, its contra role, or the wildcard. */
-function trackFor(shape: PathShape, input: ShapeInput, role: FigureRole): readonly PathStep[] {
+function trackFor(shape: WaypointShape, input: ShapeInput, role: FigureRole): readonly PathStep[] {
   const tracks = shape.tracks as Readonly<Record<string, readonly PathStep[]>>;
   const byName = tracks[role];
   if (byName) return byName;
@@ -100,11 +103,11 @@ function trackFor(shape: PathShape, input: ShapeInput, role: FigureRole): readon
   if (byRole) return byRole;
   const wild = tracks["*"];
   if (wild) return wild;
-  throw new Error(`path: no track for "${role}" (have: ${Object.keys(tracks).join(", ")})`);
+  throw new Error(`waypoints: no track for "${role}" (have: ${Object.keys(tracks).join(", ")})`);
 }
 
 /** Every dancer's legs, in order, ending where the figure leaves them. */
-function legsOf(shape: PathShape, input: ShapeInput): Map<FigureRole, Leg[]> {
+function legsOf(shape: WaypointShape, input: ShapeInput): Map<FigureRole, Leg[]> {
   const out = new Map<FigureRole, Leg[]>();
   for (const role of input.roles) {
     const steps = trackFor(shape, input, role);
@@ -197,8 +200,8 @@ function place(leg: Leg, k: number): Spot {
 }
 
 /** **M6's `path`**: every dancer walks their own written route. */
-export function planPath(
-  shape: PathShape,
+export function planWaypoints(
+  shape: WaypointShape,
   holds: readonly HoldSpec[],
   input: ShapeInput,
 ): FigurePlan {

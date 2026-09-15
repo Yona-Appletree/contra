@@ -18,7 +18,6 @@ import {
   tileMetrics,
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
-import { chainOverridesFromQuery } from "../state/chainQuery.js";
 import type { EngineChoice } from "../state/engineQuery.js";
 import { engineFromQuery } from "../state/engineQuery.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
@@ -58,12 +57,6 @@ import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
  *   switch in each panel changes it from there for the rest of the visit
  *   (T4). `#/moves/<figure-id>/traces` shows all three, plus the strip, at
  *   full width with a reading guide each.
- * - `?chain=1|2|3|4|5` swaps `robins-chain`'s courtesy turn to one of the
- *   branch's five candidates for every tile that dances it — its own row and
- *   every seam — instead of the shipped default (1, the rigid turn); 5 is
- *   F10's orbit, in which the lark turns a whole rather than a half and the
- *   robins join him a quarter of the way through. An absent or unrecognised
- *   value changes nothing.
  */
 
 /** The tempo the gallery loops at, matching the pair page's plain clock. */
@@ -96,7 +89,7 @@ export function MovesPage({
   params: URLSearchParams;
 }): JSX.Element {
   const engine = engineFromQuery(params.get("engine"));
-  const tiles = useTiles(params.get("chain"), engine);
+  const tiles = useTiles(engine);
   const solo = soloKey(path);
   const shown = useMemo(
     () => (solo === null ? tiles : tiles.filter((t) => t.key === solo)),
@@ -796,13 +789,8 @@ export const soloHref = (tile: GalleryTile): string =>
   tile.kind === "seam" ? `#/moves/seam/${tile.key}` : `#/moves/${tile.key}`;
 
 /** Build the tiles once for the life of the page: they cost a sampling sweep. */
-/**
- * `chain` is `?chain=`'s raw value: which of `robins-chain`'s five courtesy-
- * turn candidates to dance instead of the shipped default, across
- * every tile — the figure's own row and every seam it appears in.
- */
-function useTiles(chain: string | null, engine: EngineChoice): GalleryTile[] {
-  return useMemo(() => galleryTiles(chainOverridesFromQuery(chain), engine), [chain, engine]);
+function useTiles(engine: EngineChoice): GalleryTile[] {
+  return useMemo(() => galleryTiles({}, engine), [engine]);
 }
 
 /**

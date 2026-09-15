@@ -234,7 +234,16 @@ function compareOne(
     }
     const fig = figureFor(definition, dummyRegistry());
     const group = createGroup(instance.group, formation.roleSet);
-    const resolved = withDefaults(fig, { ...instance.params, from: {} }, beats);
+    // Where this instance's dancers stand, in its group's own axes — exactly
+    // `planCycle`'s `fromSpots`. A minted data instance already carries the
+    // spots on its own figure-role stations, so the fallback *is* the answer
+    // there; a whole-minor-set figure (`actors: "all"`) runs in the formation's
+    // own group, whose stations are the places and not where anybody is.
+    const from: Spots = {};
+    for (const station of instance.group.stations) {
+      from[station.id] = places[station.id] ?? { p: station.p, facing: station.facing };
+    }
+    const resolved = withDefaults(fig, { ...instance.params, from }, beats);
     for (const [role, dancer] of Object.entries(instance.cast)) {
       dancing.set(dancer, { group, role, fig, params: resolved, cast: instance.cast });
     }

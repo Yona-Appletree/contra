@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// `pnpm figure <id> [--dance <slug>] [--out <dir>] [--chain <n>]` (O1, F10):
-// one figure's whole
+// `pnpm figure <id> [--dance <slug>] [--out <dir>]` (O1): one figure's whole
 // inner loop — assertions, its motion row alone and its seam rows, its
 // oracles, and its three pictures — in one command, well under a minute,
 // exiting non-zero the moment anything is wrong.
@@ -14,36 +13,20 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { figureLabReport } from "../src/figures/figureLab.js";
-import { CHAIN_CANDIDATES } from "../src/figures/robins-chain.js";
 
 const repoRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 
-const { id, dance, out, chain } = parseArgs(process.argv.slice(2));
+const { id, dance, out } = parseArgs(process.argv.slice(2));
 if (id === undefined) {
-  console.error("usage: pnpm figure <id> [--dance <slug>] [--out <dir>] [--chain <n>]");
+  console.error("usage: pnpm figure <id> [--dance <slug>] [--out <dir>]");
   process.exit(2);
 }
 
-// `--chain <n>` picks the same courtesy-turn candidate the app's own query
-// parameter picks, out of the same table, so the lab and the preview cannot
-// drift apart. It overrides `robins-chain`'s tuning defaults for the
-// assertions, the motion rows, the seam rows, the oracles *and* the pictures.
-let overrides = {};
-if (chain !== undefined) {
-  const candidate = CHAIN_CANDIDATES[chain];
-  if (candidate === undefined) {
-    const have = Object.keys(CHAIN_CANDIDATES).join(", ");
-    console.error(`figure lab: no chain candidate "${chain}" (have ${have})`);
-    process.exit(2);
-  }
-  overrides = { "robins-chain": candidate };
-}
+// `--chain <n>` is gone with `CHAIN_CANDIDATES` and `?chain=` (A6): the
+// chain has one regime now, the lark's orbit, so there is nothing to pick.
+const outDir = out === undefined ? resolve(repoRoot, "data/local/figure-lab", id) : resolve(out);
 
-const suffix = chain === undefined ? id : `${id}-chain${chain}`;
-const outDir =
-  out === undefined ? resolve(repoRoot, "data/local/figure-lab", suffix) : resolve(out);
-
-const report = figureLabReport(id, dance, undefined, overrides);
+const report = figureLabReport(id, dance);
 console.log(report.text);
 
 console.log("## 4. Pictures");
@@ -65,12 +48,7 @@ if (!report.ok && report.text.includes("no such figure")) {
     process.exit(build.status ?? 1);
   }
 
-  const picturesEnv = {
-    ...process.env,
-    FIGURE_LAB_ID: id,
-    FIGURE_LAB_OUT: outDir,
-    ...(chain === undefined ? {} : { FIGURE_LAB_CHAIN: chain }),
-  };
+  const picturesEnv = { ...process.env, FIGURE_LAB_ID: id, FIGURE_LAB_OUT: outDir };
   const pictures = spawnSync(
     "pnpm",
     ["--filter", "@caller/web", "exec", "playwright", "test", "e2e/figureLab.spec.ts"],
@@ -91,12 +69,11 @@ console.log("");
 console.log(report.ok && picturesOk ? `pnpm figure ${id}: green` : `pnpm figure ${id}: FAIL`);
 process.exit(report.ok && picturesOk ? 0 : 1);
 
-/** `<id> [--dance <slug>] [--out <dir>] [--chain <n>]` from argv. */
+/** `<id> [--dance <slug>] [--out <dir>]` from argv. */
 function parseArgs(argv) {
   let id;
   let dance;
   let out;
-  let chain;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--dance") {
@@ -105,12 +82,9 @@ function parseArgs(argv) {
     } else if (arg === "--out") {
       out = argv[++i];
       if (out === undefined) throw new Error("--out needs a value");
-    } else if (arg === "--chain") {
-      chain = argv[++i];
-      if (chain === undefined) throw new Error("--chain needs a value");
     } else if (id === undefined && !arg.startsWith("--")) {
       id = arg;
     }
   }
-  return { id, dance, out, chain };
+  return { id, dance, out };
 }

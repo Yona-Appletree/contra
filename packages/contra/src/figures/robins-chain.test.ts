@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { angleDiff, dirOf, dist, rightOf } from "@caller/core";
 import { BECKET } from "../formation/becket.js";
-import { COURTESY_PIVOT_FROM_LARK_PX } from "./courtesyTurn.js";
-import { CHAIN_CANDIDATES, CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
+import { CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
 import {
   figureMoves,
   figureProblems,
@@ -12,35 +11,22 @@ import {
   stationSpot,
 } from "./testing.js";
 
-describe("`?chain=`'s five candidates, 5 the default since F13", () => {
-  it("names candidate 1 the rigid turn F9 shipped — 1 through 4 now say joinBeat: 0 explicitly, to turn F13's orbit back off", () => {
-    expect(CHAIN_CANDIDATES["1"]).toEqual({
-      pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
-      stepInPx: 0,
-      joinBeat: 0,
-    });
-    expect(robinsChain.defaults.pivotFromLark).toBe(COURTESY_PIVOT_FROM_LARK_PX);
-    expect(robinsChain.defaults.stepInPx).toBe(0);
-  });
-
-  it("puts candidate 2's pivot at the lark, still rigid, still off", () => {
-    expect(CHAIN_CANDIDATES["2"]).toEqual({ pivotFromLark: 0, stepInPx: 0, joinBeat: 0 });
-  });
-
-  it("steps candidates 3 and 4 in 4 px and 8 px, the couple spinning, still off", () => {
-    expect(CHAIN_CANDIDATES["3"]).toEqual({ stepInPx: 4, joinBeat: 0 });
-    expect(CHAIN_CANDIDATES["4"]).toEqual({ stepInPx: 8, joinBeat: 0 });
-  });
-
-  it("makes candidate 5 the lark's orbit, joined a quarter of the way through, and now the figure's own default (F13)", () => {
-    expect(CHAIN_CANDIDATES["5"]).toEqual({ joinBeat: CHAIN_JOIN_BEAT, passPx: CHAIN_PASS_PX });
+describe("the chain's only regime, since A6", () => {
+  it("is the lark's orbit, joined a quarter of the way through", () => {
     expect(CHAIN_JOIN_BEAT).toBe(2);
     expect(robinsChain.defaults.joinBeat).toBe(CHAIN_JOIN_BEAT);
     expect(robinsChain.defaults.passPx).toBe(CHAIN_PASS_PX);
   });
 
-  it("has no sixth candidate", () => {
-    expect(CHAIN_CANDIDATES["6"]).toBeUndefined();
+  // A6: F9's four earlier candidates, `CHAIN_CANDIDATES`, `?chain=` and
+  // `pnpm figure --chain` are gone, and with them the parameters that only
+  // existed to reach them. The test is the second half of that claim: a chain
+  // has no pivot and no step-in to choose any more.
+  it("has no pivot, no step in and no separate pull by to choose", () => {
+    const defaults = robinsChain.defaults as Record<string, unknown>;
+    for (const gone of ["pivotFromLark", "stepInPx", "pullBeats", "bowPx"]) {
+      expect(Object.hasOwn(defaults, gone), gone).toBe(false);
+    }
   });
 });
 
@@ -71,56 +57,18 @@ describe("robins chain", () => {
     expect(() => figureMoves(robinsChain, { chains: "nobody" }, BECKET)).toThrow(/exactly two/);
   });
 
-  // F9's other candidate, still reachable behind `?chain=3`/`?chain=4` even
-  // though F13 moved the default off the rigid turn entirely: `stepInPx` only
-  // matters when `joinBeat` is 0, and the default no longer is.
-  it("still has a step-in family behind stepInPx, off by default", () => {
-    expect(robinsChain.defaults.stepInPx).toBe(0);
-  });
-
-  it("passes right shoulders and still closes exactly when the lark steps in", () => {
-    for (const stepInPx of [4, 8]) {
-      const ends = figureMoves(robinsChain, { stepInPx }, BECKET);
-      expect(spotError(ends["2R"]!, stationSpot(BECKET, "1R")), `${stepInPx}: 2R`).toBeLessThan(
-        1e-9,
-      );
-      expect(spotError(ends["1L"]!, stationSpot(BECKET, "1L")), `${stepInPx}: 1L`).toBeLessThan(
-        1e-9,
-      );
-
-      // Which shoulder the two robins show each other at their closest, which
-      // is the whole reason this candidate exists: `rightOf` her facing dotted
-      // with the way to the other one is positive when she is passing right.
-      const group = probeGroup(BECKET);
-      const params = { ...robinsChain.defaults, stepInPx, beats: robinsChain.beats };
-      let closest = { gap: Infinity, side: 0 };
-      for (let t = 0; t <= 4.5; t += 1 / 32) {
-        const a = robinsChain.sample(group, "1R", t, params);
-        const b = robinsChain.sample(group, "2R", t, params);
-        const gap = dist(a.p, b.p);
-        if (gap >= closest.gap) continue;
-        const r = rightOf(a.facing);
-        closest = { gap, side: r[0] * (b.p[0] - a.p[0]) + r[1] * (b.p[1] - a.p[1]) };
-      }
-      expect(closest.side, `${stepInPx}: shoulder at ${closest.gap.toFixed(3)} px`).toBeGreaterThan(
-        0,
-      );
-    }
-  });
-
-  // F10's candidate, F13's default. The four facts the whole milestone rests
-  // on, pinned: the pull by is on the right shoulder and clear of AC6, the
-  // lark walks backward the whole way round, the couple faces out at the half
-  // and in at the end,
-  // and both of them land exactly on their places.
+  // F10's candidate, F13's default and since A6 the only one. The four facts
+  // the whole milestone rests on, pinned: the pull by is on the right shoulder
+  // and clear of AC6, the lark walks backward the whole way round, the couple
+  // faces out at the half and in at the end, and both of them land exactly on
+  // their places.
   it("orbits the lark a whole turn backwards and pulls by on the right", () => {
-    const orbit = CHAIN_CANDIDATES["5"]!;
-    const ends = figureMoves(robinsChain, orbit, BECKET);
+    const ends = figureMoves(robinsChain, {}, BECKET);
     expect(spotError(ends["2R"]!, stationSpot(BECKET, "1R"))).toBeLessThan(1e-9);
     expect(spotError(ends["1L"]!, stationSpot(BECKET, "1L"))).toBeLessThan(1e-9);
 
     const group = probeGroup(BECKET);
-    const params = { ...robinsChain.defaults, ...orbit, beats: robinsChain.beats };
+    const params = { ...robinsChain.defaults, beats: robinsChain.beats };
     const at = (id: string, t: number) => robinsChain.sample(group, id, t, params);
 
     // The pull by: how near the two robins come, and which shoulder.

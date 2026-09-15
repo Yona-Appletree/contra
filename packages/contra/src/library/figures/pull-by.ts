@@ -1,6 +1,6 @@
 import { DEFAULT_BOW_PX } from "@caller/choreo";
 import type { FigureDefinition, NumberExpr } from "../FigureDefinition.js";
-import type { PathStep } from "../kinds/pathM6.js";
+import type { PathStep } from "../kinds/waypoints.js";
 
 /**
  * **Pull by**: give one hand, walk past each other, and let go.
@@ -53,7 +53,7 @@ export const pullByDefinition: FigureDefinition = {
   anchor: "meet",
   params: { kind: "canonical", defaults: { pairs: "neighbors", hand: "R", holdDrop: 2 } },
   shape: {
-    kind: "path",
+    kind: "waypoints",
     tracks: { a: [stepTo("b")], b: [stepTo("a")] },
   },
   holds: [],

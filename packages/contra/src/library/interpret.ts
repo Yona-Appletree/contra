@@ -43,7 +43,7 @@ export interface ResolvedAnchor {
  * `homes` and `nearby` are the two things a figure cannot work out for itself
  * and must be handed, and both are plain data:
  *
- * - **`places`** — where the formation's own home places are, in frame-local px,
+ * - **`homes`** — where the formation's own home places are, in frame-local px,
  *   for every dancer of the group this call resolved in. A gatherer
  *   (`ends: "home"`) reads its end places off them; with none it falls back to
  *   its own geometry, which is what a figure danced alone in `pnpm figure`
@@ -55,8 +55,17 @@ export interface ResolvedAnchor {
  *   resolution rather than about the figure, so resolution supplies it.
  */
 export interface InterpretedParams extends ContraParams {
-  /** The formation's own home places, frame-local, or `[]`. */
-  places: readonly Vec2[];
+  /**
+   * The formation's own home places, frame-local, or `[]`.
+   *
+   * Named `homes` and not `places`, which is what M2 called it and what the
+   * prose above still calls it: a **figure** may have a parameter of its own
+   * called `places` — a circle's is how many quarters of the ring it walks —
+   * and the two would share one name in one object. Nothing caught it until
+   * `symmetry.test.ts` planned a petronella without going through resolution
+   * and got `places: []` where the figure wanted `1`.
+   */
+  homes: readonly Vec2[];
   /** Frame-local centres of the sibling instances of this call. */
   nearby: readonly Vec2[];
   [key: string]: unknown;
@@ -149,7 +158,7 @@ function buildFigure(def: FigureDefinition): ContraFigure<InterpretedParams> {
     defaults: {
       ...paramDefaults(def),
       from: {},
-      places: [],
+      homes: [],
       nearby: [],
     } as unknown as Omit<InterpretedParams, "beats" | "carried">,
     plan: (ctx, params) => planDefinition(def, ctx, params),
@@ -163,7 +172,7 @@ export function planDefinition(
   params: InterpretedParams,
 ): FigurePlan {
   const roles = ctx.ids;
-  const places = params.places.length > 0 ? params.places : undefined;
+  const places = params.homes.length > 0 ? params.homes : undefined;
   const anchorIn = (inner: PlanContext): ResolvedAnchor => anchorOf(def.anchor, inner, roles);
   const input: ShapeInput = {
     ctx,
@@ -221,7 +230,7 @@ export function anchorOf(
     const axis = spots.length < 2 ? 0 : bearing(spots[0]!.p, spots[spots.length - 1]!.p);
     return { centre, axis };
   }
-  throw new Error(`unsupported: anchor ${JSON.stringify(rule)} (M4)`);
+  throw new Error(`unsupported: anchor ${JSON.stringify(rule)} (M7)`);
 }
 
 /** The joins carried in or out across this figure's boundary, as keys. */

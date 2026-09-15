@@ -91,7 +91,7 @@ export type { RightAndLeftThroughParams } from "./right-and-left-through.js";
 export { rightAndLeftThrough } from "./right-and-left-through.js";
 
 export type { RobinsChainParams } from "./robins-chain.js";
-export { CHAIN_CANDIDATES, CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
+export { CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
 
 export type { HeyParams } from "./hey.js";
 export { hey } from "./hey.js";
@@ -157,6 +157,3 @@ export { PROBE_FRAME, PROBE_STEP, probeFigure, probeGroup } from "./testing.js";
 
 export type { ContraWaitOutParams } from "./wait-out.js";
 export { crossingOf, waitOut } from "./wait-out.js";
-
-export * from "./language/index.js";
-export { circleData, circleSpec } from "./specs/circleSpec.js";

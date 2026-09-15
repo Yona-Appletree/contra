@@ -46,7 +46,39 @@ export type NumberExpr =
   | { param: string }
   | { number: "select"; on: string; cases: Record<string, NumberExpr> }
   | { number: "mul"; of: readonly NumberExpr[] }
-  | { number: "sum"; of: readonly NumberExpr[] };
+  | { number: "sum"; of: readonly NumberExpr[] }
+  /**
+   * `Math.sign` of a number, with `0` counting as `+1`.
+   *
+   * A petronella spins the way it travels — "to the dancer's own right" — so
+   * the whole turn's sign is the sign of how many places round it goes, and a
+   * figure asked for none of them still spins one way rather than standing
+   * still mid air. `Math.sign(params.places || 1)` is what the coded figure
+   * says; this is that sentence as data.
+   */
+  | { number: "sign"; of: NumberExpr }
+  | { number: "min"; of: readonly NumberExpr[] }
+  | { number: "max"; of: readonly NumberExpr[] }
+  /**
+   * How long this instance of the figure lasts.
+   *
+   * A figure stretches to the count the card gives it (D3), so a window written
+   * as a fraction of the figure — "a third of the way in", a roll away's hands
+   * letting go by half — is written against this rather than against the
+   * figure's nominal count.
+   */
+  | { number: "beats" }
+  /**
+   * `then` when the dancer this is being evaluated for has the **contra role**
+   * the named parameter says, and `else` otherwise.
+   *
+   * A roll away asks it twice: which of the couple rolls across in front (and
+   * so bows the other way and flares), and which slides behind. It is a
+   * question about the dancer's role in the *set* — lark or robin — and not
+   * about their part in the figure, which is why it reads a parameter naming a
+   * role rather than a figure-role.
+   */
+  | { number: "ifRole"; role: string; then: NumberExpr; else: NumberExpr };
 
 /**
  * A beat of the figure, counted from its start or from its end.
@@ -74,7 +106,13 @@ export function evalMoment(expr: Moment, env: ExprEnv, beats: Beat = env.beats):
 export type AngleExpr =
   | NumberExpr
   | { angle: "bearing"; from: PointExpr; to: PointExpr }
-  | { angle: "facingOf"; role: RoleExpr; at: "live" | "start" | "end" };
+  | { angle: "facingOf"; role: RoleExpr; at: "live" | "start" | "end" }
+  /**
+   * Angles added. `{ number: "sum" }` cannot: its terms are numbers, and a
+   * facing is not one — "the way I am standing, less a quarter turn" is the
+   * sentence a slide left is written in and it has an angle in it.
+   */
+  | { angle: "sum"; of: readonly AngleExpr[] };
 
 /** A truth a definition asks for: written down, or read off a parameter. */
 export type BoolExpr = boolean | { param: string };
@@ -91,7 +129,21 @@ export type SideExpr = Side | { param: string };
  * the part one place along" is the same sentence for all four of them. It is
  * `ringShift` with the ring being the instance rather than the minor set.
  */
-export type RoleExpr = FigureRole | { role: "self" } | { role: "shift"; places: NumberExpr };
+export type RoleExpr =
+  | FigureRole
+  | { role: "self" }
+  | { role: "shift"; places: NumberExpr }
+  /**
+   * The dancer I am dancing this figure **with** — whoever the shape's own
+   * pairing put me with.
+   *
+   * The leaf that lets one written path serve everybody: "walk to my mate's
+   * place" is the same sentence for all four dancers of a pass through, and
+   * which dancer that is comes out of where they are standing rather than out
+   * of the call. A shape with no pairing, or a dancer the pairing left out, has
+   * no mate and reading one is an error rather than a silent nobody.
+   */
+  | { role: "mate" };
 
 /**
  * A floor point a definition asks for, in the frame's own local px.
@@ -104,6 +156,15 @@ export type PointExpr =
   | { point: "start" | "end" | "live"; role: RoleExpr }
   | { point: "anchor" }
   | { point: "midpoint"; a: PointExpr; b: PointExpr }
+  /**
+   * One point's `x` with another's `y`.
+   *
+   * "Straight across the set from where I stand" is the sentence long lines is
+   * written in, and it is exactly this: the centre's across-the-set coordinate
+   * at my own along-the-set one. In the frame's local axes `x` is across and
+   * `y` along, so the composed point is on the set's own midline, abeam of me.
+   */
+  | { point: "compose"; x: PointExpr; y: PointExpr }
   | { point: "polar"; centre: PointExpr; angle: AngleExpr; radius: NumberExpr }
   | { point: "offset"; from: PointExpr; along: AngleExpr; distance: NumberExpr }
   | { point: "joinPoint"; a: RoleExpr; aSide: Side; b: RoleExpr; bSide: Side };
@@ -136,6 +197,8 @@ export interface ExprEnv {
   order: readonly FigureRole[];
   /** Where the shape is anchored, in frame-local px. */
   anchor: Vec2;
+  /** Who each role is dancing this with; unset for a shape that pairs nobody. */
+  mate?: (role: FigureRole) => FigureRole | undefined;
   /** Where the figure leaves everybody; unset until the ends pass has run. */
   ends?: Spots;
   /** Every role's place at {@link ExprEnv.t}; unset until the position pass has run. */
@@ -153,7 +216,9 @@ function paramOf(env: ExprEnv, name: string): unknown {
 /** A number from a {@link NumberExpr}. */
 export function evalNumber(expr: NumberExpr, env: ExprEnv): number {
   if (typeof expr === "number") return expr;
-  if ("param" in expr) {
+  // The `number` discriminant first, because a node may carry a `param` field
+  // of its own (`ifRole`'s, `select`'s `on`) and is not a parameter leaf.
+  if (!("number" in expr)) {
     const value = paramOf(env, expr.param);
     if (typeof value !== "number") {
       throw new Error(`parameter "${expr.param}" is ${JSON.stringify(value)}, not a number`);
@@ -171,11 +236,23 @@ export function evalNumber(expr: NumberExpr, env: ExprEnv): number {
     }
     return evalNumber(chosen, env);
   }
+  if (expr.number === "sign") {
+    const of = evalNumber(expr.of, env);
+    return Math.sign(of || 1);
+  }
+  if (expr.number === "beats") return env.beats;
+  if (expr.number === "ifRole") {
+    const want = paramOf(env, expr.role);
+    const mine = env.ctx.role(env.self);
+    return evalNumber(mine === want ? expr.then : expr.else, env);
+  }
   if (expr.of.length === 0) throw new Error(`"${expr.number}" needs at least one term`);
-  let total = evalNumber(expr.of[0]!, env);
-  for (let i = 1; i < expr.of.length; i++) {
-    const term = evalNumber(expr.of[i]!, env);
-    total = expr.number === "mul" ? total * term : total + term;
+  const terms = expr.of.map((term) => evalNumber(term, env));
+  if (expr.number === "min") return Math.min(...terms);
+  if (expr.number === "max") return Math.max(...terms);
+  let total = terms[0]!;
+  for (let i = 1; i < terms.length; i++) {
+    total = expr.number === "mul" ? total * terms[i]! : total + terms[i]!;
   }
   return total;
 }
@@ -208,6 +285,11 @@ export function evalAngle(expr: AngleExpr, env: ExprEnv): Angle {
   if (expr.angle === "bearing") {
     return bearing(evalPoint(expr.from, env), evalPoint(expr.to, env));
   }
+  if (expr.angle === "sum") {
+    let total = 0;
+    for (const term of expr.of) total += evalAngle(term, env);
+    return total;
+  }
   return evalSpot(expr.at, evalRole(expr.role, env), env).facing;
 }
 
@@ -215,6 +297,13 @@ export function evalAngle(expr: AngleExpr, env: ExprEnv): Angle {
 export function evalRole(expr: RoleExpr, env: ExprEnv): FigureRole {
   if (typeof expr === "string") return expr;
   if (expr.role === "self") return env.self;
+  if (expr.role === "mate") {
+    const mate = env.mate?.(env.self);
+    if (mate === undefined) {
+      throw new Error(`"${env.self}" has nobody to dance this with, so there is no mate`);
+    }
+    return mate;
+  }
   return roleShift(env.order, env.self, evalNumber(expr.places, env));
 }
 
@@ -264,6 +353,8 @@ export function evalPoint(expr: PointExpr, env: ExprEnv): Vec2 {
       return env.anchor;
     case "midpoint":
       return midpoint(evalPoint(expr.a, env), evalPoint(expr.b, env));
+    case "compose":
+      return [evalPoint(expr.x, env)[0], evalPoint(expr.y, env)[1]];
     case "polar":
       return polar(
         evalPoint(expr.centre, env),
