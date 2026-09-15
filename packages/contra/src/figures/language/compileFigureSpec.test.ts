@@ -163,9 +163,15 @@ describe("hands", () => {
       hands: { all: { L: { hand: "down", swing: 1 }, R: { hand: "down" } } },
     });
     const { plan } = planOf(swung);
-    const self = plan.at("1L", 2.5);
-    expect(self.hands.L).toEqual(handDown(self.p, self.facing, "L", 2.5, 1));
-    expect(self.hands.L).not.toEqual(handDown(self.p, self.facing, "L", 2.5, 0));
+    // Not a half-integer beat: the swing term is `sin(2π·t)`, which is
+    // genuinely (not just numerically) zero at t = 2.5, so "swung differs from
+    // unswung" cannot be asserted there — F11 grew the ring's own radius
+    // enough that the swing's ~1e-15 floating-point residue at t = 2.5 no
+    // longer survives rounding into a detectably different `p`, which is what
+    // exposed this. t = 2.25 sits at the swing's own peak instead.
+    const self = plan.at("1L", 2.25);
+    expect(self.hands.L).toEqual(handDown(self.p, self.facing, "L", 2.25, 1));
+    expect(self.hands.L).not.toEqual(handDown(self.p, self.facing, "L", 2.25, 0));
   });
 
   it("refuses a `carried` hand until the hold is threaded between calls (M3)", () => {

@@ -6,7 +6,7 @@ import type { Group } from "../group/Group.js";
 import { groupStationPose } from "../group/Group.js";
 import type { EndPose, FigureDef, FigureParams } from "./FigureDef.js";
 import type { Ring, RingPlaces } from "./ring.js";
-import { ringHands, ringOf, ringShift, ringWalk } from "./ring.js";
+import { RING_NEIGHBOR_SPACING_PX, ringHands, ringOf, ringShift, ringWalk } from "./ring.js";
 import { standing, walking } from "./standing.js";
 import { walkStep } from "./walkPath.js";
 
@@ -54,10 +54,12 @@ export interface TakeHandsParams extends FigureParams {
  *
  * The ring is the same ring, and the hold the same hold, that `circle` uses:
  * `@caller/choreo`'s `ring.ts`, a regular ring of `n` places with neighbours
- * exactly a hold spacing apart so every arm reaches, and one shared floor point
- * per pair of joined hands with the role set's top role stacked on it (AC2).
- * A group of two — the couple waiting out at either end of a line — makes a
- * ring of two, which is both hands joined, "as far as their membership allows".
+ * `RING_NEIGHBOR_SPACING_PX` apart — two arms, each comfortably extended (F11)
+ * — not the couple spacing, so every arm reaches without cramming elbows out,
+ * and one shared floor point per pair of joined hands with the role set's top
+ * role stacked on it (AC2). A group of two — the couple waiting out at either
+ * end of a line — makes a ring of two, which is both hands joined, "as far as
+ * their membership allows".
  *
  * Form-neutral, like everything else in this package. `places` is a number the
  * decider derives from the formation's own progression; this figure neither
@@ -169,7 +171,7 @@ function shapeOf(group: Group, params: TakeHandsParams): Shape {
     return { ring: null, at: walk, moving, handsAt: () => ({}) };
   }
 
-  const ring = ringOf(starts, ids, group.frame.spacing);
+  const ring = ringOf(starts, ids, RING_NEIGHBOR_SPACING_PX);
   const turn = (params.places * 360) / ids.length;
   const ends: RingPlaces = {};
   for (const id of ids) {

@@ -1,5 +1,5 @@
 import type { Ring, StationId } from "@caller/choreo";
-import { ringHands as choreoRingHands, ringOf } from "@caller/choreo";
+import { RING_NEIGHBOR_SPACING_PX, ringHands as choreoRingHands, ringOf } from "@caller/choreo";
 import type { Hand } from "@caller/core";
 import type { HandJoin, PlanContext, Spot } from "./ContraFigure.js";
 
@@ -15,7 +15,15 @@ import type { HandJoin, PlanContext, Spot } from "./ContraFigure.js";
  * `balance`, the figure-spec language — is untouched.
  */
 export type { Ring, RingWalk } from "@caller/choreo";
-export { ringOf, ringOrder, ringShift, ringWalk } from "@caller/choreo";
+export {
+  RING_ARM_EXTENSION,
+  RING_FOOTPRINT_MARGIN_PX,
+  RING_NEIGHBOR_SPACING_PX,
+  ringOf,
+  ringOrder,
+  ringShift,
+  ringWalk,
+} from "@caller/choreo";
 
 /**
  * The joined hands round a ring, in a contra figure's own terms: the plan
@@ -31,6 +39,13 @@ export function ringHands(
   return choreoRingHands(ring, at, (id) => ctx.role(id), ctx.roleSet, drop, stackPx);
 }
 
-/** The ring a plan's dancers start on. */
-export const ringFor = (ctx: PlanContext, spacing = ctx.spacing): Ring =>
+/**
+ * The ring a plan's dancers start on.
+ *
+ * `spacing` defaults to {@link RING_NEIGHBOR_SPACING_PX} — the ring's own
+ * arm-based neighbour distance, not `ctx.spacing` (the couple spacing a
+ * dancer stands from their partner) — so a ring of joined hands is always the
+ * size an arm's reach wants, not the size two dancers happen to stand apart.
+ */
+export const ringFor = (ctx: PlanContext, spacing = RING_NEIGHBOR_SPACING_PX): Ring =>
   ringOf(ctx.start, ctx.ids, spacing);

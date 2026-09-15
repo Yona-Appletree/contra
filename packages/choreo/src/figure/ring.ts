@@ -1,5 +1,15 @@
 import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
-import { angleDiff, angleLerp, angleOfVec, dist, mix, ramp, shouldersAt, sub } from "@caller/core";
+import {
+  ARM_REACH_PX,
+  angleDiff,
+  angleLerp,
+  angleOfVec,
+  dist,
+  mix,
+  ramp,
+  shouldersAt,
+  sub,
+} from "@caller/core";
 import type { RoleName, RoleSet, StationId } from "../formation/Formation.js";
 import type { EndPose } from "./FigureDef.js";
 import { joinHands } from "./joinHands.js";
@@ -37,13 +47,75 @@ export interface Ring {
 /** Where every dancer of a group stands, in whichever axes the caller is working in. */
 export type RingPlaces = Record<StationId, EndPose>;
 
-/** The ring the dancers of `places` make, with neighbours `spacing` apart. */
+/**
+ * How far a ring's arms reach, as a fraction of the arm's own full 15 px
+ * reach: comfortably extended, elbows softly bent, not straight-armed and not
+ * crammed shoulder to shoulder.
+ *
+ * The user, F11: "we need to fix the circle. it looks absurd with the elbows
+ * out. they aren't shoulder to shoulder they are in a circle." The old ring put
+ * neighbours the *couple* spacing apart (`HOLD_SPACING_PX`, 14 px) — barely
+ * under half an arm's reach each — which crammed four people's elbows out
+ * wide.
+ *
+ * Picked by the figure lab and the motion oracle's elbow ratio at 0.7, 0.8 and
+ * 0.9 (see `packages/contra/src/figures/motionBounds.ts`'s F11 derivation) —
+ * **and all three read identically** for a standard four-person ring: the
+ * footprint clamp below saturates every one of them down to the same 12 px
+ * radius, because a duple-improper or becket minor set's narrower half-extent
+ * (10 px, along the hall) is smaller than any of the three candidates' natural
+ * radius. 0.8 is kept as the readable middle of the range the brief asked for,
+ * and is the number that governs the one case the clamp does *not* saturate:
+ * a ring of two (a waiting couple's hold), where it sets the hold spacing
+ * directly and unclamped.
+ */
+export const RING_ARM_EXTENSION = 0.8;
+
+/**
+ * The distance between neighbours on a ring of joined hands: two arms, each
+ * extended to {@link RING_ARM_EXTENSION} of their full reach, meeting in the
+ * middle.
+ *
+ * Every ring figure derives its spacing from this one constant — `circle`,
+ * the hands-four ring (`takeHands.ts`), and every other figure that reads
+ * `ringOf` at its default spacing (`balance-ring`, `star`) — so there is one
+ * rule for how big a ring of hands is, not one per figure.
+ */
+export const RING_NEIGHBOR_SPACING_PX = 2 * ARM_REACH_PX * RING_ARM_EXTENSION;
+
+/**
+ * How far past the ring's own footprint (the narrower of the group's own
+ * spread, across or along) the geometry may reach before it is clamped.
+ *
+ * Small on purpose, and added to the *narrower* half-extent rather than the
+ * corner-to-corner circumradius: a figure that turns the ring more than a
+ * step sweeps every angle round it, including the one pointing straight down
+ * the narrower axis, so a ring sized to just reach a rectangle's corners
+ * still swings past its shorter side — which is exactly the neighbouring
+ * minor set's own space (AC6). Measured, not assumed: `circle`'s three-place
+ * turn is what found this (F11).
+ */
+export const RING_FOOTPRINT_MARGIN_PX = 2;
+
+/**
+ * The ring the dancers of `places` make, with neighbours `spacing` apart —
+ * clamped so it never reaches, in any direction, further from its own centre
+ * than the group's own narrower half-extent (across or along, whichever is
+ * smaller) plus {@link RING_FOOTPRINT_MARGIN_PX}. A ring that turns sweeps
+ * every angle round it, so it is the group's *narrowest* dimension that
+ * bounds it, not the distance to its own far corners.
+ */
 export function ringOf(places: RingPlaces, ids: readonly StationId[], spacing: number): Ring {
   const order = ringOrder(places, ids);
   const n = order.length;
   const centre = centreOf(order.map((id) => mustPlace(places, id)));
   const step = 360 / n;
-  const radius = spacing / (2 * Math.sin(Math.PI / n));
+  const naturalRadius = spacing / (2 * Math.sin(Math.PI / n));
+  const footprint = Math.min(
+    halfExtent(order.map((id) => mustPlace(places, id).p[0] - centre[0])),
+    halfExtent(order.map((id) => mustPlace(places, id).p[1] - centre[1])),
+  );
+  const radius = Math.min(naturalRadius, footprint + RING_FOOTPRINT_MARGIN_PX);
 
   // The phase that turns the ring to where the dancers already are: the
   // circular mean of each dancer's own angle less their place round the ring.
@@ -61,6 +133,28 @@ export function ringOf(places: RingPlaces, ids: readonly StationId[], spacing: n
     angle[id] = wrap360(phase + k * step);
   });
   return { centre, radius, order, angle };
+}
+
+/**
+ * Below this spread, in px, two values count as "the same" for
+ * {@link halfExtent} — a frame's rotation puts a few `1e-15`-scale trig crumbs
+ * into a coordinate that is exactly equal in the frame's own local axes, and
+ * without a floor those crumbs read as a real (if minuscule) spread and clamp
+ * a ring down to nothing. Far below the renderer's own `1/256` px quantum.
+ */
+const DEGENERATE_SPREAD_PX = 1e-6;
+
+/**
+ * Half the spread of a set of numbers either side of their own centre: `0` for
+ * one value, and `Infinity` when every value is the same (within
+ * {@link DEGENERATE_SPREAD_PX}) — a group with no spread along an axis puts no
+ * ceiling on the ring in that direction (a ring of two facing each other along
+ * one axis has nothing to say about the other).
+ */
+function halfExtent(values: readonly number[]): number {
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  return hi - lo > DEGENERATE_SPREAD_PX ? (hi - lo) / 2 : Infinity;
 }
 
 /**

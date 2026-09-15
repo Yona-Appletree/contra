@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
-import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { DUPLE_IMPROPER, PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 import { circle } from "./circle.js";
+import { RING_FOOTPRINT_MARGIN_PX } from "./ring.js";
 import {
   figureMoves,
   figureProblems,
@@ -40,10 +41,17 @@ describe("circle", () => {
     }
   });
 
-  it("makes a ring whose neighbours are exactly a hold spacing apart", () => {
-    // Mid figure everybody is on the ring: four dancers, hold spacing apart.
+  it("makes a ring the footprint clamp caps, not the couple spacing", () => {
+    // F11: neighbours are no longer the couple spacing apart — the ring's
+    // *natural* radius (arm-based, RING_NEIGHBOR_SPACING_PX) is bigger than
+    // this rectangle's narrower half-extent, so the footprint clamp binds: a
+    // duple-improper minor set is 32×20 px, whose along-the-hall half-extent
+    // is PLACE_PITCH_PX / 2 = 10 px, so the ring is capped at
+    // 10 + RING_FOOTPRINT_MARGIN_PX = 12 px, and neighbours end up
+    // 2 · 12 · sin(π/4) ≈ 16.971 px apart.
     const group = probeGroup(DUPLE_IMPROPER);
     const probe = probeFigure(circle, {}, { group });
-    expect(probe.minDistance).toBeCloseTo(group.frame.spacing, 6);
+    const clampedRadius = PLACE_PITCH_PX / 2 + RING_FOOTPRINT_MARGIN_PX;
+    expect(probe.minDistance).toBeCloseTo(2 * clampedRadius * Math.sin(Math.PI / 4), 6);
   });
 });
