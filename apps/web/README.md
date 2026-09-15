@@ -8,8 +8,8 @@ dance that dances itself.
 
 A four-line hash router (`src/routes/hashRoute.ts`) and a small tab shell in
 `src/App.tsx` that reads the route and either wraps it in the tab bar or
-renders it bare. Three tabs, plus two routes hidden from the tab bar and
-reached only by URL.
+renders it bare. Three tabs, plus the routes below them that have no tab of
+their own and are reached by URL or by a link on the page above them.
 
 - **Stage** (`#/` and `#/dance/<slug>?tune=<slug>`, M9, P1, the default tab).
   Two lines of eight couples and seven dance every encoded dance twice
@@ -33,6 +33,15 @@ reached only by URL.
     day and a seeded URL still reproduces one evening exactly.
   - `tune=<slug>` pins every dance to one medley instead of the seeded
     shuffle (the tune select's own "shuffle" choice is the default).
+  - `engine=<new|old>` (M3) picks which engine the hall dances on. **`new` is
+    the default**: the contra `CyclePlanner` resolving every call against live
+    set state, with the five migrated gatherers read as `FigureDefinition`s.
+    `old` is `@caller/choreo`'s `defaultCyclePlanner` over the coded figures —
+    the path every golden before M3 was taken against — and stays reachable
+    until M11 deletes the old figure layer. The two are the _same dancing_
+    everywhere in the demo programme except Jubilation's `hey → swing`. Not a
+    control in the bar: it is a reviewer's switch, and the page says which
+    engine it is on under the status line with a link to the other.
 - **Moves** (`#/moves`, F3b/U2). Every figure the registry holds and every
   figure-to-figure seam the ten demo dances actually dance, one to a row: a
   looping canvas in a shared left column, then the id, the call, the move's
@@ -50,10 +59,35 @@ reached only by URL.
   `bare=1` drops the tab bar, the controls and every row but the first,
   leaving just its canvas (or, with `strip=1`, its strip) — the route the
   gallery screenshots use.
+
+  Since M3 a tile is **one two-couple set run through a cycle planner** — a
+  real `HallState`, a real synthetic `Dance` of the tile's calls, and the same
+  planner the Stage hands the decider — rather than a private loop of this
+  page's own. `engine=<new|old>` builds every tile on that engine; the default
+  is `new`, as on the Stage.
+
+- **The seam lab** (`#/lab`, `#/lab/seam/<a>--<b>`, M3, gate G1). One seam of
+  the corpus danced through both engines at once, from one clock, slowed
+  (`speed=<0.25|0.5|1>`, default ½×), looping the four beats before the
+  boundary and the eight after it (`reach=<seam|figure>`), with a strip per
+  treatment underneath in the same columns (`step=<1|0.5>`). Each page
+  measures how far apart the two treatments actually get before it asks which
+  is right, and says under the strips which look decisions are still open.
+  `#/lab` lists the shortlist; any seam key the Moves page files a tile under
+  opens. Other query parameters: `beat=<n>` freezes on that count from the
+  boundary, `zoom=<2|3|4|6>`, `trails=1`, `chain=<1..5>`. Filed under the
+  Moves tab, on a route of its own.
 - **Dances** (`#/dances`, D1). One card per encoded dance — the same
   `@caller/music` `Card` the Stage tab puts beside the hall, read at beat
   0 — scrollable on a phone. Tapping a card goes to `#/dance/<slug>`, which
-  is the Stage tab already playing it.
+  is the Stage tab already playing it. A **lab dance** (`DanceFile.status:
+"lab"`) has no card here — that is what the status means — but has its own
+  dance page and dances on the Stage from `#/dance/<slug>`.
+- `#/dances/<slug>` — one dance's own reference sheet (U3): the head, the
+  static calling card, the shapes, the walkthrough, and (M3) **how it
+  resolves** — every figure instance the planner makes of the dance, one time
+  through, with its cast, anchor, ends, carried hands and anybody it left
+  standing. The same table `pnpm dance <slug>` prints, from the same function.
 - `#/pair` — **the pair page (M5, gate G1).** Hidden from the tab bar since
   M9 moved it off the front page; still linkable. The two-dancers spike's
   64-beat sequence at 112 bpm, played from `@caller/contra`'s figure
