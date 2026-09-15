@@ -38,14 +38,16 @@ export const TRACE_JUMP_PX = 12;
 export type TraceSpread = "diagonal" | "horizontal" | "vertical" | "none";
 
 /**
- * How a pen's facing is drawn on the pen plot and the march, T3's own option.
+ * How a pen's facing is drawn on the pen plot and the march.
  *
- * `"ticks"` is what shipped in T2 and stays the default: a short line out of
- * the path every `facingEvery` beats. `"wake"` is the user's idea — a
- * gradient band on the facing side of the whole path, not a mark at a beat —
+ * `"wake"` is the user's idea and, since T5, the default: a soft band on the
+ * facing side of the whole path, not a mark at a beat. `"ticks"` is what
+ * shipped in T2 — a short line out of the path every `facingEvery` beats —
  * and `"arrowheads"` swaps the tick for a small triangle once a phrase
- * (`phraseBeats`, default 16) instead of every beat. All three are compared
- * in `apps/web/e2e/screenshots/t3-facing-*.png`.
+ * (`phraseBeats`, default 16) instead of every beat. Both remain reachable,
+ * in code and from `?facing=` in the address bar. The three are compared in
+ * `apps/web/e2e/screenshots/t3-facing-*.png` (T3, the pick) and
+ * `t5-wake-*.png` (T5, the tuning).
  */
 export type FacingStyle = "ticks" | "wake" | "arrowheads";
 
@@ -75,12 +77,26 @@ export interface TraceDrawOptions {
    */
   facingEvery?: Beat;
   /**
-   * How long a facing tick is, px, or how far a wake band reaches outward, or
-   * how long an arrowhead is. Default 4. One number for all three styles so a
-   * margin computed from it (`pad + facingPx`) holds whichever is drawn.
+   * How long a facing tick is, px, or how long an arrowhead is. Default 4.
+   * The wake has its own, wider reach ({@link TraceDrawOptions.wakePx}); a
+   * margin is computed from {@link facingReach}, which gives whichever of the
+   * two the style being drawn actually uses.
    */
   facingPx?: number;
-  /** Which way a pen's facing is drawn. Default `"ticks"`, T2's shipped look. */
+  /**
+   * How far a wake reaches out of the line, px. Default six times `penWidth`
+   * — 7.2 px at the Moves row's own pen, 8.4 px at the default one — which is
+   * what makes it read as a fade rather than a hairline (T5, the user's
+   * "the fade is too narrow, hard to see").
+   */
+  wakePx?: number;
+  /**
+   * How opaque a wake is where it leaves the line, 0…1. Default 0.65, which
+   * the blur that does the fading turns into about 0.6 at the line itself and
+   * 0.03 at the reach.
+   */
+  wakeOpacity?: number;
+  /** Which way a pen's facing is drawn. Default `"wake"` since T5. */
   facing?: FacingStyle;
 }
 
@@ -97,14 +113,17 @@ export interface TraceDraw {
   spreadPx: number;
   facingEvery: Beat;
   facingPx: number;
+  wakePx: number;
+  wakeOpacity: number;
   facing: FacingStyle;
 }
 
 /** Fill in every default a drawing needs. */
 export function traceDraw(options: TraceDrawOptions = {}): TraceDraw {
+  const penWidth = options.penWidth ?? TRACE_PEN_WIDTH;
   return {
     palette: options.palette ?? TRACE_PALETTE,
-    penWidth: options.penWidth ?? 1.4,
+    penWidth,
     phraseBeats: options.phraseBeats ?? 16,
     labels: options.labels ?? true,
     nameOf: options.nameOf ?? ((figure: string) => figure),
@@ -114,9 +133,31 @@ export function traceDraw(options: TraceDrawOptions = {}): TraceDraw {
     spreadPx: options.spreadPx ?? 2.4,
     facingEvery: options.facingEvery ?? 1,
     facingPx: options.facingPx ?? 4,
-    facing: options.facing ?? "ticks",
+    wakePx: options.wakePx ?? penWidth * WAKE_REACH_PER_PEN_WIDTH,
+    wakeOpacity: options.wakeOpacity ?? WAKE_OPACITY,
+    facing: options.facing ?? "wake",
   };
 }
+
+/** How thick a pen draws when nobody says otherwise, px. */
+export const TRACE_PEN_WIDTH = 1.4;
+
+/**
+ * How far a wake reaches out of the line, as a multiple of the pen's own
+ * stroke width.
+ *
+ * The pen's width is the one number every caller already scales with the plot
+ * — 1.2 px in a Moves row, 1.4 px on the traces page, 1 px on a dance card —
+ * so hanging the wake off it is what makes a wake on a row and a wake at
+ * reading size look like the same drawing at two sizes. Six, not the three
+ * the milestone's brief guessed at: three is 3.6 px at the row's own pen,
+ * which is the 3.5 px T3 already drew and the user called too narrow to see.
+ * The pictures that settled it are `apps/web/e2e/screenshots/t5-wake-reach-*.png`.
+ */
+export const WAKE_REACH_PER_PEN_WIDTH = 6;
+
+/** How opaque a wake is where it leaves the line, before the fade. */
+export const WAKE_OPACITY = 0.65;
 
 /** The unit vector a spread nudges along. */
 const SPREAD_UNITS: Record<TraceSpread, Vec2> = {
@@ -169,12 +210,14 @@ export function facingTicks(
 }
 
 /**
- * The point a facing tick's tip, a wake band's outer edge, or an arrowhead's
- * point all share: `px` out from `p`, in the direction `facing` degrees.
+ * How far out of the path the style being drawn reaches, px: a tick's tip and
+ * an arrowhead's point sit `facingPx` out, a wake's far edge `wakePx`.
+ *
+ * The pen plot's and the march's margins are computed from this, so whichever
+ * style is asked for, the widest thing on the page still fits.
  */
-function outward(p: Vec2, facing: number, px: number): Vec2 {
-  const radians = (facing * Math.PI) / 180;
-  return [p[0] + Math.cos(radians) * px, p[1] + Math.sin(radians) * px];
+export function facingReach(draw: TraceDraw): number {
+  return draw.facing === "wake" ? draw.wakePx : draw.facingPx;
 }
 
 /**
@@ -202,31 +245,45 @@ export function facingMarks(
 }
 
 /**
- * The user's gradient-wake idea: instead of a mark once a beat, a continuous
- * band running the whole path on the facing side of the line, fading from the
- * pen's own colour at the path to fully transparent `facingPx` out.
+ * The user's wake: instead of a mark once a beat, a continuous band running
+ * the whole path on the facing side of the line, the pen's own colour at the
+ * line fading to nothing `wakePx` out.
  *
- * Built as one small quad per consecutive pair of samples — the first of the
- * two constructions the brief offered, not a single ribbon path with one
- * gradient. Facing can turn sharply (a courtesy turn spins a dancer through
- * most of a circle in a couple of beats) and a single gradient direction for
- * the whole pen cannot rotate to follow that, while a quad per segment can:
- * each one uses its own two samples' own facings for its own two outer
- * corners, so the band's outward direction turns exactly when the dancer's
- * facing does. Each quad gets its own tiny `userSpaceOnUse` gradient — a
- * shared `objectBoundingBox` gradient would have to share one direction too —
- * fading to `stop-opacity="0"`, not to black: two bands cross wherever two
- * dancers pass, which is exactly the "stay legible where the four pens cross"
- * case the brief asks about, and a transparent fade lets whichever pen is
- * underneath keep showing, where an opaque black fade would paint over it
- * instead. (Fading to black was tried — on this palette's near-black ground,
- * `#14110f`, it reads almost the same as transparent everywhere except a
- * crossing, where it is worse.)
+ * T3 built this from one gradient-filled quad per consecutive pair of
+ * samples, and the user's verdict on it was "it looks kinda jagged, and the
+ * fade is too narrow, hard to see". Both halves of that are built out here.
  *
- * The outward edge never reaches further than `facingPx` from the path, the
- * same reach a tick's own tip uses, so the margin `penPlotSvg` and `marchSvg`
- * already reserve for a tick (`pad + draw.facingPx`) holds a wake with no
- * change of its own.
+ * **One ribbon per pen, not a quad per sample.** Each run of unbroken ink
+ * gets one open path — the *centre line* of the band, half a reach out from
+ * the ink along the facing — stroked `wakePx` wide with round caps and round
+ * joins. A stroke is one painted shape however much it doubles back on
+ * itself, so a turn that swings the band across its own tail paints exactly
+ * once (the `fill-rule: nonzero`, single-opacity requirement, got by
+ * construction rather than by a rule), and a round join means the outer edge
+ * of a turn is a circular arc rather than the staircase of quad corners that
+ * made T3's edge jagged. The one number that still has to be smooth is the
+ * centre line itself, so the facing it is built from is a weighted moving
+ * average of the neighbouring samples' facing *vectors*
+ * ({@link smoothFacings}) — averaging directions, never degrees, so that a
+ * pen crossing due north does not swing the long way round through 359.
+ *
+ * **The fade is a blur, not a gradient.** A linear gradient paints along one
+ * fixed direction, and the direction this band fades in turns with the
+ * dancer; T3 answered that with a gradient per quad, which is what put a seam
+ * at every sample. Instead the band is one flat colour, masked by the ink's
+ * own path stroked `wakePx` wide in white and blurred: the mask's value is
+ * then a smooth function of the distance from the line — about 0.9 at the
+ * line, 0.5 half way out, 0.05 at the reach — which is the fade the user
+ * asked for, with no direction of its own to go wrong and no seam anywhere.
+ * Times `wakeOpacity`, that is ~0.6 at the line falling to ~0.03 at the
+ * reach. Nothing fades to black: the band is painted only where the mask
+ * lets it through, so two pens crossing both keep showing, which is why the
+ * wake survived T3's crossing test and why it still does.
+ *
+ * The ids are hashed from the path data because these SVGs are inlined into
+ * one HTML document — a Moves page holds a hundred of them — and `url(#…)`
+ * finds the *first* element with an id in the document. A fixed id would have
+ * pointed every row's mask at the first row's.
  */
 function facingWake(
   pen: TraceViewPen,
@@ -235,38 +292,182 @@ function facingWake(
   draw: TraceDraw,
   stroke: string,
 ): string {
-  if (draw.facingPx <= 0) return "";
-  const defs: string[] = [];
-  const quads: string[] = [];
-  const samples = pen.samples;
-  for (let i = 0; i < samples.length - 1; i++) {
-    const a = samples[i]!;
-    const b = samples[i + 1]!;
-    // The same break the ink itself takes: no band across a jump no pair of
-    // feet could have walked.
-    if (Math.hypot(b.p[0] - a.p[0], b.p[1] - a.p[1]) > TRACE_JUMP_PX) continue;
-    const pa = map(a);
-    const pb = map(b);
-    const oa = outward(pa, a.facing, draw.facingPx);
-    const ob = outward(pb, b.facing, draw.facingPx);
-    const id = `t3wk-${String(penIndex)}-${String(i)}`;
-    const midIn: Vec2 = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2];
-    const midOut: Vec2 = [(oa[0] + ob[0]) / 2, (oa[1] + ob[1]) / 2];
-    defs.push(
-      `<linearGradient id="${id}" gradientUnits="userSpaceOnUse"` +
-        ` x1="${num(midIn[0])}" y1="${num(midIn[1])}" x2="${num(midOut[0])}" y2="${num(midOut[1])}">` +
-        `<stop offset="0" stop-color="${stroke}" stop-opacity="1"/>` +
-        `<stop offset="1" stop-color="${stroke}" stop-opacity="0"/>` +
-        `</linearGradient>`,
-    );
-    quads.push(
-      `<path d="M${num(pa[0])} ${num(pa[1])}L${num(pb[0])} ${num(pb[1])}` +
-        `L${num(ob[0])} ${num(ob[1])}L${num(oa[0])} ${num(oa[1])}Z"` +
-        ` fill="url(#${id})" stroke="none"/>`,
-    );
+  const reach = draw.wakePx;
+  if (reach <= 0 || draw.wakeOpacity <= 0) return "";
+  const runs = wakeRuns(pen, map, reach);
+  if (runs.length === 0) return "";
+  const ink = runs.map((run) => pathData(run.ink)).join("");
+  const band = runs.map((run) => pathData(run.band)).join("");
+  const blur = reach * WAKE_BLUR_OF_REACH;
+  // The mask and the blur both need a region in user space: an
+  // `objectBoundingBox` one is a share of a bounding box that can be a couple
+  // of px tall on a straight run, which would crop the blur's own tails.
+  const region = wakeRegion(runs, reach / 2 + 4 * blur);
+  const id = `wk${String(penIndex)}${hashId(ink + band + num(reach))}`;
+  const ends = ` stroke-width="${num(reach)}" stroke-linecap="round" stroke-linejoin="round"`;
+  return (
+    `<defs>` +
+    `<filter id="fade-${id}" filterUnits="userSpaceOnUse"${region}>` +
+    `<feGaussianBlur stdDeviation="${num(blur)}"/>` +
+    `</filter>` +
+    `<mask id="mask-${id}" maskUnits="userSpaceOnUse"${region}>` +
+    `<path d="${ink}" fill="none" stroke="#fff"${ends} filter="url(#fade-${id})"/>` +
+    `</mask>` +
+    `</defs>` +
+    `<g mask="url(#mask-${id})" opacity="${num(draw.wakeOpacity)}">` +
+    `<path d="${band}" fill="none" stroke="${stroke}"${ends}/>` +
+    `</g>`
+  );
+}
+
+/**
+ * How wide the blur that fades a wake is, as a fraction of the reach.
+ *
+ * The mask is a strip of half-width `reach / 2` blurred by this much, so the
+ * value at distance `d` from the line is the blur of that strip: 0.9 at the
+ * line, 0.5 at `reach / 2`, 0.05 at `reach`. Wider and the band leaks past
+ * its own margin; narrower and the fade shortens back towards the hard-edged
+ * stripe this is here to avoid.
+ */
+const WAKE_BLUR_OF_REACH = 0.3;
+
+/** A pen's ink and the centre line of its wake, one pair per unbroken run. */
+interface WakeRun {
+  /** The ink, exactly as the pen plot draws it. */
+  ink: Vec2[];
+  /** Half a reach out from the ink, along the smoothed facing. */
+  band: Vec2[];
+}
+
+/**
+ * One pen's samples as runs of ink and band, broken where the ink breaks.
+ *
+ * The same jump test the ink itself takes ({@link inkRuns}): no band across a
+ * gap no pair of feet could have walked, or a progression would hang a band
+ * across the whole set.
+ */
+function wakeRuns(
+  pen: TraceViewPen,
+  map: (sample: TraceViewPen["samples"][number]) => Vec2,
+  reach: number,
+): WakeRun[] {
+  const runs: WakeRun[] = [];
+  let run: TraceViewPen["samples"][number][] = [];
+  const flush = (): void => {
+    if (run.length > 1) runs.push(wakeRun(run, map, reach));
+    run = [];
+  };
+  let previous: TraceViewPen["samples"][number] | undefined;
+  for (const sample of pen.samples) {
+    if (
+      previous !== undefined &&
+      Math.hypot(sample.p[0] - previous.p[0], sample.p[1] - previous.p[1]) > TRACE_JUMP_PX
+    ) {
+      flush();
+    }
+    run.push(sample);
+    previous = sample;
   }
-  if (quads.length === 0) return "";
-  return `<defs>${defs.join("")}</defs>${quads.join("")}`;
+  flush();
+  return runs;
+}
+
+/** One unbroken run: the mapped ink, and the band's centre line beside it. */
+function wakeRun(
+  samples: readonly TraceViewPen["samples"][number][],
+  map: (sample: TraceViewPen["samples"][number]) => Vec2,
+  reach: number,
+): WakeRun {
+  const ink = samples.map(map);
+  const facings = smoothFacings(samples.map((sample) => sample.facing));
+  const band = ink.map((at, i) => {
+    const unit = facings[i]!;
+    return [at[0] + (unit[0] * reach) / 2, at[1] + (unit[1] * reach) / 2] as Vec2;
+  });
+  return { ink, band };
+}
+
+/**
+ * The facings a wake is drawn from: each sample's own, averaged with its
+ * neighbours' as unit vectors and renormalised.
+ *
+ * The simulation's facing moves by up to 28° between two samples an eighth of
+ * a beat apart — a swing really does spin that fast — and half of that is the
+ * dancer's own quiet wobble rather than the turn. Drawn straight, the band's
+ * centre line wobbles with it and the outer edge of the band steps: the
+ * "jagged" the user saw. A five-sample triangular window (±0.25 beat at the
+ * sampler's own step) takes the wobble out and leaves the turn, because an
+ * average of directions still turns at the rate a real turn turns — it only
+ * loses what changes faster than the window.
+ *
+ * Averaging the vectors, not the angles, is what makes a pen facing 359° and
+ * one facing 1° average to 0° instead of to 180°.
+ */
+function smoothFacings(degrees: readonly number[]): Vec2[] {
+  const units = degrees.map((angle): Vec2 => {
+    const radians = (angle * Math.PI) / 180;
+    return [Math.cos(radians), Math.sin(radians)];
+  });
+  return units.map((own, i) => {
+    let x = 0;
+    let y = 0;
+    for (let k = -WAKE_SMOOTH_SAMPLES; k <= WAKE_SMOOTH_SAMPLES; k++) {
+      const unit = units[i + k];
+      if (unit === undefined) continue;
+      const weight = WAKE_SMOOTH_SAMPLES + 1 - Math.abs(k);
+      x += unit[0] * weight;
+      y += unit[1] * weight;
+    }
+    const length = Math.hypot(x, y);
+    // Two opposite facings inside one window cancel; keep the sample's own.
+    return length < 1e-6 ? own : [x / length, y / length];
+  });
+}
+
+/** How many samples either side of a sample its facing is averaged over. */
+const WAKE_SMOOTH_SAMPLES = 2;
+
+/** `x`, `y`, `width` and `height` round everything a wake draws, padded. */
+function wakeRegion(runs: readonly WakeRun[], pad: number): string {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const run of runs) {
+    for (const points of [run.ink, run.band]) {
+      for (const [x, y] of points) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+  return (
+    ` x="${num(minX - pad)}" y="${num(minY - pad)}"` +
+    ` width="${num(maxX - minX + 2 * pad)}" height="${num(maxY - minY + 2 * pad)}"`
+  );
+}
+
+/**
+ * A short, stable name for a run of path data.
+ *
+ * Only ever used to keep one document's ids apart, so a 32-bit FNV-1a in
+ * base 36 is plenty: two drawings that hash the same are two drawings with
+ * the same path data, which share a mask perfectly happily.
+ */
+function hashId(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+/** One run of points as path data, with no fill or stroke of its own. */
+function pathData(points: readonly Vec2[]): string {
+  return points.map((p, i) => `${i === 0 ? "M" : "L"}${num(p[0])} ${num(p[1])}`).join("");
 }
 
 /**
@@ -354,7 +555,7 @@ export function dot(p: Vec2, r: number, fill: string): string {
 /** One run of ink. */
 export function polyline(points: readonly Vec2[], stroke: string, width: number): string {
   if (points.length < 2) return "";
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${num(p[0])} ${num(p[1])}`).join("");
+  const d = pathData(points);
   return (
     `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${num(width)}"` +
     ` stroke-linecap="round" stroke-linejoin="round"/>`

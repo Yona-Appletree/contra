@@ -46,9 +46,9 @@ import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
  * - `?beat=<n>` freezes; `?zoom=<n>`; `?speed=<n>`; `?trails=1`;
  *   `?strip=1&step=<beats>` shows the one-frame-per-step strip;
  *   `?bare=1` renders only the canvas, for screenshots.
- * - `?facing=wake` or `?facing=arrowheads` swaps the row's pen-plot facing
- *   style away from the shipped default (ticks), T3's live comparison —
- *   no rebuild needed to try the user's gradient-wake idea on a phone.
+ * - `?facing=ticks` or `?facing=arrowheads` swaps the row's pen-plot facing
+ *   style away from the shipped default, which is the user's wake since T5 —
+ *   no rebuild needed to compare the three on a phone.
  * - `?view=march` or `?view=seismograph` opens every row's trace panel on
  *   that view instead of the shipped default (`plot`, the pen plot); a small
  *   switch in each panel changes it from there for the rest of the visit
@@ -376,8 +376,8 @@ function Row({
   side: number;
   /** The page's widest floor half-extent, so every trace is at one scale. */
   reach: number;
-  /** T3's `?facing=` override for the row's pen plot. */
-  facing: FacingStyle;
+  /** The `?facing=` override for the row's pen plot. Default: the wake. */
+  facing?: FacingStyle;
   /** T4's switch: which of the trace panel's three views is showing. */
   view: RowTraceView;
   /** Called when this row's switch is tapped; shared by every row on the page. */

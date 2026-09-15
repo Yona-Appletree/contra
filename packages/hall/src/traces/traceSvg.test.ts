@@ -7,7 +7,15 @@ import { seismographSvg } from "./seismographSvg.js";
 import type { TraceView, TraceViewPen } from "./TraceView.js";
 import { TRACE_FAMILY_COLOURS, familyColour, penColour } from "./TraceView.js";
 import { ROLE_COLOURS } from "../appearance/roleColours.js";
-import { inkRuns, num, spreadOffset, traceDraw } from "./traceSvg.js";
+import {
+  WAKE_REACH_PER_PEN_WIDTH,
+  facingReach,
+  inkRuns,
+  num,
+  spreadOffset,
+  traceDraw,
+} from "./traceSvg.js";
+import { MARCH_WAKE_PER_PEN_WIDTH } from "./marchSvg.js";
 
 /**
  * The four drawings, on a trace made by hand.
@@ -89,8 +97,8 @@ describe.each(VIEWS)("$name", (view) => {
 
 describe("the pen plot", () => {
   it("draws a facing tick on every whole beat, for every pen", () => {
-    const withTicks = penPlotSvg(TRACE);
-    const without = penPlotSvg(TRACE, { facingEvery: 0 });
+    const withTicks = penPlotSvg(TRACE, { facing: "ticks" });
+    const without = penPlotSvg(TRACE, { facing: "ticks", facingEvery: 0 });
     const paths = (svg: string): number => [...svg.matchAll(/<path /g)].length;
     // Five whole beats in the window (0…4), four pens, one tick each.
     expect(paths(withTicks) - paths(without)).toBe(5 * 4);
@@ -109,18 +117,26 @@ describe("the pen plot", () => {
   });
 });
 
-describe("the facing styles (T3)", () => {
-  it("defaults to ticks, unchanged from T2", () => {
-    expect(penPlotSvg(TRACE)).toBe(penPlotSvg(TRACE, { facing: "ticks" }));
-    expect(marchSvg(TRACE)).toBe(marchSvg(TRACE, { facing: "ticks" }));
+describe("the facing styles (T3, tuned and made the default by T5)", () => {
+  it("defaults to the wake, the style the user picked", () => {
+    expect(penPlotSvg(TRACE)).toBe(penPlotSvg(TRACE, { facing: "wake" }));
+    expect(marchSvg(TRACE)).toBe(marchSvg(TRACE, { facing: "wake" }));
+    expect(traceDraw().facing).toBe("wake");
+  });
+
+  it("still draws ticks and arrowheads when asked", () => {
+    expect(penPlotSvg(TRACE, { facing: "ticks" })).not.toBe(penPlotSvg(TRACE));
+    expect(penPlotSvg(TRACE, { facing: "arrowheads" })).not.toBe(penPlotSvg(TRACE));
   });
 
   it("wake draws the same bytes twice and stays inside the page", () => {
     const svg = penPlotSvg(TRACE, { facing: "wake" });
     expect(svg).toBe(penPlotSvg(TRACE, { facing: "wake" }));
-    expect(svg).not.toBe(penPlotSvg(TRACE));
-    expect(svg).toContain("<linearGradient");
-    expect(svg).toContain('stop-opacity="0"');
+    // One band per pen, each under its own blurred mask: no gradient, whose
+    // one fixed direction cannot follow a band that turns (T5).
+    expect(svg).not.toContain("<linearGradient");
+    expect([...svg.matchAll(/<mask id="mask-wk/g)]).toHaveLength(TRACE.pens.length);
+    expect([...svg.matchAll(/<feGaussianBlur/g)]).toHaveLength(TRACE.pens.length);
     expectInside(svg);
   });
 
@@ -129,14 +145,28 @@ describe("the facing styles (T3)", () => {
     expect(svg).not.toContain("#000");
   });
 
-  it("wake plumbs through the march too", () => {
-    expect(marchSvg(TRACE, { facing: "wake" })).toContain("<linearGradient");
+  it("wake names its masks after their own path data, so a page of plots does not share one", () => {
+    // These SVGs are inlined into one document, where `url(#…)` finds the
+    // first element with that id anywhere on the page.
+    const ids = (svg: string): string[] => [...svg.matchAll(/id="mask-(\w+)"/g)].map((m) => m[1]!);
+    const hey = ids(penPlotSvg(TRACE, { facing: "wake" }));
+    const wider = ids(penPlotSvg(TRACE, { facing: "wake", wakePx: 9 }));
+    expect(new Set(hey).size).toBe(hey.length);
+    expect(hey.some((id) => wider.includes(id))).toBe(false);
+  });
+
+  it("wake plumbs through the march too, at its own narrower reach", () => {
+    expect(marchSvg(TRACE, { facing: "wake" })).toContain("<mask id=");
+    // The march magnifies the set a third as much, so its wake is half as far
+    // out: the same reach in px would be three times as much of one dancer's
+    // own loop.
+    expect(MARCH_WAKE_PER_PEN_WIDTH * 2).toBe(WAKE_REACH_PER_PEN_WIDTH);
   });
 
   it("arrowheads draws one mark a phrase, not one a beat, and stays inside the page", () => {
     const svg = penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 });
     expect(svg).toBe(penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 }));
-    const withTicks = penPlotSvg(TRACE, { facingEvery: 1 });
+    const withTicks = penPlotSvg(TRACE, { facing: "ticks", facingEvery: 1 });
     const withArrows = penPlotSvg(TRACE, { facing: "arrowheads", phraseBeats: 2 });
     const paths = (s: string): number => [...s.matchAll(/<path /g)].length;
     // The window is 4 beats; a phrase of 2 puts a mark at 0, 2 and 4 — three
@@ -145,14 +175,107 @@ describe("the facing styles (T3)", () => {
     expectInside(withArrows);
   });
 
-  it("`facingPx` bounds every style's reach the same way", () => {
-    // Same margin math as a tick's own tip: nothing this milestone draws
-    // needs `penPlotSvg` or `marchSvg` to reserve any more room than T2 did.
-    const wide = penPlotSvg(TRACE, { facing: "wake", facingPx: 20 });
-    expectInside(wide);
-    const arrows = penPlotSvg(TRACE, { facing: "arrowheads", facingPx: 20 });
-    expectInside(arrows);
+  it("every style's own reach is what the margins hold", () => {
+    // A tick and an arrowhead reach `facingPx`; a wake reaches `wakePx`,
+    // which is wider and has to be reserved as such (T5).
+    expectInside(penPlotSvg(TRACE, { facing: "wake", wakePx: 24 }));
+    expectInside(penPlotSvg(TRACE, { facing: "ticks", facingPx: 20 }));
+    expectInside(penPlotSvg(TRACE, { facing: "arrowheads", facingPx: 20 }));
+    expectInside(marchSvg(TRACE, { facing: "wake", wakePx: 24 }));
+    expect(facingReach(traceDraw({ facing: "wake", wakePx: 9 }))).toBe(9);
+    expect(facingReach(traceDraw({ facing: "ticks", wakePx: 9 }))).toBe(4);
   });
+});
+
+describe("the wake's smoothness (T5)", () => {
+  /**
+   * A pen walking a straight line with the shakes: its facing wobbles ±24°
+   * from sample to sample, which is the size of the jitter the simulation's
+   * own facing really carries (the quiet motion, the sway, a turn caught
+   * between two samples).
+   */
+  const shaky: TraceView = {
+    ...TRACE,
+    pens: [
+      {
+        ...TRACE.pens[0]!,
+        samples: Array.from({ length: 33 }, (_, i) => ({
+          beat: i / 4,
+          p: [-8 + i * 0.5, 0] as Vec2,
+          facing: 90 + (i % 2 === 0 ? 24 : -24),
+          span: 0,
+        })),
+      },
+    ],
+  };
+
+  it("turns the band's centre line by no more than 8° from one step to the next", () => {
+    // The threshold, stated: 8°. The same pen drawn from its raw facing —
+    // what T3 did — turns by more than 80°, which is the staircase the user
+    // saw as "kinda jagged". The band is stroked with round joins, so what a
+    // reader sees is smoother again than its own centre line.
+    expect(sharpestTurn(bandOf(penPlotSvg(shaky, { facing: "wake" })))).toBeLessThan(8);
+    expect(sharpestTurn(rawBand(shaky, penPlotSvg(shaky, { facing: "wake" })))).toBeGreaterThan(80);
+  });
+
+  it("holds a real turn while it smooths the shakes away", () => {
+    // TRACE's pens walk a quarter circle facing one way throughout, so the
+    // centre line is the ink's own quarter circle, offset: sixteen steps of
+    // the same 5.6°, which the smoothing must not flatten.
+    const turns = bandOf(penPlotSvg(TRACE, { facing: "wake" })).map((run) => sharpestTurn([run]));
+    for (const turn of turns) expect(turn).toBeGreaterThan(5);
+  });
+
+  /** Every wake band's centre line in a drawing, as runs of points. */
+  function bandOf(svg: string): Vec2[][] {
+    const runs: Vec2[][] = [];
+    for (const g of svg.matchAll(/<g mask="url\(#mask-[^"]+\)"[^>]*><path d="([^"]+)"/g)) {
+      for (const run of g[1]!.split("M").filter(Boolean)) {
+        const points: Vec2[] = [];
+        for (const pair of run.split("L")) {
+          const [x, y] = pair.trim().split(" ").map(Number);
+          if (x !== undefined && y !== undefined && Number.isFinite(x) && Number.isFinite(y)) {
+            points.push([x, y]);
+          }
+        }
+        runs.push(points);
+      }
+    }
+    return runs;
+  }
+
+  /** The same band, built from the raw facing instead of the smoothed one. */
+  function rawBand(trace: TraceView, svg: string): Vec2[][] {
+    const reach = traceDraw().wakePx;
+    const ink = bandOf(svg)[0]!;
+    return [
+      trace.pens[0]!.samples.map((sample, i): Vec2 => {
+        const radians = (sample.facing * Math.PI) / 180;
+        const from = ink[i]!;
+        return [
+          from[0] + (Math.cos(radians) * reach) / 2,
+          from[1] + (Math.sin(radians) * reach) / 2,
+        ];
+      }),
+    ];
+  }
+
+  /** The sharpest corner between two consecutive steps, in degrees. */
+  function sharpestTurn(runs: readonly Vec2[][]): number {
+    let worst = 0;
+    for (const run of runs) {
+      for (let i = 2; i < run.length; i++) {
+        const a: Vec2 = [run[i - 1]![0] - run[i - 2]![0], run[i - 1]![1] - run[i - 2]![1]];
+        const b: Vec2 = [run[i]![0] - run[i - 1]![0], run[i]![1] - run[i - 1]![1]];
+        if (Math.hypot(...a) < 1e-6 || Math.hypot(...b) < 1e-6) continue;
+        const turn = Math.abs(
+          (Math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1]) * 180) / Math.PI,
+        );
+        worst = Math.max(worst, turn);
+      }
+    }
+    return worst;
+  }
 });
 
 describe("the march", () => {

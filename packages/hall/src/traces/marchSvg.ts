@@ -3,12 +3,14 @@ import type { TraceDrawOptions } from "./traceSvg.js";
 import {
   beatRules,
   facingMarks,
+  facingReach,
   inkOf,
   inkRuns,
   label,
   phraseName,
   polyline,
   spreadOffset,
+  TRACE_PEN_WIDTH,
   traceDraw,
   traceSvg,
 } from "./traceSvg.js";
@@ -23,7 +25,10 @@ import type { TraceView } from "./TraceView.js";
  * overdrawn knot never shows.
  */
 export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
-  const draw = traceDraw(options);
+  const draw = traceDraw({
+    ...options,
+    wakePx: options.wakePx ?? (options.penWidth ?? TRACE_PEN_WIDTH) * MARCH_WAKE_PER_PEN_WIDTH,
+  });
   const beatPx = options.beatPx ?? 9;
   const height = options.height ?? 120;
   const header = draw.labels ? MARCH_HEADER_PX : 0;
@@ -34,8 +39,8 @@ export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
   // Every margin holds a facing mark as well as the ink: a tick, a wake band
   // or an arrowhead is drawn out of the path, so the widest thing on the page
   // is a sample at the edge of the set with its mark pointing further out
-  // still. All three styles share `facingPx` as their reach.
-  const margin = MARCH_MARGIN_PX + draw.facingPx;
+  // still. `facingReach` is how far the style being drawn reaches.
+  const margin = MARCH_MARGIN_PX + facingReach(draw);
   const scale = Math.min(MARCH_MAX_SCALE, (lane / 2 - margin) / ey);
   const cy = header + lane / 2;
   // The set is drawn around the beat it is on, so the first beat's ink reaches
@@ -62,8 +67,12 @@ export function marchSvg(trace: TraceView, options: MarchOptions = {}): string {
         number,
         number,
       ];
+    // The wake goes under the ink, a tick or an arrowhead over it: see
+    // `penPlotSvg`, which orders the same three styles the same way.
+    const facing = facingMarks(pen, index, map, draw, ink);
+    if (draw.facing === "wake") parts.push(facing);
     for (const run of inkRuns(pen, map)) parts.push(polyline(run, ink, draw.penWidth));
-    parts.push(facingMarks(pen, index, map, draw, ink));
+    if (draw.facing !== "wake") parts.push(facing);
   });
   if (draw.title !== undefined) parts.push(label([4, 9], draw.title, draw.palette.text, 9));
   return traceSvg(width, height, parts.join(""), draw.palette.ground);
@@ -79,6 +88,18 @@ export interface MarchOptions extends TraceDrawOptions {
   padLeft?: number;
   padRight?: number;
 }
+
+/**
+ * How far a wake reaches out of the line on a march, as a multiple of the
+ * pen's own stroke width — half what a pen plot uses.
+ *
+ * A march never magnifies the set by more than {@link MARCH_MAX_SCALE}, a
+ * third of what a pen plot may use, so one dancer's own loop is drawn a third
+ * the size here; the same reach in px would be three times as much of it, and
+ * the loops of a swing would close up into a blur. Picked by eye against 2,
+ * 3, 4.5 and 6 in `apps/web/e2e/screenshots/t5-wake-reach-march.png`.
+ */
+export const MARCH_WAKE_PER_PEN_WIDTH = 3;
 
 /** The band across the top that the phrase letters sit in, px. */
 export const MARCH_HEADER_PX = 12;

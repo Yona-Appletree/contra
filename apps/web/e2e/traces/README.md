@@ -15,8 +15,10 @@ diff.
 
 The pens are the four dancers of one minor set: **larks gold, robins red**,
 the ones darker than the twos. Each pen is nudged a couple of pixels along a
-diagonal so the last one drawn does not bury the other three, and a tick on
-every beat points the way that dancer was facing.
+diagonal so the last one drawn does not bury the other three, and a soft
+wake comes off the facing side of every line — the pen's own colour at the
+line, fading to nothing a few pixels out, on whichever side the dancer was
+facing. It is what says which way a pass was walked.
 
 ## Figures
 

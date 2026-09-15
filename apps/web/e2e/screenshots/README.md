@@ -37,7 +37,7 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t3-facing-the-baby-rose-full.png`     | T3: the same, full width                                                     |
 | `t3-facing-butter-row.png`             | T3: Butter's pen plot, one time through, all three, row size                 |
 | `t3-facing-butter-full.png`            | T3: the same, full width                                                     |
-| `t3-facing-hey-390-ticks.png`          | T3: the real `#/moves/hey` row at 390 × 844, `?facing=ticks` (default)       |
+| `t3-facing-hey-390-ticks.png`          | T3: the real `#/moves/hey` row at 390 × 844, `?facing=ticks` (then default)  |
 | `t3-facing-hey-390-wake.png`           | T3: the same row, `?facing=wake`                                             |
 | `t3-facing-hey-390-arrowheads.png`     | T3: the same row, `?facing=arrowheads`                                       |
 | `t4-moves-row-plot-390.png`            | T4: `#/moves/hey?beat=6&zoom=2` at 390 × 844, the switch on `plot` (default) |
@@ -46,6 +46,20 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t4-moves-row-march-1280.png`          | T4: the same row and view at 1280 × 800                                      |
 | `t4-move-traces-390.png`               | T4: `#/moves/hey/traces` at 390 × 844                                        |
 | `t4-move-traces-1280.png`              | T4: the same page at 1280 × 800                                              |
+| `t5-wake-hey-row.png`                  | T5: `hey`'s pen plot, T3's wake beside T5's, row size                        |
+| `t5-wake-hey-full.png`                 | T5: the same before and after, full width, and both marches                  |
+| `t5-wake-circle-row.png`               | T5: `circle`'s pen plot, before and after, row size                          |
+| `t5-wake-circle-full.png`              | T5: the same, full width, and both marches                                   |
+| `t5-wake-butter-row.png`               | T5: Butter's pen plot, one time through, before and after, row size          |
+| `t5-wake-butter-full.png`              | T5: the same, full width, and both marches                                   |
+| `t5-wake-reach-pen.png`                | T5: `circle` at four wake reaches — ×3, ×4.5, ×6, ×8 the pen width           |
+| `t5-wake-reach-march.png`              | T5: `balance-and-swing`'s march at ×2, ×3, ×4.5, ×6                          |
+| `t5-wake-hey-390.png`                  | T5: the real `#/moves/hey` row at 390 × 844, the wake as the default         |
+| `t5-wake-hey-390-ticks.png`            | T5: the same row, `?facing=ticks`, the style the default replaced            |
+| `t5-wake-hey-390-march.png`            | T5: the same row with T4's switch on `march`, at the march's own reach       |
+| `t5-wake-moves-390.png`                | T5: the top of `#/moves?beat=6` at 390 × 844, rows of wakes                  |
+| `t5-wake-dances-390.png`               | T5: `#/dances` at 390 × 844, the cards' own pen plots                        |
+| `t5-wake-traces-390.png`               | T5: `#/dances/airpants/traces` at 390 × 844, all four views                  |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -122,6 +136,27 @@ fit the phone row without pushing the text column": march and seismograph are
 drawn at the same square footprint the pen plot always used and scroll inside
 their own box when a figure is wider than that, exactly as the traces page's
 own beat-axis views already do — the column itself never grows.
+
+The fourteen `t5-wake-*.png` are the look gate for the wake the user picked
+and then asked for two things from: "it looks kinda jagged, and the fade is
+too narrow, hard to see." The six before-and-after pairs put T3's wake beside
+T5's on the same trace at the same size — the same `penPlotSvg` call, once
+through each renderer — so the jaggedness is readable as a difference rather
+than described: T3's outer edge is a row of quad corners and its fade has a
+seam at every sample, where T5's is one stroked band with round joins under a
+blurred mask. The `-full` pictures carry both marches under the two pen plots.
+
+`t5-wake-reach-pen.png` and `t5-wake-reach-march.png` are how the two reach
+numbers were picked: six times the pen's width on a pen plot (×3 is the 3.5 px
+T3 already drew and the user could not see; ×8 blooms into the middle of a
+circle) and three on a march, which magnifies the set a third as much and
+closes its loops up at anything wider.
+
+The six 390 px pictures are the real built app, not a raw render: the wake
+now being the default, `#/moves/hey` is the wake and `?facing=ticks` is the
+way back to T2's look. `t5-wake-hey-390-march.png` is the same row on T4's
+`march` view, where the wake is drawn at the march's own narrower reach. `t5-wake-moves-390.png` is the viewport rather than
+`fullPage`, for the same reason the U2 Moves pictures are.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
