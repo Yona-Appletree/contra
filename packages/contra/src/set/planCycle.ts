@@ -230,6 +230,8 @@ function planContraCycle(
   /** The frame-local number each dancer's spot was last computed as; see {@link LocalSpot}. */
   const local = new Map<DancerId, LocalSpot>();
   const from = options.start ?? "standing";
+  /** {@link from}, under a name the fill's own `[from, to]` cannot shadow. */
+  const picksUpWhereItLeftOff = from === "standing";
   for (const set of hall.sets) {
     const first = firstPlaces(formation, dance, set);
     // `"standing"` takes each dancer's real place where the decider has one and
@@ -536,6 +538,16 @@ function planContraCycle(
                     startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
                     join,
                     cross: to === fill.span.end,
+                    // **The becket end-of-set crossing lands one couple place
+                    // short** (M9c), because a time through that picks everybody
+                    // up where the last one left them leaves every body one
+                    // couple place behind the place the boundary's shift has
+                    // just named theirs — and the waiting couple is a body like
+                    // any other. See `ContraWaitOutParams.crossShort`; a planner
+                    // that restarts from the first places instead teleports
+                    // everybody on to the new places and the crossing must land
+                    // on its own.
+                    crossShort: picksUpWhereItLeftOff,
                     ...(dance.waitOut ?? {}),
                   },
                   to - from,
