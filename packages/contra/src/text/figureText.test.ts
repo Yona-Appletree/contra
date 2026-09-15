@@ -283,6 +283,20 @@ describe("a call's own parameters fill every slot", () => {
     }
   });
 
+  // The words the tables answer with are mid-sentence words, and a text may
+  // open a sentence with one: the wave of four's teach does, right after "…
+  // rather than at each other."
+  it("opens a sentence with a capital, whichever words fill the slot", () => {
+    const teach = resolveFigureText("balance-wave-of-four", {})!.walkthrough.teach;
+    expect(teach).toContain(". The ");
+    expect(teach).not.toMatch(/[.!?]\s+(the|your|a) /);
+  });
+
+  it("leaves a slot in the middle of a sentence alone", () => {
+    const line = resolveFigureText("promenade", { pairs: "partners" })!.walkthrough.line;
+    expect(line).toContain("your partner");
+  });
+
   it("refuses a slot whose parameter the call does not carry", () => {
     expect(() => resolveFigureText("loop", {})).toThrow(/who/);
   });

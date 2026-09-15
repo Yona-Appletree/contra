@@ -566,7 +566,7 @@ function fill(
   slots: TextSlots,
   register: Register,
 ): string {
-  return text.replace(SLOT, (_whole, name: string) => {
+  return text.replace(SLOT, (_whole, name: string, offset: number) => {
     const filled = slotText(name, params, slots, register);
     if (filled === undefined) {
       throw new Error(
@@ -574,9 +574,19 @@ function fill(
           `the call has no such parameter, or its value has no words`,
       );
     }
-    return filled;
+    // **A slot that opens a sentence opens it with a capital.** The words the
+    // tables answer with are mid-sentence words — "the robins", "your partner"
+    // — and a text is allowed to start a sentence with one ("… at each other.
+    // {centre} take hands in the middle"). Without this the sentence reads
+    // "… at each other. the robins take hands", which is the one thing a
+    // caller reading their own file should never have to work around.
+    return startsASentence(text.slice(0, offset)) ? capitalise(filled) : filled;
   });
 }
+
+/** Whether what comes before a slot leaves it standing at a sentence's start. */
+const startsASentence = (before: string): boolean =>
+  before.trim() === "" || /[.!?]["')\]]?\s+$/.test(before);
 
 /** What one slot resolves to, or `undefined` when nothing can fill it. */
 function slotText(
