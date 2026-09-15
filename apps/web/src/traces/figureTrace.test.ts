@@ -10,7 +10,13 @@ describe("figureTrace's cache (F9: `?chain=` regression)", () => {
     // A cache keyed on `tile.key` alone would hand the second call the first
     // call's trace; a `WeakMap` keyed on the tile object itself must not.
     const plain = tileByKey(figureTiles(), "robins-chain")!;
-    const stepIn = tileByKey(figureTiles({ "robins-chain": { stepInPx: 8 } }), "robins-chain")!;
+    // F13 makes the orbit (`joinBeat` > 0) the default, so a step-in override
+    // has to turn it off explicitly to reach the step-in path at all — the
+    // same shape `CHAIN_CANDIDATES["4"]` uses.
+    const stepIn = tileByKey(
+      figureTiles({ "robins-chain": { stepInPx: 8, joinBeat: 0 } }),
+      "robins-chain",
+    )!;
     expect(plain).not.toBe(stepIn);
     expect(plain.key).toBe(stepIn.key);
 

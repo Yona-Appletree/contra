@@ -75,8 +75,12 @@ the ones that exist.
 
 Expect a candidate to print `FAIL` lines and still be the thing you want: a
 figure's assertions are written from the shipped geometry's own `describe`,
-so a candidate that is a _different_ figure — F10's orbit, which turns a whole
-rather than a half — fails the sentences that are about the half. That is the
+so a candidate that is a _different_ figure fails the sentences that are only
+about the shipped one. F13 made this two-directional: the default is now
+F10's orbit (`?chain=5`), which turns a whole rather than a half, so
+`--chain 1`–`4` (the earlier rigid and spin candidates) fail the orbit's own
+sentences — the whole-turn sweep, the antipode join — exactly as `--chain 5`
+used to fail the rigid turn's half-turn sentences before F13. That is the
 comparison working, not the candidate being broken; read the oracles (which
 are about every dance that calls it) and the motion rows for whether it is
 danceable.

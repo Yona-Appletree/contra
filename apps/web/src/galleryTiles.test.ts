@@ -160,7 +160,10 @@ describe("what a row reads off a tile (U2)", () => {
 });
 
 describe("`?chain=`'s registry override (F9)", () => {
-  const overrides = { "robins-chain": { stepInPx: 8 } };
+  // F13 makes the orbit (`joinBeat` > 0) `robins-chain`'s own default, so a
+  // step-in override has to turn it off explicitly to reach the step-in path
+  // at all — the same shape `CHAIN_CANDIDATES["4"]` uses.
+  const overrides = { "robins-chain": { stepInPx: 8, joinBeat: 0 } };
 
   test("changes nothing when no figure is named", () => {
     expect(figureTiles({}).map((t) => t.key)).toEqual(figureTiles().map((t) => t.key));
@@ -172,13 +175,21 @@ describe("`?chain=`'s registry override (F9)", () => {
     expect(moved(plain, overridden)).toBe(true);
   });
 
-  // F10: the same route, driven by the query parser the three routes share
-  // rather than a hand-written override, so `?chain=5` reaching the tiles is
-  // the thing under test and not a map somebody typed here.
-  test("carries `?chain=5`, the lark's orbit, the whole way from the URL", () => {
+  // F10/F13: the same route, driven by the query parser the three routes
+  // share rather than a hand-written override, so `?chain=` reaching the
+  // tiles is the thing under test and not a map somebody typed here. `1` is
+  // the rigid turn F9 shipped — since F13 the one that moves the tile, now
+  // that `5`, the lark's orbit, restates the figure's own default.
+  test("carries `?chain=1`, the rigid turn, the whole way from the URL", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const rigid = tileByKey(figureTiles(chainOverridesFromQuery("1")), "robins-chain")!;
+    expect(moved(plain, rigid)).toBe(true);
+  });
+
+  test("`?chain=5` restates the figure's own default (F13)", () => {
     const plain = tileByKey(figureTiles(), "robins-chain")!;
     const orbit = tileByKey(figureTiles(chainOverridesFromQuery("5")), "robins-chain")!;
-    expect(moved(plain, orbit)).toBe(true);
+    expect(moved(plain, orbit)).toBe(false);
   });
 
   test("reaches every seam the figure is under, and leaves the others alone", () => {

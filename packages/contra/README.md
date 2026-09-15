@@ -425,6 +425,14 @@ dance sets it and this loader does not read it.
   of his arm. A pivot of 0 — the lark turning on the spot — would leave the
   couple turning 5.75 px apart, which is two torsos inside AC6's 8 px, and that
   is why the default is a quarter of the hold and not nothing.
+- **This rigid turn is `right-and-left-through`'s own default and is still
+  `robins-chain`'s at `?chain=1`, but it is no longer the chain's own default.**
+  F13 makes the chain's default `orbitTurn` (F10's candidate 5, `?chain=5`):
+  the lark orbits a whole turn backward round a circle `hold / 2` off his own
+  place, and the robin joins him at the antipode of it at `joinBeat` (2, the
+  user's own number) rather than being walked to a reflected take. See
+  `courtesyTurn.ts`'s own `orbitTurn` doc, and this package's `robins-chain.ts`
+  for `CHAIN_CANDIDATES`, the full comparison table `?chain=1`–`5` still reach.
 - **A roll away** lets the hands go as the roll turns: a dancer spinning a whole
   turn cannot keep a hand on a point 10 px away and still have an arm that
   reaches it.
