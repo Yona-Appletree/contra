@@ -35,3 +35,44 @@ describe("HallPage (U3: the diagrams leave the Stage)", () => {
     expect(html).not.toContain(">Play<");
   });
 });
+
+describe("HallPage (U4: the control bar)", () => {
+  const render = (params = "beat=0"): string =>
+    renderToStaticMarkup(
+      <HallPage dance="airpants" tune={undefined} params={new URLSearchParams(params)} />,
+    );
+
+  it("the dance picker is a native select, not a custom popover", () => {
+    const html = render();
+    expect(html).toContain('data-testid="hall-dance-select"');
+    // A real <select>, not a Radix trigger button standing in for one.
+    expect(html).toMatch(/<select[^>]*data-testid="hall-dance-select"/);
+  });
+
+  it("the tune and zoom selectors are gone", () => {
+    const html = render();
+    expect(html).not.toContain('data-testid="hall-tune-select"');
+    expect(html).not.toContain('data-testid="hall-zoom-auto"');
+    expect(html).not.toContain('data-testid="hall-zoom-4"');
+  });
+
+  it("the reset control sits beside the speaker, with its own accessible name", () => {
+    const html = render();
+    expect(html).toContain('data-testid="hall-reset"');
+    expect(html).toContain("Restart this dance");
+  });
+
+  it("the tempo readout has a fixed width, so its digits changing width cannot reflow the bar", () => {
+    const html = render();
+    const tag = html.match(/<span[^>]*data-testid="hall-tempo-value"[^>]*>/)?.[0];
+    expect(tag).toBeDefined();
+    expect(tag).toContain("w-[1.6em]");
+    expect(tag).toContain("tabular-nums");
+  });
+
+  it("?zoom= still resolves with no selector left in the bar to have set it", () => {
+    const html = render("beat=0&zoom=4");
+    expect(html).toContain('data-testid="hall-canvas"');
+    expect(html).not.toContain('data-testid="hall-zoom-4"');
+  });
+});

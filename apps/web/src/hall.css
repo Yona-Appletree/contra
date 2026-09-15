@@ -47,20 +47,29 @@
 }
 
 /*
- * The speaker button (U3): the play/pause control, redrawn as an 8-bit icon
- * overlaid on the stage's bottom-left corner rather than a labelled button in
- * the control row. Bottom-left, not bottom-right — the snack table and its two
- * sitters (`layoutHall`'s `table`) sit in the bottom-right of every hall, and
- * the bottom-left has only the sparser chair line behind it.
- *
- * A thumb-sized hit area (44 px, above the 40 px the brief asks) on a chip
- * dark enough to read the ink-coloured icon against whatever the floor is
- * doing underneath it, on any theme.
+ * The stage's own buttons (U3's speaker, U4's reset): overlaid on the stage's
+ * bottom-left corner rather than labelled buttons in the control row below.
+ * Bottom-left, not bottom-right — the snack table and its two sitters
+ * (`layoutHall`'s `table`) sit in the bottom-right of every hall, and the
+ * bottom-left has only the sparser chair line behind it.
  */
-.speaker-button {
+.stage-buttons {
   position: absolute;
   left: 6px;
   bottom: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+/*
+ * A thumb-sized hit area (44 px, above the 40 px the brief asks) on a chip
+ * dark enough to read the ink-coloured icon against whatever the floor is
+ * doing underneath it, on any theme. The reset button (U4) shares this exact
+ * face — same size, same hit area — so the two read as one family of
+ * controls rather than two different designs bolted together.
+ */
+.speaker-button,
+.reset-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,18 +81,21 @@
   cursor: pointer;
 }
 
-.speaker-button svg {
+.speaker-button svg,
+.reset-button svg {
   width: 22px;
   height: auto;
   shape-rendering: crispEdges;
 }
 
 .speaker-body,
-.speaker-mute {
+.speaker-mute,
+.reset-triangle {
   fill: var(--foreground);
 }
 
-.speaker-waves {
+.speaker-waves,
+.reset-bar {
   fill: var(--primary);
 }
 
@@ -252,6 +264,20 @@
   margin: 0.75rem 0 0 0.75rem;
   border-left: 2px solid var(--border);
   padding-left: 0.75rem;
+}
+
+/*
+ * U4: the seams of one figure sit behind a "transitions" disclosure, collapsed
+ * by default (the user: "what are all the 'robins-chain → hey' moves? that
+ * seems odd" — to a caller they read as moves that do not exist). The seam
+ * pages and their deep links are unchanged; only the default list hides them.
+ */
+.moves-transitions > summary {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  width: fit-content;
 }
 
 .moves-row {

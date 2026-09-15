@@ -73,13 +73,20 @@ test.describe("the move gallery", () => {
     await expect(page.getByTestId("dance-card").first()).toHaveAttribute("href", /^#\/dance\//);
   });
 
-  test("a dance card goes to the stage playing that dance", async ({ page }) => {
+  test("a dance card goes to the stage, starting that dance's own line-up", async ({ page }) => {
     await page.goto("#/dances");
     const card = page.getByTestId("dance-card").nth(1);
     const slug = await card.getAttribute("data-slug");
     await card.click();
-    await expect(page).toHaveURL(new RegExp(`#/dance/${slug ?? ""}`));
     await expect(page.getByTestId("tab-stage")).toHaveAttribute("aria-current", "page");
+
+    // U4 requirement 6: the tapped dance starts at the beginning of its own
+    // line-up, not its dancing beat 0 — so, like every ordinary dance-to-dance
+    // transition, the URL (and the card, and the dance select) do not catch
+    // up to it until it actually starts dancing, `LINEUP_BEATS` (36) later.
+    await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+    await page.evaluate(() => window.hallDemo?.seek((window.hallDemo?.beat() ?? 0) + 36));
+    await expect(page).toHaveURL(new RegExp(`#/dance/${slug ?? ""}`));
   });
 
   test("opens at 2x, plays, scrubs and deep-links one move at 4x", async ({ page }) => {

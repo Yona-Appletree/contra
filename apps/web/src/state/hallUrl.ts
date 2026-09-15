@@ -1,3 +1,6 @@
+import { DEMO_DANCES } from "@caller/contra";
+import { lineUpStartBeat } from "../program.js";
+
 /** The front page's URL: which dance, and which tune set. */
 export interface HallRoute {
   /** The dance slug from `#/dance/<slug>`, or `undefined` on `#/`. */
@@ -14,6 +17,25 @@ export function readHallRoute(path: string, params: URLSearchParams): HallRoute 
     ...(dance === undefined || dance === "" ? { dance: undefined } : { dance }),
     tune: params.get("tune") ?? undefined,
   };
+}
+
+/**
+ * The beat the Stage should start its clock at (U4, the user: "when you
+ * select a new dance it starts immediately... it should start with the
+ * normal line up").
+ *
+ * `?beat=<n>` always wins — it is what freezes a frame for a golden or a
+ * test. Otherwise: no dance named in the route (`#/`, the plain evening) is
+ * beat 0, the ordinary start; a dance named (`#/dance/<slug>`, which
+ * `createDemoProgram`'s `danceOrder` rotates to lead the programme) starts at
+ * the beginning of *that* dance's own line-up rather than its dancing beat 0
+ * — `lineUpStartBeat(DEMO_DANCES.length)` defaults its `danceIndex` to 0,
+ * which is exactly where a freshly rotated dance sits.
+ */
+export function startBeatFor(dance: string | undefined, params: URLSearchParams): number {
+  const frozen = params.get("beat");
+  if (frozen !== null) return Number(frozen);
+  return dance === undefined ? 0 : lineUpStartBeat(DEMO_DANCES.length);
 }
 
 /** The hash for a dance and a tune set. */

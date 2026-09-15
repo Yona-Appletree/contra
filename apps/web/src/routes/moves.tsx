@@ -115,6 +115,12 @@ export function MovesPage({
   const [strips, setStrips] = useState<ReadonlySet<string>>(
     () => new Set(stripOnly && solo !== null ? [solo] : []),
   );
+  // U4: the seams of each figure sit behind a "transitions" disclosure,
+  // collapsed by default (the user: "what are all the 'robins-chain → hey'
+  // moves? that seems odd" — to a caller they read as moves that do not
+  // exist). This is which figures' disclosures are open, so the header's own
+  // seam count can stay quiet until at least one is.
+  const [openTransitions, setOpenTransitions] = useState<ReadonlySet<string>>(new Set());
   const metrics = useMetrics(shown, bare);
 
   const clock = useMemo<Clock>(() => {
@@ -189,6 +195,10 @@ export function MovesPage({
   const groups = groupedTiles(shown);
   const figures = shown.filter((t) => t.kind === "figure").length;
   const seams = shown.length - figures;
+  // U4: the count line drops the seams unless a transitions disclosure is
+  // open — otherwise "N figures and M seams" would announce the very rows
+  // the disclosure exists to keep out of sight by default.
+  const seamsOpen = openTransitions.size > 0;
   // The tile column is one width for the whole page: the widest world in the
   // gallery at the current zoom. Every set then stands on the same axis and
   // the writing beside them starts in the same column, which is the whole
@@ -207,7 +217,7 @@ export function MovesPage({
         <h1 className="text-2xl font-semibold">Moves</h1>
         <p className="max-w-[80ch] text-sm text-muted-foreground">
           {solo === null
-            ? `${String(figures)} figures and ${String(seams)} seams between them, one to a row:`
+            ? `${String(figures)} figures${seamsOpen ? ` and ${String(seams)} seams` : ""}, one to a row:`
             : "One move, on its own:"}{" "}
           the tile, what the caller says, the walkthrough for this move as it is called here
           (&ldquo;teach&rdquo; opens the full one), and what the motion oracle measured over the
@@ -320,28 +330,43 @@ export function MovesPage({
               onView={setView}
             />
             {group.seams.length === 0 ? null : (
-              <ol className="moves-seams">
-                {group.seams.map((tile) => (
-                  <li key={tile.key}>
-                    <Row
-                      tile={tile}
-                      beat={beat}
-                      zoom={zoom}
-                      trails={trails}
-                      strip={strips.has(tile.key)}
-                      step={step}
-                      onStrip={toggleStrip}
-                      metrics={metrics?.get(tile.key)}
-                      solo={solo !== null}
-                      side={slot}
-                      reach={reach}
-                      facing={facing}
-                      view={view}
-                      onView={setView}
-                    />
-                  </li>
-                ))}
-              </ol>
+              <details
+                className="moves-transitions"
+                data-testid="moves-transitions"
+                onToggle={(e) => {
+                  const open = e.currentTarget.open;
+                  setOpenTransitions((was) => {
+                    const next = new Set(was);
+                    if (open) next.add(group.figure.key);
+                    else next.delete(group.figure.key);
+                    return next;
+                  });
+                }}
+              >
+                <summary>transitions ({group.seams.length})</summary>
+                <ol className="moves-seams">
+                  {group.seams.map((tile) => (
+                    <li key={tile.key}>
+                      <Row
+                        tile={tile}
+                        beat={beat}
+                        zoom={zoom}
+                        trails={trails}
+                        strip={strips.has(tile.key)}
+                        step={step}
+                        onStrip={toggleStrip}
+                        metrics={metrics?.get(tile.key)}
+                        solo={solo !== null}
+                        side={slot}
+                        reach={reach}
+                        facing={facing}
+                        view={view}
+                        onView={setView}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              </details>
             )}
           </li>
         ))}
