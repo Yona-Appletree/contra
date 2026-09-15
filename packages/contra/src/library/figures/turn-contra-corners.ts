@@ -4,8 +4,10 @@ import { TURN_RADIUS_PX } from "../../pair/allemande.js";
 import type {
   FigureDefinition,
   FigureRole,
+  HoldSpec,
   NumberExpr,
   OrbitPairShape,
+  ParamGuard,
   SequencePart,
 } from "../FigureDefinition.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
@@ -87,6 +89,43 @@ function orbit(turns: number, hand: Side): OrbitPairShape {
   };
 }
 
+/**
+ * One joined hand of one turn: the pair, the hand, and when it is taken.
+ *
+ * `when` is what lets a part whose casts the `axis` parameter chooses carry the
+ * holds for **both** answers: the two that are not being danced are guarded out
+ * before anything is sampled, so no hold ever names a role this part's own cast
+ * does not hold.
+ */
+function cornerHold(a: FigureRole, b: FigureRole, hand: Side, when?: ParamGuard): HoldSpec {
+  return {
+    kind: "pair",
+    a,
+    aSide: hand,
+    b,
+    bSide: hand,
+    point: { kind: "anchor" },
+    drop: { param: "holdDrop" },
+    stackPx: 0,
+    // **The windows are fractions of the part**, not the allemande's own
+    // absolute beats. Contra corners turns five times in sixteen beats and two
+    // of those turns are two beats long; an allemande's hand is fully up at
+    // beat 1.3 and starts coming down at 1.1 from the end, which on a two-beat
+    // turn overlap — so the hand never reaches the hip between corners and
+    // slides from one turning centre to the next at 92 px a beat, which is the
+    // library's own bound and a half. Written as fractions, every turn takes
+    // and gives back its hand at the same point in its own length.
+    window: {
+      kind: "ramps",
+      takeFrom: { number: "mul", of: [{ number: "beats" }, 0.1] },
+      takeTo: { number: "mul", of: [{ number: "beats" }, 0.45] },
+      releaseFrom: { number: "mul", of: [{ number: "beats" }, 0.6] },
+      releaseTo: { number: "mul", of: [{ number: "beats" }, 0.95] },
+    },
+    ...(when === undefined ? {} : { when }),
+  };
+}
+
 /** One turn of the figure: who, which hand, how far round, over how many beats. */
 function turn(
   casts: readonly (readonly [FigureRole, FigureRole])[],
@@ -98,46 +137,60 @@ function turn(
     beats,
     casts: casts.map(([a, b]) => [a, b]),
     shape: orbit(turns, hand),
-    holds: casts.map(([a, b]) => ({
-      kind: "pair" as const,
-      a,
-      aSide: hand,
-      b,
-      bSide: hand,
-      point: { kind: "anchor" as const },
-      drop: { param: "holdDrop" },
-      stackPx: 0,
-      // **The windows are fractions of the part**, not the allemande's own
-      // absolute beats. Contra corners turns five times in sixteen beats and two
-      // of those turns are two beats long; an allemande's hand is fully up at
-      // beat 1.3 and starts coming down at 1.1 from the end, which on a two-beat
-      // turn overlap — so the hand never reaches the hip between corners and
-      // slides from one turning centre to the next at 92 px a beat, which is the
-      // library's own bound and a half. Written as fractions, every turn takes
-      // and gives back its hand at the same point in its own length.
-      window: {
-        kind: "ramps" as const,
-        takeFrom: { number: "mul", of: [{ number: "beats" }, 0.1] },
-        takeTo: { number: "mul", of: [{ number: "beats" }, 0.45] },
-        releaseFrom: { number: "mul", of: [{ number: "beats" }, 0.6] },
-        releaseTo: { number: "mul", of: [{ number: "beats" }, 0.95] },
-      },
-    })),
+    holds: casts.map(([a, b]) => cornerHold(a, b, hand)),
   };
 }
 
 /** The two actives, by the hands-four station they stand on. */
 const ACTIVES = ["1L", "1R"] as const;
-/** The first corners: diagonally across the set from each active. */
-const FIRST: readonly (readonly [FigureRole, FigureRole])[] = [
+/** Diagonally across the set from each active. */
+const DIAGONAL: readonly (readonly [FigureRole, FigureRole])[] = [
   ["1L", "2R"],
   ["1R", "2L"],
 ];
-/** The second corners: straight along each active's own line. */
-const SECOND: readonly (readonly [FigureRole, FigureRole])[] = [
+/** Straight along each active's own line. */
+const ALONG: readonly (readonly [FigureRole, FigureRole])[] = [
   ["1L", "2L"],
   ["1R", "2R"],
 ];
+
+/**
+ * **Which corner is your first**, by the axis the figure is called along (M9).
+ *
+ * `axis: "across"` is Chorus Jig's and the one every caller teaches from a
+ * proper set: your first corner is the dancer diagonally across the set and
+ * your second the one straight along your own line. `axis: "along"` is the
+ * other way round, which is what Jeremy Corners writes — *"(16) Ones turn
+ * contra corners (along the set)"* — where the actives are standing in the
+ * middle of the set facing each other along it and the corners are reached
+ * along the set rather than across it. **(unsure)**: the parenthetical is the
+ * whole of what the transcript says, and the two readings dance the same
+ * sixteen beats with the two corner turns in the other order.
+ *
+ * The two answers are two written lists and the parameter chooses between them,
+ * which is `{ number: "select" }`'s idea one level up — see
+ * {@link SequencePart.casts}.
+ */
+function cornerTurn(
+  which: "first" | "second",
+  hand: Side,
+  turns: number,
+  beats: number,
+): SequencePart {
+  const cases =
+    which === "first" ? { across: DIAGONAL, along: ALONG } : { across: ALONG, along: DIAGONAL };
+  const danced = which === "first" ? ["across"] : ["along"];
+  const other = which === "first" ? ["along"] : ["across"];
+  return {
+    beats,
+    casts: { select: "axis", cases },
+    shape: orbit(turns, hand),
+    holds: [
+      ...DIAGONAL.map(([a, b]) => cornerHold(a, b, hand, { param: "axis", is: danced })),
+      ...ALONG.map(([a, b]) => cornerHold(a, b, hand, { param: "axis", is: other })),
+    ],
+  };
+}
 
 /** Turn contra corners, as a figure definition. */
 export const turnContraCornersDefinition: FigureDefinition = {
@@ -150,14 +203,14 @@ export const turnContraCornersDefinition: FigureDefinition = {
   roles: MINOR_SET_ROLES,
   actors: "all",
   anchor: "hands-four",
-  params: { kind: "canonical", defaults: { holdDrop: 2 } },
+  params: { kind: "canonical", defaults: { holdDrop: 2, axis: "across" } },
   shape: {
     kind: "sequence",
     parts: [
       turn([ACTIVES], "R", 0.5, 2),
-      turn(FIRST, "L", 1, 4),
+      cornerTurn("first", "L", 1, 4),
       turn([ACTIVES], "R", 0.5, 2),
-      turn(SECOND, "L", 1, 4),
+      cornerTurn("second", "L", 1, 4),
       turn([ACTIVES], "R", 1, 4),
     ],
   },
