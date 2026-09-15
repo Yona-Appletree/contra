@@ -232,6 +232,38 @@ function planContraCycle(
   const from = options.start ?? "standing";
   /** {@link from}, under a name the fill's own `[from, to]` cannot shadow. */
   const picksUpWhereItLeftOff = from === "standing";
+
+  /**
+   * One waiting couple's `wait-out` parameters, in one place.
+   *
+   * Shared by the fill below and by the **write-back** at a mid-cycle shift,
+   * which has to know where this very figure will leave the couple; the two
+   * would drift apart written twice.
+   */
+  const waitParams = (
+    def: AnyFigureDef,
+    group: Group,
+    standing: ReadonlyMap<DancerId, EndPose>,
+    gap: { join: boolean; cross: boolean; beats: Beat },
+  ): object & { beats: Beat } =>
+    withDefaults(
+      def,
+      {
+        startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
+        join: gap.join,
+        cross: gap.cross,
+        // **The becket end-of-set crossing lands one couple place short**
+        // (M9c), because a time through that picks everybody up where the last
+        // one left them leaves every body one couple place behind the place the
+        // boundary's shift has just named theirs — and the waiting couple is a
+        // body like any other. See `ContraWaitOutParams.crossShort`; a planner
+        // that restarts from the first places instead teleports everybody on to
+        // the new places and the crossing must land on its own.
+        crossShort: picksUpWhereItLeftOff,
+        ...(dance.waitOut ?? {}),
+      },
+      gap.beats,
+    );
   for (const set of hall.sets) {
     const first = firstPlaces(formation, dance, set);
     // `"standing"` takes each dancer's real place where the decider has one and
@@ -471,6 +503,52 @@ function planContraCycle(
         // {@link PROGRESSES_PARAM}.
         if (carries) {
           progressedInPass = true;
+          // **The outs write back** (M9c). A couple that has been standing out
+          // for the run of beats this call ends is about to dance, and its
+          // `wait-out` — which is planned in the fill, after every call — has
+          // walked it somewhere: to the waiting place, and across the set if the
+          // run ends there. The model still had it where the time through began,
+          // so the first call that swept it in started it from a place it had
+          // left, and the seam was the whole width of the crossing. Fatal
+          // Attraction, `walk-to-station -> allemande` at beat 40, 37.7359 px.
+          //
+          // The fill is what moves them and the fill is what is asked, so the
+          // two cannot disagree: `waitParams` is the one place the parameters
+          // are written. `standingAt` is the right map to ask with because a
+          // leading gap begins at the couple's own beat 0 and nothing has moved
+          // them yet — which is also why the fill's own sort puts such a gap
+          // first.
+          const until = offset + callBeats(call);
+          for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, states.get(set.id)!)) {
+            if (plan.kind === "set") continue;
+            const members = Object.values(plan.members);
+            const gaps = gapsIn({ start: seatedFrom, end: until }, members, claimed);
+            // Only a couple that stood out for the *whole* of this run and is
+            // about to be swept in: a couple with no gap was dancing, and a
+            // couple with a partial gap is already accounted for by the call
+            // that claimed the rest of it.
+            const whole = gaps.find(([a, b]) => a === seatedFrom && b === until);
+            if (whole === undefined) continue;
+            const group = mintGroup(plan);
+            const def = registry.get(WAIT_OUT.id);
+            const ends = def.ends(
+              group,
+              waitParams(def, group, standingAt, {
+                join: true,
+                cross: true,
+                beats: whole[1] - whole[0],
+              }),
+            );
+            for (const [station, dancer] of Object.entries(group.members)) {
+              const end = ends[station];
+              const state = model.dancers[dancer];
+              if (end === undefined || state === undefined) continue;
+              state.spot = { p: end.p, facing: end.facing };
+              // The memo is frame-local to a frame this pose was not computed
+              // in; dropping it makes the next reader convert honestly.
+              local.delete(dancer);
+            }
+          }
           states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
           models.set(set.id, progressModel(model, shift));
         }
@@ -532,26 +610,11 @@ function planContraCycle(
               {
                 group,
                 def,
-                params: withDefaults(
-                  def,
-                  {
-                    startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
-                    join,
-                    cross: to === fill.span.end,
-                    // **The becket end-of-set crossing lands one couple place
-                    // short** (M9c), because a time through that picks everybody
-                    // up where the last one left them leaves every body one
-                    // couple place behind the place the boundary's shift has
-                    // just named theirs — and the waiting couple is a body like
-                    // any other. See `ContraWaitOutParams.crossShort`; a planner
-                    // that restarts from the first places instead teleports
-                    // everybody on to the new places and the crossing must land
-                    // on its own.
-                    crossShort: picksUpWhereItLeftOff,
-                    ...(dance.waitOut ?? {}),
-                  },
-                  to - from,
-                ),
+                params: waitParams(def, group, standing, {
+                  join,
+                  cross: to === fill.span.end,
+                  beats: to - from,
+                }),
                 stations: Object.keys(group.members),
                 start: start + from,
               },
