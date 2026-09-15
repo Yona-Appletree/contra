@@ -26,6 +26,7 @@ import {
 } from "@caller/ui-base";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cardDance } from "../danceCard.js";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
 import {
@@ -569,7 +570,7 @@ export function HallPage({
         <aside className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-1 lg:px-0">
           <div data-testid="hall-card">
             {/* The tune lives on the card now, under the phrases (U1). */}
-            <Card dance={position.dance} beat={position.danceBeat ?? 0}>
+            <Card dance={cardDance(position.dance)} beat={position.danceBeat ?? 0}>
               <div className="min-w-0" data-testid="hall-notation">
                 <span className="caller-music-card-caption" data-testid="hall-tune">
                   {tune.title}

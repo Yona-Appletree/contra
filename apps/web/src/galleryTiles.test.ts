@@ -119,9 +119,24 @@ describe("what a row reads off a tile (U2)", () => {
 
   // One case per tile, as above: `tileMetrics` is a 1/32-beat sweep of every
   // dancer's arms and all ~54 of them in one case share one vitest budget.
-  test.each(tiles)("has the figure's own prose and six measured numbers: $key", (tile) => {
+  test.each(tiles)("has the move's own four texts and six measured numbers: $key", (tile) => {
     for (const call of tile.calls) {
-      expect(call.describe, `${tile.key}: ${call.figure} has no describe`).toBeTruthy();
+      // W1: the row reads `data/figures/<id>.json`, resolved against this
+      // tile's own parameters, and `describe` is only the fallback.
+      const texts = call.texts;
+      expect(texts, `${tile.key}: ${call.figure} has no texts`).toBeDefined();
+      for (const text of [
+        texts!.walkthrough.short,
+        texts!.walkthrough.long,
+        texts!.call.short,
+        texts!.call.long,
+      ]) {
+        expect(text, `${tile.key}: ${call.figure}`).not.toContain("{");
+        expect(text.length, `${tile.key}: ${call.figure}`).toBeGreaterThan(0);
+      }
+      expect(texts!.call.short, `${tile.key}: ${call.figure}`).toBe(
+        texts!.call.short.toUpperCase(),
+      );
     }
     const metrics = tileMetrics(tile);
     expect(metrics.map((m) => m.label)).toEqual([

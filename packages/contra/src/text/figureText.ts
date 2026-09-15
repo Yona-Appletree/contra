@@ -162,6 +162,23 @@ export function resolveFigureText(
 }
 
 /**
+ * Just the two calls, for the places that want the caller's words and nothing
+ * else: the dance card's figure line, a programme, a printed card.
+ *
+ * No `group`, because no call says `{where}` — the landmark is a teach, not
+ * something anybody shouts over a band. That is what makes this the cheap one,
+ * and the one a card can call for every figure of every dance.
+ */
+export function resolveFigureCall(id: string, params: FigureParams): FigureCallText | undefined {
+  const file = FIGURE_TEXTS[id];
+  if (file === undefined) return undefined;
+  const merged = mergeVariants(file, params);
+  const shout = (text: string): string =>
+    resolveSlots(id, text, params, "call", undefined).toUpperCase();
+  return { short: shout(merged.call.short), long: shout(merged.call.long) };
+}
+
+/**
  * A walkthrough's first letter, capitalised.
  *
  * A template may open on a slot — `"{chains} take right hands in the middle"` —

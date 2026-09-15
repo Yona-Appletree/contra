@@ -35,8 +35,11 @@ reached only by URL.
     shuffle (the tune select's own "shuffle" choice is the default).
 - **Moves** (`#/moves`, F3b/U2). Every figure the registry holds and every
   figure-to-figure seam the ten demo dances actually dance, one to a row: a
-  looping canvas in a shared left column, then the id, the call, the
-  figure's own `describe` text, and the motion oracle's measured numbers
+  looping canvas in a shared left column, then the id, the call, the move's
+  own walkthrough — the short one, the full teach behind a "teach"
+  disclosure, and the caller's two registers as `SHORT · LONG`, all four
+  read from `data/figures/<id>.json` and resolved against **this** tile's
+  parameters (W1; `docs/move-texts.md`) — and the motion oracle's measured numbers
   (`src/galleryTiles.ts`'s `tileMetrics`), with any number over
   `@caller/contra`'s bound picked out in colour. Every seam is filed under
   the figure it comes out of. Deep links: `#/moves/<figure-id>` opens one

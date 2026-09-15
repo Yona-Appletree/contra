@@ -5,7 +5,7 @@ import type { FacingStyle, Person, Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, createPerson, createRenderer, drawText } from "@caller/hall";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GalleryTile, TileMetric } from "../galleryTiles.js";
+import type { GalleryCall, GalleryTile, TileMetric } from "../galleryTiles.js";
 import {
   DEFAULT_ZOOM,
   FLOOR_COLOUR,
@@ -34,7 +34,8 @@ import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
  * One move to a row, never a grid (U2): the tile on the left in a slot as wide
  * as the widest world in the gallery, so every set stands on the same axis and
  * the writing beside them starts in the same column; the id, the call, the
- * figure's own `describe` and the motion oracle's numbers on the right. Each
+ * move's own walkthrough (`data/figures/<id>.json`, resolved against this
+ * tile's parameters) and the motion oracle's numbers on the right. Each
  * seam is filed in the same row shape under the figure it comes out of, so the
  * page reads as one move and then every way out of it.
  *
@@ -201,8 +202,9 @@ export function MovesPage({
           {solo === null
             ? `${String(figures)} figures and ${String(seams)} seams between them, one to a row:`
             : "One move, on its own:"}{" "}
-          the tile, what the caller says, what the dancers do in the figure&rsquo;s own words, and
-          what the motion oracle measured over the beats the tile loops.
+          the tile, what the caller says, the walkthrough for this move as it is called here
+          (&ldquo;teach&rdquo; opens the full one), and what the motion oracle measured over the
+          beats the tile loops.
           {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
           <span className="moves-over px-1">this colour</span> is over the bound{" "}
           <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.
@@ -433,10 +435,7 @@ function Row({
 
       <div className="moves-row-body">
         {described.map((call) => (
-          <p key={call.figure} className="moves-row-describe">
-            {tile.kind === "seam" ? <b>{call.figure}: </b> : null}
-            {call.describe ?? "No description: this figure has no `describe` yet."}
-          </p>
+          <MoveText key={call.figure} call={call} named={tile.kind === "seam"} />
         ))}
         {tile.notes.map((note) => (
           <p key={note} className="moves-row-note">
@@ -457,6 +456,49 @@ function Row({
         ) : null}
       </div>
     </article>
+  );
+}
+
+/**
+ * What one move says, on its row: the short walkthrough, the full teach behind
+ * a disclosure, and the two calls.
+ *
+ * The AI paragraph that used to stand here is gone (W1). The user, who calls:
+ * "the moves all have a lot of ai generated text description. it feels very
+ * ai-generated … I can't really show this until we don't have a wall of ai text
+ * in all the moves though, people will hate it." So the row opens on one
+ * sentence a caller would say, and the teach is behind a disclosure for
+ * whoever wants it.
+ *
+ * `describe` is still the fallback for a figure with no text file. Nothing in
+ * the registry is in that state, and the line says so plainly if one ever is.
+ */
+function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.Element {
+  const label = named ? <b>{call.figure}: </b> : null;
+  if (call.texts === undefined) {
+    return (
+      <p className="moves-row-describe">
+        {label}
+        {call.describe ?? "No text: this figure has no data/figures file yet."}
+      </p>
+    );
+  }
+  return (
+    <div className="moves-row-text" data-testid="moves-text" data-figure={call.figure}>
+      <p className="moves-row-describe" data-testid="moves-walkthrough-short">
+        {label}
+        {call.texts.walkthrough.short}
+      </p>
+      <details className="moves-row-teach">
+        <summary>teach</summary>
+        <p data-testid="moves-walkthrough-long">{call.texts.walkthrough.long}</p>
+      </details>
+      <p className="moves-row-callpair" data-testid="moves-calls">
+        <span className="moves-row-callshort">{call.texts.call.short}</span>
+        <span className="moves-row-dim"> &middot; </span>
+        <span>{call.texts.call.long}</span>
+      </p>
+    </div>
   );
 }
 

@@ -155,9 +155,16 @@ export function MoveTracesPage({
         <Legend />
       </header>
 
+      {/*
+       * The long walkthrough, at the top: this page is where somebody comes to
+       * read one move properly, so it opens on the full teach rather than on
+       * the one-sentence version the Moves row shows (W1).
+       */}
       {tile.calls.map((call) => (
         <p key={call.figure} className="max-w-[80ch] text-sm" data-testid="move-traces-describe">
-          {call.describe ?? "No description: this figure has no `describe` yet."}
+          {call.texts?.walkthrough.long ??
+            call.describe ??
+            "No text: this figure has no data/figures file yet."}
         </p>
       ))}
 

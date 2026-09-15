@@ -1,6 +1,7 @@
 import { DEMO_DANCES } from "@caller/contra";
 import { Card } from "@caller/music";
 import type { JSX } from "react";
+import { cardDance } from "../danceCard.js";
 import { DanceTraces } from "../traces/DanceTraces.js";
 
 /**
@@ -39,7 +40,7 @@ export function DancesPage(): JSX.Element {
                * The formation goes on the card, under the phrases, where the
                * Stage tab puts the tune.
                */}
-              <Card dance={dance} beat={0}>
+              <Card dance={cardDance(dance)} beat={0}>
                 <span className="caller-music-card-caption">{dance.formation}</span>
                 <DanceTraces dance={dance} />
               </Card>

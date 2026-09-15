@@ -24,6 +24,7 @@ export {
   mergeVariants,
   pairingName,
   renderSlot,
+  resolveFigureCall,
   resolveFigureText,
   slotsIn,
   textsOf,

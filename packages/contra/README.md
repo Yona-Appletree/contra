@@ -635,3 +635,14 @@ sentences of what the dancers do, in a caller's words. `star` and
 `california-twirl` are marked `(unsure: …)` — a caller should correct those
 two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
 square to the other line, danced in two steps, and the figure now says so.
+
+**`describe` is the fallback now, not what the app shows** (W1). Every move's
+prose lives in `data/figures/<id>.json` — a short and a long walkthrough, a
+short and a long call, each a template over that figure's own parameters —
+loaded by `src/text/`. `resolveFigureText(id, params, group)` fills every slot
+from one call's own tuning, and `landmark(def, params, group)` writes the last
+sentence of the long walkthrough from `FigureDef.ends`: "you should be across
+the set from your partner, next to your neighbor". See
+[`docs/move-texts.md`](../../docs/move-texts.md) for the voice and the slot
+vocabulary. `describe` stays on the figure contract until the cleanup that
+removes it.

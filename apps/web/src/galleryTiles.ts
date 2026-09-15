@@ -23,7 +23,7 @@ import {
   resolveSelector,
   withDefaults,
 } from "@caller/choreo";
-import type { ContraCall } from "@caller/contra";
+import type { ContraCall, FigureTexts } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
   CONTRA_MOTION_BOUNDS,
@@ -33,6 +33,7 @@ import {
   contraFigureOf,
   createContraRegistry,
   formationFor,
+  resolveFigureText,
 } from "@caller/contra";
 
 /**
@@ -86,8 +87,24 @@ export interface GalleryCall {
    * What the dancers actually do, in the figure's own prose: `FigureDef.describe`,
    * written by F3a. `undefined` only if a figure has none, which the registry
    * test makes hard.
+   *
+   * The fallback now, not the text the row shows: W1 moved the prose into
+   * `data/figures/<id>.json` and {@link GalleryCall.texts} is what the page
+   * reads. It stays until the cleanup that removes `describe` from the figure
+   * contract altogether.
    */
   describe?: string;
+  /**
+   * The move's four texts, resolved against **this** call's own parameters and
+   * this tile's own group: the short and long walkthrough and the short and
+   * long call (`data/figures/<id>.json`).
+   *
+   * `undefined` only for a figure with no text file. The long walkthrough ends
+   * on the generated landmark, which is why the group has to be in hand to
+   * resolve it — "you should be across the set from your partner" is a fact
+   * about the figure *here*.
+   */
+  texts?: FigureTexts;
   /** The tuning it ran with. `from` is left out: it is threaded, not chosen. */
   params: Record<string, unknown>;
 }
@@ -414,7 +431,7 @@ function figureTile(id: string, registry: FigureRegistry): GalleryTile {
     kind: "figure",
     key: id,
     title: id,
-    calls: [listed(shown, callText, def.describe)],
+    calls: [listed(shown, callText, group, def.describe)],
     under: id,
     formation: formation.id,
     group,
@@ -456,7 +473,7 @@ function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean):
     title: `${a.figure} → ${b.figure}`,
     calls: [a, b].map((c) => {
       const def = registry.get(c.figure);
-      return listed(c, c.call ?? def.call, def.describe);
+      return listed(c, c.call ?? def.call, group, def.describe);
     }),
     under: a.figure,
     formation: formation.id,
@@ -597,13 +614,37 @@ function withoutFrom(params: object | undefined): Record<string, unknown> {
   return rest;
 }
 
-const listed = (call: FigureCall, text: string, describe?: string): GalleryCall => ({
-  figure: call.figure,
-  beats: call.beats,
-  call: text,
-  ...(describe === undefined ? {} : { describe }),
-  params: withoutFrom(call.params),
-});
+const listed = (call: FigureCall, text: string, group: Group, describe?: string): GalleryCall => {
+  const texts = textsFor(call, group);
+  return {
+    figure: call.figure,
+    beats: call.beats,
+    call: text,
+    ...(describe === undefined ? {} : { describe }),
+    ...(texts === undefined ? {} : { texts }),
+    params: withoutFrom(call.params),
+  };
+};
+
+/**
+ * This call's four texts, resolved.
+ *
+ * The **threaded** parameters, `from` and all — that is the difference between
+ * "you are back where you started" and a landmark computed from the stations a
+ * dance has long since left. `withDefaults` is what the decider hands a figure,
+ * so the row reads exactly what the hall would.
+ */
+function textsFor(call: FigureCall, group: Group): FigureTexts | undefined {
+  const def = textRegistry().get(call.figure);
+  return resolveFigureText(call.figure, withDefaults(def, call.params, call.beats), group);
+}
+
+/** One registry for every text this module resolves; building one is not free. */
+let textRegistryCache: FigureRegistry | undefined;
+function textRegistry(): FigureRegistry {
+  textRegistryCache ??= createContraRegistry();
+  return textRegistryCache;
+}
 
 /**
  * Whether one instance of a chained figure leaves everybody where it found

@@ -295,6 +295,41 @@
   font-style: italic;
 }
 
+/*
+ * The move's own words (W1): one sentence of walkthrough, the full teach behind
+ * a disclosure, then the two calls. The teach is closed by default because the
+ * point of the row is to be readable at a glance — the wall of prose is what
+ * this replaced.
+ */
+.moves-row-teach > summary {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.moves-row-teach > p {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  border-left: 2px solid var(--border);
+  padding-left: 0.625rem;
+}
+
+/* The caller's two registers, in the bubble's own capitals. */
+.moves-row-callpair {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+.moves-row-callshort {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
 /* The oracle's numbers: chips, wrapping, the over-bound ones picked out. */
 .moves-row-metrics {
   display: flex;
