@@ -313,6 +313,8 @@ where the dancers already stand (below); the defaults given are the rest.
 | `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees) — **data**           |
 | `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters — **data**                                                  |
 | `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2 — **data**                                          |
+| `pull-by`                | 2     | `PULL BY`                      | `pairs` `"neighbors"`, `hand` `"R"`, `holdDrop` 2 — **data**, no coded twin                                                     |
+| `grand-right-and-left`   | 6     | `GRAND RIGHT AND LEFT`         | none; three passes along the line, right, left, right — **data**, no coded twin, `actors: "line"`                               |
 | `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null`                                                                 |
 | `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                        |
 | `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                          |

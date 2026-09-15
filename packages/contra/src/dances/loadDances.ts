@@ -2,6 +2,9 @@ import type { Dance, Formation } from "@caller/choreo";
 import type { ContraCall, ContraDanceSpec, ContraPhrase } from "../figures/chain.js";
 import { contraDance } from "../figures/chain.js";
 import { contraFigureOf } from "../figures/registry.js";
+import { GATHERER_DEFINITIONS } from "../library/figures/index.js";
+import { paramDefaults } from "../library/interpret.js";
+import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { formationById } from "./formations.js";
 
 /**
@@ -80,15 +83,10 @@ function checkCall(
   formation: Formation,
   call: ContraCall,
 ): void {
-  const def = contraFigureOf(call.figure);
-  if (!def) {
-    throw new Error(`${danceSlug} ${phraseName}: "${call.figure}" is not a known contra figure`);
-  }
-  const declared = new Set(
-    Object.keys(def.defaults).filter((k) => k !== "from" && k !== "carried"),
-  );
-  for (const key of Object.keys(call.params ?? {})) {
-    if (!declared.has(key)) {
+  const declared = declaredParams(danceSlug, phraseName, call.figure);
+  if (declared !== undefined) {
+    for (const key of Object.keys(call.params ?? {})) {
+      if (declared.has(key)) continue;
       throw new Error(
         `${danceSlug} ${phraseName}: "${call.figure}" has no parameter "${key}" ` +
           `(declares: ${[...declared].sort().join(", ")})`,
@@ -106,6 +104,40 @@ function checkCall(
       );
     }
   }
+}
+
+/**
+ * Which parameters a figure declares, or `undefined` for a figure the rebuild
+ * has not written yet.
+ *
+ * Three answers, in order:
+ *
+ * - a **coded** figure's own `defaults`, less the two the chain derives;
+ * - a **definition's** canonical parameters, for a figure that is data and has
+ *   no coded twin — M6's `pull-by` and `grand-right-and-left` are the first;
+ * - **`undefined`**, and no check at all, for a figure on
+ *   `acceptance.ts`'s own unsupported list. A transcript in the acceptance set
+ *   may name a figure a later milestone owns, and this milestone's brief is
+ *   explicit about what to do: *encode the call and leave the figure on the
+ *   list with the owning milestone, so the dance stays `lab` and the test says
+ *   exactly what is missing*. A dance file written that way loads, and
+ *   `pnpm dance <slug>` fails with the figure's own name and its milestone in
+ *   the message rather than the package failing to import. A figure that is
+ *   neither known nor owed is still a typo, and still throws here.
+ */
+function declaredParams(
+  danceSlug: string,
+  phraseName: string,
+  figure: string,
+): Set<string> | undefined {
+  const coded = contraFigureOf(figure);
+  if (coded) {
+    return new Set(Object.keys(coded.defaults).filter((k) => k !== "from" && k !== "carried"));
+  }
+  const definition = GATHERER_DEFINITIONS.find((d) => d.id === figure);
+  if (definition) return new Set(Object.keys(paramDefaults(definition)));
+  if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
+  throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);
 }
 
 /**

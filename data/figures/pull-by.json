@@ -1,0 +1,11 @@
+{
+  "id": "pull-by",
+  "walkthrough": {
+    "short": "Give {hand} hands to {pairs} and walk straight past each other.",
+    "long": "Give {hand} hands to {pairs}, walk straight past them passing that shoulder, and let go as you go by. You end where they were standing and they end where you were — do not turn round, because whatever comes next is waiting for you there. {where}"
+  },
+  "call": {
+    "short": "PULL BY",
+    "long": "{pairs} PULL BY THE {hand}"
+  }
+}

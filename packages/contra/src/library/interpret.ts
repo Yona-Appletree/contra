@@ -210,6 +210,17 @@ export function anchorOf(
     const centre = centreOf(spots);
     return { centre, axis: spots.length < 2 ? 0 : bearing(spots[0]!.p, centre) };
   }
+  if (rule === "lane") {
+    // **The lane frame** (M6, Q16): the whole line at once, its axis running
+    // along the set from the first of the cast to the last. Resolution has
+    // already put the cast in lattice order, so "first to last" is "up the set
+    // to down it" and a figure written along the lane reads the same whichever
+    // line it is dancing on.
+    const spots: Spot[] = roles.map((role) => ctx.spot(role));
+    const centre = centreOf(spots);
+    const axis = spots.length < 2 ? 0 : bearing(spots[0]!.p, spots[spots.length - 1]!.p);
+    return { centre, axis };
+  }
   throw new Error(`unsupported: anchor ${JSON.stringify(rule)} (M4)`);
 }
 

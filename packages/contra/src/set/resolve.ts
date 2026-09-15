@@ -113,6 +113,16 @@ export interface ResolveContext {
 export const HOLD_PLACE_FIGURE = "walk-to-station";
 
 /**
+ * A definition whose `roles` is exactly this has **one part per dancer**, named
+ * by the slot they stand on.
+ *
+ * What a figure danced by a whole line needs: how many parts a long wave has is
+ * how long the hall is, so a definition cannot name them. Its shape reads the
+ * wildcard track instead (`kinds/pathM6.ts`).
+ */
+export const LANE_ROLES = "*";
+
+/**
  * One call, resolved: the instances it dances, in partition order, each
  * followed by the hold-place instance for whoever that group left out.
  *
@@ -385,10 +395,16 @@ function resolveInLane(
   lane: LanePool,
 ): FigureInstance[] {
   const plan = lane.plan;
+  // **`actors: "line"` is one instance per line of the lattice**, not one for
+  // the whole set. That is what a long wave is — the dancers of one line, joined
+  // along it — and what a grand right and left is: two of them, one down each
+  // line, passing nobody across the set. `"ring"` in the lane is the whole pool.
   const dancing: StationId[][] =
-    def.actors === "line" || def.actors === "ring"
-      ? [plan.stations.map((s) => s.id)]
-      : (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]);
+    def.actors === "line"
+      ? byLine(ctx, plan)
+      : def.actors === "ring"
+        ? [plan.stations.map((s) => s.id)]
+        : (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]);
 
   const places = def.ends === "home" ? lanePlaces(ctx.model, plan.frame) : [];
   const instances: FigureInstance[] = [];
@@ -421,6 +437,20 @@ function resolveInLane(
     });
   }
   return out;
+}
+
+/** The lane's stations, cut into its two lines, each in order along the set. */
+function byLine(ctx: ResolveContext, plan: GroupPlan): StationId[][] {
+  const lines = new Map<number, StationId[]>();
+  for (const station of plan.stations) {
+    const dancer = plan.members[station.id];
+    if (dancer === undefined) continue;
+    const { line } = ctx.model.dancers[dancer]!.slot;
+    const seen = lines.get(line);
+    if (seen) seen.push(station.id);
+    else lines.set(line, [station.id]);
+  }
+  return [...lines.keys()].sort((a, b) => a - b).map((line) => lines.get(line)!);
 }
 
 /** The lane station one dancer is standing on. */
@@ -497,6 +527,12 @@ function castRoles(
   plan: GroupPlan,
   ctx: ResolveContext,
 ): Record<FigureRole, DancerId> {
+  // **A lane figure's parts are its dancers' own slots.** A long wave or a
+  // grand right and left has one part per dancer of a line and no definition
+  // can write their names down, because how many there are is how long the
+  // hall is. `roles: ["*"]` says so, and the wildcard track in `kinds/pathM6.ts`
+  // is what a definition writes instead of a part per name.
+  if (def.roles.length === 1 && def.roles[0] === LANE_ROLES) return castOf(plan, stations);
   if (stations.length > def.roles.length) {
     throw new Error(
       `figure "${def.id}" has ${String(def.roles.length)} roles ` +

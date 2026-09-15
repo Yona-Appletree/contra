@@ -7,6 +7,8 @@ import { allemandeDefinition } from "./allemande.js";
 import { balanceDefinition } from "./balance.js";
 import { balanceRingDefinition } from "./balance-ring.js";
 import { balanceAndSwingDefinition } from "./balance-and-swing.js";
+import { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
+import { pullByDefinition } from "./pull-by.js";
 import { swingDefinition } from "./swing.js";
 
 /**
@@ -27,13 +29,22 @@ import { swingDefinition } from "./swing.js";
  * mismatch by name rather than dancing it.
  */
 
-/** The five, in the README's own order. */
+/**
+ * The library's own definitions, in the README's order: M2's five gatherers and
+ * M6's travellers.
+ *
+ * A **gatherer** settles people on to the formation's places; a **traveller**
+ * takes them somewhere else and leaves them there. M6's are travellers to a
+ * figure, which is why none of them has `ends: "home"`.
+ */
 export const GATHERER_DEFINITIONS: readonly FigureDefinition[] = [
   balanceDefinition,
   balanceRingDefinition,
   swingDefinition,
   balanceAndSwingDefinition,
   allemandeDefinition,
+  pullByDefinition,
+  grandRightAndLeftDefinition,
 ];
 
 /** Their ids, for the bridge to skip and for a test to check the two lists agree. */
@@ -71,3 +82,5 @@ export { balanceDefinition, PAIR_ROCK, twoHandRock } from "./balance.js";
 export { balanceRingDefinition } from "./balance-ring.js";
 export { balanceAndSwingDefinition } from "./balance-and-swing.js";
 export { swingDefinition, SWING_HOLD, SWING_ORBIT } from "./swing.js";
+export { pullByDefinition } from "./pull-by.js";
+export { grandRightAndLeftDefinition } from "./grand-right-and-left.js";

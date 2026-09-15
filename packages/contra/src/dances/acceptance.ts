@@ -355,9 +355,9 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   "mad-robin": "M5",
   "shoulder-round": "M5",
   "single-file-promenade": "M5",
-  // M6 — slots and offsets authoritative
-  "grand-right-and-left": "M6",
-  "pull-by": "M6",
+  // M6 — slots and offsets authoritative. `pull-by` and `grand-right-and-left`
+  // landed; the three shapes below did not — see M6's report for what stopped
+  // each of them and what the next milestone needs.
   "balance-wave": "M6",
   circulate: "M6",
   loop: "M6",

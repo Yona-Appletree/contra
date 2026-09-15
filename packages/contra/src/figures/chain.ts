@@ -129,9 +129,26 @@ export function chainCalls(
   for (const call of calls) {
     const def = contraFigureOf(call.figure);
     if (!def) {
-      throw new Error(
-        `chainCalls: "${call.figure}" is not a contra figure; the engine's own figures cannot be chained`,
-      );
+      // **A figure with no coded twin threads nothing.** Since M6 a dance may
+      // call a figure that exists only as a `FigureDefinition` (`pull-by`), or
+      // one a later milestone still owes (`shoulder-round`), and neither has a
+      // hands-four template to walk. The chain is dead weight on the new path
+      // anyway — `planCycle` strips `from` and `carried` back out and derives
+      // both from set state — so the honest answer is to carry the places
+      // through unchanged and let resolution do the work. The old path cannot
+      // dance such a dance at all, and says so where it tries.
+      out.push({
+        figure: call.figure,
+        beats: call.beats,
+        params: { ...(call.params ?? {}), from: places },
+        ...(call.who === undefined ? {} : { who: call.who }),
+        ...(call.group === undefined ? {} : { group: call.group }),
+        ...(call.call === undefined ? {} : { call: call.call }),
+        ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
+      });
+      ending.push([]);
+      middle.push([]);
+      continue;
     }
     const from = places;
     const params = withDefaults<ContraParams>(def, { ...(call.params ?? {}), from }, call.beats);

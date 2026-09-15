@@ -2,6 +2,7 @@ import type { FigurePlan } from "../../figures/ContraFigure.js";
 import type { FigureShape, HoldSpec } from "../FigureDefinition.js";
 import type { ShapeInput } from "../interpret.js";
 import { planOrbitPair } from "./orbitPair.js";
+import { planPath } from "./pathM6.js";
 import { planRock } from "./rock.js";
 import { planSequence } from "./sequence.js";
 
@@ -33,8 +34,11 @@ export function planShape(
       return planSequence(shape, input, planShape);
     case "ringWalk":
       throw new Error(`unsupported: shape kind "ringWalk" (M4)`);
+    // M4 owns `path`; M6 needed one before M4 merged and wrote a minimal
+    // evaluator of its own in `pathM6.ts`. On the rebase the two are
+    // reconciled and this arm points at whichever survives.
     case "path":
-      throw new Error(`unsupported: shape kind "path" (M4)`);
+      return planPath(shape, holds, input);
     case "legacy":
       throw new Error(
         `a legacy shape is the coded figure "${shape.figure}"; the interpreter does not draw it`,
@@ -43,6 +47,8 @@ export function planShape(
 }
 
 export { planOrbitPair } from "./orbitPair.js";
+export { planPath } from "./pathM6.js";
+export type { PathStep } from "./pathM6.js";
 export { planRock } from "./rock.js";
 export { planSequence } from "./sequence.js";
 export type { ActiveHold, ActivePairHold, ActiveRingHold } from "./holds.js";
