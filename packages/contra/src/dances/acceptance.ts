@@ -380,7 +380,6 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   // call yet stays on the list, with the milestone that will call it.
   diamond: "M9",
   "interrupted-square-through": "M9",
-  "jersey-twirl": "M9",
 };
 
 /**

@@ -130,7 +130,6 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
     ).toEqual([
       "diamond (M9)",
       "interrupted-square-through (M9)",
-      "jersey-twirl (M9)",
       // `promenade` landed in M8 with Fatal Attraction; `square-through` moved
       // to M9, because the only thing in the corpus that calls one is Jeremy
       // Corners' and The Set Monster's **interrupted** square through.

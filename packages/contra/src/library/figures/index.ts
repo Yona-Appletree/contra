@@ -40,6 +40,7 @@ import { turnContraCornersDefinition } from "./turn-contra-corners.js";
 import { castBackDefinition } from "./cast-back.js";
 import { promenadeDefinition } from "./promenade.js";
 import { balanceWaveOfFourDefinition } from "./balance-wave-of-four.js";
+import { jerseyTwirlDefinition } from "./jersey-twirl.js";
 import { localFigureDefinitions } from "../../dances/danceFiles.js";
 
 /**
@@ -152,6 +153,17 @@ export const RECORD_DEFINITIONS: readonly FigureDefinition[] = [
 ];
 
 /**
+ * **M9's**: the figures the two Banner dances needed.
+ *
+ * A list of its own for the same reason M8's is: what they share is the
+ * milestone rather than the gate. `diamond` is the cast that forms one —
+ * the shape has been in `set/shape.ts` since M7 and nothing made one —
+ * `square-through` and `interrupted-square-through` are the pull-bys the two
+ * dances do inside it, and `jersey-twirl` has no predecessor anywhere.
+ */
+export const BANNER_DEFINITIONS: readonly FigureDefinition[] = [jerseyTwirlDefinition];
+
+/**
  * Every figure the library holds as data, the dance files' own **local**
  * figures last (D10, M8).
  *
@@ -168,6 +180,7 @@ export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...SCHEDULE_DEFINITIONS,
   ...SHAPE_DEFINITIONS,
   ...RECORD_DEFINITIONS,
+  ...BANNER_DEFINITIONS,
   ...localFigureDefinitions(),
 ];
 
@@ -317,3 +330,4 @@ export { turnContraCornersDefinition } from "./turn-contra-corners.js";
 export { balanceWaveDefinition } from "./balance-wave.js";
 export { circulateDefinition } from "./circulate.js";
 export { loopDefinition } from "./loop.js";
+export { jerseyTwirlDefinition } from "./jersey-twirl.js";
