@@ -360,9 +360,19 @@ function atBeat(legs: readonly Leg[], t: Beat): { leg: Leg; k: number; index: nu
 
 /** Where a dancer is part way along a leg, bowed to their own left. */
 function place(leg: Leg, k: number): Spot {
+  // **A pass turns before it takes the hand** (M7b). A dancer who has to come
+  // about to meet the one coming at them — A Rare Bird's second pass along the
+  // sides is a whole half turn, because the shoulder round before it left them
+  // looking the other way — used to spread that turn over the whole leg, so the
+  // body went on rotating under a hand parked on the shared point half way
+  // between the two of them and the arm solver flipped the elbow's pole across
+  // the chest: **301.7 px/beat** against a bound of 188.3, at `c3/lark`'s left
+  // hand on beat 11.3125 of four couples. The turn is done by the time the
+  // hands meet now, which is what a dancer does and brings it to 61.5.
+  const turned = leg.pass === undefined ? k : Math.min(1, k / REACH_SHARE);
   const facing =
     leg.spin === undefined
-      ? angleLerp(leg.from.facing, leg.to.facing, k)
+      ? angleLerp(leg.from.facing, leg.to.facing, turned)
       : leg.from.facing + leg.spin * k;
   if (leg.around) {
     // Ride the circle, then ease on to the written end: at `k = 1` the two

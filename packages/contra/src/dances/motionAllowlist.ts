@@ -61,12 +61,17 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "A pull-by's joined hand is one shared floor point half way between two " +
       "dancers walking straight through each other, so at the middle of the pass " +
       "the hand is **exactly** still while both arms swing round it from ahead to " +
-      "behind. Measured in A Rare Bird at 19.44x: an elbow at 73.3 px/beat over a " +
-      "hand at STILL_HAND_PX (2 pi x 0.6 = 3.77), which is the ratio's own floor " +
-      "for a hand that is not moving at all. The elbow is well inside its own " +
-      "bound of 188.3, and nothing in the figure flails: this is the one shape " +
-      "where a still hand is the point of the figure rather than a symptom. M10's " +
-      "motion profiles are what should give the ratio a hand-is-parked case.",
+      "behind. Every number in this column for a pass is the elbow's own speed " +
+      "over STILL_HAND_PX (2 pi x 0.6 = 3.77), which is the ratio's floor for a " +
+      "hand that is not moving at all: 19.44x over an elbow of 73.3 px/beat where " +
+      "the dancer was already facing the way they were going, and 44.61x over " +
+      "168.2 where A Rare Bird's second pass along the sides asks for a half turn " +
+      "as well, because the six beats of shoulder round before it belong to an N3 " +
+      "that does not exist and left the dancer standing the other way. The elbow " +
+      "is inside its own bound of 188.3 either way. M10's motion profiles are " +
+      "what should give the ratio a hand-is-parked case; the half turn in two " +
+      "beats is the end-effects rule (the outs do what the ins need), which this " +
+      "plan has only the simplest form of.",
   },
   {
     dance: "*",
@@ -76,7 +81,10 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "Three pull-bys in a row, and the same measurement: in Whoosh, 19.44x at " +
       "beat 1.0 — the middle of the first pass — where c1/robin's right hand sits " +
       "on the shared point between her and c1/lark and does not move while her " +
-      "elbow swings past it at 73.3 px/beat. See the pull-by row above; M10 owns both.",
+      "elbow swings past it at 73.3 px/beat, and 44.61x over 168.2 at the top of " +
+      "the second time through, where the dancers come out of B2's do-si-do " +
+      "looking across the set and turn to face along it as the first hand goes " +
+      "up. See the pull-by row above; M10 owns both.",
   },
   {
     dance: "whoosh",
