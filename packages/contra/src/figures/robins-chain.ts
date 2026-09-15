@@ -400,3 +400,21 @@ const TAKE_BEATS: Beat = 1;
  * and stops before it lands, which is the only part of the window that matters.
  */
 const LARK_LEAD_BEATS: Beat = 0.5;
+
+/**
+ * PR #35's four courtesy-turn candidates, keyed by the `?chain=` number a
+ * page's URL picks: which `pivotFromLark`/`stepInPx` pair each one asks for.
+ *
+ * 1 is `robinsChain.defaults` restated — the rigid turn, pivot a quarter of the
+ * hold off the lark, which is what the figure already ships with no override —
+ * kept here anyway so all four candidates are one table. 2 is the same rigid
+ * turn with the pivot at the lark himself. 3 and 4 are the couple-spins family:
+ * the lark steps 4 px, respectively 8 px, into the set to meet her instead of
+ * waiting on his place, so `pivotFromLark` is not read.
+ */
+export const CHAIN_CANDIDATES: Readonly<Record<string, Partial<RobinsChainParams>>> = {
+  "1": { pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX, stepInPx: 0 },
+  "2": { pivotFromLark: 0, stepInPx: 0 },
+  "3": { stepInPx: 4 },
+  "4": { stepInPx: 8 },
+};

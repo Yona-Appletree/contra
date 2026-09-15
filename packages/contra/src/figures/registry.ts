@@ -62,14 +62,36 @@ export const contraFigureList = (): AnyFigureDef[] =>
   CONTRA_FIGURE_IDS.map((id) => CONTRA_FIGURES[id] as AnyFigureDef);
 
 /**
+ * A figure id to a partial override of its tuning defaults — `?chain=` is the
+ * first user of this, picking one of `robins-chain`'s four courtesy-turn
+ * candidates for the whole page. `withDefaults` already merges a call's own
+ * `params` over a figure's `defaults`; this is the same merge, done once at
+ * registry build time instead of per call, so every consumer of the registry
+ * (a gallery tile, a seam, the decider) picks the override up with no further
+ * plumbing.
+ */
+export type FigureDefaultsOverride = Readonly<Record<string, object>>;
+
+/**
  * A registry holding every contra figure, plus the two the engine supplies.
  *
  * Every id in it has been checked against its own `id` field, so a typo in the
  * table above is a test failure rather than a dance that cannot be danced.
+ *
+ * `overrides` replaces a figure's own tuning defaults with `{ ...defaults,
+ * ...override }` before it goes in the registry; a figure not named in
+ * `overrides` is unchanged. See {@link FigureDefaultsOverride}.
  */
-export function createContraRegistry(extra: readonly AnyFigureDef[] = []): FigureRegistry {
+export function createContraRegistry(
+  extra: readonly AnyFigureDef[] = [],
+  overrides: FigureDefaultsOverride = {},
+): FigureRegistry {
+  const figures = contraFigureList().map((def) => {
+    const override = overrides[def.id];
+    return override === undefined ? def : { ...def, defaults: { ...def.defaults, ...override } };
+  });
   return createFigureRegistry([
-    ...contraFigureList(),
+    ...figures,
     waitOut as AnyFigureDef,
     WALK_TO_STATION as AnyFigureDef,
     ...extra,

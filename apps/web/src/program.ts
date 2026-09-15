@@ -7,6 +7,7 @@ import {
   createLibrary,
   createScriptDecider,
 } from "@caller/choreo";
+import type { FigureDefaultsOverride } from "@caller/contra";
 import { BECKET, DEMO_DANCES, DUPLE_IMPROPER, createContraRegistry } from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
 import type { Medley, Tune } from "@caller/music";
@@ -434,11 +435,16 @@ const DOWN_THE_HALL = 90;
  * built over the dances' own fixed order (`DEMO_DANCES`), not over
  * `dances` (which `first` may have rotated), so that choosing a dance to
  * start from does not change which medley any dance is shuffled onto.
+ *
+ * `figureOverrides` is `?chain=`'s route into the Stage: forwarded straight to
+ * `createContraRegistry`, so a dance that calls the overridden figure dances
+ * the chosen candidate instead of the figure's own shipped default.
  */
 export function createDemoProgram(
   world: HallWorld,
   first?: string,
   seed = DEFAULT_SEED,
+  figureOverrides: FigureDefaultsOverride = {},
 ): DemoProgram {
   const dances = danceOrder(first);
   const { medleyOf, tuneOf } = shuffleProgramme(
@@ -462,7 +468,7 @@ export function createDemoProgram(
   );
   const decider = createScriptDecider(
     program,
-    createContraRegistry(),
+    createContraRegistry([], figureOverrides),
     hall,
     createLibrary(dances, [DUPLE_IMPROPER, BECKET]),
   );

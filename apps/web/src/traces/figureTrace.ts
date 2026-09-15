@@ -8,11 +8,15 @@ import type { GalleryTile } from "../galleryTiles.js";
  *
  * "Wire the same data the tiles already sample so nothing is computed twice per
  * frame" — the tile owns a real `Timeline` (see `galleryTiles.ts`), so this
- * adds one pass over it rather than a second way of deciding the figure. Cached
- * by tile key, because a Moves row re-renders on every beat.
+ * adds one pass over it rather than a second way of deciding the figure.
+ * Cached by the tile object itself, because a Moves row re-renders on every
+ * beat: a `WeakMap` rather than `tile.key` because `?chain=` (F9) rebuilds the
+ * tiles array — a fresh object per figure — whenever the override changes, and
+ * a string keyed on `tile.key` alone would keep serving the first candidate's
+ * trace forever after, `tile.timeline` having changed underneath the same key.
  */
 export function figureTrace(tile: GalleryTile): Trace {
-  const cached = CACHE.get(tile.key);
+  const cached = CACHE.get(tile);
   if (cached !== undefined) return cached;
   const trace = sampleTrace(tile.timeline, {
     from: tile.window.start,
@@ -20,7 +24,7 @@ export function figureTrace(tile: GalleryTile): Trace {
     dancers: Object.values(tile.group.members),
     frame: tile.group.frame,
   });
-  CACHE.set(tile.key, trace);
+  CACHE.set(tile, trace);
   return trace;
 }
 
@@ -31,5 +35,5 @@ export function traceReach(traces: readonly Trace[]): number {
   return reach;
 }
 
-/** The traces already built, by tile key. */
-const CACHE = new Map<string, Trace>();
+/** The traces already built, by tile object. */
+const CACHE = new WeakMap<GalleryTile, Trace>();

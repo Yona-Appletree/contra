@@ -39,6 +39,7 @@ import {
   programBeatOf,
   shownMusicBeat,
 } from "../program.js";
+import { chainOverridesFromQuery } from "../state/chainQuery.js";
 import { readLines, readSeed, setHallUrl } from "../state/hallUrl.js";
 
 /** The zooms the bar offers (director ruling DD20). */
@@ -157,6 +158,12 @@ export function HallPage({
   // the date, so a seeded URL reproduces one evening exactly (T1).
   const seed = readSeed(params);
 
+  // `?chain=1|2|3|4` swaps `robins-chain`'s courtesy turn to one of PR #35's
+  // four candidates, exactly as it does on the Moves tab (`moves.tsx`):
+  // whichever dance calls the chain dances the chosen candidate instead of
+  // the shipped default. Absent or unrecognised, nothing changes.
+  const chain = params.get("chain");
+
   const [danceSlug, setDanceSlug] = useState<string | undefined>(routeDance);
   // "Shuffle" is the default (T1): the programme's own seeded shuffle picks
   // the medley for whichever dance is playing. `?tune=<slug>` still pins
@@ -177,8 +184,8 @@ export function HallPage({
     [lines],
   );
   const program = useMemo<DemoProgram>(
-    () => createDemoProgram(world, danceSlug, seed),
-    [world, danceSlug, seed],
+    () => createDemoProgram(world, danceSlug, seed, chainOverridesFromQuery(chain)),
+    [world, danceSlug, seed, chain],
   );
   const people = useMemo<Map<DancerId, Person>>(() => createHallPeople(program.hall), [program]);
   // The programme's own shuffle, read as a `Medley`: `program.tunes` is one

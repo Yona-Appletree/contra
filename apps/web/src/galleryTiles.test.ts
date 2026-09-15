@@ -1,3 +1,4 @@
+import { dist } from "@caller/core";
 import { poseAt } from "@caller/choreo";
 import { DEMO_DANCES, createContraRegistry } from "@caller/contra";
 import { describe, expect, test } from "vitest";
@@ -156,6 +157,40 @@ describe("what a row reads off a tile (U2)", () => {
     }
   });
 });
+
+describe("`?chain=`'s registry override (F9)", () => {
+  const overrides = { "robins-chain": { stepInPx: 8 } };
+
+  test("changes nothing when no figure is named", () => {
+    expect(figureTiles({}).map((t) => t.key)).toEqual(figureTiles().map((t) => t.key));
+  });
+
+  test("reaches the figure's own tile", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const overridden = tileByKey(figureTiles(overrides), "robins-chain")!;
+    expect(moved(plain, overridden)).toBe(true);
+  });
+
+  test("reaches every seam the figure is under, and leaves the others alone", () => {
+    const plainSeams = seamTiles();
+    const overriddenSeams = seamTiles(overrides);
+    for (const plain of plainSeams) {
+      const overridden = tileByKey(overriddenSeams, plain.key)!;
+      const involvesChain = plain.calls.some((c) => c.figure === "robins-chain");
+      expect(moved(plain, overridden), plain.key).toBe(involvesChain);
+    }
+  });
+});
+
+/** Whether any dancer of `a` samples to a different point than in `b`, at any beat of `a`'s window. */
+function moved(a: GalleryTile, b: GalleryTile): boolean {
+  for (const dancer of a.timeline.dancers()) {
+    for (const t of window(a)) {
+      if (dist(poseAt(a.timeline, dancer, t).p, poseAt(b.timeline, dancer, t).p) > 1e-9) return true;
+    }
+  }
+  return false;
+}
 
 /** Every beat of a tile's looping window, the last one included. */
 function* window(tile: GalleryTile): Generator<number> {
