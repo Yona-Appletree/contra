@@ -224,8 +224,19 @@ mints a group per instance, derives `from` from where the cast actually stand an
 `carried` from the holds the set is already carrying, and moves the model on by
 each instance's honest ends.
 
-The app still runs the decider's own `defaultCyclePlanner`; M3 is what flips it.
-`planCycle.golden.test.ts` is the proof that the two agree.
+Since M3 the app runs this planner: `?engine=new` is the Stage's default and
+`?engine=old` is the decider's own `defaultCyclePlanner`, kept reachable until
+M11. `planCycle.golden.test.ts` is the proof that the two agree — on
+`legacyCyclePlanner`, the all-bridged planner, which is what AC1 is about.
+
+**Where a time through starts** is `ContraCyclePlannerOptions.start`. `"standing"`
+— the default, and M3's deliberate switch — picks every dancer up where the last
+figure really left them, so a figure's honest end survives the cycle boundary
+instead of everyone snapping back on to their station between one time through
+and the next. `"first-places"` restarts from `Dance.startPlaces` or the
+formation's stations, which is what `chainCalls` does and therefore what a
+planner being compared against `chainCalls` has to do; `legacyCyclePlanner`
+keeps it.
 
 ### The library — `src/library/`
 

@@ -21,6 +21,7 @@ import type { Spot } from "../figures/ContraFigure.js";
 import { midpoint } from "../figures/ContraFigure.js";
 import type { FigureDefinition, FigureRole } from "../library/FigureDefinition.js";
 import type { Library } from "../library/Library.js";
+import { paramDefaults } from "../library/interpret.js";
 import { homeOf, type SetModel } from "./SetModel.js";
 import { isRelationWord, parseRelation, relate } from "./relations.js";
 import { setRulesOf } from "./SetRules.js";
@@ -132,7 +133,22 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
   }
 
   const selector: GroupSelector = call.group ?? HANDS_FOUR_GROUP;
-  const params = { ...(call.params as Record<string, unknown> | undefined) };
+  // **The definition's own declared defaults, under whatever the call wrote.**
+  //
+  // Resolution reads parameters before anything applies a figure's defaults —
+  // `pairs` decides who dances at all, so it has to be read here rather than in
+  // `withDefaults` further down — and a call is entitled to leave out a
+  // parameter that has a default: `checkCall` asks that a dance name only
+  // parameters the figure declares, never that it name all of them. Without
+  // this, "balance" with no `pairs` at all threw
+  // `"pairs" must be a relation word …, not undefined` on the new path while
+  // the old one danced it with the figure's own `"neighbors"`. Tuning numbers
+  // only: `paramDefaults` is the `canonical` block, which never holds `from`,
+  // `carried`, `places` or `nearby` — the four resolution supplies itself.
+  const params = {
+    ...paramDefaults(def),
+    ...(call.params as Record<string, unknown> | undefined),
+  };
   const out: FigureInstance[] = [];
   for (const plan of ctx.groups) {
     // A group this call's partition left standing out dances nothing here: its

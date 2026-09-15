@@ -70,24 +70,39 @@ describe("the demo dance registry", () => {
   }
 });
 
+/**
+ * `oraclesFor` dances each case out and samples it at every 1/8 beat, the
+ * same shape of work as the AC1 golden (`planCycle.golden.test.ts`), whose
+ * slowest cases run 14-21x slower on CI's `ubuntu-latest` than on a fast
+ * local machine. This block's own slowest local case (`butter` at 12
+ * couples) sits close enough behind the golden's that the same CI slowdown
+ * would put it near vitest's 5000 ms default too, so it gets the same
+ * explicit room ahead of time rather than waiting for it to flake.
+ */
+const CASE_TIMEOUT_MS = 60_000;
+
 describe("AC1, AC5 and AC6 over every encoded dance", () => {
   for (const dance of DEMO_DANCES) {
     for (const couples of linesFor(dance)) {
-      it(`${dance.slug} with ${couples} couples`, () => {
-        const o = oraclesFor(dance, couples);
-        const where = JSON.stringify(o.worst);
-        // AC5: closure, at every figure seam of eight times through.
-        expect(o.seams).toBeGreaterThan(0);
-        expect(o.closurePx, `closure: ${where}`).toBeLessThan(CLOSURE_PX);
-        // AC1: every hand the figures place is one a 15 px arm reaches.
-        expect(o.hands).toBeGreaterThan(0);
-        expect(o.maxShort, `reach: ${where}`).toBe(0);
-        // AC6: no two torso centres within 8 px, with no pair exempt.
-        expect(o.pairs).toBeGreaterThan(0);
-        expect(o.minDistancePx, `collision: ${where}`).toBeGreaterThan(COLLISION_PX);
-        // And the timeline covers every dancer with no gap and no overlap.
-        expect(o.coverage).toEqual([]);
-      });
+      it(
+        `${dance.slug} with ${couples} couples`,
+        () => {
+          const o = oraclesFor(dance, couples);
+          const where = JSON.stringify(o.worst);
+          // AC5: closure, at every figure seam of eight times through.
+          expect(o.seams).toBeGreaterThan(0);
+          expect(o.closurePx, `closure: ${where}`).toBeLessThan(CLOSURE_PX);
+          // AC1: every hand the figures place is one a 15 px arm reaches.
+          expect(o.hands).toBeGreaterThan(0);
+          expect(o.maxShort, `reach: ${where}`).toBe(0);
+          // AC6: no two torso centres within 8 px, with no pair exempt.
+          expect(o.pairs).toBeGreaterThan(0);
+          expect(o.minDistancePx, `collision: ${where}`).toBeGreaterThan(COLLISION_PX);
+          // And the timeline covers every dancer with no gap and no overlap.
+          expect(o.coverage).toEqual([]);
+        },
+        CASE_TIMEOUT_MS,
+      );
     }
   }
 });

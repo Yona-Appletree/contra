@@ -1,9 +1,13 @@
-import { DEMO_DANCES, danceBySlug } from "@caller/contra";
+import type { Dance } from "@caller/choreo";
+import type { ResolutionRow } from "@caller/contra";
+import { DEMO_DANCES, danceBySlug, danceResolution, labCouples } from "@caller/contra";
 import { Card } from "@caller/music";
 import type { JSX } from "react";
+import { useMemo } from "react";
 import { cardDance } from "../danceCard.js";
 import { danceWalkthrough } from "../danceWalkthrough.js";
 import { formationSummary } from "../formationSummary.js";
+import { isLabDance } from "../program.js";
 import { DanceTraces } from "../traces/DanceTraces.js";
 
 /**
@@ -108,7 +112,21 @@ export function DancePage({
 
       <div className="dance-page">
         <header className="dance-page-head flex flex-col gap-0.5">
-          <h1>{dance.title}</h1>
+          <h1>
+            {dance.title}
+            {/*
+             * A lab dance (`DanceFile.status: "lab"`, M1) loads, dances and has
+             * this page, and is deliberately not in the programme — so it has
+             * no card on the Dances tab and the evening never shows a dance
+             * that does not dance. Saying so here is how somebody who followed
+             * a link finds out which kind of dance they are looking at.
+             */}
+            {isLabDance(dance.slug) ? (
+              <span className="dance-page-lab" data-testid="dance-page-lab">
+                lab
+              </span>
+            ) : null}
+          </h1>
           {dance.author === undefined ? null : <p>{dance.author}</p>}
           <p>{formationSummary(dance)}</p>
           {dance.notes === undefined ? null : <p>{dance.notes}</p>}
@@ -155,6 +173,8 @@ export function DancePage({
             </ol>
           </section>
         )}
+
+        <Resolution dance={dance} />
       </div>
 
       <a href={playHref} data-testid="dance-page-play-bottom" className="text-sm">
@@ -163,3 +183,83 @@ export function DancePage({
     </main>
   );
 }
+
+/**
+ * **How this dance resolves**: what each call becomes on the new engine.
+ *
+ * One row per figure instance the contra planner produces for one time through
+ * of one set — the figure, the group instance, which dancer plays which
+ * figure-role, the definition's anchor and ends rules, the hands carried in
+ * and out across each boundary, and anybody the call left standing.
+ *
+ * Read off `danceResolution`, which runs the planner for real and reads the
+ * timeline it produced, so this is what actually happened rather than what a
+ * parallel code path thinks would. It is the same table `pnpm dance <slug>`
+ * prints, which is the point: the translator's loop and the page agree because
+ * they are one function.
+ *
+ * A dance that does not resolve says so rather than showing nothing: that is
+ * the state a half-encoded lab dance is in, and this page is where somebody
+ * would be looking at it.
+ */
+function Resolution({ dance }: { dance: Dance }): JSX.Element {
+  const couples = labCouples(dance);
+  const resolved = useMemo<{ rows: ResolutionRow[]; error?: string }>(() => {
+    try {
+      return { rows: danceResolution(dance, couples) };
+    } catch (error) {
+      return { rows: [], error: String(error) };
+    }
+  }, [dance, couples]);
+
+  return (
+    <section className="flex flex-col gap-1" data-testid="dance-page-resolution-section">
+      <h2 className="text-sm font-semibold">How it resolves</h2>
+      <p className="text-xs text-muted-foreground">
+        Every figure instance the planner makes of this dance, one time through, at{" "}
+        {String(couples)} couples &mdash; the same table <code>pnpm dance {dance.slug}</code>{" "}
+        prints.
+      </p>
+      {resolved.error === undefined ? null : (
+        <p className="text-xs" data-testid="dance-page-resolution-error">
+          This dance does not resolve: <code>{resolved.error}</code>
+        </p>
+      )}
+      <ol className="dance-page-resolution" data-testid="dance-page-resolution">
+        {resolved.rows.map((row, i) => (
+          <li key={i} className="dance-page-resolution-row" data-figure={row.figure}>
+            <p className="dance-page-resolution-head">
+              <span className="dance-page-resolution-beat">
+                {row.phrase} &middot; beat {String(row.start)}+{String(row.beats)}
+              </span>{" "}
+              <code>{row.figure}</code> in <code>{row.group}</code>
+            </p>
+            <p className="dance-page-resolution-detail">
+              cast{" "}
+              {Object.entries(row.cast)
+                .map(([role, dancer]) => `${role}=${shortDancer(dancer)}`)
+                .join(" ")}{" "}
+              &middot; anchor <code>{row.anchor}</code> &middot; ends <code>{row.ends}</code>
+            </p>
+            {row.carriedIn.length === 0 ? null : (
+              <p className="dance-page-resolution-detail">carried in: {row.carriedIn.join(", ")}</p>
+            )}
+            {row.carriedOut.length === 0 ? null : (
+              <p className="dance-page-resolution-detail">
+                carried out: {row.carriedOut.join(", ")}
+              </p>
+            )}
+            {row.holdPlace.length === 0 ? null : (
+              <p className="dance-page-resolution-detail">
+                hold place: {row.holdPlace.map(shortDancer).join(", ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** `set0/c1/lark` as `c1/lark`: the set is the same one for every row here. */
+const shortDancer = (dancer: string): string => dancer.replace(/^[^/]+\//, "");

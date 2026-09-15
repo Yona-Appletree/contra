@@ -67,17 +67,33 @@ import { modelFromSet } from "./SetModel.js";
  * `timeline.dancers()`' insertion order falls out of that order, and the oracle
  * reports AC1 compares are sensitive to it.
  *
- * ## Where the model's spots come from, and why not `standingAt`
+ * ## Where the model's spots come from at the top of a time through
  *
- * At the top of a time through every dancer is put on **the dance's own first
- * places** — `Dance.startPlaces`, or the formation's stations — and not on the
- * decider's `standingAt`. That is what `chainCalls` does (it restarts from
- * `danceStart(spec)` for every cycle), and the two differ by the dance's own
- * closure error, which is allowed to be 0.01 px and would swamp AC1's 1e-9.
- * `standingAt` is still read, for exactly what the decider reads it for: the
- * `origins` of the dancers a `who` left standing. M3 is where a planner may
- * start from where people really are.
+ * Two answers, and which one is right depends on what is being asked.
+ *
+ * **`"standing"`** — the decider's own `standingAt`, where the last figure
+ * really left each dancer — is what the new path does since M3, and it is the
+ * whole point of a hub that holds set state. A swing's honest end (M2) is a
+ * place a few pixels off the formation's own, and with the cycle restarting
+ * from the dance's first places that honest end was thrown away at the
+ * boundary: every dancer snapped back on to their station between one time
+ * through and the next. Now a time through picks people up where the one
+ * before it put them down, and the seam across the boundary is dance rather
+ * than a jump.
+ *
+ * **`"first-places"`** — `Dance.startPlaces`, or the formation's stations — is
+ * what `chainCalls` does (it restarts from `danceStart(spec)` for every cycle),
+ * and it is therefore what AC1 has to compare against: the two differ by the
+ * dance's own closure error, which is allowed to be 0.01 px and would swamp
+ * AC1's 1e-9. {@link legacyCyclePlanner}, the all-bridged planner every test of
+ * the hub itself names, keeps it.
+ *
+ * Either way `standingAt` is also read for what the decider reads it for: the
+ * `origins` of the dancers a `who` left standing.
  */
+
+/** Where the model's spots come from at the top of a time through. */
+export type CycleStart = "standing" | "first-places";
 
 /** How the contra planner is built. */
 export interface ContraCyclePlannerOptions {
@@ -90,6 +106,13 @@ export interface ContraCyclePlannerOptions {
    * proved pose-identical, which is what `planCycle.golden.test.ts` does.
    */
   library?: Library;
+  /**
+   * Where each dancer stands when a time through begins; see the module note.
+   *
+   * Left out, `"standing"` — where the last figure really left them, which is
+   * M3's deliberate switch and the reason a honest end survives the boundary.
+   */
+  start?: CycleStart;
 }
 
 /** A contra {@link CyclePlanner} over `options`. */
@@ -116,9 +139,15 @@ export const contraCyclePlanner: CyclePlanner = createContraCyclePlanner();
  * against set state reproduces `chainCalls` when the figures are the same
  * figures. Every test of the hub itself names this one, and it keeps meaning
  * exactly what it meant in M1 for as long as any coded figure is left.
+ *
+ * Which is also why it keeps `start: "first-places"`: `chainCalls` restarts
+ * every time through from the dance's own first places, so a planner being
+ * compared against `chainCalls` has to as well. M3's switch to `"standing"` is
+ * a change in what is danced, not in how it is computed, and belongs on the
+ * path that is allowed to dance differently.
  */
 export const legacyCyclePlanner: CyclePlanner = (input) =>
-  planContraCycle(input, { library: legacyLibrary(input.registry) });
+  planContraCycle(input, { library: legacyLibrary(input.registry), start: "first-places" });
 
 /** A half-open run of beats, measured from the start of a time through. */
 type Span = readonly [Beat, Beat];
@@ -182,14 +211,33 @@ function planContraCycle(
   const cycle = danceBeats(dance);
   const schedule = danceSchedule(dance);
 
-  /** One model per set, every dancer on the dance's own first place. */
+  /** One model per set, every dancer where this time through picks them up. */
   const models = new Map<SetId, SetModel>();
   /** The frame-local number each dancer's spot was last computed as; see {@link LocalSpot}. */
   const local = new Map<DancerId, LocalSpot>();
+  const from = options.start ?? "standing";
   for (const set of hall.sets) {
     const first = firstPlaces(formation, dance, set);
-    for (const [dancer, place] of first.local) local.set(dancer, place);
-    models.set(set.id, modelFromSet(formation, set, first.world));
+    // `"standing"` takes each dancer's real place where the decider has one and
+    // the dance's own first place where it does not — the very first time
+    // through of the evening, before anything has been emitted, and any dancer
+    // the decider has never given a figure to. The frame-local memo is seeded
+    // only for the ones that came from `firstPlaces`: it exists to hand back
+    // the exact number a place was computed as, and a world spot the decider
+    // measured was not computed in this frame.
+    const world = new Map<DancerId, EndPose>();
+    for (const [dancer, place] of first.world) {
+      const standing = from === "standing" ? standingAt.get(dancer) : undefined;
+      if (standing === undefined) {
+        world.set(dancer, place);
+        const memo = first.local.get(dancer);
+        if (memo) local.set(dancer, memo);
+      } else {
+        world.set(dancer, standing);
+        local.delete(dancer);
+      }
+    }
+    models.set(set.id, modelFromSet(formation, set, world));
   }
 
   /** Which beats of this cycle each dancer has already been given a figure for. */

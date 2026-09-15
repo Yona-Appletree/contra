@@ -19,6 +19,8 @@ import {
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
 import { chainOverridesFromQuery } from "../state/chainQuery.js";
+import type { EngineChoice } from "../state/engineQuery.js";
+import { engineFromQuery } from "../state/engineQuery.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
 import type { RowTraceView } from "../traces/traceDrawings.js";
 import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
@@ -93,7 +95,8 @@ export function MovesPage({
   path: string;
   params: URLSearchParams;
 }): JSX.Element {
-  const tiles = useTiles(params.get("chain"));
+  const engine = engineFromQuery(params.get("engine"));
+  const tiles = useTiles(params.get("chain"), engine);
   const solo = soloKey(path);
   const shown = useMemo(
     () => (solo === null ? tiles : tiles.filter((t) => t.key === solo)),
@@ -224,7 +227,14 @@ export function MovesPage({
           beats the tile loops.
           {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
           <span className="moves-over px-1">this colour</span> is over the bound{" "}
-          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.
+          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.{" "}
+          Every tile here is one two-couple set run through the{" "}
+          <b>{engine === "new" ? "new" : "old"}</b> engine
+          {engine === "new" ? "" : " (?engine=old)"}; the{" "}
+          <a href="#/lab" data-testid="moves-lab-link">
+            seam lab
+          </a>{" "}
+          dances two of these seams through both at once.
         </p>
       </header>
 
@@ -535,7 +545,7 @@ function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.E
 }
 
 /** The oracle's line for one row: six numbers, the ones over a bound marked. */
-function Metrics({
+export function Metrics({
   tile,
   metrics,
 }: {
@@ -596,8 +606,8 @@ function useMetrics(
   return measured;
 }
 
-/** The looping canvas of one tile. */
-function TileCanvas({
+/** The looping canvas of one tile. Exported for the seam lab, which loops two. */
+export function TileCanvas({
   tile,
   beat,
   zoom,
@@ -700,7 +710,8 @@ export function stripCells(tile: GalleryTile, step: number): Array<{ at: Beat; l
   return cells;
 }
 
-function StripCell({
+/** One frame of a strip: the tile at `cell.at`, with its beat drawn under it. */
+export function StripCell({
   tile,
   cell,
   zoom,
@@ -726,8 +737,18 @@ function StripCell({
   return <canvas ref={canvasRef} className="block flex-none" />;
 }
 
-/** The people of a gallery group: one per station, seeded off the dancer id. */
-function peopleOf(group: Group): Map<DancerId, Person> {
+/**
+ * The people of a gallery group: one per station, seeded off the **station**.
+ *
+ * Not off the dancer id, which is what the hall does. A tile is a picture of a
+ * figure rather than of an evening: the same move in the same station should
+ * look the same whoever the set that produced the timeline happens to have put
+ * there, and since M3 that is a real hall dancer (`set0/c0/lark`) rather than a
+ * name this page made up. Seeding off the station keeps every tile's four
+ * dancers exactly the four they have always been, so a strip that changed
+ * changed because the *dancing* changed.
+ */
+export function peopleOf(group: Group): Map<DancerId, Person> {
   const people = new Map<DancerId, Person>();
   for (const station of group.stations) {
     const id = group.members[station.id];
@@ -737,7 +758,7 @@ function peopleOf(group: Group): Map<DancerId, Person> {
       createPerson({
         id,
         role: station.role,
-        seed: seedOf(id),
+        seed: seedOf(`gallery/${station.id}`),
         // The ones travel down and get the darker trail, as in the hall.
         ones: station.id.startsWith("1"),
         roleShirts: true,
@@ -780,8 +801,8 @@ export const soloHref = (tile: GalleryTile): string =>
  * turn candidates to dance instead of the shipped default, across
  * every tile — the figure's own row and every seam it appears in.
  */
-function useTiles(chain: string | null): GalleryTile[] {
-  return useMemo(() => galleryTiles(chainOverridesFromQuery(chain)), [chain]);
+function useTiles(chain: string | null, engine: EngineChoice): GalleryTile[] {
+  return useMemo(() => galleryTiles(chainOverridesFromQuery(chain), engine), [chain, engine]);
 }
 
 /**

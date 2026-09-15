@@ -1,5 +1,7 @@
+import type { Dance } from "@caller/choreo";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { isLabDance } from "../program.js";
 import { DancePage, DancesPage } from "./dances.js";
 
 /**
@@ -66,6 +68,42 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
     expect(html).toContain('data-testid="dance-page-walkthrough"');
     // Airpants' first figure, the user's own worked example's dance.
     expect(html).toContain("NEIGHBOR BALANCE AND SWING");
+  });
+
+  it("lists every call's resolution: the figure, the cast, the anchor and the ends (M3)", () => {
+    const html = renderToStaticMarkup(<DancePage slug="airpants" params={new URLSearchParams()} />);
+    expect(html).toContain('data-testid="dance-page-resolution"');
+    expect(html).not.toContain('data-testid="dance-page-resolution-error"');
+    // Airpants' six calls, each resolved into one instance per pair or one per
+    // minor set: a row per instance, never fewer than one per call.
+    const rows = [...html.matchAll(/data-figure="([a-z-]+)"/g)].map((m) => m[1]);
+    expect(new Set(rows)).toEqual(
+      new Set(["balance-and-swing", "long-lines", "allemande", "circle", "do-si-do"]),
+    );
+    // The two rules a reviewer is here to read, from the definitions
+    // themselves rather than from anything this page decided.
+    expect(html).toContain("&quot;meet&quot;");
+    expect(html).toContain("&quot;home&quot;");
+    // The cast is figure-roles to dancers, named by dancer, with the set
+    // prefix trimmed because every row here is the same set.
+    expect(html).toMatch(/lark=c\d\/lark/);
+    expect(html).not.toContain("set0/c0/lark");
+  });
+
+  it("marks a lab dance as one, and a shipped dance not", () => {
+    const shipped = renderToStaticMarkup(
+      <DancePage slug="airpants" params={new URLSearchParams()} />,
+    );
+    expect(shipped).not.toContain('data-testid="dance-page-lab"');
+    // No lab dance exists yet (`LAB_DANCES` is empty), so what is checked here
+    // is the rule `isLabDance` applies, with fixtures, rather than a dance
+    // added to the repository to make a test pass.
+    expect(isLabDance("airpants")).toBe(false);
+    expect(isLabDance("nobody-has-encoded-this")).toBe(false);
+    const lab = { slug: "lab-one" } as Dance;
+    const shippedOne = { slug: "shipped-one" } as Dance;
+    expect(isLabDance("lab-one", [shippedOne], [shippedOne, lab])).toBe(true);
+    expect(isLabDance("shipped-one", [shippedOne], [shippedOne, lab])).toBe(false);
   });
 
   it("says so, plainly, for a dance slug nobody encoded", () => {

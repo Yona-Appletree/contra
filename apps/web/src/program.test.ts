@@ -1,10 +1,15 @@
+import type { Dance } from "@caller/choreo";
+import { poseAt } from "@caller/choreo";
 import { DEMO_DANCES } from "@caller/contra";
 import { layoutHall } from "@caller/hall";
 import { medleys } from "@caller/music";
 import { describe, expect, it } from "vitest";
 import {
+  CYCLE_BEATS,
   LINEUP_BEATS,
   createDemoProgram,
+  danceOrder,
+  isLabDance,
   lineUpStartBeat,
   positionAt,
   shuffleMedleyAssignment,
@@ -224,5 +229,63 @@ describe("lineUpStartBeat: a freshly chosen dance starts at its own line-up", ()
       expect(positionAt(program, at).next.slug, dance.slug).toBe(dance.slug);
       expect(positionAt(program, at + LINEUP_BEATS).dance.slug, dance.slug).toBe(dance.slug);
     }
+  });
+});
+
+describe("danceOrder and the two engines (M3)", () => {
+  const world = layoutHall({ lines: 2, couplesPerLine: [8, 7] });
+
+  it("rotates the programme to the dance that was chosen", () => {
+    expect(danceOrder(DEMO_DANCES[3]!.slug)[0]!.slug).toBe(DEMO_DANCES[3]!.slug);
+    expect(danceOrder(DEMO_DANCES[3]!.slug)).toHaveLength(DEMO_DANCES.length);
+    expect(danceOrder()).toEqual([...DEMO_DANCES]);
+    expect(danceOrder("no-such-dance")).toEqual([...DEMO_DANCES]);
+  });
+
+  /*
+   * No lab dance exists yet (`LAB_DANCES` is empty), and adding one to make a
+   * test pass would put a half-encoded dance in the repository. So the rule is
+   * tested against fixtures: a dance the programme does not hold but the
+   * package does leads the evening, one item longer than the programme.
+   */
+  it("puts a lab dance in front of the programme rather than rotating within it", () => {
+    const lab = { slug: "lab-one" } as Dance;
+    const all = [...DEMO_DANCES, lab];
+    const order = danceOrder("lab-one", DEMO_DANCES, all);
+    expect(order[0]).toBe(lab);
+    expect(order).toHaveLength(DEMO_DANCES.length + 1);
+    expect(order.slice(1)).toEqual([...DEMO_DANCES]);
+    expect(isLabDance("lab-one", DEMO_DANCES, all)).toBe(true);
+  });
+
+  it("builds a programme that dances on either engine", () => {
+    for (const engine of ["new", "old"] as const) {
+      const program = createDemoProgram(world, "butter", 7, {}, engine);
+      expect(program.dances[0]!.slug, engine).toBe("butter");
+      expect(program.decider.covered(), engine).toBeGreaterThanOrEqual(CYCLE_BEATS);
+    }
+  });
+
+  /*
+   * The point of `?engine=`: the two paths are different dancing, not two
+   * spellings of one. Jubilation's hey into the swing is the one seam in the
+   * demo corpus where they differ — every other dance is identical to 1e-14 px
+   * — so it is the case that would catch the toggle silently doing nothing.
+   */
+  it("really dances Jubilation's hey into the swing differently on the new engine", () => {
+    const [neu, old] = (["new", "old"] as const).map((engine) =>
+      createDemoProgram(world, "jubilation", 7, {}, engine),
+    );
+    let worst = 0;
+    for (let beat = 0; beat <= CYCLE_BEATS; beat += 0.25) {
+      for (const who of neu!.timeline.dancers()) {
+        const a = poseAt(neu!.timeline, who, beat);
+        const b = poseAt(old!.timeline, who, beat);
+        worst = Math.max(worst, Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1]));
+      }
+    }
+    // Measured, not asserted at a round number: the swing's honest end is
+    // 12.2 px from the station the coded swing walks back to.
+    expect(worst).toBeGreaterThan(10);
   });
 });

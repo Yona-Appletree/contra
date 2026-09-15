@@ -55,32 +55,46 @@ const TOLERANCE = 1e-9;
 /** Two times through, which is what every other dance check uses. */
 const UNTIL: Beat = 128;
 
+/**
+ * CI (`ubuntu-latest`) runs this file's slowest cases (`airpants` at 4–6
+ * couples) well past vitest's 5000 ms default — 5.4–5.8 s observed, and
+ * climbing with each figure migrated onto the hub (see `plan.md`). The work
+ * itself — two timelines danced out to two times through, sampled at every
+ * 1/8 beat, compared dancer by dancer — is the thing AC1 asks for and stays
+ * fixed; this just gives it the wall-clock room CI needs to finish it.
+ */
+const CASE_TIMEOUT_MS = 60_000;
+
 describe("AC1: the demo dances through the contra planner are pose-identical", () => {
   for (const dance of DEMO_DANCES) {
     for (const couples of linesFor(dance)) {
-      it(`${dance.slug} at ${String(couples)} couples`, () => {
-        const old = danceAlone(dance, couples, UNTIL).timeline();
-        const now = danceAlone(dance, couples, UNTIL, {}, { cycle: BRIDGED }).timeline();
+      it(
+        `${dance.slug} at ${String(couples)} couples`,
+        () => {
+          const old = danceAlone(dance, couples, UNTIL).timeline();
+          const now = danceAlone(dance, couples, UNTIL, {}, { cycle: BRIDGED }).timeline();
 
-        // The same dancers, found in the same order: `timeline.dancers()` is
-        // insertion-ordered, and the oracle reports below break their ties by
-        // it, so this is part of the claim and not a detail.
-        expect(now.dancers()).toEqual(old.dancers());
+          // The same dancers, found in the same order: `timeline.dancers()` is
+          // insertion-ordered, and the oracle reports below break their ties by
+          // it, so this is part of the claim and not a detail.
+          expect(now.dancers()).toEqual(old.dancers());
 
-        const worst = comparePoses(old, now, UNTIL);
-        expect(worst.hands).toEqual([]);
-        expect(worst.positionPx).toBeLessThan(TOLERANCE);
-        expect(worst.facingDeg).toBeLessThan(TOLERANCE);
-        expect(worst.scalar).toBeLessThan(TOLERANCE);
-        expect(worst.handPx).toBeLessThan(TOLERANCE);
+          const worst = comparePoses(old, now, UNTIL);
+          expect(worst.hands).toEqual([]);
+          expect(worst.positionPx).toBeLessThan(TOLERANCE);
+          expect(worst.facingDeg).toBeLessThan(TOLERANCE);
+          expect(worst.scalar).toBeLessThan(TOLERANCE);
+          expect(worst.handPx).toBeLessThan(TOLERANCE);
 
-        expect(coverageProblems(now, 0, UNTIL)).toEqual([]);
-        expect(coverageProblems(old, 0, UNTIL)).toEqual([]);
+          expect(coverageProblems(now, 0, UNTIL)).toEqual([]);
+          expect(coverageProblems(old, 0, UNTIL)).toEqual([]);
 
-        expectClose(closureReport(now), closureReport(old));
-        expectClose(reachReport(now, 0, UNTIL), reachReport(old, 0, UNTIL));
-        expectClose(collisionReport(now, 0, UNTIL), collisionReport(old, 0, UNTIL));
-      });
+          expectClose(closureReport(now), closureReport(old));
+          expectClose(reachReport(now, 0, UNTIL), reachReport(old, 0, UNTIL));
+          expectClose(collisionReport(now, 0, UNTIL), collisionReport(old, 0, UNTIL));
+        },
+        CASE_TIMEOUT_MS,
+      );
     }
   }
 });
