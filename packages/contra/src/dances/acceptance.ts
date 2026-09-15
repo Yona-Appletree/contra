@@ -101,12 +101,20 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
       "B1: (16) Ones turn contra corners",
       "B2: (4) Ones balance / (12) Ones swing; face up",
     ].join("\n"),
+    // M1 wrote `down-the-outside`, `lead-along` and `contra-corners` here from
+    // the transcript's own words. M7's brief names the definitions it wanted —
+    // `go-down-outside`/`go-up-outside`, `lead-down`/`lead-up`,
+    // `turn-contra-corners` — and those are the ids that landed, because down
+    // the outside and up the outside really are two calls with two counts, as
+    // the transcript itself writes them.
     figures: [
-      "down-the-outside",
-      "lead-along",
+      "go-down-outside",
+      "go-up-outside",
+      "lead-down",
       "turn-alone",
+      "lead-up",
       "cast-off",
-      "contra-corners",
+      "turn-contra-corners",
       "balance",
       "swing",
     ],
@@ -130,6 +138,7 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
       "swing",
       "down-the-hall",
       "turn-as-couples",
+      "up-the-hall",
       "bend-the-line",
       "circle",
       "robins-chain",
@@ -281,7 +290,7 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
       "interrupted-square-through",
       "balance",
       "square-through",
-      "contra-corners",
+      "turn-contra-corners",
       "swing",
       "balance-ring",
       "single-file-promenade",
@@ -346,31 +355,28 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
  * Every figure the twelve name that the library has not got yet, and the
  * milestone that owns it.
  *
- * Read off `plan.md`'s milestone table, not guessed: M5's three landed with
- * the hey, M6 the slot figures, M7 the shapes with named places, M8 the record's growth,
- * M9 the two Banner dances.
+ * Read off `plan.md`'s milestone table, not guessed. M5's three landed with the
+ * hey, M6's and M7's with the shapes and their named places; what is left is
+ * M8's record growth and M9's two Banner dances.
  */
 export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
-  // M6 — slots and offsets authoritative. `pull-by` and `grand-right-and-left`
-  // landed; the three shapes below did not — see M6's report for what stopped
-  // each of them and what the next milestone needs.
-  "balance-wave": "M6",
-  circulate: "M6",
-  loop: "M6",
-  // M7 — shapes with named places
-  "down-the-hall": "M7",
-  "down-the-outside": "M7",
-  "lead-along": "M7",
-  "turn-alone": "M7",
-  "cast-off": "M7",
-  "turn-as-couples": "M7",
-  "bend-the-line": "M7",
-  "contra-corners": "M7",
-  diamond: "M7",
+  // M5 emptied its own row with the hey, and M7 emptied its own and M6's with
+  // it: `balance-wave`, `circulate` and `loop` are the shapes M6's report handed
+  // over, and the nine M1 left as `unsupported … (M7)` are the definitions in
+  // `library/figures/`.
   // M8 — the dance record grows
   "square-through": "M8",
   promenade: "M8",
-  // M9 — the Banner dances
+  // M9 — the Banner dances.
+  //
+  // **`diamond` moved from M7 to M9**, and only half of it did. The diamond
+  // *shape* landed here — it is a kind of `SetShape`, with its points and its
+  // sides as named places, and `set/shape.test.ts` covers it — but the only
+  // thing in the corpus that makes one is Jeremy Corners' own cast
+  // ("cast clockwise around one; step into center and face partner in distance;
+  // form diamonds"), which is M9's figure in M9's dance. A figure id nobody can
+  // call yet stays on the list, with the milestone that will call it.
+  diamond: "M9",
   "interrupted-square-through": "M9",
   "jersey-twirl": "M9",
 };

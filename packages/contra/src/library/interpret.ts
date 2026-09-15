@@ -8,6 +8,7 @@ import type {
   Spot,
 } from "../figures/ContraFigure.js";
 import { bearing, centreOf, contraFigure, midpoint } from "../figures/ContraFigure.js";
+import type { SlotView, TargetShape } from "../set/shape.js";
 import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
 import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
@@ -68,6 +69,15 @@ export interface InterpretedParams extends ContraParams {
   homes: readonly Vec2[];
   /** Frame-local centres of the sibling instances of this call. */
   nearby: readonly Vec2[];
+  /**
+   * The set's own lattice in this instance's frame, when the call was resolved
+   * against a set (M7).
+   *
+   * The third thing a figure cannot work out for itself and must be handed, and
+   * the one M6 needed and did not have: which slot each of my dancers is
+   * standing on, and where any other slot is. See `set/shape.ts`'s `SlotView`.
+   */
+  slots?: SlotView;
   [key: string]: unknown;
 }
 
@@ -88,6 +98,10 @@ export interface ShapeInput {
   nearby: readonly Vec2[];
   /** Whether the figure gathers on to `homes`. */
   gathers: boolean;
+  /** The shape the figure forms, when its `ends` names one (Q6, M7). */
+  target?: TargetShape;
+  /** The set's own lattice in this frame, when there is a set under the figure. */
+  slots?: SlotView;
   /**
    * The anchor rule, applied to a context.
    *
@@ -173,7 +187,14 @@ export function planDefinition(
 ): FigurePlan {
   const roles = ctx.ids;
   const places = params.homes.length > 0 ? params.homes : undefined;
-  const anchorIn = (inner: PlanContext): ResolvedAnchor => anchorOf(def.anchor, inner, roles);
+  // **The anchor is read over the dancers in scope**, not over the whole cast:
+  // a sequence part planned for two of a hands-four anchors on those two. For
+  // the figure itself `inner` is `ctx` and `inner.ids` is `roles`, so nothing a
+  // figure without parts does changes.
+  const anchorIn = (inner: PlanContext): ResolvedAnchor =>
+    anchorOf(def.anchor, inner, inner.ids, params);
+  const target =
+    typeof def.ends === "object" && "target" in def.ends ? targetOf(def, params) : undefined;
   const input: ShapeInput = {
     ctx,
     params,
@@ -183,11 +204,36 @@ export function planDefinition(
     anchorOf: anchorIn,
     ...(places === undefined ? {} : { places }),
     nearby: params.nearby,
-    gathers: def.ends === "home",
+    // A figure that forms a shape may also settle it on to the formation's own
+    // places, and says so in the target: `"home"` is not the only way to be a
+    // gatherer since M7, but forming a shape does not make you one.
+    gathers: def.ends === "home" || target?.settle === true,
+    ...(target === undefined ? {} : { target }),
+    ...(params.slots === undefined ? {} : { slots: params.slots }),
     joinedIn: carriedJoins(params, "in"),
     joinedOut: carriedJoins(params, "out"),
   };
   return planShape(def.shape, def.holds, input);
+}
+
+/**
+ * The shape a figure forms: the definition's own, with whatever the **call**
+ * said laid over it.
+ *
+ * Q6's constraint is written by the caller as much as by the figure — *"form a
+ * wave of four (men in center)"* is a clause on the call, not on the word
+ * "allemande" — so a call may carry a `form` parameter and it wins field by
+ * field over the definition's. A definition with a target and a call with none
+ * is the ordinary case and costs nothing.
+ */
+function targetOf(def: FigureDefinition, params: InterpretedParams): TargetShape {
+  const own = (def.ends as { target: TargetShape }).target;
+  const said = params["form"];
+  if (said === null || said === undefined) return own;
+  if (typeof said !== "object") {
+    throw new Error(`"form" is the shape a call forms, not ${JSON.stringify(said)}`);
+  }
+  return { ...own, ...(said as Partial<TargetShape>) };
 }
 
 /**
@@ -203,7 +249,44 @@ export function anchorOf(
   rule: AnchorRule,
   ctx: PlanContext,
   roles: readonly FigureRole[],
+  params?: InterpretedParams,
 ): ResolvedAnchor {
+  if (typeof rule === "object" && "pivot" in rule) {
+    // **A named pivot dancer** (M7): the anchor is somebody, standing still.
+    //
+    // A cast off pivots on the inactive and a gate pivots on the dancer who
+    // stays put; what the figure turns about is not the middle of anything but a
+    // person, and the person is one of its own parts. So the anchor is their
+    // spot when the call starts, and the axis runs from them toward whoever is
+    // casting — which is the radius the caster rides round.
+    const pivot = ctx.spot(rule.pivot);
+    const rest = roles.filter((role) => role !== rule.pivot);
+    const toward = rest[0] === undefined ? pivot : ctx.spot(rest[0]);
+    return {
+      centre: pivot.p,
+      axis: rest[0] === undefined ? pivot.facing : bearing(pivot.p, toward.p),
+    };
+  }
+  if (typeof rule === "object" && "other" in rule) {
+    // The centre of everybody **but** the named role: an orbit about the other
+    // pair, which is what "cast around the twos as a couple" and M9's gate are.
+    const rest = roles.filter((role) => role !== rule.other);
+    if (rest.length === 0) throw new Error(`anchor "other" leaves nobody to centre on`);
+    const spots: Spot[] = rest.map((role) => ctx.spot(role));
+    const centre = centreOf(spots);
+    return { centre, axis: bearing(ctx.spot(rule.other).p, centre) };
+  }
+  if (rule === "home") {
+    // The formation's own places for this instance's dancers, which resolution
+    // hands in as `homes`: "the taker's home" in a give and take, and the only
+    // anchor that is a fact about the *set* rather than about the dancers.
+    const homes = params?.homes ?? [];
+    if (homes.length === 0) {
+      throw new Error(`anchor "home" needs the formation's places, and this call has none`);
+    }
+    const centre = centreOf(homes.map((p) => ({ p, facing: 0 })));
+    return { centre, axis: homes.length < 2 ? 0 : bearing(homes[0]!, centre) };
+  }
   if (rule === "meet") {
     if (roles.length !== 2) {
       throw new Error(

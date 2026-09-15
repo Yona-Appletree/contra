@@ -2,12 +2,15 @@ import type { FigurePlan } from "../../figures/ContraFigure.js";
 import type { FigureShape, HoldSpec } from "../FigureDefinition.js";
 import type { ShapeInput } from "../interpret.js";
 import { planCourtesyTurn } from "./courtesyTurn.js";
+import { planLineWalk } from "./lineWalk.js";
 import { planOrbitPair } from "./orbitPair.js";
 import { planPath } from "./path.js";
 import { planRingWalk } from "./ringWalk.js";
 import { planRock } from "./rock.js";
 import { planSchedule } from "./schedule.js";
 import { planSequence } from "./sequence.js";
+import { planUnit } from "./unit.js";
+import { planWave } from "./wave.js";
 import { planWaypoints } from "./waypoints.js";
 
 /**
@@ -17,6 +20,13 @@ import { planWaypoints } from "./waypoints.js";
  * and the balance of the ring, `orbitPair` is the swing and the allemande, and
  * `sequence` is any figure callers name as one and dance as several. No figure
  * has code of its own — a definition is data and names a kind.
+ *
+ * `lineWalk`, `unit` and `wave` are **M7's** three, and they are three rather
+ * than one because a line with an order, two dancers moving as one body, and a
+ * line of joined hands rocking on the set's own lattice are three different
+ * things a shape can be — the first two are the brief's own headline ("a line of
+ * four with an order and a facing"; "a couple, or any two dancers, as one actor
+ * with its own orientation") and the third is what M6 handed over.
  *
  * `ringWalk`, `path` and `courtesyTurn` are **M4's**, `waypoints` is M6's and
  * `schedule` — the hey, as the meetings it is made of — is M5's.
@@ -51,6 +61,12 @@ export function planShape(
       return planSchedule(shape, holds, input);
     case "courtesyTurn":
       return planCourtesyTurn(shape, holds, input);
+    case "lineWalk":
+      return planLineWalk(shape, holds, input);
+    case "unit":
+      return planUnit(shape, holds, input);
+    case "wave":
+      return planWave(shape, holds, input);
     case "legacy":
       throw new Error(
         `a legacy shape is the coded figure "${shape.figure}"; the interpreter does not draw it`,
@@ -66,6 +82,9 @@ export { planRock } from "./rock.js";
 export { passListOf, passesOfSchedule, planSchedule, scheduleOf } from "./schedule.js";
 export type { Lane, PlannedSchedule } from "./schedule.js";
 export { planSequence } from "./sequence.js";
+export { planLineWalk } from "./lineWalk.js";
+export { planUnit } from "./unit.js";
+export { planWave } from "./wave.js";
 export { planWaypoints } from "./waypoints.js";
 export type { PathStep } from "./waypoints.js";
 export type { ActiveHold, ActivePairHold, ActiveRingHold, ActiveSoloHold } from "./holds.js";
@@ -79,3 +98,5 @@ export {
   soloJoinsAt,
 } from "./holds.js";
 export { pairUp } from "./pairing.js";
+export { settleEnds, settleOnPlaces, nearestPlaces, placePairFor } from "./places.js";
+export type { PlacePair } from "./places.js";

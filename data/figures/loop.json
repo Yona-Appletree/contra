@@ -1,0 +1,11 @@
+{
+  "id": "loop",
+  "walkthrough": {
+    "short": "On your own, walk a small circle to the named side and come back to your place.",
+    "long": "Nobody's hand. Walk a small circle round to your {hand}, turning as you go, and come back to the place you started from facing the way you were facing. Somebody else is dancing a figure of their own while you do it, so keep it small and stay out of their way."
+  },
+  "call": {
+    "short": "LOOP",
+    "long": "LOOP TO THE {hand}"
+  }
+}

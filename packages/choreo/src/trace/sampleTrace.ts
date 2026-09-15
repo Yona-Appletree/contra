@@ -119,8 +119,18 @@ export interface TraceOptions {
   step?: Beat;
   /** The axes to report in. Default: the frame of the first figure traced. */
   frame?: Frame;
-  /** Which sub-unit a station belongs to. Default: its leading digits, else 0. */
-  rankOf?: (station: StationId) => number;
+  /**
+   * Which sub-unit a dancer belongs to. Default: the station's leading digits,
+   * else 0.
+   *
+   * The **dancer** is the second argument because a station id is not always
+   * enough to tell: a caller may trace a window whose figures are resolved one
+   * instance per pair, where the station a pen opened on is the figure's own
+   * part (`lark`) rather than a place in the set, and two instances of the same
+   * call use the same part names. Whoever asked for the trace knows who is who;
+   * the sampler does not.
+   */
+  rankOf?: (station: StationId, dancer: DancerId) => number;
   /** What to colour a strip cell by. Default: the figure id itself. */
   familyOf?: (figure: string) => string;
   /** Figure ids that lose a cell. Default {@link TRACE_FILLER_FIGURES}. */
@@ -230,7 +240,7 @@ export function sampleTrace(timeline: Timeline, options: TraceOptions): Trace {
       extentX = Math.max(extentX, Math.abs(p[0]));
       extentY = Math.max(extentY, Math.abs(p[1]));
     }
-    pens.push({ dancer, station, role, rank: rankOf(station), samples });
+    pens.push({ dancer, station, role, rank: rankOf(station, dancer), samples });
   }
 
   return {

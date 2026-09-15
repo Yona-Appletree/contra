@@ -1,0 +1,11 @@
+{
+  "id": "down-the-hall",
+  "walkthrough": {
+    "short": "Take hands in a line of four across the hall and walk down it together.",
+    "long": "Join inside hands with the dancers beside you so the four of you make one line across the hall, in the order the caller reads out, and walk down the hall together. The line forms as you go: nobody waits for it. You end facing down the hall with the hands you started with."
+  },
+  "call": {
+    "short": "DOWN THE HALL",
+    "long": "DOWN THE HALL FOUR IN LINE"
+  }
+}

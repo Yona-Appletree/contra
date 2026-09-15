@@ -62,17 +62,21 @@ const TOLERANCE_DEG = 1e-9;
 /**
  * The figures this harness plans: the ones resolution gives a whole minor set.
  *
- * `anchor: "meet"` is the test for it — an anchor between two dancers is a
- * figure for two, and resolution mints it one instance per pair.
+ * **`actors` is the test for it**, and since M7 it has to be: until then the
+ * anchor was a good enough proxy — a figure anchored between two dancers is a
+ * figure for two — but `actors: "each"` mints one instance **per dancer** while
+ * anchoring on the group's own centroid, so a figure turning alone would have
+ * been planned here over four stations it has one part for. What the harness
+ * really needs is a definition resolution hands the whole minor set to, which is
+ * `"all"` and `"ring"` and nothing else.
  */
-const OVER_THE_SET = DATA_DEFINITIONS.filter(
-  (def) => def.anchor === "hands-four" || def.anchor === "centroid",
-);
+const overTheSet = (def: FigureDefinition): boolean =>
+  def.actors === "all" || def.actors === "ring";
+
+const OVER_THE_SET = DATA_DEFINITIONS.filter(overTheSet);
 
 /** The ones this harness cannot plan; see the header. */
-const RESOLVED_ELSEWHERE = DATA_DEFINITIONS.filter(
-  (def) => def.anchor !== "hands-four" && def.anchor !== "centroid",
-);
+const RESOLVED_ELSEWHERE = DATA_DEFINITIONS.filter((def) => !overTheSet(def));
 
 /**
  * The figures whose **hands** the mirror claim is not made about.
@@ -287,9 +291,19 @@ describe("symmetry as a transform", () => {
   it("names exactly the figures whose handedness is the dance's and not a parameter", () => {
     expect(HANDED.map((def) => def.id).sort()).toEqual([
       "balance-and-swing",
+      // M7's four. A line of four's **order** is read across the hall from one
+      // fixed side, so the mirror of "down the hall in the order M1-W2-M2-W1" is
+      // the same four dancers in the reverse order — a different call, which is
+      // exactly why The Nice Combination writes both of its orders out. Contra
+      // corners' right and left hands are the figure rather than a parameter of
+      // it, in the same way a courtesy turn's are.
+      "bend-the-line",
+      "down-the-hall",
       "right-and-left-through",
       "robins-chain",
       "swing",
+      "turn-contra-corners",
+      "up-the-hall",
     ]);
     for (const def of HANDED) {
       expect(() => mirror(def), def.id).toThrow(/has no mirror image/);
@@ -301,10 +315,23 @@ describe("symmetry as a transform", () => {
       "allemande",
       "balance",
       "balance-and-swing",
+      // M7's, and each for one of the three reasons: a figure for two (a unit,
+      // a lead, a cast), a figure for **one** (`actors: "each"`), or a figure
+      // for a whole line of the lattice.
+      "balance-wave",
+      "cast-off",
+      "circulate",
+      "go-down-outside",
+      "go-up-outside",
       "grand-right-and-left",
+      "lead-down",
+      "lead-up",
+      "loop",
       "pull-by",
       "shoulder-round",
       "swing",
+      "turn-alone",
+      "turn-as-couples",
     ]);
   });
 

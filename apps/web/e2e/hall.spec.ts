@@ -1,3 +1,4 @@
+import { DEMO_DANCES } from "@caller/contra";
 import { expect, test } from "@playwright/test";
 import { matchGolden, openHall } from "./golden.js";
 
@@ -92,8 +93,8 @@ test("choosing a dance is a native select", async ({ page }) => {
   // U4 requirement 1: "should probably just be native" — no Radix popover.
   const select = page.getByTestId("hall-dance-select");
   expect(await select.evaluate((el) => el.tagName)).toBe("SELECT");
-  // Eleven since M5 put On the Prowl in the programme.
-  await expect(select.locator("option")).toHaveCount(11);
+  // One option per programme dance, read off the programme.
+  await expect(select.locator("option")).toHaveCount(DEMO_DANCES.length);
 
   await select.selectOption("kitchen-stomp");
   // The pick takes effect straight away — the caller announces it (see the

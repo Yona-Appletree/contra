@@ -153,14 +153,18 @@ function crossOver(
   lattice: { slotOf: (couple: CoupleState, role: RoleName) => Slot; placeOf: SetLatticePlaceOf },
   dancer: DancerState,
 ): { slot: Slot; travel: 1 | -1 } {
-  const { place, direction } = lattice.placeOf(dancer.slot, dancer.role);
+  const { place, direction } = lattice.placeOf(dancer.slot, dancer.role, dancer.travel);
   const travel: 1 | -1 = direction === 1 ? -1 : 1;
   const couple: CoupleState = { id: "", dancers: {}, place, direction: travel };
   return { slot: lattice.slotOf(couple, dancer.role), travel };
 }
 
 /** `SetLattice.placeOf`, named so {@link crossOver} can ask for just the two halves it uses. */
-type SetLatticePlaceOf = (slot: Slot, role: RoleName) => { place: number; direction: 1 | -1 };
+type SetLatticePlaceOf = (
+  slot: Slot,
+  role: RoleName,
+  travel: 1 | -1,
+) => { place: number; direction: 1 | -1 };
 
 /**
  * The hall's seating, read back off the model: who is a couple now, where they
@@ -189,7 +193,7 @@ export function setFromModel(model: SetModel, previous: SetState): SetState {
   /** By `<place>/<direction>`: the dancers the formation reads as one couple. */
   const byPlace = new Map<string, { place: number; direction: 1 | -1; who: DancerState[] }>();
   for (const dancer of Object.values(model.dancers)) {
-    const { place, direction } = lattice.placeOf(dancer.slot, dancer.role);
+    const { place, direction } = lattice.placeOf(dancer.slot, dancer.role, dancer.travel);
     const key = `${String(place)}/${String(direction)}`;
     const seen = byPlace.get(key);
     if (seen) seen.who.push(dancer);

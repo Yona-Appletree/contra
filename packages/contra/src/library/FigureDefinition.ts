@@ -1,4 +1,5 @@
 import type { Beat, Side } from "@caller/choreo";
+import type { TargetShape } from "../set/shape.js";
 import type {
   AngleExpr,
   BoolExpr,
@@ -142,6 +143,31 @@ export interface SequencePart {
   shape: FigureShape;
   /** The holds this part takes, in the same form a definition's own are. */
   holds: readonly HoldSpec[];
+  /**
+   * **Who dances this part, in which groups.** Left out, everybody the figure
+   * cast, as one group.
+   *
+   * M7's answer to M4's finding — *"resolution says who is **in** a figure but
+   * not who stands still **inside** it"*. Contra corners is what needs it, and
+   * needs both halves of it:
+   *
+   * - **Somebody stands still.** All four of a minor set are in the figure for
+   *   its whole sixteen beats, and in three of its five parts the two inactives
+   *   are waiting to be turned. A role no cast of this part names holds the pose
+   *   the part before it left them in — an honest end, not an empty one — and
+   *   takes no hands.
+   * - **Two pairs turn at once.** The other two parts are the corner turns, and
+   *   the two actives turn *different* corners over the same four beats. So a
+   *   part is a **list** of casts, each planned on its own over its own dancers
+   *   and running at the same time.
+   *
+   * Deliberately the smaller of the two mechanisms the brief offered: a
+   * hold-place instance per **unselected** dancer already exists and is right
+   * for Chorus Jig's twos, who are not in the figure at all; casts inside an
+   * instance is what a figure whose own parts take turns needs, and M5's hey for
+   * three wants the same thing for the same reason.
+   */
+  casts?: readonly (readonly FigureRole[])[];
 }
 
 /**
@@ -854,6 +880,120 @@ export interface ScheduleItem {
   short?: boolean;
 }
 
+/**
+ * **A line with an order, travelling**: the line of four that goes down the
+ * hall and comes back up it (M7).
+ *
+ * The kind the brief's own headline names. What makes it a shape of its own
+ * rather than a walk to a written point is that **the order is a parameter**:
+ * The Nice Combination writes `M1-W2-M2-W1` going down and `W2-M1-W1-M2` coming
+ * back, and no definition can say in advance which dancer stands at which end.
+ * So the shape is told the order and solves the line from it
+ * (`set/shape.ts`'s `solveShape`).
+ *
+ * It serves a line of two as happily as a line of four, which is what "the ones
+ * lead down the centre" is.
+ */
+export interface LineWalkShape {
+  kind: "lineWalk";
+  /**
+   * The parameter naming the order across the line, first place first.
+   *
+   * Each entry is a figure-role, or a contra role for a line whose order is by
+   * role. The order runs the way {@link LineWalkShape.axis} points, which is a
+   * **fixed** direction across the hall and not the way the line faces — see
+   * `set/shape.ts` for why those are two different angles.
+   */
+  order: string;
+  /** Which way the line travels and everybody in it faces, frame-local degrees. */
+  facing: AngleExpr;
+  /** Which way the order runs across the line, frame-local degrees. */
+  axis: AngleExpr;
+  /** How far the line travels along its facing, px. */
+  travel: NumberExpr;
+  /** How far apart adjacent dancers stand, px. */
+  spacing: NumberExpr;
+  /** Beats spent turning on to the line's own facing. */
+  settleBeats: NumberExpr;
+  /** How far below shoulder height the joined hands sit, or `null` for none. */
+  handDrop: NumberExpr | null;
+  /**
+   * Beats at the end over which the hands come down; `0` keeps them.
+   *
+   * A line going down the hall keeps hold all the way and hands the hold on to
+   * whatever comes next. A line that **bends into a ring on the formation's own
+   * places** cannot: the two lines of this hall stand 32 px apart and an arm is
+   * 15, so four joined hands round a ring that wide is a reach the oracle refuses
+   * — measured at 6.63 px short before this existed. Dancers really do let go as
+   * a bend opens out, so the figure says when.
+   */
+  handRelease: NumberExpr;
+  idleHands: IdleHands;
+}
+
+/**
+ * **Two dancers as one actor**: a unit with its own centre and its own
+ * orientation, which turns and travels as a body (M7).
+ *
+ * `vision.md` §"Resolution" names this frame kind outright — *"couple (or any
+ * two dancers, per Hey for Thee) as a unit with its own orientation"* — and it
+ * is what "neighbour turn as couples" is: the pair does not turn *about* each
+ * other, it turns *with* each other, so the two of them stay side by side a hold
+ * apart the whole way round and simply end pointing the other way.
+ *
+ * The unit is any two dancers the call paired, not a couple by definition: that
+ * is the difference between this and a courtesy turn, whose geometry is a
+ * couple's own. M8's promenade around the major set is the same kind with a
+ * travel instead of a turn.
+ */
+export interface UnitShape {
+  kind: "unit";
+  /** How far the unit turns about its own centre, degrees. */
+  turn: AngleExpr;
+  /** How far the unit's centre travels, px; `0` to turn on the spot. */
+  travel: NumberExpr;
+  /** Which way it travels, frame-local degrees. */
+  along: AngleExpr;
+  /** How far apart the two stand once they have closed up, px; `null` to keep. */
+  spacing: NumberExpr | null;
+  /** How far below shoulder height their joined hands sit, or `null` for none. */
+  handDrop: NumberExpr | null;
+  idleHands: IdleHands;
+}
+
+/**
+ * **A wave, and its balance**: a line of dancers facing alternately in and out,
+ * joined hand to hand along it, rocking forward and back (M7, from M6).
+ *
+ * M6 left `balance-wave` unwritten and said why: *"it needs a wave-hold rule
+ * inside the shape kind — the named hand to the lane neighbour you are facing,
+ * the other hand to the one behind you"*. That rule is what this kind is, and it
+ * is written on **slots** rather than on cast order, because the dancer whose
+ * right hand you have is the one at `position + travel` and cast order alone
+ * cannot say which way that is.
+ *
+ * It is a rock, not a walk: `rock.ts` owns the pair's and the ring's, and this
+ * owns the wave's, because a wave's closing up is along a line whose two ends
+ * hold nobody.
+ */
+export interface WaveShape {
+  kind: "wave";
+  /** Which hand goes to the dancer one place along the way you travel. */
+  hand: SideExpr;
+  /**
+   * The parameter naming the contra role that faces **in** — toward the other
+   * line — with the other role facing out. Whoosh's "men face in".
+   */
+  facesIn: string;
+  /** How far the body rocks forward, px. */
+  rock: NumberExpr;
+  /** Beats spent closing up on to the wave. */
+  closeBeats: NumberExpr;
+  /** How far below shoulder height the joined hands sit, px. */
+  handDrop: NumberExpr;
+  idleHands: IdleHands;
+}
+
 /** What the figure actually draws. */
 export type FigureShape =
   | LegacyShape
@@ -864,7 +1004,10 @@ export type FigureShape =
   | PathShape
   | WaypointShape
   | ScheduleShape
-  | CourtesyTurnShape;
+  | CourtesyTurnShape
+  | LineWalkShape
+  | UnitShape
+  | WaveShape;
 
 /**
  * Only when this parameter has one of these values.
@@ -1082,10 +1225,19 @@ export type HoldSpec = PairHold | RingHold | SoloHold | MateHold;
  *   shape keeping its own end facings. This is what makes "balance and swing
  *   your neighbour" *be* the progression rather than merely end near it, and
  *   what makes Butter's `endHalf: 10` override unnecessary (AC2).
- * - `"return"` is back to the spot you left and `{ target }` is a target shape
- *   solved backwards (Q6, M7).
+ * - `"return"` is back to the spot you left.
+ * - **`{ target }`** — the shape the figure forms, solved backwards from its end
+ *   (Q6, M7). The shape's own natural ends are replaced by the places the
+ *   **target shape** gives its dancers, solved from where the shape's geometry
+ *   was going to leave them: so "bend the line" writes `{ target: { shape:
+ *   "ring" } }` and does not have to say where a ring of four is, and the set
+ *   records that it is now standing in a ring (`planCycle.ts`).
+ *
+ *   A gatherer and a target are not exclusive: a figure may form a shape **and**
+ *   settle it on to the formation's own places, which is what `bend-the-line`
+ *   does and what stops a ring drifting a pixel a time through.
  */
-export type EndsRule = "home" | "relative" | "return" | { target: string };
+export type EndsRule = "home" | "relative" | "return" | { target: TargetShape };
 
 /** How a figure stretches to the count the card gives it (D3). */
 export interface TimingProfile {

@@ -11,6 +11,8 @@ import type {
 } from "@caller/choreo";
 import { frameAngle, framePoint } from "@caller/choreo";
 import type { RelationTable } from "./relations.js";
+import type { SetShape } from "./shape.js";
+import { LINES_SHAPE } from "./shape.js";
 import { setRulesOf } from "./SetRules.js";
 
 /**
@@ -81,10 +83,13 @@ export interface DancerState {
 }
 
 /**
- * What shape the set is in. `"lines"` is the only one M1 builds; M7 adds a line
- * of four with an order, a ring, a wave and a diamond.
+ * What shape the set is in.
+ *
+ * M1 built it as the string `"lines"`; **M7 makes it real** — a kind plus, per
+ * group standing in it, the order they stand in and where that arrangement sits.
+ * See `shape.ts`, which owns the type, the named places and the solver.
  */
-export type SetShape = "lines";
+export type { SetShape } from "./shape.js";
 
 /** One whole set, at one figure boundary. */
 export interface SetModel {
@@ -136,11 +141,19 @@ export interface SetLattice {
    * What makes the lattice the truth rather than a reading of it (M6, Q14): a
    * progression moves slots, and the hall's seating — `CoupleState.place` and
    * `.direction`, which `groupsFor`, the two outs and `lineUpShiftOf` all read —
-   * is derived back through this (`lattice.ts`'s `setFromModel`). A formation
-   * that can answer `slotOf` can always answer this, because `slotOf` is
-   * injective on (place, direction, role) by construction.
+   * is derived back through this (`lattice.ts`'s `setFromModel`).
+   *
+   * **`travel` is the third argument M7 had to add**, and a *proper* formation
+   * is why. Duple improper and becket both encode a dancer's direction of travel
+   * in which **line** they stand on — improper means the larks alternate down
+   * each line, so line and role together say the direction — and both ignore it.
+   * A proper set does not alternate: every lark is on the lark line whichever
+   * way they are travelling, so `slotOf` is two-to-one on (slot, role) and the
+   * inverse needs the one bit it threw away. Every caller has it to hand
+   * (`DancerState.travel`), so this costs nothing and stops `proper` having to
+   * lie.
    */
-  placeOf(slot: Slot, role: RoleName): { place: number; direction: 1 | -1 };
+  placeOf(slot: Slot, role: RoleName, travel: 1 | -1): { place: number; direction: 1 | -1 };
   /**
    * Where a slot's home is, in the **set frame's** own local px, and which way
    * its dancer faces there.
@@ -198,7 +211,7 @@ export function modelFromSet(
     pitch: lattice.pitch,
     positions: Number.isFinite(lowest) ? highest - lowest + 1 : 0,
     dancers,
-    shape: "lines",
+    shape: LINES_SHAPE,
   };
 
   for (const dancer of Object.values(dancers)) {

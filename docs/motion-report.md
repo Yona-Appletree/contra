@@ -56,39 +56,39 @@ fails if the code moves under it.
 
 ## Over the demo dances
 
-Each dance run alone by the script decider for two times through (beats 0–128), duple improper at 4 couples and becket at 6, sampled every 1/32 beat.
+Each dance run alone by the script decider for two times through (beats 0–128), duple improper and proper at 4 couples and becket at 6, sampled every 1/32 beat.
 
 ### The ten worst figures
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `turn-as-couples` | 52.4 | 169.9 | 5.51 | 24.3 | 18 | 0.70 | 0 | **14.21** | `set0/c1/robin` L at beat 22.219 |
+| `turn-alone` | 47.4 | 44.6 | 1.79 | 24.3 | 6 | 0.22 | 0 | **14.21** | `set0/c2/lark` R at beat 20.219 |
+| `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
+| `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 38 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
+| `bend-the-line` | 33.3 | 34.9 | 4.57 | 9.7 | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
 | `allemande` | 39.1 | 44.6 | 4.78 | 23.4 | 162 | 0.45 | 0 | **7.86** | `set0/c3/lark` L at beat 63.625 |
-| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 41.688 |
+| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 49.688 |
 | `swing` | 59.5 | **225.5** | **12.04** | 25.6 | 84 | 0.12 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
-| `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 138 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
-| `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 32 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 51.000 |
-| `do-si-do` | 18.5 | 16.9 | 1.72 | 0.6 | 24 | 0.14 | 0 | 1.20 | `set0/c0/robin` R at beat 37.469 |
-| `hey` | 34.0 | 32.2 | 3.79 | 0.6 | 30 | 0.12 | 0 | 1.59 | `set0/c0/lark` R at beat 32.313 |
-| `long-lines` | 22.5 | 51.3 | 8.27 | 12.3 | 16 | 0.14 | 0 | 0.00 | `set0/c3/lark` L at beat 64.156 |
-| `mad-robin` | 19.4 | 17.7 | 1.40 | 0.7 | 32 | 0.32 | 0 | 1.23 | `set0/c0/robin` R at beat 65.500 |
-| `pass-through` | 42.7 | 47.5 | 3.58 | 0.4 | 24 | 0.92 | 0 | 1.96 | `set0/c3/robin` L at beat 126.344 |
+| `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 160 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
+| `up-the-hall` | 14.4 | 23.2 | 5.29 | 24.3 | 18 | 0.09 | 0 | **6.72** | `set0/c2/lark` R at beat 24.313 |
 
 ### The ten worst seams
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `bend-the-line → circle` | 12.6 | 11.7 | 0.94 | 5.4 | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
 | `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
 | `long-lines → robins-chain` | 48.0 | 45.0 | 2.16 | 0.7 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 24.344 |
 | `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
-| `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 24 | 0.12 | 0 | 0.66 | `set0/c3/lark` R at beat 64.156 |
+| `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 32 | 0.12 | 0 | 0.84 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
 | `allemande → hey` | 34.0 | 29.9 | 2.57 | 0.0 | 30 | 0.12 | 0 | 1.49 | `set0/c0/lark` R at beat 32.313 |
 | `allemande → swing` | 42.6 | 59.1 | 1.65 | 25.6 | 36 | 0.09 | 0 | 0.00 | `set0/c0/lark` L at beat 24.344 |
 | `allemande → wait-out` | 12.4 | 13.5 | 1.13 | 0.0 | 2 | 0.00 | 0 | 0.00 | `set0/c1/lark` R at beat 64.219 |
-| `pass-through → do-si-do` | 4.2 | 2.4 | 0.57 | 0.0 | 16 | 0.13 | 0 | 0.89 | `set0/c0/lark` R at beat 128.000 |
 
-Over all ten dances: 753,664 measurements, 676 hand-state flips, **0 of them not a finite number**.
+Over all ten dances: 884,736 measurements, 876 hand-state flips, **0 of them not a finite number**.
 
 ## Every figure, alone
 
@@ -97,11 +97,15 @@ it, so every number is the figure's own and no seam is folded in.
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `bend-the-line` | 41.7 | **217.4** | **18.62** | 9.7 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.375 |
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
 | `robins-chain` | **69.2** | 149.3 | 8.57 | 45.4 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 1.719 |
+| `turn-contra-corners` | 56.0 | 59.4 | 6.76 | 26.8 | 24 | 0.20 | 0 | 1.20 | `1R` R at beat 9.969 |
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
 | `right-and-left-through` | 34.0 | 75.1 | 7.33 | 20.2 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 3.813 |
+| `down-the-hall` | 26.5 | 129.2 | 7.06 | 6.5 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.563 |
+| `up-the-hall` | 26.5 | 129.2 | 7.06 | 6.5 | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.563 |
 | `star` | 35.7 | 35.2 | 1.68 | 12.1 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
@@ -322,17 +326,45 @@ Take both hands with the dancer you are facing, step in toward them and back —
 
 All four join hands in a ring. Balance in toward the middle for two beats and back out for two, hands held all the way round. The ring opens back out to the places it started from, because what usually follows — a petronella, a pass through — is measured off the set's own places and not off the closed-up ring.
 
+### `balance-wave` — BALANCE THE WAVE
+
+You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.
+
+### `bend-the-line` — BEND THE LINE
+
+The two ends of your line of four walk forward and the two in the middle back up, so the line bends round into a ring of four and everybody is looking at everybody else. Keep hold of the hands you have.
+
 ### `california-twirl` — CALIFORNIA TWIRL
 
 Take inside hands with your partner and raise them, then walk forward: one of you walks round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: which of the two turns under varies from hall to hall; this turns the robin under.)
+
+### `cast-off` — CAST OFF
+
+Turn away from the middle of the set and walk round the dancer standing along the line from you, outside the line, into the place they were in. They step up the inside into the place you have left. The two of you have traded places, and that is the progression.
 
 ### `circle` — CIRCLE LEFT
 
 All four join hands in a ring and walk round — circle left means the way your left hand is pointing, clockwise seen from above. Three quarters is the usual amount, which lands you one place back from where you started. Keep the hands joined and the ring the same size the whole way round.
 
+### `circulate` — CIRCULATE
+
+Everybody moves one place along the box, all at the same time. The larks cross straight over the set, passing right shoulders, and the robins loop out of their own line and back into it one place along. You end in the same wave you started in, with different people beside you.
+
 ### `do-si-do` — DO-SI-DO
 
 Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.
+
+### `down-the-hall` — DOWN THE HALL FOUR IN LINE
+
+Take hands in a line of four across the hall, in the order the caller gives, and walk down the hall together. The line forms as you go: nobody stands still waiting for it. You end facing down the hall, still holding on.
+
+### `go-down-outside` — DOWN THE OUTSIDE
+
+Step out of your line, away from the middle of the set, and walk down the outside of it — past the couple below you — on your own. Your partner is doing the same thing on the other side. You end outside the line, a place further down than you began.
+
+### `go-up-outside` — UP THE OUTSIDE
+
+Turn round where you are and walk back up the outside of the set to your own place, stepping into the line as you arrive. You end facing the way you were facing before you left.
 
 ### `grand-right-and-left` — GRAND RIGHT AND LEFT
 
@@ -342,9 +374,21 @@ Give your right hand to the dancer facing you, pull by, and give your left to th
 
 The weave. All four dancers travel the same closed figure of eight across the set, passing each other by alternate shoulders and never taking hands: right shoulders with the one you meet in the centre of the set, left shoulders with the one you meet at the side, and a loop round the end before you come back. The robins start it, passing right shoulders in the centre; the larks loop at the ends and follow them in. Sixteen beats, four passes in the centre at counts 2, 6, 10 and 14 and three at the sides at 4, 8 and 12, and everybody is home where they started.
 
+### `lead-down` — LEAD DOWN THE CENTRE
+
+Take the inside hand of the dancer across from you, come together into the middle of the set, and walk down it side by side. You end facing down the hall, still holding on.
+
+### `lead-up` — LEAD UP THE CENTRE
+
+Walk back up the middle of the set together and step apart into your own two places, ready for whatever comes next.
+
 ### `long-lines` — LONG LINES FORWARD AND BACK
 
 Take hands all the way along your own line with the dancers beside you, walk four steps into the set, and walk four steps back out. The arms do not move in this figure: everyone is just holding hands, and only the bodies travel. You end where you started, still facing across.
+
+### `loop` — LOOP
+
+On your own, walk a small circle to the named side — right unless the caller says left — turning as you go, and come back to the place you started from facing the way you were. Nobody's hand: this is a figure you dance by yourself while somebody else is dancing theirs.
 
 ### `mad-robin` — MAD ROBIN
 
@@ -393,6 +437,22 @@ All four put the named hand on the wrist of the dancer ahead of them round the s
 ### `swing` — SWING
 
 Ballroom hold: right hips together, the lark's right hand on the robin's back, her left on his shoulder, his left and her right joined out to the side. Buzz step round each other — one foot pushing, the other pivoting — for as many turns as the music gives, then open out side by side, lark on the left and robin on the right, facing whichever way the next figure needs. Both of them keep their weight on the inside foot and lean a little away from each other, which is what makes a swing spin instead of shuffle.
+
+### `turn-alone` — TURN ALONE
+
+Turn round on the spot by yourself — nobody's hand, nobody to walk around. Half a turn unless the caller says otherwise, so you end facing back the way you came in the place you were already standing.
+
+### `turn-as-couples` — TURN AS COUPLES
+
+Keep hold of the dancer beside you and turn the two of you round together, as one body, so that you end side by side facing back the way you came. Nobody walks round anybody: you turn together about the point between you.
+
+### `turn-contra-corners` — TURN CONTRA CORNERS
+
+Give your right hand to the other active and turn half way, then give your left to your first corner and turn all the way round. Right hand to the active again, half way, left hand to your second corner all the way round, and right hand to the active once more to finish in the middle of the set. The corners stand and wait between their turns: they are in the figure, they are just not moving yet.
+
+### `up-the-hall` — UP THE HALL FOUR IN LINE
+
+Still in your line of four, walk back up the hall the way you came. The caller gives the order again because turning as couples changed it: whoever was on one end of the line is now beside you.
 
 ### `wait-out` — WAIT IT OUT AND CROSS OVER
 

@@ -1,11 +1,22 @@
 import type { Beat } from "@caller/core";
 import type { Dance, DancerId, MotionStats, PhraseName, StationId } from "@caller/choreo";
-import { MOTION_STEP, createHall, danceBeats, danceSchedule, motionReport } from "@caller/choreo";
+import {
+  MOTION_STEP,
+  createHall,
+  danceBeats,
+  danceSchedule,
+  motionReport,
+  poseAt,
+} from "@caller/choreo";
+import type { ContraCall } from "../figures/chain.js";
 import type { Carried } from "../figures/ContraFigure.js";
 import { CONTRA_MOTION_BOUNDS } from "../figures/motionBounds.js";
+import type { Library } from "../library/Library.js";
 import { contraDataEngine } from "../library/engine.js";
 import { contraDataFigures } from "../library/figures/index.js";
 import { latticeSpan } from "../set/lattice.js";
+import type { SetShapeKind, TargetShape } from "../set/shape.js";
+import { shapeFromEnds, shapeMiss, solveShape, turnsToTarget } from "../set/shape.js";
 import { contraCyclePlanner } from "../set/planCycle.js";
 import { isRelationWord, parseRelation, relate } from "../set/relations.js";
 import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
@@ -248,6 +259,115 @@ function relationsOf(call: { who?: unknown; params?: unknown }): string[] {
   return [...new Set(out)];
 }
 
+/** One call that names the shape it forms, and whether it really formed one. */
+export interface ShapeRow {
+  phrase: PhraseName;
+  figure: string;
+  start: Beat;
+  /** The instance that formed it. */
+  group: string;
+  /** The shape the call — or the figure — says it leaves behind. */
+  shape: SetShapeKind;
+  /** How far the worst dancer is from really standing in it, px. */
+  missPx: number;
+  /** Whether the figure also settled the shape on to the formation's places. */
+  settled: boolean;
+  /** The turn the call stated, when it stated one. */
+  said?: number;
+  /** The turn the shape asks for, solved backwards from it (Q6). */
+  solved?: number;
+}
+
+/** How far off a stated shape a call may leave its dancers before it is worth saying, px. */
+export const SHAPE_SLOP_PX = 0.5;
+
+/** How far off a stated turn a solved one may be before it is worth saying, in turns. */
+export const AMOUNT_SLOP = 0.125;
+
+/**
+ * **The shapes a dance says it forms** (Q6), measured.
+ *
+ * A figure's `ends` may name a **target shape** — "bend the line" leaves a ring,
+ * a line of four leaves a line of four, a balance of the wave leaves the wave —
+ * and a *call* may name one too, in its own `form` parameter, which is how a
+ * transcript's exit clause is written down (*"; form wave of four (men in
+ * center)"*). Either way the claim is checkable, and this is the check: solve
+ * the shape from where the figure **really** left its dancers and measure how
+ * far any of them is from the place it gives them.
+ *
+ * It is a **warning**, never a failure, and deliberately: the shape clause is a
+ * description of where a figure leaves you, and a figure that leaves you
+ * somewhere else is a thing a caller wants to be told about rather than a thing
+ * that should stop the dance from loading. The same goes for the **amount**: a
+ * call that states both a turn and a shape is stating one thing twice, and when
+ * the two disagree the caller's word wins and the disagreement is printed.
+ */
+export function danceShapes(dance: Dance, couples: number): ShapeRow[] {
+  const { library } = contraDataEngine();
+  const beats = danceBeats(dance);
+  const timeline = danceAlone(dance, couples, beats, {}, LAB_RUN).timeline();
+  const rows: ShapeRow[] = [];
+  for (const { call, start, phrase } of danceSchedule(dance)) {
+    const target = targetOf(library, call);
+    if (target === undefined) continue;
+    for (const event of timeline.figures()) {
+      if (event.start !== start || event.figure !== call.figure) continue;
+      const cast = Object.values(event.bindings);
+      if (cast.length < 2) continue;
+      const ended = cast.map((dancer) => {
+        const pose = poseAt(timeline, dancer, event.end);
+        return { dancer, p: pose.p, facing: pose.facing };
+      });
+      // Read in the order they are really standing in, which is what the shape
+      // is: `shapeFromEnds` sorts a row along itself and a ring round itself.
+      const order = shapeFromEnds(target.shape, ended).order;
+      const spots = order.map((dancer) => {
+        const pose = poseAt(timeline, dancer, event.end);
+        return { p: pose.p, facing: pose.facing };
+      });
+      const row: ShapeRow = {
+        phrase,
+        figure: call.figure,
+        start,
+        group: event.group,
+        shape: target.shape,
+        missPx: shapeMiss(target, spots),
+        settled: target.settle === true,
+      };
+      const said = (call.params as Record<string, unknown> | undefined)?.["amount"];
+      if (typeof said === "number" && spots.length > 1) {
+        // Q6's other half: the turn the shape asks for, solved backwards from
+        // it. The first dancer of the shape's own order is the one measured,
+        // about the centre the shape sits on.
+        const solved = solveShape(target, spots);
+        const from = poseAt(timeline, order[0]!, event.start).p;
+        row.said = said;
+        row.solved = turnsToTarget(
+          from,
+          solved.spots[0]!.p,
+          solved.centre,
+          said < 0 ? -1 : 1,
+          0.25,
+        );
+      }
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+/** The shape a call forms: the figure's own, with whatever the call said over it. */
+function targetOf(library: Library, call: ContraCall): TargetShape | undefined {
+  const def = library.has(call.figure) ? library.get(call.figure) : undefined;
+  const own =
+    def !== undefined && typeof def.ends === "object" && "target" in def.ends
+      ? def.ends.target
+      : undefined;
+  const said = (call.params as Record<string, unknown> | undefined)?.["form"];
+  if (said === null || said === undefined || typeof said !== "object") return own;
+  return { ...(own ?? { shape: "lines" }), ...(said as Partial<TargetShape>) };
+}
+
 /** `pnpm dance <slug>`'s whole text report, and whether the loop is green. */
 export function danceLabReport(
   slug: string,
@@ -403,6 +523,39 @@ export function danceLabReport(
   }
   if (endRows === 0) lines.push("_no call of this dance names a relation._");
   lines.push("");
+
+  // 3b. The shapes the dance says it forms, and whether it formed them (Q6).
+  //
+  // A warning, never a failure: a shape clause describes where a figure leaves
+  // you, and a caller wants to be told when the description and the dancing
+  // part company rather than have the dance refuse to load.
+  const shapes = danceShapes(dance, at);
+  if (shapes.length > 0) {
+    lines.push("## 3b. Shapes — a call that names the shape it forms (Q6)", "");
+    for (const row of shapes) {
+      // A shape that settles on to the formation's own places is measured
+      // against a **regular** one, and a contra set's four places are a
+      // rectangle 32 px across and 20 along rather than a square: "bend the
+      // line" really does leave four dancers in a ring they can all take hands
+      // in, and really is not a circle. The warning says both.
+      const why = row.settled ? ", settled on the formation's own places" : "";
+      const off =
+        row.missPx > SHAPE_SLOP_PX
+          ? ` — **warning: ${row.missPx.toFixed(3)} px off a regular ${row.shape}${why}**`
+          : "";
+      const amount =
+        row.said === undefined || row.solved === undefined
+          ? ""
+          : Math.abs(row.said - row.solved) > AMOUNT_SLOP
+            ? ` · amount **warning**: the call says ${row.said.toFixed(2)} and the shape asks for ${row.solved.toFixed(2)}`
+            : ` · amount ${row.said.toFixed(2)}, and the shape agrees`;
+      lines.push(
+        `- ${row.phrase} beat ${String(row.start)} \`${row.figure}\` forms a **${row.shape}** ` +
+          `in \`${row.group}\` — worst ${row.missPx.toFixed(3)} px off it${off}${amount}`,
+      );
+    }
+    lines.push("");
+  }
 
   // 4. Motion: the dance's own seams, which fail unless allowlisted (R6).
   lines.push("## 4. Motion — the dance's seams", "");

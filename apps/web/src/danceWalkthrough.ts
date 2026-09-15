@@ -1,6 +1,12 @@
 import type { Dance } from "@caller/choreo";
 import { withDefaults } from "@caller/choreo";
-import { createContraRegistry, formationFor, probeGroup, resolveFigureText } from "@caller/contra";
+import {
+  contraDataFigures,
+  createContraRegistry,
+  formationFor,
+  probeGroup,
+  resolveFigureText,
+} from "@caller/contra";
 
 /** One figure of a dance walkthrough: what the caller says, and the full teach. */
 export interface DanceWalkthroughStep {
@@ -26,7 +32,10 @@ export interface DanceWalkthroughStep {
  * difference does not reach the sentence.
  */
 export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] {
-  const registry = createContraRegistry();
+  // With the interpreted definitions in it: since M6 a figure can be data
+  // with no coded twin, and M7's are the first such figures a **programme**
+  // dance calls, so a plain coded registry has no `down-the-hall` to read.
+  const registry = createContraRegistry(contraDataFigures());
   const group = probeGroup(formationFor(dance), 4);
   const steps: DanceWalkthroughStep[] = [];
   for (const phrase of dance.phrases) {

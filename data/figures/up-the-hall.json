@@ -1,0 +1,11 @@
+{
+  "id": "up-the-hall",
+  "walkthrough": {
+    "short": "In the same line of four, walk back up the hall the way you came.",
+    "long": "Still holding the hands beside you, walk back up the hall to where the line started. The caller reads the order out again because turning as couples changed it: whoever was on the end of the line is beside you now. You end facing up the hall."
+  },
+  "call": {
+    "short": "UP THE HALL",
+    "long": "UP THE HALL FOUR IN LINE"
+  }
+}

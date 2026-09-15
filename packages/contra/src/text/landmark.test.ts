@@ -109,21 +109,32 @@ describe("every figure the demo dances call has a landmark", () => {
    * The figures a landmark can be asked of at all.
    *
    * `landmark` plans a figure over the **four** dancers of a hands-four group
-   * and reads its ends; a figure resolution mints **per pair** refuses four
-   * roles by name (`anchor: "meet"`). Every such figure had a coded twin to
-   * answer for it — and the coded figure is what `figureDefOf` hands back — until
-   * M5, whose shoulder round is a figure for two with only
-   * a definition — so it is asked nothing, and its walkthrough ends on a
-   * sentence of its own rather than on `{where}`. M7's shapes with named places
-   * are what give a figure for two a landmark.
+   * and reads its ends, which is a question only a figure resolution hands the
+   * whole four can answer. A figure minted **per pair** (`anchor: "meet"`, a
+   * cast off's named pivot) or **per dancer** (`actors: "each"`) refuses four
+   * roles by name. Every such figure had a coded twin to answer for it — and
+   * the coded figure is what `figureDefOf` hands back — until M5, whose
+   * shoulder round is a figure for two with only a definition; M7 adds seven
+   * more. None of them uses `{where}` in its texts, so nothing asks for a
+   * landmark it cannot give, and each ends its walkthrough on a sentence of its
+   * own.
    */
   const asked = [...seen.keys()].filter((id) => {
     const def = dataOnlyDefinitions().find((each) => each.id === id);
-    return def === undefined || def.anchor === "hands-four" || def.anchor === "centroid";
+    return def === undefined || def.actors === "all" || def.actors === "ring";
   });
 
-  it("asks every figure the demo calls but the ones minted per pair", () => {
-    expect([...seen.keys()].filter((id) => !asked.includes(id))).toEqual(["shoulder-round"]);
+  it("asks every figure the demo calls but the ones minted per pair or per dancer", () => {
+    expect([...seen.keys()].filter((id) => !asked.includes(id)).sort()).toEqual([
+      "cast-off",
+      "go-down-outside",
+      "go-up-outside",
+      "lead-down",
+      "lead-up",
+      "shoulder-round",
+      "turn-alone",
+      "turn-as-couples",
+    ]);
   });
 
   it.each(asked)("%s", (figure) => {

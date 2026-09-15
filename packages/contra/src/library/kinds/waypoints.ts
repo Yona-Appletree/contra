@@ -3,6 +3,7 @@ import { addScaled, angleLerp, dirOf, dist, lerp, ramp } from "@caller/core";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
 import { bearing, joinedHands, midpoint } from "../../figures/ContraFigure.js";
 import type {
+  AngleExpr,
   FigureRole,
   HoldSpec,
   Moment,
@@ -10,10 +11,10 @@ import type {
   SideExpr,
   WaypointShape,
 } from "../FigureDefinition.js";
-import type { ExprEnv, PoseExpr } from "../expr.js";
+import type { ExprEnv, PointExpr, PoseExpr } from "../expr.js";
 import { evalAngle, evalMoment, evalNumber, evalPoint, evalSide } from "../expr.js";
 import type { ShapeInput } from "../interpret.js";
-import { settleOnPlaces } from "./places.js";
+import { settleEnds } from "./places.js";
 
 /**
  * **The waypoint route** (M6): a dancer's own written route, waypoint by
@@ -70,6 +71,31 @@ export interface PathStep {
   pass?: SideExpr;
   /** How far below shoulder height a passing hand sits, px. */
   drop?: NumberExpr;
+  /**
+   * **Get there round a circle, not along a line** (M7).
+   *
+   * A cast off goes *around* the inactive and a loop goes *around* nothing at
+   * all and comes back — neither is a straight leg with a bow on it, and a bow
+   * cannot make a leg that starts and ends in the same place go anywhere. So a
+   * leg may name a centre and a sweep instead: the dancer rides the circle
+   * through `turn` degrees, and the radius and the phase are read off where the
+   * leg begins.
+   *
+   * The waypoint's own `pose` still says where the leg ends, and it should be
+   * where the arc lands; where the two disagree the dancer is eased from the arc
+   * on to the written end over the leg, which is what lets a cast off settle on
+   * to the formation's own place without leaving the circle early.
+   */
+  around?: { centre: PointExpr; turn: AngleExpr };
+  /**
+   * How far the body turns over this leg, signed degrees, instead of being
+   * lerped on to the waypoint's own facing.
+   *
+   * What "turn alone" needs: a whole turn ends on the facing it started from, so
+   * a facing lerp draws nothing at all. With a spin the body really turns, and
+   * the leg's end facing is still the truth about where it stops.
+   */
+  spin?: AngleExpr;
 }
 
 /** A leg of one dancer's path, resolved to numbers. */
@@ -81,6 +107,10 @@ interface Leg {
   bow: number;
   pass?: Side;
   drop: number;
+  /** Ride a circle about this point, sweeping this many degrees (M7). */
+  around?: { centre: Vec2; turn: number };
+  /** Turn the body this much over the leg instead of lerping its facing (M7). */
+  spin?: number;
 }
 
 /** The environment a path's expressions are read in. */
@@ -92,6 +122,7 @@ const envFor = (input: ShapeInput, self: FigureRole, t: Beat): ExprEnv => ({
   t,
   order: input.roles,
   anchor: input.anchor.centre,
+  ...(input.slots === undefined ? {} : { slots: input.slots }),
 });
 
 /** Which track a role dances: its own name, its contra role, or the wildcard. */
@@ -127,6 +158,15 @@ function legsOf(shape: WaypointShape, input: ShapeInput): Map<FigureRole, Leg[]>
         bow: step.bow === undefined ? 0 : evalNumber(step.bow, env),
         ...(step.pass === undefined ? {} : { pass: evalSide(step.pass, env) }),
         drop: step.drop === undefined ? 0 : evalNumber(step.drop, env),
+        ...(step.around === undefined
+          ? {}
+          : {
+              around: {
+                centre: evalPoint(step.around.centre, env),
+                turn: evalAngle(step.around.turn, env),
+              },
+            }),
+        ...(step.spin === undefined ? {} : { spin: evalAngle(step.spin, env) }),
       });
       from = to;
       start = end;
@@ -189,7 +229,25 @@ function atBeat(legs: readonly Leg[], t: Beat): { leg: Leg; k: number; index: nu
 
 /** Where a dancer is part way along a leg, bowed to their own left. */
 function place(leg: Leg, k: number): Spot {
-  const facing = angleLerp(leg.from.facing, leg.to.facing, k);
+  const facing =
+    leg.spin === undefined
+      ? angleLerp(leg.from.facing, leg.to.facing, k)
+      : leg.from.facing + leg.spin * k;
+  if (leg.around) {
+    // Ride the circle, then ease on to the written end: at `k = 1` the two
+    // agree wherever the definition meant them to, and where they do not the
+    // dancer arrives at the end the definition wrote rather than at the arc's.
+    const { centre, turn } = leg.around;
+    const r = dist(centre, leg.from.p);
+    const from = bearing(centre, leg.from.p);
+    const onArc = addScaled(centre, dirOf(from + turn * k), r);
+    const lands = addScaled(centre, dirOf(from + turn), r);
+    // The arc keeps its shape and the gap to the written end is spent along the
+    // way, so a cast that settles on to the formation's own place still goes
+    // round the pivot rather than cutting the corner.
+    const gap: Vec2 = [leg.to.p[0] - lands[0], leg.to.p[1] - lands[1]];
+    return { p: [onArc[0] + gap[0] * k * k, onArc[1] + gap[1] * k * k], facing };
+  }
   const p = lerp(leg.from.p, leg.to.p, k);
   if (leg.bow === 0) return { p, facing };
   // A half-sine, so the bow is nothing at both ends and widest half way: the
@@ -218,7 +276,7 @@ export function planWaypoints(
     const mine = legs.get(role)!;
     natural[role] = mine[mine.length - 1]!.to;
   }
-  const ends = endsOf(input, natural);
+  const ends = settleEnds(input, natural);
 
   const spotAt = (role: FigureRole, t: Beat): Spot => {
     const found = atBeat(legs.get(role)!, t);
@@ -281,25 +339,4 @@ function passingHand(
   const mine = both[role];
   if (!mine) throw new Error(`path: no joined hand for "${role}"`);
   return mine;
-}
-
-/**
- * The shape's own ends, settled on the formation's places when the figure
- * gathers — `rock.ts`'s rule, for the same reason and with the same facings.
- */
-function endsOf(input: ShapeInput, natural: Spots): Spots {
-  if (!input.gathers || !input.places) return natural;
-  const points: Record<string, Vec2> = {};
-  for (const role of input.roles) {
-    const spot = natural[role];
-    if (spot) points[role] = spot.p;
-  }
-  const settled = settleOnPlaces(input.roles, points, input.places);
-  const out: Spots = { ...natural };
-  for (const role of input.roles) {
-    const spot = natural[role];
-    const at = settled[role];
-    if (spot && at) out[role] = { p: at, facing: spot.facing };
-  }
-  return out;
 }

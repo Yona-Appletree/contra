@@ -117,12 +117,12 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
 });
 
 describe("DancesPage (U3: the inline diagrams are gone)", () => {
-  it("has a card per demo dance, no trace drawing on any of them, and a link to each dance page", () => {
-    // Eleven since M5 put On the Prowl in the programme; read off the programme
-    // rather than written down, so the next dance to land is not a test edit.
+  it("has a card per programme dance, no trace drawing on any, and a link to each", () => {
+    // Read off the programme rather than written down, so the next dance to
+    // land is not a test edit. Thirteen since M7 put The Nice Combination and
+    // Chorus Jig on the Stage.
     const html = renderToStaticMarkup(<DancesPage />);
     const many = DEMO_DANCES.length;
-    expect(many).toBe(11);
     expect((html.match(/data-testid="dance-card"/g) ?? []).length).toBe(many);
     expect(html).not.toContain('data-testid="dance-traces"');
     expect((html.match(/data-testid="dance-page-link"/g) ?? []).length).toBe(many);

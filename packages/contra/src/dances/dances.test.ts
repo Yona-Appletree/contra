@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { PROPER } from "../formation/proper.js";
 import { createContraRegistry } from "../figures/registry.js";
 import { DEMO_DANCES, DEMO_DANCE_SLUGS, danceBySlug } from "./index.js";
 import { LAB_RUN } from "./danceLab.js";
@@ -25,6 +26,12 @@ import { CLOSURE_PX, COLLISION_PX, linesFor, oraclesFor } from "./oracle.js";
  * A dance that fails any of these is not shipped — it is skipped and its
  * numbers go in the milestone report — so this test is what decides whether a
  * dance is in `DEMO_DANCES` at all.
+ *
+ * **It runs on the engine the Stage runs on.** M5 moved it there for On the
+ * Prowl and M7 has two more of the same kind: a dance calling a figure that has
+ * only ever been data cannot be danced by a registry of coded figures at all,
+ * and since M3 what ships is `contraDataEngine()`.
+ *
  */
 
 describe("the demo dance registry", () => {
@@ -52,7 +59,7 @@ describe("the demo dance registry", () => {
         ).toBe(16);
       }
       expect(dance.author.length).toBeGreaterThan(0);
-      expect([DUPLE_IMPROPER.id, BECKET.id]).toContain(dance.formation);
+      expect([DUPLE_IMPROPER.id, BECKET.id, PROPER.id]).toContain(dance.formation);
       expect(() => validateDance(dance)).not.toThrow();
     });
 
@@ -104,7 +111,7 @@ describe("a programme of every dance, danced end to end", () => {
   const ITEM_BEATS = 2 * 64 + betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
 
   it("switches from each dance to the next without anybody jumping", () => {
-    const formations = [DUPLE_IMPROPER, BECKET];
+    const formations = [DUPLE_IMPROPER, BECKET, PROPER];
     const registry = createContraRegistry(LAB_RUN.figures);
     const hall = createHall(DUPLE_IMPROPER, [{ id: "set0", couples: 5, centre: [0, 0], axis: 90 }]);
     const decider = createScriptDecider(
@@ -128,7 +135,7 @@ describe("a programme of every dance, danced end to end", () => {
       program,
       registry,
       hall,
-      createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET]),
+      createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET, PROPER]),
       { cycle: LAB_RUN.cycle },
     );
     decider.advance(DEMO_DANCES.length * ITEM_BEATS);

@@ -121,12 +121,20 @@ export function relationWord(rel: Relation): string {
  * pairing has to agree from both ends. `partner`, `neighbor k`, `shadow k` and
  * `opposite` are symmetric in both contra formations — the tables are written
  * so that they are, and `relations.test.ts` checks it dancer by dancer over a
- * six-couple set at every round. `trail-buddy` and `corner` are **directional**
- * (the buddy you follow is not the buddy who follows you), so they select
- * actors and never pair them.
+ * six-couple set at every round.
+ *
+ * `trail-buddy` is **directional** — the buddy you follow is not the buddy who
+ * follows you — so it selects actors and never pairs them.
+ *
+ * **`corner` was directional until M7 and is not.** M6 wrote the row as a
+ * placeholder and kept it out of every pairing on that assumption; M7 gave both
+ * formations the real rule — your first corner is the dancer of the other couple
+ * diagonally across the set, your second the one straight along your own line —
+ * and both are offsets in the asking dancer's own `travel`, which is what makes
+ * them their own inverse. `relations.test.ts` and `proper.test.ts` check it
+ * dancer by dancer, and Chorus Jig's cast off is a pairing on `C2`.
  */
-export const isSymmetricRelation = (rel: Relation): boolean =>
-  rel.kind !== "trail-buddy" && rel.kind !== "corner";
+export const isSymmetricRelation = (rel: Relation): boolean => rel.kind !== "trail-buddy";
 
 /**
  * Who this relation names, or `undefined` when nobody stands there.
