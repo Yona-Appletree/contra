@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { dist, rightOf } from "@caller/core";
 import { BECKET } from "../formation/becket.js";
-import { robinsChain } from "./robins-chain.js";
+import { COURTESY_PIVOT_FROM_LARK_PX } from "./courtesyTurn.js";
+import { CHAIN_CANDIDATES, robinsChain } from "./robins-chain.js";
 import {
   figureMoves,
   figureProblems,
@@ -10,6 +11,30 @@ import {
   spotError,
   stationSpot,
 } from "./testing.js";
+
+describe("`?chain=`'s four candidates (PR #35)", () => {
+  it("names candidate 1 the figure's own shipped default", () => {
+    expect(CHAIN_CANDIDATES["1"]).toEqual({
+      pivotFromLark: robinsChain.defaults.pivotFromLark,
+      stepInPx: robinsChain.defaults.stepInPx,
+    });
+    expect(robinsChain.defaults.pivotFromLark).toBe(COURTESY_PIVOT_FROM_LARK_PX);
+    expect(robinsChain.defaults.stepInPx).toBe(0);
+  });
+
+  it("puts candidate 2's pivot at the lark, still rigid", () => {
+    expect(CHAIN_CANDIDATES["2"]).toEqual({ pivotFromLark: 0, stepInPx: 0 });
+  });
+
+  it("steps candidates 3 and 4 in 4 px and 8 px, the couple spinning", () => {
+    expect(CHAIN_CANDIDATES["3"]).toEqual({ stepInPx: 4 });
+    expect(CHAIN_CANDIDATES["4"]).toEqual({ stepInPx: 8 });
+  });
+
+  it("has no fifth candidate", () => {
+    expect(CHAIN_CANDIDATES["5"]).toBeUndefined();
+  });
+});
 
 describe("robins chain", () => {
   it("reaches, joins, ends and keeps its distance in becket", () => {

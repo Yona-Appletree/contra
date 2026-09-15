@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       "**/dist/**",
+      "**/dist-preview/**",
       "**/storybook-static/**",
       "**/node_modules/**",
       "**/.turbo/**",

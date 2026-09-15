@@ -18,6 +18,7 @@ import {
   tileMetrics,
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
+import { chainOverridesFromQuery } from "../state/chainQuery.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
 import type { RowTraceView } from "../traces/traceDrawings.js";
 import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
@@ -54,6 +55,10 @@ import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
  *   switch in each panel changes it from there for the rest of the visit
  *   (T4). `#/moves/<figure-id>/traces` shows all three, plus the strip, at
  *   full width with a reading guide each.
+ * - `?chain=1|2|3|4` swaps `robins-chain`'s courtesy turn to one of PR #35's
+ *   four candidates for every tile that dances it — its own row and every
+ *   seam — instead of the shipped default (1, the rigid turn); an absent or
+ *   unrecognised value changes nothing.
  */
 
 /** The tempo the gallery loops at, matching the pair page's plain clock. */
@@ -85,7 +90,7 @@ export function MovesPage({
   path: string;
   params: URLSearchParams;
 }): JSX.Element {
-  const tiles = useTiles();
+  const tiles = useTiles(params.get("chain"));
   const solo = soloKey(path);
   const shown = useMemo(
     () => (solo === null ? tiles : tiles.filter((t) => t.key === solo)),
@@ -701,8 +706,13 @@ export const soloHref = (tile: GalleryTile): string =>
   tile.kind === "seam" ? `#/moves/seam/${tile.key}` : `#/moves/${tile.key}`;
 
 /** Build the tiles once for the life of the page: they cost a sampling sweep. */
-function useTiles(): GalleryTile[] {
-  return useMemo(() => galleryTiles(), []);
+/**
+ * `chain` is `?chain=`'s raw value: which of `robins-chain`'s four courtesy-
+ * turn candidates (PR #35) to dance instead of the shipped default, across
+ * every tile — the figure's own row and every seam it appears in.
+ */
+function useTiles(chain: string | null): GalleryTile[] {
+  return useMemo(() => galleryTiles(chainOverridesFromQuery(chain)), [chain]);
 }
 
 /**

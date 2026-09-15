@@ -91,7 +91,7 @@ export type { RightAndLeftThroughParams } from "./right-and-left-through.js";
 export { rightAndLeftThrough } from "./right-and-left-through.js";
 
 export type { RobinsChainParams } from "./robins-chain.js";
-export { robinsChain } from "./robins-chain.js";
+export { CHAIN_CANDIDATES, robinsChain } from "./robins-chain.js";
 
 export type { HeyParams } from "./hey.js";
 export { hey } from "./hey.js";
@@ -106,7 +106,7 @@ export {
   larkAndRobin,
 } from "./courtesyTurn.js";
 
-export type { ContraFigureId } from "./registry.js";
+export type { ContraFigureId, FigureDefaultsOverride } from "./registry.js";
 export {
   CONTRA_FIGURES,
   CONTRA_FIGURE_IDS,
