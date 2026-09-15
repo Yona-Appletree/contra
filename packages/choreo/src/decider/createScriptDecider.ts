@@ -367,13 +367,23 @@ export function createScriptDecider(
     // of the words. "The calls stay around too long... they should stay
     // around either how many beats they are, or maybe 1 or 2 beats past. but
     // not until the next call" (the user, 2026-09-14).
+    //
+    // The spoken length is measured from where the utterance actually starts
+    // being heard, `Math.max(opts.startBeat, leadStart)` — not the raw,
+    // possibly-negative `leadStart` a short first call at the very start of
+    // the programme can have. A programme that opens on a dance whose first
+    // call is short enough that `spokenBeats + tail ≤ lead` (Butter's own
+    // "SHIFT LEFT", said with the two-beat `firstCallLeadBeats`) would
+    // otherwise end the utterance at or before beat 0 — a zero- or
+    // negative-length window nobody ever hears, on the very first call of the
+    // evening.
     for (const { call, start: offset } of schedule) {
       const def = registry.get(call.figure);
       const text = call.call ?? def.call;
       const lead = first && offset === 0 ? opts.firstCallLeadBeats : def.lead;
-      const leadStart = start + offset - lead;
+      const uttStart = Math.max(opts.startBeat, start + offset - lead);
       const spoken = call.spokenBeats ?? def.spokenBeats ?? spokenBeats(text);
-      say(into, text, leadStart, leadStart + spoken + opts.utteranceTailBeats);
+      say(into, text, uttStart, uttStart + spoken + opts.utteranceTailBeats);
     }
 
     at.beat = start + cycle;
