@@ -974,13 +974,48 @@ sentences of what the dancers do, in a caller's words. `star` and
 two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
 square to the other line, danced in two steps, and the figure now says so.
 
-**`describe` is the fallback now, not what the app shows** (W1). Every move's
-prose lives in `data/figures/<id>.json` — a short and a long walkthrough, a
-short and a long call, each a template over that figure's own parameters —
-loaded by `src/text/`. `resolveFigureText(id, params, group)` fills every slot
-from one call's own tuning, and `landmark(def, params, group)` writes the last
-sentence of the long walkthrough from `FigureDef.ends`: "you should be across
-the set from your partner, next to your neighbor". See
-[`docs/move-texts.md`](../../docs/move-texts.md) for the voice and the slot
-vocabulary. `describe` stays on the figure contract until the cleanup that
-removes it.
+**`describe` is the fallback now, not what the app shows** (W1, M13). Every
+figure's prose lives in `data/figures/<id>.json` — a third-person
+`description`, a `defaultLevel`, a mechanics `line`, a full `teach`, and the
+caller's `call` forms keyed by how many **beats** each takes to say — loaded by
+`src/text/`. `resolveFigureText(id, params, slots)` fills every slot from one
+call's own shorthand tuning and the dancer that call names (`callWho(call)`),
+and `resolveFigureForms` is the cheap half for the places that want the caller's
+words alone. One table — `src/text/relationWords.ts` — says who a relation is,
+in both registers, for every text in the app.
+
+Where a figure **leaves** you is no longer written (D22): `{where}` is gone from
+the texts, and the sentence is generated beside them — "Your partner is across
+from you. Your neighbor is beside you." Two functions say it, in one
+vocabulary (`src/text/seam.ts`, and nothing else in the app has a second):
+
+- **`seamHint(boundary, reference)`** — the hint at a **seam of a dance**, read
+  off the planner's own honest ends. `danceBoundaries(dance, formation)` in
+  `src/set/planCycle.ts` dances the dance headlessly on a probe line and reports
+  every dancer's spot, holds, slot and partner at every call boundary, with the
+  instances on either side of it; the hint is said only when something changed,
+  and splits by role when the roles disagree.
+- **`landmark(def, params, group)`** — the same sentence about a **figure**, over
+  one figure's own boundary pair, which is the question the Moves page can ask.
+
+**`callScript(dance, timeThrough)` and `callingCard(dance)`**
+(`src/text/callScript.ts`) are one function read two ways: along a time through,
+which is what the caller's bubble says (through `@caller/choreo`'s `callsFor`
+hook, wired in `apps/web/src/program.ts`), and down the record, which is what the
+calling card prints. A call is said at the longest form that fits the **window**
+the call before it leaves and the **budget** this time through is in; two short
+figures inside one phrase are said in one breath; two figures danced at once are
+joined by `WHILE`. A dance file's own `call` is a **flourish** and joins the list
+as the longest form there is.
+
+**A schedule figure's teach is generated** (`src/text/scheduleTeach.ts`): the
+hey's is its own pass list read aloud in the user's shape, because there are
+more heys a caller can ask for than anybody will write teach texts for. The file
+keeps the opening sentence and `resolveFigureText` appends the rest.
+
+**`danceWalkthrough(dance)`** (`src/text/walkthrough.ts`) is the whole card: the
+formation's own opening, one entry per call of the record with its heading, its
+lines and its hint, and the progression sentence at the wrap. See
+[`docs/move-texts.md`](../../docs/move-texts.md) for the voice, the file shape
+and the slot vocabulary. `describe` stays on the figure contract until the
+cleanup that removes it.

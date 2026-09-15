@@ -14,20 +14,15 @@
     {
       "name": "A1",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR SWING"
-        }
+        { "figure": "long-lines", "beats": 8 },
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors", "endFacing": "across" } }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO PARTNER" },
-        { "figure": "hey", "beats": 8, "params": { "amount": 0.5 }, "call": "HALF A HEY" }
+        { "figure": "robins-chain", "beats": 8 },
+        { "figure": "hey", "beats": 8, "params": { "amount": 0.5 } }
       ]
     },
     {
@@ -36,8 +31,7 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "endFacing": "across" }
         }
       ]
     },
@@ -47,15 +41,9 @@
         {
           "figure": "allemande",
           "beats": 8,
-          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
-          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 }
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors", "endFacing": "across" } }
       ]
     }
   ]

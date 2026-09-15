@@ -1,36 +1,82 @@
-// The four texts every move is written in, as data, and the one sentence that
-// is generated rather than written. See `figureText.ts` and `landmark.ts`, and
+// The seven texts every figure is written in, as data, and the vocabulary they
+// are resolved through. See `figureText.ts` and `relationWords.ts`, and
 // `docs/move-texts.md` for the voice they are written in.
 
 export type {
-  FigureCallText,
+  CallForm,
+  CallToken,
+  CallTokenKind,
   FigureTextFile,
   FigureTexts,
   FigureWalkthrough,
   PartialFigureText,
   Register,
+  TextLevel,
+  TextSlots,
 } from "./figureText.js";
 export {
+  DESCRIPTION_WORDS,
   FIGURE_TEXTS,
-  LONG_CALL_WORDS,
-  LONG_WORDS,
-  SHORT_CALL_WORDS,
-  SHORT_WORDS,
+  FORM_WORDS,
+  LINE_WORDS,
+  REQUIRED_FORM_BEATS,
+  RETIRED_SLOTS,
+  SHORT_FORM_WORDS,
   SLOT_NAMES,
-  WHERE,
+  TEACH_WORDS,
+  callWho,
   checkFigureTexts,
   figureDefOf,
+  formFor,
   hasFigureText,
   mergeVariants,
-  pairingName,
   renderSlot,
-  resolveFigureCall,
+  resolveFigureForms,
   resolveFigureText,
   slotsIn,
+  textedFigureIds,
   textsOf,
   variantMatches,
   variantValue,
 } from "./figureText.js";
 
-export type { Place, Relation } from "./landmark.js";
-export { facingClause, isHome, landmark, relationOf } from "./landmark.js";
+export type { WhoWord } from "./relationWords.js";
+export { relationWords, whoKey, whoOf } from "./relationWords.js";
+
+export { HOME_PX, isHome, landmark, placesOf } from "./landmark.js";
+
+export type { Hint, Need, Place, SeamRelation, SeamSide } from "./seam.js";
+export {
+  NEXT_TO_PX,
+  SAME_LINE_PX,
+  SAME_ROW_PX,
+  chainTarget,
+  hintText,
+  needOf,
+  placeOf,
+  relationTo,
+  relationWordBetween,
+  sayWhoIsWhere,
+  seamHint,
+  toOf,
+} from "./seam.js";
+
+export type { WalkthroughCard, WalkthroughEntry, WalkthroughLine } from "./walkthrough.js";
+export { danceWalkthrough } from "./walkthrough.js";
+
+export { DANCE_LEVEL_KEYS, applyTeach, checkDanceTeach, teachKey } from "./teach.js";
+
+export type { CallPolicy, CallingCardCell, CallingCardRow, SpokenCall } from "./callScript.js";
+export {
+  DEFAULT_CALL_POLICY,
+  LEAD_BEATS,
+  WHILE,
+  budgetFor,
+  callScript,
+  callTexts,
+  callingCard,
+  classifyCall,
+  headingTokens,
+} from "./callScript.js";
+
+export { passListFor, scheduleSentences, scheduleTeach } from "./scheduleTeach.js";

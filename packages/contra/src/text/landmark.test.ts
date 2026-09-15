@@ -7,8 +7,9 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { probeGroup } from "../figures/testing.js";
 import { dataOnlyDefinitions } from "../library/figures/index.js";
 import { figureDefOf } from "./figureText.js";
-import type { Place } from "./landmark.js";
-import { facingClause, isHome, landmark, relationOf } from "./landmark.js";
+import { isHome, landmark } from "./landmark.js";
+import type { Place } from "./seam.js";
+import { relationTo, sayWhoIsWhere } from "./seam.js";
 
 /**
  * The landmark is the one sentence of a walkthrough nobody writes: where the
@@ -20,20 +21,34 @@ import { facingClause, isHome, landmark, relationOf } from "./landmark.js";
 const at = (across: number, along: number, facing = 90): Place => ({ across, along, facing });
 
 describe("the vocabulary of relations", () => {
+  const who = (me: Place, them: Place): string =>
+    sayWhoIsWhere(relationTo(me, them), "your partner");
+
   it("calls the other line across the set", () => {
-    expect(relationOf(at(16, -10), at(-16, -10))).toBe("across the set from");
+    expect(who(at(16, -10), at(-16, -10))).toBe("Your partner is across from you.");
   });
 
-  it("calls your own line, one place along, next to", () => {
-    expect(relationOf(at(16, -10), at(16, 10))).toBe("next to");
+  it("calls your own line, one place along, beside you", () => {
+    expect(who(at(16, -10), at(16, 10))).toBe("Your partner is beside you.");
   });
 
-  it("calls the far corner the diagonal", () => {
-    expect(relationOf(at(16, -10), at(-16, 30))).toBe("on the diagonal from");
+  it("calls the far corner a diagonal, and says which one", () => {
+    expect(who(at(16, -10), at(-16, 30))).toBe("Your partner is on your right diagonal.");
+    expect(who(at(-16, -10), at(16, 30))).toBe("Your partner is on your left diagonal.");
   });
 
   it("calls a dancer two couples down your own line along the line", () => {
-    expect(relationOf(at(16, -10), at(16, 50))).toBe("along the line from");
+    expect(who(at(16, -10), at(16, 50))).toBe("Your partner is along your line.");
+  });
+
+  it("calls somebody on your own line the other way behind you", () => {
+    expect(who(at(16, 50, 90), at(16, -10))).toBe("Your partner is behind you.");
+  });
+
+  it("says a held hand whatever the geometry says", () => {
+    expect(sayWhoIsWhere(relationTo(at(16, -10), at(-16, -10), "R"), "your partner")).toBe(
+      "Your partner is in your right hand.",
+    );
   });
 
   it("is home on the place alone, never on the facing", () => {
@@ -43,43 +58,41 @@ describe("the vocabulary of relations", () => {
     expect(isHome(at(16, -10, 90), at(16, -10, 180))).toBe(true);
     expect(isHome(at(16, -10), at(16, 10))).toBe(false);
   });
-
-  it("says who you ended up looking at, and nothing when it is neither", () => {
-    const me = at(16, -10, 180);
-    const partner = at(-16, -10);
-    const neighbor = at(16, 10);
-    expect(facingClause(me, partner, neighbor)).toBe("facing your partner");
-    expect(facingClause(at(16, -10, 90), partner, neighbor)).toBe("facing your neighbor");
-    expect(facingClause(at(16, -10, 270), partner, neighbor)).toBeUndefined();
-  });
 });
 
 describe("the landmark a figure ends on", () => {
-  it("is the user's own sentence for a circle left three quarters in becket", () => {
-    // The ruling, verbatim: "take hands in a ring. circle three places to your
-    // left. you should be across the set from your partner, next to your
-    // neighbor."
+  it("is the seam's own two sentences for a circle left three places in becket", () => {
+    // The user's own ruling for this figure — "take hands in a ring. circle
+    // three places to your left. you should be across the set from your
+    // partner, next to your neighbor" — said in the vocabulary the seam hints
+    // use, which is now the only vocabulary there is (A3).
     const def = figureDefOf("circle")!;
     const group = probeGroup(BECKET, 4);
     expect(landmark(def, withDefaults(def, { direction: "left", places: 3 }, 8), group)).toBe(
-      "You should be across the set from your partner, next to your neighbor.",
+      "Your partner is across from you. Your neighbor is beside you.",
     );
   });
 
-  it("sends you home from a figure that closes on itself", () => {
+  it("says where both people are for a figure that closes on itself", () => {
     const def = figureDefOf("long-lines")!;
     const group = probeGroup(DUPLE_IMPROPER, 4);
     expect(landmark(def, withDefaults(def, {}, 8), group)).toBe(
-      "You are back where you started, facing your partner.",
+      "Your partner is across from you. Your neighbor is beside you.",
     );
   });
 
-  it("teaches the two roles apart when the figure leaves them apart", () => {
+  it("says one sentence for the whole four where the four agree", () => {
+    // **The by-role branch is unreachable at figure level**, and that is a fact
+    // about the question rather than about this code: `landmark` reads a
+    // figure's ends by **station**, and a minor set of four is symmetric, so the
+    // picture from each of the four stations is the same picture. The split
+    // still happens at a **seam**, where the question is about *dancers* and the
+    // next call may name one role's dancer and not the other's — which is
+    // `seam.ts`'s, and `seam.test.ts`'s.
     const def = figureDefOf("allemande")!;
     const group = probeGroup(DUPLE_IMPROPER, 4);
     const said = landmark(def, withDefaults(def, { pairs: [["1R", "2R"]], amount: 1.5 }, 8), group);
-    expect(said).toContain("Larks, you");
-    expect(said).toContain("Robins, you");
+    expect(said).toBe("Your partner is beside you. Your neighbor is across from you.");
   });
 
   it("says nothing at all for a couple waiting out at the end of the line", () => {
@@ -154,7 +167,7 @@ describe("every figure the demo dances call has a landmark", () => {
     // it tells the dancer something about where they are standing.
     expect(said!, `${slug}: ${figure}`).toMatch(/^[A-Z].*\.$/);
     expect(said!, `${slug}: ${figure}`).toMatch(
-      /back where you started|across the set|next to|on the diagonal|along the line/,
+      /is (across from you|beside you|on your (left|right) diagonal|along your line|behind you|in your (left|right) hand)\./,
     );
   });
 });

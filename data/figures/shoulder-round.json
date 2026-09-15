@@ -1,17 +1,23 @@
 {
   "id": "shoulder-round",
+  "description": "Two dancers walk round each other with one shoulder toward the other.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Walk round {pairs} keeping your {hand} shoulder toward them, and keep looking at each other. No hands.",
-    "long": "Nobody takes hands for this one. Walk forward round {pairs} with your {hand} shoulder toward them, turning your body as you go so the two of you are looking at each other the whole way round — that is what makes it a shoulder round rather than a do-si-do. {amount}, and you finish where that leaves you."
+    "line": "Walk round {who} with your {hand} shoulder toward them, looking at each other, {amount}.",
+    "teach": "Walk forward round {who} with your {hand} shoulder toward them, turning your body as you go so the two of you are looking at each other the whole way round. That is what tells a shoulder round from a do-si-do. Your hands stay at your sides. Go {amount}."
   },
   "call": {
-    "short": "SHOULDER ROUND",
-    "long": "{pairs} {hand} SHOULDER ROUND {amount}"
+    "1": "ROUND",
+    "2": "{hand} SHOULDER ROUND",
+    "4": "{who} {hand} SHOULDER ROUND {amount}"
   },
   "variants": {
     "amount=0.5": {
       "walkthrough": {
-        "short": "Half a shoulder round with {pairs}, {hand} shoulders, eyes on each other: you end on their place."
+        "line": "Half a shoulder round with {who}, {hand} shoulders, eyes on each other the whole way."
+      },
+      "call": {
+        "4": "{who} {hand} SHOULDER ROUND {amount}"
       }
     }
   }

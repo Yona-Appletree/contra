@@ -33,12 +33,7 @@
           "params": { "pairs": "partners", "hand": "R", "amount": 0.5 },
           "call": "HALF A RIGHT SHOULDER ROUND WITH YOUR PARTNER"
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     },
     {
@@ -62,19 +57,14 @@
           "params": { "pairs": "neighbors", "hand": "R", "amount": 0.5 },
           "call": "HALF A RIGHT SHOULDER ROUND WITH YOUR NEIGHBOUR"
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors", "endFacing": "across" } }
       ]
     },
     {
       "name": "B1",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR PARTNER" }
+        { "figure": "long-lines", "beats": 8 },
+        { "figure": "robins-chain", "beats": 8 }
       ]
     },
     {

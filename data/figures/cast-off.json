@@ -1,11 +1,14 @@
 {
   "id": "cast-off",
+  "description": "Two dancers trade places, one swooping out round the other.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Turn out of the set, swoop round the dancer along the line from you, and loop back into their place.",
-    "long": "Turn away from the middle of the set — if the set is on your left you turn to your right — and swoop out and round the dancer standing along the line from you, on the outside of the line, then loop back in to the place they were in. They step in toward the middle and come up the inside into the place you have left. The two of you have traded places, and that is the progression."
+    "line": "Turn out of the set and swoop round the dancer along the line from you, into their place.",
+    "teach": "Turn out of the set: if you are on the right, look up the hall and swoop out to your right. Walk round the dancer standing along the line from you, outside the line, into the place they were in, while they step in along the inside to take the place you have left. The two of you have traded places."
   },
   "call": {
-    "short": "CAST OFF",
-    "long": "CAST OFF AND TRADE PLACES"
+    "4": "CAST OFF AND TRADE PLACES",
+    "2": "CAST OFF",
+    "1": "CAST OFF"
   }
 }

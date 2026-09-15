@@ -13,7 +13,9 @@ import type {
   Frame,
   Group,
   GroupId,
+  GroupPlan,
   HallState,
+  PhraseName,
   SetId,
   SetState,
   Side,
@@ -25,6 +27,8 @@ import {
   WALK_TO_STATION,
   callBeats,
   concurrentCalls,
+  createGroup,
+  createHall,
   danceBeats,
   dancePassSpans,
   frameAngle,
@@ -43,6 +47,7 @@ import type {
   Spots,
 } from "../figures/ContraFigure.js";
 import type { Library } from "../library/Library.js";
+import { contraDataEngine } from "../library/engine.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { figureFor } from "../library/interpret.js";
 import { legacyLibrary } from "../library/legacy.js";
@@ -680,6 +685,185 @@ function planContraCycle(
   return { emissions, next: { sets: hall.sets.map((set) => states.get(set.id)!) } };
 }
 
+/**
+ * **The set, at every call boundary of one time through** (M13).
+ *
+ * What the text layer needs and nothing else does: where every dancer stands,
+ * what they are holding, which slot they call home and who they are bound to,
+ * at the seam between one call and the next — plus the instances on either side
+ * of that seam, so the hint can ask "who did this call put me with, and who does
+ * the next one".
+ *
+ * `model` is a **copy**: the loop below moves one model through the whole time
+ * through, and a snapshot that aliased it would read the end of the dance at
+ * every boundary.
+ */
+export interface BoundarySnapshot {
+  /** The beat of the time through this boundary sits at. */
+  beat: Beat;
+  /** Which written call starts here; the schedule's length at the wrap. */
+  index: number;
+  /** The phrase that call belongs to, or the last phrase at the wrap. */
+  phrase: PhraseName;
+  /** Which pass of the record, from zero. */
+  pass: number;
+  /** The set as it stands here. */
+  model: SetModel;
+  /** The instances the call that starts here resolves to; empty at the wrap. */
+  starting: readonly FigureInstance[];
+  /** The instances of the call that has just ended; empty at the top. */
+  ending: readonly FigureInstance[];
+}
+
+/** One time through of a probe line, read at every call boundary. */
+export interface DanceBoundaries {
+  /**
+   * **The four dancers a caller's sentence is about**: one interior minor set of
+   * the probe line at beat 0.
+   *
+   * A hint is said to the whole hall, so it has to be true of a minor set that
+   * is *dancing* — not of the couple standing out at an end, whose answers are
+   * the end effects and are a different table (M6's). The middle of the line is
+   * the interior one, and the four are named by **dancer**, which is what
+   * survives a progression in the middle of a time through.
+   */
+  reference: readonly DancerId[];
+  boundaries: readonly BoundarySnapshot[];
+}
+
+/**
+ * Dance `dance` headlessly on a probe line and report the set at every call
+ * boundary.
+ *
+ * **Not a second planner.** It is `planContraCycle`'s own loop with the emissions
+ * left out: the same `resolveConcurrent`, the same `advance`, the same
+ * `rebind`, the same progression rules, so a boundary here is the boundary the
+ * hall actually dances. What it does not do is emit figures, carry hold
+ * *reporting* across a seam (`carryInto` writes a `Carried` for the renderer and
+ * changes nothing the model records) or fill anybody's wait-out — a waiting
+ * couple is simply never cast, which is exactly what the seam hint wants.
+ *
+ * One set, because a hint is a sentence said to the whole hall: which minor set
+ * of that line it is read off is the caller's choice, not this function's.
+ */
+export function danceBoundaries(
+  dance: Dance,
+  formation: Formation,
+  couples = PROBE_COUPLES,
+): DanceBoundaries {
+  const { registry, library } = contraDataEngine();
+  const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
+  let state: SetState = hall.sets[0]!;
+  const reference = interiorFour(formation, state);
+
+  const local = new Map<DancerId, LocalSpot>();
+  const first = firstPlaces(formation, dance, state);
+  for (const [dancer, memo] of first.local) local.set(dancer, memo);
+  let model = modelFromSet(formation, state, first.world);
+
+  const spans = dancePassSpans(dance);
+  const perPass = dance.phrases.length / spans.length;
+  const schedule = passSchedule(dance, perPass);
+  const phraseOf = phraseNames(dance);
+  const shift = progressionOf(dance);
+  const progressEvery = dance.progressEvery ?? 1;
+
+  const out: BoundarySnapshot[] = [];
+  let ending: readonly FigureInstance[] = [];
+  let seq = 0;
+  const mint = (plan: GroupPlan): Group =>
+    createGroup({ ...plan, id: `${plan.id}#b${String(seq++)}` }, formation.roleSet);
+
+  for (const [passIndex] of spans.entries()) {
+    let progressedInPass = false;
+    for (const [index, { call, start: offset, pass }] of schedule.entries()) {
+      if (pass !== passIndex) continue;
+      const groups = formation.groupsFor(call.group ?? HANDS_FOUR_GROUP, state);
+      const instances = resolveConcurrent(
+        call,
+        { model, formation, library, groups, localOf: (dancer, f) => localIn(local, dancer, f) },
+        offset,
+      );
+      out.push({
+        beat: offset,
+        index,
+        phrase: phraseOf[index]!,
+        pass,
+        model: structuredClone(model),
+        starting: instances,
+        ending,
+      });
+      ending = instances;
+
+      for (const instance of instances) {
+        if (instance.holdPlace) {
+          // A dancer standing still moves nowhere and holds nothing.
+          for (const dancer of Object.values(instance.cast)) {
+            const held = model.dancers[dancer];
+            if (held) held.holds = {};
+          }
+          continue;
+        }
+        const definition = library.get(instance.figure);
+        const fig = figureFor(definition, registry);
+        const def = registry.get(instance.figure);
+        const group = mint(instance.group);
+        const from = fromSpots(group, model, local);
+        const chainParams = withDefaults<ContraParams>(
+          def,
+          { ...callParams(instance), from, carried: NO_CARRIED },
+          instance.beats,
+        );
+        advance(fig, chainParams, group, model, local, instance);
+        rebind(instance, model);
+      }
+
+      if (progressesHere(call)) {
+        progressedInPass = true;
+        state = progressSet(formation, model, state, shift);
+        model = progressModel(model, shift);
+      }
+    }
+    if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
+      state = progressSet(formation, model, state, shift);
+      if (passIndex + 1 < spans.length) model = progressModel(model, shift);
+    }
+  }
+
+  out.push({
+    beat: danceBeats(dance),
+    index: schedule.length,
+    phrase: phraseOf[phraseOf.length - 1] ?? "",
+    pass: spans.length - 1,
+    model: structuredClone(model),
+    starting: [],
+    ending,
+  });
+  return { reference, boundaries: out };
+}
+
+/** A line long enough to have an interior minor set, whichever formation it is. */
+const PROBE_COUPLES = 8;
+
+/** The four dancers of the middle **dancing** minor set of a line. */
+function interiorFour(formation: Formation, set: SetState): DancerId[] {
+  const dancing = formation.groupsFor(HANDS_FOUR_GROUP, set).filter((plan) => plan.kind === "set");
+  const middle = dancing[Math.floor(dancing.length / 2)] ?? dancing[0];
+  if (middle === undefined) return [];
+  return middle.stations
+    .map((station) => middle.members[station.id])
+    .filter((dancer): dancer is DancerId => dancer !== undefined);
+}
+
+/** Which phrase each written call of the record belongs to, in schedule order. */
+function phraseNames(dance: Dance): PhraseName[] {
+  const out: PhraseName[] = [];
+  for (const phrase of dance.phrases) {
+    for (let i = 0; i < phrase.figures.length; i++) out.push(phrase.name);
+  }
+  return out;
+}
+
 /** One schedule entry: the call, the beat it starts on, and the pass it is in. */
 interface PassScheduled {
   call: FigureCall;
@@ -965,7 +1149,15 @@ function carryInto(
   }
 }
 
-/** Move the set on by one instance: its ends become spots, its last-beat joins become holds. */
+/**
+ * Move the set on by one instance: its ends become spots, its last-beat joins
+ * become holds.
+ *
+ * `planned` and `lastInstance` are the **emission**'s bookkeeping — which
+ * instance a dancer is coming out of, so that the next one can report a hold as
+ * carried. {@link danceBoundaries} leaves them out: it reads the model and emits
+ * nothing, and a `Carried` changes no spot and no hold.
+ */
 function advance(
   fig: ContraFigure,
   chainParams: ContraParams,
@@ -973,8 +1165,8 @@ function advance(
   model: SetModel,
   local: Map<DancerId, LocalSpot>,
   instance: FigureInstance,
-  planned: Planned,
-  lastInstance: Map<DancerId, Planned>,
+  planned?: Planned,
+  lastInstance?: Map<DancerId, Planned>,
 ): void {
   // `moves`, not `ends`: the same frame-local answer, which is what the spot
   // memo above needs and what `chainCalls` threads today. `ends` is exactly
@@ -992,7 +1184,7 @@ function advance(
       local.set(dancer, { frame: group.frame, spot: end });
     }
     state.holds = {};
-    lastInstance.set(dancer, planned);
+    if (planned !== undefined) lastInstance?.set(dancer, planned);
   }
   const cast = new Set(Object.values(instance.cast));
   for (const join of fig.joins(chainParams, instance.beats, group.stations, group.frame.spacing)) {

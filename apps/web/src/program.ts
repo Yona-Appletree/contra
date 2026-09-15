@@ -14,6 +14,7 @@ import {
   PROPER,
   DEMO_DANCES,
   DUPLE_IMPROPER,
+  callScript,
   contraDataEngine,
   createContraCyclePlanner,
   createContraRegistry,
@@ -583,9 +584,21 @@ export function createDemoProgram(
     // and robins in the other, all the way through — and a library that does
     // not hold it refuses the dance by name at load.
     createLibrary(dances, [DUPLE_IMPROPER, BECKET, PROPER]),
-    engineHalves.library === undefined
-      ? {}
-      : { cycle: createContraCyclePlanner({ library: engineHalves.library }) },
+    {
+      // **The bubble follows the calling card** (M13, AC3): what the caller says
+      // is the same computation the dance page prints, so the two can never
+      // drift. The decider carries the events and knows nothing about why they
+      // say what they say.
+      callsFor: (dance, timeThrough) =>
+        callScript(dance, timeThrough).map(({ offset, text, spokenBeats }) => ({
+          offset,
+          text,
+          ...(spokenBeats === undefined ? {} : { beats: spokenBeats }),
+        })),
+      ...(engineHalves.library === undefined
+        ? {}
+        : { cycle: createContraCyclePlanner({ library: engineHalves.library }) }),
+    },
   );
   decider.advance(LOOKAHEAD_BEATS);
   return {

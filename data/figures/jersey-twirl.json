@@ -1,11 +1,14 @@
 {
   "id": "jersey-twirl",
+  "description": "A couple trades places under a raised hand, turning the other way round.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Inside hands with the dancer beside you, raise them, and trade places under the arch.",
-    "long": "Join inside hands with the dancer beside you and raise them into an arch. One of you walks forward and round the outside while the other turns under the arch, and the two of you trade places. You end side by side again, facing back the way you came. Four beats, hands joined the whole way through."
+    "line": "Take inside hands with {who} and raise them; the two of you trade places under the arch.",
+    "teach": "Join inside hands with {who} and raise them into an arch. One of you turns under it while the other walks forward and round the outside, and the two of you trade places. You end side by side again, facing back the way you came, hands joined the whole way through."
   },
   "call": {
-    "short": "JERSEY TWIRL",
-    "long": "JERSEY TWIRL WITH YOUR {pairs}"
+    "4": "{who} JERSEY TWIRL",
+    "2": "JERSEY TWIRL",
+    "1": "TWIRL"
   }
 }

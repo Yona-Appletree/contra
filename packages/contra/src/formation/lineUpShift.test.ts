@@ -62,11 +62,11 @@ describe("the line-up shift comes off the progression", () => {
   });
 
   it("says the direction it measured, and nothing about which formation it is", () => {
-    expect(becketHandsFourCalls("left")[0]).toBe("MOVE ONE PLACE TO YOUR LEFT");
-    expect(becketHandsFourCalls("right")[0]).toBe("MOVE ONE PLACE TO YOUR RIGHT");
+    expect(becketHandsFourCalls("left")[0]).toBe("CIRCLE ONE PLACE TO YOUR LEFT");
+    expect(becketHandsFourCalls("right")[0]).toBe("CIRCLE ONE PLACE TO YOUR RIGHT");
     expect(becketHandsFourCalls("left").slice(1)).toEqual([
       "THIS IS A BECKET DANCE",
-      "YOUR PARTNER IS ON THE SIDE OF THE SET WITH YOU",
+      "YOUR PARTNER IS BESIDE YOU",
     ]);
     // A formation with no shift has nothing to say about one.
     expect(becketHandsFourCalls(null)).toEqual([]);
@@ -76,10 +76,10 @@ describe("the line-up shift comes off the progression", () => {
     const left = BECKET.start(spec(8));
     const right = BECKET_RIGHT.start(spec(8));
     expect(BECKET.handsFourCalls?.(lineUpShiftOf(BECKET, left))?.[0]).toBe(
-      "MOVE ONE PLACE TO YOUR LEFT",
+      "CIRCLE ONE PLACE TO YOUR LEFT",
     );
     expect(BECKET_RIGHT.handsFourCalls?.(lineUpShiftOf(BECKET_RIGHT, right))?.[0]).toBe(
-      "MOVE ONE PLACE TO YOUR RIGHT",
+      "CIRCLE ONE PLACE TO YOUR RIGHT",
     );
   });
 });

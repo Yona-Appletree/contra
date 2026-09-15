@@ -10,25 +10,13 @@
     "permission": "full",
     "transcript": "A1  (8) Ones go down outside  (8) Ones go up outside\nA2  (4) Ones lead down  (4) Ones turn alone  (4) Ones lead up  (4) Ones cast off\nB1  (16) Ones turn contra corners\nB2  (4) Ones balance  (12) Ones swing; face up"
   },
-  "waitOut": {
-    "cross": false
-  },
+  "waitOut": { "cross": false },
   "phrases": [
     {
       "name": "A1",
       "figures": [
-        {
-          "figure": "go-down-outside",
-          "beats": 8,
-          "who": "ones",
-          "call": "ONES DOWN THE OUTSIDE"
-        },
-        {
-          "figure": "go-up-outside",
-          "beats": 8,
-          "who": "ones",
-          "call": "ONES BACK UP THE OUTSIDE"
-        }
+        { "figure": "go-down-outside", "beats": 8, "who": "ones", "call": "ONES DOWN THE OUTSIDE" },
+        { "figure": "go-up-outside", "beats": 8, "who": "ones", "call": "ONES BACK UP THE OUTSIDE" }
       ]
     },
     {
@@ -38,32 +26,21 @@
           "figure": "lead-down",
           "beats": 4,
           "who": "ones",
-          "params": {
-            "pairs": "partners"
-          },
+          "params": { "pairs": "partners" },
           "call": "ONES LEAD DOWN THE CENTRE"
         },
-        {
-          "figure": "turn-alone",
-          "beats": 4,
-          "who": "ones",
-          "call": "TURN ALONE"
-        },
+        { "figure": "turn-alone", "beats": 4, "who": "ones" },
         {
           "figure": "lead-up",
           "beats": 4,
           "who": "ones",
-          "params": {
-            "pairs": "partners"
-          },
+          "params": { "pairs": "partners" },
           "call": "LEAD BACK UP"
         },
         {
           "figure": "cast-off",
           "beats": 4,
-          "params": {
-            "pairs": "C2"
-          },
+          "params": { "pairs": "C2" },
           "call": "CAST OFF, TWOS MOVE UP"
         }
       ]
@@ -71,11 +48,7 @@
     {
       "name": "B1",
       "figures": [
-        {
-          "figure": "turn-contra-corners",
-          "beats": 16,
-          "call": "ONES TURN CONTRA CORNERS"
-        }
+        { "figure": "turn-contra-corners", "beats": 16, "call": "ONES TURN CONTRA CORNERS" }
       ]
     },
     {
@@ -85,11 +58,7 @@
           "figure": "balance-and-swing",
           "beats": 16,
           "who": "ones",
-          "params": {
-            "pairs": "partners",
-            "balanceBeats": 4,
-            "endFacing": "up"
-          },
+          "params": { "pairs": "partners", "balanceBeats": 4, "endFacing": "up" },
           "call": "ONES BALANCE AND SWING, FACE UP"
         }
       ]
