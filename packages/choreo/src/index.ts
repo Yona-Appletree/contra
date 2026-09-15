@@ -132,6 +132,7 @@ export {
 export {
   createScriptDecider,
   defaultCyclePlanner,
+  excludedByEnds,
   nextDanceCall,
 } from "./decider/createScriptDecider.js";
 export { complementOf, resolveSelector } from "./decider/resolveSelector.js";

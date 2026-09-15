@@ -1,4 +1,4 @@
-import type { Dance, Decider, Formation, Program } from "@caller/choreo";
+import type { CyclePlanner, Dance, Decider, Formation, Program } from "@caller/choreo";
 import {
   HANDS_FOUR_GROUP,
   closureReport,
@@ -56,12 +56,25 @@ export function formationFor(dance: Dance): Formation {
 export const linesFor = (dance: Dance): readonly number[] =>
   dance.formation === BECKET.id ? BECKET_LINES : DUPLE_LINES;
 
+/**
+ * How one dance is run, beyond the figure tuning: which cycle planner plans it.
+ *
+ * `cycle` left out is the decider's own `defaultCyclePlanner` — today's path,
+ * and what every golden, strip and plate is measured against. M1's
+ * `planCycle.golden.test.ts` is what passes `contraCyclePlanner` here; M3 is
+ * where the app gains the choice.
+ */
+export interface DanceRunOptions {
+  cycle?: CyclePlanner;
+}
+
 /** One dance, danced by the script decider for as long as the caller asks. */
 export function danceAlone(
   dance: Dance,
   couples: number,
   until: number,
   overrides: FigureDefaultsOverride = {},
+  options: DanceRunOptions = {},
 ): Decider {
   const formation = formationFor(dance);
   const program: Program = {
@@ -70,7 +83,13 @@ export function danceAlone(
   };
   const registry = createContraRegistry([], overrides);
   const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
-  const decider = createScriptDecider(program, registry, hall, createLibrary([dance], [formation]));
+  const decider = createScriptDecider(
+    program,
+    registry,
+    hall,
+    createLibrary([dance], [formation]),
+    options.cycle === undefined ? {} : { cycle: options.cycle },
+  );
   decider.advance(until);
   return decider;
 }
@@ -101,8 +120,9 @@ export function oraclesFor(
   couples: number,
   until = 128,
   overrides: FigureDefaultsOverride = {},
+  options: DanceRunOptions = {},
 ): DanceOracles {
-  const decider = danceAlone(dance, couples, until, overrides);
+  const decider = danceAlone(dance, couples, until, overrides, options);
   const timeline = decider.timeline();
   const closure = closureReport(timeline);
   const reach = reachReport(timeline, 0, until);

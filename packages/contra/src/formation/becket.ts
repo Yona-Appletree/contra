@@ -8,6 +8,7 @@ import type {
   GroupPlan,
   GroupSelector,
   LineUpShift,
+  RoleName,
   SetSpec,
   SetState,
   Station,
@@ -25,6 +26,9 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
+import type { RelationTable } from "../set/relations.js";
+import { unsupportedRelation } from "../set/relations.js";
+import type { SetLattice } from "../set/SetModel.js";
 import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
 import type { ShadowPart } from "./shadowSeam.js";
 import { partitionShadowSeams } from "./shadowSeam.js";
@@ -669,6 +673,73 @@ export const BECKET: Formation = {
       neighbors: all,
       partners: all,
     };
+  },
+};
+
+/**
+ * Becket on the set's own lattice (the figure model's M1).
+ *
+ * Two dancer places per couple place, because a becket couple stands **side by
+ * side along its own line** rather than across the set: the `+1` line (stations
+ * `1L`/`1R`, at `−x`) is `line: 0` and the `-1` line (`2L`/`2R`, at `+x`) is
+ * `line: 1`, and a couple at dancing place `P` occupies positions `2P` and
+ * `2P + 1` of its own line. Which of the two each dancer takes is the same
+ * role-and-direction question duple improper asks about which *line* they are
+ * on — the robin is on the lark's right, and right is the other way along the
+ * set for the line travelling the other way.
+ *
+ * `homeAt` reproduces {@link BECKET_STATIONS} exactly: a group's frame sits on
+ * its own dancing place (`at(set, P)`, pitch {@link COUPLE_PITCH_PX}) and its
+ * stations are ±{@link PLACE_PITCH_PX}/2 from that, which is
+ * `position × PLACE_PITCH_PX − PLACE_PITCH_PX/2` from the set's own origin.
+ */
+export const BECKET_LATTICE: SetLattice = {
+  id: "becket",
+  pitch: PLACE_PITCH_PX,
+  slotOf(couple: CoupleState, role: RoleName) {
+    const first = (role === "lark") === (couple.direction === 1);
+    return {
+      line: couple.direction === 1 ? 0 : 1,
+      position: 2 * couple.place + (first ? 0 : 1),
+    };
+  },
+  homeAt(slot) {
+    return {
+      p: [
+        slot.line === 0 ? -HALF_ACROSS : HALF_ACROSS,
+        slot.position * PLACE_PITCH_PX - HALF_COUPLE,
+      ],
+      facing: slot.line === 0 ? ACROSS : BACK,
+    };
+  },
+};
+
+/**
+ * Becket's relations, as offsets on the lattice (Q1) — and the trap the
+ * relation table exists for.
+ *
+ * - **Partner** is the *same* line, one position along: in becket your partner
+ *   is beside you, not across from you. Which way along is
+ *   `(lark ? +1 : −1) × travel`, because the robin stands on the lark's right
+ *   and the two lines face opposite ways.
+ * - **Neighbour 1** is straight *across* the set at the same position: the
+ *   couple you are facing. This is the exact reverse of duple improper's
+ *   answer for both words, from the same lattice — which is why "across"
+ *   cannot be a `@caller/choreo` meaning (AC7).
+ *
+ * M6 opens N0/N2…, shadow, opposite, and the end-of-set policy.
+ */
+export const BECKET_RELATIONS: RelationTable = {
+  id: "becket",
+  slotFor(rel, from) {
+    if (rel.kind === "partner") {
+      const along = (from.role === "lark" ? 1 : -1) * from.travel;
+      return { line: from.slot.line, position: from.slot.position + along };
+    }
+    if (rel.kind === "neighbor" && rel.k === 1) {
+      return { line: from.slot.line === 1 ? 0 : 1, position: from.slot.position };
+    }
+    throw unsupportedRelation(rel, "M6");
   },
 };
 

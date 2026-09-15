@@ -729,7 +729,7 @@ export const nextDanceCall = (next: Dance): string =>
  * its default excludes nothing and never even asks the formation for the
  * tags, so a formation that never widens anything needs to define neither.
  */
-function excludedByEnds(
+export function excludedByEnds(
   formation: Formation,
   selector: GroupSelector,
   ends: "both" | "top" | "bottom" | undefined,

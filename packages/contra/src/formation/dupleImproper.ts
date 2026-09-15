@@ -6,6 +6,7 @@ import type {
   GroupKind,
   GroupPlan,
   GroupSelector,
+  RoleName,
   SetSpec,
   SetState,
   Station,
@@ -24,6 +25,9 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
+import type { RelationTable } from "../set/relations.js";
+import { unsupportedRelation } from "../set/relations.js";
+import type { SetLattice } from "../set/SetModel.js";
 import type { ShadowPart } from "./shadowSeam.js";
 import { partitionShadowSeams } from "./shadowSeam.js";
 
@@ -453,6 +457,58 @@ export const DUPLE_IMPROPER: Formation = {
       neighbors: all,
       partners: all,
     };
+  },
+};
+
+/**
+ * Duple improper on the set's own lattice (the figure model's M1).
+ *
+ * One `position` per couple place, one `line` per side of the set, `line: 1`
+ * being the `+x` one — which is the line the one-lark and the two-robin stand
+ * on, because improper means the larks alternate down each line. So a dancer's
+ * line is not their role and not their couple: it is the two together.
+ *
+ * `homeAt` reproduces {@link DUPLE_IMPROPER_STATIONS} exactly. A hands-four
+ * group's frame sits half a place below its ones (`at(set, place + 0.5)`) and
+ * its stations are ±{@link PLACE_PITCH_PX}/2 from that, which is
+ * `position × PLACE_PITCH_PX` from the set's own origin either way.
+ */
+export const DUPLE_IMPROPER_LATTICE: SetLattice = {
+  id: "duple-improper",
+  pitch: PLACE_PITCH_PX,
+  slotOf(couple: CoupleState, role: RoleName) {
+    const onPlus = (role === "lark") === (couple.direction === 1);
+    return { line: onPlus ? 1 : 0, position: couple.place };
+  },
+  homeAt(slot, travel) {
+    return {
+      p: [slot.line === 1 ? HALF_ACROSS : -HALF_ACROSS, slot.position * PLACE_PITCH_PX],
+      facing: travel === 1 ? DOWN : UP,
+    };
+  },
+};
+
+/**
+ * Duple improper's relations, as offsets on the lattice (Q1).
+ *
+ * - **Partner** is the other line at the same position: you stand across the
+ *   set from your partner, which is what improper means.
+ * - **Neighbour k** is the same line at `position + (2k − 1) × travel`: the
+ *   couple you are dancing this time through with is one place along the way
+ *   you are travelling, the next one two places further, and so on. M1 builds
+ *   `k = 1`; M6 opens the rest, together with shadow, opposite and the
+ *   end-of-set policy for a slot nobody stands on.
+ */
+export const DUPLE_IMPROPER_RELATIONS: RelationTable = {
+  id: "duple-improper",
+  slotFor(rel, from) {
+    if (rel.kind === "partner") {
+      return { line: from.slot.line === 1 ? 0 : 1, position: from.slot.position };
+    }
+    if (rel.kind === "neighbor" && rel.k === 1) {
+      return { line: from.slot.line, position: from.slot.position + from.travel };
+    }
+    throw unsupportedRelation(rel, "M6");
   },
 };
 
