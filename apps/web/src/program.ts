@@ -16,6 +16,7 @@ import {
   contraDataEngine,
   createContraCyclePlanner,
   createContraRegistry,
+  danceOwes,
 } from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
 import type { Medley, Tune } from "@caller/music";
@@ -432,7 +433,15 @@ export function danceOrder(
   if (at > 0) return [...dances.slice(at), ...dances.slice(0, at)];
   if (at === 0) return [...dances];
   const lab = all.find((d) => d.slug === first);
-  return lab === undefined ? [...dances] : [lab, ...dances];
+  // **A lab dance that owes a figure is left out of the evening.** M6 brings
+  // the first lab dances that name a figure a later milestone owns — Whoosh's
+  // circulate, A Rare Bird's shoulder round — and such a dance cannot be
+  // planned at all: resolution throws on the first call it reaches, which would
+  // take the Stage down rather than show anything. Its own page still holds the
+  // record, the transcript and what it does not resolve into
+  // (`routes/dances.tsx`), which is where somebody would be looking at it.
+  if (lab === undefined || danceOwes(lab).length > 0) return [...dances];
+  return [lab, ...dances];
 }
 
 /**

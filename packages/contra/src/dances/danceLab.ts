@@ -163,6 +163,24 @@ function joinsOf(
 /** The line length the resolution table and the motion rows are read at. */
 export const labCouples = (dance: Dance): number => linesFor(dance)[0] ?? 4;
 
+/**
+ * Which figures this dance calls that the rebuild still owes, and nothing else.
+ *
+ * A lab dance encoded from a transcript may name a figure a later milestone
+ * owns — M6's own three do — and a dance that owes one **cannot be planned at
+ * all**: resolution throws on the first call it reaches. Anything that would
+ * try to dance it asks this first (`@caller/web`'s `danceOrder`), and
+ * `pnpm dance <slug>` opens with it.
+ */
+export const danceOwes = (dance: Dance): string[] =>
+  [
+    ...new Set(
+      danceSchedule(dance)
+        .map((s) => s.call.figure)
+        .filter((figure) => UNSUPPORTED_FIGURES[figure] !== undefined),
+    ),
+  ].sort();
+
 /** One dancer a call's own relation leaves out, and which end of the set they are at. */
 export interface EndEffectRow {
   couples: number;
@@ -269,13 +287,7 @@ export function danceLabReport(
   // complete and the test says exactly what is missing — and it is the first
   // thing a reader wants, because nothing below it can be green until the
   // figure exists.
-  const owed = [
-    ...new Set(
-      danceSchedule(dance)
-        .map((s) => s.call.figure)
-        .filter((figure) => UNSUPPORTED_FIGURES[figure] !== undefined),
-    ),
-  ].sort();
+  const owed = danceOwes(dance);
   if (owed.length > 0) {
     ok = false;
     lines.push("## 0. Still owed", "");

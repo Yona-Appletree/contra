@@ -113,8 +113,8 @@ export const danceBySlug = (slug: string): Dance | undefined =>
 export { LARKS, ROBINS } from "./pairs.js";
 export type { MotionAllowance, MotionMetric } from "./motionAllowlist.js";
 export { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";
-export type { DanceLabReport, ResolutionRow } from "./danceLab.js";
-export { danceLabReport, danceResolution, labCouples } from "./danceLab.js";
+export type { DanceLabReport, EndEffectRow, ResolutionRow } from "./danceLab.js";
+export { danceLabReport, danceOwes, danceResolution, endEffects, labCouples } from "./danceLab.js";
 export type { AcceptanceDance } from "./acceptance.js";
 export { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./acceptance.js";
 export type { DanceFile, DanceFileSource } from "./loadDances.js";
