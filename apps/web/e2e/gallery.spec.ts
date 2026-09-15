@@ -27,6 +27,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const STRIP_DIR = join(HERE, "strips");
 const FIGURE_DIR = join(STRIP_DIR, "figures");
 const SEAM_DIR = join(STRIP_DIR, "seams");
+/** M12: one strip per parameter row, from the row's own deep link. */
+const VARIANT_DIR = join(STRIP_DIR, "variants");
 
 const FIGURE_FILTER = process.env.STRIPS_FIGURE;
 
@@ -126,6 +128,84 @@ test.describe("the move gallery", () => {
 
     await page.goto("#/moves/not-a-figure");
     await expect(page.getByTestId("moves-missing")).toBeVisible();
+    await expect(page.getByTestId("moves-missing")).toHaveAttribute("data-problem", "0");
+  });
+
+  /**
+   * M12: the page is a browser of definitions, so the index is families of
+   * definitions and every row says what its figure **is** off the definition
+   * itself.
+   */
+  test("lists the library's definitions in families, each with its own facts", async ({ page }) => {
+    await page.goto("#/moves");
+    // More than one family and every family chip has a section to jump to.
+    const families = page.getByTestId("moves-family");
+    expect(await families.count()).toBeGreaterThan(5);
+    await expect(page.getByTestId("moves-families").locator("a").first()).toBeVisible();
+
+    // The two figures the **registry** holds and the library does not are
+    // filed as such and say so, rather than being listed by hand beside the
+    // definitions.
+    await expect(page.locator('[data-testid="moves-family"][data-key="engine"]')).toBeVisible();
+    await expect(page.locator('[data-testid="moves-facts"][data-key="wait-out"]')).toContainText(
+      "no definition",
+    );
+
+    // A definition's row carries its own facts: the swing is eight beats, minted
+    // per pair, anchored where the pair meets, and it gathers people home.
+    const swing = page.locator('[data-testid="moves-facts"][data-key="swing"]');
+    await expect(swing).toContainText("8 beats");
+    await expect(swing).toContainText("pairs");
+    await expect(swing).toContainText("meet");
+    await expect(swing).toContainText("gathers");
+    // Its parts are a lark's and a robin's, and D5 wants the role words in the
+    // role colours — `ROLE_COLOURS`, which every renderer reads.
+    const lark = swing.locator(".moves-role", { hasText: "lark" });
+    await expect(lark).toHaveCSS("color", "rgb(224, 163, 46)");
+
+    // The parameter spec, and which of its parameters a dance actually writes.
+    await expect(page.locator('[data-testid="moves-params"][data-key="swing"]')).toContainText(
+      "written by a dance",
+    );
+    // The dance ↔ figure index, the other way round from the dance page's own.
+    await expect(page.locator('[data-testid="moves-dances"][data-key="swing"]')).toContainText(
+      "danced in",
+    );
+  });
+
+  /**
+   * M12: the parameter rows — the same figure at another tuning, generated from
+   * the record, the move's texts and the parameter spec.
+   */
+  test("gives each definition its parameter rows, and deep-links one of them", async ({ page }) => {
+    await page.goto("#/moves");
+    const hey = page.locator('[data-testid="moves-variants"][data-key="hey"]');
+    await expect(hey).toContainText("parameter rows");
+    // The five the brief names, each generated rather than written down.
+    const keys = await hey
+      .locator('[data-testid="moves-variant"]')
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-key") ?? ""));
+    expect(keys).toContain("hey~amount=0.5");
+    expect(keys).toContain("hey~for=3");
+    const circle = page.locator('[data-testid="moves-variants"][data-key="circle"]');
+    await expect(circle.locator('[data-key="circle~direction=right"]')).toHaveCount(1);
+    const star = page.locator('[data-testid="moves-variants"][data-key="star"]');
+    await expect(star.locator('[data-key="star~hand=L+amount=0.875"]')).toHaveCount(1);
+
+    // One of them on its own: a real tile, with the texts the move's own file
+    // writes for that tuning.
+    await page.goto("#/moves/hey~amount=0.5");
+    await expect(page.getByTestId("moves-tile")).toHaveCount(1);
+    await expect(page.getByTestId("moves-tile")).toHaveAttribute("data-kind", "variant");
+    await expect(page.getByTestId("moves-calls")).toContainText("HALF A HEY");
+
+    // A tuning that expands and that this tile cannot draw says so, rather than
+    // taking the page down: a hey for three is a real hey with one dancer
+    // standing out, and a tile of two couples has nobody to stand out.
+    await page.goto("#/moves/hey~for=3");
+    const missing = page.getByTestId("moves-missing");
+    await expect(missing).toHaveAttribute("data-problem", "1");
+    await expect(missing).toContainText("cannot draw");
   });
 
   test("a row says the move's own walkthrough, and its teach behind a disclosure", async ({
@@ -205,11 +285,62 @@ test.describe("the move gallery", () => {
       rows.push(indexRow(tile, cells, link));
     }
 
+    // **The parameter rows' strips** (M12). A parameter row is text on the
+    // index — its tile costs a planner run and there are a hundred of them — so
+    // its strip comes from its own deep link, exactly as `pnpm figure`'s
+    // pictures do. A row whose tuning expands and cannot be drawn writes no PNG
+    // and says why in the index instead of failing the run: that is the
+    // generated catalogue working, not a defect.
+    const variantRows: string[][] = [];
+    if (!filtered) {
+      rmSync(VARIANT_DIR, { recursive: true, force: true });
+      mkdirSync(VARIANT_DIR, { recursive: true });
+      for (const variant of await variantList(page)) {
+        await page.goto(`#/moves/${variant.key}?strip=1&bare=1&zoom=${ZOOM}&step=${STEP}`);
+        const strip = page.getByTestId("moves-strip");
+        const missing = page.getByTestId("moves-missing");
+        await expect(strip.or(missing)).toBeVisible();
+        if ((await missing.count()) > 0) {
+          variantRows.push([`\`${variant.key}\``, "—", variant.from, "does not draw"]);
+          continue;
+        }
+        const cells = Number(await strip.getAttribute("data-cells"));
+        await expect(strip.locator('canvas[data-ready="1"]')).toHaveCount(cells);
+        const file = join(VARIANT_DIR, `${variant.key}.png`);
+        mkdirSync(dirname(file), { recursive: true });
+        writeFileSync(file, await strip.screenshot());
+        variantRows.push([
+          `\`${variant.key}\``,
+          `[variants/${variant.key}.png](./variants/${variant.key}.png)`,
+          variant.from,
+          String(cells),
+        ]);
+      }
+    }
+
     // Only a full, unfiltered run can get the index right: it lists every
     // tile, and a filtered run only ever wrote a few of them.
-    if (!filtered) writeFileSync(join(STRIP_DIR, "README.md"), indexPage(rows));
+    if (!filtered) writeFileSync(join(STRIP_DIR, "README.md"), indexPage(rows, variantRows));
   });
 });
+
+/** Every parameter row the index page lists, in the order it lists them. */
+async function variantList(page: Page): Promise<{ key: string; from: string }[]> {
+  await page.goto("#/moves");
+  await expect(page.getByTestId("moves-tile").first()).toBeVisible();
+  return page.getByTestId("moves-variant").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      key: node.getAttribute("data-key") ?? "",
+      // The line's own trailing note says where the row came from; the first
+      // word after the bullet is enough for an index column.
+      from: (node.textContent ?? "").includes("called in")
+        ? "record"
+        : (node.textContent ?? "").includes("texts")
+          ? "texts"
+          : "spec",
+    })),
+  );
+}
 
 /** Every tile the gallery renders, in the order it renders them. */
 async function tileList(page: Page): Promise<TileInfo[]> {
@@ -243,6 +374,9 @@ function indexRow(tile: TileInfo, cells: number, link: string): string[] {
 /** The header the index's table carries. */
 const COLUMNS = ["move", "strip", "deep link", "beats", "frames", "formation", "params from"];
 
+/** The header the parameter rows' own table carries. */
+const VARIANT_COLUMNS = ["parameter row", "strip", "from", "frames"];
+
 /**
  * A markdown table padded the way `prettier` pads one, so the generated index
  * passes `pnpm format:check` without anybody running `--write` over it: every
@@ -260,7 +394,7 @@ function table(header: readonly string[], rows: readonly string[][]): string {
   );
 }
 
-function indexPage(rows: string[][]): string {
+function indexPage(rows: string[][], variantRows: string[][]): string {
   return `<!-- Written by e2e/gallery.spec.ts on every run. Do not edit by hand. -->
 
 # Move gallery strips
@@ -280,10 +414,25 @@ These are written on every \`playwright test\` run and committed. They are
 
 The deep link opens the same tile live, looping, on the Moves tab, and the
 order of the table is the order that page is in: each figure, then every seam
-that leaves it (U2). It used to be all nineteen figures and then all
-thirty-five seams; nothing else about the strips changed when it moved.
+that leaves it (U2). Since M12 the figures are **every definition the library
+holds**, in the library's own order, rather than a hand-written list of ids.
 
 ${table(COLUMNS, rows)}
+
+## Parameter rows
+
+M12: the same figure at another tuning, generated from the record, the move's
+texts and the definition's own parameter spec rather than listed by hand. Each
+one is a deep link of its own — \`#/moves/<key>\` — and its strip is taken the
+same way every other strip here is.
+
+A row marked **does not draw** is a tuning that expands perfectly well and that
+a tile of one two-couple set cannot show: a hey for three has nobody to stand
+out, and a roll away with your neighbour in duple improper is with somebody
+across the set rather than beside you. The page says so on the row; it is the
+generated catalogue working, not a defect.
+
+${table(VARIANT_COLUMNS, variantRows)}
 
 M5's pair strips (\`01-walk-in.png\` … \`09-fall-back.png\`) are in this
 directory too; they are gate G1's artifact and come from \`e2e/pair.spec.ts\`.

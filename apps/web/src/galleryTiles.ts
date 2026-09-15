@@ -663,7 +663,7 @@ export function figureTile(
 
   if (found === undefined) {
     notes.push(
-      "no demo dance calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over",
+      "no dance in the programme calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over — a lab dance that calls it is in the index below",
     );
   }
 
