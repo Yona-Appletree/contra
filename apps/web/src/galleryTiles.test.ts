@@ -1,7 +1,7 @@
 import { dist } from "@caller/core";
 import { poseAt } from "@caller/choreo";
 import {
-  DATA_ONLY_FIGURE_IDS,
+  dataOnlyFigureIds,
   DEMO_DANCES,
   contraDataFigures,
   createContraRegistry,
@@ -33,7 +33,7 @@ describe("the figure tiles", () => {
     // `wait-out` and `walk-to-station`.
     expect(figures.map((t) => t.key).sort()).toEqual(
       createContraRegistry(
-        contraDataFigures().filter((def) => DATA_ONLY_FIGURE_IDS.includes(def.id)),
+        contraDataFigures().filter((def) => dataOnlyFigureIds().includes(def.id)),
       ).ids(),
     );
   });

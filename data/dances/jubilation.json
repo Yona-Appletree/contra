@@ -42,7 +42,7 @@
     {
       "name": "B1",
       "figures": [
-        { "figure": "hey", "beats": 8, "params": { "half": true }, "call": "HALF A HEY" },
+        { "figure": "hey", "beats": 8, "params": { "amount": 0.5 }, "call": "HALF A HEY" },
         {
           "figure": "swing",
           "beats": 8,

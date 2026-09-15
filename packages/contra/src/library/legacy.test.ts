@@ -1,6 +1,7 @@
 import { WAIT_OUT, WALK_TO_STATION } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { CONTRA_FIGURE_IDS, CONTRA_FIGURES, createContraRegistry } from "../figures/registry.js";
+import { dataOnlyFigureIds } from "./figures/index.js";
 import { createLibrary } from "./Library.js";
 import { LEGACY_ROLES, isContraFigure, legacyDefinition, legacyLibrary } from "./legacy.js";
 
@@ -9,9 +10,19 @@ import { LEGACY_ROLES, isContraFigure, legacyDefinition, legacyLibrary } from ".
 const REGISTRY = createContraRegistry();
 
 describe("the legacy bridge", () => {
-  it("bridges every coded contra figure and nothing else", () => {
+  it("bridges every contra figure in the registry and nothing else", () => {
     const library = legacyLibrary(REGISTRY);
-    expect(library.ids()).toEqual([...CONTRA_FIGURE_IDS].sort());
+    // **Every figure in the registry, not every *coded* figure.** Since M5 the
+    // registry also holds the library's data-only definitions — nothing could
+    // draw the hey otherwise — and an interpreted definition has `joins`, so the
+    // bridge wraps it like any other. Wrapping it is harmless and is what keeps
+    // AC1's all-bridged planner able to dance a dance that calls one:
+    // `contraLibrary` replaces every bridged id the library has a definition
+    // for, which is the whole of the migration.
+    expect(library.ids()).toEqual(
+      [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds()].sort((a, b) => a.localeCompare(b)),
+    );
+    expect(dataOnlyFigureIds()).toContain("hey");
     // The engine's own figures are not dance-callable and are not bridged.
     expect(library.has(WALK_TO_STATION.id)).toBe(false);
     expect(library.has(WAIT_OUT.id)).toBe(false);

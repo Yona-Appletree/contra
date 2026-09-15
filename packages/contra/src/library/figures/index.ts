@@ -12,6 +12,7 @@ import { californiaTwirlDefinition } from "./california-twirl.js";
 import { circleDefinition } from "./circle.js";
 import { doSiDoDefinition } from "./do-si-do.js";
 import { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
+import { heyDefinition } from "./hey.js";
 import { longLinesDefinition } from "./long-lines.js";
 import { passThroughDefinition } from "./pass-through.js";
 import { petronellaDefinition } from "./petronella.js";
@@ -33,7 +34,7 @@ import { swingDefinition } from "./swing.js";
  * decides the gate each passes: a gatherer is allowed to differ from the figure
  * it replaced once the dancers are off their places, and a carrier is not.
  *
- * After M4 the legacy bridge wraps `hey` and nothing else; M5 empties it.
+ * M5 empties the legacy bridge: the hey was the last coded figure left in it.
  *
  * Two lists, because the rebuild has two registries side by side for its whole
  * length: the **library** holds what a figure *is* (a `FigureDefinition`
@@ -76,10 +77,20 @@ export const CARRIER_DEFINITIONS: readonly FigureDefinition[] = [
   robinsChainDefinition,
 ];
 
+/**
+ * **M5's**: the hey, and the three figures On the Prowl needed.
+ *
+ * A list of its own rather than more carriers, because what they share is the
+ * milestone rather than the gate: the hey is held to reproducing the coded
+ * weave, and the other three have no predecessor to be held to at all.
+ */
+export const SCHEDULE_DEFINITIONS: readonly FigureDefinition[] = [heyDefinition];
+
 /** Every figure the library holds as data. */
 export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...GATHERER_DEFINITIONS,
   ...CARRIER_DEFINITIONS,
+  ...SCHEDULE_DEFINITIONS,
 ];
 
 /** Their ids, for the bridge to skip and for a test to check the two lists agree. */
@@ -99,9 +110,47 @@ export const DATA_IDS: readonly string[] = DATA_DEFINITIONS.map((def) => def.id)
  * the gatherers alone, so a later milestone's genuinely-new figure is caught
  * whichever list it lands in.
  */
-export const DATA_ONLY_FIGURE_IDS: readonly string[] = DATA_DEFINITIONS.filter(
-  (def) => !CONTRA_FIGURE_IDS.includes(def.id as (typeof CONTRA_FIGURE_IDS)[number]),
-).map((def) => def.id);
+export const dataOnlyDefinitions = (): readonly FigureDefinition[] =>
+  DATA_DEFINITIONS.filter(
+    (def) => !CONTRA_FIGURE_IDS.includes(def.id as (typeof CONTRA_FIGURE_IDS)[number]),
+  );
+
+/**
+ * Their ids.
+ *
+ * **A function and not a constant** since M5, and the reason is a cycle:
+ * `figures/registry.ts` now asks this module for the figures that exist only
+ * here, so that `createContraRegistry()` really does hold every contra figure —
+ * which stopped being true the moment the hey had no coded twin. Two modules
+ * that import each other are fine as long as neither *evaluates* the other at
+ * module scope, and a constant computed from `CONTRA_FIGURE_IDS` does exactly
+ * that.
+ */
+export const dataOnlyFigureIds = (): readonly string[] =>
+  dataOnlyDefinitions().map((def) => def.id);
+
+/** Those definitions as figures the engine can sample: the registry's own. */
+export const dataOnlyFigures = (): AnyFigureDef[] =>
+  dataOnlyDefinitions().map((def) => interpretDefinition(def) as unknown as AnyFigureDef);
+
+/**
+ * A data-only figure the **hands-four template** can plan, or `undefined`.
+ *
+ * `chainCalls` threads a dance by handing each figure the four stations of a
+ * minor set and asking where it leaves people, which is a question only a figure
+ * that takes the whole four in one instance can answer. The hey can (M5): it is
+ * `actors: "all"` on the formation's own group, exactly as the coded figure it
+ * replaced was, and without this the four demo dances that call one thread
+ * nothing through it. A pull-by cannot — `anchor: "meet"` is a figure for two,
+ * minted one instance per pair — and says so by name, which is why the test is
+ * on the definition rather than on the id.
+ */
+export function templateFigureOf(id: string): AnyFigureDef | undefined {
+  const def = dataOnlyDefinitions().find((each) => each.id === id);
+  if (def === undefined || def.actors !== "all") return undefined;
+  if (def.anchor !== "hands-four" && def.anchor !== "centroid") return undefined;
+  return interpretDefinition(def) as unknown as AnyFigureDef;
+}
 
 /**
  * Every definition as a figure the engine can sample, for a registry.
@@ -155,3 +204,4 @@ export { balanceAndSwingDefinition } from "./balance-and-swing.js";
 export { swingDefinition, SWING_HOLD, SWING_ORBIT } from "./swing.js";
 export { pullByDefinition } from "./pull-by.js";
 export { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
+export { heyDefinition } from "./hey.js";

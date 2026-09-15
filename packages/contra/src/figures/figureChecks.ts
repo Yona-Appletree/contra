@@ -30,6 +30,8 @@ import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
 import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
 import { CONTRA_FIGURES } from "./registry.js";
+import { heyDefinition } from "../library/figures/hey.js";
+import { interpretDefinition } from "../library/interpret.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { IN_BEATS as STAR_IN_BEATS, OUT_BEATS as STAR_OUT_BEATS, WRIST_RADIUS_PX } from "./star.js";
 
@@ -91,7 +93,7 @@ export function figureTrack(
   params: Partial<ContraParams> & Record<string, unknown> = {},
   step: Beat = CHECK_STEP,
 ): { track: Track; group: Group; beats: Beat; def: ContraFigure<ContraParams> } {
-  const def = (CONTRA_FIGURES as Record<string, unknown>)[id] as ContraFigure<ContraParams>;
+  const def = checkFigure(id);
   if (!def) throw new Error(`no contra figure "${id}"`);
   const group = checkGroup();
   const resolved = withDefaults(def, params, (params.beats as Beat | undefined) ?? def.beats);
@@ -178,8 +180,30 @@ export function figureChecks(overrides: CheckOverrides = {}): FigureChecks[] {
 /** What one builder is handed: the extra params its figure's track is built with. */
 type CheckParams = Record<string, unknown>;
 
-const describeOf = (id: string): string | undefined =>
-  ((CONTRA_FIGURES as Record<string, { describe?: string }>)[id] ?? {}).describe;
+const describeOf = (id: string): string | undefined => checkFigure(id)?.describe;
+
+/**
+ * The figures **only the library has**, which these checks still run on.
+ *
+ * M5 deleted `figures/hey.ts`: the hey is a `FigureDefinition` now and has no
+ * coded twin, so `CONTRA_FIGURES` no longer holds it. Its checks are the user's
+ * own account of what a hey is ("that's a weaving figure, they should be passing
+ * shoulders in the center of the set") and they are worth more against the
+ * figure that ships than against one that does not exist, so they run against
+ * the interpreted definition — the same object the registry, the timeline and
+ * every oracle sample.
+ *
+ * M11 does this for the whole coded layer; this is the one figure that is ahead
+ * of it.
+ */
+const DATA_ONLY_CHECKED: Readonly<Record<string, ContraFigure<ContraParams>>> = {
+  hey: interpretDefinition(heyDefinition) as unknown as ContraFigure<ContraParams>,
+};
+
+/** The figure these checks run on: the coded one, or the library's own. */
+const checkFigure = (id: string): ContraFigure<ContraParams> | undefined =>
+  ((CONTRA_FIGURES as Record<string, unknown>)[id] as ContraFigure<ContraParams> | undefined) ??
+  DATA_ONLY_CHECKED[id];
 
 /**
  * A hey is four passes in the centre of the set, right shoulders, at about

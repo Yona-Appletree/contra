@@ -7,7 +7,7 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { CONTRA_FIGURE_IDS } from "../figures/registry.js";
 import { probeGroup } from "../figures/testing.js";
 import { waitOut } from "../figures/wait-out.js";
-import { DATA_ONLY_FIGURE_IDS } from "../library/figures/index.js";
+import { dataOnlyFigureIds } from "../library/figures/index.js";
 import {
   FIGURE_TEXTS,
   LONG_CALL_WORDS,
@@ -28,7 +28,7 @@ import {
  * Every figure the library holds, which is what must have texts: the coded
  * ones, the ones that are **only** data (M6's `pull-by`), and the engine's two.
  */
-const IDS = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
+const IDS = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), waitOut.id, WALK_TO_STATION.id];
 
 /** How many words a text is, with a `{slot}` counted as the one word it becomes. */
 const words = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
@@ -59,7 +59,7 @@ describe("every move has its four texts", () => {
     // them, so "you should be across the set from your partner" is not a
     // sentence either of them could finish. M7's shapes with named places are
     // what give a lane figure a landmark of its own.
-    const outside = new Set<string>([waitOut.id, WALK_TO_STATION.id, ...DATA_ONLY_FIGURE_IDS]);
+    const outside = new Set<string>([waitOut.id, WALK_TO_STATION.id, ...dataOnlyFigureIds()]);
     for (const id of IDS) {
       if (outside.has(id)) continue;
       expect(FIGURE_TEXTS[id]!.walkthrough.long, id).toMatch(/\{where\}$/);
@@ -279,7 +279,7 @@ describe("the variants", () => {
   it("gives half a hey its own length and its own call", () => {
     const def = figureDefOf("hey")!;
     const group = probeGroup(DUPLE_IMPROPER, 4);
-    const half = resolveFigureText("hey", withDefaults(def, { half: true }, 8), group);
+    const half = resolveFigureText("hey", withDefaults(def, { amount: 0.5 }, 8), group);
     expect(half!.call.short).toBe("HALF A HEY");
     expect(half!.walkthrough.long).toContain("Eight beats");
 
@@ -291,7 +291,11 @@ describe("the variants", () => {
   it("mirrors the whole weave when the larks start", () => {
     const def = figureDefOf("hey")!;
     const group = probeGroup(DUPLE_IMPROPER, 4);
-    const larks = resolveFigureText("hey", withDefaults(def, { start: "larks-left" }, 16), group);
+    const larks = resolveFigureText(
+      "hey",
+      withDefaults(def, { start: "lark", by: "left" }, 16),
+      group,
+    );
     expect(larks!.walkthrough.long).toContain("Larks start, passing left shoulders");
   });
 });

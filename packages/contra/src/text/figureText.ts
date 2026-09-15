@@ -2,7 +2,7 @@ import type { AnyFigureDef, FigureParams, Group, StationId } from "@caller/chore
 import { WALK_TO_STATION } from "@caller/choreo";
 import { CONTRA_FIGURE_IDS, contraFigureOf } from "../figures/registry.js";
 import { waitOut } from "../figures/wait-out.js";
-import { DATA_ONLY_FIGURE_IDS, GATHERER_DEFINITIONS } from "../library/figures/index.js";
+import { DATA_DEFINITIONS, dataOnlyFigureIds } from "../library/figures/index.js";
 import { interpretDefinition } from "../library/interpret.js";
 import { landmark } from "./landmark.js";
 
@@ -318,7 +318,7 @@ export function figureDefOf(id: string): AnyFigureDef | undefined {
   // parameters, its beats and its call text live on the `FigureDefinition`, and
   // the interpreter is what turns those into the `AnyFigureDef` a text is
   // checked and resolved against.
-  const definition = GATHERER_DEFINITIONS.find((def) => def.id === id);
+  const definition = DATA_DEFINITIONS.find((def) => def.id === id);
   return definition === undefined
     ? undefined
     : (interpretDefinition(definition) as unknown as AnyFigureDef);
@@ -445,11 +445,18 @@ function holdWords(value: unknown): string | undefined {
   return typeof value === "string" ? words[value] : undefined;
 }
 
-/** Who starts a hey, and by which shoulder. */
-function startWords(value: unknown): string | undefined {
-  if (value === "robins-right") return "the robins, by the right";
-  if (value === "larks-left") return "the larks, by the left";
-  return undefined;
+/**
+ * Which role steps off into the middle of a hey.
+ *
+ * Two words where there used to be one: M5 split the coded hey's
+ * `start: "robins-right"` into the role that starts and the shoulder it starts
+ * by, because `robins-left` and `larks-right` are heys a caller can ask for and
+ * the coded pair of words could not say either (D4's two tiers — `start` and
+ * `by` are both a caller's own vocabulary).
+ */
+function startWords(value: unknown, register: Register): string | undefined {
+  if (value !== "lark" && value !== "robin") return undefined;
+  return register === "call" ? `${value}s` : `the ${value}s`;
 }
 
 /**
@@ -465,7 +472,7 @@ function startWords(value: unknown): string | undefined {
  */
 export function checkFigureTexts(): string[] {
   const faults: string[] = [];
-  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
+  const ids = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), waitOut.id, WALK_TO_STATION.id];
   for (const id of ids) {
     if (!hasFigureText(id)) faults.push(`${id}: no data/figures/${id}.json`);
   }

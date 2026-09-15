@@ -57,8 +57,14 @@ const WRITTEN: readonly { what: string; line: string }[] = [
   { what: "a full hey ending short on the last side pass", line: "RR NL LR PL RR NL LR PL~" },
   { what: "a ricochet on the first centre pass (107)", line: "R! NL LR PL RR NL LR" },
   { what: "a ricochet on the larks' second centre pass", line: "RR NL LR PL RR NL L!" },
-  { what: "a hey for three (69): the same list, one role standing out", line: "RR NL LR PL RR NL LR" },
-  { what: "an unusual side person (about 150): the shadow at the sides", line: "RR SL LR SL RR SL LR" },
+  {
+    what: "a hey for three (69): the same list, one role standing out",
+    line: "RR NL LR PL RR NL LR",
+  },
+  {
+    what: "an unusual side person (about 150): the shadow at the sides",
+    line: "RR SL LR SL RR SL LR",
+  },
   { what: "the opposite at the sides", line: "RR OL LR OL RR OL LR" },
   { what: "a diagonal hey with N2 (102 along/diagonal)", line: "LR N2L RR PL LR N2L RR" },
   { what: "a hey to N3, which A Rare Bird's sides reach", line: "RR N3L LR PL RR N3L LR" },

@@ -6,6 +6,7 @@ import { planOrbitPair } from "./orbitPair.js";
 import { planPath } from "./path.js";
 import { planRingWalk } from "./ringWalk.js";
 import { planRock } from "./rock.js";
+import { planSchedule } from "./schedule.js";
 import { planSequence } from "./sequence.js";
 import { planWaypoints } from "./waypoints.js";
 
@@ -17,7 +18,8 @@ import { planWaypoints } from "./waypoints.js";
  * `sequence` is any figure callers name as one and dance as several. No figure
  * has code of its own — a definition is data and names a kind.
  *
- * `ringWalk`, `path` and `courtesyTurn` are **M4's**, and `waypoints` is M6's.
+ * `ringWalk`, `path` and `courtesyTurn` are **M4's**, `waypoints` is M6's and
+ * `schedule` — the hey, as the meetings it is made of — is M5's.
  * M2 admitted `ringWalk` and `path` to the union without bodies so that M4
  * would write an evaluator and widen nothing: a kind arriving without an arm is
  * a named error rather than a silently missing case, and TypeScript's
@@ -45,6 +47,8 @@ export function planShape(
       return planPath(shape, holds, input);
     case "waypoints":
       return planWaypoints(shape, holds, input);
+    case "schedule":
+      return planSchedule(shape, holds, input);
     case "courtesyTurn":
       return planCourtesyTurn(shape, holds, input);
     case "legacy":
@@ -59,6 +63,8 @@ export { planOrbitPair } from "./orbitPair.js";
 export { planPath } from "./path.js";
 export { planRingWalk } from "./ringWalk.js";
 export { planRock } from "./rock.js";
+export { passListOf, passesOfSchedule, planSchedule, scheduleOf } from "./schedule.js";
+export type { Lane, PlannedSchedule } from "./schedule.js";
 export { planSequence } from "./sequence.js";
 export { planWaypoints } from "./waypoints.js";
 export type { PathStep } from "./waypoints.js";

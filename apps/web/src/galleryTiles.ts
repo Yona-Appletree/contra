@@ -38,7 +38,7 @@ import type {
 } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
-  DATA_ONLY_FIGURE_IDS,
+  dataOnlyFigureIds,
   contraDataFigures,
   CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
@@ -402,7 +402,7 @@ export function figureTiles(
   // `grand-right-and-left`) and `registry.get(id)` is what a tile reads its
   // beats and its call text off.
   const registry = createContraRegistry(contraDataFigures(), overrides);
-  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, "wait-out", "walk-to-station"];
+  const ids = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), "wait-out", "walk-to-station"];
   return ids.map((id) => figureTile(id, registry, overrides, engine));
 }
 
@@ -442,7 +442,7 @@ function figureTile(
   const notes: string[] = [];
   const contra = contraFigureOf(id);
 
-  if (contra === undefined && !DATA_ONLY_FIGURE_IDS.includes(id)) {
+  if (contra === undefined && !dataOnlyFigureIds().includes(id)) {
     // `wait-out` and `walk-to-station` are `@caller/choreo`'s own figures, and
     // **the library does not hold them**: `legacyLibrary` bridges what answers
     // `joins`, which these two do not. A planner cannot resolve a call of a
@@ -1116,7 +1116,7 @@ function textsFor(call: FigureCall, group: Group): FigureTexts | undefined {
 let textRegistryCache: FigureRegistry | undefined;
 function textRegistry(): FigureRegistry {
   textRegistryCache ??= createContraRegistry(
-    contraDataFigures().filter((def) => DATA_ONLY_FIGURE_IDS.includes(def.id)),
+    contraDataFigures().filter((def) => dataOnlyFigureIds().includes(def.id)),
   );
   return textRegistryCache;
 }
