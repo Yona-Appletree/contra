@@ -28,7 +28,7 @@ have touched. A figure's own move only affects that move.
    drop a row, or catch a figure's effect on another figure's seam. The
    per-figure commands above are for the loop; this is the gate.
 
-## `pnpm figure <id> [--dance <slug>] [--out <dir>]`
+## `pnpm figure <id> [--dance <slug>] [--out <dir>] [--chain <n>]`
 
 Runs, in order, and prints a one-screen summary of all four to stdout:
 
@@ -62,6 +62,24 @@ something to look at, a green one means move on.
 only if that dance actually calls the figure — narrowing further than "the
 dances that call it", not instead of it). `--out <dir>` writes the three
 pictures somewhere other than the default scratch directory.
+
+`--chain <n>` measures one of `robins-chain`'s courtesy-turn **candidates**
+instead of the shipped figure — the same numbered table the app's own
+`?chain=` reads (`CHAIN_CANDIDATES` in `robins-chain.ts`), so a candidate
+cannot be measured as one thing and drawn as another. It reaches all four
+sections: the assertions, the motion rows alone, the seam rows, the oracles
+**and** the pictures, which are screenshotted with `?chain=<n>` on the Moves
+page. The pictures land in `data/local/figure-lab/<id>-chain<n>/` so a
+candidate never overwrites the default's. An unknown number exits 2 and names
+the ones that exist.
+
+Expect a candidate to print `FAIL` lines and still be the thing you want: a
+figure's assertions are written from the shipped geometry's own `describe`,
+so a candidate that is a _different_ figure — F10's orbit, which turns a whole
+rather than a half — fails the sentences that are about the half. That is the
+comparison working, not the candidate being broken; read the oracles (which
+are about every dance that calls it) and the motion rows for whether it is
+danceable.
 
 ## The per-figure report and picture commands
 

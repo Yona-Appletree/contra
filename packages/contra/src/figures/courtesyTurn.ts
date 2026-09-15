@@ -1,11 +1,16 @@
 import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
 import {
   ARM_REACH_PX,
+  HOLD_SPACING_PX,
   SHOULDER_WIDTH_PX,
   angleDiff,
+  angleLerp,
+  angleOfVec,
   bodyPoint,
+  clamp01,
   dirOf,
   dist,
+  len,
   mix,
   norm,
   ramp,
@@ -69,6 +74,19 @@ export interface CourtesyTurn {
   lark(t: Beat): Spot;
   /** Where the robin is `t` beats into the turn. */
   robin(t: Beat): Spot;
+  /**
+   * Where a dancer is **before** the take, `t` beats into the *figure* — for a
+   * turn that is already moving its dancers while the pull by happens.
+   *
+   * Absent on {@link courtesyTurn} and {@link stepInTurn}, whose dancers stand
+   * on their places until the figure walks them to {@link CourtesyTurn.takes};
+   * present on {@link orbitTurn}, whose lark is a quarter of the way round his
+   * own circle by the time she reaches him and whose robin has to arrive on it
+   * travelling at its own speed, neither of which a straight walk can do.
+   * `approach(who, joinBeat)` is `takes[who]` exactly, so the two halves of the
+   * figure meet without a step.
+   */
+  approach?(who: "lark" | "robin", t: Beat): Spot;
   /** How far each body turns, signed degrees: {@link COURTESY_HALF_TURN}. */
   bodyTurn: number;
   /** How far the couple's own line sweeps: the same number, the pair is rigid. */
@@ -287,6 +305,263 @@ export interface StepInTurnSpec {
   closeBeats: Beat;
   /** How long the opening out on to the two places takes, at the end. */
   openBeats: Beat;
+}
+
+/**
+ * The whole orbit, signed degrees: two {@link COURTESY_HALF_TURN}s, so the
+ * orbit runs the same way round the floor as the courtesy turn it replaces.
+ */
+export const ORBIT_FULL_TURN = 2 * COURTESY_HALF_TURN;
+
+/**
+ * F10's candidate: **the courtesy turn as the lark's own orbit**, which the
+ * robin joins a quarter of the way through.
+ *
+ * The user, a caller, watching the chain back and describing what is missing:
+ *
+ * > "in 8 beats / the larks orbit backwards 1 full turn around the point
+ * > between where they and the robin started. / the robins pull by to join the
+ * > larks 1/4 of the way through. (2 beats) / they both finish the orbit."
+ *
+ * Nothing else in this file does that. {@link courtesyTurn} and
+ * {@link stepInTurn} both leave the lark standing on his place until the hands
+ * close and then turn the couple a **half**; here he is walking backward from
+ * beat one, turns a **whole**, and the take happens at a point he has already
+ * carried a quarter of the way round — which is the one thing that puts her
+ * take on the **inner** side of his line, past the middle of the set, where a
+ * right-shoulder pull by can reach it. F8 proved a rigid half turn cannot do
+ * that at any pivot; a full orbit is not a tuning of it but a different figure.
+ *
+ * Three things are true by construction, the same way {@link courtesyTurn}'s
+ * three are:
+ *
+ * - **He walks backward the whole way.** His facing turns with the orbit at
+ *   exactly its own rate, so his velocity is always dead astern of him.
+ * - **The pair is rigid from the join.** Both bodies and the couple's own line
+ *   turn together, so she is on his right at every sample and the four hands
+ *   keep their body-local offsets — the user's "the arms basically stay put" —
+ *   until the couple opens out on to the places over the last
+ *   {@link OrbitTurnSpec.openBeats}.
+ * - **The ends are exact.** His circle is centred half a hold off his own place
+ *   toward hers, so a whole turn puts him back on the pixel he started on; she
+ *   rides the antipode and opens out along it on to her place.
+ *
+ * **What the model makes us choose.** The user's picture has the lark's place
+ * and the robin's place one hold apart, which is what a real couple stands at
+ * — so "the centre half way between the two spots", "the circle is one hold
+ * wide" and "he ends where he started" are one statement. Here the two places
+ * are 20 px apart in becket and 32 px apart in a duple improper group of four,
+ * against an 11.5 px hold, so they are three statements and only two of them
+ * can hold. This keeps the **circle one hold wide** and the **ends exact**, and
+ * gives up "the centre is half way between the two places": the centre sits
+ * `hold / 2` from him toward her place, and she opens out along the ray from it
+ * on to her place over the last beats, exactly as {@link courtesyTurn}'s couple
+ * opens out of its own hold.
+ */
+export function orbitTurn(spec: OrbitTurnSpec): CourtesyTurn {
+  const away = sub(spec.robin.p, spec.lark.p);
+  const gap = len(away);
+  const u: Vec2 = gap <= 1e-9 ? [1, 0] : norm(away);
+  const hold = Math.min(spec.hold, gap);
+  const radius = hold / 2;
+  const centre: Vec2 = [spec.lark.p[0] + u[0] * radius, spec.lark.p[1] + u[1] * radius];
+  // Where he is round the circle at beat 0: on the far side of the centre from
+  // her place, which is his own place.
+  const from = bearing(centre, spec.lark.p);
+  const beats = spec.beats;
+  const join = Math.min(Math.max(spec.joinBeat, 0), beats);
+  const openFrom = Math.max(beats - Math.max(spec.openBeats, 0), join);
+
+  /** How far round he is `t` beats in, signed degrees; zero speed at both ends. */
+  const spin = (t: Beat): number => ORBIT_FULL_TURN * smooth(t / beats);
+  /** `spin`'s own derivative, degrees per beat, so the join is exact and not sampled. */
+  const spinRate = (t: Beat): number => {
+    const k = clamp01(t / beats);
+    return (ORBIT_FULL_TURN * 6 * k * (1 - k)) / beats;
+  };
+
+  const larkAt = (t: Beat): Spot => ({
+    p: polar(centre, from + spin(t), radius),
+    facing: spec.lark.facing + spin(t),
+  });
+  const robinAt = (t: Beat): Spot => ({
+    p: polar(centre, from + spin(t) + 180, mix(radius, gap - radius, ramp(t, openFrom, beats))),
+    facing: spec.lark.facing + spin(t),
+  });
+
+  const takes = { lark: larkAt(join), robin: robinAt(join) };
+
+  // Her arrival velocity is the orbit's own, so that she "joins the backwards
+  // pivot" rather than stopping dead on it and being picked up again.
+  const arriveAngle = from + spin(join) + 180;
+  const arriveRate = (radius * spinRate(join) * Math.PI) / 180;
+  const arrive = rightOf(arriveAngle);
+  const arriveVelocity: Vec2 = [arrive[0] * arriveRate, arrive[1] * arriveRate];
+
+  // Her plain walk on to the orbit: from a standstill on her own place to the
+  // take, arriving at the orbit's own speed and in its own direction.
+  const chord = sub(takes.robin.p, spec.robinFrom.p);
+  const plain: Leg = {
+    from: spec.robinFrom.p,
+    v0: [0, 0],
+    to: takes.robin.p,
+    v1: arriveVelocity,
+    beats: join,
+  };
+
+  // **Whether there is a pull by to shape at all.** The two robins' paths are
+  // point reflections of each other through the set's centre at every instant
+  // (F8's closed form), so how near they come is exactly twice how near one of
+  // them comes to that centre — and `HOLD_SPACING_PX` is the library's own
+  // number for two dancers close enough to be passing rather than circling
+  // (`figureChecks.ts` measures every pass against it). Where the plain walk
+  // already brings them that close, the dip below decides which shoulder and
+  // how much room; where it does not — a duple improper group of four standing
+  // alone, whose two lines are 32 px apart, puts both takes on their own side
+  // of the middle and the robins never meet — bending her path through the
+  // centre would send her out and back through it for a pull by that is not
+  // there, which is a near miss rather than a pass.
+  const meets = 2 * nearestApproach(plain, spec.centre) < HOLD_SPACING_PX;
+
+  // The pull by itself: `passPx` to her own left of the set's centre, so the
+  // two of them cross `2 · passPx` apart with right shoulders together. Three
+  // knots — standing still on her place, the pull by, the take — joined by two
+  // cubics whose middle velocity is the Catmull-Rom one (the whole chord over
+  // the whole approach), which is what makes them one curve rather than two
+  // walks with a corner between them.
+  const along = len(chord) <= 1e-9 ? ([1, 0] as Vec2) : norm(chord);
+  const left: Vec2 = [along[1], -along[0]];
+  const pass: Vec2 = [
+    spec.centre[0] + left[0] * spec.passPx,
+    spec.centre[1] + left[1] * spec.passPx,
+  ];
+  const half = join / 2;
+  const middleVelocity: Vec2 = join <= 1e-9 ? [0, 0] : [chord[0] / join, chord[1] / join];
+  const legs: Leg[] =
+    join <= 1e-9
+      ? []
+      : meets
+        ? [
+            { from: spec.robinFrom.p, v0: [0, 0], to: pass, v1: middleVelocity, beats: half },
+            { from: pass, v0: middleVelocity, to: takes.robin.p, v1: arriveVelocity, beats: half },
+          ]
+        : [plain];
+
+  const legAt = (t: Beat): { leg: Leg; local: Beat } | undefined => {
+    if (legs.length === 0) return undefined;
+    if (legs.length === 1) return { leg: legs[0]!, local: t };
+    return t <= half ? { leg: legs[0]!, local: t } : { leg: legs[1]!, local: t - half };
+  };
+  const walkTo = (t: Beat): Vec2 => {
+    const at = legAt(t);
+    return at === undefined ? takes.robin.p : hermite(at.leg, at.local);
+  };
+  const walkSpeed = (t: Beat): Vec2 => {
+    const at = legAt(t);
+    return at === undefined ? [0, 0] : hermiteRate(at.leg, at.local);
+  };
+  // `walkStep`'s own two-stage facing: turn to the way you are walking, then
+  // turn to the facing the take wants. She starts from a standstill, so the
+  // direction of travel at beat 0 is read a hair after it.
+  const turn = Math.min(1, join / 4);
+  const travel = (t: Beat): Angle => {
+    const v = walkSpeed(Math.max(t, join * 1e-4));
+    return len(v) <= 1e-12 ? spec.robinFrom.facing : angleOfVec(v);
+  };
+  const walkFacing = (t: Beat): Angle =>
+    angleLerp(
+      angleLerp(spec.robinFrom.facing, travel(t), turn <= 0 ? 1 : smooth(t / turn)),
+      takes.robin.facing,
+      turn <= 0 ? 1 : smooth((t - (join - turn)) / turn),
+    );
+
+  return {
+    takes,
+    bodyTurn: ORBIT_FULL_TURN,
+    sweep: ORBIT_FULL_TURN,
+    hold,
+    pivot: centre,
+    larkRadius: radius,
+    robinRadius: radius,
+    turnBeats: beats - join,
+    lark: (t) => larkAt(t + join),
+    robin: (t) => robinAt(t + join),
+    approach: (who, t) => (who === "lark" ? larkAt(t) : { p: walkTo(t), facing: walkFacing(t) }),
+  };
+}
+
+/** What a figure hands {@link orbitTurn}. */
+export interface OrbitTurnSpec {
+  /** His place, facing in: where the orbit starts him and where it leaves him. */
+  lark: Spot;
+  /** Where the orbit leaves her: the place on his right, facing in. */
+  robin: Spot;
+  /** Where she is standing when the figure starts, on the far line. */
+  robinFrom: Spot;
+  /** The centre of the set, which is where the pull by happens. */
+  centre: Vec2;
+  /** How wide his circle is, px: the couple's hold; see {@link stepInHold}. */
+  hold: number;
+  /** Which beat of the figure she arrives on the orbit at, and the hands close. */
+  joinBeat: Beat;
+  /** How far to her own left of {@link OrbitTurnSpec.centre} she passes, px. */
+  passPx: number;
+  /** How long the whole figure takes: the orbit is one turn over all of it. */
+  beats: Beat;
+  /** How long the opening out on to the two places takes, at the end. */
+  openBeats: Beat;
+}
+
+/** One cubic of the robin's approach: two points, two velocities and a duration. */
+interface Leg {
+  from: Vec2;
+  v0: Vec2;
+  to: Vec2;
+  v1: Vec2;
+  beats: Beat;
+}
+
+/** A cubic Hermite along one {@link Leg}, `t` beats into it. */
+function hermite(leg: Leg, t: Beat): Vec2 {
+  const s = leg.beats <= 0 ? 1 : Math.min(Math.max(t / leg.beats, 0), 1);
+  const ss = s * s;
+  const sss = ss * s;
+  const h00 = 2 * sss - 3 * ss + 1;
+  const h10 = sss - 2 * ss + s;
+  const h01 = -2 * sss + 3 * ss;
+  const h11 = sss - ss;
+  return [
+    h00 * leg.from[0] + h10 * leg.beats * leg.v0[0] + h01 * leg.to[0] + h11 * leg.beats * leg.v1[0],
+    h00 * leg.from[1] + h10 * leg.beats * leg.v0[1] + h01 * leg.to[1] + h11 * leg.beats * leg.v1[1],
+  ];
+}
+
+/** How finely {@link nearestApproach} looks: fine enough to place a 0.1 px dip. */
+const APPROACH_STEPS = 128;
+
+/** How near one {@link Leg} comes to a point, px. */
+function nearestApproach(leg: Leg, to: Vec2): number {
+  let nearest = Infinity;
+  for (let i = 0; i <= APPROACH_STEPS; i++) {
+    const p = hermite(leg, (leg.beats * i) / APPROACH_STEPS);
+    nearest = Math.min(nearest, Math.hypot(p[0] - to[0], p[1] - to[1]));
+  }
+  return nearest;
+}
+
+/** {@link hermite}'s velocity, px per beat. */
+function hermiteRate(leg: Leg, t: Beat): Vec2 {
+  if (leg.beats <= 0) return [0, 0];
+  const s = Math.min(Math.max(t / leg.beats, 0), 1);
+  const ss = s * s;
+  const h00 = 6 * ss - 6 * s;
+  const h10 = 3 * ss - 4 * s + 1;
+  const h01 = -6 * ss + 6 * s;
+  const h11 = 3 * ss - 2 * s;
+  return [
+    (h00 * leg.from[0] + h01 * leg.to[0]) / leg.beats + h10 * leg.v0[0] + h11 * leg.v1[0],
+    (h00 * leg.from[1] + h01 * leg.to[1]) / leg.beats + h10 * leg.v0[1] + h11 * leg.v1[1],
+  ];
 }
 
 /**

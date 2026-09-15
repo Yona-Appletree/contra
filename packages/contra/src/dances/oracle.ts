@@ -13,6 +13,7 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
+import type { FigureDefaultsOverride } from "../figures/registry.js";
 import { createContraRegistry } from "../figures/registry.js";
 import { formationById } from "./formations.js";
 
@@ -53,13 +54,18 @@ export const linesFor = (dance: Dance): readonly number[] =>
   dance.formation === BECKET.id ? BECKET_LINES : DUPLE_LINES;
 
 /** One dance, danced by the script decider for as long as the caller asks. */
-export function danceAlone(dance: Dance, couples: number, until: number): Decider {
+export function danceAlone(
+  dance: Dance,
+  couples: number,
+  until: number,
+  overrides: FigureDefaultsOverride = {},
+): Decider {
   const formation = formationFor(dance);
   const program: Program = {
     slug: `${dance.slug}-alone`,
     items: [{ dance: dance.slug, medley: "none", timesThrough: 8 }],
   };
-  const registry = createContraRegistry();
+  const registry = createContraRegistry([], overrides);
   const hall = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]);
   const decider = createScriptDecider(program, registry, hall, createLibrary([dance], [formation]));
   decider.advance(until);
@@ -87,8 +93,13 @@ export interface DanceOracles {
 }
 
 /** Run every oracle over one dance at one line length. */
-export function oraclesFor(dance: Dance, couples: number, until = 128): DanceOracles {
-  const decider = danceAlone(dance, couples, until);
+export function oraclesFor(
+  dance: Dance,
+  couples: number,
+  until = 128,
+  overrides: FigureDefaultsOverride = {},
+): DanceOracles {
+  const decider = danceAlone(dance, couples, until, overrides);
   const timeline = decider.timeline();
   const closure = closureReport(timeline);
   const reach = reachReport(timeline, 0, until);

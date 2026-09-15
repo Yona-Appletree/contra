@@ -91,19 +91,21 @@ export type { RightAndLeftThroughParams } from "./right-and-left-through.js";
 export { rightAndLeftThrough } from "./right-and-left-through.js";
 
 export type { RobinsChainParams } from "./robins-chain.js";
-export { CHAIN_CANDIDATES, robinsChain } from "./robins-chain.js";
+export { CHAIN_CANDIDATES, CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
 
 export type { HeyParams } from "./hey.js";
 export { hey } from "./hey.js";
 
-export type { BackHands, CourtesyTurn, CourtesyTurnSpec } from "./courtesyTurn.js";
+export type { BackHands, CourtesyTurn, CourtesyTurnSpec, OrbitTurnSpec } from "./courtesyTurn.js";
 export {
   COURTESY_HALF_TURN,
   COURTESY_PIVOT_FROM_LARK_PX,
+  ORBIT_FULL_TURN,
   courtesyBackHands,
   courtesyHold,
   courtesyTurn,
   larkAndRobin,
+  orbitTurn,
 } from "./courtesyTurn.js";
 
 export type { ContraFigureId, FigureDefaultsOverride } from "./registry.js";
@@ -136,7 +138,7 @@ export {
   motionReportMarkdown,
 } from "./reportMotion.js";
 
-export type { FigureChecks } from "./figureChecks.js";
+export type { CheckOverrides, FigureChecks } from "./figureChecks.js";
 export {
   CHECK_FRAME,
   CHECK_STEP,

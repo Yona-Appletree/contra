@@ -171,7 +171,8 @@ describe("`?chain=`'s registry override (F9)", () => {
 function moved(a: GalleryTile, b: GalleryTile): boolean {
   for (const dancer of a.timeline.dancers()) {
     for (const t of window(a)) {
-      if (dist(poseAt(a.timeline, dancer, t).p, poseAt(b.timeline, dancer, t).p) > 1e-9) return true;
+      if (dist(poseAt(a.timeline, dancer, t).p, poseAt(b.timeline, dancer, t).p) > 1e-9)
+        return true;
     }
   }
   return false;
