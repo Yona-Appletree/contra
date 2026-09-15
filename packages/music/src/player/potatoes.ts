@@ -1,4 +1,4 @@
-import type { Tune } from "../tunes/Tune.js";
+import type { Arrangement, Tune, Voice } from "../tunes/Tune.js";
 
 /**
  * The potatoes: the four strong chords a band plays into the start of a dance.
@@ -18,17 +18,19 @@ import type { Tune } from "../tunes/Tune.js";
  *
  * **What plays them.** The brief asks for "the loudest instrument of the
  * current tune's arrangement", chosen "from the tune's data, not hard-coded per
- * tune". There is no arrangement in this package to choose from: a
- * {@link Tune} is one ABC melody line with a key, a meter and a tempo, and
- * `abcjs`' synth renders it as a single voice. So what *is* taken from the
- * tune's own data is its **key** — the root of the chord, parsed out of the
- * ABC's own `K:` field — and its **mode**, which decides whether the chord is
- * major or minor; the voice itself is one loud, bright, plucked-string timbre
- * for every tune. See the B3 report for the ruling this is owed.
+ * tune". A {@link Tune} carries its {@link Arrangement} — the band's three
+ * voices with their programs and volumes — so {@link potatoesFor} takes the
+ * loudest of them and plays the chords in that instrument's family
+ * ({@link voiceOf}): **bowed** for a fiddle (a bow bite, a swell, an octave up
+ * where a fiddle's chord sits), **struck** for a piano, **plucked** for a bass.
+ * The **key** — the root of the chord and whether its third is major or
+ * minor — comes from the tune's own `key` field.
  */
 export interface PotatoOptions {
   /** How many potatoes, and therefore how many beats the buffer lasts. */
   beats: number;
+  /** Which instrument's family strikes the chord. */
+  voice: PotatoVoice;
   /** The tempo they are played at, in dance beats a minute. */
   bpm: number;
   /** The root of the chord, in Hz. */
@@ -43,8 +45,14 @@ export interface PotatoOptions {
   seed: number;
 }
 
+/** The families a potato can be played in; see {@link voiceOf}. */
+export type PotatoVoice = "bowed" | "struck" | "plucked";
+
 export const POTATO_DEFAULTS: PotatoOptions = {
   beats: 4,
+  // The hammer: the timbre the potatoes had before the arrangement existed,
+  // and the fallback for an instrument outside the three families.
+  voice: "struck",
   bpm: 112,
   // D below middle C: the root of nine of this package's thirteen tunes, and
   // the key `POTATO_DEFAULTS` is only ever a fallback for.
@@ -61,12 +69,34 @@ const CHORD_MINOR: readonly number[] = [1, 3 / 2, 2, 12 / 5, 3];
 /** How loud each of those is, before the envelope. */
 const CHORD_LEVELS: readonly number[] = [1, 0.7, 0.55, 0.35, 0.3];
 
-/** Seconds the attack transient lasts: the pick, the bow bite, the hammer. */
-const ATTACK_SECONDS = 0.008;
-/** How much noise rides on the attack, relative to the tone. */
-const ATTACK_NOISE = 0.55;
-/** How much second-harmonic bite the tone carries, for a chord that cuts. */
-const BITE = 0.25;
+/** What distinguishes one voice's chord from another's, before the envelope. */
+interface Timbre {
+  /** Seconds the attack transient lasts: the pick, the bow bite, the hammer. */
+  attackSeconds: number;
+  /** How much noise rides on the attack, relative to the tone. */
+  noise: number;
+  /** How much second-harmonic bite the tone carries, for a chord that cuts. */
+  bite: number;
+  /** Seconds the tone takes to swell in under the attack; zero for an instant strike. */
+  swellSeconds: number;
+  /** Octaves above the potato root the chord is played at. */
+  octave: number;
+  /** What the voice does to `decaySeconds`: a bow stroke is shorter than a ringing string. */
+  decay: number;
+}
+
+const TIMBRE: Readonly<Record<PotatoVoice, Timbre>> = {
+  // A fiddle's chord: the bow bites, the tone swells in over twenty
+  // milliseconds, the sound is bright with the bow's edge, and it sits an
+  // octave up — a fiddle's lowest string is G3, and its D chord starts at D4.
+  // The stroke is a short one — a down-bow, not a held note — so it decays
+  // faster than a struck string rings.
+  bowed: { attackSeconds: 0.02, noise: 0.35, bite: 0.6, swellSeconds: 0.02, octave: 1, decay: 0.7 },
+  // A piano's chord: the hammer, instant, ringing.
+  struck: { attackSeconds: 0.008, noise: 0.55, bite: 0.25, swellSeconds: 0, octave: 0, decay: 1 },
+  // A bass's chord: a fast, rounder pluck, low, ringing.
+  plucked: { attackSeconds: 0.004, noise: 0.45, bite: 0.15, swellSeconds: 0, octave: 0, decay: 1 },
+};
 
 /**
  * Four potatoes, rendered sample by sample.
@@ -88,8 +118,9 @@ export function renderPotatoes(
   const random = mulberry32(o.seed);
   const chord = o.mode === "major" ? CHORD_MAJOR : CHORD_MINOR;
 
+  const timbre = TIMBRE[o.voice];
   for (let k = 0; k < o.beats; k++) {
-    addPotato(out, sampleRate, k * beatSeconds, o, chord, random);
+    addPotato(out, sampleRate, k * beatSeconds, o, timbre, chord, random);
   }
   return normalise(out, o.peak);
 }
@@ -113,15 +144,44 @@ export function playPotatoes(
 }
 
 /**
- * The potatoes for one tune, at one tempo: the chord in **its** key.
+ * The potatoes for one tune, at one tempo: the chord in **its** key, played
+ * by **its** loudest instrument.
  *
- * Read off the tune's own key rather than out of a table keyed by slug, so a
- * tune added tomorrow gets potatoes in its own key with nothing else written.
+ * Both are read off the tune's own data rather than out of a table keyed by
+ * slug, so a tune added tomorrow gets potatoes in its own key, in its own
+ * band's voice, with nothing else written.
  */
-export const potatoesFor = (tune: Pick<Tune, "key">, bpm: number): Partial<PotatoOptions> => {
+export const potatoesFor = (
+  tune: Pick<Tune, "key" | "arrangement">,
+  bpm: number,
+): Partial<PotatoOptions> => {
   const key = keyOf(tune);
-  return { bpm, rootHz: key.rootHz, mode: key.mode };
+  return {
+    bpm,
+    rootHz: key.rootHz,
+    mode: key.mode,
+    voice: voiceOf(loudestVoice(tune.arrangement).program),
+  };
 };
+
+/** The loudest voice of an arrangement; the melody wins a tie, then the chords. */
+export function loudestVoice(arrangement: Arrangement): Voice {
+  return [arrangement.melody, arrangement.chords, arrangement.bass].reduce((loudest, voice) =>
+    voice.volume > loudest.volume ? voice : loudest,
+  );
+}
+
+/**
+ * The family a General MIDI program plays a potato in: the strings (40–47)
+ * bow it, the pianos and chromatic percussion (0–15) strike it, and
+ * everything else — basses, guitars, and whatever a future band brings —
+ * plucks it.
+ */
+export function voiceOf(program: number): PotatoVoice {
+  if (program >= 40 && program <= 47) return "bowed";
+  if (program >= 0 && program <= 15) return "struck";
+  return "plucked";
+}
 
 /**
  * A tune's key, read off its own `key` field — the same text its ABC's `K:`
@@ -171,27 +231,32 @@ function addPotato(
   sampleRate: number,
   at: number,
   o: PotatoOptions,
+  timbre: Timbre,
   chord: readonly number[],
   random: () => number,
 ): void {
   const from = Math.max(0, Math.round(at * sampleRate));
   const to = out.length;
   const twoPi = Math.PI * 2;
+  const root = o.rootHz * Math.pow(2, timbre.octave);
+  const decaySeconds = o.decaySeconds * timbre.decay;
   for (let i = from; i < to; i++) {
     const dt = (i - from) / sampleRate;
-    const decay = Math.exp(-dt / o.decaySeconds);
+    const decay = Math.exp(-dt / decaySeconds);
     if (decay < 1e-4) break;
     let sample = 0;
     for (let c = 0; c < chord.length; c++) {
-      const hz = o.rootHz * chord[c]!;
+      const hz = root * chord[c]!;
       const level = CHORD_LEVELS[c] ?? 0.3;
       const phase = twoPi * hz * dt;
-      sample += level * (Math.sin(phase) + BITE * Math.sin(2 * phase));
+      sample += level * (Math.sin(phase) + timbre.bite * Math.sin(2 * phase));
     }
+    // A bowed tone swells in under the bite; a struck or plucked one is there at once.
+    if (timbre.swellSeconds > 0) sample *= 1 - Math.exp(-dt / timbre.swellSeconds);
     // The strike: a few milliseconds of noise on top of the tone, which is
     // what makes a chord read as *struck* rather than faded in.
-    const attack = Math.exp(-dt / ATTACK_SECONDS);
-    sample += ATTACK_NOISE * attack * (random() * 2 - 1);
+    const attack = Math.exp(-dt / timbre.attackSeconds);
+    sample += timbre.noise * attack * (random() * 2 - 1);
     out[i] = out[i]! + decay * sample;
   }
 }

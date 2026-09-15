@@ -13,6 +13,7 @@
     "test:golden": "playwright test",
     "test:golden:update": "UPDATE_GOLDENS=1 playwright test",
     "strips": "node scripts/strips.mjs",
+    "soundfont": "node scripts/build-soundfont.mjs",
     "figure-lab-pictures": "playwright test e2e/figureLab.spec.ts"
   },
   "dependencies": {

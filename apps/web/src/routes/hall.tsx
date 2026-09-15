@@ -533,7 +533,9 @@ export function HallPage({
       const AudioCtor = window.AudioContext ?? window.webkitAudioContext;
       const ctx = AudioCtor === undefined ? undefined : new AudioCtor();
       ctxRef.current = ctx ?? null;
-      player = createPlayer(ctx);
+      // The band's samples ship with the app (public/soundfont/), so nothing
+      // streams from abcjs' default host at run time.
+      player = createPlayer(ctx, { soundFontUrl: `${import.meta.env.BASE_URL}soundfont/` });
       playerRef.current = player;
     }
     await ctxRef.current?.resume();

@@ -18,6 +18,18 @@ export interface PlayOptions {
   potatoBeats?: Beat;
 }
 
+/** What {@link createPlayer} takes beyond the audio context. */
+export interface PlayerOptions {
+  /**
+   * Where abcjs loads its per-note samples from: a directory holding
+   * `<instrument>-mp3/<Note>.mp3`, the layout of gleitz/midi-js-soundfonts.
+   * The app passes its own `public/soundfont/`, built by
+   * `apps/web/scripts/build-soundfont.mjs`, so nothing streams from GitHub
+   * at run time. Left out, abcjs streams FluidR3 from its default host.
+   */
+  soundFontUrl?: string;
+}
+
 export interface Player {
   /** Prime the synth for every tune in the medley (async; `play` stays synchronous). */
   load(medley: Medley): Promise<void>;
@@ -37,6 +49,8 @@ const START_LATENCY = 0.06;
 const LOOKAHEAD = 0.2;
 /** How often the silence-mode cycle poller checks the clock, milliseconds. */
 const SILENT_POLL_MS = 50;
+/** What abcjs applies to its own FluidR3 rendering; ours is the same rendering, self-hosted. */
+const SOUND_FONT_VOLUME_MULTIPLIER = 3.0;
 
 interface PrimedTune {
   bpm: number;
@@ -53,7 +67,7 @@ interface PrimedTune {
  * so silence mode is actually reachable without a browser. See the
  * "Deviations" note in `packages/music/README.md`.)
  */
-export function createPlayer(ctx?: AudioContext): Player {
+export function createPlayer(ctx?: AudioContext, options: PlayerOptions = {}): Player {
   const silent = !ctx;
   const clock = createClock(silent ? () => performance.now() / 1000 : () => ctx.currentTime);
 
@@ -61,6 +75,13 @@ export function createPlayer(ctx?: AudioContext): Player {
   let sequence: Tune[] = [];
   let bpm = 120;
   const visuals = new Map<Tune, TuneObject>();
+  // abcjs multiplies its samples by 3.0 for its own default soundfont and by
+  // 1.0 for any other URL. Ours is the same FluidR3 rendering at a different
+  // address, so the multiplier is stated rather than left to that rule.
+  const synthOptions = {
+    soundFontVolumeMultiplier: SOUND_FONT_VOLUME_MULTIPLIER,
+    ...(options.soundFontUrl === undefined ? {} : { soundFontUrl: options.soundFontUrl }),
+  };
   const primed = new Map<Tune, PrimedTune>();
 
   const cycleListeners: Array<(cycle: number, tune: Tune) => void> = [];
@@ -119,7 +140,12 @@ export function createPlayer(ctx?: AudioContext): Player {
     // quarter for a jig) — see packages/music/README.md.
     const millisecondsPerMeasure = (60000 * tune.meter.beatsPerBar) / atBpm;
     const createSynth = new synth.CreateSynth();
-    await createSynth.init({ audioContext: ctx, visualObj, millisecondsPerMeasure, options: {} });
+    await createSynth.init({
+      audioContext: ctx,
+      visualObj,
+      millisecondsPerMeasure,
+      options: synthOptions,
+    });
     await createSynth.prime();
     const buffer = createSynth.getAudioBuffer();
     if (!buffer)

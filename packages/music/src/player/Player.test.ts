@@ -13,6 +13,16 @@ describe("createPlayer (silence mode: no AudioContext)", () => {
     await expect(player.load(reelMedley)).resolves.toBeUndefined();
   });
 
+  it("takes a soundfont URL, which is inert without audio", async () => {
+    const player = createPlayer(undefined, { soundFontUrl: "/contra/soundfont/" });
+    await player.load(reelMedley);
+    const seen: number[] = [];
+    player.onCycle((cycle) => seen.push(cycle));
+    player.play(0);
+    expect(seen).toEqual([0]);
+    player.stop();
+  });
+
   it("play() emits a cycle event immediately for the starting cycle", async () => {
     const player = createPlayer();
     await player.load(reelMedley);
