@@ -1,17 +1,29 @@
 import type { Beat } from "@caller/core";
 import type { Dance, DancerId, MotionStats, PhraseName, StationId } from "@caller/choreo";
-import { MOTION_STEP, danceBeats, danceSchedule, motionReport } from "@caller/choreo";
+import { MOTION_STEP, createHall, danceBeats, danceSchedule, motionReport } from "@caller/choreo";
 import type { Carried } from "../figures/ContraFigure.js";
 import { CONTRA_MOTION_BOUNDS } from "../figures/motionBounds.js";
 import { contraDataEngine } from "../library/engine.js";
 import { contraDataFigures } from "../library/figures/index.js";
+import { latticeSpan } from "../set/lattice.js";
 import { contraCyclePlanner } from "../set/planCycle.js";
+import { isRelationWord, parseRelation, relate } from "../set/relations.js";
 import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
+import { setRulesFor } from "../set/SetRules.js";
+import { modelFromSet } from "../set/SetModel.js";
+import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { ALL_DANCES } from "./index.js";
 import type { MotionMetric } from "./motionAllowlist.js";
 import { motionAllowance } from "./motionAllowlist.js";
 import type { DanceOracles } from "./oracle.js";
-import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "./oracle.js";
+import {
+  CLOSURE_PX,
+  COLLISION_PX,
+  danceAlone,
+  formationFor,
+  linesFor,
+  oraclesFor,
+} from "./oracle.js";
 
 /**
  * `packages/contra/scripts/danceLab.mjs`'s data: everything `pnpm dance <slug>`
@@ -151,6 +163,73 @@ function joinsOf(
 /** The line length the resolution table and the motion rows are read at. */
 export const labCouples = (dance: Dance): number => linesFor(dance)[0] ?? 4;
 
+/** One dancer a call's own relation leaves out, and which end of the set they are at. */
+export interface EndEffectRow {
+  couples: number;
+  phrase: PhraseName;
+  figure: string;
+  start: Beat;
+  /** The relation word the call named. */
+  relation: string;
+  dancer: DancerId;
+  /** `"top"` or `"bottom"`: which end of the line this dancer is standing at. */
+  end: "top" | "bottom";
+}
+
+/**
+ * **The end-effects table** (M6): which calls leave whom out, at which end.
+ *
+ * M6's end-of-set rule is the simplest one there is — *a relation that resolves
+ * to nobody leaves that dancer on hold-place for the call* — and this is the
+ * rule read out loud. It is computed from the **lattice**, not from the
+ * timeline: for every call that names a relation, every dancer that relation
+ * answers nobody for is a row, at whichever end of the line they are standing.
+ * So it says why somebody stood still, not merely that they did.
+ *
+ * It is evidence rather than failure. A dance with a wide relation has busier
+ * ends at short line lengths by construction — Whoosh reaches N4, so a
+ * two-couple line has nobody to reach — and the table is how a caller finds out
+ * how long a line that dance wants.
+ */
+export function endEffects(dance: Dance, couples: number): EndEffectRow[] {
+  const formation = formationFor(dance);
+  const set = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]).sets[0];
+  if (!set) return [];
+  const model = modelFromSet(formation, set, new Map());
+  const table = setRulesFor(formation).relations;
+  const span = latticeSpan(model);
+  const rows: EndEffectRow[] = [];
+  for (const { call, start, phrase } of danceSchedule(dance)) {
+    for (const word of relationsOf(call)) {
+      const rel = parseRelation(word);
+      for (const dancer of Object.values(model.dancers)) {
+        if (relate(model, table, dancer.id, rel) !== undefined) continue;
+        const { position } = dancer.slot;
+        rows.push({
+          couples,
+          phrase,
+          figure: call.figure,
+          start,
+          relation: word,
+          dancer: dancer.id,
+          end: position - span.lowest <= span.highest - position ? "top" : "bottom",
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+/** The relation words one call names, in `who` and in its `pairs` parameter. */
+function relationsOf(call: { who?: unknown; params?: unknown }): string[] {
+  const out: string[] = [];
+  const params = call.params as Record<string, unknown> | undefined;
+  for (const value of [call.who, params?.["pairs"]]) {
+    if (typeof value === "string" && isRelationWord(value)) out.push(value);
+  }
+  return [...new Set(out)];
+}
+
 /** `pnpm dance <slug>`'s whole text report, and whether the loop is green. */
 export function danceLabReport(
   slug: string,
@@ -182,6 +261,36 @@ export function danceLabReport(
   if (dance.notes) lines.push(`> ${dance.notes}`, "");
 
   let ok = true;
+
+  // 0. What this dance is still owed, by name and by milestone.
+  //
+  // A lab dance encoded from a transcript may call a figure a later milestone
+  // owns. That is deliberate — the call is written down so the record is
+  // complete and the test says exactly what is missing — and it is the first
+  // thing a reader wants, because nothing below it can be green until the
+  // figure exists.
+  const owed = [
+    ...new Set(
+      danceSchedule(dance)
+        .map((s) => s.call.figure)
+        .filter((figure) => UNSUPPORTED_FIGURES[figure] !== undefined),
+    ),
+  ].sort();
+  if (owed.length > 0) {
+    ok = false;
+    lines.push("## 0. Still owed", "");
+    for (const figure of owed) {
+      lines.push(`- \`${figure}\` — **${UNSUPPORTED_FIGURES[figure]!}** owns it.`);
+    }
+    lines.push(
+      "",
+      "This dance cannot resolve until they land, so everything below stops at the first one.",
+      "",
+      "resolution, oracles and motion: FAIL",
+      "",
+    );
+    return { slug, ok, text: lines.join("\n") };
+  }
 
   // 1. The resolution table: what each call became.
   lines.push("## 1. Resolution", "");
@@ -242,8 +351,49 @@ export function danceLabReport(
   }
   lines.push("");
 
-  // 3. Motion: the dance's own seams, which fail unless allowlisted (R6).
-  lines.push("## 3. Motion — the dance's seams", "");
+  // 3. The end effects: which calls leave whom out, at which end (M6).
+  lines.push("## 3. End effects — a relation that names nobody", "");
+  lines.push(
+    "A relation that resolves to nobody leaves that dancer on hold-place for the call. " +
+      "These rows are evidence, not failure: a dance that reaches to N3 or N4 has busier " +
+      "ends in a short line, and this is how long a line it is asking for.",
+    "",
+  );
+  let endRows = 0;
+  for (const line of linesFor(dance)) {
+    const rows = endEffects(dance, line);
+    endRows += rows.length;
+    if (rows.length === 0) {
+      lines.push(`- ${String(line)} couples: nobody is left out by an end.`);
+      continue;
+    }
+    const byCall = new Map<string, EndEffectRow[]>();
+    for (const row of rows) {
+      const key = `${row.phrase} beat ${String(row.start)} \`${row.figure}\` (${row.relation})`;
+      const seen = byCall.get(key);
+      if (seen) seen.push(row);
+      else byCall.set(key, [row]);
+    }
+    lines.push(`- ${String(line)} couples:`);
+    for (const [key, group] of byCall) {
+      const top = group.filter((r) => r.end === "top").map((r) => short(r.dancer));
+      const bottom = group.filter((r) => r.end === "bottom").map((r) => short(r.dancer));
+      lines.push(
+        `  - ${key} — ` +
+          [
+            top.length === 0 ? "" : `top: ${top.join(", ")}`,
+            bottom.length === 0 ? "" : `bottom: ${bottom.join(", ")}`,
+          ]
+            .filter((s) => s.length > 0)
+            .join(" · "),
+      );
+    }
+  }
+  if (endRows === 0) lines.push("_no call of this dance names a relation._");
+  lines.push("");
+
+  // 4. Motion: the dance's own seams, which fail unless allowlisted (R6).
+  lines.push("## 4. Motion — the dance's seams", "");
   lines.push(
     `Bounds: hand ${CONTRA_MOTION_BOUNDS.handSpeedPx.toFixed(1)} · ` +
       `elbow ${CONTRA_MOTION_BOUNDS.elbowSpeedPx.toFixed(1)} · ` +

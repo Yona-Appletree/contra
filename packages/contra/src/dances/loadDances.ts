@@ -4,6 +4,7 @@ import { contraDance } from "../figures/chain.js";
 import { contraFigureOf } from "../figures/registry.js";
 import { GATHERER_DEFINITIONS } from "../library/figures/index.js";
 import { paramDefaults } from "../library/interpret.js";
+import { REBIND_PARAM } from "../set/planCycle.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { formationById } from "./formations.js";
 
@@ -115,6 +116,13 @@ function checkCall(
  * - a **coded** figure's own `defaults`, less the two the chain derives;
  * - a **definition's** canonical parameters, for a figure that is data and has
  *   no coded twin — M6's `pull-by` and `grand-right-and-left` are the first;
+ * Every figure also takes {@link REBIND_PARAM}, which is not a figure parameter
+ * at all: it is a call-level instruction to the **set** — "when this figure lets
+ * go, whoever was your shadow is your partner" — that the planner reads and
+ * strips back out before the figure is planned. It is written in `params`
+ * because `FigureCall` is `@caller/choreo`'s and "partner" is a contra word
+ * (AC7); see `set/planCycle.ts`.
+ *
  * - **`undefined`**, and no check at all, for a figure on
  *   `acceptance.ts`'s own unsupported list. A transcript in the acceptance set
  *   may name a figure a later milestone owns, and this milestone's brief is
@@ -132,10 +140,13 @@ function declaredParams(
 ): Set<string> | undefined {
   const coded = contraFigureOf(figure);
   if (coded) {
-    return new Set(Object.keys(coded.defaults).filter((k) => k !== "from" && k !== "carried"));
+    return new Set([
+      ...Object.keys(coded.defaults).filter((k) => k !== "from" && k !== "carried"),
+      REBIND_PARAM,
+    ]);
   }
   const definition = GATHERER_DEFINITIONS.find((d) => d.id === figure);
-  if (definition) return new Set(Object.keys(paramDefaults(definition)));
+  if (definition) return new Set([...Object.keys(paramDefaults(definition)), REBIND_PARAM]);
   if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
   throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);
 }

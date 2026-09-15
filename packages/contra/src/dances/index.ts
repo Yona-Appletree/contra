@@ -9,10 +9,12 @@ import { danceFromFile } from "./loadDances.js";
 // is reconstructed from memory (see
 // `docs/adr/2026-09-13-corpus-and-permission.md`); the threaded `from` and
 // `carried` places are derived by {@link danceFromFile} at load, never stored.
+import aRareBirdFile from "../../../../data/dances/a-rare-bird.json" with { type: "json" };
 import afterTheSolsticeFile from "../../../../data/dances/after-the-solstice.json" with { type: "json" };
 import airpantsFile from "../../../../data/dances/airpants.json" with { type: "json" };
 import butterFile from "../../../../data/dances/butter.json" with { type: "json" };
 import contraCockaigneFile from "../../../../data/dances/contra-cockaigne.json" with { type: "json" };
+import contrablendFile from "../../../../data/dances/contrablend.json" with { type: "json" };
 import jubilationFile from "../../../../data/dances/jubilation.json" with { type: "json" };
 import kitchenStompFile from "../../../../data/dances/kitchen-stomp.json" with { type: "json" };
 import neighborNeighborOnTheWallFile from "../../../../data/dances/neighbor-neighbor-on-the-wall.json" with { type: "json" };
@@ -20,21 +22,25 @@ import programmeFile from "../../../../data/dances/programme.json" with { type: 
 import thanksToTheGeneFile from "../../../../data/dances/thanks-to-the-gene.json" with { type: "json" };
 import theBabyRoseFile from "../../../../data/dances/the-baby-rose.json" with { type: "json" };
 import theCarouselFile from "../../../../data/dances/the-carousel.json" with { type: "json" };
+import whooshFile from "../../../../data/dances/whoosh.json" with { type: "json" };
 
 /** Every dance file this package bundles, by its own slug. */
 const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
   (
     [
+      aRareBirdFile,
       afterTheSolsticeFile,
       airpantsFile,
       butterFile,
       contraCockaigneFile,
+      contrablendFile,
       jubilationFile,
       kitchenStompFile,
       neighborNeighborOnTheWallFile,
       thanksToTheGeneFile,
       theBabyRoseFile,
       theCarouselFile,
+      whooshFile,
     ] as DanceFile[]
   ).map((file) => [file.slug, file]),
 );
@@ -76,8 +82,8 @@ export const DEMO_DANCES: readonly Dance[] = PROGRAMME.slugs.map((slug) => {
  * The dances that load but are not shipped: `DanceFile.status === "lab"`.
  *
  * Reachable by `pnpm dance <slug>` and by {@link danceBySlug}, and by nothing
- * the demo shows. No lab dance exists yet; the acceptance set's twelve arrive
- * this way from M5 onwards.
+ * the demo shows. M6 brings the first three — Whoosh, Contrablend and A Rare
+ * Bird — and the rest of the acceptance set's twelve arrive the same way.
  */
 export const LAB_DANCES: readonly Dance[] = Object.values(DANCE_FILES)
   .filter((file) => file.status === "lab")

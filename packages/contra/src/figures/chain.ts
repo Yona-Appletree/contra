@@ -128,15 +128,24 @@ export function chainCalls(
   const middle: HandJoin[][] = [];
   for (const call of calls) {
     const def = contraFigureOf(call.figure);
-    if (!def) {
-      // **A figure with no coded twin threads nothing.** Since M6 a dance may
-      // call a figure that exists only as a `FigureDefinition` (`pull-by`), or
-      // one a later milestone still owes (`shoulder-round`), and neither has a
-      // hands-four template to walk. The chain is dead weight on the new path
-      // anyway — `planCycle` strips `from` and `carried` back out and derives
-      // both from set state — so the honest answer is to carry the places
-      // through unchanged and let resolution do the work. The old path cannot
-      // dance such a dance at all, and says so where it tries.
+    if (!def || reachesPastTheFour(call)) {
+      // **A call the hands-four template cannot answer threads nothing.**
+      //
+      // Two of them since M6. One is a figure with no coded twin: a
+      // `FigureDefinition` such as `pull-by`, or a figure a later milestone
+      // still owes such as `shoulder-round`. The other is a call that reaches
+      // **past the minor set** — "allemande N4", "roll away your shadow" — which
+      // a four-station template has no dancer for at all, and which the coded
+      // figure's own pairing would throw on at *load* time, taking the whole
+      // package's import down with it.
+      //
+      // The chain is dead weight on the new path either way: `planCycle` strips
+      // `from` and `carried` back out and derives both from set state. So the
+      // honest answer is to carry the places through unchanged and let
+      // resolution do the work; the old path cannot dance such a dance at all,
+      // and says so where it tries. The ten demo dances name nothing of the
+      // kind, and AC1's golden — which compares the new path against this
+      // threading — is what proves they still thread exactly as they did.
       out.push({
         figure: call.figure,
         beats: call.beats,
@@ -174,6 +183,30 @@ export function chainCalls(
   }
   carryHolds(out, ending, middle);
   return { calls: out, ends: places };
+}
+
+/**
+ * Whether a call names somebody a four-station template has no dancer for.
+ *
+ * Every relation word but `partner` and `neighbor` reaches outside the minor
+ * set on both contra lattices — N0 and N2 upward are other fours by
+ * construction, and a shadow is two places along — so a call that names one
+ * cannot be threaded against the template, and `chainCalls` carries the places
+ * through instead. Written as a word test here rather than read off the
+ * relation table, because the table lives in `set/` and this module is the
+ * *load*-time half that `set/` is built to replace.
+ */
+function reachesPastTheFour(call: ContraCall): boolean {
+  const params = call.params as Record<string, unknown> | undefined;
+  for (const value of [call.who, params?.["pairs"]]) {
+    if (typeof value !== "string") continue;
+    if (
+      /^(n0|n[2-9]|s\d+|shadows?|t\d+|trail-buddy|c\d+|corners?|opposites?)$/i.test(value.trim())
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
