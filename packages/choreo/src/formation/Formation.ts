@@ -38,6 +38,18 @@ export interface Station {
   p: Vec2;
   facing: Angle;
   role: RoleName;
+  /**
+   * True when the dancer on this station got here by **crossing** at the last
+   * progression rather than travelling along the set — see
+   * {@link CoupleState.crossedOver}, which is what a formation reads to set it.
+   *
+   * A figure that effects a progression (the becket shift is the only one
+   * today) uses it to bring that dancer across from the station opposite
+   * instead of along from a place behind; every other figure ignores it. It
+   * says nothing about where the station *is*: the pose here is the dancer's
+   * home for the whole time through either way.
+   */
+  crossedOver?: boolean;
 }
 
 /** Where a station sits in the world, given the frame its group runs in. */
@@ -55,6 +67,19 @@ export interface CoupleState {
   place: number;
   /** Which way the couple travels. Contra: `1` for the ones, `-1` for the twos. */
   direction: 1 | -1;
+  /**
+   * True when the **last** progression brought this couple here by crossing the
+   * set in place — it changed `direction` without changing `place` — rather
+   * than by travelling along the set or by waiting out at an end.
+   *
+   * A progression sets it, and clears it on every couple that did anything
+   * else, so it is never stale; a freshly seated set has it on nobody. Only an
+   * odd becket line produces it today (see `@caller/contra`'s `becket.ts`: an
+   * odd line has one waiting place, so the couple that runs out of line at the
+   * *other* end crosses straight over with no time out). It reaches a figure as
+   * {@link Station.crossedOver}.
+   */
+  crossedOver?: boolean;
 }
 
 /**

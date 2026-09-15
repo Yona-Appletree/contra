@@ -103,26 +103,104 @@ describe("a becket set", () => {
     expect(() => set(2)).toThrow(/at least four/);
   });
 
-  it("stands the odd couple out of an odd hall on a second waiting place", () => {
-    // Two couples stand at every dancing place, one from each line, so an odd
-    // number cannot fill a becket set: the odd one out takes a waiting place
-    // beyond the bottom end, and the set alternates between three dancing
-    // places and two — somebody is always out, never the same couple twice.
+  it("stands one couple out of a seven-couple hall, at the bottom, a different one every time", () => {
+    // S2, the user's own ruling: "in our sim it starts with two couples out at
+    // the bottom on the right set. that is not right." A real line of seven
+    // dances three hands-fours and stands **one** couple out, never two
+    // together at an end — see this formation's header for the loop that makes
+    // it so, and its worked seven-couple table, which is what this asserts.
+    const state = set(7);
+    expect(state.couples).toHaveLength(7);
+    expect(BECKET.groupsFor(HANDS_FOUR_GROUP, state).map((p) => p.kind)).toEqual([
+      "set",
+      "set",
+      "set",
+      "wait-bottom",
+    ]);
+
+    /** Who is out, and where, each time through. */
+    const out = (s: SetState): string => {
+      const waiting = BECKET.groupsFor(HANDS_FOUR_GROUP, s).filter((p) => p.kind !== "set");
+      expect(waiting).toHaveLength(1);
+      const plan = waiting[0]!;
+      const couple = s.couples.find((c) => c.id === plan.couples[0])!;
+      return `${couple.id}@${String(couple.place)}:${plan.kind}`;
+    };
+
+    let next = state;
+    const seen: string[] = [];
+    for (let cycle = 0; cycle < 3; cycle++) {
+      expect(
+        BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind === "set"),
+        `time through ${String(cycle + 1)}`,
+      ).toHaveLength(3);
+      seen.push(out(next));
+      next = BECKET.progression.next(next);
+      expect(next.couples).toHaveLength(7);
+    }
+    // The header's table, times one to three: place 3 every time — the waiting
+    // place beyond the bottom — and never the same couple twice.
+    expect(seen).toEqual(["b/c6@3:wait-bottom", "b/c5@3:wait-bottom", "b/c3@3:wait-bottom"]);
+  });
+
+  it("stands one couple out of a five-couple hall, and is back where it began after five", () => {
     const state = set(5);
     expect(state.couples).toHaveLength(5);
     expect(BECKET.groupsFor(HANDS_FOUR_GROUP, state).map((p) => p.kind)).toEqual([
-      "wait-top",
       "set",
-      "wait-bottom",
+      "set",
       "wait-bottom",
     ]);
     let next = state;
-    for (let cycle = 0; cycle < 6; cycle++) {
+    const seen: string[] = [];
+    for (let cycle = 0; cycle < 5; cycle++) {
+      const waiting = BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind !== "set");
+      expect(BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind === "set")).toHaveLength(
+        2,
+      );
+      expect(waiting).toHaveLength(1);
+      seen.push(waiting[0]!.couples[0]!);
       next = BECKET.progression.next(next);
-      expect(next.couples).toHaveLength(5);
-      expect(
-        BECKET.groupsFor(HANDS_FOUR_GROUP, next).filter((p) => p.kind === "set").length,
-      ).toBeGreaterThan(0);
+    }
+    // Every couple out exactly once, then the loop closes: five couples, five
+    // times through, and the set is the one `start` built.
+    expect([...seen].sort()).toEqual(["b/c0", "b/c1", "b/c2", "b/c3", "b/c4"]);
+    const seats = (s: SetState) =>
+      [...s.couples]
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map((c) => `${c.id}@${String(c.place)}/${String(c.direction)}`);
+    expect(seats(next)).toEqual(seats(state));
+  });
+
+  it("crosses one couple straight over at the top of an odd line, every time through", () => {
+    // The other half of the odd line's model: with only one waiting place there
+    // has to be an end where the couple that runs out of line crosses with no
+    // time out, and `crossedOver` is how the shift that carries them knows.
+    let state = set(7);
+    for (let cycle = 0; cycle < 4; cycle++) {
+      state = BECKET.progression.next(state);
+      const crossed = state.couples.filter((c) => c.crossedOver === true);
+      expect(crossed, `time through ${String(cycle + 2)}`).toHaveLength(1);
+      // At the top dancing place, and now travelling the other way.
+      expect(crossed[0]!.place).toBe(0);
+      expect(crossed[0]!.direction).toBe(-1);
+      // And it reaches a figure on the station it crossed on to.
+      const top = BECKET.groupsFor(HANDS_FOUR_GROUP, state).find((p) => p.id.endsWith("/p0"))!;
+      expect(top.stations.filter((s) => s.crossedOver === true).map((s) => s.id)).toEqual([
+        "2L",
+        "2R",
+      ]);
+    }
+  });
+
+  it("never crosses anybody straight over in an even line, and marks nobody", () => {
+    let state = set(8);
+    for (let cycle = 0; cycle < 4; cycle++) {
+      state = BECKET.progression.next(state);
+      expect(state.couples.filter((c) => c.crossedOver === true)).toEqual([]);
+      for (const plan of BECKET.groupsFor(HANDS_FOUR_GROUP, state)) {
+        expect(plan.stations.filter((s) => s.crossedOver === true)).toEqual([]);
+      }
     }
   });
 

@@ -1,6 +1,6 @@
-import type { Beat } from "@caller/core";
+import type { Beat, Vec2 } from "@caller/core";
 import { addScaled, clamp01, dirOf, mix, smooth } from "@caller/core";
-import type { ContraParams, FigurePlan, PlanContext, Spots } from "./ContraFigure.js";
+import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
 import { contraFigure } from "./ContraFigure.js";
 import { COUPLE_PITCH_PX } from "../formation/becket.js";
 
@@ -38,6 +38,27 @@ export const STEP_BEATS: Beat = 1;
 const GLANCE_DEG = 90;
 
 /**
+ * How far a couple crossing the set turns during the shift, degrees.
+ *
+ * Half a turn, and the sign matters: `+180` in this frame sweeps a becket
+ * dancer's facing through "down the set", so the couple crossing over at the
+ * top of an odd line looks *into* the set as it goes rather than out of the
+ * hall. See {@link Station.crossedOver} for who does this and `becket.ts`'s
+ * header for why an odd line has somebody doing it every time through.
+ */
+const TURN_DEG = 180;
+
+/** One crossing dancer's path: the couple's centre, and their place in it. */
+interface CrossPath {
+  /** Where the couple's centre starts, frame-local px. */
+  at0: Vec2;
+  /** Where it finishes: the centre of the two stations they cross on to. */
+  to: Vec2;
+  /** This dancer's own place in the couple, from its centre, at the finish. */
+  offset: Vec2;
+}
+
+/**
  * Slide along the line to the next couple: everybody sashays to their own left,
  * facing the same way the whole time.
  *
@@ -64,13 +85,47 @@ export const slideLeft = contraFigure<SlideLeftParams>({
   defaults: { from: {}, alongPx: COUPLE_PITCH_PX, direction: 1 },
 
   plan(ctx: PlanContext, params: SlideLeftParams): FigurePlan {
+    // Who crosses the set instead of sliding along it. The two of them are one
+    // couple, and they cross **as a couple**: the pair turns half way round
+    // about its own centre while that centre walks straight across the set, so
+    // they stay side by side a place apart the whole way and arrive with the
+    // lark still on the robin's left — which is what puts them on the far
+    // line's own two stations and not on each other's. Walking them straight to
+    // those stations instead would send them through the same point at the same
+    // instant, which AC6 catches and a hall would notice first.
+    const crossing = new Map<string, CrossPath>();
+    const crossers = ctx.stations.filter((s) => s.crossedOver === true);
+    if (crossers.length > 0) {
+      const to: Vec2 = [
+        crossers.reduce((sum, s) => sum + s.p[0], 0) / crossers.length,
+        crossers.reduce((sum, s) => sum + s.p[1], 0) / crossers.length,
+      ];
+      // Where the couple was for the whole of the last time through: the place
+      // opposite, through the centre of the minor set. The same crossing
+      // `wait-out`'s `'mirror'` walks an out couple through, for a couple that
+      // never went out.
+      const at0: Vec2 = [-to[0], -to[1]];
+      for (const station of crossers) {
+        crossing.set(station.id, { at0, to, offset: [station.p[0] - to[0], station.p[1] - to[1]] });
+      }
+    }
+
     const ends: Spots = {};
-    for (const id of ctx.ids) {
-      const self = ctx.spot(id);
-      ends[id] = {
-        p: addScaled(self.p, dirOf(self.facing - 90 * params.direction), params.alongPx),
-        facing: self.facing,
-      };
+    for (const station of ctx.stations) {
+      const id = station.id;
+      // A crossing dancer's shift ends on their own station — that is what
+      // crossing the set *is* — where a sliding one's ends a couple place
+      // along the line from wherever the dance left them.
+      ends[id] = crossing.has(id)
+        ? { p: [station.p[0], station.p[1]], facing: station.facing }
+        : {
+            p: addScaled(
+              ctx.spot(id).p,
+              dirOf(ctx.spot(id).facing - 90 * params.direction),
+              params.alongPx,
+            ),
+            facing: ctx.spot(id).facing,
+          };
     }
 
     const steps = Math.max(1, Math.round(params.beats / STEP_BEATS));
@@ -79,11 +134,36 @@ export const slideLeft = contraFigure<SlideLeftParams>({
       ends,
       joinsAt: () => [],
       at(station, t) {
+        const x = params.beats <= 0 ? 1 : t / params.beats;
+        const k = stepped(x, steps);
+        const cross = crossing.get(station);
+        if (cross) {
+          // `TURN_DEG * (k - 1)` runs from a half turn back to none, which
+          // sweeps a becket dancer's facing through "down the set": a couple
+          // crossing over at the end of a line looks into the set it is
+          // crossing rather than out of the hall. The head goes with the body —
+          // the turn is already showing them everything a glance would.
+          const turn = TURN_DEG * (k - 1);
+          const home = ctx.stations.find((s) => s.id === station);
+          if (!home) throw new Error(`slide-left: no station "${station}"`);
+          const c = Math.cos((turn * Math.PI) / 180);
+          const s = Math.sin((turn * Math.PI) / 180);
+          const facing = home.facing + turn;
+          return {
+            p: [
+              cross.at0[0] + (cross.to[0] - cross.at0[0]) * k + cross.offset[0] * c - cross.offset[1] * s,
+              cross.at0[1] + (cross.to[1] - cross.at0[1]) * k + cross.offset[0] * s + cross.offset[1] * c,
+            ],
+            facing,
+            look: facing,
+            hands: { L: "down", R: "down" },
+            stepRate: 1,
+            amp: 1,
+          };
+        }
         const self = ctx.spot(station);
         const end = ends[station];
         if (!end) throw new Error(`slide-left: no end for station "${station}"`);
-        const x = params.beats <= 0 ? 1 : t / params.beats;
-        const k = stepped(x, steps);
         return {
           p: [self.p[0] + (end.p[0] - self.p[0]) * k, self.p[1] + (end.p[1] - self.p[1]) * k],
           facing: self.facing,
