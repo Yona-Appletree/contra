@@ -82,16 +82,76 @@ test("the bubble falls silent between two calls, rather than holding the last on
   expect(await page.evaluate(() => window.hallDemo?.call(33))).toBe("");
 });
 
-test("choosing a dance changes the URL and the card", async ({ page }) => {
-  await openHall(page, { beat: 0, zoom: 2 });
+test("choosing a dance is a native select", async ({ page }) => {
+  // Not `?beat=`: that freezes the whole page for a golden, and re-pins the
+  // clock to it on every redraw — including one a fresh dance picks (see the
+  // next test). This wants the live page, exactly as a visitor gets it.
+  await openHall(page, { zoom: 2 });
   await expect(page.getByTestId("hall-card")).toContainText("Airpants");
 
-  await page.getByTestId("hall-dance-select").click();
-  await page.getByRole("option", { name: "Kitchen Stomp" }).click();
+  // U4 requirement 1: "should probably just be native" — no Radix popover.
+  const select = page.getByTestId("hall-dance-select");
+  expect(await select.evaluate((el) => el.tagName)).toBe("SELECT");
+  await expect(select.locator("option")).toHaveCount(10);
 
+  await select.selectOption("kitchen-stomp");
+  // The pick takes effect straight away — the caller announces it (see the
+  // next test for the full sequence, and why the URL does not move yet).
+  await expect(page.getByTestId("hall-status")).toContainText("Kitchen Stomp");
+});
+
+/**
+ * U4 requirement 6: "when you select a new dance it starts immediately which
+ * makes it hard to see what's going on. it should start with the normal line
+ * up." Picking a dance now starts at the beginning of its own line-up — the
+ * announcement, walk, hands four, potatoes (B3) — not its dancing beat 0.
+ *
+ * A consequence, not a separate bug: the URL, the card and the select's own
+ * displayed value all read "the dance now playing" (`position.dance`,
+ * exactly as they did before U4, and exactly as the card does for every
+ * *ordinary* dance-to-dance transition) — which for the whole of the
+ * line-up is still whichever dance the programme's own loop happens to put
+ * right before the one just picked, not the pick itself. They catch up the
+ * moment the picked dance actually starts dancing.
+ */
+test("choosing a dance starts its line-up, not its dancing beat 0", async ({ page }) => {
+  await openHall(page, { zoom: 2 });
+  await page.getByTestId("hall-dance-select").selectOption("kitchen-stomp");
+
+  await expect(page.getByTestId("hall-status")).toHaveText("The caller announces Kitchen Stomp");
+  expect(await page.evaluate(() => window.hallDemo?.call())).toBe(
+    "NEXT: KITCHEN STOMP, BY BECKY HILL",
+  );
+  await expect(page).not.toHaveURL(/#\/dance\/kitchen-stomp/);
+
+  // The interval from the beginning of the announcement to the dance's own
+  // beat 0 is 36 beats (16 announcement + 8 walk + 8 hands-four + 4 potatoes,
+  // `LINEUP_BEATS` in `program.ts`) whichever dance it is.
+  await page.evaluate(() => window.hallDemo?.seek((window.hallDemo?.beat() ?? 0) + 36));
   await expect(page.getByTestId("hall-card")).toContainText("Kitchen Stomp");
   await expect(page.getByTestId("hall-card")).toContainText("Becky Hill");
   await expect(page).toHaveURL(/#\/dance\/kitchen-stomp/);
+});
+
+/**
+ * U4 requirement 4: a reset control beside the speaker, pixel-art, same size
+ * and hit area, that returns the *current* dance to the start of its own
+ * line-up — not a different dance, and not its dancing beat 0.
+ */
+test("the reset control returns the current dance to its own line-up", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  // Somewhere into the dance's own first time through, well past its beat 0.
+  await page.evaluate(() => window.hallDemo?.seek(20));
+
+  const reset = page.getByTestId("hall-reset");
+  await expect(reset).toHaveAttribute("aria-label", "Restart this dance");
+  await reset.click();
+
+  await expect(page.getByTestId("hall-status")).toHaveText("The caller announces Airpants");
+  expect(await page.evaluate(() => window.hallDemo?.call())).toBe(
+    "NEXT: AIRPANTS, BY LISA GREENLEAF",
+  );
 });
 
 test("the hall dances before anyone presses play, on the silent clock", async ({ page }) => {
@@ -145,6 +205,11 @@ test("the between-dances interval is silent until the potatoes, and the next tun
 }) => {
   await page.goto(`#/dance/${FIRST_DANCE}`);
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  // U4: a bare `#/dance/<slug>` now opens on that dance's own line-up (the
+  // announcement), not its dancing beat 0 (requirement 6) — this test wants
+  // the *dancing* start of a known transition, so it seeks there explicitly
+  // rather than sitting through the line-up's own potato first.
+  await page.evaluate(() => window.hallDemo?.seek(0));
   await page.getByTestId("hall-play").click();
   await page.waitForFunction(() => window.hallDemo?.primed() === true, undefined, {
     timeout: 20_000,
@@ -272,14 +337,29 @@ test("the card says which part of the interval the hall is in", async ({ page })
   await expect(page.getByTestId("hall-status")).toHaveText("The caller announces Butter");
 });
 
-test("the trails toggle and the zoom buttons change the canvas", async ({ page }) => {
+test("the trails toggle changes the canvas", async ({ page }) => {
   await openHall(page, { beat: 0, zoom: 2 });
-  await page.getByTestId("hall-zoom-4").click();
-  await expect
-    .poll(async () => page.getByTestId("hall-canvas").evaluate((el: HTMLCanvasElement) => el.width))
-    .toBe(268 * 4);
   await page.getByTestId("hall-trails").click();
   await expect(page.getByTestId("hall-trails")).toHaveAttribute("aria-pressed", "false");
+});
+
+/**
+ * U4 requirements 2 and 3: the tune and zoom selectors are gone from the
+ * bar, but `?tune=` and `?zoom=` still work as deep links (for tests and
+ * goldens) with no control in the bar to have driven them.
+ */
+test("?zoom= still sizes the canvas directly, with no selector left in the bar", async ({
+  page,
+}) => {
+  await openHall(page, { beat: 0, zoom: 4 });
+  const box = await page
+    .getByTestId("hall-canvas")
+    .evaluate((el: HTMLCanvasElement) => ({ w: el.width, h: el.height }));
+  expect(box).toEqual({ w: 268 * 4, h: 342 * 4 });
+
+  await expect(page.getByTestId("hall-zoom-4")).toHaveCount(0);
+  await expect(page.getByTestId("hall-zoom-auto")).toHaveCount(0);
+  await expect(page.getByTestId("hall-tune-select")).toHaveCount(0);
 });
 
 /**

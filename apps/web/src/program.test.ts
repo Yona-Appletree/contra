@@ -2,7 +2,13 @@ import { DEMO_DANCES } from "@caller/contra";
 import { layoutHall } from "@caller/hall";
 import { medleys } from "@caller/music";
 import { describe, expect, it } from "vitest";
-import { createDemoProgram, shuffleMedleyAssignment } from "./program.js";
+import {
+  LINEUP_BEATS,
+  createDemoProgram,
+  lineUpStartBeat,
+  positionAt,
+  shuffleMedleyAssignment,
+} from "./program.js";
 
 /**
  * The seeded medley shuffle (T1: "ensure we have more tunes to randomize (I
@@ -161,5 +167,62 @@ describe("createDemoProgram's medley shuffle", () => {
     const a = createDemoProgram(world, undefined, 99);
     const b = createDemoProgram(world, undefined, 99);
     expect(a.medleys).toEqual(b.medleys);
+  });
+});
+
+/**
+ * U4 requirement 6: "when you select a new dance it starts immediately...
+ * it should start with the normal line up." Picking a dance (a Dances-tab
+ * tap, `#/dance/<slug>`, or the reset control) starts the programme at the
+ * beginning of that dance's own line-up — the announcement, skipping the
+ * thanks stretch, since there was no previous dance — rather than at its
+ * dancing beat 0.
+ */
+describe("lineUpStartBeat: a freshly chosen dance starts at its own line-up", () => {
+  const world = layoutHall({ lines: 2, couplesPerLine: [5, 4] });
+
+  it("starts at the beginning of the announcement, skipping the thanks stretch", () => {
+    const program = createDemoProgram(world, "butter", 7);
+    const at = lineUpStartBeat(program.dances.length);
+    const position = positionAt(program, at);
+    expect(position.between).toBe("announcement");
+    expect(position.next.slug).toBe("butter");
+  });
+
+  it("reaches the chosen dance's own dancing beat 0 exactly LINEUP_BEATS later", () => {
+    const program = createDemoProgram(world, "butter", 7);
+    const at = lineUpStartBeat(program.dances.length);
+    const position = positionAt(program, at + LINEUP_BEATS);
+    expect(position.dance.slug).toBe("butter");
+    expect(position.danceBeat).toBe(0);
+    expect(position.liningUp).toBe(false);
+  });
+
+  it("a beat one short of the interval is still lining up, not yet dancing", () => {
+    const program = createDemoProgram(world, "butter", 7);
+    const at = lineUpStartBeat(program.dances.length);
+    const position = positionAt(program, at + LINEUP_BEATS - 1);
+    expect(position.liningUp).toBe(true);
+    expect(position.next.slug).toBe("butter");
+  });
+
+  it("with an explicit danceIndex, points at the item that announces dances[danceIndex] — the reset control's own arithmetic", () => {
+    const program = createDemoProgram(world, undefined, 3);
+    const n = program.dances.length;
+    for (let idx = 0; idx < n; idx++) {
+      const at = lineUpStartBeat(n, idx);
+      const position = positionAt(program, at);
+      expect(position.between, `idx ${String(idx)}`).toBe("announcement");
+      expect(position.next.slug, `idx ${String(idx)}`).toBe(program.dances[idx]!.slug);
+    }
+  });
+
+  it("holds for every demo dance, not just Butter", () => {
+    for (const dance of DEMO_DANCES) {
+      const program = createDemoProgram(world, dance.slug, 11);
+      const at = lineUpStartBeat(program.dances.length);
+      expect(positionAt(program, at).next.slug, dance.slug).toBe(dance.slug);
+      expect(positionAt(program, at + LINEUP_BEATS).dance.slug, dance.slug).toBe(dance.slug);
+    }
   });
 });

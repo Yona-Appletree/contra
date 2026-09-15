@@ -81,6 +81,11 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `f9-chain-strips.png`                  | F9: the chain's four candidate courtesy turns, strips stacked, beats aligned |
 | `f9-chain-pens.png`                    | F9: the same four as pen plots, one shared scale                             |
 | `f9-chain-table.png`                   | F9: the same four, measured — pull by, travel, clearance, oracles            |
+| `u4-control-bar-390.png`               | U4: the control bar at 390 × 844 — native dance select, tempo, trails only   |
+| `u4-tempo-96-390.png`                  | U4: the bar with the tempo at 96 (two digits)                                |
+| `u4-tempo-124-390.png`                 | U4: the same bar at 124 (three digits) — `trails` has not moved              |
+| `u4-select-announces-390.png`          | U4: the moment Kitchen Stomp is picked — the bubble announces it, band still |
+| `u4-stage-buttons-390.png`             | U4: the speaker and the new reset button side by side in the stage's corner  |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -255,4 +260,28 @@ switch on `march`, which is also where "becket, progresses left" is read.
 card and a "card and shapes →" link to each dance's own page in their place.
 
 Taken from a scratch spec, `e2e/u3-dance-page-shots.spec.ts`, deleted
+afterwards per this file's own documented convention.
+
+The five U4 pictures are the control bar's love (the user: "the control bar
+needs some love"). `u4-control-bar-390.png` is the bar itself: a plain native
+`<select>` for the dance (a browser-drawn triangle, styled only in the
+theme's colours and font), the tempo slider and its readout, and `trails` —
+the tune and zoom selectors are gone, and so is any second row. The tempo
+pair, `u4-tempo-96-390.png` and `u4-tempo-124-390.png`, are the same bar at
+the slider's two ends — two digits and three — with `trails` in the exact
+same spot in both, which is the fixed-width readout (requirement 5) doing its
+job; the test that took them also asserts the pixel position, not just the
+picture. `u4-select-announces-390.png` is the moment Kitchen Stomp is picked
+from the select: the bubble already reads "NEXT: KITCHEN STOMP, BY BECKY
+HILL" and the status line says "The caller announces Kitchen Stomp", while
+the card and the select itself still show The Carousel — the dance the
+programme's own loop happens to put right before it — because, like every
+ordinary dance-to-dance transition, they read "the dance now playing" and the
+pick has not started dancing yet (requirement 6: it starts with its line-up,
+not its dancing beat 0). `u4-stage-buttons-390.png` is the new reset button
+beside U3's speaker, in the stage's own bottom-left corner: a small pixel
+triangle-and-bar "skip to start" glyph next to the speaker's muted cone, both
+44 px chips in one row.
+
+Taken from a scratch spec, `e2e/u4-control-bar-shots.spec.ts`, deleted
 afterwards per this file's own documented convention.

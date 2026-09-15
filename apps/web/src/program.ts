@@ -59,6 +59,42 @@ export const BETWEEN_DANCES_BEATS = betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
 export const ITEM_BEATS = TIMES_THROUGH * CYCLE_BEATS + BETWEEN_DANCES_BEATS;
 
 /**
+ * The "line-up" proper: the announcement, walk, hands-four and potatoes that
+ * lead into a dance, with the thanks for whichever dance came before it left
+ * out. This is what U4 starts a freshly chosen dance at — the whole of a real
+ * interval except the stretch that only makes sense when there was a
+ * previous dance to thank.
+ */
+export const LINEUP_BEATS = ANNOUNCE_BEATS + WALK_BEATS + RING_BEATS + POTATO_BEATS;
+
+/**
+ * The beat, within a fresh programme, at which item `announcerIndex`'s own
+ * announcement begins — right where its thanks would end, if it had any.
+ */
+function announcementStartOf(announcerIndex: number): Beat {
+  return announcerIndex * ITEM_BEATS + TIMES_THROUGH * CYCLE_BEATS + THANKS_BEATS;
+}
+
+/**
+ * Where the programme should start when the dance at `danceIndex` (0-based,
+ * within a programme of `danceCount` dances) is freshly chosen to dance — a
+ * Dances-tab tap, `#/dance/<slug>`, or the reset control (U4): the beginning
+ * of that dance's own line-up (its announcement), not its dancing beat 0, and
+ * not the thanks that would normally open the interval, because there was no
+ * dance before it in this fresh start (the user: "it should start with the
+ * normal line up").
+ *
+ * The programme loops, so the item that announces `danceIndex` is the one
+ * immediately before it in programme order — for `danceIndex` 0 that is the
+ * *last* item, which is exactly what makes "the caller announces the dance
+ * you just picked" true the moment you pick it.
+ */
+export function lineUpStartBeat(danceCount: number, danceIndex = 0): Beat {
+  const announcer = (((danceIndex - 1) % danceCount) + danceCount) % danceCount;
+  return announcementStartOf(announcer);
+}
+
+/**
  * Beats of **music** one programme item takes: the dancing beats, and no more.
  *
  * The gap between two dances carries no tune, which is the whole point. A dance

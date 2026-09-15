@@ -1,5 +1,7 @@
+import { DEMO_DANCES } from "@caller/contra";
 import { describe, expect, it } from "vitest";
-import { MAX_LINES, MIN_LINES, readLines, readSeed } from "./hallUrl.js";
+import { lineUpStartBeat } from "../program.js";
+import { MAX_LINES, MIN_LINES, readLines, readSeed, startBeatFor } from "./hallUrl.js";
 
 describe("readLines", () => {
   it("is two lines — the shipped hall — with no ?lines= at all", () => {
@@ -60,5 +62,29 @@ describe("readSeed", () => {
     const a = readSeed(new URLSearchParams("seed=123"), new Date("2026-01-01T00:00:00Z"));
     const b = readSeed(new URLSearchParams("seed=123"), new Date("2030-12-31T23:59:59Z"));
     expect(a).toBe(b);
+  });
+});
+
+/**
+ * U4 requirement 6: the Stage's route reader picks the beat a freshly chosen
+ * dance starts at — the beginning of its own line-up, not its dancing beat
+ * 0 — while `?beat=` still wins outright, for a golden or a test.
+ */
+describe("startBeatFor", () => {
+  it("is beat 0 with no dance in the route — the ordinary start of an evening", () => {
+    expect(startBeatFor(undefined, new URLSearchParams(""))).toBe(0);
+  });
+
+  it("is the line-up start for a dance named in the route", () => {
+    expect(startBeatFor("butter", new URLSearchParams(""))).toBe(
+      lineUpStartBeat(DEMO_DANCES.length),
+    );
+    // Not beat 0: the whole point is that it does not start dancing yet.
+    expect(startBeatFor("butter", new URLSearchParams(""))).not.toBe(0);
+  });
+
+  it("still honours an explicit ?beat=, dance or no dance", () => {
+    expect(startBeatFor(undefined, new URLSearchParams("beat=8"))).toBe(8);
+    expect(startBeatFor("butter", new URLSearchParams("beat=8"))).toBe(8);
   });
 });

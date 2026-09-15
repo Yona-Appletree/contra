@@ -16,9 +16,9 @@ import {
 } from "@caller/hall";
 import type { Medley, Player, Tune } from "@caller/music";
 import { Card, Notation, createPlayer, medleys, tunes } from "@caller/music";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@caller/ui-base";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ResetButton } from "../ResetButton.js";
 import { SpeakerButton } from "../SpeakerButton.js";
 import { cardDance } from "../danceCard.js";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
@@ -32,6 +32,7 @@ import {
   betweenDancesStatus,
   createDemoProgram,
   demoLines,
+  lineUpStartBeat,
   lineUpStartOf,
   musicBeatOf,
   musicItemEnd,
@@ -40,7 +41,7 @@ import {
   shownMusicBeat,
 } from "../program.js";
 import { chainOverridesFromQuery } from "../state/chainQuery.js";
-import { readLines, readSeed, setHallUrl } from "../state/hallUrl.js";
+import { readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -90,12 +91,13 @@ const TEMPO_MAX = 124;
 const THEME = "grange";
 
 /**
- * The tune select's sentinel value for "let the programme's seeded shuffle
- * choose" — the default (T1: "ensure we have more tunes to randomize (I am
- * so sick of soldier's joy)"). Distinct from every real medley slug
+ * The sentinel value for "let the programme's seeded shuffle choose" — the
+ * default, and since U4 removed the tune selector, the only choice a visit
+ * with no `?tune=` ever makes (T1: "ensure we have more tunes to randomize
+ * (I am so sick of soldier's joy)"). Distinct from every real medley slug
  * (`@caller/music`'s slugs are all `kebab-case-words`, never this bare
- * word), so it is safe to store in the same state as a pinned medley slug
- * and in the `?tune=` URL parameter.
+ * word), so it is safe to store alongside a pinned medley slug and in the
+ * `?tune=` URL parameter.
  */
 const SHUFFLE_MEDLEY = "shuffle";
 
@@ -165,15 +167,29 @@ export function HallPage({
   const chain = params.get("chain");
 
   const [danceSlug, setDanceSlug] = useState<string | undefined>(routeDance);
-  // "Shuffle" is the default (T1): the programme's own seeded shuffle picks
-  // the medley for whichever dance is playing. `?tune=<slug>` still pins
-  // every dance to one medley, as before.
-  const [medleySlug, setMedleySlug] = useState(routeTune ?? SHUFFLE_MEDLEY);
+  // "Shuffle" is the default and, since U4, the only choice ("the music
+  // probably just random for now, I don't like the selector" — the control
+  // is gone; the seeded shuffle T1 built stays the mechanism): the
+  // programme's own seeded shuffle picks the medley for whichever dance is
+  // playing. `?tune=<slug>` still pins every dance to one medley for a deep
+  // link or a test, resolved once at mount — there is no longer a control
+  // that could change it mid-visit.
+  const medleySlug = routeTune ?? SHUFFLE_MEDLEY;
   const [tempo, setTempo] = useState(112);
   const [playing, setPlaying] = useState(false);
-  const [zoomChoice, setZoomChoice] = useState<"auto" | number>(() => zoomFrom(params.get("zoom")));
+  // Zoom is automatic (U4: "no size selector. its fine on auto") — the only
+  // way to pick a fixed zoom now is the URL, for deep links and goldens.
+  const zoomChoice = useMemo<"auto" | number>(() => zoomFrom(params.get("zoom")), [params]);
   const [trails, setTrails] = useState(true);
-  const [beat, setBeat] = useState<Beat>(frozen === null ? 0 : Number(frozen));
+  const [beat, setBeat] = useState<Beat>(() => startBeatFor(routeDance, params));
+  // What the *clock* (not just the React state above) should be seeded to the
+  // next time the silent clock is rebuilt — on mount, and whenever picking a
+  // new dance rebuilds `program` (U4 requirement 6). `resetToLineUp` below
+  // rewinds the *current* clock directly instead, since picking it does not
+  // rebuild `program`. `beat`'s own lazy initial value is the same number, on
+  // the first render only — after that this ref is only ever written by the
+  // handlers below.
+  const pendingStartBeatRef = useRef<Beat | null>(beat);
   const [fitZoom, setFitZoom] = useState(1);
   // The renderer is state rather than a ref so that everything that draws
   // re-runs when a new zoom builds a new one.
@@ -239,6 +255,14 @@ export function HallPage({
     clockRef.current = silent;
     musicOnRef.current = false;
     previousRef.current = undefined;
+    // A fresh clock always starts at its own beat 0; when a start beat is
+    // pending — the initial mount, or a dance just picked from the bar — seed
+    // it there instead, so the evening opens on that dance's own line-up
+    // rather than on its dancing beat 0 (U4 requirement 6).
+    if (pendingStartBeatRef.current !== null) {
+      silent.setBeat(pendingStartBeatRef.current);
+      pendingStartBeatRef.current = null;
+    }
   }, [silent]);
 
   /**
@@ -295,6 +319,26 @@ export function HallPage({
     },
     [silent],
   );
+
+  /**
+   * The reset control (U4): return the dance now playing to the start of its
+   * own line-up, exactly where a fresh selection of it starts (requirement
+   * 6) — not to its dancing beat 0.
+   *
+   * Unlike picking a *different* dance from the bar, this does not rotate
+   * `danceOrder` or rebuild `program`, so there is no fresh clock for the
+   * `[silent]` effect above to seed: `goSilent` rewinds the current one
+   * directly, exactly as a seek does. The item that announces the dance at
+   * `position.index` is the one before it in programme order — the same
+   * arithmetic `lineUpStartBeat` uses for a freshly picked dance, aimed at
+   * whichever dance is current instead of always at index 0.
+   */
+  const resetToLineUp = useCallback((): void => {
+    const idx = positionAt(program, beatNow()).index;
+    const at = lineUpStartBeat(program.dances.length, idx);
+    goSilent(at);
+    setBeat(at);
+  }, [program, beatNow, goSilent]);
 
   /**
    * Start the next tune, optionally `potatoBeats` of potatoes ahead of it.
@@ -586,35 +630,40 @@ export function HallPage({
           >
             <div className="caller-stage-canvas-wrap">
               <canvas ref={canvasRef} data-testid="hall-canvas" />
-              {/*
-               * U3: the play control, an 8-bit speaker overlaid on the stage
-               * itself rather than a labelled button in the row below — "the
-               * 'play' button is not at all obvious … like a shorts video."
-               * Same click handler as the old button, so the user gesture the
-               * browser's autoplay policy needs is unchanged.
-               */}
-              <SpeakerButton playing={playing} onToggle={() => void (playing ? pause() : play())} />
+              <div className="stage-buttons">
+                {/*
+                 * U3: the play control, an 8-bit speaker overlaid on the stage
+                 * itself rather than a labelled button in the row below — "the
+                 * 'play' button is not at all obvious … like a shorts video."
+                 * Same click handler as the old button, so the user gesture the
+                 * browser's autoplay policy needs is unchanged.
+                 */}
+                <SpeakerButton
+                  playing={playing}
+                  onToggle={() => void (playing ? pause() : play())}
+                />
+                {/*
+                 * U4: reset, beside the speaker — returns the dance now playing
+                 * to the start of its own line-up (requirement 6), the same
+                 * beat picking a dance from the bar starts at.
+                 */}
+                <ResetButton onReset={resetToLineUp} />
+              </div>
             </div>
           </div>
           <ControlBar
             dance={position.dance.slug}
             onDance={(slug) => {
+              pendingStartBeatRef.current = lineUpStartBeat(DEMO_DANCES.length);
               setDanceSlug(slug);
-              setBeat(0);
+              setBeat(pendingStartBeatRef.current);
               setPlaying(false);
               wantsMusicRef.current = false;
               musicOnRef.current = false;
               playerRef.current?.stop();
             }}
-            medley={medleySlug}
-            onMedley={(slug) => {
-              setMedleySlug(slug);
-              if (playing) void play();
-            }}
             tempo={tempo}
             onTempo={setTempo}
-            zoom={zoomChoice}
-            onZoom={setZoomChoice}
             trails={trails}
             onTrails={setTrails}
           />
@@ -662,25 +711,27 @@ export function HallPage({
 /**
  * The control bar: everything the page lets anybody change, and nothing else.
  *
- * One row, never two. Dance, tune, tempo, zoom and trails come to about
- * 450 px at their smallest, which is more than a 390 px phone has, so the row
- * scrolls sideways there rather than wrapping under itself and pushing the
- * card off the screen (U1). On a laptop the hall's own column is wide enough
- * that nothing scrolls.
+ * U4 cut it down to three controls (the user: "the control bar needs some
+ * love"): the tune set is always the seeded shuffle now (no selector — "I
+ * don't like the selector"), and zoom is always automatic (no selector —
+ * "its fine on auto"); `?tune=` and `?zoom=` still work as deep links, they
+ * are just no longer something the bar lets you change. What is left is one
+ * row that never wraps: the dance, the tempo (a fixed-width readout so its
+ * digits changing width never reflows the row after it) and trails.
  *
- * Play moved out of this row in U3, onto the stage itself as the speaker icon
- * — the row lost the one control that most needed a thumb's reach on a phone,
- * which only helps the ones still here.
+ * The dance picker is a native `<select>` (requirement 1: "should probably
+ * just be native"), styled only as far as the theme's colours and font allow
+ * — no custom popover.
+ *
+ * Play moved out of this row in U3, onto the stage itself as the speaker
+ * icon; reset joined it there in U4, beside the speaker, rather than in this
+ * row.
  */
 function ControlBar(props: {
   dance: string;
   onDance: (slug: string) => void;
-  medley: string;
-  onMedley: (slug: string) => void;
   tempo: number;
   onTempo: (bpm: number) => void;
-  zoom: "auto" | number;
-  onZoom: (zoom: "auto" | number) => void;
   trails: boolean;
   onTrails: (on: boolean) => void;
 }): JSX.Element {
@@ -689,32 +740,19 @@ function ControlBar(props: {
       className="flex w-full items-center gap-1.5 overflow-x-auto px-2 text-xs whitespace-nowrap lg:px-0"
       data-testid="hall-controls"
     >
-      <Select value={props.dance} onValueChange={props.onDance}>
-        <SelectTrigger className="h-7 w-[9.5rem] shrink-0 text-xs" data-testid="hall-dance-select">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {DEMO_DANCES.map((d) => (
-            <SelectItem key={d.slug} value={d.slug}>
-              {d.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={props.medley} onValueChange={props.onMedley}>
-        <SelectTrigger className="h-7 w-[6.5rem] shrink-0 text-xs" data-testid="hall-tune-select">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={SHUFFLE_MEDLEY}>Shuffle</SelectItem>
-          {medleys.map((m) => (
-            <SelectItem key={m.slug} value={m.slug}>
-              {medleyName(m)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        value={props.dance}
+        onChange={(e) => props.onDance(e.target.value)}
+        aria-label="Dance"
+        data-testid="hall-dance-select"
+        className="h-7 w-[9.5rem] shrink-0 rounded border border-input bg-background px-1.5 text-xs text-foreground"
+      >
+        {DEMO_DANCES.map((d) => (
+          <option key={d.slug} value={d.slug}>
+            {d.title}
+          </option>
+        ))}
+      </select>
 
       <label className="flex shrink-0 items-center gap-1" htmlFor="hall-tempo">
         <input
@@ -728,39 +766,25 @@ function ControlBar(props: {
           data-testid="hall-tempo"
           className="h-4 w-16"
         />
-        <span className="tabular-nums text-muted-foreground">{props.tempo}</span>
-      </label>
-
-      <span className="flex shrink-0 items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => props.onZoom("auto")}
-          aria-pressed={props.zoom === "auto"}
-          data-testid="hall-zoom-auto"
-          className={zoomClass(props.zoom === "auto")}
+        {/* U4 requirement 5: "the bpm selector causes reflow because the text
+            changes width". `TEMPO_MAX` (124) is the widest value, three
+            digits, so a fixed width sized to it — plus tabular figures, so
+            the digits themselves never shift width either — means nothing
+            after it (trails) ever moves. */}
+        <span
+          className="inline-block w-[1.6em] text-right tabular-nums text-muted-foreground"
+          data-testid="hall-tempo-value"
         >
-          auto
-        </button>
-        {ZOOMS.map((z) => (
-          <button
-            key={z}
-            type="button"
-            onClick={() => props.onZoom(z)}
-            aria-pressed={props.zoom === z}
-            data-testid={`hall-zoom-${String(z)}`}
-            className={zoomClass(props.zoom === z)}
-          >
-            {z}
-          </button>
-        ))}
-      </span>
+          {props.tempo}
+        </span>
+      </label>
 
       <button
         type="button"
         onClick={() => props.onTrails(!props.trails)}
         aria-pressed={props.trails}
         data-testid="hall-trails"
-        className={`${zoomClass(props.trails)} shrink-0`}
+        className={zoomClass(props.trails)}
       >
         trails
       </button>
@@ -833,13 +857,6 @@ export function tuneAt(medley: Medley, beat: Beat): Tune {
   const n = medley.tunes.length;
   const i = ((Math.floor(cycle / per) % n) + n) % n;
   return medley.tunes[i]!;
-}
-
-/** "Two reels", "A jig" — the tune set named by what is in it. */
-function medleyName(medley: Medley): string {
-  const kinds = new Set(medley.tunes.map((t) => t.type));
-  const kind = kinds.size === 1 ? `${[...kinds][0]!}s` : "tunes";
-  return `${medley.tunes.length} ${medley.tunes.length === 1 ? kind.slice(0, -1) : kind}`;
 }
 
 function zoomFrom(raw: string | null): "auto" | number {
