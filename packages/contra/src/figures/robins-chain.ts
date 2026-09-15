@@ -1,5 +1,5 @@
 import type { Beat, Hand } from "@caller/core";
-import { angleDiff, dist } from "@caller/core";
+import { angleDiff, dist, ramp } from "@caller/core";
 import type { RoleName, StationId } from "@caller/choreo";
 import type {
   ContraParams,
@@ -23,6 +23,8 @@ import {
   courtesyBackHands,
   courtesyHold,
   courtesyTurn,
+  stepInHold,
+  stepInTurn,
 } from "./courtesyTurn.js";
 
 /** {@link robinsChain}'s parameters. */
@@ -47,9 +49,22 @@ export interface RobinsChainParams extends ContraParams {
   /**
    * How far from the lark the couple pivots, px; see
    * {@link COURTESY_PIVOT_FROM_LARK_PX}. The user's ruling is that it is near
-   * him; the exact distance is theirs to judge by eye.
+   * him; the exact distance is theirs to judge by eye. Only the rigid turn has
+   * a pivot: at `stepInPx > 0` this number is not read.
    */
   pivotFromLark: number;
+  /**
+   * How far the lark steps off his place to meet her, px — **0 for the rigid
+   * turn**, which is the default and is what the branch ships.
+   *
+   * F9's other two candidates. Above zero the couple stops being a rigid body:
+   * the lark steps `stepInPx` into the set, the robin comes the whole way past
+   * the middle and stops `stepInPx` short of her own place, and the two of them
+   * **spin** — both bodies turning a half while the couple's line barely moves
+   * and its centre drifts out on to the places. See {@link stepInTurn} for why
+   * a right-shoulder pull by needs exactly that, and what it costs.
+   */
+  stepInPx: number;
 }
 
 /**
@@ -126,6 +141,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     holdDrop: 6,
     stackPx: 1,
     pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
+    stepInPx: 0,
   },
 
   plan(ctx: PlanContext, params: RobinsChainParams): FigurePlan {
@@ -206,14 +222,26 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     const take: Record<StationId, Spot> = {};
     const turns: Record<StationId, { turn: CourtesyTurn; mine: "lark" | "robin" }> = {};
     for (const { robin, lark, pivot } of couples) {
-      const turn = courtesyTurn({
-        lark: ctx.spot(lark),
-        robin: ends[robin]!,
-        hold: courtesyHold(ctx.spacing, pivot, pivots, params.pivotFromLark),
-        beats: turnBeats,
-        openBeats,
-        pivotFromLark: params.pivotFromLark,
-      });
+      const turn =
+        params.stepInPx > 0
+          ? stepInTurn({
+              lark: ctx.spot(lark),
+              robin: ends[robin]!,
+              robinFrom: ctx.spot(robin).p,
+              hold: stepInHold(ctx.spacing, pivot, pivots),
+              stepInPx: params.stepInPx,
+              beats: turnBeats,
+              closeBeats: openBeats,
+              openBeats,
+            })
+          : courtesyTurn({
+              lark: ctx.spot(lark),
+              robin: ends[robin]!,
+              hold: courtesyHold(ctx.spacing, pivot, pivots, params.pivotFromLark),
+              beats: turnBeats,
+              openBeats,
+              pivotFromLark: params.pivotFromLark,
+            });
       take[lark] = turn.takes.lark;
       take[robin] = turn.takes.robin;
       turns[lark] = { turn, mine: "lark" };
@@ -236,6 +264,22 @@ export const robinsChain = contraFigure<RobinsChainParams>({
         // The lark is given {@link LARK_LEAD_BEATS} of head start, so that he
         // is standing on his take before she arrives at hers.
         const mine = swap[station] !== undefined;
+        if (!mine && params.stepInPx > 0) {
+          // A step-in turn's lark has only a few pixels to cover, so he waits
+          // on his place while the robins cross — their bowed paths come past
+          // the lark places, and in becket they come past them closely — and
+          // then turns about and steps out into the set to meet the one coming
+          // to him, over the second half of the pull by. He turns the opposite
+          // way from the courtesy turn, so the two cancel and he ends facing as
+          // he began.
+          const stepBeats = pullBeats / 2;
+          const wait = pullBeats - stepBeats;
+          const step = passRight(start, take[station]!, t - wait, stepBeats, 0);
+          return {
+            p: step.p,
+            facing: start.facing - turning.turn.bodyTurn * ramp(t, wait, pullBeats),
+          };
+        }
         const walk = mine ? pullBeats : Math.max(pullBeats - LARK_LEAD_BEATS, 1);
         const step = passRight(
           start,
