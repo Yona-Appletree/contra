@@ -229,12 +229,16 @@ test.describe("the move gallery", () => {
     // `{direction}`: "take hands in a ring. circle three places to your left".
     await expect(line).toHaveText("Take hands in a ring. Circle three places to your left.");
 
-    // The teach starts closed, which is the point of the row.
+    // **On a figure's own page the teach starts open** (P5): somebody who
+    // followed "show" from a walkthrough entry came here to read the whole
+    // thing. In the index it stays behind the disclosure, which is the point of
+    // the row.
     const teach = page.getByTestId("moves-walkthrough-teach");
-    await expect(teach).toBeHidden();
-    await page.getByText("teach", { exact: true }).click();
     await expect(teach).toBeVisible();
     await expect(teach).not.toContainText("{");
+    await page.goto("#/moves");
+    await expect(page.getByTestId("moves-walkthrough-teach").first()).toBeHidden();
+    await page.goto("#/moves/circle?beat=6");
     // The ending hint is its own element under the teach, generated rather than
     // written (D22, D29).
     await expect(page.getByTestId("moves-hint")).toHaveText(
@@ -245,6 +249,26 @@ test.describe("the move gallery", () => {
     await expect(page.getByTestId("moves-calls")).toHaveText(
       "CIRCLE LEFT THREE PLACES · CIRCLE LEFT · CIRCLE",
     );
+  });
+
+  test("the show link opens a figure from one dance's own call", async ({ page }) => {
+    // D23: the walkthrough card's "show". The tile is Butter's own chain — its
+    // formation, its parameters, its dancers — rather than the gallery's
+    // first-call tile, and the teach is open because somebody came here to read
+    // it.
+    test.setTimeout(30 * 1000);
+    await page.goto("#/moves/robins-chain?dance=butter&figure=4");
+    const tile = page.getByTestId("moves-tile");
+    await expect(tile).toHaveCount(1);
+    await expect(tile).toHaveAttribute("data-formation", "becket");
+    await expect(tile).toHaveAttribute("data-source", "butter");
+    await expect(page.getByTestId("moves-walkthrough-teach")).toBeVisible();
+    await expect(page.getByTestId("moves-hint")).toBeVisible();
+
+    // A stale link — a dance that never calls this figure at that index — falls
+    // back to the ordinary tile rather than to an empty page.
+    await page.goto("#/moves/robins-chain?dance=butter&figure=99");
+    await expect(page.getByTestId("moves-tile")).toHaveCount(1);
   });
 
   test("the bare route draws one canvas and nothing else", async ({ page }) => {

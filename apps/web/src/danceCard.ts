@@ -22,9 +22,10 @@ import type { CardPhrase } from "@caller/music";
  * bubble, which is the same function read along a time through rather than down
  * the record, says it on the beat.
  *
- * The register is {@link NOTE_CARD_BUDGET} beats. A card is **read**, not heard,
- * so every figure gets its own line whether or not the caller says two of them
- * in one breath: the merging is the bubble's, not the card's.
+ * The register is {@link NOTE_CARD_BUDGET} beats — the short form, plain ink,
+ * never coloured (D32). A card is **read**, not heard, so every figure gets its
+ * own line whether or not the caller says two of them in one breath: the merging
+ * is the bubble's, not the card's.
  */
 export function cardDance(dance: Dance): {
   title: string;
@@ -70,9 +71,11 @@ const branchTexts = (text: string): string[] => text.split(" WHILE ").slice(1);
 /**
  * How many beats of words the note card prints per figure.
  *
- * A ruling rather than an accident (D31, A6): the 4-beat form is what a card
- * read cold wants — the corpus's own lines, "LONG LINES FORWARD AND BACK", are
- * 4-beat forms — and G1's fifth question is whether the Stage's card should show
- * the short one instead. One constant is the whole of that change.
+ * **Two** (D31, A6). The user, on the spike's third card form: "we shouldn't
+ * color code the short calls" — the note card is the one a caller glances at
+ * while the band plays, and a glance wants "PARTNER SWING", not "SWING YOUR
+ * PARTNER". G1's fifth question is whether that is right or whether the card
+ * should show the 4-beat form after all; one constant is the whole of that
+ * change.
  */
-export const NOTE_CARD_BUDGET = 4;
+export const NOTE_CARD_BUDGET = 2;

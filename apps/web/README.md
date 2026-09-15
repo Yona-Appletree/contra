@@ -89,7 +89,12 @@ their own and are reached by URL or by a link on the page above them.
   All four lists are disclosures, closed (phone first, U1). Deep links:
   `#/moves/<figure-id>` opens one definition alone at 4×;
   `#/moves/<figure-id>~<param>=<value>` opens one parameter row;
-  `#/moves/seam/<a>--<b>` opens one seam alone (`a` and `b` are figure ids).
+  `#/moves/seam/<a>--<b>` opens one seam alone (`a` and `b` are figure ids);
+  `#/moves/<figure-id>?dance=<slug>&figure=<index>` opens that figure **as one
+  dance dances it** — that dance's formation, that call's own parameters and
+  dancers — which is what the walkthrough card's "show" link asks for (D23), with
+  `&branch=<n>` for one branch of a concurrent call and the teach open. A slug or
+  an index that names nothing falls back to the ordinary tile.
   Query parameters: `beat=<n>` freezes, `zoom=<1|2|3|4|6>`,
   `speed=<0.25|0.5|1>`, `trails=1`, `strip=1&step=<beats>` shows the
   one-frame-per-`step`-beats strip in place of the row it opens from, and
