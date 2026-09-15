@@ -251,27 +251,30 @@ function castsOf(
 ): readonly (readonly FigureRole[])[] | undefined {
   if (casts === undefined) return undefined;
   if (Array.isArray(casts)) return casts as readonly (readonly FigureRole[])[];
+  // `Array.isArray` does not narrow a **readonly** array out of a union, so the
+  // rule is named here rather than asserted at each of its two fields.
+  const rule = casts as Exclude<PartCasts, readonly (readonly FigureRole[])[]>;
   const here = new Set(input.roles);
-  if ("select" in casts) {
-    const word = input.params[casts.select];
+  if ("select" in rule) {
+    const word = input.params[rule.select];
     if (typeof word !== "string") {
       throw new Error(
-        `a sequence part chooses its casts on "${casts.select}", which is ` +
-          `${JSON.stringify(word)} and not one of ${Object.keys(casts.cases).join(", ")}`,
+        `a sequence part chooses its casts on "${rule.select}", which is ` +
+          `${JSON.stringify(word)} and not one of ${Object.keys(rule.cases).join(", ")}`,
       );
     }
-    const chosen = casts.cases[word];
+    const chosen = rule.cases[word];
     if (chosen === undefined) {
       throw new Error(
-        `"${casts.select}" is "${word}", which is not one of ` +
-          `${Object.keys(casts.cases).join(", ")}`,
+        `"${rule.select}" is "${word}", which is not one of ` +
+          `${Object.keys(rule.cases).join(", ")}`,
       );
     }
     return chosen;
   }
-  const named = input.params[casts.param];
+  const named = input.params[rule.param];
   if (named === undefined) {
-    throw new Error(`a sequence part's casts read "${casts.param}", which is not a parameter`);
+    throw new Error(`a sequence part's casts read "${rule.param}", which is not a parameter`);
   }
   return pairsOf(named as Pairing)
     .filter(([a, b]) => here.has(a) && here.has(b))
