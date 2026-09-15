@@ -719,6 +719,16 @@ function sized(tile: GalleryTile): GalleryTile {
   return {
     ...tile,
     world: {
+      // `Math.ceil` on a raw float, as it has always been. Worth knowing that
+      // it is a knife edge: a figure's geometry lands on round numbers — a
+      // swing's ring is 12.0 px from the centre — and two ways of computing the
+      // same number do not always agree on the last bit, so a difference of
+      // 4 × 10⁻¹⁵ px in a dancer's reach changes the **height of the canvas by
+      // two pixels**. Three seam tiles moved that way and only that way between
+      // the two engines in M3. Rounding the reach first would fix it and would
+      // also resize twenty-two tiles that are sitting on the same edge today,
+      // which is a bigger change than a milestone about the engine should make;
+      // M12 (the Moves page) is where it belongs.
       w: Math.max(MIN_TILE_WORLD.w, 2 * Math.ceil(x + TILE_MARGIN_PX)),
       h: Math.max(MIN_TILE_WORLD.h, 2 * Math.ceil(y + TILE_MARGIN_PX)),
     },
