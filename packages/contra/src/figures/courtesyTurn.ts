@@ -278,10 +278,31 @@ export function orbitTurn(spec: OrbitTurnSpec): CourtesyTurn {
     p: polar(centre, from + spin(t), radius),
     facing: spec.lark.facing + spin(t),
   });
-  const robinAt = (t: Beat): Spot => ({
-    p: polar(centre, from + spin(t) + 180, mix(radius, gap - radius, ramp(t, openFrom, beats))),
-    facing: spec.lark.facing + spin(t),
-  });
+  /**
+   * Where she is: the antipode of his circle, and then **straight out on to her
+   * place** over the last {@link OrbitTurnSpec.openBeats}.
+   *
+   * M10b. The opening out used to grow her *radius* while the orbit kept
+   * sweeping her round it, which is a spiral: she travelled the widening arc as
+   * well as the 20.5 px she actually had to cover, and the arc is what made the
+   * last beat of a chain the fastest beat in the library — 17.09 px/beat
+   * against the orbit's own 5.16. A chord covers the same ground in the same
+   * beats without the arc on top, and rides the figure's own profile while it
+   * does, like every other walk since M10.
+   *
+   * Both ends are exact either way: at `openFrom` the blend is zero, so she is
+   * on the orbit, and at the last beat it is one, so she is on her own place to
+   * the pixel.
+   */
+  const robinAt = (t: Beat): Spot => {
+    const on = polar(centre, from + spin(t) + 180, radius);
+    const out =
+      beats - openFrom <= 0 ? 1 : profileProgress(profile, t - openFrom, beats - openFrom);
+    return {
+      p: [mix(on[0], spec.robin.p[0], out), mix(on[1], spec.robin.p[1], out)],
+      facing: spec.lark.facing + spin(t),
+    };
+  };
 
   const takes = { lark: larkAt(join), robin: robinAt(join) };
 

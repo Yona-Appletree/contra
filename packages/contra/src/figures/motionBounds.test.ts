@@ -93,7 +93,10 @@ describe("the derived motion bounds", () => {
       expect(by("pass-through")).toBeLessThan(11.8952);
       expect(by("roll-away")).toBeLessThan(11.8678);
       expect(by("long-lines")).toBeCloseTo(3, 3);
-      expect(by("robins-chain")).toBeCloseTo(19.7104, 3);
+      // M10b took the chain back down: 19.7104 before the opening out became a
+      // chord, and 19.1282 after. It is still the figure that went *up* against
+      // its pre-cruise 18.3288, which is the constant-rate orbit and is ruled.
+      expect(by("robins-chain")).toBeCloseTo(19.1282, 3);
     });
   });
 

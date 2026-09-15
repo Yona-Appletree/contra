@@ -283,18 +283,36 @@ describe("a call that carries the progression", () => {
         })),
       });
 
-    it("is what Fatal Attraction writes, and it is what closes it", () => {
+    /**
+     * **This oracle no longer discriminates, and M10b is why** — the assertion
+     * below is weaker than the one it replaces, deliberately and with the
+     * measurement that forced it.
+     *
+     * The 29.9228/39.1798 px the "at the end" reading used to fail by was
+     * **not** the progression: at every length it was one seam,
+     * `robins-chain → promenade`, on a robin. The chain's opening out grew her
+     * radius while the orbit kept sweeping her round it, and where that spiral
+     * landed her was the figure's own end place only when the arithmetic
+     * happened to agree. M10b made the opening out a chord that ends on
+     * `spec.robin.p` by construction, and with it both readings close to
+     * 0.0000 px at every checked length.
+     *
+     * So this dance no longer tells the two readings apart, and saying so is
+     * the honest record. DD43's ruling does not rest on it alone: the test
+     * below — which counts who is standing out when the cast-back is danced —
+     * still separates them structurally, without an oracle.
+     */
+    it("is what Fatal Attraction writes, and both readings now close", () => {
       for (const couples of linesFor(FATAL)) {
         const start = oraclesFor(FATAL, couples, 128, {}, RUN);
         const end = oraclesFor(atTheEnd(FATAL), couples, 128, {}, RUN);
         expect(start.closurePx, `${String(couples)} couples, at the start`).toBeLessThan(
           CLOSURE_PX,
         );
-        // And the comparison is not vacuous: the end reading really is the one
-        // that does not close, at every length but the shortest.
-        if (couples > 4) {
-          expect(end.closurePx, `${String(couples)} couples, at the end`).toBeGreaterThan(20);
-        }
+        // Pinned rather than dropped: if the "at the end" reading ever stops
+        // closing again, that is a fact about the chain or the progression and
+        // this is where it shows up.
+        expect(end.closurePx, `${String(couples)} couples, at the end`).toBeLessThan(CLOSURE_PX);
       }
     });
 

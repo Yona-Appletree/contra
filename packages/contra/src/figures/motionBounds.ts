@@ -626,6 +626,10 @@ export const CONTRA_MOTION_BOUNDS: MotionBounds = {
  * the two-beat join instead of 56°, and a constant rate over the middle of the
  * figure is faster in the middle than a smoothstep's own peak is wide.
  *
+ * **M10b took 0.58 px/beat of that back**: 19.7104 → **19.1282**, by making the
+ * chain's opening out a chord instead of a spiral. The worst beat of a chain —
+ * which was the worst beat in the library — went from 17.09 px/beat to 15.37.
+ *
  * ### The figures above the bound, run alone
  *
  * Three, and each is a fact about the probe rather than about a dance — a
@@ -665,7 +669,7 @@ export const CONTRA_TRAVEL_MOTION = {
  * | figure | roles × | halves × | note |
  * | --- | ---: | ---: | --- |
  * | `bend-the-line` | 1.9577 | 2.5815 | a two-beat figure probed outside the line of four it is danced in; the same probe artefact as its travel row. No programme dance calls it. |
- * | `robins-chain` | 1.4890 | 1.2270 | **M10b's own figure**: 1.7641 / 1.3344 before. |
+ * | `robins-chain` | 1.7584 | 1.3268 | **M10b's own figure**, 1.7641 / 1.3344 before, and still over on `roles`: see `dances/motionAllowlist.ts`, which has the arithmetic and the whole lever sweep. |
  * | `single-file-promenade` | 1.5960 | 1.0135 | the figure that walks the rectangle itself, and the evidence for the bound. |
  * | `petronella` | 1.5455 | 1.0000 | one place clockwise round the ring, which is the rectangle again. |
  * | `interrupted-square-through` | 1.0000 | 7.2051 | it is *interrupted*: the figure stops in the middle by construction. |
