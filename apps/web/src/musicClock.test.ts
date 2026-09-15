@@ -22,9 +22,10 @@ import {
  * switch put the music eight beats out of phase with the dance; after eight
  * switches the drift was a whole time through, and the tune changed in the
  * middle of the last dance. B1 made the gap a real between-dances interval —
- * applause, announcement, walk, ready — which is 36 beats and would drift four
- * and a half times as fast. The arithmetic below is what the page runs on
- * instead: the music counts dancing beats only, whatever the gap is.
+ * thanks, announcement, walk, ready — which was 36 beats then (44 now, B3) and
+ * would drift four and a half times as fast either way. The arithmetic below
+ * is what the page runs on instead: the music counts dancing beats only,
+ * whatever the gap is.
  */
 
 /** Four dances, so the programme makes three switches. */

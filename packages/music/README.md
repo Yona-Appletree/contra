@@ -41,14 +41,6 @@ interface Player {
 }
 function createPlayer(ctx?: AudioContext): Player;
 
-// The applause between two dances, src/player/applause.ts
-function renderApplause(sampleRate: number, options?: Partial<ApplauseOptions>): Float32Array;
-function playApplause(
-  ctx: AudioContext,
-  when?: number,
-  options?: Partial<ApplauseOptions>,
-): AudioBufferSourceNode;
-
 // The potatoes: four chords that count a dance in, src/player/potatoes.ts
 function renderPotatoes(sampleRate: number, options?: Partial<PotatoOptions>): Float32Array;
 function playPotatoes(
@@ -75,24 +67,12 @@ interface CardFigure {
 }
 ```
 
-### The applause
+### The potatoes
 
-`renderApplause` writes 3.2 seconds of a hall clapping into a `Float32Array`,
-sample by sample: fourteen clappers, each at its own rate between 2.6 and 4.6
-claps a second with a fifteen per cent jitter on every clap so no two of them
-stay in phase, each clap a burst of white noise under a two-part exponential
-decay (a 6 ms transient and a 35 ms body), one-pole-filtered at that clapper's
-own brightness, all of it under a swell that rises over 0.2 s and dies away
-over the last second, and the sum normalised so the peak does not depend on how
-many people are clapping. It is plain arithmetic, so it is pure, seeded and
-testable with no `AudioContext` at all; `playApplause` is the three lines that
-copy it into a buffer and start it. **No sample file and no new dependency** —
-which is the point, and why it is written out rather than synthesised through a
-graph of `AudioNode`s.
-
-`renderPotatoes` is built the same way, for the four chords a band counts a
-dance in with (B3, the user: "four chords or strong notes … its basically '5 6
-7 8' before the '1 2 3 4 …' of the dance"). Four strikes, one a beat: the root,
+`renderPotatoes` writes its buffer sample by sample, the same way every buffer
+in this package is built, for the four chords a band counts a dance in with
+(B3, the user: "four chords or strong notes … its basically '5 6 7 8' before
+the '1 2 3 4 …' of the dance"). Four strikes, one a beat: the root,
 its fifth, the octave, the third above that and the twelfth, under eight
 milliseconds of noise and a plucked decay. The buffer is exactly four beats
 long, so `Player.play(atBeat, { potatoBeats: 4 })` schedules it to finish where

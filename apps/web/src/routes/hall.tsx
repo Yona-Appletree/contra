@@ -15,7 +15,7 @@ import {
   layoutHall,
 } from "@caller/hall";
 import type { Medley, Player, Tune } from "@caller/music";
-import { Card, Notation, createPlayer, medleys, playApplause, tunes } from "@caller/music";
+import { Card, Notation, createPlayer, medleys, tunes } from "@caller/music";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@caller/ui-base";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -264,8 +264,7 @@ export function HallPage({
   /**
    * How many times the band has counted a dance in, so a headless test can tell
    * that it did. Nobody can hear the potatoes from a Playwright run (DD12), so
-   * the proxy is the count and the beat it happened on — the same proxy B1 used
-   * for the applause.
+   * the proxy is the count and the beat it happened on.
    */
   const potatoesRef = useRef(0);
   /** Where the tune this player is on stops, in its own beats, and in the evening's. */
@@ -289,29 +288,6 @@ export function HallPage({
     },
     [silent],
   );
-
-  /**
-   * How many times the hall has applauded, so a headless test can tell that it
-   * did. Nobody can hear it from a Playwright run (DD12), so the proxy is the
-   * count and the beat it happened on.
-   */
-  const applauseRef = useRef(0);
-
-  /**
-   * Clap: the synthesised applause, fired once at the moment a dance ends.
-   *
-   * `@caller/music` renders it from noise — no sample, no dependency — so this
-   * is one buffer on the same `AudioContext` the tune was using, started the
-   * instant the tune stops. Nothing happens before the first click on play,
-   * because there is no context until then and a silent hall should stay
-   * silent.
-   */
-  const applaud = useCallback((): void => {
-    const ctx = ctxRef.current;
-    if (ctx === null || ctx.state !== "running") return;
-    applauseRef.current += 1;
-    playApplause(ctx);
-  }, []);
 
   /**
    * Start the next tune, optionally `potatoBeats` of potatoes ahead of it.
@@ -457,8 +433,6 @@ export function HallPage({
         if (musicOnRef.current) {
           if (clockRef.current.beat() >= musicEndRef.current) {
             goSilent(lineUpAtRef.current);
-            // The tune has just ended: this is the moment the hall claps.
-            applaud();
           }
         } else {
           const beat = clockRef.current.beat();
@@ -492,7 +466,7 @@ export function HallPage({
     return () => {
       running = false;
     };
-  }, [draw, frozen, beatNow, goMusic, goSilent, handOver, applaud]);
+  }, [draw, frozen, beatNow, goMusic, goSilent, handOver]);
 
   // Keep the address bar on the dance that is actually playing. "Shuffle"
   // does not round-trip through `?tune=` — it is the default, so leaving it
@@ -547,9 +521,6 @@ export function HallPage({
       // Whether a tune is the clock right now: false through every line-up,
       // which is what makes the line-up silent.
       musicOn: () => musicOnRef.current,
-      // How many times the hall has applauded. Nothing can be heard headlessly,
-      // so this is the proxy for "the clap fired, once, at the right moment".
-      applause: () => applauseRef.current,
       // How many times the band has played a dance in with four potatoes.
       potatoes: () => potatoesRef.current,
       // Jump the evening to a beat, keeping whichever clock should be running
@@ -667,8 +638,8 @@ export function HallPage({
           {/*
            * Which part of the evening this is: the time through while the hall
            * is dancing, and which stretch of the between-dances interval
-           * otherwise — the applause, the announcement, the walk or the wait
-           * for the tune (B1).
+           * otherwise — the thanks, the announcement, the walk or the wait
+           * for the tune (B1, B4).
            */}
           <p className="text-xs text-muted-foreground" data-testid="hall-status">
             {betweenDancesStatus(position)}
@@ -881,7 +852,6 @@ declare global {
       primed: () => boolean;
       beat: () => Beat;
       musicOn: () => boolean;
-      applause: () => number;
       potatoes: () => number;
       seek: (to: Beat) => void;
       call: (at?: Beat) => string;

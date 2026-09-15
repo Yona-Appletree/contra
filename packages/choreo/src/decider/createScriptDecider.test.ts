@@ -11,10 +11,10 @@ import { coverageProblems } from "../testing/oracles.js";
 import { poseAt } from "../timeline/poseAt.js";
 import type { FigureEvent, UtteranceEvent } from "../timeline/Timeline.js";
 import {
-  APPLAUSE_CALLS,
   HANDS_FOUR_CALLS,
   HERE_WE_GO,
   SCRIPT_DECIDER_DEFAULTS,
+  THANKS_CALLS,
   betweenDancesBeats,
   createLibrary,
 } from "./Decider.js";
@@ -142,29 +142,29 @@ describe("switching dances", () => {
 
   /** Two times through of a 64-beat dance ends here, and the gap starts. */
   const GAP = 128;
-  const { applauseBeats, announceBeats, lineUpBeats, ringBeats, readyBeats } =
+  const { thanksBeats, announceBeats, lineUpBeats, ringBeats, readyBeats } =
     SCRIPT_DECIDER_DEFAULTS;
-  const ANNOUNCE = GAP + applauseBeats;
+  const ANNOUNCE = GAP + thanksBeats;
   const WALK = ANNOUNCE + announceBeats;
   const RING = WALK + lineUpBeats;
   const READY = RING + ringBeats;
   const NEXT = READY + readyBeats;
 
-  it("applauds first, where the dancing stopped, before anything is announced", () => {
+  it("thanks the partner and neighbour first, where the dancing stopped, before anything is announced", () => {
     const { timeline } = run(program, GAP + 4);
     const lark = timeline.dancers().find((d) => d.endsWith("c0/lark"))!;
-    const clap = timeline.figuresOf(lark).find((f) => f.start === GAP)!;
-    expect(clap.figure).toBe("applaud");
-    expect(clap.end).toBe(ANNOUNCE);
+    const thanks = timeline.figuresOf(lark).find((f) => f.start === GAP)!;
+    expect(thanks.figure).toBe("thanks");
+    expect(thanks.end).toBe(ANNOUNCE);
 
     const said = timeline
       .utterances()
       .filter((u) => u.start >= GAP && u.start < ANNOUNCE)
       .map((u) => u.text);
-    expect(said).toEqual([...APPLAUSE_CALLS]);
+    expect(said).toEqual([...THANKS_CALLS]);
   });
 
-  it("announces the next dance after the applause, then how to stand for it", () => {
+  it("announces the next dance after the thanks, then how to stand for it", () => {
     const { timeline } = run(program, ANNOUNCE + 4);
     const announced = timeline.utterances().filter((u) => u.start >= ANNOUNCE && u.start < WALK);
     expect(announced.map((u) => u.text)).toEqual([
@@ -236,7 +236,7 @@ describe("switching dances", () => {
     ]);
   });
 
-  it("does not applaud, announce or line up when the next item is the same dance", () => {
+  it("does not thank, announce or line up when the next item is the same dance", () => {
     const { timeline } = run(
       { slug: "p", items: [{ dance: "one", medley: "m", timesThrough: 1 }] },
       200,

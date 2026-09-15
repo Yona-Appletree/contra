@@ -1,11 +1,5 @@
 export { createPlayer, type PlayOptions, type Player } from "./player/Player.js";
 export {
-  APPLAUSE_DEFAULTS,
-  playApplause,
-  renderApplause,
-  type ApplauseOptions,
-} from "./player/applause.js";
-export {
   POTATO_DEFAULTS,
   keyOf,
   playPotatoes,

@@ -58,8 +58,8 @@ export type {
   FigureRegistry,
 } from "./figure/FigureDef.js";
 export { createFigureRegistry, withDefaults } from "./figure/FigureDef.js";
-export type { ApplaudParams } from "./figure/applaud.js";
-export { APPLAUD, clapPhase } from "./figure/applaud.js";
+export type { ThanksParams } from "./figure/thanks.js";
+export { THANKS } from "./figure/thanks.js";
 export { joinHands, joinedOrder } from "./figure/joinHands.js";
 export type { Ring, RingJoin, RingPlaces, RingWalk } from "./figure/ring.js";
 export {
@@ -113,11 +113,11 @@ export type {
   ScriptPosition,
 } from "./decider/Decider.js";
 export {
-  APPLAUSE_CALLS,
   HANDS_FOUR,
   HANDS_FOUR_CALLS,
   HERE_WE_GO,
   SCRIPT_DECIDER_DEFAULTS,
+  THANKS_CALLS,
   betweenDancesBeats,
   createLibrary,
   danceOf,
