@@ -3,6 +3,7 @@ import { createHall } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { createContraRegistry } from "../figures/registry.js";
 import { legacyLibrary } from "../library/legacy.js";
+import { contraLibrary } from "../library/figures/index.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { HOLD_PLACE_FIGURE, resolveCall } from "./resolve.js";
 import { modelFromSet } from "./SetModel.js";
@@ -11,6 +12,8 @@ import { modelFromSet } from "./SetModel.js";
 
 const REGISTRY = createContraRegistry();
 const LIBRARY = legacyLibrary(REGISTRY);
+/** The data library, for the figures the bridge does not hold. */
+const DATA_LIBRARY = contraLibrary(REGISTRY);
 
 function context(couples: number, selector = "hands-four") {
   const set = createHall(DUPLE_IMPROPER, [{ id: "set0", couples, centre: [0, 0], axis: 90 }])
@@ -86,5 +89,50 @@ describe("resolving one call against the set", () => {
   it("survives a JSON round trip: an instance is data", () => {
     const instance = resolveCall(swing, context(4), 0)[0]!;
     expect(JSON.parse(JSON.stringify(instance))).toEqual(instance);
+  });
+
+  /**
+   * **A figure that declares the dancers it needs** (FR-B1, DD45): the call says
+   * who is active and the definition says how far that reaches. Turn contra
+   * corners reaches a couple above and a couple below, which is six dancers and
+   * no partition of the set into fours.
+   */
+  describe("a declared cast", () => {
+    const corners: FigureCall = { figure: "turn-contra-corners", beats: 16, who: "ones" };
+    const ctx = (couples: number) => ({
+      model: modelFromSet(
+        DUPLE_IMPROPER,
+        createHall(DUPLE_IMPROPER, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]).sets[0]!,
+        new Map(),
+      ),
+      formation: DUPLE_IMPROPER,
+      library: DATA_LIBRARY,
+      groups: DUPLE_IMPROPER.groupsFor(
+        "hands-four",
+        createHall(DUPLE_IMPROPER, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]).sets[0]!,
+      ),
+    });
+
+    it("casts the actives and both corner couples, in the order the figure listed them", () => {
+      const dancing = resolveCall(corners, ctx(4), 0).filter((i) => !i.holdPlace);
+      expect(dancing).toHaveLength(1);
+      const cast = dancing[0]!.cast;
+      expect(Object.keys(cast)).toEqual([
+        "active",
+        "mate",
+        "activeFirst",
+        "mateFirst",
+        "activeSecond",
+        "mateSecond",
+      ]);
+      expect(new Set(Object.values(cast)).size).toBe(6);
+    });
+
+    it("leaves out a dancer whose corners are off the end of the line", () => {
+      // Two couples have no couple above and none below, so nobody can dance
+      // it at all — which is the user's own "can only be shown correctly with
+      // 6 dancers", and M6's end-of-set rule unchanged.
+      expect(resolveCall(corners, ctx(2), 0).filter((i) => !i.holdPlace)).toEqual([]);
+    });
   });
 });
