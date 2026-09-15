@@ -84,6 +84,9 @@ export const allemandeDefinition: FigureDefinition = {
       },
     },
   ],
+  // An allemande left is an allemande right in a mirror: the hand decides which
+  // way the turn goes and which way the bodies lean into it.
+  symmetry: { mirror: { kind: "parameters", hands: ["hand"] } },
   ends: "home",
   timing: { stretch: "pace", profile: "trapezoid" },
 };

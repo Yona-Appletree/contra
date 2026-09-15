@@ -10,9 +10,9 @@ import type { GalleryTile } from "../galleryTiles.js";
  * frame" — the tile owns a real `Timeline` (see `galleryTiles.ts`), so this
  * adds one pass over it rather than a second way of deciding the figure.
  * Cached by the tile object itself, because a Moves row re-renders on every
- * beat: a `WeakMap` rather than `tile.key` because `?chain=` (F9) rebuilds the
- * tiles array — a fresh object per figure — whenever the override changes, and
- * a string keyed on `tile.key` alone would keep serving the first candidate's
+ * beat: a `WeakMap` rather than `tile.key` because a figure-defaults override
+ * rebuilds the tiles array — a fresh object per figure — whenever it changes,
+ * and a cache keyed on `tile.key` alone would keep serving the first build's
  * trace forever after, `tile.timeline` having changed underneath the same key.
  */
 export function figureTrace(tile: GalleryTile): Trace {

@@ -238,6 +238,11 @@ the two whose robins stay in. The table's numbers are the figure danced alone in
 a becket minor set of four at 1/64 beat, except the oracle column, which is
 `pnpm figure robins-chain`'s verdict over the seven demo dances.
 
+That recipe no longer runs: M4 keeps only the lark's orbit (assumption A6), so
+`pivotFromLark` and `stepInPx` are gone from the figure along with the other
+four candidates, and there is nothing left to patch into its `defaults`. The
+pictures stay as the record of the comparison the choice was made from.
+
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
 

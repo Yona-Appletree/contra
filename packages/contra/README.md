@@ -262,7 +262,7 @@ minor-set frame and the minor-set group ids it always had.
 
 A definition whose `roles` is `["*"]` has **one part per dancer**, because how
 many parts a long wave has is how long the hall is. Its shape reads the wildcard
-track (`kinds/pathM6.ts`) instead of a part per name.
+track (`kinds/waypoints.ts`) instead of a part per name.
 
 The **anchor** is where a shape's own origin sits _inside_ the instance's frame,
 not a frame of its own: `"meet"` is the pair's midpoint where they stand when the
@@ -371,25 +371,34 @@ where the dancers already stand (below); the defaults given are the rest.
 | `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2 — **data**                                          |
 | `pull-by`                | 2     | `PULL BY`                      | `pairs` `"neighbors"`, `hand` `"R"`, `holdDrop` 2 — **data**, no coded twin                                                     |
 | `grand-right-and-left`   | 6     | `GRAND RIGHT AND LEFT`         | none; three passes along the line, right, left, right — **data**, no coded twin, `actors: "line"`                               |
-| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null`                                                                 |
-| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                        |
-| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                          |
-| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2                                                                |
-| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                            |
-| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                              |
-| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                   |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 3.5, `holdDrop` 6, `stackPx` 1, plus the five candidates' knobs                    |
-| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                                  |
-| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                                  |
-| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                    |
+| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null` — **data**                                                      |
+| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1 — **data**                                                                             |
+| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1 — **data**                                               |
+| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2, `hold` `"wrist"` — **data**                                   |
+| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1, `bowPx` 3 — **data**                                                                      |
+| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0, `direction` 1 — **data**                                                                    |
+| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1, `pivotFromLark` 2.875 — **data**                 |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `holdDrop` 6, `stackPx` 1, `joinBeat` 2, `passPx` 4.25 — **data** (A6: the orbit is the only regime)        |
+| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5 — **data**                                                                       |
+| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6 — **data**                                       |
+| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1 — **data**                                                                         |
 | `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `weavePx` 6.5, `joinBeats` 2                                          |
 | `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                        |
 
 A figure marked **data** is a `FigureDefinition` in `src/library/figures/`; its
 row above is the coded figure it replaced, which stays in this directory until
-M11 deletes it and is what the per-figure golden holds it to. `endHalf` is gone
-from the two that had it: a gatherer reads its end spacing off the formation
-rather than guessing it.
+M11 deletes it and is what the per-figure golden holds it to. After M4 that is
+**every figure but the hey**, which M5 takes. `endHalf` is gone from the swing
+and the allemande: a gatherer reads its end spacing off the formation rather
+than guessing it.
+
+The eleven M4 migrated are the **carriers** — they leave people wherever their
+own shape put them, where the five M2 migrated are **gatherers** and settle on
+to the formation's own places. That decides the gate each passes: a gatherer is
+allowed to differ from the figure it replaced once the dancers are off their
+places, and a carrier is not. All eleven agree with their coded predecessors
+**exactly** — 0 px, 0°, 0 px of hand, from the stations and displaced alike;
+see `src/library/figures/carriers.test.ts`.
 
 A `pairs` (or `couples`) parameter names who dances with whom: `"partners"` is
 `1L`–`1R` and `2L`–`2R`, `"neighbors"` is `1L`–`2R` and `1R`–`2L`, and a dance
@@ -641,14 +650,17 @@ dance sets it and this loader does not read it.
   of his arm. A pivot of 0 — the lark turning on the spot — would leave the
   couple turning 5.75 px apart, which is two torsos inside AC6's 8 px, and that
   is why the default is a quarter of the hold and not nothing.
-- **This rigid turn is `right-and-left-through`'s own default and is still
-  `robins-chain`'s at `?chain=1`, but it is no longer the chain's own default.**
-  F13 makes the chain's default `orbitTurn` (F10's candidate 5, `?chain=5`):
-  the lark orbits a whole turn backward round a circle `hold / 2` off his own
-  place, and the robin joins him at the antipode of it at `joinBeat` (2, the
-  user's own number) rather than being walked to a reflected take. See
-  `courtesyTurn.ts`'s own `orbitTurn` doc, and this package's `robins-chain.ts`
-  for `CHAIN_CANDIDATES`, the full comparison table `?chain=1`–`5` still reach.
+- **The rigid turn is `right-and-left-through`'s, and the orbit is the
+  chain's, and since A6 those are the only two.** F13 made the chain's default
+  `orbitTurn` (F10's candidate 5): the lark orbits a whole turn backward round a
+  circle `hold / 2` off his own place, and the robin joins him at the antipode
+  of it at `joinBeat` (2, the user's own number) rather than being walked to a
+  reflected take. M4 takes the four earlier candidates away with
+  `CHAIN_CANDIDATES`, the app's `?chain=` and `pnpm figure --chain`, and with
+  them the chain's `pullBeats`, `bowPx`, `pivotFromLark` and `stepInPx`: an
+  orbit has one circle and no pivot to choose. Both regimes are now one shape
+  kind, `courtesyTurn` in `src/library/kinds/`, over the same geometry in
+  `figures/courtesyTurn.ts`.
 - **A roll away** lets the hands go as the roll turns: a dancer spinning a whole
   turn cannot keep a hand on a point 10 px away and still have an arm that
   reaches it.
@@ -808,42 +820,45 @@ starts on a whole beat — neither moves a pixel.
   seed and never by their role. Invisible on any surface the renderer's
   `skirts` option is off for, which is everything but the Stage.
 
-## The figure primitive language — `src/figures/language/`
+## The figure library as data — `src/library/`
 
-A figure can be **data** instead of code. `compileFigureSpec(spec)` returns
-the same `ContraFigure` `contraFigure({ plan })` returns, so a compiled figure
-and a coded one are the same thing to the registry, the decider, `chainCalls`,
-the three oracles and the renderer. See
+A figure **is** data. A `FigureDefinition` says what a figure is — its actors,
+its figure-roles, the anchor its shape is drawn about, that shape, its holds,
+where it leaves people, its timing and its symmetries — and a **shape kind** in
+`src/library/kinds/` draws it. `interpretDefinition(def)` returns the same
+`ContraFigure` `contraFigure({ plan })` returns, so a definition and a coded
+figure are the same thing to the registry, the decider, `chainCalls`, the three
+oracles and the renderer. See
 [`docs/adr/2026-09-14-figure-primitive-language.md`](../../docs/adr/2026-09-14-figure-primitive-language.md)
-for why the language is an expression calculus rather than flat JSON, and
-what changed shape on contact with this code.
+for why the calculus is an expression language rather than flat JSON.
 
 The short version: a hand join round a ring is the midpoint of two dancers'
-shoulders **at the beat being drawn** (`ringHands(ctx, ring, (id) =>
-placeAt(id, t), …)`), so a figure language with no cross-references cannot
-express a figure this library already ships. `{ point: "live", station }` is
-the minimum that can, and it makes the interpreter a three-pass evaluator —
-ends, then every station's place at `t`, then hands against that — rather
-than a template.
+shoulders **at the beat being drawn**, so a figure language with no
+cross-references cannot express a figure this library already ships.
+`{ point: "live", role }` is the minimum that can, and it makes the interpreter
+a three-pass evaluator — ends, then every role's place at `t`, then hands
+against that — rather than a template.
 
-`language/expr.ts` holds the calculus (`NumberExpr`, `AngleExpr`,
-`StationExpr`, `PointExpr` and their evaluators), `language/figureSpec.ts`
-the data shape (`FigureSpec`, the `ringWalk` segment, the `down`/`joined`/
-`carried` hand primitive), and `language/compileFigureSpec.ts` the
-interpreter. Specs live in `src/figures/specs/`.
+- `library/expr.ts` is the calculus (`NumberExpr`, `AngleExpr`, `RoleExpr`,
+  `PointExpr` and their evaluators), re-targeted from stations on to
+  figure-roles in M2.
+- `library/FigureDefinition.ts` is the data shape, and `library/kinds/` the
+  seven shapes that draw one: `rock`, `orbitPair` and `sequence` (M2),
+  `ringWalk`, `path` and `courtesyTurn` (M4), and the `legacy` bridge that is
+  down to the hey.
+- `library/figures/` holds the definitions themselves, and
+  `library/symmetry.ts` the `mirror` and `roleSwap` transforms that make a
+  circle right the mirror image of a circle left rather than a second figure.
+- `library/compareFigures.ts` is the per-figure golden: a definition against the
+  coded figure it replaces, in a real set, resolved through the real
+  `resolveCall`.
 
-`specs/circleSpec.ts` is `circle` written in it. The coded `circle.ts` and
-`CONTRA_FIGURES` are untouched — coexistence is the default, and the
-compiled figure carries its own id, `circle-data`. Its test is the proof:
-the identical `PoseSample` at every 1/8 beat in both formations across five
-parameter sets, identical `ends`/`moves`/joins and probe numbers, and both
-sequences dancing to identical closure, reach and collision reports with the
-compiled figure swapped in through `createContraRegistry`'s `extra` array.
-
-M1 lands one segment kind (`ringWalk`) and one segment per track. `walk`,
-`orbitPair` and `oscillate`, segment sequencing, `carried` holds, dance-local
-figures and the `describe`/`assertions` fields are later milestones; the
-compiler names the milestone when it meets one.
+**`src/figures/language/` and `src/figures/specs/` are gone** (M4). They were
+M1's first pass at the same idea, with the calculus written against stations
+rather than figure-roles; their only figure was `circle-data`, which the real
+`circle` definition replaces. The proof that made `circle-data` worth having —
+the identical `PoseSample` at every 1/8 beat in both formations across every
+parameter set — is what `compareFigures` does for all sixteen now.
 
 ## The motion oracle and the figure checks (F3a)
 

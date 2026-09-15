@@ -124,6 +124,14 @@ export const swingDefinition: FigureDefinition = {
   },
   shape: SWING_ORBIT,
   holds: [SWING_HOLD],
+  symmetry: {
+    mirror: {
+      kind: "handed",
+      why:
+        "a swing's ballroom hold puts the robin on the lark's right and the pair turns one way " +
+        "round; its mirror image is a figure nobody dances.",
+    },
+  },
   ends: "home",
   timing: { stretch: "pace", profile: "trapezoid" },
 };

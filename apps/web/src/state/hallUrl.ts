@@ -48,7 +48,7 @@ export function startBeatFor(dance: string | undefined, params: URLSearchParams)
  *
  * The Stage owns exactly two things in its own URL — which dance and which
  * medley — and reads several more that belong to whoever wrote the link:
- * `?engine=`, `?chain=`, `?lines=`, `?seed=`, `?zoom=`, `?beat=`, `?bare=`.
+ * `?engine=`, `?lines=`, `?seed=`, `?zoom=`, `?beat=`, `?bare=`.
  * Rebuilding the hash from the two it owns and dropping the rest meant that
  * the address bar stopped agreeing with the page the moment the programme
  * moved on — so a reviewer who opened `#/dance/butter?engine=old` and then
@@ -88,8 +88,8 @@ export function setHallUrl(dance: string | undefined, tune: string | undefined):
 /**
  * This same hall on the other engine: the link gate G1 is reviewed through.
  *
- * Everything the URL already says is kept — the dance, the tune, the seed,
- * the chain candidate, the zoom — and only `?engine=` is written, so a
+ * Everything the URL already says is kept — the dance, the tune, the seed, the
+ * lines, the zoom, the frozen beat — and only `?engine=` is written, so a
  * reviewer switches engines without losing the frame they were looking at.
  */
 export function engineHash(

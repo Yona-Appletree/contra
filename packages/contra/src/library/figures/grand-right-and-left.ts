@@ -3,7 +3,7 @@ import type { Side } from "@caller/core";
 import { PLACE_PITCH_PX } from "../../formation/dupleImproper.js";
 import { LANE_ROLES } from "../../set/resolve.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
-import type { PathStep } from "../kinds/pathM6.js";
+import type { PathStep } from "../kinds/waypoints.js";
 
 /**
  * **Grand right and left**: three pull-bys along the line, alternating hands.
@@ -22,7 +22,7 @@ import type { PathStep } from "../kinds/pathM6.js";
  * for a grand right and left faces alternately up and down it, that one sentence
  * sends every dancer the way they should go and sends the two of any pair into
  * each other — and the pass finds its own partner geometrically
- * (`kinds/pathM6.ts`), so the definition never names anybody. Which is exactly
+ * (`kinds/waypoints.ts`), so the definition never names anybody. Which is exactly
  * why the relations come out right: on the duple improper lattice, the dancer
  * you meet on the first pass is N1, on the second N2 and on the third N3, and
  * `relations.test.ts` derives that by hand rather than this file assuming it.
@@ -71,7 +71,7 @@ export const grandRightAndLeftDefinition: FigureDefinition = {
   anchor: "lane",
   params: { kind: "canonical", defaults: {} },
   shape: {
-    kind: "path",
+    kind: "waypoints",
     tracks: { "*": [pass(1, 3, "R"), pass(2, 3, "L"), pass(3, 3, "R")] },
   },
   holds: [],

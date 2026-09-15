@@ -78,8 +78,10 @@ export function checkGroup(): Group {
 
 /**
  * A figure-id-to-defaults-override map, as `createContraRegistry`'s second
- * argument takes it: what `?chain=` and `pnpm figure --chain` pick a candidate
- * with. The empty map — the default everywhere — is the shipped figure.
+ * argument takes it. The empty map — the default everywhere — is the shipped
+ * figure, and since M4 migrated the carriers it is also the only map that
+ * reaches one: a data figure arrives in the registry as an interpreted figure
+ * rather than through `contraFigureList()`, past where the overrides merge.
  */
 export type CheckOverrides = Readonly<Record<string, object>>;
 

@@ -13,7 +13,7 @@ import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
 import { createContraRegistry } from "./registry.js";
-import type { FigureDefinition } from "../library/FigureDefinition.js";
+import type { FigureDefinition, HoldSpec, SideRule } from "../library/FigureDefinition.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { DEMO_DANCES } from "../dances/index.js";
 import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "../dances/oracle.js";
@@ -364,21 +364,34 @@ function definitionSection(id: string, definition: FigureDefinition | undefined)
     `- ends: \`${JSON.stringify(definition.ends)}\` · timing: ` +
       `\`${definition.timing.stretch}\`/\`${definition.timing.profile}\` · ` +
       `nominal ${String(definition.nominalBeats)} beats`,
-    ...definition.holds.map((hold) =>
-      hold.kind === "ring"
-        ? `- holds: the ring, hands all the way round`
-        : `- holds: \`${hold.a}.${sideWord(hold.aSide)}\` in \`${hold.b}.${sideWord(hold.bSide)}\`` +
-          (hold.when
-            ? ` — only when \`${hold.when.param}\` is ${hold.when.is.map(String).join(" or ")}`
-            : ""),
-    ),
+    ...definition.holds.map((hold) => `- holds: ${holdWord(hold)}${guardWord(hold)}`),
     "",
   ];
 }
 
+/** One hold, in a line: who holds whom, and with which hand. */
+function holdWord(hold: HoldSpec): string {
+  if (hold.kind === "ring") return `the ring, hands all the way round`;
+  if (hold.kind === "mate") return `\`${sideWord(hold.side)}\` in your partner's, at the join`;
+  if (hold.kind === "solo") {
+    const whose = hold.role === "each" ? "everybody's" : `\`${JSON.stringify(hold.role)}\`'s`;
+    return `${whose} \`${sideWord(hold.side)}\` on ${hold.point.kind}`;
+  }
+  return `\`${hold.a}.${sideWord(hold.aSide)}\` in \`${hold.b}.${sideWord(hold.bSide)}\``;
+}
+
+/** The `when` guard a hold carries, if it carries one. */
+const guardWord = (hold: HoldSpec): string =>
+  hold.when
+    ? ` — only when \`${hold.when.param}\` is ${hold.when.is.map(String).join(" or ")}`
+    : "";
+
 /** A hand, as `L` when the definition names one and `<hand>` when a call does. */
-const sideWord = (side: "L" | "R" | { param: string }): string =>
-  typeof side === "string" ? side : `<${side.param}>`;
+const sideWord = (side: SideRule): string => {
+  if (typeof side === "string") return side;
+  if ("param" in side) return `<${side.param}>`;
+  return "nearest" in side ? "the inside hand" : "the outside hand";
+};
 
 /**
  * The library's definition of a figure, or `undefined`.

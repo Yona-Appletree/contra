@@ -220,9 +220,10 @@ export const dancerOn = (station: Station): string => `${GROUP_ID}/${station.id}
 /**
  * Every tile, figures first, then the seams grouped under their first figure.
  *
- * `overrides` is `?chain=`'s route in: a figure named in it dances every tile
- * — its own row and every seam it appears in — at the overridden defaults
- * instead of the shipped ones. See {@link FigureDefaultsOverride}.
+ * `overrides` is a figure-defaults override's route in: a figure named in it
+ * dances every tile — its own row and every seam it appears in — at the
+ * overridden defaults instead of the shipped ones. See
+ * {@link FigureDefaultsOverride}.
  */
 export function galleryTiles(
   overrides: FigureDefaultsOverride = {},
