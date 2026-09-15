@@ -151,10 +151,12 @@ export function resolveFigureText(
   const file = FIGURE_TEXTS[id];
   if (file === undefined) return undefined;
   const merged = mergeVariants(file, params);
+  // Trimmed, because the landmark is a whole sentence at the end of a
+  // walkthrough and a figure that has none leaves the space before it behind.
   const teach = (text: string): string =>
-    capitalise(resolveSlots(id, text, params, "prose", group));
+    capitalise(resolveSlots(id, text, params, "prose", group).trim());
   const shout = (text: string): string =>
-    resolveSlots(id, text, params, "call", group).toUpperCase();
+    resolveSlots(id, text, params, "call", group).trim().toUpperCase();
   return {
     walkthrough: { short: teach(merged.walkthrough.short), long: teach(merged.walkthrough.long) },
     call: { short: shout(merged.call.short), long: shout(merged.call.long) },
@@ -265,21 +267,39 @@ function slotText(
   return held === undefined ? undefined : renderSlot(name, held, register);
 }
 
-/** The landmark, with the two ways it can be asked for and fail named apart. */
+/**
+ * The landmark, with the three ways it can be asked for and fail named apart.
+ *
+ * Two of them are misuse and throw: no group at all, and a group that is not a
+ * minor set of four, because `landmark` is written in terms of home, partner
+ * and neighbour and has nothing to say outside one.
+ *
+ * The third is not misuse and says **nothing**: a figure whose ends no caller
+ * would describe in one sentence. `landmark` is already built to stand down
+ * rather than invent one — "anything finer than by role is not a sentence a
+ * caller says" — and the Moves gallery really can put a figure in such a
+ * position, because it runs every figure three times over from the formation's
+ * own stations whether or not a dance ever hands it over there. A becket
+ * neighbour swing from the stations is the case: the two of them start across
+ * the set from each other, so they end 32 px apart on their own two places,
+ * which is a true answer and not a sentence. The landmark is the last sentence
+ * of a walkthrough, so leaving it out leaves a walkthrough; a `{slot}` showing
+ * on the page, which is what the loud rule exists to prevent, still cannot
+ * happen.
+ */
 function whereText(id: string, params: FigureParams, group: Group | undefined): string {
   if (group === undefined) {
     throw new Error(`${id}: "{${WHERE}}" needs a group to say where the figure leaves people`);
   }
-  const def = figureDefOf(id);
-  if (def === undefined) throw new Error(`${id}: no figure of that id, so no landmark`);
-  const said = landmark(def, params, group);
-  if (said === undefined) {
+  if (group.stations.length !== 4) {
     throw new Error(
       `${id}: no landmark for a group of ${String(group.stations.length)} — ` +
         `a figure danced outside a minor set of four must not use "{${WHERE}}"`,
     );
   }
-  return said;
+  const def = figureDefOf(id);
+  if (def === undefined) throw new Error(`${id}: no figure of that id, so no landmark`);
+  return landmark(def, params, group) ?? "";
 }
 
 /** The figure a text belongs to, the two engine-supplied ones included. */

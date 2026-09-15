@@ -30,8 +30,16 @@ have touched. A figure's own move only affects that move.
 
 ## `pnpm figure <id> [--dance <slug>] [--out <dir>] [--chain <n>]`
 
-Runs, in order, and prints a one-screen summary of all four to stdout:
+Runs, in order, and prints a one-screen summary of all five to stdout:
 
+0. **Its definition** — what the library says the figure _is_ (M2): its shape
+   kind, its figure-roles, its actor rule, its anchor, its ends rule, its timing
+   profile and the holds it takes. A figure still reached through the legacy
+   bridge says so in one line, and everything below it measures the coded
+   figure; a figure written as data says which kind draws it, so a red run
+   points at either a definition or a shape kind and never at a figure's own
+   code, because a data figure has none. An id the library has not got at all
+   prints that instead of guessing.
 1. **Its assertions** — every `figureChecks.ts` entry whose key is the figure
    itself, or a `"prev → next"` seam key with it on either side (e.g.
    `balance → swing` for `swing`) — pass/fail with the evidence line each.
