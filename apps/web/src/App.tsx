@@ -8,6 +8,7 @@ import { hashRoute } from "./routes/hashRoute.js";
 import { SeamLabPage } from "./routes/lab.js";
 import { MovesPage } from "./routes/moves.js";
 import { PairPage } from "./routes/pair.js";
+import { SpikesPage } from "./routes/spikes.js";
 import { MoveTracesPage, TracesPage } from "./routes/traces.js";
 import { readHallRoute } from "./state/hallUrl.js";
 
@@ -32,6 +33,12 @@ export function App() {
     // Keyed on the query, so navigating between `#/pair?...` URLs starts the
     // page again rather than keeping the previous zoom, beat and strip.
     return <PairPage key={route.params.toString()} params={route.params} />;
+  }
+
+  // `#/spikes` (M10 P5, DD7): the repo's visual spikes, one link each. Hidden
+  // from the tabs, reachable from the footer and by URL, like `/pair` above.
+  if (route.path === "/spikes") {
+    return <SpikesPage />;
   }
 
   // `?bare=1` is for screenshots: one canvas, no chrome, so no tab bar either.

@@ -831,14 +831,10 @@ function ControlBar(props: {
  * to be.
  */
 function SiteFooter(): JSX.Element {
-  const base = import.meta.env.BASE_URL;
   return (
     <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-3 pt-2 pb-3 text-xs text-muted-foreground lg:px-4">
-      <a className="underline" href={`${base}spikes/hall/`}>
-        Hall spike
-      </a>
-      <a className="underline" href={`${base}spikes/two-dancers/`}>
-        Two-dancers spike
+      <a className="underline" href="#/spikes">
+        Spikes
       </a>
       <a className="underline" href="#/pair">
         The pair
