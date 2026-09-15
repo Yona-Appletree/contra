@@ -1,0 +1,11 @@
+{
+  "id": "pass-through",
+  "walkthrough": {
+    "short": "Walk past the dancer you face {direction} the set, right shoulders, without turning.",
+    "long": "Walk forward past the dancer facing you {direction} the set, passing right shoulders, and stop on the other side. Do not turn around: whatever comes next is what tells you which way to face. Four beats. {where}"
+  },
+  "call": {
+    "short": "PASS THROUGH",
+    "long": "PASS THROUGH {direction} THE SET"
+  }
+}

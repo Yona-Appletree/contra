@@ -1,0 +1,11 @@
+{
+  "id": "swing",
+  "walkthrough": {
+    "short": "Close into a ballroom hold with {pairs}, right hips together, and buzz round. Open out side by side.",
+    "long": "Step in to {pairs} and close into a ballroom hold, right hips together: the lark's right hand on the robin's back, his left in her right out to the side. Buzz round with your weight on the inside foot, leaning away from each other a little. Open out side by side, lark on the left. {where}"
+  },
+  "call": {
+    "short": "SWING",
+    "long": "{pairs} SWING"
+  }
+}

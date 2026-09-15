@@ -1,0 +1,11 @@
+{
+  "id": "petronella",
+  "walkthrough": {
+    "short": "Spin once round to your own right and travel round the set, {places}. Nobody holds on.",
+    "long": "Nobody takes hands. Turn once round to your own right and travel clockwise round the set as you spin — {places} — so the four of you move as a ring without holding anybody. Four beats, and the hands come up and out as you spin. {where}"
+  },
+  "call": {
+    "short": "PETRONELLA",
+    "long": "PETRONELLA TURN"
+  }
+}

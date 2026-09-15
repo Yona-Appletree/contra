@@ -1,0 +1,11 @@
+{
+  "id": "california-twirl",
+  "walkthrough": {
+    "short": "Take inside hands with {pairs}, raise them, and walk forward trading places.",
+    "long": "Take inside hands with {pairs} and raise them into an arch. Walk forward: one of you goes round the outside while the other turns under the arch, and the two of you trade places. You end facing back the way you came, hands joined the whole way through. {where}"
+  },
+  "call": {
+    "short": "CALIFORNIA TWIRL",
+    "long": "TAKE HANDS AND CALIFORNIA TWIRL"
+  }
+}
