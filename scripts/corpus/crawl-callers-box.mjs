@@ -21,6 +21,8 @@
 //   CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-callers-box.mjs
 //   CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-callers-box.mjs --dry-run 50
 //   CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-callers-box.mjs --max-id 20000
+//   CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-callers-box.mjs --start-id 8584
+//   CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-callers-box.mjs --miss-limit 3000
 //   node scripts/corpus/crawl-callers-box.mjs --report
 //
 // CONTRA_CRAWL_CONTACT (required to fetch; not needed for --report) is a
@@ -274,8 +276,8 @@ function realAppendManifest(line) {
   appendFileSync(MANIFEST_PATH, `${JSON.stringify(line)}\n`);
 }
 
-function parseArgs(argv) {
-  const args = { dryRun: null, maxId: null, report: false };
+export function parseArgs(argv) {
+  const args = { dryRun: null, maxId: null, report: false, missLimit: null, startId: null };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--dry-run") {
@@ -284,6 +286,20 @@ function parseArgs(argv) {
       args.maxId = Number(argv[++i]);
     } else if (arg === "--report") {
       args.report = true;
+    } else if (arg === "--miss-limit") {
+      const value = Number(argv[++i]);
+      if (!Number.isInteger(value) || value <= 0) {
+        console.error("crawl-callers-box: --miss-limit requires a positive integer");
+        process.exit(1);
+      }
+      args.missLimit = value;
+    } else if (arg === "--start-id") {
+      const value = Number(argv[++i]);
+      if (!Number.isInteger(value) || value <= 0) {
+        console.error("crawl-callers-box: --start-id requires a positive integer");
+        process.exit(1);
+      }
+      args.startId = value;
     } else {
       console.error(`crawl-callers-box: unknown argument "${arg}"`);
       process.exit(1);
@@ -337,14 +353,17 @@ async function main() {
 
   const userAgent = buildUserAgent(contact);
   const manifestById = loadManifest(MANIFEST_PATH);
-  const startId = computeStartId(manifestById);
+  const startId = args.startId != null ? args.startId : computeStartId(manifestById);
   const dryRunCount = args.dryRun != null && Number.isFinite(args.dryRun) ? args.dryRun : Infinity;
   const maxId = args.maxId != null && Number.isFinite(args.maxId) ? args.maxId : Infinity;
+  const consecutiveMissLimit = args.missLimit != null ? args.missLimit : CONSECUTIVE_MISS_LIMIT;
 
   console.log(`crawl-callers-box: User-Agent: ${userAgent}`);
   console.log(`crawl-callers-box: starting at id=${startId}, rate=1 req/${CRAWL_DELAY_MS}ms`);
   if (dryRunCount !== Infinity) console.log(`crawl-callers-box: dry run, ${dryRunCount} fetches`);
   if (maxId !== Infinity) console.log(`crawl-callers-box: max id ${maxId}`);
+  if (args.startId != null) console.log(`crawl-callers-box: start id ${args.startId}`);
+  if (args.missLimit != null) console.log(`crawl-callers-box: miss limit ${consecutiveMissLimit}`);
 
   const started = Date.now();
   const { counts, lastId } = await runCrawl({
@@ -354,6 +373,7 @@ async function main() {
     startId,
     maxId,
     dryRunCount,
+    consecutiveMissLimit,
     writeRaw: realWriteRaw,
     appendManifest: realAppendManifest,
   });
