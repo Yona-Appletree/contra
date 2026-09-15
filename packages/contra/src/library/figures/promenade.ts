@@ -60,7 +60,7 @@ export const promenadeDefinition: FigureDefinition = {
   id: "promenade",
   call: "PROMENADE AROUND THE SET",
   describe:
-    "Side by side with the dancer named, inside hands joined, walk the two of you as one round the whole set — not across your own little circle of four but along the line you are standing in, the way a ring of couples goes round a hall. Counterclockwise is the way you are already travelling; clockwise is back the other way. You end further along the set than you began, which is the point of it.",
+    "Stand beside the dancer named, both of you looking the same way, and take both hands: left in left and right in right, so your arms cross in front of you and the right hands ride over the left. Walk the two of you as one round the whole set — not across your own little circle of four but along the line you are standing in, the way a ring of couples goes round a hall. Counterclockwise is the way you are already travelling; clockwise is back the other way. You end further along the set than you began, which is the point of it.",
   lead: 4,
   nominalBeats: 8,
   roles: ["a", "b"],
@@ -77,8 +77,25 @@ export const promenadeDefinition: FigureDefinition = {
       places: 2,
       /** How far apart the two of you walk, px. */
       spacing: 14,
-      /** How far below shoulder height the joined inside hands sit, px. */
-      handDrop: 3,
+      /**
+       * How far below shoulder height the joined **left** hands sit, px.
+       *
+       * Lower than an inside hand's three (FR-A2): a promenade hold is two arms
+       * reaching across the front of the couple rather than one hand held
+       * between them, so it wants the elbows down and the hands at waist height.
+       */
+      handDrop: 7,
+      /**
+       * How much higher the **right** hands ride than the left, px.
+       *
+       * The user: *"left in left, right in right"* — which crosses the two pairs
+       * of arms in front of the couple, and two pairs of arms in the same place
+       * at the same height are drawn through each other. The right pair on top
+       * is the skater's hold as it is danced.
+       */
+      topRise: 3,
+      /** How far the robin's hand rides over the lark's inside each join. */
+      stackPx: 1,
     },
   },
   shape: {
@@ -90,6 +107,10 @@ export const promenadeDefinition: FigureDefinition = {
     along: ALONG,
     spacing: { param: "spacing" },
     handDrop: { param: "handDrop" },
+    // Left in left and right in right: the promenade hold itself (FR-A2).
+    hold: "promenade",
+    topRise: { param: "topRise" },
+    stackPx: { param: "stackPx" },
     idleHands: { kind: "down" },
   },
   holds: [],

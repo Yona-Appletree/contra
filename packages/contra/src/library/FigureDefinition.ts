@@ -1010,6 +1010,24 @@ export interface UnitShape {
   spacing: NumberExpr | null;
   /** How far below shoulder height their joined hands sit, or `null` for none. */
   handDrop: NumberExpr | null;
+  /**
+   * **How the two of them hold on** (FR-A2). Left out is `"inside"`.
+   *
+   * - `"inside"` — the one hand each that points at the other, joined half way
+   *   between the two bodies. A turn as couples', and every unit written before
+   *   this parameter existed.
+   * - `"promenade"` — the skater's hold: *"in a promenade you stand beside each
+   *   other, left in left, right in right, walking the same direction"* (the
+   *   user). **Both** hands are joined, each pair where the two arms meet, so
+   *   the arms cross in front of the couple and the joins sit outside them
+   *   rather than between them. {@link UnitShape.topRise} lifts the right-hand
+   *   pair clear of the left.
+   */
+  hold?: "inside" | "promenade";
+  /** For `"promenade"`: how much higher than the left pair the right pair sits, px. */
+  topRise?: NumberExpr;
+  /** For `"promenade"`: how far the role on top lifts its hand over the other's. */
+  stackPx?: NumberExpr;
   idleHands: IdleHands;
 }
 
