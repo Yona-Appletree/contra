@@ -141,8 +141,17 @@ export type AngleExpr =
 /** A truth a definition asks for: written down, or read off a parameter. */
 export type BoolExpr = boolean | { param: string };
 
-/** Which hand: named outright, or read off a parameter (an allemande's). */
-export type SideExpr = Side | { param: string };
+/**
+ * Which hand: named outright, read off a parameter (an allemande's), or chosen
+ * by a word-valued one.
+ *
+ * `select` is {@link NumberExpr}'s own node with a hand for a result: a
+ * california twirl's `hand: "left-in-right"` is one word that names both of the
+ * couple's hands, and the definition turns it into a side without carrying a
+ * closure.
+ */
+export type SideExpr =
+  Side | { param: string } | { select: string; cases: Readonly<Record<string, Side>> };
 
 /**
  * Which part of the figure an expression is about: a role named outright, the
@@ -167,7 +176,17 @@ export type RoleExpr =
    * of the call. A shape with no pairing, or a dancer the pairing left out, has
    * no mate and reading one is an error rather than a silent nobody.
    */
-  | { role: "mate" };
+  | { role: "mate" }
+  /**
+   * Whichever of the two of us the call's own role word picks out: **me if I am
+   * that role, and my mate if I am not.**
+   *
+   * A california twirl's arch sits over the head of the dancer walking under
+   * it, and which of the pair that is depends on `raises` — a parameter naming a
+   * contra role, like a roll away's `roller`. Both ends of the hold evaluate
+   * this and both get the same dancer, which is what keeps the arch one point.
+   */
+  | { role: "ifRole"; is: string; then: RoleExpr; else: RoleExpr };
 
 /**
  * A floor point a definition asks for, in the frame's own local px.
@@ -329,6 +348,16 @@ export function evalBool(expr: BoolExpr, env: ExprEnv): boolean {
 /** Which hand a {@link SideExpr} names. */
 export function evalSide(expr: SideExpr, env: ExprEnv): Side {
   if (expr === "L" || expr === "R") return expr;
+  if ("select" in expr) {
+    const key = String(paramOf(env, expr.select));
+    const chosen = expr.cases[key];
+    if (chosen === undefined) {
+      throw new Error(
+        `parameter "${expr.select}" is "${key}", which is not one of [${Object.keys(expr.cases).join(", ")}]`,
+      );
+    }
+    return chosen;
+  }
   const value = paramOf(env, expr.param);
   if (value !== "L" && value !== "R") {
     throw new Error(`parameter "${expr.param}" is ${JSON.stringify(value)}, not "L" or "R"`);
@@ -355,6 +384,10 @@ export function evalAngle(expr: AngleExpr, env: ExprEnv): Angle {
 /** Which role a {@link RoleExpr} names. */
 export function evalRole(expr: RoleExpr, env: ExprEnv): FigureRole {
   if (typeof expr === "string") return expr;
+  if (expr.role === "ifRole") {
+    const want = paramOf(env, expr.is);
+    return evalRole(env.ctx.role(env.self) === want ? expr.then : expr.else, env);
+  }
   if (expr.role === "self") return env.self;
   if (expr.role === "mate") {
     const mate = env.mate?.(env.self);

@@ -275,6 +275,26 @@ describe("the california twirl as data", () => {
       { params: { holdDrop: 3 } },
     ],
     2000,
+    {
+      why:
+        'the user: "totally wrong… holding either left-in-right or right-in-left, ' +
+        'lark raises the hand, robin walks under, their direction switches". The ' +
+        "twirl closes up to turn instead of windmilling round the point between " +
+        "two dancers a whole set's width apart — sixteen px of arm where the " +
+        "rendering contract allows fifteen — and the robin ducks inside the turn " +
+        "while the lark walks round the outside of her. Nothing about where it " +
+        "*leaves* anybody has moved, which is why both `end` numbers are zero and " +
+        "`facing` is too: the half turn about the pair's own centre still " +
+        "exchanges their places and reverses both facings. What moved is the " +
+        "middle of the path (12.46 px at the closest approach) and the hand it " +
+        "carries (7.11 px), which is now over the head of the dancer under the " +
+        "arch instead of half way between the two",
+      position: 12.4592,
+      facing: 0,
+      hand: 7.1083,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 

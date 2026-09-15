@@ -685,8 +685,40 @@ export type PathCurve =
    * back, which ends where it started and so has no walk to write.
    */
   | { kind: "oscillate"; along: AngleExpr; distance: NumberExpr }
-  /** Half a turn about the point between the pair: a california twirl's. */
-  | { kind: "arc"; sweep: AngleExpr }
+  /**
+   * A turn about the point between the pair: a california twirl's half, and a
+   * mad robin's circulate.
+   *
+   * By default each dancer rides the radius they are already standing at, which
+   * is what a mad robin wants. A twirl does not: two dancers who are a whole
+   * set's width apart cannot hold a hand at all — the arms come out longer than
+   * the 15 px the rendering contract gives them — so a figure that really takes
+   * hands says how close the two of them come, and they close on to it and open
+   * out on to their own ends again.
+   */
+  | {
+      kind: "arc";
+      sweep: AngleExpr;
+      /**
+       * How far from the centre the two of them turn, px — half the distance
+       * they close to. Absent: the radius they are standing at.
+       */
+      hold?: NumberExpr;
+      /** How long the closing in and the opening out each take, beats. */
+      closeBeats?: NumberExpr;
+      /**
+       * A signed radial offset for this dancer, px, out and back over the
+       * figure: `−` pulls them **inside** the turn and `+` pushes them round
+       * the **outside** of it.
+       *
+       * A california twirl's, and what makes one of the two of them the one
+       * walking under: she turns tightly about a point close to herself while
+       * he walks round her. It is written as one dancer's offset rather than as
+       * a pair's, because the pair also has to clear the pair turning beside it
+       * and only the outermost radius decides that.
+       */
+      bow?: NumberExpr;
+    }
   /**
    * An ellipse about the point between the pair, its long radius the pair's own
    * half separation and its short one a bow: a do-si-do's pass.
@@ -1180,7 +1212,19 @@ export interface RingHold {
 export type SideRule =
   | SideExpr
   | { nearest: RoleExpr; facing: "start" | "end" }
-  | { furthest: RoleExpr; facing: "start" | "end" };
+  | { furthest: RoleExpr; facing: "start" | "end" }
+  /**
+   * One hand for the dancer whose contra role the named parameter picks out,
+   * and the other hand for everybody else.
+   *
+   * A california twirl's hold is not "inside hands": the user names it outright
+   * — *"holding either left-in-right or right-in-left"* — and which of the two
+   * hands is yours depends on whether you are the one raising the arch. Two
+   * dancers standing face to face have no inside hand between them at all, and
+   * a twirl is called from there as readily as from side by side, which is why
+   * the geometric rules above cannot serve it.
+   */
+  | { ifRole: string; then: SideExpr; else: SideExpr };
 
 /**
  * **One hand joined to whoever the shape's pairing put you with.**
@@ -1290,6 +1334,12 @@ export type HoldPoint =
    * a courtesy turn's joined lefts, a chain's pull by.
    */
   | { kind: "joinPoint" }
+  /**
+   * **Over one of the two of them**, `back` px along the line toward the other:
+   * a california twirl's arch, which the raiser holds over the head of the
+   * dancer walking under it rather than half way between them.
+   */
+  | { kind: "over"; role: RoleExpr; back: NumberExpr }
   /** The anchor itself, held high: an allemande. */
   | { kind: "anchor" }
   /** In from the midpoint of the two joined shoulders: a swing's outer hands. */

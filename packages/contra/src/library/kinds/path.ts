@@ -330,7 +330,11 @@ function walker(
         const centre = midpoint(start.p, ctx.spot(mate).p);
         const sweep = evalAngle(curve.sweep, env) * smooth(t / beats);
         return {
-          p: polar(centre, bearing(centre, start.p) + sweep, Math.hypot(...sub(start.p, centre))),
+          p: polar(
+            centre,
+            bearing(centre, start.p) + sweep,
+            arcRadius(curve, start, centre, t, env),
+          ),
           facing: body(sweep),
           moving: true,
         };
@@ -342,6 +346,37 @@ function walker(
       }
     }
   };
+}
+
+/**
+ * How far from the centre a dancer rides an `arc`, `t` beats in.
+ *
+ * The radius they are standing at, unless the curve says how close the two of
+ * them come: then they close on to that over the first `closeBeats`, hold it
+ * round the turn, and open out on to their own ends over the last. `bow` is
+ * laid on top of it, out and back over the whole figure.
+ */
+function arcRadius(
+  curve: Extract<PathCurve, { kind: "arc" }>,
+  start: Spot,
+  centre: Vec2,
+  t: Beat,
+  env: ExprEnv,
+): number {
+  const own = Math.hypot(...sub(start.p, centre));
+  const beats = env.beats;
+  let radius = own;
+  if (curve.hold !== undefined) {
+    const close = curve.closeBeats === undefined ? 1 : evalNumber(curve.closeBeats, env);
+    const held = evalNumber(curve.hold, env);
+    radius = mix(
+      mix(own, held, smooth(ramp(t, 0, close))),
+      own,
+      smooth(ramp(t, beats - close, beats)),
+    );
+  }
+  if (curve.bow === undefined) return radius;
+  return radius + evalNumber(curve.bow, env) * Math.sin(Math.PI * clamp01(t / beats));
 }
 
 /**
