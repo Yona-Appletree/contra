@@ -19,6 +19,7 @@ import {
   createLibrary,
 } from "./Decider.js";
 import { createScriptDecider } from "./createScriptDecider.js";
+import { spokenBeats } from "./spokenBeats.js";
 
 const PHRASES: readonly PhraseName[] = ["A1", "A2", "B1", "B2"];
 
@@ -88,14 +89,19 @@ describe("the script decider keeps the timeline covered", () => {
 });
 
 describe("the caller calls", () => {
-  it("starts each call its figure's lead beats early and holds it two beats in", () => {
+  it("starts each call its figure's lead beats early and holds it its spoken length plus the tail", () => {
     const { timeline } = run(
       { slug: "p", items: [{ dance: "one", medley: "m", timesThrough: 2 }] },
       0,
     );
     const said = utterances(timeline.utterances()).filter((u) => u.text.startsWith("A2"));
-    expect(said[0]!.start).toBe(16 - WALK_TO_STATION.lead);
-    expect(said[0]!.end).toBe(16 + 2);
+    const leadStart = 16 - WALK_TO_STATION.lead;
+    expect(said[0]!.start).toBe(leadStart);
+    // C3: no longer a fixed two beats into the figure — however long the
+    // words take to say, plus the tail.
+    expect(said[0]!.end).toBe(
+      leadStart + spokenBeats(said[0]!.text) + SCRIPT_DECIDER_DEFAULTS.utteranceTailBeats,
+    );
   });
 
   it("says a dance's own call text when the dance overrides the figure's", () => {

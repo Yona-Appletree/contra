@@ -193,7 +193,12 @@ describe("what the caller says between two dances", () => {
     expect(first.start).toBe(ITEM_BEATS - 2);
     expect(said[0]!.end).toBe(first.start);
     expect(POTATOES + POTATO_BEATS).toBe(ITEM_BEATS);
-    expect(first.end).toBeGreaterThan(ITEM_BEATS);
+    // C3: the call lasts however long it takes to say, plus a short tail, so
+    // whether it runs past beat 1 depends on the words — Butter's own first
+    // call ("SHIFT LEFT") is short enough to end exactly on beat 1 rather than
+    // overrunning it, which is fine: "the call runs into its figure" (C3's own
+    // brief) is a "may", not a "must".
+    expect(first.end).toBeGreaterThanOrEqual(ITEM_BEATS);
   });
 });
 

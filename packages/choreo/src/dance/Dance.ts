@@ -62,6 +62,15 @@ export interface FigureCall {
   ends?: "both" | "top" | "bottom";
   /** Overrides the figure's own call text for this dance. */
   call?: string;
+  /**
+   * Overrides the rhythm estimate ({@link import('../decider/spokenBeats.js').spokenBeats})
+   * of how long this call takes to say, in beats.
+   *
+   * Left out — every call so far — is the estimate from the words themselves;
+   * this is for the rare call the estimate gets wrong (a number spelled out,
+   * an abbreviation, a name).
+   */
+  spokenBeats?: Beat;
 }
 
 /** The four phrases of a contra tune, in order. */

@@ -48,17 +48,38 @@ test("the caller's bubble says the first figure's call within its lead (AC9)", a
   expect(await page.evaluate(() => window.hallDemo?.call(11))).not.toBe(early);
 });
 
-test("every figure of the first dance gets its call said before it starts", async ({ page }) => {
+/**
+ * C3: a call lasts its spoken length plus a short tail, not a fixed span into
+ * its figure — so "every figure gets its call said before it starts" is still
+ * true, but the call is no longer on the bubble for the *whole* figure.
+ *
+ * Airpants' six calls start `lead` beats before their own figure (A1's first
+ * call clipped to the programme's own beat 0) — 0, 12, 20, 28, 44, 50 — which
+ * is the earliest beat each can be heard, and each is truthy and distinct
+ * there.
+ */
+test("every figure of the first dance is called before it starts", async ({ page }) => {
   await openHall(page, { beat: 0, zoom: 2 });
   const said = await page.evaluate(() => {
-    const out: Array<string | undefined> = [];
-    // A1 balance at 0, swing at 4, A2 at 16 and 24, B1 at 32 and 36, B2 at 48
-    // and 54: one probe two beats into each figure.
-    for (const beat of [1, 6, 17, 25, 33, 38, 49, 56]) out.push(window.hallDemo?.call(beat));
-    return out;
+    const starts = [0, 12, 20, 28, 44, 50];
+    return starts.map((beat) => window.hallDemo?.call(beat));
   });
   for (const call of said) expect(call).toBeTruthy();
-  expect(new Set(said).size).toBeGreaterThan(4);
+  expect(new Set(said).size).toBe(said.length);
+});
+
+/**
+ * "The calls stay around too long... but not until the next call" (the user,
+ * 2026-09-14). Beat 33 is deep into B1's partner swing (the call for it is
+ * said over beats [28, 32)) with nothing else due for another eleven beats,
+ * so the bubble is empty rather than still showing "PARTNER BALANCE AND
+ * SWING".
+ */
+test("the bubble falls silent between two calls, rather than holding the last one", async ({
+  page,
+}) => {
+  await openHall(page, { beat: 0, zoom: 2 });
+  expect(await page.evaluate(() => window.hallDemo?.call(33))).toBe("");
 });
 
 test("choosing a dance changes the URL and the card", async ({ page }) => {

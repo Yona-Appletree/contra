@@ -125,6 +125,7 @@ export {
 } from "./decider/Decider.js";
 export { createScriptDecider, nextDanceCall } from "./decider/createScriptDecider.js";
 export { complementOf, resolveSelector } from "./decider/resolveSelector.js";
+export { spokenBeats } from "./decider/spokenBeats.js";
 
 // oracles and the neutrality fixture
 export type { ClosureReport, CollisionReport, ReachReport } from "./testing/oracles.js";
