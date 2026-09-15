@@ -106,6 +106,27 @@ export function planSchedule(
   }
   const plan = scheduleOf(shape, input);
   const { ctx } = input;
+  if (plan.standing.size > 0) {
+    // **A hey for three is not the four's weave with a gap in it.** The schedule
+    // expands — `scheduleOf` idles the named role on `stand` and the other three
+    // keep their meetings, which is what the brief asks for — but what it draws
+    // is a collision: the weave's track runs through the places, so a dancer
+    // standing on their own place is walked past at **4.448 px** (measured, in
+    // both formations), against AC6's 8.
+    //
+    // The fix is a track of its own and it is *known*, not guessed at: three
+    // dancers a **third** of a turn apart on `u = U·cos φ`, `v = V·sin 2φ`. The
+    // side-step's multiplier is one less than the number weaving — it is what
+    // makes two dancers who meet sit on opposite sides of the lane and never at
+    // the middle of it — so a hey for four is `sin 3φ` and a hey for three is
+    // `sin 2φ`. What is missing is only where the three *places* sit on that
+    // track, and no dance in the acceptance set asks, so this refuses rather
+    // than guessing. See M5's report.
+    throw new Error(
+      `unsupported: a hey for three, whose three dancers need a weave of their own — ` +
+        `on the four's, a dancer standing on their place is passed at 4.45 px (AC6 wants 8)`,
+    );
+  }
 
   const joinWindows = new Map<string, { window: HoldWindow; other: FigureRole; side: Side }[]>();
   for (const role of input.roles) {
@@ -485,11 +506,15 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       if (other === undefined || standing.has(role)) continue;
       const mine = placeAt(role, at);
       const theirs = placeAt(other, at);
-      // Right shoulders is "the other one is on my right", which in this
-      // coordinate system — y down, angles from +x toward +y — is a positive
-      // turn from the way I am walking to the bearing between us.
+      // **Which shoulder, read a quarter beat before the meeting.** Right
+      // shoulders is "the other one is on my right", which in this coordinate
+      // system — y down, angles from +x toward +y — is a positive turn from the
+      // way I am walking to the bearing between us. *Before* rather than *at*,
+      // because a dancer who bounces here is at a standstill on the beat itself
+      // and the way they are going a moment later is back the way they came:
+      // the shoulder a ricochet keeps is the one it came in on.
       const by: Shoulder =
-        angleDiff(travelAt(role, at), bearing(mine, theirs)) > 0 ? "right" : "left";
+        angleDiff(travelAt(role, at - LOOK_BEATS), bearing(mine, theirs)) > 0 ? "right" : "left";
       // A meeting in the middle of the set is between two dancers of one role,
       // and the two who are not in it are round the ends of the lane with
       // nobody near them; a meeting at the lanes' edges involves all four, two
@@ -498,9 +523,12 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       break;
     }
     const wrote = written?.[i - 1];
+    // A ricochet is whoever actually bounces here, whether the list marked it or
+    // the call asked for it in the caller's own shorthand.
+    const bounces = roles.some((role) => bounceAt[role] === at);
     derived.push({
       ...(token ?? { who: wrote?.who ?? "neighbor", by: wrote?.by ?? byWord }),
-      ...(wrote?.ricochet === true ? { ricochet: true as const } : {}),
+      ...(bounces ? { ricochet: true as const } : {}),
       ...(wrote?.short === true ? { short: true as const } : {}),
     });
   }
@@ -542,7 +570,10 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
         // the dancers' own places write. `plan.meets` is who it resolved to.
         meet: token.who,
         shoulder: token.by,
-        mode: token.ricochet === true ? "bounce" : asPullBy ? "pull-by" : "pass",
+        // A bounce is **this dancer's**, read off the reversal itself rather
+        // than off the token: `ricochet: "robins@2"` names a role and a pass,
+        // and a pass at the lanes' edges has all four dancers in it.
+        mode: bounceAt[role] === at ? "bounce" : asPullBy ? "pull-by" : "pass",
         at,
         ...(token.short === true ? { short: true as const } : {}),
       });
