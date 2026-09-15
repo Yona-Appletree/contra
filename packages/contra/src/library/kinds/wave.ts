@@ -6,6 +6,7 @@ import {
   angleLerp,
   angleOf,
   dirOf,
+  dist,
   lerp,
   ramp,
 } from "@caller/core";
@@ -315,6 +316,18 @@ export const WAVE_DIRECTIONS: readonly WaveDirection[] = [
 export const WAVE_ROCK_CAP_PX = SHOULDER_WIDTH_PX / 4;
 
 /**
+ * **How far a dancer bows on their way in to a wave of four** (FR-A2): the most,
+ * px, and the share of the walk it is taken from.
+ *
+ * Two dancers who have to change places to make the row would otherwise walk
+ * through each other. A quarter of the walk, capped at three and a half px, is
+ * enough to pass right shoulders on Anna's Reel's worst crossing and is nothing
+ * at all for a dancer who is already standing where the row wants them.
+ */
+export const WAVE_CLOSE_BOW_PX = 3.5;
+export const WAVE_CLOSE_BOW_SHARE = 0.25;
+
+/**
  * **A wave's balance goes out and comes back to the line, never through it**
  * (FR-A2): *"the move towards and then back, but not past"*.
  *
@@ -522,11 +535,42 @@ function planWaveAcross(shape: WaveShape, input: ShapeInput): FigurePlan {
     reach.get(row[i + 1]!)![side] = row[i]!;
   }
 
+  /**
+   * **Coming in to the row, nobody walks through anybody** (FR-A2).
+   *
+   * Anna's Reel's A1 is a robins' allemande once and a half in the middle of the
+   * set and then this wave, and the allemande leaves the two of them on the
+   * **opposite** sides to the ones the lattice gives them — so the two who come
+   * to the middle of the row have to change places to get there, and read off
+   * the straight line between the two points they walk through each other.
+   * Measured at four, five and six couples, `c2/robin ~ c3/robin` came within
+   * **2.143 px** at beat 8.625; the balance's own amplitude is nothing to do with
+   * it (a smaller rock reads *closer*, 1.698 px, because the old oversized shear
+   * was pushing them apart as they crossed).
+   *
+   * What a dancer does instead is what a dancer always does: bow to their own
+   * left, so two who meet pass right shoulders. The bow is a quarter of the way
+   * each dancer has to travel, capped, so somebody already standing on their
+   * place walks straight there and only somebody crossing the set bows at all.
+   */
+  const bowOf = (role: FigureRole): number => {
+    const to = onWave[role];
+    if (to === undefined) return 0;
+    return Math.min(WAVE_CLOSE_BOW_PX, dist(ctx.spot(role).p, to.p) * WAVE_CLOSE_BOW_SHARE);
+  };
+  const bows: Record<FigureRole, number> = {};
+  for (const role of row) bows[role] = bowOf(role);
+
   const placeAt = (role: FigureRole, t: Beat): Spot => {
     const start = ctx.spot(role);
     const to = onWave[role] ?? start;
     const k = ramp(t, 0, closeBeats);
-    const place = { p: lerp(start.p, to.p, k), facing: angleLerp(start.facing, to.facing, k) };
+    const facing = angleLerp(start.facing, to.facing, k);
+    const bow = (bows[role] ?? 0) * Math.sin(Math.PI * k);
+    const place = {
+      p: addScaled(lerp(start.p, to.p, k), dirOf(facing - 90), bow),
+      facing,
+    };
     return waveRocked(place, direction, rock, t);
   };
 
