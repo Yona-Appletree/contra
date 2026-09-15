@@ -330,6 +330,10 @@ All four join hands in a ring. Balance in toward the middle for two beats and ba
 
 You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.
 
+### `balance-wave-of-four` — BALANCE THE WAVE OF FOUR
+
+The four of you make one short line straight across the set, looking up and down it rather than at each other: the two named take hands in the middle, and each of them gives their other hand to the dancer on their own end of the row. Everybody is looking the opposite way to the dancers beside them, which is what makes it a wave. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.
+
 ### `bend-the-line` — BEND THE LINE
 
 The two ends of your line of four walk forward and the two in the middle back up, so the line bends round into a ring of four and everybody is looking at everybody else. Keep hold of the hands you have.
@@ -337,6 +341,10 @@ The two ends of your line of four walk forward and the two in the middle back up
 ### `california-twirl` — CALIFORNIA TWIRL
 
 Take inside hands with your partner and raise them, then walk forward: one of you walks round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: which of the two turns under varies from hall to hall; this turns the robin under.)
+
+### `cast-back` — CAST BACK
+
+On your own, turn away from the middle of the set and walk round the outside of your own line into the place one behind you, still looking the way you were looking. Nobody's hand, and nobody goes with you: whoever was in that place has moved on.
 
 ### `cast-off` — CAST OFF
 
@@ -357,6 +365,10 @@ Walk forward and pass right shoulders, slide across back to back without turning
 ### `down-the-hall` — DOWN THE HALL FOUR IN LINE
 
 Take hands in a line of four across the hall, in the order the caller gives, and walk down the hall together. The line forms as you go: nobody stands still waiting for it. You end facing down the hall, still holding on.
+
+### `fatal-attraction/go-forward` — GO FORWARD
+
+On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them.
 
 ### `go-down-outside` — DOWN THE OUTSIDE
 
@@ -401,6 +413,10 @@ Walk forward past the dancer opposite you, passing right shoulders, and stop on 
 ### `petronella` — PETRONELLA TURN
 
 Everybody turns once round to their own right while travelling one place clockwise round the set, so the four of you rotate as a ring without holding anybody. Four beats, and it almost always follows a balance of the ring. The hands come up and out as you spin — nobody is holding on.
+
+### `promenade` — PROMENADE AROUND THE SET
+
+Side by side with the dancer named, inside hands joined, walk the two of you as one round the whole set — not across your own little circle of four but along the line you are standing in, the way a ring of couples goes round a hall. Counterclockwise is the way you are already travelling; clockwise is back the other way. You end further along the set than you began, which is the point of it.
 
 ### `pull-by` — PULL BY
 
