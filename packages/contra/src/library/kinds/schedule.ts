@@ -669,7 +669,7 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     const dancing = roles.filter((role) => !standing.has(role));
     const points: Record<string, Vec2> = {};
     for (const role of dancing) points[role] = placeAt(role, beats);
-    const out = settleOnPlaces(dancing, points, input.places ?? [], input.taken ?? []);
+    const out = settleOnPlaces(dancing, points, input.places ?? [], input.spokenFor);
     for (const role of dancing) {
       const to = out[role];
       if (to === undefined) continue;

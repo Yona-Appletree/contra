@@ -107,13 +107,16 @@ const SAME_PLACE_PX = 1e-9;
  */
 export function takenIn(params: Readonly<Record<string, unknown>>): readonly Vec2[] {
   const claim = params[CLAIMS_PARAM] as PlaceClaim | undefined;
-  if (claim === undefined) return [];
+  if (claim === undefined) return NOTHING_SPOKEN_FOR;
   const out: Vec2[] = [...claim.ledger.held];
   for (const [index, places] of claim.ledger.by) {
     if (index < claim.me) out.push(...places);
   }
   return out;
 }
+
+/** What a figure planned outside a resolution is told: nothing is spoken for. */
+export const NOTHING_SPOKEN_FOR: readonly Vec2[] = [];
 
 /**
  * Record which of the pool this instance actually ended on.
@@ -216,12 +219,13 @@ const SAME_GAP_PX = 1e-9;
  * places it is standing **between**. It changes nothing where the search was
  * never ambiguous, which is every dance in the programme.
  *
- * ### `taken` sorts a place last, it does not remove it (M9d)
+ * ### `spoken` sorts a place last, it does not remove it (M9d)
  *
- * The places another instance of this call has already settled on are ranked
- * behind every pair that avoids them, and nothing else about the search
- * changes. With none — every dance until this milestone — the comparison is
- * bit-for-bit the one above.
+ * A **peer** instance's places are ranked ahead of everything: the pair that
+ * avoids them wins however far away it is. A **held** place — one a dancer is
+ * standing through the call on — is the last key of all, so it breaks a tie and
+ * never moves a pair that had a nearer answer. With neither — every dance until
+ * this milestone — the comparison is bit-for-bit the one above.
  *
  * **And when every square pair is spoken for, the pair takes the nearest free
  * pair of places instead.** That is Contrablend's beat 80, measured: at the
@@ -242,7 +246,7 @@ export function placePairFor(
   centre: Vec2,
   facing: Angle,
   fallbackHalf: number,
-  taken: readonly Vec2[] = [],
+  spoken: readonly Vec2[] = NOTHING_SPOKEN_FOR,
 ): PlacePair {
   const left = dirOf(facing - 90);
   const fallback: PlacePair = {
@@ -253,12 +257,12 @@ export function placePairFor(
     centre,
     half: fallbackHalf,
   };
-  const square = pairSearch(places, centre, facing, fallbackHalf, taken, fallback, true);
+  const square = pairSearch(places, centre, facing, fallbackHalf, spoken, fallback, true);
   if (square.taken === 0) return square.pair;
   // **Every square pair is spoken for**: the free places are a pair of the
   // formation's own, just not one square to the way this pair happens to be
   // facing. Taken only when it really is freer than the square answer.
-  const anywhere = pairSearch(places, centre, facing, fallbackHalf, taken, fallback, false);
+  const anywhere = pairSearch(places, centre, facing, fallbackHalf, spoken, fallback, false);
   return anywhere.taken < square.taken ? anywhere.pair : square.pair;
 }
 
@@ -268,7 +272,7 @@ function pairSearch(
   centre: Vec2,
   facing: Angle,
   fallbackHalf: number,
-  taken: readonly Vec2[],
+  spoken: readonly Vec2[],
   fallback: PlacePair,
   squareOnly: boolean,
 ): { pair: PlacePair; taken: number } {
@@ -291,15 +295,15 @@ function pairSearch(
       // How much wider or narrower than the pair itself these two places are.
       const spread = Math.abs(span - 2 * fallbackHalf);
       // How many of this pair somebody else of the same call is already on.
-      const spoken = (isTaken(taken, a) ? 1 : 0) + (isTaken(taken, b) ? 1 : 0);
-      if (spoken < bestTaken) {
-        bestTaken = spoken;
+      const clashes = countIn(spoken, a, b);
+      if (clashes < bestTaken) {
+        bestTaken = clashes;
         bestGap = gap;
         bestSpread = spread;
         best = { ends: [a, b], centre: mid, half: span / 2 };
         continue;
       }
-      if (spoken > bestTaken) continue;
+      if (clashes > bestTaken) continue;
       const nearer = gap < bestGap - SAME_GAP_PX;
       const tied = Math.abs(gap - bestGap) <= SAME_GAP_PX && spread < bestSpread;
       if (nearer || tied) {
@@ -313,6 +317,10 @@ function pairSearch(
   return { pair: best, taken: bestTaken === Infinity ? 0 : bestTaken };
 }
 
+/** How many of these two places are in the list. */
+const countIn = (list: readonly Vec2[], a: Vec2, b: Vec2): number =>
+  (isTaken(list, a) ? 1 : 0) + (isTaken(list, b) ? 1 : 0);
+
 /**
  * Which place each role takes, so that the total distance walked is least.
  *
@@ -324,20 +332,19 @@ function pairSearch(
  * permutation is the honest thing rather than importing an assignment algorithm
  * for a problem of size four. It refuses anything bigger by name.
  *
- * `taken` (M9d) is the places another instance of the same call has already
- * settled on, and it is a **first key** on the same search: fewest places taken
- * off somebody else first, least walked second. With none the comparison is the
- * one it always was.
+ * `spoken` (M9d) is the places this call has already given out, and it is a
+ * **first key** on the same search: fewest places taken off somebody else
+ * first, least walked second. With none the comparison is the one it always was.
  */
 export function nearestPlaces(
   natural: readonly Vec2[],
   places: readonly Vec2[],
-  taken: readonly Vec2[] = [],
+  spoken: readonly Vec2[] = NOTHING_SPOKEN_FOR,
 ): Array<Vec2 | undefined> {
   const n = natural.length;
   if (n > 4) throw new Error(`settling on to places is written for up to four dancers, not ${n}`);
   if (places.length < n) return natural.map(() => undefined);
-  const spoken = places.map((place) => (isTaken(taken, place) ? 1 : 0));
+  const clashesAt = places.map((place) => (isTaken(spoken, place) ? 1 : 0));
   let best: number[] | undefined;
   let bestCost = Infinity;
   let bestTaken = Infinity;
@@ -346,7 +353,7 @@ export function nearestPlaces(
     let clashes = 0;
     for (let i = 0; i < n; i++) {
       cost += dist(natural[i]!, places[choice[i]!]!);
-      clashes += spoken[choice[i]!]!;
+      clashes += clashesAt[choice[i]!]!;
     }
     if (clashes < bestTaken || (clashes === bestTaken && cost < bestCost - 1e-12)) {
       bestTaken = clashes;
@@ -396,7 +403,12 @@ export function settleEnds(
     const spot = shaped[role];
     if (spot) points[role] = spot.p;
   }
-  const settled = settleOnPlaces(input.roles, points, input.places, input.taken ?? []);
+  const settled = settleOnPlaces(
+    input.roles,
+    points,
+    input.places,
+    input.spokenFor ?? NOTHING_SPOKEN_FOR,
+  );
   const out: Spots = { ...shaped };
   for (const role of input.roles) {
     const spot = shaped[role];
@@ -431,13 +443,13 @@ export function settleOnPlaces(
   roles: readonly FigureRole[],
   natural: Readonly<Record<FigureRole, Vec2>>,
   places: readonly Vec2[],
-  taken: readonly Vec2[] = [],
+  spoken: readonly Vec2[] = NOTHING_SPOKEN_FOR,
 ): Record<FigureRole, Vec2> {
   const taking = roles.filter((role) => natural[role] !== undefined);
   const chosen = nearestPlaces(
     taking.map((role) => natural[role]!),
     places,
-    taken,
+    spoken,
   );
   const out: Record<FigureRole, Vec2> = { ...natural };
   taking.forEach((role, i) => {

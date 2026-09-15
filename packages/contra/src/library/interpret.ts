@@ -98,14 +98,15 @@ export interface ShapeInput {
   /** The centres of the sibling instances, frame-local. */
   nearby: readonly Vec2[];
   /**
-   * The places of `places` another instance of this very call has already
-   * settled on, or that somebody is standing through the call on (M9d).
+   * Which of `places` are spoken for (M9d): the places a peer instance of this
+   * very call has already settled on, and the places somebody is standing
+   * through the call on.
    *
    * Frame-local px, and a **ranking** rather than a prohibition: a search that
    * cannot avoid one still takes it. See `kinds/places.ts`'s `PlaceLedger`.
-   * Absent for a figure planned outside a resolution.
+   * Left out, nothing is spoken for — a figure planned outside a resolution.
    */
-  taken?: readonly Vec2[];
+  spokenFor?: readonly Vec2[];
   /** Whether the figure gathers on to `homes`. */
   gathers: boolean;
   /** The shape the figure forms, when its `ends` names one (Q6, M7). */
@@ -197,7 +198,7 @@ export function planDefinition(
 ): FigurePlan {
   const roles = ctx.ids;
   const places = params.homes.length > 0 ? params.homes : undefined;
-  const taken = takenIn(params);
+  const spokenFor = takenIn(params);
   // **The anchor is read over the dancers in scope**, not over the whole cast:
   // a sequence part planned for two of a hands-four anchors on those two. For
   // the figure itself `inner` is `ctx` and `inner.ids` is `roles`, so nothing a
@@ -215,7 +216,7 @@ export function planDefinition(
     anchorOf: anchorIn,
     ...(places === undefined ? {} : { places }),
     nearby: params.nearby,
-    ...(taken.length === 0 ? {} : { taken }),
+    spokenFor,
     // A figure that forms a shape may also settle it on to the formation's own
     // places, and says so in the target: `"home"` is not the only way to be a
     // gatherer since M7, but forming a shape does not make you one.
