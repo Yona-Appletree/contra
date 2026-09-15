@@ -1,0 +1,307 @@
+import type { Beat } from "@caller/core";
+import type { Dance, DancerId, MotionStats, PhraseName, StationId } from "@caller/choreo";
+import { MOTION_STEP, danceBeats, danceSchedule, motionReport } from "@caller/choreo";
+import type { Carried } from "../figures/ContraFigure.js";
+import { CONTRA_MOTION_BOUNDS } from "../figures/motionBounds.js";
+import { createContraRegistry } from "../figures/registry.js";
+import { legacyLibrary } from "../library/legacy.js";
+import { contraCyclePlanner } from "../set/planCycle.js";
+import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
+import { ALL_DANCES } from "./index.js";
+import type { MotionMetric } from "./motionAllowlist.js";
+import { motionAllowance } from "./motionAllowlist.js";
+import type { DanceOracles } from "./oracle.js";
+import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "./oracle.js";
+
+/**
+ * `packages/contra/scripts/danceLab.mjs`'s data: everything `pnpm dance <slug>`
+ * prints, without the pictures.
+ *
+ * The same split `figureLab.ts` uses — this file answers "does this dance
+ * resolve and dance", the `.mjs` script prints it, spawns `traces:export` for
+ * the SVGs and turns both into one exit code.
+ *
+ * It is the inner loop of the whole rebuild and the consumer the corpus
+ * translation is designed for (`plan.md` goal 4): an agent handed a transcript
+ * and `docs/dance-record.md` writes a dance file and finds out from **one
+ * command** whether every call resolves, whether the dance closes, reaches and
+ * misses at every checked line length, and whether anything moves faster than
+ * the library allows.
+ */
+
+/** Everything the lab found about one dance, and whether the loop is green. */
+export interface DanceLabReport {
+  slug: string;
+  /** `false` when any call failed to resolve, any oracle failed, or any motion row is over bound and not allowed. */
+  ok: boolean;
+  text: string;
+}
+
+/** One call of a dance, as the new layer resolved it in one set. */
+export interface ResolutionRow {
+  phrase: PhraseName;
+  /** The figure the call names. */
+  figure: string;
+  start: Beat;
+  beats: Beat;
+  /** The group instance that danced it. */
+  group: string;
+  /** Figure-role → dancer, for the dancers this instance cast. */
+  cast: Record<StationId, DancerId>;
+  /** The definition's anchor rule. */
+  anchor: string;
+  /** The definition's ends rule. */
+  ends: string;
+  /** Hands the instance took over from the one before it, as `1L.R↔2R.L`. */
+  carriedIn: string[];
+  /** Hands the instance handed on to the next one. */
+  carriedOut: string[];
+  /** Everybody this call left standing, in their own hold-place instance. */
+  holdPlace: DancerId[];
+}
+
+/**
+ * How one dance resolves, read back off a real run through the contra planner.
+ *
+ * Not a second implementation of resolution: the planner is run for one time
+ * through and the timeline it produced is read, so the table is what actually
+ * happened rather than what a parallel code path thinks would.
+ */
+export function danceResolution(dance: Dance, couples: number): ResolutionRow[] {
+  const library = legacyLibrary(createContraRegistry());
+  const timeline = danceAlone(
+    dance,
+    couples,
+    danceBeats(dance),
+    {},
+    { cycle: contraCyclePlanner },
+  ).timeline();
+  const rows: ResolutionRow[] = [];
+  for (const { call, start, phrase } of danceSchedule(dance)) {
+    const here = timeline
+      .figures()
+      .filter((e) => e.start === start && e.end === start + call.beats);
+    const holds = here.filter((e) => e.figure === HOLD_PLACE_FIGURE);
+    for (const event of here) {
+      if (event.figure !== call.figure) continue;
+      const def = library.has(call.figure) ? library.get(call.figure) : undefined;
+      const carried = (event.params as { carried?: Carried }).carried;
+      const standing = holds.filter((h) => h.group === event.group);
+      rows.push({
+        phrase,
+        figure: call.figure,
+        start,
+        beats: call.beats,
+        group: event.group,
+        cast: { ...event.bindings },
+        anchor: def === undefined ? "—" : JSON.stringify(def.anchor),
+        ends: def === undefined ? "—" : JSON.stringify(def.ends),
+        carriedIn: joinsOf(carried?.in),
+        carriedOut: joinsOf(carried?.out),
+        holdPlace: standing.flatMap((h) => Object.values(h.bindings)),
+      });
+    }
+  }
+  return rows;
+}
+
+/** A `Carried` side as readable `1L.R↔2R.L` strings, deduplicated and sorted. */
+function joinsOf(side: Carried["in"] | undefined): string[] {
+  if (!side) return [];
+  const out = new Set<string>();
+  for (const [station, hands] of Object.entries(side)) {
+    for (const [mine, held] of Object.entries(hands)) {
+      if (!held) continue;
+      const a = `${station}.${mine}`;
+      const b = `${held.with}.${held.side}`;
+      out.add([a, b].sort().join("↔"));
+    }
+  }
+  return [...out].sort();
+}
+
+/** The line length the resolution table and the motion rows are read at. */
+export const labCouples = (dance: Dance): number => linesFor(dance)[0] ?? 4;
+
+/** `pnpm dance <slug>`'s whole text report, and whether the loop is green. */
+export function danceLabReport(
+  slug: string,
+  couples?: number,
+  dances: readonly Dance[] = ALL_DANCES,
+): DanceLabReport {
+  const dance = dances.find((d) => d.slug === slug);
+  if (!dance) {
+    return {
+      slug,
+      ok: false,
+      text: [
+        `# pnpm dance ${slug}`,
+        "",
+        `no such dance: \`data/dances/${slug}.json\` is not loaded ` +
+          `(have: ${dances.map((d) => d.slug).join(", ")}).`,
+        "",
+      ].join("\n"),
+    };
+  }
+
+  const at = couples ?? labCouples(dance);
+  const lines: string[] = [`# pnpm dance ${slug}`, ""];
+  lines.push(
+    `**${dance.title}** — ${dance.author} · \`${dance.formation}\` · ` +
+      `${String(danceBeats(dance))} beats · resolved at ${String(at)} couples`,
+    "",
+  );
+  if (dance.notes) lines.push(`> ${dance.notes}`, "");
+
+  let ok = true;
+
+  // 1. The resolution table: what each call became.
+  lines.push("## 1. Resolution", "");
+  let rows: ResolutionRow[] = [];
+  try {
+    rows = danceResolution(dance, at);
+  } catch (error) {
+    ok = false;
+    lines.push(`**FAIL** — this dance does not resolve: ${String(error)}`, "");
+  }
+  let phrase: PhraseName | undefined;
+  for (const row of rows) {
+    if (row.phrase !== phrase) {
+      phrase = row.phrase;
+      lines.push(`### ${phrase}`, "");
+    }
+    const cast = Object.entries(row.cast)
+      .map(([role, dancer]) => `${role}=${short(dancer)}`)
+      .join(" ");
+    lines.push(
+      `- beat ${String(row.start)}+${String(row.beats)} \`${row.figure}\` ` +
+        `in \`${row.group}\` — anchor ${row.anchor}, ends ${row.ends}`,
+    );
+    lines.push(`  - cast: ${cast}`);
+    if (row.carriedIn.length > 0) lines.push(`  - carried in: ${row.carriedIn.join(", ")}`);
+    if (row.carriedOut.length > 0) lines.push(`  - carried out: ${row.carriedOut.join(", ")}`);
+    if (row.holdPlace.length > 0) {
+      lines.push(`  - hold place: ${row.holdPlace.map(short).join(", ")}`);
+    }
+  }
+  if (rows.length > 0) lines.push("");
+
+  // 2. The oracles, at every line length this formation is checked at.
+  lines.push("## 2. Oracles — closure (AC5), reach (AC1), collision (AC6), coverage", "");
+  const until: Beat = danceBeats(dance) * 2;
+  for (const line of linesFor(dance)) {
+    let o;
+    try {
+      o = danceOracles(dance, line, until);
+    } catch (error) {
+      ok = false;
+      lines.push(`- ${String(line)} couples: **FAIL** — ${String(error)}`);
+      continue;
+    }
+    const closureOk = o.closurePx < CLOSURE_PX;
+    const reachOk = o.maxShort === 0;
+    const collisionOk = o.minDistancePx > COLLISION_PX;
+    const coverageOk = o.coverage.length === 0;
+    if (!closureOk || !reachOk || !collisionOk || !coverageOk) ok = false;
+    lines.push(
+      `- ${String(line)} couples: ` +
+        `closure ${mark(closureOk)} (worst ${o.closurePx.toFixed(4)} px) · ` +
+        `progressed ${o.progressedPx.toFixed(4)} px · ` +
+        `reach ${mark(reachOk)} (worst short ${o.maxShort.toFixed(4)} px) · ` +
+        `collision ${mark(collisionOk)} (closest ${fixed(o.minDistancePx)} px) · ` +
+        `coverage ${mark(coverageOk)}${coverageOk ? "" : ` (${o.coverage.join("; ")})`}`,
+    );
+  }
+  lines.push("");
+
+  // 3. Motion: the dance's own seams, which fail unless allowlisted (R6).
+  lines.push("## 3. Motion — the dance's seams", "");
+  lines.push(
+    `Bounds: hand ${CONTRA_MOTION_BOUNDS.handSpeedPx.toFixed(1)} · ` +
+      `elbow ${CONTRA_MOTION_BOUNDS.elbowSpeedPx.toFixed(1)} · ` +
+      `elbow/hand ${CONTRA_MOTION_BOUNDS.elbowPerHand.toFixed(2)}× · ` +
+      `height ${CONTRA_MOTION_BOUNDS.heightRatePx.toFixed(1)} · ` +
+      `dip ${CONTRA_MOTION_BOUNDS.dipPx.toFixed(2)} px. ` +
+      "A value over its bound fails unless `motionAllowlist.ts` says why.",
+    "",
+  );
+  const timeline = danceAlone(dance, at, until, {}, { cycle: contraCyclePlanner }).timeline();
+  const motion = motionReport(timeline, until, {
+    step: MOTION_STEP,
+    bounds: CONTRA_MOTION_BOUNDS,
+  });
+  const reasons = new Map<string, string>();
+  for (const row of [...motion.figures, ...motion.seams]) {
+    const problems = overBound(row);
+    for (const metric of problems) {
+      const allowed = motionAllowance(dance.slug, row.key, metric);
+      if (allowed === undefined) ok = false;
+      else reasons.set(`${row.key} ${metric}`, allowed.reason);
+    }
+    lines.push(motionLine(row, dance.slug, problems));
+  }
+  if (motion.figures.length === 0 && motion.seams.length === 0) lines.push("_none measured._");
+  lines.push("");
+  if (reasons.size > 0) {
+    lines.push("Allowed, with reasons:", "");
+    for (const [key, reason] of [...reasons].sort()) lines.push(`- \`${key}\` — ${reason}`);
+    lines.push("");
+  }
+
+  lines.push(
+    ok ? "resolution, oracles and motion: green" : "resolution, oracles and motion: FAIL",
+    "",
+  );
+  return { slug, ok, text: lines.join("\n") };
+}
+
+/**
+ * One dance's oracles, run through the **new** planner.
+ *
+ * The lab measures the path the lab is for. The app still runs the default
+ * planner in M1 and M3 is what flips it over; every other oracle in the
+ * repository (`dances.test.ts`, `pnpm figure`, the motion report) stays on the
+ * old path until then, which is why this is the one place that asks for the
+ * contra planner by name.
+ */
+const danceOracles = (dance: Dance, couples: number, until: Beat): DanceOracles =>
+  oraclesFor(dance, couples, until, {}, { cycle: contraCyclePlanner });
+
+/** One motion row, with every over-bound value marked and said to be allowed or not. */
+function motionLine(row: MotionStats, slug: string, problems: readonly MotionMetric[]): string {
+  const b = CONTRA_MOTION_BOUNDS;
+  const verdict = problems
+    .map((metric) => (motionAllowance(slug, row.key, metric) ? "" : ` **FAIL ${metric}**`))
+    .join("");
+  return (
+    `- \`${row.key}\`: hand ${over(row.handSpeed.value, b.handSpeedPx)} · ` +
+    `elbow ${over(row.elbowSpeed.value, b.elbowSpeedPx)} · ` +
+    `elbow/hand ${over(row.elbowPerHand.value, b.elbowPerHand, 2)}× · ` +
+    `height ${over(row.heightRate.value, b.heightRatePx)} · ` +
+    `dip ${over(row.dip.value, b.dipPx, 2)} · ` +
+    `flips ${String(row.stateFlips)} · NaN ${String(row.nonFinite)}${verdict}`
+  );
+}
+
+/** Which of a row's five bounded columns are over their bound. */
+function overBound(row: MotionStats): MotionMetric[] {
+  const b = CONTRA_MOTION_BOUNDS;
+  const out: MotionMetric[] = [];
+  if (row.handSpeed.value > b.handSpeedPx) out.push("handSpeed");
+  if (row.elbowSpeed.value > b.elbowSpeedPx) out.push("elbowSpeed");
+  if (row.elbowPerHand.value > b.elbowPerHand) out.push("elbowPerHand");
+  if (row.heightRate.value > b.heightRatePx) out.push("heightRate");
+  if (row.dip.value > b.dipPx) out.push("dip");
+  return out;
+}
+
+const mark = (good: boolean): string => (good ? "pass" : "FAIL");
+
+const fixed = (n: number): string => (Number.isFinite(n) ? n.toFixed(3) : "—");
+
+/** A number, marked `**like this**` when it is over its bound. */
+const over = (value: number, bound: number, places = 1): string =>
+  value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
+
+/** `set0/c3/lark` as `c3/lark`: the set is the same one all the way down the table. */
+const short = (dancer: DancerId): string => dancer.split("/").slice(1).join("/");

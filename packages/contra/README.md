@@ -156,6 +156,73 @@ unwidened true end of its own (`"line"` only ever widens with the couple
 immediately adjacent to the dancing line) — flagged for whichever milestone's
 dance needs that shape; no corpus dance in this milestone's scope does.
 
+## The hub — `src/set/` and `src/library/`
+
+The figure model's middle layer (`docs/adr/2026-09-15-figure-model-set-state-and-resolution.md`).
+It is being built beside the coded figure library below, not instead of it: M1
+stands the hub up and proves it dances the ten demo dances **pose-identical** to
+the old path with every coded figure bridged, and the figures move over to it one
+at a time after that.
+
+### Set state — `src/set/SetModel.ts`
+
+`SetModel` is what the engine knows about a whole set at a figure boundary: per
+dancer, a **slot** on the set's lattice (`{ line: 0 | 1, position }`, one
+position per dancer place along the set), a **travel** direction, a **spot** in
+world px, the **holds** they have, and their **partner** binding. All plain data,
+`JSON.parse(JSON.stringify(model))`-safe, which is why it names its formation by
+id rather than holding the object; `src/set/SetRules.ts` turns that id back into
+the two things the hub needs from a formation.
+
+It replaces two unreconciled places: `chain.ts`'s load-time threading of
+`params.from` on the hands-four _template_, and the script decider's per-dancer
+world-space `standingAt`.
+
+### Relations — `src/set/relations.ts`, and the formations' own tables
+
+A relation is a signed offset on the lattice, derived live and never stored, and
+**which offset it is, is the formation's** (`DUPLE_IMPROPER_RELATIONS`,
+`BECKET_RELATIONS`). Duple improper: your partner is the other line at the same
+position, your neighbour the same line one position along the way you travel.
+Becket: your partner is the same line one position along, your neighbour
+straight across. Same two words, opposite two answers, from the same lattice —
+which is exactly why relations cannot be `@caller/choreo` meanings.
+
+M1 answers partner and neighbour 1. Everything else the corpus uses _parses_,
+and `relate` throws `unsupported: <word> (M6)`, so `dances/acceptance.test.ts`
+can hold the list of what is still owed as a test rather than a memory.
+
+### Resolution — `src/set/resolve.ts`
+
+One call against the live set becomes concurrent **figure instances over
+disjoint actors**, plus one hold-place instance per group for everybody the call
+did not select. `who` takes everything it always took — `"all"`, a station
+array, a tag the formation defines — and now also a **relation word**
+(`who: "N2"`). An instance is a `Group` whose stations are figure-roles, which
+is what leaves `FigureEvent`, `poseAt`, the oracles and the renderer untouched.
+
+### The cycle planner — `src/set/planCycle.ts`
+
+`contraCyclePlanner` is a `@caller/choreo` `CyclePlanner`: one time through,
+planned against set state instead of against a dance's pre-threaded places. Per
+set it builds a model at the top of the cycle, resolves each call against it,
+mints a group per instance, derives `from` from where the cast actually stand and
+`carried` from the holds the set is already carrying, and moves the model on by
+each instance's honest ends.
+
+The app still runs the decider's own `defaultCyclePlanner`; M3 is what flips it.
+`planCycle.golden.test.ts` is the proof that the two agree.
+
+### The library — `src/library/`
+
+`FigureDefinition` is a figure as data: figure-roles, an actor rule, an anchor
+rule, a parameter spec, a shape, holds, an ends rule, a timing profile and a
+nominal count. M1's only shape kind is `{ kind: "legacy", figure }` — the
+**legacy bridge**, which wraps a coded `ContraFigure` as a definition whose
+figure-roles are the hands-four station ids and whose anchor is the formation's
+own minor-set frame. A figure leaves the bridge when it is rewritten as data
+(M2, M4, M5); by M11 the bridge is empty and `src/library/legacy.ts` is deleted.
+
 ## The figure library — `src/figures/`
 
 Every figure the demo's dances call, on `@caller/choreo`'s `FigureDef` and
@@ -373,6 +440,22 @@ already read `data/corpus/demo-dances.json`), runs each through
 `danceFromFile` in `programme.json`'s order, and exports the result as
 `DEMO_DANCES` — exactly the shape and the ten dances this package exported
 before, now with no TypeScript dance module behind any of them.
+
+**`status: "lab"`** marks a dance that loads but is not shipped: it is exported
+as `LAB_DANCES`, is reachable by `pnpm dance <slug>` and by `danceBySlug`, and is
+excluded from `DEMO_DANCES` and from the check that every dance file is in the
+programme. So the demo never shows a dance that does not dance, and a milestone
+encoding a hard dance can commit the record and work on it in the lab. No dance
+file sets it yet; the acceptance set's twelve arrive this way from M5.
+
+**The dance lab**, `pnpm dance <slug>`: one dance's whole inner loop — how every
+call resolves against the live set, the oracles at every checked line length, the
+motion rows for its own figures and seams (over-bound values **fail** unless
+`src/dances/motionAllowlist.ts` names a reason), and its four trace SVGs. See
+[docs/dance-lab.md](../../docs/dance-lab.md). The pure half is
+`src/dances/danceLab.ts`; `src/dances/acceptance.ts` holds the twelve acceptance
+transcripts and the list of figure names and relation words the rebuild still
+owes, which `acceptance.test.ts` keeps honest in both directions.
 
 **The `figures` key is reserved, not implemented.** The move-data-layer
 plan's decision 3 gives `Dance` an optional `figures?: Record<string,

@@ -33,6 +33,21 @@ export interface DanceFile extends Omit<ContraDanceSpec, "formation"> {
   formation: string;
   source: DanceFileSource;
   /**
+   * `"lab"` for a dance that is being worked on but is not shippable yet.
+   *
+   * A lab dance loads like any other, is exported as `LAB_DANCES`, is reachable
+   * by `pnpm dance <slug>` and by `danceBySlug`, and is **excluded** from
+   * `DEMO_DANCES` and from the check that every dance file is in the programme.
+   * The demo therefore never shows a dance that does not dance (A8), and a
+   * milestone that is encoding a hard dance can commit the record, run the lab
+   * on it and watch it come good without putting it on the Stage.
+   *
+   * Left out is a shipped dance, which is every file today; the dance moves out
+   * of `"lab"` and into `programme.json` when its own milestone's definition of
+   * done is met.
+   */
+  status?: "lab";
+  /**
    * Reserved for a dance-local figures map — the move-data-layer plan's
    * decision 3 (M4): a phrase's figure calls would be able to name one of
    * these as well as a registry id. Not read by this loader; no demo dance
