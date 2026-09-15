@@ -1,5 +1,5 @@
-import type { Trace } from "@caller/choreo";
-import { sampleTrace } from "@caller/choreo";
+import type { DancerId, Trace } from "@caller/choreo";
+import { sampleTrace, stationRank } from "@caller/choreo";
 import type { GalleryTile } from "../galleryTiles.js";
 
 /**
@@ -18,12 +18,27 @@ import type { GalleryTile } from "../galleryTiles.js";
 export function figureTrace(tile: GalleryTile): Trace {
   const cached = CACHE.get(tile);
   if (cached !== undefined) return cached;
-  const trace = sampleTrace(tile.timeline, {
+  const sampled = sampleTrace(tile.timeline, {
     from: tile.window.start,
     to: tile.window.start + tile.window.beats,
     dancers: Object.values(tile.group.members),
     frame: tile.group.frame,
   });
+  // A pen's **rank** — the ones darker than the twos — is a fact about where a
+  // dancer stands in the minor set, and `sampleTrace` reads it off the station
+  // the opening event binds. Since M3 that station is a figure-role for a data
+  // figure (`lark`, `a`), which ranks as 0 and would flatten the whole plate to
+  // two colours. The tile's own group still knows who stands on `1L`, so the
+  // rank is read from there instead; nothing else about the trace moves.
+  const ranks = new Map<DancerId, number>();
+  for (const station of tile.group.stations) {
+    const dancer = tile.group.members[station.id];
+    if (dancer !== undefined) ranks.set(dancer, stationRank(station.id));
+  }
+  const trace: Trace = {
+    ...sampled,
+    pens: sampled.pens.map((pen) => ({ ...pen, rank: ranks.get(pen.dancer) ?? pen.rank })),
+  };
   CACHE.set(tile, trace);
   return trace;
 }
