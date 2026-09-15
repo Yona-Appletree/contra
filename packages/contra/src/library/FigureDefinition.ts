@@ -725,12 +725,25 @@ export type PathFacing =
  * simply slides behind, so a spin is **whose** as well as how far.
  */
 export interface PathSpin {
-  /** Whole turns, signed. */
+  /** Whole turns. Signed, unless {@link PathSpin.toward} decides the sign. */
   turns: NumberExpr;
   /** Only the dancers whose contra role the named parameter names. */
   who?: { role: string };
   /** The beat the spin starts; `0` by default. */
   from?: NumberExpr;
+  /**
+   * **Which way round: the way that brings your nose to this dancer first.**
+   *
+   * The user's rule for a roll away — *"people should always turn inward so
+   * they go nose to nose first"* — and it is a fact about where the two of them
+   * are standing rather than a number a call can get wrong. With it, the first
+   * quarter of the turn carries the spinner's face round on to the named
+   * dancer's own place; {@link PathSpin.turns} is then read as a magnitude and
+   * the geometry supplies the sign, which is also what makes the figure its own
+   * mirror image without a `signs` entry: reflect the arrangement and the
+   * partner is on the other side, so the turn goes the other way by itself.
+   */
+  toward?: RoleExpr;
 }
 
 /**

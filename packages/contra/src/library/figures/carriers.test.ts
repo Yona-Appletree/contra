@@ -34,7 +34,41 @@ import { bothWays, carrierGolden, worstOf } from "./carriers.js";
  *
  * Both formations, because "across" means the opposite thing in the two and a
  * figure that only works in one has not been migrated.
+ *
+ * ## The figures the user's review has moved (FR-A1)
+ *
+ * "Agrees with the coded figure" is a claim about the **migration**, not about
+ * the dance: it says M4 re-expressed the arithmetic faithfully. Once the user
+ * looks at a figure on the Moves page and says it is wrong, the coded twin is
+ * wrong in exactly the same way, and the definition is *meant* to leave it
+ * behind. Those figures declare a {@link Moved} instead of the zero: the
+ * comparison still runs, over the same cases, and what it asserts is **how far
+ * the figure has moved, in which of the quantities** — with the user's own
+ * words for why. A figure that drifted further than its review asked for still
+ * fails, and so does one that quietly drifted back.
  */
+
+/**
+ * How far a definition has deliberately moved away from the coded figure it
+ * replaces, because the user's review said the coded one was wrong.
+ *
+ * Every number is the **worst** over every case, both formations, from the
+ * stations and displaced — measured, not chosen.
+ */
+interface Moved {
+  /** The user's words, and what changed because of them. */
+  why: string;
+  /** The worst body-position difference, px. */
+  position: number;
+  /** The worst facing (or look) difference, degrees. */
+  facing: number;
+  /** The worst joined-hand point difference, px. */
+  hand: number;
+  /** The worst difference in where the figure *leaves* people, px. */
+  endPx: number;
+  /** …and in the facings it leaves them on, degrees. */
+  endDeg: number;
+}
 
 /** One figure's whole gate: the four claims, then its own cases. */
 function carrier(
@@ -42,8 +76,12 @@ function carrier(
   definition: FigureDefinition,
   cases: readonly CompareCase[],
   least: number,
+  moved?: Moved,
 ): void {
-  const all = bothWays(carrierGolden(coded, definition, cases));
+  const measured: readonly CompareCase[] = moved
+    ? cases.map((test) => ({ ...test, allowed: [...(test.allowed ?? []), "path", "ends"] }))
+    : cases;
+  const all = bothWays(carrierGolden(coded, definition, measured));
 
   it("is data: it survives a round trip through JSON", () => {
     expect(JSON.parse(JSON.stringify(definition))).toEqual(definition);
@@ -76,19 +114,31 @@ function carrier(
 
   for (const result of all) {
     const from = result.from === "stations" ? "the stations" : "displaced";
-    it(`is the coded figure, ${from} — ${result.formation} ${JSON.stringify(result.params)}`, () => {
+    const is = moved ? "still dances everybody" : "is the coded figure";
+    it(`${is}, ${from} — ${result.formation} ${JSON.stringify(result.params)}`, () => {
       expect(result.problems).toEqual([]);
       expect(result.samples).toBeGreaterThan(0);
       expect(result.holdPlace).toEqual([]);
     });
   }
 
-  it("is the coded figure to the last pixel, wherever the dancers start", () => {
+  const claim = moved
+    ? `has moved exactly this far from the coded figure — ${moved.why}`
+    : "is the coded figure to the last pixel, wherever the dancers start";
+  it(claim, () => {
     const worst = worstOf(all);
     expect(worst.samples).toBeGreaterThan(least);
-    expect(worst.position).toBe(0);
-    expect(worst.facing).toBe(0);
-    expect(worst.hand).toBe(0);
+    if (!moved) {
+      expect(worst.position).toBe(0);
+      expect(worst.facing).toBe(0);
+      expect(worst.hand).toBe(0);
+      return;
+    }
+    expect(worst.position).toBeCloseTo(moved.position, 2);
+    expect(worst.facing).toBeCloseTo(moved.facing, 1);
+    expect(worst.hand).toBeCloseTo(moved.hand, 2);
+    expect(Math.max(...all.map((result) => result.endPx))).toBeCloseTo(moved.endPx, 2);
+    expect(Math.max(...all.map((result) => result.endDeg))).toBeCloseTo(moved.endDeg, 1);
   });
 }
 
@@ -193,6 +243,24 @@ describe("the roll away as data", () => {
       { params: { pairs: [["1L", "1R"]] } },
     ],
     2000,
+    {
+      why:
+        'the user: "people should always turn inward so they go nose to nose first". ' +
+        "The roll is inward now, so a robin whose partner stands on her left — which " +
+        "in a minor set is every one of them — turns the other way from the coded " +
+        "figure's fixed `spins: 1`. Nobody's feet move: the paths and the ends are " +
+        "identical to the last pixel, which is why `position` and both `end` numbers " +
+        "are still zero. What differs is the body through the roll (up to a half turn " +
+        "at the worst beat of the two-turn case) and the joined hand it carries with " +
+        'it while it is still held. The `roller: "lark"` case differs by nothing at ' +
+        "all, and that is the proof: the coded turn was already inward for a lark, " +
+        "whose robin stands on his right, and outward for every robin",
+      position: 0,
+      facing: 176.5723,
+      hand: 11.2224,
+      endPx: 0,
+      endDeg: 0,
+    },
   );
 });
 
