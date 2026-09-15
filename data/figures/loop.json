@@ -1,11 +1,14 @@
 {
   "id": "loop",
+  "description": "One dancer walks a small circle on the spot and returns to their place.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "On your own, walk a small circle to the named side and come back to your place.",
-    "long": "Nobody's hand. Walk a small circle round to your {hand}, turning as you go, and come back to the place you started from facing the way you were facing. Somebody else is dancing a figure of their own while you do it, so keep it small and stay out of their way."
+    "line": "On your own, walk a small circle to the {hand} and come back to your place.",
+    "teach": "Walk a small circle round to your {hand}, turning as you go, and come back to the place you started from facing the way you were facing. Your hands stay at your sides: somebody else is dancing a figure of their own beside you, so keep it small and stay clear of them."
   },
   "call": {
-    "short": "LOOP",
-    "long": "LOOP TO THE {hand}"
+    "1": "LOOP",
+    "2": "{who} LOOP",
+    "4": "{who} LOOP {hand}"
   }
 }

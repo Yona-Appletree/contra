@@ -1,11 +1,14 @@
 {
   "id": "down-the-hall",
+  "description": "Four dancers take hands in a line and walk down the hall together.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Take hands in a line of four across the hall and walk down it together.",
-    "long": "Join inside hands with the dancers beside you so the four of you make one line across the hall, in the order the caller reads out, and walk down the hall together. The line forms as you go: nobody waits for it. You end facing down the hall with the hands you started with."
+    "line": "Take hands in a line of four across the hall and walk down it together.",
+    "teach": "Join inside hands with the dancers beside you so the four of you make one line across the hall, in the order the caller reads out, and walk down the hall together. The line forms as you go, and you end facing down the hall with the hands you started with."
   },
   "call": {
-    "short": "DOWN THE HALL",
-    "long": "DOWN THE HALL FOUR IN LINE"
+    "1": "DOWN",
+    "2": "DOWN THE HALL",
+    "4": "DOWN THE HALL FOUR IN LINE"
   }
 }

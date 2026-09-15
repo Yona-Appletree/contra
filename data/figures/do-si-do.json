@@ -1,29 +1,32 @@
 {
   "id": "do-si-do",
+  "description": "Two dancers walk round each other back to back and return to place.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Pass right shoulders with {pairs}, slide back to back, then back up passing left shoulders, {amount}.",
-    "long": "Walk forward and pass right shoulders with {pairs}, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around: you face the same way for all eight beats. Go {amount}. {where}"
+    "line": "Pass right shoulders with {who}, slide back to back, and back up passing left shoulders, {amount}.",
+    "teach": "Walk forward and pass right shoulders with {who}, slide across back to back, then walk backward to place passing left shoulders. Keep facing the same way for all eight beats, with your hands at your sides. Go {amount}."
   },
   "call": {
-    "short": "DO-SI-DO",
-    "long": "{pairs} DO-SI-DO {amount}"
+    "1": "DO-SI-DO",
+    "2": "{who} DO-SI-DO",
+    "4": "{who} DO-SI-DO {amount}"
   },
   "variants": {
     "amount=1": {
       "call": {
-        "long": "{pairs} DO-SI-DO"
+        "4": "{who} DO-SI-DO"
       }
     },
-    "pairs=robins": {
+    "who=robins": {
       "walkthrough": {
-        "short": "Robins only. Pass right shoulders in the middle, slide back to back, and back up to place, {amount}.",
-        "long": "Robins only. Walk forward and pass right shoulders in the middle, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around, and the larks stand on their places. Go {amount}. {where}"
+        "line": "Robins only. Pass right shoulders in the middle, slide back to back, and back up to place, {amount}.",
+        "teach": "Robins only. Walk forward and pass right shoulders in the middle, slide across back to back, then walk backward to place passing left shoulders. Keep facing the same way for all eight beats, with your hands at your sides. The larks stand on their places. Go {amount}."
       }
     },
-    "pairs=larks": {
+    "who=larks": {
       "walkthrough": {
-        "short": "Larks only. Pass right shoulders in the middle, slide back to back, and back up to place, {amount}.",
-        "long": "Larks only. Walk forward and pass right shoulders in the middle, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around, and the robins stand on their places. Go {amount}. {where}"
+        "line": "Larks only. Pass right shoulders in the middle, slide back to back, and back up to place, {amount}.",
+        "teach": "Larks only. Walk forward and pass right shoulders in the middle, slide across back to back, then walk backward to place passing left shoulders. Keep facing the same way for all eight beats, with your hands at your sides. The robins stand on their places. Go {amount}."
       }
     }
   }

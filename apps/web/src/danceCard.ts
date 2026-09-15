@@ -1,6 +1,6 @@
 import type { Dance } from "@caller/choreo";
-import { callBeats, withDefaults } from "@caller/choreo";
-import { createContraRegistry, resolveFigureCall } from "@caller/contra";
+import { callBeats } from "@caller/choreo";
+import { callWho, createContraRegistry, formFor, resolveFigureForms } from "@caller/contra";
 import type { CardPhrase } from "@caller/music";
 
 /**
@@ -61,13 +61,34 @@ export function cardDance(dance: Dance): {
   };
 }
 
-/** The move's own long call, resolved, or the figure contract's terse one. */
+/**
+ * The figure's own call at {@link NOTE_CARD_BUDGET} beats, or the figure
+ * contract's terse one.
+ *
+ * The budget is a named constant because the card's register is a ruling rather
+ * than an accident: the 4-beat form is what a card read cold wants (the
+ * corpus's own lines — "LONG LINES FORWARD AND BACK" — are 4-beat forms), and
+ * D31 asks whether the Stage's note card should show the short one instead.
+ */
 function fallbackCall(
   registry: ReturnType<typeof createContraRegistry>,
-  call: { figure: string; beats: number; params?: object },
+  call: { figure: string; beats: number; params?: object; who?: unknown },
 ): string {
   const def = registry.get(call.figure);
-  return (
-    resolveFigureCall(call.figure, withDefaults(def, call.params, call.beats))?.long ?? def.call
-  );
+  try {
+    const forms = resolveFigureForms(
+      call.figure,
+      { ...(call.params ?? {}), beats: call.beats },
+      { who: callWho(call) },
+    );
+    return (forms === undefined ? undefined : formFor(forms, NOTE_CARD_BUDGET)?.text) ?? def.call;
+  } catch {
+    // A call whose `{who}` names nobody the vocabulary can say — a lab dance's
+    // half-encoded figure — gets the figure contract's own terse line rather
+    // than taking the whole card down with it.
+    return def.call;
+  }
 }
+
+/** How many beats of words the note card prints per figure; see {@link fallbackCall}. */
+export const NOTE_CARD_BUDGET = 4;

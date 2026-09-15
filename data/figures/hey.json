@@ -1,28 +1,32 @@
 {
   "id": "hey",
+  "description": "Four dancers weave a figure of eight across the set, passing alternate shoulders.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Nobody takes hands. Weave the figure of eight across the set, passing alternate shoulders, and come back here.",
-    "long": "Note where you are standing: you come back here after walking across the set and back. Robins start, passing right shoulders in the middle. Larks loop at the ends and follow them in. Every pass after that is by the other shoulder — right in the center, left at the sides — and nobody ever takes hands. Sixteen beats. {where}"
+    "line": "Weave the figure of eight across the set, passing alternate shoulders, and come back here.",
+    "teach": "Note where you are standing. You will return here after walking across the set. Robins start by passing right shoulders in the middle, neighbors by the left on the outside, loop around, partner by the left on the outside, neighbor by the right in the center, face your partner on your side."
   },
   "call": {
-    "short": "HEY",
-    "long": "HEY FOR FOUR"
+    "1": "HEY",
+    "2": "HEY",
+    "4": "HEY FOR FOUR"
   },
   "variants": {
     "start=lark": {
       "walkthrough": {
-        "short": "Nobody takes hands. Weave the figure of eight across the set, the larks starting by the left, and come back here.",
-        "long": "Note where you are standing: you come back here after walking across the set and back. Larks start, passing left shoulders in the middle. Robins loop at the ends and follow them in. Every pass after that is by the other shoulder — left in the center, right at the sides — and nobody ever takes hands. Sixteen beats. {where}"
+        "line": "Weave the figure of eight across the set, the larks starting by the left, and come back here.",
+        "teach": "Note where you are standing. You will return here after walking across the set. Larks start by passing left shoulders in the middle, neighbors by the right on the outside, loop around, partner by the right on the outside, neighbor by the left in the center, face your partner on your side."
       }
     },
     "amount=0.5": {
       "walkthrough": {
-        "short": "Weave the figure of eight across the set until everybody has changed sides. Nobody takes hands.",
-        "long": "The same weave as a full hey, stopped half way. Step off into the middle, pass by the shoulder the hey starts on, and keep weaving: every pass after that is by the other shoulder from the one before, and nobody takes hands. Eight beats, and you stop when everybody has crossed the set. {where}"
+        "line": "Weave the figure of eight across the set until everybody has changed sides.",
+        "teach": "The same weave as a full hey, stopped half way. Step off into the middle, pass by the shoulder the hey starts on, and keep weaving: every pass after that is by the other shoulder from the one before. Eight beats, and you stop when everybody has crossed the set."
       },
       "call": {
-        "short": "HALF A HEY",
-        "long": "HALF A HEY FOR FOUR"
+        "1": "HEY",
+        "2": "HALF HEY",
+        "4": "HALF A HEY"
       }
     }
   }

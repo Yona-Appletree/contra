@@ -1,11 +1,14 @@
 {
   "id": "robins-chain",
+  "description": "One role pulls by in the middle and is courtesy turned by the dancer opposite.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "{chains} pull by right hands in the middle, then join left hands as the lark backs his circle round to your right, facing in.",
-    "long": "{chains} pull by right hands with the other {chains} in the middle, passing right shoulders. The lark you are coming to is already backing a small circle, centred halfway between his place and yours. Join him at the far side of it: left hands together, his right hand behind your back, yours on it too. Walk forward as he keeps backing, turning as one until you face out together, then in again, you on his right. {where}"
+    "line": "{chains} pull by right hands in the middle, cross the set, and are turned by the lark there.",
+    "teach": "{chains} pull by right hands in the middle, passing right shoulders, and carry on across the set. The lark you come to is already backing a small circle. Join it at the far side: your left hand in the lark's left, the lark's right hand on your own right hand behind your back. Walk forward as the lark walks backward, turning as one, and open out side by side."
   },
   "call": {
-    "short": "CHAIN",
-    "long": "{chains} CHAIN"
+    "1": "CHAIN",
+    "2": "{chains} CHAIN",
+    "4": "{chains} CHAIN"
   }
 }

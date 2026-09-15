@@ -198,6 +198,7 @@ test.describe("the move gallery", () => {
     await expect(page.getByTestId("moves-tile")).toHaveCount(1);
     await expect(page.getByTestId("moves-tile")).toHaveAttribute("data-kind", "variant");
     await expect(page.getByTestId("moves-calls")).toContainText("HALF A HEY");
+    await expect(page.getByTestId("moves-description")).toContainText("Four dancers weave");
 
     // A tuning that expands and that this tile cannot draw says so, rather than
     // taking the page down: a hey for three is a real hey with one dancer
@@ -219,23 +220,28 @@ test.describe("the move gallery", () => {
     // explicit rather than left to the 30 s default to catch by accident.
     test.setTimeout(30 * 1000);
     await page.goto("#/moves/circle?beat=6");
-    const short = page.getByTestId("moves-walkthrough-short");
+    // What the figure is, in the third person, under the id (A11).
+    await expect(page.getByTestId("moves-description")).toHaveText(
+      "Four dancers join hands in a ring and walk it round.",
+    );
+    const line = page.getByTestId("moves-walkthrough-line");
     // The user's own sentence for this figure, resolved from `{places}` and
     // `{direction}`: "take hands in a ring. circle three places to your left".
-    await expect(short).toHaveText("Take hands in a ring. Circle three places to your left.");
+    await expect(line).toHaveText("Take hands in a ring. Circle three places to your left.");
 
     // The teach starts closed, which is the point of the row.
-    const long = page.getByTestId("moves-walkthrough-long");
-    await expect(long).toBeHidden();
+    const teach = page.getByTestId("moves-walkthrough-teach");
+    await expect(teach).toBeHidden();
     await page.getByText("teach", { exact: true }).click();
-    await expect(long).toBeVisible();
-    // It ends on the generated landmark, whatever this dance's places make it.
-    await expect(long).toContainText(/You (are back where you started|should be)/);
-    await expect(long).not.toContainText("{");
+    await expect(teach).toBeVisible();
+    await expect(teach).not.toContainText("{");
+    // The ending hint is its own element under the teach, generated rather than
+    // written (D22, D29).
+    await expect(page.getByTestId("moves-hint")).toContainText(/You (are back where|should be)/);
 
-    // Both calls, the caller's two registers, in the bubble's capitals.
+    // The three forms, longest first, in the bubble's capitals.
     await expect(page.getByTestId("moves-calls")).toHaveText(
-      "CIRCLE LEFT · CIRCLE LEFT THREE QUARTERS",
+      "CIRCLE LEFT THREE PLACES · CIRCLE LEFT · CIRCLE",
     );
   });
 

@@ -1,8 +1,13 @@
-import { contraDataFigures, createContraRegistry, DEMO_DANCES } from "@caller/contra";
-import { withDefaults } from "@caller/choreo";
-import { resolveFigureCall } from "@caller/contra";
+import {
+  callWho,
+  contraDataFigures,
+  createContraRegistry,
+  DEMO_DANCES,
+  formFor,
+  resolveFigureForms,
+} from "@caller/contra";
 import { describe, expect, it } from "vitest";
-import { cardDance } from "./danceCard.js";
+import { NOTE_CARD_BUDGET, cardDance } from "./danceCard.js";
 
 /**
  * The card and the caller have to say the same thing on the same beat, or the
@@ -30,7 +35,7 @@ describe("the dance card's figure lines", () => {
     }
   });
 
-  it("falls back to the move's own long call when a dance writes none", () => {
+  it("falls back to the figure's own 4-beat form when a dance writes none", () => {
     const dance = DEMO_DANCES.find((d) => d.slug === "butter")!;
     const bare = {
       ...dance,
@@ -44,16 +49,20 @@ describe("the dance card's figure lines", () => {
       })),
     };
     const card = cardDance(bare);
-    const registry = createContraRegistry(contraDataFigures());
     for (const [i, phrase] of dance.phrases.entries()) {
       for (const [j, call] of phrase.figures.entries()) {
-        const def = registry.get(call.figure);
-        const want = resolveFigureCall(call.figure, withDefaults(def, call.params, call.beats));
-        expect(card.phrases[i]!.figures[j]!.call, call.figure).toBe(want!.long);
+        const forms = resolveFigureForms(
+          call.figure,
+          { ...(call.params ?? {}), beats: call.beats },
+          { who: callWho(call) },
+        );
+        expect(card.phrases[i]!.figures[j]!.call, call.figure).toBe(
+          formFor(forms!, NOTE_CARD_BUDGET)!.text,
+        );
       }
     }
     // And the fallback is a real caller's line, not a placeholder.
-    expect(card.phrases[0]!.figures[1]!.call).toBe("CIRCLE LEFT THREE QUARTERS");
+    expect(card.phrases[0]!.figures[1]!.call).toBe("CIRCLE LEFT THREE PLACES");
     expect(card.phrases[2]!.figures[0]!.call).toBe("HEY FOR FOUR");
   });
 });

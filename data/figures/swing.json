@@ -1,11 +1,14 @@
 {
   "id": "swing",
+  "description": "Two dancers take a ballroom hold and turn together with a buzz step.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Close into a ballroom hold with {pairs}, right hips together, and buzz round. Open out side by side.",
-    "long": "Step in to {pairs} and close into a ballroom hold, right hips together: the lark's right hand on the robin's back, his left in her right out to the side. Buzz round with your weight on the inside foot, leaning away from each other a little. Open out side by side, lark on the left. {where}"
+    "line": "Close into a ballroom hold with {who}, right hips together, and buzz round.",
+    "teach": "Step in to {who} and close into a ballroom hold, right hips together: the lark's right hand on the robin's back, the lark's left hand in the robin's right out to the side. Buzz round with your weight on the inside foot, leaning a little away from each other. Open out side by side, lark on the left."
   },
   "call": {
-    "short": "SWING",
-    "long": "{pairs} SWING"
+    "1": "SWING",
+    "2": "{who} SWING",
+    "4": "SWING YOUR {who}"
   }
 }
