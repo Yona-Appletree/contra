@@ -299,13 +299,10 @@ describe("symmetry as a transform", () => {
       // corners' right and left hands are the figure rather than a parameter of
       // it, in the same way a courtesy turn's are.
       "bend-the-line",
-      // M9's three. The diamond's cast passes right shoulders and goes
-      // clockwise round the inactive; a square through alternates right and then
-      // left, and the
-      // hands are the figure rather than a parameter of it, exactly as contra
+      // M9's. A square through alternates right and then left, and the hands
+      // are the figure rather than a parameter of it, exactly as contra
       // corners' are; the interrupted one balances on the hand it is about to
       // pull by with, so its balance is handed for the same reason.
-      "diamond",
       "down-the-hall",
       "interrupted-square-through",
       "right-and-left-through",
@@ -337,11 +334,6 @@ describe("symmetry as a transform", () => {
       "cast-back",
       "cast-off",
       "circulate",
-      // M9's. `diamond` takes the whole minor set and **names slots** — every
-      // leg of its cast is written against the dancer's own place on the
-      // lattice, because "across", "outside" and "one place along" are
-      // different directions for the two lines and the two couples.
-      "diamond",
       "fatal-attraction/go-forward",
       "go-down-outside",
       "go-up-outside",

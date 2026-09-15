@@ -3,6 +3,9 @@ import type { Vec2 } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import type { ShapeSpot, TargetShape } from "./shape.js";
 import {
+  DIAMOND_TURN,
+  diamondNamed,
+  diamondPlaces,
   placesOf,
   ringRadius,
   shapeMiss,
@@ -96,6 +99,57 @@ describe("a shape's own places", () => {
     expect(named["point"]![0]![1]).toBeCloseTo(12, 9);
     expect(named["point"]![1]![1]).toBeCloseTo(-12, 9);
     expect(Math.abs(named["side"]![0]![0])).toBeCloseTo(12, 9);
+  });
+
+  /**
+   * **A diamond is a hands-four turned an eighth of a turn** (DD41), and a real
+   * hands-four is a rectangle: the two lines 32 px apart across the set, the two
+   * dancing places 20 px apart along it.
+   */
+  describe("the diamond, as the minor set turned an eighth of a turn", () => {
+    /** One hands-four of a duple improper set, in its own frame. */
+    const HANDS_FOUR: readonly Vec2[] = [
+      [-16, -10],
+      [16, -10],
+      [-16, 10],
+      [16, 10],
+    ];
+
+    it("turns every place the same eighth about the middle, and moves nobody nearer it", () => {
+      const turned = diamondPlaces(HANDS_FOUR);
+      expect(DIAMOND_TURN).toBe(45);
+      expect(turned).toHaveLength(4);
+      for (const [i, place] of turned.entries()) {
+        // A rigid turn: everybody keeps their distance from the middle.
+        expect(dist(place, [0, 0])).toBeCloseTo(dist(HANDS_FOUR[i]!, [0, 0]), 9);
+      }
+      // …and it really is a turn of an eighth, not of some other amount.
+      for (const [i, place] of turned.entries()) {
+        const was = HANDS_FOUR[i]!;
+        const before = Math.atan2(was[1], was[0]) * (180 / Math.PI);
+        const after = Math.atan2(place[1], place[0]) * (180 / Math.PI);
+        expect(Math.abs(angleDiff(after, before))).toBeCloseTo(45, 6);
+      }
+    });
+
+    it("puts two places along the set and two across it", () => {
+      // `y` is along the set in a minor set's own frame: the places 20 px apart.
+      const { point, side } = diamondNamed(HANDS_FOUR);
+      expect(point).toHaveLength(2);
+      expect(side).toHaveLength(2);
+      for (const p of point) expect(Math.abs(p[1])).toBeGreaterThan(Math.abs(p[0]));
+      for (const p of side) expect(Math.abs(p[0])).toBeGreaterThan(Math.abs(p[1]));
+      // The two points are up and down the middle of the set from each other.
+      expect(point[0]![1] * point[1]![1]).toBeLessThan(0);
+    });
+
+    it("solved from the dancers alone, turns them where they stand", () => {
+      const from: ShapeSpot[] = HANDS_FOUR.map((p) => ({ p, facing: 0 }));
+      const solved = solveShape({ shape: "diamond" }, from);
+      expect(solved.spots.map((s) => s.p)).toEqual(diamondPlaces(HANDS_FOUR));
+      // The whole minor set turns, bodies and all.
+      for (const spot of solved.spots) expect(spot.facing).toBeCloseTo(45, 9);
+    });
   });
 
   it("names a line's two ends and its two insides", () => {

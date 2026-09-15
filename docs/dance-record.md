@@ -147,12 +147,12 @@ because `FigureCall` is `@caller/choreo`'s and all four are contra words, and
 the layer above the figure reads them and strips them out before any figure is
 planned:
 
-| parameter    | read by             | what it says                                                                                                                                    |
-| ------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)")                 |
-| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                                |
-| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                                |
-| `progresses` | the **set**         | `true` / `"end"` — the progression happens at the end of _this_ call, not at the end of the time through (M9b); `"start"` — at its start (DD43) |
+| parameter    | read by             | what it says                                                                                                                                                 |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)")                              |
+| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                                             |
+| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6) — and a shape the figure has none of, which is how a call lands the set in a diamond (DD41) |
+| `progresses` | the **set**         | `true` / `"end"` — the progression happens at the end of _this_ call, not at the end of the time through (M9b); `"start"` — at its start (DD43)              |
 
 ### `progresses`: the progression in the middle of the dance
 

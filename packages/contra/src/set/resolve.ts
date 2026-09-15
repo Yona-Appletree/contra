@@ -141,6 +141,32 @@ export function gathersOnPlaces(def: FigureDefinition): boolean {
 }
 
 /**
+ * Whether this call has to be handed the formation's own places at all.
+ *
+ * A gatherer, and — since DD41 — a call that forms a **diamond**. A diamond is
+ * the hands-four's own four places turned an eighth of a turn, so a figure that
+ * forms one cannot work out where it is going without them; and it is not a
+ * gatherer, because it settles on the turned places and never on the plain ones.
+ * The shape may be named by the definition's `ends` or by the call's own `form`
+ * clause, so the question is asked of both.
+ */
+export function needsPlaces(def: FigureDefinition, params: Record<string, unknown>): boolean {
+  if (gathersOnPlaces(def)) return true;
+  return shapeFormedBy(def, params) === "diamond";
+}
+
+/** The shape this call forms, from the definition's `ends` or the call's `form`. */
+function shapeFormedBy(def: FigureDefinition, params: Record<string, unknown>): string | undefined {
+  const said = params["form"];
+  if (typeof said === "object" && said !== null && "shape" in said) {
+    const shape = (said as { shape?: unknown }).shape;
+    if (typeof shape === "string") return shape;
+  }
+  if (typeof def.ends === "object" && "target" in def.ends) return def.ends.target.shape;
+  return undefined;
+}
+
+/**
  * A definition whose `roles` is exactly this has **one part per dancer**, named
  * by the slot they stand on.
  *
@@ -242,11 +268,11 @@ export function resolveCall(
       // A bridged coded figure gets neither and is byte-identical to M1's.
       const cast = castOf(plan, stations);
       const extra: Record<string, unknown> = { ...params };
-      if (gathersOnPlaces(def)) extra["homes"] = homesOf(ctx, plan);
+      if (needsPlaces(def, params)) extra["homes"] = homesOf(ctx, plan);
       if (def.shape.kind !== "legacy") extra["slots"] = slotViewFor(ctx, plan.frame, cast);
       instances.push({
         figure: call.figure,
-        params: gathersOnPlaces(def) || def.shape.kind !== "legacy" ? extra : params,
+        params: needsPlaces(def, params) || def.shape.kind !== "legacy" ? extra : params,
         cast,
         group: castGroup(plan, cast, call.figure, stations),
         frame: plan.frame,
@@ -658,7 +684,7 @@ function resolveInLane(
 
   // `homes`, not `places`: see `dataInstance`. A figure may have a parameter of
   // its own called `places`.
-  const homes = gathersOnPlaces(def) ? lanePlaces(ctx.model, plan.frame) : [];
+  const homes = needsPlaces(def, params) ? lanePlaces(ctx.model, plan.frame) : [];
   const instances: FigureInstance[] = [];
   for (const stations of dancing) {
     if (stations.length === 0) continue;
@@ -845,7 +871,7 @@ function dataInstance(
   // **`homes`, not `places`** (M4): a figure may have a parameter of its own
   // called `places` — a circle's is how many quarters of the ring it walks —
   // and the two would share one name in one object.
-  const homes: Vec2[] = gathersOnPlaces(def) ? homesOf(ctx, plan) : [];
+  const homes: Vec2[] = needsPlaces(def, params) ? homesOf(ctx, plan) : [];
 
   return {
     figure: call.figure,

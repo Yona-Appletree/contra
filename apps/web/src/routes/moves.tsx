@@ -21,6 +21,8 @@ import { hallFrame, seedOf } from "../hallFrame.js";
 import type { MoveEntry, MoveFamily, MoveVariant } from "../moveCatalogue.js";
 import { moveCatalogue } from "../moveCatalogue.js";
 import { paramText, paramValueText, roleColourOf } from "../moveParams.js";
+import type { MoveShape } from "../moveShapes.js";
+import { moveShapes } from "../moveShapes.js";
 import type { EngineChoice } from "../state/engineQuery.js";
 import { engineFromQuery } from "../state/engineQuery.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
@@ -376,6 +378,7 @@ export function MovesPage({
         </ol>
       ) : (
         <>
+          <Shapes />
           <nav className="moves-families" data-testid="moves-families">
             {catalogue.map((family) => (
               <a key={family.id} href={`#family-${family.id}`} data-family={family.id}>
@@ -704,6 +707,53 @@ function Params({ entry }: { entry: MoveEntry }): JSX.Element | null {
  * taking the page down with it: a hey for three is a real hey with one dancer
  * standing out, and a tile of two couples has nobody to stand out.
  */
+/**
+ * **The shapes, listed apart from the figures** (DD41).
+ *
+ * The user struck the `diamond` *figure* out of the library — *"its not a move.
+ * its a place setup"* — so a shape cannot be a row among the moves. It is a
+ * short list at the top of the page instead: what each arrangement is, which
+ * figures form it, and which calls in the record land in it. A shape has no
+ * tile, because there is nothing to watch: it is where people are standing, not
+ * something they do.
+ */
+function Shapes(): JSX.Element {
+  const shapes: readonly MoveShape[] = useMemo(() => moveShapes(), []);
+  return (
+    <section className="moves-shapes" data-testid="moves-shapes">
+      <h2 className="moves-family-title">
+        Shapes <span className="moves-row-dim">{shapes.length} &middot; not figures</span>
+      </h2>
+      <p className="moves-family-blurb">
+        Where the set is standing, which is not something anybody dances. Ordinary figures are
+        danced from each of these, and a call that leaves the set in one says so.
+      </p>
+      <ul className="moves-shape-list">
+        {shapes.map((shape) => (
+          <li key={shape.kind} data-testid="moves-shape" data-shape={shape.kind}>
+            <strong>{shape.title}</strong> <code className="moves-row-dim">{shape.kind}</code>
+            <p>{shape.blurb}</p>
+            {shape.formedBy.length === 0 ? null : (
+              <p className="moves-row-dim">formed by {shape.formedBy.join(", ")}</p>
+            )}
+            {shape.landedIn.length === 0 ? null : (
+              <p className="moves-row-dim">
+                danced into by{" "}
+                {shape.landedIn
+                  .map(
+                    (use) =>
+                      `${use.title} ${use.phrase} (${use.figure}${use.at === undefined ? "" : `, on the ${use.at}s`})`,
+                  )
+                  .join("; ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Variants({
   entry,
   zoom,

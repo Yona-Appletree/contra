@@ -17,12 +17,33 @@
       "name": "A1",
       "figures": [
         {
-          "figure": "diamond",
-          "beats": 8,
+          "figure": "pass-through",
+          "beats": 2,
+          "who": "ones",
+          "call": "ONES PASS THROUGH ACROSS"
+        },
+        {
+          "figure": "turn-alone",
+          "beats": 2,
+          "who": "ones",
+          "params": { "amount": 0.25 },
+          "call": "TURN TO YOUR RIGHT"
+        },
+        {
+          "figure": "cast-back",
+          "beats": 2,
+          "who": "ones",
+          "call": "CAST ROUND ONE"
+        },
+        {
+          "figure": "turn-alone",
+          "beats": 2,
+          "who": "ones",
           "params": {
-            "actives": [["1L", "1R"]]
+            "amount": 0.25,
+            "form": { "shape": "diamond", "at": "point" }
           },
-          "call": "ONES PASS THROUGH ACROSS, CAST ROUND ONE, AND FORM DIAMONDS"
+          "call": "STEP INTO THE MIDDLE AND FACE YOUR PARTNER: DIAMONDS"
         },
         {
           "figure": "interrupted-square-through",
@@ -100,12 +121,33 @@
       "name": "2A1",
       "figures": [
         {
-          "figure": "diamond",
-          "beats": 8,
+          "figure": "pass-through",
+          "beats": 2,
+          "who": "twos",
+          "call": "TWOS PASS THROUGH ACROSS"
+        },
+        {
+          "figure": "turn-alone",
+          "beats": 2,
+          "who": "twos",
+          "params": { "amount": 0.25 },
+          "call": "TURN TO YOUR RIGHT"
+        },
+        {
+          "figure": "cast-back",
+          "beats": 2,
+          "who": "twos",
+          "call": "CAST ROUND ONE"
+        },
+        {
+          "figure": "turn-alone",
+          "beats": 2,
+          "who": "twos",
           "params": {
-            "actives": [["2L", "2R"]]
+            "amount": 0.25,
+            "form": { "shape": "diamond", "at": "point" }
           },
-          "call": "TWOS PASS THROUGH ACROSS, CAST ROUND ONE, AND FORM DIAMONDS"
+          "call": "STEP INTO THE MIDDLE AND FACE YOUR PARTNER: DIAMONDS"
         },
         {
           "figure": "interrupted-square-through",

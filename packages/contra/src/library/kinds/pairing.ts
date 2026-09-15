@@ -35,7 +35,9 @@ export function pairUp(
       if (axis !== "across" && axis !== "along") {
         throw new Error(`a pass pairs across the set or along it, not ${JSON.stringify(axis)}`);
       }
-      return facingPairs(ctx, axis);
+      // Partial, for the reason {@link lineMates} is: a dancer with nobody on
+      // the other side of the set stands, and the oracles say so.
+      return facingPairs(ctx, axis, true);
     }
     case "ahead":
       return aheadPairs(ctx);
