@@ -8,6 +8,7 @@ import type {
   FigureCall,
   FigureRegistry,
   Formation,
+  Selector,
   Group,
   GroupPlan,
   HallState,
@@ -33,22 +34,24 @@ import {
 import type {
   ContraCall,
   FigureDefaultsOverride,
+  FigureDefinition,
   FigureTexts,
   Library,
   Spots,
 } from "@caller/contra";
 import {
-  CONTRA_FIGURE_IDS,
+  DATA_DEFINITIONS,
+  DATA_IDS,
   dataOnlyDefinitions,
   needsTheSet,
   dataOnlyFigureIds,
   contraDataFigures,
+  ALL_DANCES,
   CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
   DUPLE_IMPROPER,
   contraDance,
   contraDataEngine,
-  contraFigureOf,
   createContraCyclePlanner,
   createContraRegistry,
   formationFor,
@@ -164,9 +167,34 @@ export interface GalleryCall {
   params: Record<string, unknown>;
 }
 
-/** One tile of the gallery: a figure looping, or one seam between two figures. */
+/**
+ * **One parameter row**: the same definition at a tuning other than its own.
+ *
+ * M12. Where the tuning came from is {@link MoveVariant}'s business in
+ * `moveCatalogue.ts`; all a tile needs is the parameters, a key to be deep-linked
+ * by, a title, and — when the row is a real call out of the record — the dance it
+ * was called in, so the tile is danced in that dance's own formation by that
+ * call's own dancers.
+ */
+export interface TileVariant {
+  /** The deep-link key: `hey~amount=0.5`. */
+  key: string;
+  /** What the row is called: `hey · amount 0.5`. */
+  title: string;
+  /** The parameters, written as a dance record writes them. */
+  params: Record<string, unknown>;
+  /** The count this row is danced at; the definition's nominal otherwise. */
+  beats?: Beat;
+  /** The dance whose call this is, when the row came out of the record. */
+  dance?: string;
+  /** That call's own `who`, where it had one. */
+  who?: Selector;
+  notes?: readonly string[];
+}
+
+/** One tile of the gallery: a figure looping, one of its parameter rows, or one seam. */
 export interface GalleryTile {
-  kind: "figure" | "seam";
+  kind: "figure" | "variant" | "seam";
   /** The deep-link key: a figure id, or `<a>--<b>`. */
   key: string;
   title: string;
@@ -402,21 +430,84 @@ export function tileByKey(tiles: readonly GalleryTile[], key: string): GalleryTi
 }
 
 /**
- * One tile per figure in `createContraRegistry()`: the sixteen contra figures,
- * contra's own `wait-out`, and the engine's `walk-to-station`.
+ * **One tile per definition the library holds**, in the library's own order,
+ * and then whatever the registry holds that the library does not.
+ *
+ * M12: there is no hand-written list of figure ids here any more, and nothing
+ * here asks whether a figure has a coded twin. The Moves page is a browser of
+ * **definitions** (`DATA_DEFINITIONS`), so a definition that lands in the
+ * library — a milestone's, or a dance file's own local one — gets a row, a
+ * strip and four trace plates with no edit to this file.
+ *
+ * The tail is the two figures the **registry** has and the library does not:
+ * `wait-out` and `walk-to-station`, which `@caller/choreo` and contra supply
+ * for the decider rather than for a dance to call. They are read off the two
+ * registries rather than written down, so the tail empties itself the day the
+ * library holds them. See {@link figureTile} for why their tiles are built by
+ * hand.
  */
 export function figureTiles(
   overrides: FigureDefaultsOverride = {},
   engine: EngineChoice = DEFAULT_ENGINE,
 ): GalleryTile[] {
-  // The registry is built with the interpreted definitions in it, because since
-  // M6 a figure can be **data with no coded twin** (`pull-by`,
-  // `grand-right-and-left`) and `registry.get(id)` is what a tile reads its
-  // beats and its call text off.
+  // The registry is built with the interpreted definitions in it, because
+  // `registry.get(id)` is what a tile reads its beats and its call text off for
+  // the two figures that have no definition at all.
   const registry = createContraRegistry(contraDataFigures(), overrides);
-  const ids = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), "wait-out", "walk-to-station"];
-  return ids.map((id) => figureTile(id, registry, overrides, engine));
+  return definitionIds().map((id) => figureTile(id, registry, overrides, engine));
 }
+
+/**
+ * Every figure the Moves page has a row for, in the order it lists them: the
+ * library's definitions, then the registry's own two.
+ */
+export function definitionIds(): string[] {
+  const held = new Set<string>(DATA_IDS);
+  const rest = createContraRegistry()
+    .ids()
+    .filter((id) => !held.has(id));
+  return [...DATA_DEFINITIONS.map((def) => def.id), ...rest];
+}
+
+/** The definition of that id, or `undefined` for one of the registry's own two. */
+export const definitionOf = (id: string): FigureDefinition | undefined =>
+  DATA_DEFINITIONS.find((def) => def.id === id);
+
+/**
+ * **One parameter row's tile, or the reason there is none** (M12).
+ *
+ * A parameter row is generated from the definition's own parameter spec, from
+ * the record and from the move's texts — so it can name a tuning that expands
+ * perfectly well and that **nothing can draw**: a hey for three is a real hey
+ * with one dancer standing out, and the tile's two-couple set has nobody to
+ * stand out. The brief's own rule is that such a row says so rather than
+ * throwing, so the failure is caught here, once, and comes back as prose.
+ *
+ * Built lazily and memoised: the index page lists a hundred-odd parameter rows
+ * and a tile costs a planner run and a sampling sweep, so a row's tile is built
+ * when somebody opens it, not when the page loads.
+ */
+export function variantTile(
+  id: string,
+  variant: TileVariant,
+  overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
+): { tile: GalleryTile } | { problem: string } {
+  const key = `${engine}|${JSON.stringify(overrides)}|${variant.key}`;
+  const cached = variantCache.get(key);
+  if (cached !== undefined) return cached;
+  let made: { tile: GalleryTile } | { problem: string };
+  try {
+    const registry = createContraRegistry(contraDataFigures(), overrides);
+    made = { tile: figureTile(id, registry, overrides, engine, variant) };
+  } catch (error) {
+    made = { problem: String(error instanceof Error ? error.message : error) };
+  }
+  variantCache.set(key, made);
+  return made;
+}
+
+const variantCache = new Map<string, { tile: GalleryTile } | { problem: string }>();
 
 /**
  * One tile per distinct `(figure A → figure B)` the ten demo dances dance,
@@ -432,7 +523,7 @@ export function seamTiles(
     if (byKey.has(seam.key)) continue;
     byKey.set(seam.key, seamTile(seam, overrides, engine));
   }
-  const order = new Map(CONTRA_FIGURE_IDS.map((id, i) => [id as string, i]));
+  const order = new Map(definitionIds().map((id, i) => [id, i]));
   return [...byKey.values()].sort(
     (x, y) => (order.get(x.under) ?? 99) - (order.get(y.under) ?? 99) || x.key.localeCompare(y.key),
   );
@@ -501,25 +592,32 @@ const FORCED_ENGINE_NOTE =
   "one instance per pair or per dancer, and the old planner asks a figure where " +
   "it leaves the four dancers of a hands-four.";
 
-/** One figure, run three times over so its take and its release both have a seam. */
-function figureTile(
+/**
+ * One figure, run three times over so its take and its release both have a seam.
+ *
+ * `variant` is M12's parameter row: the same figure at a different tuning, with
+ * its own deep-link key and its own reason for being on the page. Left out, the
+ * tile is the definition's own — the parameters of the first call any dance in
+ * the record makes of it, or the definition's defaults where no dance calls it.
+ */
+export function figureTile(
   id: string,
   registry: FigureRegistry,
   overrides: FigureDefaultsOverride = {},
   asked: EngineChoice = DEFAULT_ENGINE,
+  variant?: TileVariant,
 ): GalleryTile {
   const engine = tileEngine([id], asked);
   const def = registry.get(id);
-  const found = firstCallOf(id);
+  const found = variant === undefined ? firstCallOf(id) : variantCallOf(id, variant);
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
-  const beats = found?.call.beats ?? def.beats;
-  const params = withoutFrom(found?.call.params);
+  const beats = variant?.beats ?? found?.call.beats ?? def.beats;
+  const params = variant === undefined ? withoutFrom(found?.call.params) : { ...variant.params };
   const callText = found?.call.call ?? def.call;
-  const notes: string[] = [];
+  const notes: string[] = [...(variant?.notes ?? [])];
   if (engine !== asked) notes.push(FORCED_ENGINE_NOTE);
-  const contra = contraFigureOf(id);
 
-  if (contra === undefined && !dataOnlyFigureIds().includes(id)) {
+  if (!DATA_IDS.includes(id)) {
     // `wait-out` and `walk-to-station` are `@caller/choreo`'s own figures, and
     // **the library does not hold them**: `legacyLibrary` bridges what answers
     // `joins`, which these two do not. A planner cannot resolve a call of a
@@ -530,11 +628,12 @@ function figureTile(
     return engineFigureTile(id, def, formation, beats, params, callText, found, engine);
   }
 
+  const who = variant === undefined ? found?.call.who : variant.who;
   const one: ContraCall = {
     figure: id,
     beats,
     params,
-    ...(found?.call.who === undefined ? {} : { who: found.call.who }),
+    ...(who === undefined ? {} : { who }),
   };
 
   // Three times over: the middle one is the tile, so its first beat eases out
@@ -564,14 +663,14 @@ function figureTile(
 
   if (found === undefined) {
     notes.push(
-      "no demo dance calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over",
+      "no dance in the programme calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over — a lab dance that calls it is in the index below",
     );
   }
 
   return sized({
-    kind: "figure",
-    key: id,
-    title: id,
+    kind: variant === undefined ? "figure" : "variant",
+    key: variant?.key ?? id,
+    title: variant?.title ?? id,
     calls: [listed(run.calls[0]!, callText, run.group, def.describe)],
     under: id,
     formation: formation.id,
@@ -1149,14 +1248,46 @@ function engineHalves(
 
 /** The first call of this figure anywhere in the ten demo dances. */
 function firstCallOf(figure: string): { dance: Dance; call: FigureCall } | undefined {
-  for (const dance of DEMO_DANCES) {
+  return callsOf(figure, DEMO_DANCES)[0];
+}
+
+/**
+ * Where a parameter row is danced: the call it came out of, when it came out of
+ * the record, and otherwise the definition's own first call — which is only
+ * being asked for the **formation** and the caller's words, because the row's
+ * own parameters replace the call's.
+ */
+function variantCallOf(
+  figure: string,
+  variant: TileVariant,
+): { dance: Dance; call: FigureCall } | undefined {
+  if (variant.dance === undefined) return firstCallOf(figure);
+  const dance = ALL_DANCES.find((each) => each.slug === variant.dance);
+  return (dance === undefined ? undefined : callsOf(figure, [dance])[0]) ?? firstCallOf(figure);
+}
+
+/**
+ * Every call of this figure in these dances, **concurrent branches included**.
+ *
+ * A `while` branch is an ordinary call (M8) and a figure only ever called in one
+ * — Fatal Attraction's larks going forward while the robins cast back — would
+ * otherwise have no formation and no caller's words to draw its tile with.
+ */
+export function callsOf(
+  figure: string,
+  dances: readonly Dance[],
+): { dance: Dance; call: FigureCall }[] {
+  const out: { dance: Dance; call: FigureCall }[] = [];
+  for (const dance of dances) {
     for (const phrase of dance.phrases) {
-      for (const call of phrase.figures) {
-        if (call.figure === figure) return { dance, call };
+      for (const parent of phrase.figures) {
+        for (const call of concurrentCalls(parent)) {
+          if (call.figure === figure) out.push({ dance, call });
+        }
       }
     }
   }
-  return undefined;
+  return out;
 }
 
 /** A call's tuning without the places threaded into it. */

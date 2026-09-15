@@ -495,6 +495,200 @@
 }
 
 /*
+ * M12: the page is a browser of definitions, filed in families read off the
+ * definitions' own shape kinds.
+ *
+ * The family nav is a wrapping band of chips rather than a sidebar, because a
+ * phone has no column to spare for one (U1) and the list is a dozen words long.
+ */
+.moves-families {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.moves-families a {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.moves-families a:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.moves-family {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  /* The sticky control bar is 2.75rem of shelf; a heading jumped to by its
+     anchor has to clear it or it lands underneath. */
+  scroll-margin-top: 3.5rem;
+}
+
+.moves-family-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
+.moves-family-blurb {
+  max-width: 70ch;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.moves-family-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+}
+
+/*
+ * What the figure is, off its own definition: chips, because they are six
+ * independent facts rather than a sentence, and a phone wraps them.
+ */
+.moves-row-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.375rem;
+  margin: 0.125rem 0 0.25rem;
+  font-size: 0.6875rem;
+}
+
+.moves-fact {
+  border-radius: 3px;
+  padding: 0.0625rem 0.3125rem;
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+/*
+ * The figure-roles. A role that names a contra role is lightly coloured with
+ * the role colour (D5, docs/role-colours.md) by an inline style off
+ * `ROLE_COLOURS`, which is the one constant every renderer reads — so the
+ * colours here cannot drift from the dancers' own clothes.
+ */
+.moves-roles {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.moves-role {
+  font-weight: 600;
+}
+
+/*
+ * The lists that hang off a row rather than sitting inside it — its parameter
+ * rows, the dances that call it, the seams that leave it. On a wide screen they
+ * start where the row's own writing starts, so the page has one left edge for
+ * prose and one for tiles; on a phone there is only one column and they start
+ * at it.
+ */
+@media (min-width: 46rem) {
+  .moves-variants,
+  .moves-dances,
+  .moves-transitions {
+    margin-left: calc(var(--moves-tile-w, 180px) + 0.75rem);
+  }
+}
+
+/* The three lists a row can open. Closed by default: phone first (U1). */
+.moves-params > summary,
+.moves-variants > summary,
+.moves-dances > summary {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.moves-param-list,
+.moves-variant-list,
+.moves-dance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0.375rem 0 0 0;
+  padding: 0 0 0 0.625rem;
+  border-left: 2px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.moves-param code {
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+/* A parameter some dance in the record actually writes, rather than a tuning
+   number nobody outside the figure has ever touched. */
+.moves-param-mark {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--primary) 80%, transparent);
+}
+
+.moves-variant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+}
+
+.moves-variant-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: inherit;
+}
+
+.moves-variant-call {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.moves-variant-strip {
+  min-height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.moves-variant-strip:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* A parameter row's strip takes the whole width under its own line. */
+.moves-variant > .moves-row-strip,
+.moves-variant > .moves-row-note {
+  flex-basis: 100%;
+}
+
+.moves-dance a,
+.moves-variant-label {
+  text-decoration: none;
+}
+
+.moves-dance a:hover,
+.moves-variant-label:hover {
+  text-decoration: underline;
+}
+
+/*
  * Traces (T2): the four SVG drawings of where the dancers actually went.
  *
  * The renderers in `@caller/hall` write an SVG with its own width and height,

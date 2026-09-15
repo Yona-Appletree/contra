@@ -42,23 +42,59 @@ their own and are reached by URL or by a link on the page above them.
     everywhere in the demo programme except Jubilation's `hey → swing`. Not a
     control in the bar: it is a reviewer's switch, and the page says which
     engine it is on under the status line with a link to the other.
-- **Moves** (`#/moves`, F3b/U2). Every figure the registry holds and every
-  figure-to-figure seam the ten demo dances actually dance, one to a row: a
-  looping canvas in a shared left column, then the id, the call, the move's
-  own walkthrough — the short one, the full teach behind a "teach"
-  disclosure, and the caller's two registers as `SHORT · LONG`, all four
-  read from `data/figures/<id>.json` and resolved against **this** tile's
-  parameters (W1; `docs/move-texts.md`) — and the motion oracle's measured numbers
-  (`src/galleryTiles.ts`'s `tileMetrics`), with any number over
-  `@caller/contra`'s bound picked out in colour. Every seam is filed under
-  the figure it comes out of. Deep links: `#/moves/<figure-id>` opens one
-  figure alone at 4×; `#/moves/seam/<a>--<b>` opens one seam alone (`a` and
-  `b` are figure ids). Query parameters: `beat=<n>` freezes, `zoom=<1|2|3|4|6>`,
+- **Moves** (`#/moves`, F3b/U2, rebuilt in M12). **A browser of the figure
+  definitions the library holds**: one row per `FigureDefinition`, filed in
+  families read off the definitions' own shape kinds (balances, turns for two,
+  rings and stars, crossings, courtesy turns, lines, waves, couples as one,
+  heys, walks, figures made of parts) with a wrapping band of chips to jump
+  between them. There is no hand-written list of figure ids anywhere in the app
+  any more: the page asks `DATA_DEFINITIONS` what it holds, then adds whatever
+  the **registry** has that the library does not (`wait-out` and
+  `walk-to-station`, which the decider needs and no dance calls — they are
+  filed as "the engine's own" and say they have no definition).
+
+  A row is a looping canvas in a shared left column, then:
+
+  - **what the figure is**, off the definition: its nominal count, how a call
+    becomes instances (`actors`), where the shape is anchored, whether it
+    gathers people home / carries them / makes a shape (`ends`), its timing
+    profile, and its figure-roles — with a role word that names a contra role
+    lightly coloured in the role colour (D5; `ROLE_COLOURS`, `docs/role-colours.md`);
+  - the move's own walkthrough — the short one, the full teach behind a "teach"
+    disclosure, and the caller's two registers as `SHORT · LONG`, all four read
+    from `data/figures/<id>.json` and resolved against **this** tile's
+    parameters (W1; `docs/move-texts.md`);
+  - the motion oracle's measured numbers (`src/galleryTiles.ts`'s
+    `tileMetrics`), with any number over `@caller/contra`'s bound picked out in
+    colour;
+  - **parameters (n)** — the canonical parameter spec and the value each takes
+    when a call is silent, with the ones some dance in the record actually
+    writes marked;
+  - **parameter rows (n)** — the same figure at another tuning, **generated**
+    from the record, from the move's texts' own `"<param>=<value>"` variant
+    keys, and from the parameter spec read through the caller's vocabulary
+    (`src/moveParams.ts`: a handed or directional word's one opposite,
+    `amount`'s half, a hey `for` one fewer than its cast). Each has a deep link
+    `#/moves/<id>~<param>=<value>` (several joined by `+`) and its own strip. A
+    tuning that expands and that a tile of one two-couple set cannot draw — a
+    hey for three has nobody to stand out — says so on its row rather than
+    throwing;
+  - **danced in (n)** — the dance ↔ figure index: every call of this figure in
+    every dance file, `while` branches and lab dances included, the programme
+    first;
+  - **transitions (n)** — the figure-to-figure seams that leave it, one row
+    each, in the same shape (U4).
+
+  All four lists are disclosures, closed (phone first, U1). Deep links:
+  `#/moves/<figure-id>` opens one definition alone at 4×;
+  `#/moves/<figure-id>~<param>=<value>` opens one parameter row;
+  `#/moves/seam/<a>--<b>` opens one seam alone (`a` and `b` are figure ids).
+  Query parameters: `beat=<n>` freezes, `zoom=<1|2|3|4|6>`,
   `speed=<0.25|0.5|1>`, `trails=1`, `strip=1&step=<beats>` shows the
   one-frame-per-`step`-beats strip in place of the row it opens from, and
   `bare=1` drops the tab bar, the controls and every row but the first,
   leaving just its canvas (or, with `strip=1`, its strip) — the route the
-  gallery screenshots use.
+  gallery screenshots and `pnpm figure <id>` both use.
 
   Since M3 a tile is **one two-couple set run through a cycle planner** — a
   real `HallState`, a real synthetic `Dance` of the tile's calls, and the same
@@ -177,9 +213,10 @@ selector, the audio clock, the silent between-dances interval, what the
 caller announces over it, and two Stage-tab goldens), `e2e/frame.spec.ts`
 (the M3/M4 fixture goldens), `e2e/perf.spec.ts` (AC7, both halves),
 `e2e/pair.spec.ts` (three pair goldens, the page's controls, and the
-per-figure strips — gate G1's artifact), `e2e/gallery.spec.ts` (F3b: the tab
-bar reaches all three tabs, every tile's own info, and the move gallery
-strips). `e2e/golden.ts` is the pixel-comparison helper `hall.spec.ts` and
+per-figure strips — gate G1's artifact), `e2e/gallery.spec.ts` (F3b, M12: the tab
+bar reaches all three tabs, the definitions in their families with each row's
+own facts, the generated parameter rows and one of them deep-linked, every
+tile's own info, and the move gallery strips). `e2e/golden.ts` is the pixel-comparison helper `hall.spec.ts` and
 `pair.spec.ts` share against the plan's tolerance (`frame.spec.ts` keeps its
 own copy deliberately).
 
@@ -193,11 +230,15 @@ adjacent dances, and dances every medley once before any repeats),
 `src/programme.test.ts` (the whole evening danced: every dancer has a figure
 at every beat, including a waiting couple's `wait-out` — the regression a
 plain coverage check missed), `src/galleryTiles.test.ts` (the gallery's
-
 figure and seam tiles cover every figure the registry holds and every seam
-the demo dances actually dance).
+the demo dances actually dance) and `src/moveCatalogue.test.ts` (M12: the
+catalogue is the library's own list, every row's facts come off the
+definition rather than being restated, the dance index holds every call in
+every dance file, and every generated parameter row either draws or says why
+not).
 
-The move gallery's strips (`e2e/strips/`) and the pair page's strips
+The move gallery's strips (`e2e/strips/`, one per figure, per seam and — since
+M12 — per parameter row) and the pair page's strips
 (`e2e/strips/01-walk-in.png` … `09-fall-back.png`) are written on every
 `test:golden` run and committed; neither is compared against anything — see
 `e2e/strips/README.md`. Screenshots of whole pages, taken by hand for review

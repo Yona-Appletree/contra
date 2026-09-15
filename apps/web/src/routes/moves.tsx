@@ -2,10 +2,10 @@ import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
 import type { DancerId, Group } from "@caller/choreo";
 import type { FacingStyle, Person, Renderer } from "@caller/hall";
-import { FONT, GLYPH_H, createPerson, createRenderer, drawText } from "@caller/hall";
+import { FONT, GLYPH_H, ROLE_COLOURS, createPerson, createRenderer, drawText } from "@caller/hall";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GalleryCall, GalleryTile, TileMetric } from "../galleryTiles.js";
+import type { GalleryCall, GalleryTile, TileMetric, TileVariant } from "../galleryTiles.js";
 import {
   DEFAULT_ZOOM,
   FLOOR_COLOUR,
@@ -13,11 +13,14 @@ import {
   SOLO_ZOOM,
   TILE_MARGIN_PX,
   galleryTiles,
-  groupedTiles,
   maxTileWorld,
   tileMetrics,
+  variantTile,
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
+import type { MoveEntry, MoveFamily, MoveVariant } from "../moveCatalogue.js";
+import { moveCatalogue } from "../moveCatalogue.js";
+import { paramText, paramValueText, roleColourOf } from "../moveParams.js";
 import type { EngineChoice } from "../state/engineQuery.js";
 import { engineFromQuery } from "../state/engineQuery.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
@@ -25,9 +28,20 @@ import type { RowTraceView } from "../traces/traceDrawings.js";
 import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
 
 /**
- * The Moves tab: every figure the registry holds and every figure-to-figure
- * seam the ten demo dances dance, each looping in a real group of four, all
- * driven from one beat so they can be compared at the same instant.
+ * The Moves tab: **a browser of the figure definitions the library holds**
+ * (M12), one row per definition, filed in families read off the definitions'
+ * own shape kinds.
+ *
+ * Until M12 the page was a gallery of tiles over a hand-written list of figure
+ * ids, which was a list of the *coded* figures — the thing the rebuild is
+ * retiring. Now the page asks the library what it holds and shows, for each
+ * definition: the caller's shorthand parameters with the canonical expansion
+ * the shape actually runs on, the figure-roles, the nominal count, the timing
+ * profile, where the figure leaves people, the move's four texts
+ * (`data/figures/<id>.json`), the **parameter rows** — the same figure at
+ * another tuning, generated from the parameter spec, the record and the texts
+ * rather than listed by hand — the **dance ↔ figure index**, and the seams that
+ * leave it.
  *
  * Every tile reads a `Timeline` with `poseAt`, exactly as the hall does. The
  * page never calls `FigureDef.sample`, so a figure that looks wrong here looks
@@ -35,20 +49,21 @@ import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
  *
  * One move to a row, never a grid (U2): the tile on the left in a slot as wide
  * as the widest world in the gallery, so every set stands on the same axis and
- * the writing beside them starts in the same column; the id, the call, the
- * move's own walkthrough (`data/figures/<id>.json`, resolved against this
- * tile's parameters) and the motion oracle's numbers on the right. Each
- * seam is filed in the same row shape under the figure it comes out of, so the
- * page reads as one move and then every way out of it.
+ * the writing beside them starts in the same column. Phone first (U1): the
+ * three lists a row can open — its parameter rows, the dances that call it, the
+ * seams that leave it — are all disclosures, closed, so the default page is one
+ * screen-width of tile and one paragraph of prose per move.
  *
  * Deep links, which are what a review is conducted in:
  *
  * - `#/moves` — everything.
- * - `#/moves/<figure-id>` — one figure alone, at 4&times;.
+ * - `#/moves/<figure-id>` — one definition alone, at 4&times;.
+ * - `#/moves/<figure-id>~<param>=<value>` — one **parameter row** alone.
  * - `#/moves/seam/<a>--<b>` — one seam alone, at 4&times;.
  * - `?beat=<n>` freezes; `?zoom=<n>`; `?speed=<n>`; `?trails=1`;
  *   `?strip=1&step=<beats>` shows the one-frame-per-step strip;
- *   `?bare=1` renders only the canvas, for screenshots.
+ *   `?bare=1` renders only the canvas, for screenshots. `pnpm figure <id>`'s
+ *   three pictures come from exactly these routes (`e2e/figureLab.spec.ts`).
  * - `?facing=ticks` or `?facing=arrowheads` swaps the row's pen-plot facing
  *   style away from the shipped default, which is the user's wake since T5 —
  *   no rebuild needed to compare the three on a phone.
@@ -84,16 +99,24 @@ export function MovesPage({
   path,
   params,
 }: {
-  /** What follows `#/moves`: `""`, `"/balance"`, `"/seam/balance--swing"`. */
+  /** What follows `#/moves`: `""`, `"/balance"`, `"/hey~amount=0.5"`, `"/seam/balance--swing"`. */
   path: string;
   params: URLSearchParams;
 }): JSX.Element {
   const engine = engineFromQuery(params.get("engine"));
+  const catalogue = useCatalogue();
   const tiles = useTiles(engine);
   const solo = soloKey(path);
+  const found = useMemo(
+    () => (solo === null ? {} : soloTile(solo, tiles, catalogue, engine)),
+    [solo, tiles, catalogue, engine],
+  );
+  const single = found.tile;
+  // A deep link that names nothing is an empty page with a line saying so, not
+  // the whole gallery: `#/moves/not-a-figure` must not quietly show everything.
   const shown = useMemo(
-    () => (solo === null ? tiles : tiles.filter((t) => t.key === solo)),
-    [tiles, solo],
+    () => (solo === null ? tiles : single === undefined ? [] : [single]),
+    [tiles, solo, single],
   );
 
   const frozen = params.get("beat");
@@ -168,8 +191,18 @@ export function MovesPage({
   if (shown.length === 0) {
     return (
       <main className="p-6">
-        <p data-testid="moves-missing">
-          No move called <code>{solo}</code>. <a href="#/moves">Back to the gallery</a>.
+        <p data-testid="moves-missing" data-problem={found.problem === undefined ? "0" : "1"}>
+          {found.problem === undefined ? (
+            <>
+              No move called <code>{solo}</code>.
+            </>
+          ) : (
+            <>
+              <code>{solo}</code> is a tuning this figure takes and this tile cannot draw:{" "}
+              {found.problem}
+            </>
+          )}{" "}
+          <a href="#/moves">Back to the gallery</a>.
         </p>
       </main>
     );
@@ -188,9 +221,10 @@ export function MovesPage({
     );
   }
 
-  const groups = groupedTiles(shown);
-  const figures = shown.filter((t) => t.kind === "figure").length;
-  const seams = shown.length - figures;
+  const seamsOf = (id: string): GalleryTile[] =>
+    tiles.filter((t) => t.kind === "seam" && t.under === id);
+  const definitions = catalogue.flatMap((family) => family.moves);
+  const seams = tiles.filter((t) => t.kind === "seam").length;
   // U4: the count line drops the seams unless a transitions disclosure is
   // open — otherwise "N figures and M seams" would announce the very rows
   // the disclosure exists to keep out of sight by default.
@@ -199,7 +233,7 @@ export function MovesPage({
   // gallery at the current zoom. Every set then stands on the same axis and
   // the writing beside them starts in the same column, which is the whole
   // point of a row — a slot per tile would be a ragged left edge.
-  const world = maxTileWorld(shown);
+  const world = maxTileWorld(shown.length === 1 ? shown : tiles);
   const slot = world.w * zoom;
   // The trace panels share one floor scale for the same reason, and it falls
   // out of the same number: a tile's world is its own travel plus
@@ -207,27 +241,39 @@ export function MovesPage({
   // the widest ink on the page.
   const reach = Math.max(1, Math.max(world.w, world.h) / 2 - TILE_MARGIN_PX);
 
+  const rowProps = {
+    beat,
+    zoom,
+    trails,
+    step,
+    onStrip: toggleStrip,
+    solo: solo !== null,
+    side: slot,
+    reach,
+    facing,
+    view,
+    onView: setView,
+  };
+
   return (
     <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-4">
       <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-2xl font-semibold">Moves</h1>
         <p className="max-w-[80ch] text-sm text-muted-foreground">
           {solo === null
-            ? `${String(figures)} figures${seamsOpen ? ` and ${String(seams)} seams` : ""}, one to a row:`
+            ? `${String(definitions.length)} figures the library holds${seamsOpen ? `, and ${String(seams)} seams` : ""}:`
             : "One move, on its own:"}{" "}
-          the tile, what the caller says, the walkthrough for this move as it is called here
-          (&ldquo;teach&rdquo; opens the full one), and what the motion oracle measured over the
-          beats the tile loops.
-          {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
-          <span className="moves-over px-1">this colour</span> is over the bound{" "}
-          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.{" "}
-          Every tile here is one two-couple set run through the{" "}
+          what the figure <b>is</b> — its parts, its count, where it leaves people, the tuning it
+          takes, the words a caller says — beside a tile of it danced by one two-couple set on the{" "}
           <b>{engine === "new" ? "new" : "old"}</b> engine
-          {engine === "new" ? "" : " (?engine=old)"}; the{" "}
+          {engine === "new" ? "" : " (?engine=old)"}. Its <i>parameter rows</i>, the dances that
+          call it and the seams that leave it are each one tap away; a number in{" "}
+          <span className="moves-over px-1">this colour</span> is over a derived bound, which is a
+          thing to look at rather than a verdict. The{" "}
           <a href="#/lab" data-testid="moves-lab-link">
             seam lab
           </a>{" "}
-          dances two of these seams through both at once.
+          dances two of these seams through both engines at once.
         </p>
       </header>
 
@@ -313,68 +359,136 @@ export function MovesPage({
         </label>
       </div>
 
-      <ol className="moves-list" style={{ "--moves-tile-w": `${String(slot)}px` } as CSSProperties}>
-        {groups.map((group) => (
-          <li key={group.figure.key} className="moves-group">
+      {solo !== null ? (
+        <ol
+          className="moves-list"
+          style={{ "--moves-tile-w": `${String(slot)}px` } as CSSProperties}
+        >
+          <li className="moves-group">
             <Row
-              tile={group.figure}
-              beat={beat}
-              zoom={zoom}
-              trails={trails}
-              strip={strips.has(group.figure.key)}
-              step={step}
-              onStrip={toggleStrip}
-              metrics={metrics?.get(group.figure.key)}
-              solo={solo !== null}
-              side={slot}
-              reach={reach}
-              facing={facing}
-              view={view}
-              onView={setView}
+              {...rowProps}
+              tile={shown[0]!}
+              entry={entryFor(catalogue, shown[0]!.under)}
+              strip={strips.has(shown[0]!.key)}
+              metrics={metrics?.get(shown[0]!.key)}
             />
-            {group.seams.length === 0 ? null : (
-              <details
-                className="moves-transitions"
-                data-testid="moves-transitions"
-                onToggle={(e) => {
-                  const open = e.currentTarget.open;
-                  setOpenTransitions((was) => {
-                    const next = new Set(was);
-                    if (open) next.add(group.figure.key);
-                    else next.delete(group.figure.key);
-                    return next;
-                  });
-                }}
-              >
-                <summary>transitions ({group.seams.length})</summary>
-                <ol className="moves-seams">
-                  {group.seams.map((tile) => (
-                    <li key={tile.key}>
-                      <Row
-                        tile={tile}
-                        beat={beat}
-                        zoom={zoom}
-                        trails={trails}
-                        strip={strips.has(tile.key)}
-                        step={step}
-                        onStrip={toggleStrip}
-                        metrics={metrics?.get(tile.key)}
-                        solo={solo !== null}
-                        side={slot}
-                        reach={reach}
-                        facing={facing}
-                        view={view}
-                        onView={setView}
-                      />
-                    </li>
-                  ))}
+          </li>
+        </ol>
+      ) : (
+        <>
+          <nav className="moves-families" data-testid="moves-families">
+            {catalogue.map((family) => (
+              <a key={family.id} href={`#family-${family.id}`} data-family={family.id}>
+                {family.title} <span className="moves-row-dim">{family.moves.length}</span>
+              </a>
+            ))}
+          </nav>
+
+          <ol
+            className="moves-list"
+            style={{ "--moves-tile-w": `${String(slot)}px` } as CSSProperties}
+          >
+            {catalogue.map((family) => (
+              <li key={family.id} className="moves-family" id={`family-${family.id}`}>
+                <h2 className="moves-family-title" data-testid="moves-family" data-key={family.id}>
+                  {family.title}{" "}
+                  <span className="moves-row-dim">
+                    {family.moves.length} &middot; <code>{family.id}</code>
+                  </span>
+                </h2>
+                <p className="moves-family-blurb">{family.blurb}</p>
+                <ol className="moves-family-list">
+                  {family.moves.map((entry) => {
+                    const tile = tiles.find((t) => t.kind === "figure" && t.key === entry.id);
+                    if (tile === undefined) return null;
+                    return (
+                      <li key={entry.id} className="moves-group">
+                        <Row
+                          {...rowProps}
+                          tile={tile}
+                          entry={entry}
+                          strip={strips.has(tile.key)}
+                          metrics={metrics?.get(tile.key)}
+                        />
+                        <Variants entry={entry} zoom={zoom} step={step} engine={engine} />
+                        <DanceIndex entry={entry} />
+                        <Transitions
+                          seams={seamsOf(entry.id)}
+                          rowProps={rowProps}
+                          strips={strips}
+                          metrics={metrics}
+                          onOpen={(open) =>
+                            setOpenTransitions((was) => {
+                              const next = new Set(was);
+                              if (open) next.add(entry.id);
+                              else next.delete(entry.id);
+                              return next;
+                            })
+                          }
+                        />
+                      </li>
+                    );
+                  })}
                 </ol>
-              </details>
-            )}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+    </main>
+  );
+}
+
+/** What every row is given, whichever list it is in. */
+interface RowProps {
+  beat: Beat;
+  zoom: number;
+  trails: boolean;
+  step: number;
+  onStrip: (key: string) => void;
+  solo: boolean;
+  side: number;
+  reach: number;
+  facing?: FacingStyle;
+  view: RowTraceView;
+  onView: (view: RowTraceView) => void;
+}
+
+/** The seams that leave one figure, behind their disclosure (U4). */
+function Transitions({
+  seams,
+  rowProps,
+  strips,
+  metrics,
+  onOpen,
+}: {
+  seams: readonly GalleryTile[];
+  rowProps: RowProps;
+  strips: ReadonlySet<string>;
+  metrics: ReadonlyMap<string, TileMetric[]> | null;
+  onOpen: (open: boolean) => void;
+}): JSX.Element | null {
+  if (seams.length === 0) return null;
+  return (
+    <details
+      className="moves-transitions"
+      data-testid="moves-transitions"
+      onToggle={(e) => onOpen(e.currentTarget.open)}
+    >
+      <summary>transitions ({seams.length})</summary>
+      <ol className="moves-seams">
+        {seams.map((tile) => (
+          <li key={tile.key}>
+            <Row
+              {...rowProps}
+              tile={tile}
+              strip={strips.has(tile.key)}
+              metrics={metrics?.get(tile.key)}
+            />
           </li>
         ))}
       </ol>
-    </main>
+    </details>
   );
 }
 
@@ -384,6 +498,7 @@ export function MovesPage({
  */
 function Row({
   tile,
+  entry,
   beat,
   zoom,
   trails,
@@ -397,28 +512,13 @@ function Row({
   facing,
   view,
   onView,
-}: {
+}: RowProps & {
   tile: GalleryTile;
-  beat: Beat;
-  zoom: number;
-  trails: boolean;
+  /** The definition this row is of, where the row is a definition's own. */
+  entry?: MoveEntry;
   strip: boolean;
-  step: number;
-  onStrip: (key: string) => void;
   /** `undefined` until the page has measured; the line says so meanwhile. */
   metrics: TileMetric[] | undefined;
-  /** Whether this row is the only one on the page: `#/moves/<key>`. */
-  solo: boolean;
-  /** The tile column's width in px: what the trace panel is drawn square to. */
-  side: number;
-  /** The page's widest floor half-extent, so every trace is at one scale. */
-  reach: number;
-  /** The `?facing=` override for the row's pen plot. Default: the wake. */
-  facing?: FacingStyle;
-  /** T4's switch: which of the trace panel's three views is showing. */
-  view: RowTraceView;
-  /** Called when this row's switch is tapped; shared by every row on the page. */
-  onView: (view: RowTraceView) => void;
 }): JSX.Element {
   // A seam row sits under the figure it comes out of, whose own row says what
   // that figure is, so the prose that is new here is the figure it goes into.
@@ -451,6 +551,7 @@ function Row({
         <h2 className="moves-row-title">
           <a href={soloHref(tile)}>{tile.title}</a>
         </h2>
+        {entry === undefined ? null : <Facts entry={entry} />}
         {tile.calls.map((call, i) => (
           <p key={i} className="moves-row-call">
             <span className="moves-row-callid">{call.figure}</span> {call.call}
@@ -472,6 +573,7 @@ function Row({
         {described.map((call) => (
           <MoveText key={call.figure} call={call} named={tile.kind === "seam"} />
         ))}
+        {entry === undefined ? null : <Params entry={entry} />}
         {tile.notes.map((note) => (
           <p key={note} className="moves-row-note">
             {note}
@@ -491,6 +593,256 @@ function Row({
         ) : null}
       </div>
     </article>
+  );
+}
+
+/**
+ * **What the figure is**, read straight off the definition: its parts, how a
+ * call becomes instances, where the shape is anchored, where it leaves people,
+ * its nominal count and its timing profile.
+ *
+ * The role letters are lightly coloured with the role colour where a
+ * figure-role names a contra role (D5, `docs/role-colours.md`) — a swing's parts
+ * really are a lark's and a robin's, and an allemande's `a` and `b` are not, so
+ * only the first pair gets colour and the difference is the point.
+ */
+function Facts({ entry }: { entry: MoveEntry }): JSX.Element {
+  if (entry.def === undefined) {
+    return (
+      <p className="moves-row-facts" data-testid="moves-facts" data-key={entry.id}>
+        <span className="moves-fact">no definition</span>
+        <span className="moves-row-dim">
+          in the registry and not in the library: nothing resolves a call of one
+        </span>
+      </p>
+    );
+  }
+  return (
+    <p className="moves-row-facts" data-testid="moves-facts" data-key={entry.id}>
+      <span className="moves-fact" title="the figure's own natural count; a call's count overrides">
+        {entry.nominalBeats} beats
+      </span>
+      <span className="moves-fact" title="how a call becomes instances">
+        {entry.actors}
+      </span>
+      <span className="moves-fact" title="where the shape is anchored in the instance's frame">
+        {entry.anchor}
+      </span>
+      <span className="moves-fact" title="where the figure leaves people">
+        {entry.ends}
+      </span>
+      {entry.timing === undefined ? null : (
+        <span
+          className="moves-fact"
+          title="whether beats scale distance or pace, and the speed curve"
+        >
+          {entry.timing.stretch}/{entry.timing.profile}
+        </span>
+      )}
+      <span className="moves-fact moves-roles" title="the parts this figure has">
+        {entry.roles.map((role, i) => (
+          <span key={role} className="moves-role" style={roleStyle(role)}>
+            {role}
+            {i === entry.roles.length - 1 ? "" : " "}
+          </span>
+        ))}
+      </span>
+    </p>
+  );
+}
+
+/** The role colour a figure-role's word carries, or nothing (D5). */
+function roleStyle(role: string): CSSProperties | undefined {
+  const which = roleColourOf(role);
+  return which === undefined ? undefined : { color: ROLE_COLOURS[which] };
+}
+
+/**
+ * **The parameters, shorthand beside canonical.**
+ *
+ * The left column is the canonical parameter the shape reads and the value it
+ * takes when a call is silent — `ParamSpec`'s own `canonical` block, verbatim.
+ * A parameter some dance in the record actually writes is marked, because that
+ * is the difference between a word of the caller's vocabulary and a tuning
+ * number nobody outside the figure has ever touched.
+ */
+function Params({ entry }: { entry: MoveEntry }): JSX.Element | null {
+  if (entry.params.length === 0) return null;
+  const written = entry.params.filter((p) => p.written);
+  return (
+    <details className="moves-params" data-testid="moves-params" data-key={entry.id}>
+      <summary>
+        parameters ({entry.params.length})
+        {written.length === 0 ? "" : ` · ${String(written.length)} written by a dance`}
+      </summary>
+      <ul className="moves-param-list">
+        {entry.params.map((p) => (
+          <li
+            key={p.name}
+            className={p.written ? "moves-param moves-param-written" : "moves-param"}
+          >
+            <code>{p.name}</code> <span className="moves-row-dim">{p.text}</span>
+            {p.written ? <span className="moves-param-mark"> written</span> : null}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/**
+ * **The parameter rows**: the same figure at another tuning, each with its own
+ * deep link and its own strip.
+ *
+ * Text by default and a tile on demand. A hundred-odd parameter rows over the
+ * whole catalogue is a hundred-odd planner runs and sampling sweeps, which is
+ * what the index page cannot afford on a phone — so a row says what it is, what
+ * a caller says for it and where it came from, and builds its tile when
+ * somebody opens its strip or follows its link.
+ *
+ * A tuning that expands and cannot be drawn says so on its own row rather than
+ * taking the page down with it: a hey for three is a real hey with one dancer
+ * standing out, and a tile of two couples has nobody to stand out.
+ */
+function Variants({
+  entry,
+  zoom,
+  step,
+  engine,
+}: {
+  entry: MoveEntry;
+  zoom: number;
+  step: number;
+  engine: EngineChoice;
+}): JSX.Element | null {
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  if (entry.variants.length === 0) return null;
+  return (
+    <details className="moves-variants" data-testid="moves-variants" data-key={entry.id}>
+      <summary>parameter rows ({entry.variants.length})</summary>
+      <ul className="moves-variant-list">
+        {entry.variants.map((variant) => (
+          <VariantRow
+            key={variant.key}
+            variant={variant}
+            zoom={zoom}
+            step={step}
+            engine={engine}
+            open={open.has(variant.key)}
+            onStrip={() =>
+              setOpen((was) => {
+                const next = new Set(was);
+                if (next.has(variant.key)) next.delete(variant.key);
+                else next.add(variant.key);
+                return next;
+              })
+            }
+          />
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** One parameter row. */
+function VariantRow({
+  variant,
+  zoom,
+  step,
+  engine,
+  open,
+  onStrip,
+}: {
+  variant: MoveVariant;
+  zoom: number;
+  step: number;
+  engine: EngineChoice;
+  open: boolean;
+  onStrip: () => void;
+}): JSX.Element {
+  const made = useMemo(
+    () => (open ? variantTile(variant.id, tileVariantOf(variant), {}, engine) : undefined),
+    [open, variant, engine],
+  );
+  return (
+    <li className="moves-variant" data-testid="moves-variant" data-key={variant.key}>
+      <a className="moves-variant-label" href={`#/moves/${variant.key}`}>
+        {variant.label}
+      </a>
+      {variant.callShort === undefined ? null : (
+        <span className="moves-variant-call">{variant.callShort}</span>
+      )}
+      <span className="moves-row-dim"> {sourceText(variant)}</span>
+      <button type="button" onClick={onStrip} aria-pressed={open} className="moves-variant-strip">
+        {open ? "hide strip" : "strip"}
+      </button>
+      {made === undefined ? null : "tile" in made ? (
+        <div className="moves-row-strip">
+          <TileStrip tile={made.tile} zoom={zoom} step={step} />
+        </div>
+      ) : (
+        <p className="moves-row-note" data-testid="moves-variant-problem">
+          expands, but this tile cannot draw it: {made.problem}
+        </p>
+      )}
+    </li>
+  );
+}
+
+/** Where a parameter row came from, in the words the page uses for it. */
+function sourceText(variant: MoveVariant): string {
+  if (variant.from === "record")
+    return `· called in ${variant.dance ?? "the record"}${variant.beats === undefined ? "" : ` at ${String(variant.beats)} beats`}`;
+  if (variant.from === "texts") return "· the move's texts write it their own way";
+  return "· from the parameter spec";
+}
+
+/** A parameter row as the tile builder wants it. */
+function tileVariantOf(variant: MoveVariant): TileVariant {
+  return {
+    key: variant.key,
+    title: `${variant.id} · ${variant.label}`,
+    params: variant.params,
+    ...(variant.beats === undefined ? {} : { beats: variant.beats }),
+    ...(variant.dance === undefined ? {} : { dance: variant.dance }),
+    ...(variant.who === undefined ? {} : { who: variant.who }),
+  };
+}
+
+/**
+ * **The dance ↔ figure index for one move**: which dances call it, with which
+ * parameters, in which phrase, at what count.
+ *
+ * The other half of the index is on each dance's own page (`#/dances/<slug>`),
+ * which lists that dance's figures; this is the same fact read the other way
+ * round, which is the way a caller asks it — "who uses a jersey twirl?".
+ */
+function DanceIndex({ entry }: { entry: MoveEntry }): JSX.Element | null {
+  if (entry.dances.length === 0) {
+    return (
+      <p className="moves-row-note" data-testid="moves-dances" data-key={entry.id}>
+        No dance in the record calls this figure yet.
+      </p>
+    );
+  }
+  return (
+    <details className="moves-dances" data-testid="moves-dances" data-key={entry.id}>
+      <summary>danced in ({entry.dances.length})</summary>
+      <ul className="moves-dance-list">
+        {entry.dances.map((use, i) => (
+          <li key={i} className="moves-dance">
+            <a href={`#/dances/${use.slug}`}>{use.title}</a>
+            <span className="moves-row-dim">
+              {" "}
+              {use.phrase} &middot; {use.beats} beats
+              {use.programme ? "" : " · lab"}
+              {use.who === undefined ? "" : ` · who ${paramValueText(use.who)}`}
+              {paramText(use.params) === "" ? "" : ` · ${paramText(use.params)}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -776,7 +1128,10 @@ export function localBeat(tile: GalleryTile, beat: Beat): Beat {
   return start + (((beat % beats) + beats) % beats);
 }
 
-/** `""`, `"balance"` or `"balance--swing"` from what follows `#/moves`. */
+/**
+ * `""`, `"balance"`, `"hey~amount=0.5"` or `"balance--swing"` from what follows
+ * `#/moves`.
+ */
 export function soloKey(path: string): string | null {
   const rest = path.replace(/^\/+/, "");
   if (rest === "") return null;
@@ -784,13 +1139,50 @@ export function soloKey(path: string): string | null {
   return rest;
 }
 
+/**
+ * The one tile a deep link asks for: a definition's, a seam's, or a **parameter
+ * row's**, which is built on the spot because the index never built it.
+ */
+export function soloTile(
+  key: string,
+  tiles: readonly GalleryTile[],
+  catalogue: readonly MoveFamily[],
+  engine: EngineChoice,
+): { tile?: GalleryTile; problem?: string } {
+  const held = tiles.find((t) => t.key === key);
+  if (held !== undefined) return { tile: held };
+  for (const family of catalogue) {
+    for (const entry of family.moves) {
+      const variant = entry.variants.find((v) => v.key === key);
+      if (variant === undefined) continue;
+      const made = variantTile(variant.id, tileVariantOf(variant), {}, engine);
+      return "tile" in made ? { tile: made.tile } : { problem: made.problem };
+    }
+  }
+  return {};
+}
+
 /** The deep link that opens one tile on its own. */
 export const soloHref = (tile: GalleryTile): string =>
   tile.kind === "seam" ? `#/moves/seam/${tile.key}` : `#/moves/${tile.key}`;
 
+/** The catalogue entry for a figure id, wherever in the families it is filed. */
+function entryFor(catalogue: readonly MoveFamily[], id: string): MoveEntry | undefined {
+  for (const family of catalogue) {
+    const found = family.moves.find((entry) => entry.id === id);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
 /** Build the tiles once for the life of the page: they cost a sampling sweep. */
 function useTiles(engine: EngineChoice): GalleryTile[] {
   return useMemo(() => galleryTiles({}, engine), [engine]);
+}
+
+/** The catalogue is pure and plans nothing, but it still reads every dance file. */
+function useCatalogue(): MoveFamily[] {
+  return useMemo(() => moveCatalogue(), []);
 }
 
 /**
@@ -842,27 +1234,4 @@ export function beatText(beat: Beat): string {
   return text.endsWith(".0") ? text.slice(0, -2) : text;
 }
 
-/**
- * A call's tuning as one short line.
- *
- * Objects are written out rather than `String`ed: a `carried` parameter is a
- * record of which hands come in already joined, and `String({...})` made the
- * row read `carried [object Object]`, which is worse than saying nothing. A
- * value too long to belong on one line is given as its shape instead.
- */
-export function paramText(params: Record<string, unknown>): string {
-  return Object.entries(params)
-    .map(([k, v]) => `${k} ${paramValue(v)}`)
-    .join(", ");
-}
-
-/** The most this line will spend on one parameter's value. */
-const PARAM_VALUE_CHARS = 40;
-
-function paramValue(value: unknown): string {
-  if (value === null || typeof value !== "object") return String(value);
-  const written = JSON.stringify(value) ?? "?";
-  if (written.length <= PARAM_VALUE_CHARS) return written;
-  const keys = Object.keys(value);
-  return `{${String(keys.length)} keys: ${keys.slice(0, 3).join(", ")}${keys.length > 3 ? ", …" : ""}}`;
-}
+export { paramText } from "../moveParams.js";
