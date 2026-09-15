@@ -56,6 +56,7 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t5-wake-reach-march.png`              | T5: `balance-and-swing`'s march at ×2, ×3, ×4.5, ×6                          |
 | `t5-wake-hey-390.png`                  | T5: the real `#/moves/hey` row at 390 × 844, the wake as the default         |
 | `t5-wake-hey-390-ticks.png`            | T5: the same row, `?facing=ticks`, the style the default replaced            |
+| `t5-wake-hey-390-march.png`            | T5: the same row with T4's switch on `march`, at the march's own reach       |
 | `t5-wake-moves-390.png`                | T5: the top of `#/moves?beat=6` at 390 × 844, rows of wakes                  |
 | `t5-wake-dances-390.png`               | T5: `#/dances` at 390 × 844, the cards' own pen plots                        |
 | `t5-wake-traces-390.png`               | T5: `#/dances/airpants/traces` at 390 × 844, all four views                  |
@@ -136,7 +137,7 @@ drawn at the same square footprint the pen plot always used and scroll inside
 their own box when a figure is wider than that, exactly as the traces page's
 own beat-axis views already do — the column itself never grows.
 
-The thirteen `t5-wake-*.png` are the look gate for the wake the user picked
+The fourteen `t5-wake-*.png` are the look gate for the wake the user picked
 and then asked for two things from: "it looks kinda jagged, and the fade is
 too narrow, hard to see." The six before-and-after pairs put T3's wake beside
 T5's on the same trace at the same size — the same `penPlotSvg` call, once
@@ -151,9 +152,10 @@ T3 already drew and the user could not see; ×8 blooms into the middle of a
 circle) and three on a march, which magnifies the set a third as much and
 closes its loops up at anything wider.
 
-The five 390 px pictures are the real built app, not a raw render: the wake
+The six 390 px pictures are the real built app, not a raw render: the wake
 now being the default, `#/moves/hey` is the wake and `?facing=ticks` is the
-way back to T2's look. `t5-wake-moves-390.png` is the viewport rather than
+way back to T2's look. `t5-wake-hey-390-march.png` is the same row on T4's
+`march` view, where the wake is drawn at the march's own narrower reach. `t5-wake-moves-390.png` is the viewport rather than
 `fullPage`, for the same reason the U2 Moves pictures are.
 
 The SVGs themselves — every figure and every dance, four ways — are in
