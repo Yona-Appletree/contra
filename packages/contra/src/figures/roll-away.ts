@@ -56,6 +56,13 @@ export const rollAway = contraFigure<RollAwayParams>({
     const ends: Spots = {};
     const mates: Record<StationId, StationId> = {};
     const joins: HandJoin[] = [];
+    // Which way the roller turns to face their partner: a partner on the
+    // roller's own left is faced by turning left, which is anticlockwise
+    // seen from above (facing decreasing) in this coordinate system; a
+    // partner on the right is faced by turning right (facing increasing).
+    // Read off the actual standing side rather than assumed, so a mirrored
+    // pairing or a roller on the other side turns the right way too.
+    const turnSign: Record<StationId, number> = {};
 
     for (const [a, b] of pairsOf(params.pairs)) {
       mates[a] = b;
@@ -64,6 +71,8 @@ export const rollAway = contraFigure<RollAwayParams>({
       ends[b] = { p: ctx.spot(a).p, facing: ctx.spot(b).facing };
       const [sideA, sideB] = insidePair(ctx, a, b);
       joins.push({ a, aSide: sideA, b, bSide: sideB });
+      turnSign[a] = sideA === "L" ? -1 : 1;
+      turnSign[b] = sideB === "L" ? -1 : 1;
     }
     for (const id of ctx.ids) ends[id] ??= ctx.spot(id);
 
@@ -76,7 +85,9 @@ export const rollAway = contraFigure<RollAwayParams>({
       // One passes in front and one behind, so they never share a point.
       const bow = (rolls(station) ? 1 : -1) * params.bowPx * Math.sin(Math.PI * k);
       const p: Vec2 = addScaled(lerp(start.p, end.p, k), dirOf(start.facing), bow);
-      const spin = rolls(station) ? 360 * params.spins * smooth(clampFrom(t, 0.8, beats)) : 0;
+      const spin = rolls(station)
+        ? (turnSign[station] ?? 1) * 360 * params.spins * smooth(clampFrom(t, 0.8, beats))
+        : 0;
       return { p, facing: start.facing + spin };
     };
 
