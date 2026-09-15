@@ -7,12 +7,14 @@ import type {
   GroupKind,
   GroupPlan,
   GroupSelector,
+  LineUpShift,
   SetSpec,
   SetState,
   Station,
   StationId,
 } from "@caller/choreo";
 import {
+  HANDS_FOUR_CALLS,
   HANDS_FOUR_GROUP,
   HOLD_SPACING_PX,
   frame,
@@ -61,22 +63,44 @@ export const BECKET_TOP_OFFSET_PX = COUPLE_PITCH_PX + HALF_COUPLE;
 /**
  * What the caller says between two dances to get a hall standing in becket.
  *
- * A becket line is a duple improper line that everybody has turned a quarter
- * out of: you take hands four the ordinary way, then the whole ring turns one
- * place to its own left, which leaves your partner beside you and the couple
- * you were facing now across the set. So the caller's words are the duple
- * improper ones plus that turn — three short bubbles rather than one long
- * one, because the caller's bubble is sixteen columns wide (DD16) and three
- * lines of it is as much as anybody reads in four beats.
- *
- * The user's own words, shortened to fit: "turn one place to your left so
- * you're next to your partner on the side of the set".
+ * The same words as every other formation: a becket hall lines up **improper**
+ * and takes hands four like anybody else. What is different is what happens
+ * next, which is {@link becketHandsFourCalls}.
  */
-export const BECKET_LINE_UP_CALLS: readonly string[] = [
-  "TAKE HANDS FOUR",
-  "TURN ONE PLACE TO YOUR LEFT",
-  "PARTNER BESIDE YOU ON THE SIDE OF THE SET",
-];
+export const BECKET_LINE_UP_CALLS: readonly string[] = HANDS_FOUR_CALLS;
+
+/**
+ * What the caller says while a becket hall walks to its places and takes hands
+ * four — the user's own three sentences, word for word:
+ *
+ * > "if its becket, you still line up improper, but the caller will say 'move
+ * > one place to the left. this is a becket dance. your partner should be on
+ * > the side of the set with you.'"
+ *
+ * A becket line is a duple improper line that every hands-four ring has turned
+ * a quarter out of: you take hands four the ordinary way, the ring moves one
+ * place round, and that leaves your partner beside you and a new couple across
+ * the set.
+ *
+ * **Which way round is not written here.** The user again: "_technically_ if
+ * its a right-progressing becket dance, you should move one place _to the
+ * right_ … it means you progress the 'wrong' way from the direction you were
+ * facing when you took hands four." So the direction is the one
+ * `@caller/choreo`'s `lineUpShiftOf` measures off this formation's own
+ * progression, and a becket that progresses the other way says "RIGHT" without
+ * anybody editing a string.
+ *
+ * Three short bubbles rather than one long one, because the caller's bubble is
+ * sixteen columns wide (DD16).
+ */
+export const becketHandsFourCalls = (shift: LineUpShift): readonly string[] => {
+  if (shift === null) return [];
+  return [
+    `MOVE ONE PLACE TO YOUR ${shift === "left" ? "LEFT" : "RIGHT"}`,
+    "THIS IS A BECKET DANCE",
+    "YOUR PARTNER IS ON THE SIDE OF THE SET WITH YOU",
+  ];
+};
 
 /** Facing across the set, in frame-local degrees; the `+1` line faces this way. */
 const ACROSS = 0;
@@ -368,6 +392,7 @@ export const BECKET: Formation = {
   id: "becket",
   roleSet: CONTRA_ROLES,
   lineUpCalls: BECKET_LINE_UP_CALLS,
+  handsFourCalls: becketHandsFourCalls,
 
   group(n: number): Station[] {
     if (n === 4) return BECKET_STATIONS.map((s) => ({ ...s }));

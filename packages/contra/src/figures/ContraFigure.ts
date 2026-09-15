@@ -1,15 +1,5 @@
 import type { Angle, Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
-import {
-  HOLD_SPACING_PX,
-  angleDiff,
-  angleOfVec,
-  dist,
-  lerpHand,
-  mix,
-  ramp,
-  shouldersAt,
-  sub,
-} from "@caller/core";
+import { HOLD_SPACING_PX, angleDiff, dist, lerpHand, mix, ramp } from "@caller/core";
 import type {
   EndPose,
   FigureDef,

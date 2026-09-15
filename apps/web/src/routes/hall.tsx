@@ -33,6 +33,7 @@ import {
   LOOKAHEAD_BEATS,
   MUSIC_BEATS_PER_ITEM,
   TIMES_THROUGH,
+  bandPlaying,
   betweenDancesStatus,
   createDemoProgram,
   demoLines,
@@ -364,7 +365,11 @@ export function HallPage({
       const floor = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
       if (floor !== null) {
         drawFloor(floor, world, THEME);
-        drawFurniture(floor, world, at, { skirts: true });
+        // The band plays while a tune is on and over the four potatoes that
+        // count the next dance in, and holds still for the rest of the
+        // interval — B3's "band shouldn't be playing when no dancing is
+        // happening", on the canvas as well as in the speakers.
+        drawFurniture(floor, world, at, { skirts: true, playing: bandPlaying(at) });
         const call = callAt(program, at);
         if (call !== "") {
           drawBubble(floor, FONT, call, world.caller, {

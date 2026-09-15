@@ -18,10 +18,14 @@ export {
   BECKET,
   BECKET_LINE_UP_CALLS,
   BECKET_STATIONS,
+  BECKET_TOP_OFFSET_PX,
   BECKET_WAIT_STATIONS,
   COUPLE_PITCH_PX,
+  becketHandsFourCalls,
   partitionBecket,
 } from "./formation/becket.js";
+
+export { BECKET_RIGHT } from "./formation/becketRight.js";
 
 export * from "./figures/index.js";
 export * from "./pair/index.js";

@@ -12,7 +12,7 @@ import { poseAt } from "../timeline/poseAt.js";
 import type { FigureEvent, UtteranceEvent } from "../timeline/Timeline.js";
 import {
   APPLAUSE_CALLS,
-  HANDS_FOUR,
+  HANDS_FOUR_CALLS,
   HERE_WE_GO,
   SCRIPT_DECIDER_DEFAULTS,
   betweenDancesBeats,
@@ -136,10 +136,12 @@ describe("switching dances", () => {
 
   /** Two times through of a 64-beat dance ends here, and the gap starts. */
   const GAP = 128;
-  const { applauseBeats, announceBeats, lineUpBeats, readyBeats } = SCRIPT_DECIDER_DEFAULTS;
+  const { applauseBeats, announceBeats, lineUpBeats, ringBeats, readyBeats } =
+    SCRIPT_DECIDER_DEFAULTS;
   const ANNOUNCE = GAP + applauseBeats;
   const WALK = ANNOUNCE + announceBeats;
-  const READY = WALK + lineUpBeats;
+  const RING = WALK + lineUpBeats;
+  const READY = RING + ringBeats;
   const NEXT = READY + readyBeats;
 
   it("applauds first, where the dancing stopped, before anything is announced", () => {
@@ -162,10 +164,10 @@ describe("switching dances", () => {
     expect(announced.map((u) => u.text)).toEqual([
       "NEXT: SECOND DANCE, BY ANOTHER CALLER",
       // SQUARE names no words of its own, so the decider's default is said.
-      HANDS_FOUR,
+      ...HANDS_FOUR_CALLS,
     ]);
     expect(announced[0]!.start).toBe(ANNOUNCE);
-    expect(announced[1]!.end).toBe(WALK);
+    expect(announced[announced.length - 1]!.end).toBe(WALK);
   });
 
   it("stands still through the announcement and walks only after it", () => {
@@ -177,14 +179,30 @@ describe("switching dances", () => {
 
     const walk = timeline.figuresOf(lark).find((f) => f.start === WALK)!;
     expect(walk.figure).toBe("walk-to-station");
-    expect(walk.end).toBe(READY);
+    expect(walk.end).toBe(RING);
   });
 
-  it("stands ready and says here we go over the last beats of the gap", () => {
+  it("takes hands four in a ring, and holds it through the potatoes", () => {
+    const { timeline } = run(program, NEXT + 4);
+    const lark = timeline.dancers().find((d) => d.endsWith("c0/lark"))!;
+    const ring = timeline.figuresOf(lark).find((f) => f.start === RING)!;
+    expect(ring.figure).toBe("take-hands");
+    // One figure over both stretches: the hall lets go on the last potatoes
+    // rather than at the stretch boundary, so no hold is dropped and retaken.
+    expect(ring.end).toBe(NEXT);
+  });
+
+  it("says here we go over the potatoes, and gets out of the first call's way", () => {
     const { timeline } = run(program, NEXT);
     const ready = timeline.utterances().find((u) => u.text === HERE_WE_GO)!;
     expect(ready.start).toBe(READY);
-    expect(ready.end).toBe(NEXT);
+    // It ends where the dance's own first call starts, on potato 3: the bubble
+    // shows whichever call started first, so an overlap would hide the one the
+    // hall actually needs.
+    expect(ready.end).toBe(NEXT - SCRIPT_DECIDER_DEFAULTS.firstCallLeadBeats);
+
+    const first = timeline.utterances().find((u) => u.text === "A1 OF SECOND DANCE")!;
+    expect(first.start).toBe(ready.end);
   });
 
   it("leaves no gap and no overlap for anybody across the whole interval", () => {

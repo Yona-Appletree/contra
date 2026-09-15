@@ -12,6 +12,7 @@ import type {
   StationId,
 } from "@caller/choreo";
 import {
+  HANDS_FOUR_CALLS,
   HANDS_FOUR_GROUP,
   HOLD_SPACING_PX,
   LINE_OFFSET_PX,
@@ -49,10 +50,16 @@ const HALF_ALONG = PLACE_PITCH_PX / 2;
 
 /**
  * What the caller says between two dances to get a hall standing in duple
- * improper: the one line every contra caller says, and the one the hall has
- * been hearing since M7.
+ * improper.
+ *
+ * The user's own words (B3): "take hands four from the top with the robins on
+ * the right, larks on the left". Two bubbles rather than one sentence, because
+ * the caller's bubble is sixteen columns wide (DD16). These are
+ * `@caller/choreo`'s own `HANDS_FOUR_CALLS` — every formation lines up on the
+ * same words now, and the thing that differs between two formations is what
+ * the hall does *after* it has hands (see becket's `handsFourCalls`).
  */
-export const DUPLE_IMPROPER_LINE_UP_CALLS: readonly string[] = ["HANDS FOUR FROM THE TOP"];
+export const DUPLE_IMPROPER_LINE_UP_CALLS: readonly string[] = HANDS_FOUR_CALLS;
 
 /** Down the hall in frame-local degrees; the ones face this way. */
 const DOWN = 90;

@@ -13,9 +13,12 @@ import type {
   StationId,
 } from "../formation/Formation.js";
 import { HANDS_FOUR_GROUP, createHall } from "../formation/Formation.js";
+import type { LineUpShift } from "../formation/lineUpShift.js";
+import { lineUpShiftOf, shiftPlaces } from "../formation/lineUpShift.js";
 import type { AnyFigureDef, EndPose, FigureRegistry } from "../figure/FigureDef.js";
 import { withDefaults } from "../figure/FigureDef.js";
 import { APPLAUD } from "../figure/applaud.js";
+import { TAKE_HANDS, lineUpPlaces } from "../figure/takeHands.js";
 import { WAIT_OUT } from "../figure/waitOut.js";
 import { WALK_TO_STATION } from "../figure/walkToStation.js";
 import type { Group } from "../group/Group.js";
@@ -37,13 +40,16 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
  * looks like next. The program loops, so the demo cycles without anyone
  * touching it.
  *
- * **Between two dances** the dancing stops and a real interval runs, in four
+ * **Between two dances** the dancing stops and a real interval runs, in five
  * stretches whose lengths are {@link ScriptDeciderOptions}': the hall applauds
  * where it stands (`applaud`, facing the band); the caller announces the next
  * dance's title and author and then how to stand for it, in the *formation's*
- * own words (`Formation.lineUpCalls`); everybody walks to that dance's first
- * places; and then they stand ready while the caller says "here we go". Nothing
- * of the dance happens in any of it — no tune plays either, which is
+ * own words (`Formation.lineUpCalls`); everybody walks to where they take hands
+ * four; they take hands four **in a ring** (`take-hands`), moving one place
+ * round it if the formation's own progression runs sideways — which is what
+ * makes a becket dance becket; and the band plays four potatoes into the dance
+ * while the ring opens out on to that dance's first places. Nothing of the
+ * dance happens in any of it, and nothing but the potatoes sounds, which is
  * `apps/web/src/program.ts`'s side of the same arithmetic.
  *
  * A dance's first places are the formation's stations unless it says otherwise
@@ -74,6 +80,7 @@ export function createScriptDecider(
   if (!registry.has(WAIT_OUT.id)) registry.register(WAIT_OUT);
   if (!registry.has(WALK_TO_STATION.id)) registry.register(WALK_TO_STATION);
   if (!registry.has(APPLAUD.id)) registry.register(APPLAUD);
+  if (!registry.has(TAKE_HANDS.id)) registry.register(TAKE_HANDS);
 
   const timeline = createTimeline(registry);
   const specs = hallSpecs(hall);
@@ -204,7 +211,7 @@ export function createScriptDecider(
    * and the fill is the whole cycle — one `wait-out`, the way it has always
    * been — but by the general path rather than a special case.
    */
-  const emitCycle = (into: TimelineEvent[], dance: Dance): Beat => {
+  const emitCycle = (into: TimelineEvent[], dance: Dance, first: boolean): Beat => {
     const cycle = danceBeats(dance);
     const start = at.beat;
     const schedule = danceSchedule(dance);
@@ -343,10 +350,18 @@ export function createScriptDecider(
     for (const p of [...pending].sort((a, b) => a.at - b.at)) p.run();
 
     // The caller says each call once for the whole hall, not once per group.
+    //
+    // The **first call of a dance** is the one exception to a figure's own
+    // `lead`: a caller says the first move over the potatoes, so the hall hears
+    // "balance and swing" two beats before beat 1 (the user's own "2 potatoes
+    // and then 'balance and swing'"). Every later call, and every later time
+    // through, keeps the lead its figure asks for — pacing the calls is the
+    // calls-in-rhythm milestone's job, not this one's.
     for (const { call, start: offset } of schedule) {
       const def = registry.get(call.figure);
       const text = call.call ?? def.call;
-      say(into, text, start + offset - def.lead, start + offset + opts.utteranceTailBeats);
+      const lead = first && offset === 0 ? opts.firstCallLeadBeats : def.lead;
+      say(into, text, start + offset - lead, start + offset + opts.utteranceTailBeats);
     }
 
     at.beat = start + cycle;
@@ -390,16 +405,30 @@ export function createScriptDecider(
     at.beat = start + beats;
   };
 
-  /** The walk to the next dance's own first places. */
-  const emitWalk = (into: TimelineEvent[], next: Dance): void => {
+  /**
+   * The walk to where the hall stands to take hands four.
+   *
+   * Not, any more, to the next dance's own first places: a formation whose
+   * progression runs sideways lines up **improper** and is shifted one place
+   * round the ring afterwards (the user's "you still line up improper"), so the
+   * walk's target is every station's place turned back round the ring by the
+   * shift it is about to make. With no shift that is the stations themselves,
+   * which is what it always was.
+   */
+  const emitWalk = (into: TimelineEvent[], shift: LineUpShift): void => {
     if (opts.lineUpBeats <= 0) return;
     const start = at.beat;
-    // Everybody walks to the *next dance's* own first places, which are the
-    // stations unless that dance progresses in its first figure.
-    const endPlaces = next.startPlaces ?? {};
-    for (const { group } of planGroups()) {
+    const places = shiftPlaces(shift);
+    for (const { plan, group } of planGroups()) {
       const to: Record<StationId, StationId> = {};
       for (const station of group.stations) to[station.id] = station.id;
+      const endPlaces = lineUpPlaces(
+        group.stations,
+        // A couple waiting out at the end of a line has nobody to shift with:
+        // it takes hands where it stands.
+        plan.kind === "set" ? places : 0,
+        group.frame.spacing,
+      );
       const params = withDefaults(
         WALK_TO_STATION,
         { origins: originsOf(group), to, endPlaces },
@@ -411,7 +440,42 @@ export function createScriptDecider(
   };
 
   /**
-   * The whole gap between two dances: applause, announcement, walk, ready.
+   * Hands four, in a ring, held into the potatoes.
+   *
+   * One figure over two stretches: it steps in and takes hands over the first
+   * beats of `ringBeats`, moves the ring one place round when the formation
+   * asks, holds it through the first potatoes, and lets go and steps out on to
+   * the next dance's own first places in time for beat 1. That is why it is
+   * emitted once rather than twice — a ring released and retaken across a
+   * stretch boundary would be exactly the "arms disappear at the seam" the
+   * carried-hold work exists to stop.
+   */
+  const emitRing = (into: TimelineEvent[], next: Dance, shift: LineUpShift): void => {
+    const beats = opts.ringBeats + opts.readyBeats;
+    if (beats <= 0) return;
+    const start = at.beat;
+    const def = registry.get(TAKE_HANDS.id);
+    const places = shiftPlaces(shift);
+    const endPlaces = next.startPlaces ?? {};
+    for (const { plan, group } of planGroups()) {
+      const params = withDefaults(
+        def,
+        {
+          origins: originsOf(group),
+          endPlaces,
+          places: plan.kind === "set" ? places : 0,
+          turnBeats: opts.ringBeats - RING_IN_BEATS,
+        },
+        beats,
+      );
+      emitFigure(into, group, def, params, Object.keys(group.members), start);
+    }
+    at.beat = start + beats;
+  };
+
+  /**
+   * The whole gap between two dances: applause, announcement, walk, hands four
+   * in a ring, potatoes.
    *
    * The re-seating that a formation change needs happens between the applause
    * and the announcement — after the hall has finished clapping in the
@@ -427,8 +491,14 @@ export function createScriptDecider(
       formation = nextFormation;
     }
 
-    // The announcement: the title and author, then the formation's own words
-    // for how to stand for it, one bubble each over the announcement's beats.
+    // Which way — if any — this formation's hall moves once it has taken hands
+    // four, read off its own progression rather than out of a table. A set is
+    // needed to measure against; any of the hall's will do, and one seated in
+    // this formation is exactly what `state` now holds.
+    const shift: LineUpShift = state.sets[0] ? lineUpShiftOf(formation, state.sets[0]) : null;
+
+    // The announcement: the title and author, then the words that get the hall
+    // standing for it, one bubble each over the announcement's beats.
     const announceStart = at.beat;
     emitStand(into, opts.announceBeats);
     sayEach(
@@ -438,11 +508,31 @@ export function createScriptDecider(
       opts.announceBeats,
     );
 
-    emitWalk(into, next);
+    // The shift's own words run over the walk and the ring together — which is
+    // when a caller says them, with the hall already moving — rather than over
+    // the announcement, where they would have to share sixteen beats with the
+    // title and cost every bubble half its reading time.
+    const handsFourStart = at.beat;
+    emitWalk(into, shift);
+    emitRing(into, next, shift);
+    sayEach(
+      into,
+      formation.handsFourCalls?.(shift) ?? [],
+      handsFourStart,
+      opts.lineUpBeats + opts.ringBeats,
+    );
 
-    const readyStart = at.beat;
-    emitStand(into, opts.readyBeats);
-    if (opts.readyBeats > 0) say(into, opts.readyCall, readyStart, readyStart + opts.readyBeats);
+    // "HERE WE GO" over the first potatoes, and **off** the bubble by the time
+    // the dance's own first call takes it (`emitCycle`'s `firstCallLeadBeats`).
+    // The bubble shows whichever call started first among those still running
+    // (`callAt` in `apps/web`), so a "here we go" that outlasted the first
+    // figure's call would sit on top of it for the two beats the hall most
+    // needs to read it.
+    const readyStart = at.beat - opts.readyBeats;
+    const readyEnd = at.beat - opts.firstCallLeadBeats;
+    if (opts.readyBeats > 0 && readyEnd > readyStart) {
+      say(into, opts.readyCall, readyStart, readyEnd);
+    }
   };
 
   /** One time through plus, when the dance is ending, the switch to the next. */
@@ -455,7 +545,7 @@ export function createScriptDecider(
       formation = thisFormation;
     }
 
-    emitCycle(into, dance);
+    emitCycle(into, dance, at.timeThrough === 0);
 
     at.timeThrough += 1;
     if (at.timeThrough < item.timesThrough) return;
@@ -516,6 +606,15 @@ function excludedByEnds(
   const ids = new Set(stations.map((s) => s.id));
   return new Set((denied ?? []).filter((id) => ids.has(id)));
 }
+
+/**
+ * Beats the hall spends stepping in to the ring before it starts to turn.
+ *
+ * {@link TAKE_HANDS}' own default, named here because the decider has to take
+ * it off the shift's beats: the shift is "the rest of the hands-four stretch
+ * once everybody has hands".
+ */
+const RING_IN_BEATS: Beat = 2;
 
 /** A runaway guard: no program needs this many times through to reach a beat. */
 const MAX_CYCLES = 10_000;

@@ -1,6 +1,6 @@
 import type { UtteranceEvent } from "@caller/choreo";
-import { APPLAUSE_CALLS, HANDS_FOUR, HERE_WE_GO, nextDanceCall } from "@caller/choreo";
-import { BECKET_LINE_UP_CALLS, DEMO_DANCES, danceBySlug } from "@caller/contra";
+import { APPLAUSE_CALLS, HANDS_FOUR_CALLS, HERE_WE_GO, nextDanceCall } from "@caller/choreo";
+import { becketHandsFourCalls, DEMO_DANCES, danceBySlug } from "@caller/contra";
 import { FONT, layoutBubble } from "@caller/hall";
 import { layoutHall } from "@caller/hall";
 import { describe, expect, it } from "vitest";
@@ -10,9 +10,11 @@ import {
   BETWEEN_DANCES_BEATS,
   CYCLE_BEATS,
   ITEM_BEATS,
-  READY_BEATS,
+  POTATO_BEATS,
+  RING_BEATS,
   TIMES_THROUGH,
   WALK_BEATS,
+  bandPlaying,
   betweenDancesAt,
   betweenDancesStatus,
   createDemoProgram,
@@ -43,7 +45,8 @@ const MAX_COLS = 16;
 const GAP = TIMES_THROUGH * CYCLE_BEATS;
 const ANNOUNCE = GAP + APPLAUSE_BEATS;
 const WALK = ANNOUNCE + ANNOUNCE_BEATS;
-const READY = WALK + WALK_BEATS;
+const RING = WALK + WALK_BEATS;
+const POTATOES = RING + RING_BEATS;
 
 /** Everything the caller says in `[from, to)`, in the order they start. */
 const saidOver = (first: string | undefined, from: number, to: number): UtteranceEvent[] => {
@@ -57,12 +60,14 @@ const saidOver = (first: string | undefined, from: number, to: number): Utteranc
     .sort((a, b) => a.start - b.start);
 };
 
-describe("the interval is four stretches of the silent clock", () => {
-  it("is 8 applause, 16 announcement, 8 walk and 4 ready — 36 in all", () => {
-    expect([APPLAUSE_BEATS, ANNOUNCE_BEATS, WALK_BEATS, READY_BEATS]).toEqual([8, 16, 8, 4]);
-    expect(BETWEEN_DANCES_BEATS).toBe(36);
+describe("the interval is five stretches of the silent clock", () => {
+  it("is 8 applause, 16 announcement, 8 walk, 8 hands four and 4 potatoes — 44 in all", () => {
+    expect([APPLAUSE_BEATS, ANNOUNCE_BEATS, WALK_BEATS, RING_BEATS, POTATO_BEATS]).toEqual([
+      8, 16, 8, 8, 4,
+    ]);
+    expect(BETWEEN_DANCES_BEATS).toBe(44);
     expect(ITEM_BEATS).toBe(TIMES_THROUGH * CYCLE_BEATS + BETWEEN_DANCES_BEATS);
-    expect(ITEM_BEATS).toBe(164);
+    expect(ITEM_BEATS).toBe(172);
   });
 
   it("names each stretch at its own beats, and nothing while the hall is dancing", () => {
@@ -72,9 +77,11 @@ describe("the interval is four stretches of the silent clock", () => {
     expect(betweenDancesAt(ANNOUNCE)).toBe("announcement");
     expect(betweenDancesAt(WALK - 1e-9)).toBe("announcement");
     expect(betweenDancesAt(WALK)).toBe("walk");
-    expect(betweenDancesAt(READY - 1e-9)).toBe("walk");
-    expect(betweenDancesAt(READY)).toBe("ready");
-    expect(betweenDancesAt(ITEM_BEATS - 1e-9)).toBe("ready");
+    expect(betweenDancesAt(RING - 1e-9)).toBe("walk");
+    expect(betweenDancesAt(RING)).toBe("hands-four");
+    expect(betweenDancesAt(POTATOES - 1e-9)).toBe("hands-four");
+    expect(betweenDancesAt(POTATOES)).toBe("potatoes");
+    expect(betweenDancesAt(ITEM_BEATS - 1e-9)).toBe("potatoes");
   });
 
   it("reads back off the programme, looping with it", () => {
@@ -84,7 +91,8 @@ describe("the interval is four stretches of the silent clock", () => {
       [GAP + 1, "applause"],
       [ANNOUNCE + 1, "announcement"],
       [WALK + 1, "walk"],
-      [READY + 1, "ready"],
+      [RING + 1, "hands-four"],
+      [POTATOES + 1, "potatoes"],
       [ITEM_BEATS, null],
       [3 * ITEM_BEATS + GAP + 1, "applause"],
     ] as const) {
@@ -102,7 +110,27 @@ describe("the interval is four stretches of the silent clock", () => {
     expect(status(GAP + 1)).toBe(`Applause for ${DEMO_DANCES[0]!.title}`);
     expect(status(ANNOUNCE + 1)).toBe(`The caller announces ${DEMO_DANCES[1]!.title}`);
     expect(status(WALK + 1)).toBe(`Lining up for ${DEMO_DANCES[1]!.title}`);
-    expect(status(READY + 1)).toBe(`Ready for ${DEMO_DANCES[1]!.title}`);
+    expect(status(RING + 1)).toBe(`Hands four for ${DEMO_DANCES[1]!.title}`);
+    expect(status(POTATOES + 1)).toBe(`Potatoes for ${DEMO_DANCES[1]!.title}`);
+  });
+
+  /**
+   * R1, in the user's words: "band shouldn't be playing when no dancing is
+   * happening." The band goes still for the whole interval and picks its
+   * instruments back up on the first potato, which is what a real band does.
+   */
+  it("has the band playing while a tune is on, still all interval, and back on the potatoes", () => {
+    for (const beat of [0, 1, 63, 64, GAP - 1]) expect(bandPlaying(beat), `${beat}`).toBe(true);
+    for (let beat = GAP; beat < POTATOES; beat += 1) {
+      expect(bandPlaying(beat), `beat ${String(beat)}`).toBe(false);
+    }
+    for (let beat = POTATOES; beat < ITEM_BEATS; beat += 1) {
+      expect(bandPlaying(beat), `beat ${String(beat)}`).toBe(true);
+    }
+    expect(bandPlaying(ITEM_BEATS)).toBe(true);
+    // And it holds for every later item too, not only the first.
+    expect(bandPlaying(3 * ITEM_BEATS + GAP + 1)).toBe(false);
+    expect(bandPlaying(3 * ITEM_BEATS + POTATOES + 1)).toBe(true);
   });
 });
 
@@ -114,43 +142,57 @@ describe("what the caller says between two dances", () => {
     expect(said[said.length - 1]!.end).toBe(ANNOUNCE);
   });
 
-  it("announces a becket dance by name, then the user's own three lines", () => {
+  it("announces every dance by name and then how to take hands four", () => {
     // Airpants leads the programme, so Butter — the demo's only becket — is
-    // the dance being announced in the first interval.
+    // the dance being announced in the first interval. Every formation gets
+    // the same two line-up bubbles now: the words are about the ring, and a
+    // ring is a ring.
     const butter = danceBySlug("butter")!;
     expect(DEMO_DANCES[1]!.slug).toBe("butter");
-    const said = saidOver(undefined, ANNOUNCE, WALK);
-    expect(said.map((u) => u.text)).toEqual([nextDanceCall(butter), ...BECKET_LINE_UP_CALLS]);
-    expect(said[0]!.text).toBe("NEXT: BUTTER, BY GENE HUBERT");
-    // Four bubbles over sixteen beats is four beats each.
-    for (const [i, u] of said.entries()) {
-      expect(u.start).toBe(ANNOUNCE + i * 4);
-      expect(u.end).toBe(ANNOUNCE + (i + 1) * 4);
+    const becket = saidOver(undefined, ANNOUNCE, WALK);
+    expect(becket.map((u) => u.text)).toEqual([nextDanceCall(butter), ...HANDS_FOUR_CALLS]);
+    expect(becket[0]!.text).toBe("NEXT: BUTTER, BY GENE HUBERT");
+
+    // Butter leads, so the dance being announced is duple improper again.
+    const duple = saidOver("butter", ANNOUNCE, WALK);
+    expect(duple.map((u) => u.text)).toEqual([nextDanceCall(DEMO_DANCES[2]!), ...HANDS_FOUR_CALLS]);
+
+    // Three bubbles over sixteen beats, whichever formation it is.
+    for (const said of [becket, duple]) {
+      for (const [i, u] of said.entries()) {
+        expect(u.start).toBeCloseTo(ANNOUNCE + (i * ANNOUNCE_BEATS) / 3, 9);
+        expect(u.end).toBeCloseTo(ANNOUNCE + ((i + 1) * ANNOUNCE_BEATS) / 3, 9);
+      }
     }
   });
 
-  it("announces a duple improper dance by name, then hands four from the top", () => {
-    // Butter leads, so the dance being announced is duple improper again.
-    const next = DEMO_DANCES[2]!;
-    const said = saidOver("butter", ANNOUNCE, WALK);
-    expect(said.map((u) => u.text)).toEqual([nextDanceCall(next), HANDS_FOUR]);
-    // Two bubbles over sixteen beats is eight beats each.
-    expect(said[0]!.end).toBe(ANNOUNCE + 8);
-    expect(said[1]!.end).toBe(WALK);
+  it("gives a becket hall the user's own three sentences over the walk and the ring", () => {
+    // The direction is derived, not typed: `MOVE ONE PLACE TO YOUR LEFT`
+    // because Butter's becket progresses left. A right-progressing becket says
+    // RIGHT — see `@caller/contra`'s `lineUpShift.test.ts`.
+    const said = saidOver(undefined, WALK, POTATOES);
+    expect(said.map((u) => u.text)).toEqual([...becketHandsFourCalls("left")]);
+    expect(said[0]!.text).toBe("MOVE ONE PLACE TO YOUR LEFT");
+    expect(said[0]!.start).toBe(WALK);
+    expect(said[said.length - 1]!.end).toBe(POTATOES);
   });
 
-  it("says nothing new over the walk, then here we go before the tune", () => {
-    expect(saidOver(undefined, WALK, READY)).toEqual([]);
-    const ready = saidOver(undefined, READY, ITEM_BEATS);
-    // "HERE WE GO" first, and then the next dance's own first calls leading
-    // into their figures as they always do. Butter's shift left has a four-beat
-    // lead, so its call starts on the same beat this one does; the bubble shows
-    // whichever was said first and this one is on the timeline first, so "HERE
-    // WE GO" holds the bubble until the dance begins.
-    expect(ready[0]!.text).toBe(HERE_WE_GO);
-    expect(ready[0]!.start).toBe(READY);
-    expect(ready[0]!.end).toBe(ITEM_BEATS);
-    for (const u of ready.slice(1)) expect(u.start).toBeGreaterThanOrEqual(READY);
+  it("says nothing extra while a duple improper hall lines up", () => {
+    expect(saidOver("butter", WALK, POTATOES)).toEqual([]);
+  });
+
+  it("says here we go over the first potatoes and the first figure over the last two", () => {
+    const said = saidOver(undefined, POTATOES, ITEM_BEATS);
+    expect(said[0]!.text).toBe(HERE_WE_GO);
+    expect(said[0]!.start).toBe(POTATOES);
+    // The dance's own first call lands on potato 3: two beats before beat 1,
+    // which is the user's "2 potatoes and then 'balance and swing'". "HERE WE
+    // GO" ends exactly there, so the bubble hands over rather than overlapping.
+    const first = said[1]!;
+    expect(first.start).toBe(ITEM_BEATS - 2);
+    expect(said[0]!.end).toBe(first.start);
+    expect(POTATOES + POTATO_BEATS).toBe(ITEM_BEATS);
+    expect(first.end).toBeGreaterThan(ITEM_BEATS);
   });
 });
 
@@ -162,8 +204,9 @@ describe("every sentence fits the caller's bubble", () => {
   const everything: string[] = [
     ...APPLAUSE_CALLS,
     HERE_WE_GO,
-    HANDS_FOUR,
-    ...BECKET_LINE_UP_CALLS,
+    ...HANDS_FOUR_CALLS,
+    ...becketHandsFourCalls("left"),
+    ...becketHandsFourCalls("right"),
     ...DEMO_DANCES.map(nextDanceCall),
   ];
 

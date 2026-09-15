@@ -29,21 +29,29 @@ export const TIMES_THROUGH = 2;
 export const CYCLE_BEATS = 64;
 
 /**
- * The gap between two dances, in beats of the silent clock, and the four
+ * The gap between two dances, in beats of the silent clock, and the five
  * stretches it is made of.
  *
  * Read off the decider's own options rather than written down again here: the
  * page's arithmetic and the decider's have to agree exactly or the tune drifts
  * against the dance, and the only way to keep two numbers equal is to have
  * one. The lengths themselves are `SCRIPT_DECIDER_DEFAULTS`' — 8 beats of
- * applause, 16 of announcement, 8 of walking and 4 standing ready, 36 in all,
- * which at 112 bpm is a little over nineteen seconds of hall noise between two
- * dances.
+ * applause, 16 of announcement, 8 of walking, 8 taking hands four in a ring
+ * and 4 of potatoes, 44 in all, which at 112 bpm is about twenty-four seconds
+ * between two dances.
  */
 export const APPLAUSE_BEATS = SCRIPT_DECIDER_DEFAULTS.applauseBeats;
 export const ANNOUNCE_BEATS = SCRIPT_DECIDER_DEFAULTS.announceBeats;
 export const WALK_BEATS = SCRIPT_DECIDER_DEFAULTS.lineUpBeats;
-export const READY_BEATS = SCRIPT_DECIDER_DEFAULTS.readyBeats;
+export const RING_BEATS = SCRIPT_DECIDER_DEFAULTS.ringBeats;
+/**
+ * The potatoes: the four beats the band counts the dance in over.
+ *
+ * Still `readyBeats` to the decider — it is the stretch where the hall is ready
+ * and nothing is danced yet — but it is not silent any more, which is why the
+ * page has its own name for it.
+ */
+export const POTATO_BEATS = SCRIPT_DECIDER_DEFAULTS.readyBeats;
 export const BETWEEN_DANCES_BEATS = betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
 
 /** Beats one programme item takes: its times through plus the interval after it. */
@@ -52,19 +60,23 @@ export const ITEM_BEATS = TIMES_THROUGH * CYCLE_BEATS + BETWEEN_DANCES_BEATS;
 /**
  * Beats of **music** one programme item takes: the dancing beats, and no more.
  *
- * The gap between two dances is silent, which is the whole point, and B1 made
- * it four and a half times longer than it was. A dance is two times through of
- * 64 beats and the medley switches tune every 64; the gap is
- * {@link BETWEEN_DANCES_BEATS} = 36, which is not a whole number of anything
- * musical. If the tune kept looping through it, every dance switch would put
- * the music 36 beats out of phase with the dance, and two switches would be
- * more than a whole time through — the drift M9 measured on the page, only
- * worse. So the music runs on its own count of dancing beats, the player stops
- * at the end of the last time through, the whole interval runs on the silent
- * clock, and the next tune starts at **its own beat 0** exactly as the next
- * dance starts (F2's rule). `MUSIC_BEATS_PER_ITEM` is a whole number of tune
- * cycles, which is what makes that true for every dance rather than for the
- * first one.
+ * The gap between two dances carries no tune, which is the whole point. A dance
+ * is two times through of 64 beats and the medley switches tune every 64; the
+ * gap is {@link BETWEEN_DANCES_BEATS} = 44, which is not a whole number of
+ * anything musical. If the tune kept looping through it, every dance switch
+ * would put the music 44 beats out of phase with the dance, and two switches
+ * would be more than a whole time through — the drift M9 measured on the page,
+ * only worse. So the music runs on its own count of dancing beats, the player
+ * stops at the end of the last time through, the whole interval runs on the
+ * silent clock, and the next tune starts at **its own beat 0** exactly as the
+ * next dance starts (F2's rule). `MUSIC_BEATS_PER_ITEM` is a whole number of
+ * tune cycles, which is what makes that true for every dance rather than for
+ * the first one.
+ *
+ * The one sound in the gap is B3's four potatoes, which the player schedules
+ * *ahead* of the tune's own beat 0 rather than as part of it — so this number
+ * stays the count of a tune's own beats and nothing about the arithmetic here
+ * moves (see `@caller/music`'s `Player.play`).
  */
 export const MUSIC_BEATS_PER_ITEM = TIMES_THROUGH * CYCLE_BEATS;
 
@@ -295,8 +307,8 @@ export interface ProgramPosition {
   next: Dance;
 }
 
-/** The four stretches of the between-dances interval, in the order they run. */
-export type BetweenDances = "applause" | "announcement" | "walk" | "ready";
+/** The five stretches of the between-dances interval, in the order they run. */
+export type BetweenDances = "applause" | "announcement" | "walk" | "hands-four" | "potatoes";
 
 /** Which stretch of the interval a beat `into` a programme item falls in. */
 export function betweenDancesAt(into: Beat): BetweenDances | null {
@@ -305,8 +317,23 @@ export function betweenDancesAt(into: Beat): BetweenDances | null {
   if (gap < APPLAUSE_BEATS) return "applause";
   if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS) return "announcement";
   if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS + WALK_BEATS) return "walk";
-  return "ready";
+  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS + WALK_BEATS + RING_BEATS) return "hands-four";
+  return "potatoes";
 }
+
+/**
+ * Whether the band is playing at this beat of the evening.
+ *
+ * True while a tune sounds, and true for the four potatoes before a dance —
+ * which is exactly the moment a real band picks its instruments back up. The
+ * hall's furniture layer takes this as its `playing` option, so a band that is
+ * not playing does not bow, strum, nod or slide along the keys (B3's R1).
+ */
+export const bandPlaying = (beat: Beat): boolean =>
+  musicBeatOf(beat) !== null || betweenDancesAt(intoItem(beat)) === "potatoes";
+
+/** How far into its own programme item a beat is. */
+const intoItem = (beat: Beat): Beat => beat - Math.floor(beat / ITEM_BEATS) * ITEM_BEATS;
 
 /** What the page says it is doing, under the card, between two dances. */
 export function betweenDancesStatus(position: ProgramPosition): string {
@@ -317,8 +344,10 @@ export function betweenDancesStatus(position: ProgramPosition): string {
       return `The caller announces ${position.next.title}`;
     case "walk":
       return `Lining up for ${position.next.title}`;
-    case "ready":
-      return `Ready for ${position.next.title}`;
+    case "hands-four":
+      return `Hands four for ${position.next.title}`;
+    case "potatoes":
+      return `Potatoes for ${position.next.title}`;
     default:
       return `Time through ${String(position.timeThrough + 1)} of ${String(TIMES_THROUGH)}`;
   }

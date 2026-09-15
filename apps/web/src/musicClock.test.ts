@@ -46,7 +46,7 @@ describe("the tune starts at its own beat 0 at every dance start", () => {
     // fell another `BETWEEN_DANCES_BEATS` further into a 64-beat tune cycle.
     const drift = starts.map((s) => s % CYCLE_BEATS);
     expect(drift).toEqual(starts.map((_, i) => (i * BETWEEN_DANCES_BEATS) % CYCLE_BEATS));
-    expect(BETWEEN_DANCES_BEATS).toBe(36);
+    expect(BETWEEN_DANCES_BEATS).toBe(44);
     // Two switches would already be more than a whole time through.
     expect(2 * BETWEEN_DANCES_BEATS).toBeGreaterThan(CYCLE_BEATS);
   });
