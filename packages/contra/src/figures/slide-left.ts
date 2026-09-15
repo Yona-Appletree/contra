@@ -1,6 +1,6 @@
 import type { Beat, Vec2 } from "@caller/core";
 import { addScaled, clamp01, dirOf, mix, smooth } from "@caller/core";
-import type { ContraParams, FigurePlan, PlanContext, Spot, Spots } from "./ContraFigure.js";
+import type { ContraParams, FigurePlan, PlanContext, Spots } from "./ContraFigure.js";
 import { contraFigure } from "./ContraFigure.js";
 import { COUPLE_PITCH_PX } from "../formation/becket.js";
 
@@ -138,12 +138,19 @@ export const slideLeft = contraFigure<SlideLeftParams>({
         const k = stepped(x, steps);
         const cross = crossing.get(station);
         if (cross) {
-          // `TURN_DEG * (k - 1)` runs from a half turn back to none, which
+          // `TURN_DEG * (turned - 1)` runs from a half turn back to none, which
           // sweeps a becket dancer's facing through "down the set": a couple
           // crossing over at the end of a line looks into the set it is
           // crossing rather than out of the hall. The head goes with the body —
           // the turn is already showing them everything a glance would.
-          const turn = TURN_DEG * (k - 1);
+          //
+          // The turn runs on its own single ease rather than on the steps: a
+          // dancer turns through a step, not between steps, so the turn is
+          // fastest exactly where the feet are slowest, and the two never add
+          // their peaks together. Measured over Butter at seven couples, that
+          // is the difference between the outside dancer touching 44.47 px/beat
+          // and 40.78 — see this milestone's report for the whole table.
+          const turn = TURN_DEG * (smooth(clamp01(x)) - 1);
           const home = ctx.stations.find((s) => s.id === station);
           if (!home) throw new Error(`slide-left: no station "${station}"`);
           const c = Math.cos((turn * Math.PI) / 180);
