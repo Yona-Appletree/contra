@@ -609,7 +609,10 @@ export function figureTile(
 ): GalleryTile {
   const engine = tileEngine([id], asked);
   const def = registry.get(id);
-  const found = variant === undefined ? firstCallOf(id) : variantCallOf(id, variant);
+  const found =
+    variant === undefined
+      ? danceableCallOf(id, registry, overrides, engine)
+      : variantCallOf(id, variant);
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
   const beats = variant?.beats ?? found?.call.beats ?? def.beats;
   const params = variant === undefined ? withoutFrom(found?.call.params) : { ...variant.params };
@@ -666,6 +669,11 @@ export function figureTile(
       "no dance in the programme calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over — a lab dance that calls it is in the index below",
     );
   }
+  if (!dancesHere(run, id)) {
+    notes.push(
+      "nobody dances it on this tile: the parameters name a dancer a two-couple set has not got, so the four of them stand",
+    );
+  }
 
   return sized({
     kind: variant === undefined ? "figure" : "variant",
@@ -686,6 +694,65 @@ export function figureTile(
 
 /** How long the standing bracket around a figure that progresses lasts. */
 const BRACKET_BEATS = 4;
+
+/**
+ * **The first call of this figure the tile's own set can actually dance**
+ * (FR-A2), and the definition's own defaults when no dance's can.
+ *
+ * The user, on the pull-by tile: *"no one is moving at all."* And nobody was.
+ * A tile is planned over **one two-couple set** (`tileHall`), and the
+ * parameters it takes are the first call the record makes of the figure —
+ * which for `pull-by` is Whoosh's *"(2) N3 neighbor pull by right"*. In a line
+ * of two couples nobody has an N3, so resolution cast nobody, the planner
+ * emitted no pull-by at all, and the tile drew four dancers standing still
+ * under a caption that said PULL BY.
+ *
+ * So the tile asks the question it was really asking all along — *which of this
+ * figure's calls can these four dance?* — by planning them in the record's own
+ * order and keeping the first whose figure actually reaches somebody. A Rare
+ * Bird's *"neighbor pull by right"* is the one that does, and the tile says so
+ * in its "params from" column. Where none of them do, the tile falls back to
+ * the definition's defaults and {@link figureTile} notes it, so a row can never
+ * silently draw nothing again.
+ *
+ * It costs one extra planner run per figure whose first call is out of reach,
+ * and nothing at all for the rest: the loop stops at the first that dances.
+ */
+function danceableCallOf(
+  id: string,
+  registry: FigureRegistry,
+  overrides: FigureDefaultsOverride,
+  engine: EngineChoice,
+): { dance: Dance; call: FigureCall } | undefined {
+  const calls = callsOf(id, DEMO_DANCES);
+  if (calls.length === 0 || !DATA_IDS.includes(id)) return calls[0];
+  for (const found of calls) {
+    const one: ContraCall = {
+      figure: id,
+      beats: found.call.beats,
+      params: withoutFrom(found.call.params),
+      ...(found.call.who === undefined ? {} : { who: found.call.who }),
+    };
+    const run = planTile({
+      formation: formationFor(found.dance),
+      cycles: [{ calls: [one, one, one] }],
+      overrides,
+      engine,
+    });
+    if (dancesHere(run, id)) return found;
+  }
+  return undefined;
+}
+
+/** Whether anybody on the tile's own group dances this figure at all. */
+function dancesHere(run: TileRun, id: string): boolean {
+  for (const station of run.group.stations) {
+    const dancer = run.group.members[station.id];
+    if (dancer === undefined) continue;
+    if (run.timeline.figuresOf(dancer).some((event) => event.figure === id)) return true;
+  }
+  return false;
+}
 
 /**
  * A tile for one of `@caller/choreo`'s own figures, built without a planner.
