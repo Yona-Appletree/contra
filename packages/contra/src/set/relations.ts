@@ -132,10 +132,18 @@ export const isSymmetricRelation = (rel: Relation): boolean =>
  * Who this relation names, or `undefined` when nobody stands there.
  *
  * `undefined` is an ordinary answer, not a failure: at the end of a line the
- * slot a neighbour offset points at is off the end of the set, and the
- * end-effects policy (M6) is what decides what to do about it. A relation the
- * formation's table has not built throws instead, naming the milestone that
- * owns it.
+ * slot a neighbour offset points at is off the end of the set, and M6's
+ * end-of-set rule is simply that the dancer it leaves out dances hold-place for
+ * that call. A relation the formation's table has not built throws instead,
+ * naming the milestone that owns it.
+ *
+ * **`partner` is the one relation that is not an offset.** It is a *binding* on
+ * the dancer (`DancerState.partner`), which a figure's ends may rebind —
+ * Contrablend's shadow roll-away leaves you with a new partner half way through
+ * the dance, and every "partner" call after it has to mean the new one. The
+ * binding is seeded from the lattice offset when a model is built and re-seeded
+ * from it at every progression, so the two agree everywhere nothing has rebound
+ * anything, which is every dance but Contrablend.
  */
 export function relate(
   model: SetModel,
@@ -146,6 +154,7 @@ export function relate(
   const from = model.dancers[me];
   if (!from) throw new Error(`set "${model.id}" has no dancer "${me}"`);
   if (rel.kind === "self") return me;
+  if (rel.kind === "partner") return from.partner === me ? undefined : from.partner;
   const slot = table.slotFor(rel, from);
   for (const dancer of Object.values(model.dancers)) {
     if (dancer.slot.line === slot.line && dancer.slot.position === slot.position) return dancer.id;

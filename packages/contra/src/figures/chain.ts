@@ -68,6 +68,32 @@ export interface ContraDanceSpec {
   startPlaces?: Spots;
   /** Parameters for the waiting couple's `wait-out`; see `Dance.waitOut`. */
   waitOut?: object;
+  /**
+   * How far each role progresses in one time through, in dancing places.
+   *
+   * Left out is `{ lark: 1, robin: 1 }` — the single progression every dance in
+   * the demo programme dances, and what the formation's own `Progression.next`
+   * answers. A dance that progresses both roles the same whole number of places
+   * (M9's triple-progression Set Monster) writes that number for both; a dance
+   * that progresses them **differently** — Cary Ravitz's Contrablend, "M1, W3"
+   * — writes both, and the set re-partners at the boundary because a lark and
+   * the robin they started beside no longer end on one place. See
+   * `set/lattice.ts`, which is what reads it.
+   */
+  progression?: Readonly<Record<string, number>>;
+}
+
+/**
+ * A contra dance, with the one contra fact a `Dance` does not carry.
+ *
+ * `Dance` is `@caller/choreo`'s and stays form-neutral (AC7): it knows nothing
+ * about larks, robins or progressions. A contra dance's own per-role
+ * progression rides along on the object, where only `@caller/contra` reads it
+ * (`set/lattice.ts`'s `progressionOf`), so the record can say "M1, W3" without
+ * the engine learning what a robin is.
+ */
+export interface ContraDance extends Dance {
+  progression?: Readonly<Record<string, number>>;
 }
 
 /**
@@ -187,7 +213,7 @@ function addCarried(call: FigureCall, way: "in" | "out", joins: readonly HandJoi
  * A dance from its phrases, with every call's places threaded through it and
  * the whole thing checked by the engine's own `validateDance`.
  */
-export function contraDance(spec: ContraDanceSpec): Dance {
+export function contraDance(spec: ContraDanceSpec): ContraDance {
   const stations = spec.formation.group(4);
   const places = danceStart(spec, stations);
   // Threaded as one run and cut back into phrases afterwards, so a hold carries
@@ -207,7 +233,7 @@ export function contraDance(spec: ContraDanceSpec): Dance {
     });
     at += phrase.figures.length;
   }
-  return validateDance({
+  const dance: ContraDance = {
     slug: spec.slug,
     title: spec.title,
     author: spec.author,
@@ -216,7 +242,10 @@ export function contraDance(spec: ContraDanceSpec): Dance {
     ...(spec.notes === undefined ? {} : { notes: spec.notes }),
     ...(spec.startPlaces === undefined ? {} : { startPlaces: { ...spec.startPlaces } }),
     ...(spec.waitOut === undefined ? {} : { waitOut: { ...spec.waitOut } }),
-  });
+    ...(spec.progression === undefined ? {} : { progression: { ...spec.progression } }),
+  };
+  validateDance(dance);
+  return dance;
 }
 
 /** The dancing group's own first places, or `undefined` for the stations. */

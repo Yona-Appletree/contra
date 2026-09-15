@@ -190,9 +190,9 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
     "set0/c1/lark": {
       partner: "set0/c1/robin",
       opposite: "set0/c2/robin",
-      N0: undefined,
+      N0: "set0/c5/robin",
       N1: "set0/c2/robin",
-      N2: "set0/c5/robin",
+      N2: undefined,
       N3: undefined,
       shadow: "set0/c0/robin",
       "trail-buddy": "set0/c3/lark",
@@ -201,9 +201,9 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
     "set0/c4/lark": {
       partner: "set0/c4/robin",
       opposite: "set0/c3/robin",
-      N0: undefined,
+      N0: "set0/c0/robin",
       N1: "set0/c3/robin",
-      N2: "set0/c0/robin",
+      N2: undefined,
       N3: undefined,
       shadow: "set0/c5/robin",
       "trail-buddy": "set0/c2/lark",

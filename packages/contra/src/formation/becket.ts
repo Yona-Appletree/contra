@@ -695,12 +695,21 @@ export const BECKET: Formation = {
 export const BECKET_LATTICE: SetLattice = {
   id: "becket",
   pitch: PLACE_PITCH_PX,
+  // A becket couple slides to its own left — `place - direction` — and a couple
+  // place is two positions, so one progression is minus two positions per unit
+  // of travel.
+  progressionStep: -2,
   slotOf(couple: CoupleState, role: RoleName) {
     const first = (role === "lark") === (couple.direction === 1);
     return {
       line: couple.direction === 1 ? 0 : 1,
       position: 2 * couple.place + (first ? 0 : 1),
     };
+  },
+  placeOf(slot, role: RoleName) {
+    const direction: 1 | -1 = slot.line === 0 ? 1 : -1;
+    const first = (role === "lark") === (direction === 1);
+    return { place: (slot.position - (first ? 0 : 1)) / 2, direction };
   },
   homeAt(slot) {
     return {
@@ -729,8 +738,14 @@ export const BECKET_LATTICE: SetLattice = {
  *   facing, at the same position. One progression slides your line one couple
  *   place one way and the line opposite one couple place the other, so the two
  *   lines move **two** couple places — four positions — relative to each other:
- *   neighbour k is `(k − 1) × 4 × travel` positions along the other line, and
- *   `N0` is four positions back. This is the exact reverse of duple improper's
+ *   neighbour k is `−(k − 1) × 4 × travel` positions along the other line, and
+ *   `N0` is four positions the other way. The sign is negative because a becket
+ *   couple slides to its own **left**, which is `place − direction`
+ *   (`BECKET.progression`), where a duple improper couple travels
+ *   `place + direction` — so one progression is {@link BECKET_LATTICE}'s
+ *   `progressionStep` of `−2` positions per unit of travel, and the general
+ *   rule `N_k = N_1 + (k − 1) × 2 × step × travel` lands here. This is the
+ *   exact reverse of duple improper's
  *   answer for both `partner` and `neighbor`, from the same lattice — which is
  *   why "across" cannot be a `@caller/choreo` meaning (AC7).
  * - **Opposite** is the dancer straight across the set, which in becket is
@@ -760,7 +775,7 @@ export const BECKET_RELATIONS: RelationTable = {
       case "partner":
         return { line, position: position + partnerSide(from.role) * t };
       case "neighbor":
-        return { line: other, position: position + (rel.k - 1) * 4 * t };
+        return { line: other, position: position - (rel.k - 1) * 4 * t };
       case "opposite":
         return { line: other, position };
       case "shadow":

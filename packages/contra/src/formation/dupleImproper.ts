@@ -475,9 +475,17 @@ export const DUPLE_IMPROPER: Formation = {
 export const DUPLE_IMPROPER_LATTICE: SetLattice = {
   id: "duple-improper",
   pitch: PLACE_PITCH_PX,
+  // A duple improper couple trades places with the one it is dancing with,
+  // which is one place the way it travels: one position per unit of travel.
+  progressionStep: 1,
   slotOf(couple: CoupleState, role: RoleName) {
     const onPlus = (role === "lark") === (couple.direction === 1);
     return { line: onPlus ? 1 : 0, position: couple.place };
+  },
+  placeOf(slot, role: RoleName) {
+    // `slotOf` puts a dancer on the `+x` line exactly when their role and their
+    // couple's direction agree, so the line says the direction back.
+    return { place: slot.position, direction: (role === "lark") === (slot.line === 1) ? 1 : -1 };
   },
   homeAt(slot, travel) {
     return {

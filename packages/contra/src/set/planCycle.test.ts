@@ -4,7 +4,10 @@ import { ORACLE_STEP, poseAt, validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES, danceBySlug } from "../dances/index.js";
 import { danceAlone } from "../dances/oracle.js";
-import { legacyCyclePlanner } from "./planCycle.js";
+import { contraDance } from "../figures/chain.js";
+import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { contraDataFigures } from "../library/figures/index.js";
+import { REBIND_PARAM, contraCyclePlanner, legacyCyclePlanner } from "./planCycle.js";
 
 /**
  * What the contra planner claims beyond AC1's poses: that the **chain is off
@@ -73,6 +76,80 @@ describe("the contra planner does not read the chain", () => {
     for (const id of ["circle", "swing", "long-lines", "robins-chain", "hey"]) {
       expect(fromOf(now, id), id).toEqual(fromOf(old, id));
     }
+  });
+});
+
+const DATA_RUN = { cycle: contraCyclePlanner, figures: contraDataFigures() };
+
+describe("a figure's ends can rebind who your partner is (Q14)", () => {
+  /**
+   * Contrablend's shadow roll-away, on its own: a call that says
+   * `rebind: { partner: "shadow" }` leaves everybody bound to their shadow, and
+   * the **next** call that says "partners" pairs the new ones.
+   *
+   * Written as a synthetic two-call dance rather than read off Contrablend
+   * because Contrablend's B2 needs a shoulder round, which is M5's — see this
+   * milestone's report.
+   */
+  const ROLL_AND_SWING = contraDance({
+    slug: "rebind-probe",
+    title: "Rebind probe",
+    author: "M6",
+    formation: DUPLE_IMPROPER,
+    phrases: [
+      {
+        name: "A1",
+        figures: [
+          {
+            figure: "roll-away",
+            beats: 8,
+            params: { [REBIND_PARAM]: { partner: "shadow" } },
+          },
+          { figure: "swing", beats: 8, params: { pairs: "partners" } },
+        ],
+      },
+    ],
+  });
+
+  it("pairs the shadow when the call before it rebound the partner", () => {
+    const timeline = danceAlone(ROLL_AND_SWING, 6, 16, {}, DATA_RUN).timeline();
+    const pairs = new Set(
+      figures(timeline)
+        .filter((e) => e.figure === "swing")
+        .map((e) => Object.values(e.bindings).sort().join(" + ")),
+    );
+    // The shadow rows `relations.test.ts` derives by hand: `c1/lark`'s shadow is
+    // `c3/robin` and `c4/lark`'s is `c2/robin`. Both of them are two places
+    // along the set, so the swing is resolved in the **lane**: it pairs dancers
+    // who are not in the same minor set at all.
+    expect(pairs).toContain("set0/c1/lark + set0/c3/robin");
+    expect(pairs).toContain("set0/c2/robin + set0/c4/lark");
+    // And the end of the set: `c0/lark` has no shadow (the slot is off the top
+    // of the line), so his binding is left alone and he keeps his own partner.
+    expect(pairs).toContain("set0/c0/lark + set0/c0/robin");
+  });
+
+  it("leaves the partner alone when nothing rebinds it", () => {
+    const plain = contraDance({
+      ...ROLL_AND_SWING,
+      slug: "rebind-probe-off",
+      formation: DUPLE_IMPROPER,
+      phrases: [
+        {
+          name: "A1",
+          figures: [
+            { figure: "roll-away", beats: 8 },
+            { figure: "swing", beats: 8, params: { pairs: "partners" } },
+          ],
+        },
+      ],
+    });
+    const timeline = danceAlone(plain, 6, 16, {}, DATA_RUN).timeline();
+    const pairs = figures(timeline)
+      .filter((e) => e.figure === "swing")
+      .map((e) => Object.values(e.bindings).sort().join(" + "))
+      .sort();
+    expect(pairs).toContain("set0/c2/lark + set0/c2/robin");
   });
 });
 
