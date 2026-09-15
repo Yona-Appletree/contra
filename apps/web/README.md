@@ -120,11 +120,27 @@ their own and are reached by URL or by a link on the page above them.
   is the Stage tab already playing it. A **lab dance** (`DanceFile.status:
 "lab"`) has no card here — that is what the status means — but has its own
   dance page and dances on the Stage from `#/dance/<slug>`.
-- `#/dances/<slug>` — one dance's own reference sheet (U3): the head, the
-  static calling card, the shapes, the walkthrough, and (M3) **how it
-  resolves** — every figure instance the planner makes of the dance, one time
-  through, with its cast, anchor, ends, carried hands and anybody it left
-  standing. The same table `pnpm dance <slug>` prints, from the same function.
+- `#/dances/<slug>` — one dance's own reference sheet (U3): the head, **two
+  cards** (M13), the shapes, and (M3) **how it resolves** — every figure
+  instance the planner makes of the dance, one time through, with its cast,
+  anchor, ends, carried hands and anybody it left standing, the same table
+  `pnpm dance <slug>` prints, from the same function.
+
+  The **calling card** (`dance-page-calling-card`) is what a caller says for
+  this dance at every register: one row per written call, one column per time
+  through — the whole sentence the first time, the middle form for the next
+  two, a word after that. Only the first column is coloured, by part (who /
+  what / which way / how far, D26; `cards/callColours.ts`), and the short forms
+  are plain ink (D32).
+
+  The **walkthrough card** (`dance-page-walkthrough`) is the dance as a caller
+  would teach it: the formation's own opening, one `walkthrough-entry` per call
+  with its beats in their own column, its name, one `walkthrough-more` and a
+  `walkthrough-show` link into the figure from **this dance's own resolution**
+  (`#/moves/<figure>?dance=<slug>&figure=<index>`), and the ending hint
+  (`walkthrough-hint`) under "more". Both cards are computed — nothing about
+  either is stored — from the same `callScript` and `danceWalkthrough` the
+  Stage's own bubble and note card read.
 - **Tunes** (`#/tunes`, F4). **A jukebox** — the user: "something where you
   can pick the tune but stay on the same page to listen". The book of tunes
   `@caller/music` bundles down one side, reels then jigs, one row each with
