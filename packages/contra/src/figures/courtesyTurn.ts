@@ -2,9 +2,12 @@ import type { Angle, Beat, Hand, Vec2 } from "@caller/core";
 import {
   ARM_REACH_PX,
   SHOULDER_WIDTH_PX,
+  angleDiff,
   bodyPoint,
+  dirOf,
   dist,
   mix,
+  norm,
   ramp,
   rightOf,
   smooth,
@@ -169,6 +172,158 @@ export function courtesyTurn(spec: CourtesyTurnSpec): CourtesyTurn {
     lark: (t) => at(t, axisFrom + 180, larkRadius, spec.lark),
     robin: (t) => at(t, axisFrom, robinRadius, spec.robin),
   };
+}
+
+/**
+ * The other candidate courtesy turn (F9): the lark **steps in** a little, she
+ * comes the whole way to him, and the couple **spins** instead of wheeling.
+ *
+ * This is the geometry `main` dances today (F5), written as a second
+ * constructor so that the two can be put side by side rather than argued about.
+ * It gives up exactly one thing {@link courtesyTurn} guarantees — that the
+ * couple is a rigid body — and buys with it the one thing a rigid turn provably
+ * cannot have at this set width: a **right-shoulder** pull by in the centre.
+ *
+ * **Why the two cannot both be had.** A rigid half turn reverses the couple's
+ * own line, so the take is the finish reflected through the pivot: the robin
+ * stands on the far side of the lark from her own place when the hands close,
+ * which is to say she stops short of the middle of the set and so does the
+ * other robin — and two robins who both stop short of the middle are on each
+ * other's *left*, at any pivot (F8's closed form; see `knownWrong.ts`). To pass
+ * right shoulders she has to keep going past the middle, which means her take
+ * is on the *near* side of the lark — his left — and a body that turns 180°
+ * swaps which of its own sides a fixed direction is on, so the couple's line
+ * has to sweep **nothing at all** for her to end on his right. The two bodies
+ * do all of the turning and the couple's line only drifts. That is what "the
+ * arms basically stay put" costs here: the joined hands slide across the two
+ * bodies instead of riding them.
+ *
+ * The one knob is {@link StepInTurnSpec.stepInPx}: how far off his place the
+ * lark steps to meet her, which is also how far short of her own place she
+ * stops. A small step leaves him nearly home and the couple taking hands a long
+ * way apart; a large one walks him into the set and closes the take up.
+ */
+export function stepInTurn(spec: StepInTurnSpec): CourtesyTurn {
+  // She stops `stepInPx` short of her place, still on the line she pulled by
+  // along; he steps the same distance off his place straight at her, but never
+  // so far that the two of them are already inside the hold — in becket her
+  // place is 20 px from his and the whole step would walk him into her.
+  const robinTake = toward(spec.robin.p, spec.robinFrom, spec.stepInPx);
+  const step = Math.min(spec.stepInPx, Math.max(0, dist(spec.lark.p, robinTake) - spec.hold));
+  const larkTake = toward(spec.lark.p, robinTake, step);
+  const takes = {
+    lark: { p: larkTake, facing: spec.lark.facing + 180 },
+    robin: { p: robinTake, facing: spec.robin.facing + 180 },
+  };
+
+  // His body turns the way his feet go: the half turn, round the way that
+  // leaves the ground he covers behind him.
+  const bodyTurn = backwardArc(180, sub(spec.lark.p, larkTake), takes.lark.facing);
+
+  const axisFrom = bearing(larkTake, robinTake);
+  const axisTo = bearing(spec.lark.p, spec.robin.p);
+  const arc = angleDiff(axisFrom, axisTo);
+  // A couple that swaps ends has an axis that turns a half either way and
+  // `angleDiff` cannot say which; the bodies can.
+  const sweep = Math.abs(Math.abs(arc) - 180) < 1e-9 ? Math.sign(bodyTurn) * 180 : arc;
+
+  const pivotFrom = midpoint(larkTake, robinTake);
+  const pivotTo = midpoint(spec.lark.p, spec.robin.p);
+  const sepFrom = dist(larkTake, robinTake);
+  const sepTo = dist(spec.lark.p, spec.robin.p);
+  const hold = Math.min(spec.hold, sepFrom);
+  const openBeats = Math.min(Math.max(spec.openBeats, 0), spec.beats);
+  const closeBeats = Math.min(Math.max(spec.closeBeats, 0), spec.beats - openBeats);
+  // The rotation finishes before the opening out begins, as the rigid turn's
+  // does, so the two candidates can be read against the same beats.
+  const turnBeats = spec.beats - openBeats;
+
+  const at = (t: Beat, side: -1 | 1, end: Spot): Spot => {
+    const k = turnBeats <= 0 ? 1 : smooth(Math.min(t, turnBeats) / turnBeats);
+    const close = closeBeats <= 0 ? 1 : ramp(t, 0, closeBeats);
+    const open = ramp(t, turnBeats, spec.beats);
+    const axis = dirOf(axisFrom + sweep * k);
+    const reach = (mix(mix(sepFrom, hold, close), sepTo, open) / 2) * side;
+    const pivot: Vec2 = [mix(pivotFrom[0], pivotTo[0], k), mix(pivotFrom[1], pivotTo[1], k)];
+    return {
+      p: [pivot[0] + axis[0] * reach, pivot[1] + axis[1] * reach],
+      facing: end.facing - bodyTurn * (1 - k),
+    };
+  };
+
+  return {
+    takes,
+    bodyTurn,
+    sweep,
+    hold,
+    pivot: pivotFrom,
+    larkRadius: hold / 2,
+    robinRadius: hold / 2,
+    turnBeats,
+    lark: (t) => at(t, -1, spec.lark),
+    robin: (t) => at(t, 1, spec.robin),
+  };
+}
+
+/** What a figure hands {@link stepInTurn}. */
+export interface StepInTurnSpec {
+  /** Where the turn leaves the lark: his place, facing in. */
+  lark: Spot;
+  /** Where the turn leaves the robin: beside him on his right, facing in. */
+  robin: Spot;
+  /** Where the robin is coming from, so her take sits on her way there. */
+  robinFrom: Vec2;
+  /** How far apart the couple turns once it has closed up, px. */
+  hold: number;
+  /**
+   * How far the lark steps off his place to meet her, px — and how far short of
+   * her own place she stops. The whole difference between F9's two step-in
+   * candidates is this number.
+   */
+  stepInPx: number;
+  /** How long the whole turn takes. */
+  beats: Beat;
+  /** How long the couple takes to close up on to the hold, at the start. */
+  closeBeats: Beat;
+  /** How long the opening out on to the two places takes, at the end. */
+  openBeats: Beat;
+}
+
+/**
+ * How far apart a **spinning** couple may turn: the whole hold, halved for the
+ * couple beside it.
+ *
+ * {@link courtesyHold}'s rule is the rigid turn's — the clearance is spent on
+ * the robin's arc and the lark's circle is added back. A couple that spins has
+ * no arc and no circle: the two of them stand `hold` apart and turn on the
+ * spot, so the clearance is the whole hold's to spend, which is what `main`'s
+ * own courtesy hold does and what this is.
+ */
+export function stepInHold(spacing: number, pivot: Vec2, pivots: readonly Vec2[]): number {
+  return Math.min(2 * orbitRadius(spacing / 2, pivot, pivots), COURTESY_REACH_HOLD_PX);
+}
+
+/**
+ * `arc`, or the way round the other way, so that a dancer who covers `move`
+ * while turning it is walking backward — judged half way round, which is where
+ * `walksBackward` reads the facing and where a turning dancer's facing is the
+ * one the whole arc is about.
+ */
+function backwardArc(arc: number, move: Vec2, facing: Angle): number {
+  const other = arc > 0 ? arc - 360 : arc + 360;
+  const forward = (a: number): number => {
+    const d = dirOf(facing + a / 2);
+    return move[0] * d[0] + move[1] * d[1];
+  };
+  return forward(arc) <= forward(other) ? arc : other;
+}
+
+/** `d` px from `a` along the line toward `b`; `a` itself if the two coincide. */
+function toward(a: Vec2, b: Vec2, d: number): Vec2 {
+  const away = sub(b, a);
+  if (Math.hypot(away[0], away[1]) <= 1e-9) return a;
+  const u = norm(away);
+  return [a[0] + u[0] * d, a[1] + u[1] * d];
 }
 
 /**
