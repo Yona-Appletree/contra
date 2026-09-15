@@ -12,6 +12,7 @@ import type { SlotView, TargetShape } from "../set/shape.js";
 import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
 import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
+import { recordClaim, takenIn } from "./kinds/places.js";
 
 /**
  * **The interpreter**: a {@link FigureDefinition} as the `ContraFigure` a coded
@@ -54,6 +55,12 @@ export interface ResolvedAnchor {
  *   pairs of a minor set swing at once and their orbits have to clear each
  *   other; one instance per pair means the clearance is a fact about the
  *   resolution rather than about the figure, so resolution supplies it.
+ * - **`claims`** (M9d) — the same fact one step further on: which of `homes`
+ *   the other instances have already *settled on*, and which of them somebody
+ *   is standing through the call on. `nearby` keeps two orbits from fouling
+ *   each other on the way round; `claims` keeps them from finishing on one
+ *   floor point. See `kinds/places.ts`'s `PlaceLedger` — no figure reads it
+ *   directly and none should.
  */
 export interface InterpretedParams extends ContraParams {
   /**
@@ -69,6 +76,15 @@ export interface InterpretedParams extends ContraParams {
   homes: readonly Vec2[];
   /** Frame-local centres of the sibling instances of this call. */
   nearby: readonly Vec2[];
+  /**
+   * This instance's seat at the call's per-frame place ledger (M9d), when the
+   * call was resolved against a set and handed the formation's places.
+   *
+   * Typed as `unknown` here on purpose: a figure must not read it. `takenIn`
+   * and `recordClaim` in `kinds/places.ts` are the only two that do, and
+   * `ShapeInput.spokenFor` is what a shape kind sees.
+   */
+  claims?: unknown;
   /**
    * The set's own lattice in this instance's frame, when the call was resolved
    * against a set (M7).
@@ -96,6 +112,16 @@ export interface ShapeInput {
   places?: readonly Vec2[];
   /** The centres of the sibling instances, frame-local. */
   nearby: readonly Vec2[];
+  /**
+   * Which of `places` are spoken for (M9d): the places a peer instance of this
+   * very call has already settled on, and the places somebody is standing
+   * through the call on.
+   *
+   * Frame-local px, and a **ranking** rather than a prohibition: a search that
+   * cannot avoid one still takes it. See `kinds/places.ts`'s `PlaceLedger`.
+   * Left out, nothing is spoken for — a figure planned outside a resolution.
+   */
+  spokenFor?: readonly Vec2[];
   /** Whether the figure gathers on to `homes`. */
   gathers: boolean;
   /** The shape the figure forms, when its `ends` names one (Q6, M7). */
@@ -187,6 +213,7 @@ export function planDefinition(
 ): FigurePlan {
   const roles = ctx.ids;
   const places = params.homes.length > 0 ? params.homes : undefined;
+  const spokenFor = takenIn(params);
   // **The anchor is read over the dancers in scope**, not over the whole cast:
   // a sequence part planned for two of a hands-four anchors on those two. For
   // the figure itself `inner` is `ctx` and `inner.ids` is `roles`, so nothing a
@@ -204,6 +231,7 @@ export function planDefinition(
     anchorOf: anchorIn,
     ...(places === undefined ? {} : { places }),
     nearby: params.nearby,
+    spokenFor,
     // A figure that forms a shape may also settle it on to the formation's own
     // places, and says so in the target: `"home"` is not the only way to be a
     // gatherer since M7, but forming a shape does not make you one.
@@ -213,7 +241,16 @@ export function planDefinition(
     joinedIn: carriedJoins(params, "in"),
     joinedOut: carriedJoins(params, "out"),
   };
-  return planShape(def.shape, def.holds, input);
+  const plan = planShape(def.shape, def.holds, input);
+  // **The one place an instance's claim is written** (M9d), and it is written
+  // from the plan's own ends rather than from the search inside it: what an
+  // instance takes off the pool is where its dancers really finish, which keeps
+  // every shape kind honest without any of them knowing the ledger exists. It
+  // is a no-op for a figure planned outside a resolution, and idempotent — the
+  // plan is a pure function of the earlier instances' claims, so re-planning
+  // this one writes the same answer back.
+  recordClaim(params, input.gathers ? (places ?? []) : [], plan.ends);
+  return plan;
 }
 
 /**

@@ -26,6 +26,7 @@ import { midpoint } from "../figures/ContraFigure.js";
 import type { FigureDefinition, FigureRole } from "../library/FigureDefinition.js";
 import type { Library } from "../library/Library.js";
 import { paramDefaults } from "../library/interpret.js";
+import { CLAIMS_PARAM, type PlaceLedger } from "../library/kinds/places.js";
 import { homeOf, type SetModel } from "./SetModel.js";
 import type { SlotView } from "./shape.js";
 import { lanePlaces, relatedPairs, relationLeavesTheFour } from "./lattice.js";
@@ -161,7 +162,12 @@ export const LANE_ROLES = "*";
  * would change the timeline's event count and `timeline.dancers()`' insertion
  * order, which the oracle reports AC1 compares are sensitive to.
  */
-export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): FigureInstance[] {
+export function resolveCall(
+  call: FigureCall,
+  ctx: ResolveContext,
+  at: Beat,
+  ledgers: PlaceLedgers = new Map(),
+): FigureInstance[] {
   const def = ctx.library.get(call.figure);
   // Since M7 every `ActorRule` and every `AnchorRule` the design names is built,
   // so there is nothing left here to refuse: `"each"` is one instance per
@@ -186,7 +192,7 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     ...(call.params as Record<string, unknown> | undefined),
   };
   const lane = laneFor(call, def, ctx, selector, params);
-  if (lane !== undefined) return resolveInLane(call, def, ctx, at, params, lane);
+  if (lane !== undefined) return resolveInLane(call, def, ctx, at, params, lane, ledgers);
   const out: FigureInstance[] = [];
   for (const plan of ctx.groups) {
     // A group this call's partition left standing out dances nothing here: its
@@ -253,12 +259,19 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     // turning beside another pair has to clear. A fact about the resolution,
     // not about the figure, so the figure is handed it.
     const centres = instances.map((instance) => instanceCentre(instance));
+    // **The claims ledger for this frame** (M9d): the second fact about the
+    // resolution that an instance of a call cannot work out alone. The pool of
+    // places is shared and the choosing is per instance, so the choices have to
+    // be told about each other; see `kinds/places.ts`'s `PlaceLedger`.
+    const ledger = ledgerFor(ledgers, plan.frame);
     for (const instance of instances) {
       if (instance.group !== plan) instance.params["nearby"] = centres;
+      seatAtLedger(instance, ledger);
       out.push(instance);
     }
 
     if (resting.length > 0) {
+      holdPlaces(ctx, plan, resting, ledger.ledger);
       out.push({
         figure: HOLD_PLACE_FIGURE,
         params: {},
@@ -272,6 +285,80 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     }
   }
   return out;
+}
+
+/**
+ * One {@link PlaceLedger} per **frame**, for the length of one call.
+ *
+ * Per frame is measured rather than chosen: a pool is frame-local px and the
+ * two minor sets of a duple improper line hold the same four numbers in two
+ * frames, so one ledger for the whole call has `p0`'s swing taking a place away
+ * from `p2`'s — Chorus Jig, beat 16, `c2/lark` standing on `c3/lark` (M9b).
+ */
+export type PlaceLedgers = Map<string, LedgerSeat>;
+
+/** A ledger, the frame it is in, and how many instances have been seated at it. */
+interface LedgerSeat {
+  frame: Frame;
+  ledger: PlaceLedger;
+  next: number;
+}
+
+/** The ledger for this frame, made on first use. */
+function ledgerFor(ledgers: PlaceLedgers, frame: Frame): LedgerSeat {
+  const key = `${String(frame.centre[0])},${String(frame.centre[1])},${String(frame.axis)},${String(frame.spacing)}`;
+  const seen = ledgers.get(key);
+  if (seen) return seen;
+  const made: LedgerSeat = { frame, ledger: { by: new Map(), held: [] }, next: 0 };
+  ledgers.set(key, made);
+  return made;
+}
+
+/**
+ * Give one instance its seat at the frame's ledger, in resolution order.
+ *
+ * Only an instance that was handed the formation's places has anything to
+ * claim: a figure that does not gather ends where its own geometry leaves it
+ * and takes nothing off the pool.
+ */
+function seatAtLedger(instance: FigureInstance, seat: LedgerSeat): void {
+  const homes = instance.params["homes"];
+  if (!Array.isArray(homes) || homes.length === 0) return;
+  instance.params[CLAIMS_PARAM] = { ledger: seat.ledger, me: seat.next };
+  seat.next += 1;
+}
+
+/**
+ * **A dancer standing through a call occupies their place for its whole span**
+ * — the brief's own rule, and Jeremy Corners' beat 48.
+ *
+ * B1's balance and swing is a gatherer, and it settled the ones on to `(16, 20)`
+ * and `(−16, 20)` — where the twos had been standing since beat 32, because the
+ * twos are an instance of that call too, on hold-place, and a pool of the
+ * group's four homes says nothing at all about who is already on them.
+ *
+ * **Where they are standing, not the place the lattice calls theirs**, and the
+ * difference is measured. A dancer left off the places by the figure before is
+ * not on any of them, and blocking "their" home anyway takes a place out of the
+ * pool that nobody is on: with the lattice reading, Chorus Jig, Whoosh and A
+ * Rare Bird — three of the fifteen — went from green to `collision 0.000 px`,
+ * because the ones' gatherer was pushed off the two places it had always taken
+ * by a couple that was nowhere near them. Standing where they stand costs no
+ * threshold either: a dancer a gatherer put on a place is on it to the last bit
+ * of the number the place was computed as, and a point that is not one of the
+ * pool's places simply never matches one.
+ */
+function holdPlaces(
+  ctx: ResolveContext,
+  plan: GroupPlan,
+  resting: readonly StationId[],
+  ledger: PlaceLedger,
+): void {
+  for (const id of resting) {
+    const dancer = plan.members[id];
+    if (dancer === undefined || ctx.model.dancers[dancer] === undefined) continue;
+    ledger.held.push(localSpot(ctx, dancer, plan.frame).p);
+  }
 }
 
 /**
@@ -304,8 +391,12 @@ export function resolveConcurrent(
 
   const dancing: FigureInstance[] = [];
   const holding: FigureInstance[] = [];
+  // **One ledger per frame for the whole call**, branches included (M9d). The
+  // branches of a `while` are one call, so two of them settling in one frame
+  // are two instances of one call and have to see each other's claims.
+  const ledgers: PlaceLedgers = new Map();
   for (const branch of concurrentCalls(call)) {
-    for (const instance of resolveCall(branch, ctx, at)) {
+    for (const instance of resolveCall(branch, ctx, at, ledgers)) {
       (instance.holdPlace ? holding : dancing).push(instance);
     }
   }
@@ -342,6 +433,15 @@ export function resolveConcurrent(
     // it: a dancer nobody named waits out all of `(2) cast back || go forward`.
     if (seen) Object.assign(seen.cast, kept);
     else rest.set(instance.group.id, { ...instance, cast: kept, beats: callBeats(call) });
+  }
+  // **Who is really standing through this call**, and therefore whose places are
+  // really held. Each branch's own complement includes the dancers the *other*
+  // branches cast, so the per-branch answer over-claims; the merged one above is
+  // the truth and it is what the ledgers are given.
+  for (const seat of ledgers.values()) seat.ledger.held.length = 0;
+  for (const instance of rest.values()) {
+    const seat = ledgerFor(ledgers, instance.frame);
+    holdPlaces(ctx, instance.group, Object.keys(instance.cast), seat.ledger);
   }
   return [...dancing, ...rest.values()];
 }
@@ -522,6 +622,7 @@ function resolveInLane(
   at: Beat,
   params: Record<string, unknown>,
   lane: LanePool,
+  ledgers: PlaceLedgers,
 ): FigureInstance[] {
   const plan = lane.plan;
   // **`actors: "line"` is one instance per line of the lattice**, not one for
@@ -565,15 +666,18 @@ function resolveInLane(
     instances.push({ ...made, params: { ...made.params, homes, nearby: [] } });
   }
   const centres = instances.map((instance) => instanceCentre(instance));
+  const seat = ledgerFor(ledgers, plan.frame);
   const out: FigureInstance[] = [];
   for (const instance of instances) {
     instance.params["nearby"] = centres;
+    seatAtLedger(instance, seat);
     out.push(instance);
   }
 
   const taken = new Set(dancing.flat());
   const resting = plan.stations.map((s) => s.id).filter((id) => !taken.has(id));
   if (resting.length > 0) {
+    holdPlaces(ctx, plan, resting, seat.ledger);
     out.push({
       figure: HOLD_PLACE_FIGURE,
       params: {},

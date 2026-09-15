@@ -39,7 +39,7 @@ import { evalAngle, evalMoment, evalNumber } from "../expr.js";
 import { type ShapeInput } from "../interpret.js";
 import type { ActivePairHold } from "./holds.js";
 import { activeHolds, endsOfHold, joinsHeldAt } from "./holds.js";
-import { placePairFor } from "./places.js";
+import { NOTHING_SPOKEN_FOR, placePairFor } from "./places.js";
 
 /**
  * **The orbit for two**: the swing and the allemande, as one shape with
@@ -251,6 +251,10 @@ function settle(
 ): Settled {
   const { ctx, roles } = input;
   const places = input.gathers ? (input.places ?? stationPoints(input)) : stationPoints(input);
+  // The ledger ranks the **formation's** places, so it says nothing about the
+  // fallback: a figure planned from its own stations has no pool to share.
+  const spoken =
+    input.gathers && input.places ? (input.spokenFor ?? NOTHING_SPOKEN_FOR) : NOTHING_SPOKEN_FOR;
   const psi0 = bearing(centre, ctx.spot(shape.axisRole ?? b).p);
   const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
 
@@ -264,7 +268,7 @@ function settle(
     // stations the two passes agree, because the places *are* where the pair is
     // standing; from anywhere else the second is the honest one.
     const rough = endFacingOf(word, ctx.spot(a).p, ctx.spot(b).p, centre, ctx.spot(a).facing);
-    const pair = placePairFor(places, centre, rough, separation);
+    const pair = placePairFor(places, centre, rough, separation, spoken);
     // The two ends of that pair of places, **in the order the call named the
     // dancers** — nearest to the first of them first. `endFacingOf` breaks the
     // tie a pair standing square across the set leaves ("both ways square to
@@ -302,7 +306,22 @@ function settle(
   // `"turned"`: each dancer ends on their own orbit angle, facing the centre,
   // as far out as the formation's own places are — which is the whole of what
   // `endHalf` was ever written by hand to say.
-  const pair = placePairFor(places, centre, bearing(ctx.spot(a).p, ctx.spot(b).p) + 90, separation);
+  //
+  // **And it takes no place, so nothing is spoken for** (M9d). This branch only
+  // ever borrows the *distance between* two places; the dancers end on their own
+  // orbit angles, which are nobody's home. Ranking the search here moves an
+  // allemande's ends without de-conflicting anything: measured on Fatal
+  // Attraction's `robins-chain`, it widened the pair's half from 9.512 to
+  // 12.627 px, which cost the `robins-chain -> promenade` seam 8.0 px of closure
+  // (39.1798 → 47.2230) and 7.6 px of reach (26.7595 → 34.3920) at every checked
+  // length, and changed no collision anywhere.
+  const pair = placePairFor(
+    places,
+    centre,
+    bearing(ctx.spot(a).p, ctx.spot(b).p) + 90,
+    separation,
+    NOTHING_SPOKEN_FOR,
+  );
   const ends: Spots = {};
   const half: Record<FigureRole, number> = {};
   for (const role of roles) {
