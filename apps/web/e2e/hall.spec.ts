@@ -325,9 +325,9 @@ test("the caller announces the next dance, and says the becket lines for a becke
   // Butter's becket progresses left, so the caller says left. The direction is
   // measured off the formation's own progression, never typed — see
   // `@caller/contra`'s `lineUpShift.test.ts` for the right-progressing branch.
-  expect(said.move).toBe("MOVE ONE PLACE TO YOUR LEFT");
+  expect(said.move).toBe("CIRCLE ONE PLACE TO YOUR LEFT");
   expect(said.becket).toBe("THIS IS A BECKET DANCE");
-  expect(said.becketPartner).toBe("YOUR PARTNER IS ON THE SIDE OF THE SET WITH YOU");
+  expect(said.becketPartner).toBe("YOUR PARTNER IS BESIDE YOU");
   expect(said.potatoes).toBe("HERE WE GO");
   // The dance's own first figure, said over the last two potatoes.
   expect(said.first).not.toBe("HERE WE GO");

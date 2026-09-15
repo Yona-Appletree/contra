@@ -371,8 +371,14 @@ export function moveVariants(def: FigureDefinition, dances: readonly MoveUse[]):
   for (const key of Object.keys(FIGURE_TEXTS[def.id]?.variants ?? {})) {
     const at = key.indexOf("=");
     if (at < 0) continue;
-    const name = key.slice(0, at);
-    if (!(name in defaults)) continue;
+    // **`who` is the call's word, not the figure's** (M13): a text keyed
+    // `who=robins` is the prose for the tuning whose *pairing parameter* names
+    // the two robins, and which parameter that is — `pairs`, `couples` — is the
+    // definition's business. Without this the four role variants the allemande
+    // and the do-si-do write had no row at all, which is M12's first finding
+    // read the other way round.
+    const name = pairingParamOf(key.slice(0, at), defaults);
+    if (name === undefined) continue;
     add({ [name]: sameShapeAs(defaults[name], key.slice(at + 1)) }, "texts");
   }
 
@@ -386,6 +392,19 @@ export function moveVariants(def: FigureDefinition, dances: readonly MoveUse[]):
     ...found.texts.slice(0, MAX_VARIANTS.texts),
     ...found.spec.slice(0, MAX_VARIANTS.spec),
   ];
+}
+
+/**
+ * Which parameter a text variant's key names: its own, or — for `who` — the
+ * pairing parameter this definition happens to declare.
+ */
+function pairingParamOf(
+  name: string,
+  defaults: Readonly<Record<string, ParamValue>>,
+): string | undefined {
+  if (name in defaults) return name;
+  if (name !== "who") return undefined;
+  return ["pairs", "couples"].find((each) => each in defaults);
 }
 
 /** The most parameter rows one definition puts on the page, per source. */

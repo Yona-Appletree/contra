@@ -91,6 +91,8 @@ interface Formation {
   id;
   roleSet: RoleSet;
   lineUpCalls?: readonly string[];
+  handsFourCalls?: (shift: LineUpShift) => readonly string[];
+  walkthroughOpening?: (shift: LineUpShift) => { line: string; hint?: string };
   group(n: number): Station[];
   groupFor(selector: GroupSelector): Station[];
   progression: Progression;
@@ -99,6 +101,13 @@ interface Formation {
   tags(selector: GroupSelector): Record<string, StationId[]>;
 }
 ```
+
+**A formation supplies its own words**, heard and read. `lineUpCalls` and
+`handsFourCalls` are what the caller says to get a hall standing in it (a
+becket hall hears a third sentence after it has hands); `walkthroughOpening` is
+the sentence a **walkthrough card** opens on, plus the app's own note under it.
+The two are drawn from one vocabulary on purpose, so what a dancer reads and
+what the hall hears are the same sentences.
 
 **Groups are formed per figure call, by a selector.** `groupsFor` is asked
 once for every call in a dance, not once per time through, and a call says

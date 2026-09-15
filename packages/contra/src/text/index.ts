@@ -41,5 +41,23 @@ export {
 export type { WhoWord } from "./relationWords.js";
 export { relationWords, whoKey, whoOf } from "./relationWords.js";
 
-export type { Place, Relation } from "./landmark.js";
-export { facingClause, isHome, landmark, relationOf } from "./landmark.js";
+export { HOME_PX, isHome, landmark, placesOf } from "./landmark.js";
+
+export type { Hint, Need, Place, SeamRelation, SeamSide } from "./seam.js";
+export {
+  NEXT_TO_PX,
+  SAME_LINE_PX,
+  SAME_ROW_PX,
+  chainTarget,
+  hintText,
+  needOf,
+  placeOf,
+  relationTo,
+  relationWordBetween,
+  sayWhoIsWhere,
+  seamHint,
+  toOf,
+} from "./seam.js";
+
+export type { WalkthroughCard, WalkthroughEntry, WalkthroughLine } from "./walkthrough.js";
+export { danceWalkthrough } from "./walkthrough.js";

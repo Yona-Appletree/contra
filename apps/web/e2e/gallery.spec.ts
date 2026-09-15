@@ -237,7 +237,9 @@ test.describe("the move gallery", () => {
     await expect(teach).not.toContainText("{");
     // The ending hint is its own element under the teach, generated rather than
     // written (D22, D29).
-    await expect(page.getByTestId("moves-hint")).toContainText(/You (are back where|should be)/);
+    await expect(page.getByTestId("moves-hint")).toHaveText(
+      "Your partner is beside you. Your neighbor is across from you.",
+    );
 
     // The three forms, longest first, in the bubble's capitals.
     await expect(page.getByTestId("moves-calls")).toHaveText(
