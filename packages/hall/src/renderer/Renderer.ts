@@ -102,6 +102,9 @@ export function createRenderer(canvas: HTMLCanvasElement, opts: RendererOptions 
         role: l.person.role,
         p: l.p,
         hands: l.hands,
+        // The arms as they will be drawn, so a hand resting on somebody's arm
+        // — a wrist star's whole hold — can be ordered against it (FR-C1).
+        arms: l.arms,
       })),
       frame.roleSet,
     );

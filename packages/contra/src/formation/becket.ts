@@ -797,42 +797,45 @@ function slotAtLoop(loop: BecketLoop, j: number, role: RoleName): Slot {
 const otherRole = (role: RoleName): RoleName => (role === "lark" ? "robin" : "lark");
 
 /**
- * Becket's relations, on the set's own loop (Q1) — and the trap the relation
- * table exists for. Complete since M6; **rewritten on the loop in M8b (DD28)**.
+ * Becket's relations — and the trap the relation table exists for. Complete
+ * since M6; put on the set's own loop in M8b (DD28); the **neighbour** rows
+ * taken back off it and made one couple place a step in **FR-C1 (E3, DD49)**.
  *
  * Two positions per couple place, two lines, and a couple place is therefore
- * `2` positions while duple improper's is `1`. Every row below is a step round
- * {@link BecketLoop}, and `undefined` — nobody — where the step lands back on
- * the asking dancer's own couple.
+ * `2` positions while duple improper's is `1`. `partner`, `shadow` and
+ * `trail-buddy` are steps round {@link BecketLoop} — the dancers you keep for
+ * the whole dance, wherever the set turns round at an end. `neighbor`,
+ * `opposite` and `corner` are plain offsets on the two lines, and answer
+ * **nobody** where the offset runs off the end of the other line.
  *
  * - **Partner** is the other role of your own couple: in becket your partner is
  *   beside you, not across from you.
- * - **Neighbour k** is the couple you face `k − 1` progressions from now, and
- *   the dancer of the other role in it. Since a progression is `j → j + 1` and
- *   two couples face each other when `jA + jB ≡ length − 2`, that is
- *   `N_k(j) = length − 2 − j − 2(k − 1)`, mod the loop. `N0` is the neighbour
- *   you had last time through, which the same formula gives at `k = 0`. Each is
- *   its own inverse by construction — apply it twice and the `−j` and the
- *   `−2(k−1)` cancel — and it names **nobody** exactly when `N_k(j) = j`, which
- *   is a couple that will be standing out at an end that time through.
+ * - **Neighbour k** is, since FR-C1, the **k-th couple along the set in the
+ *   direction your own couple progresses**, counted across the set: `N1` is the
+ *   couple you face, `N2` the couple across and one couple place on the way you
+ *   are going, `N3` two, and `N0` the couple across and one place behind you.
+ *   On the lattice that is {@link NEXT_NEIGHBOUR_STEP} positions a step along
+ *   the other line, which is that constant's whole subject; it is its own
+ *   inverse because the dancer it names travels the other way, so their step is
+ *   the mirror of yours, and it names **nobody** where the step runs off the
+ *   end of the other line — which, on a bare lattice, is the couples at the
+ *   ends and only them.
  * - **Opposite** is the dancer straight across the set, which in becket is
  *   neighbour 1. (In an improper set it is your partner.)
  *
- * **Why the loop and not an offset (DD28, and the measurement that settled
- * it).** M6 wrote neighbour k as `−(k − 1) × 4 × travel` positions along the
- * other line, reasoning that one progression slides the two lines two couple
- * places relative to each other. That reasoning is *correct in the middle of an
- * unbounded line* and this row reproduces it exactly there — asserted in
- * `relations.test.ts`. What it cannot see is the **end**: the couple you will
- * face next time through may be one that has just run off the end of its own
- * line and come back on the other, and no signed offset on two straight lines
- * can name it. Measured on a bare eight-couple becket lattice, M6's offsets
- * paired `N1 6/8, N2 2/8, N3 0/8` where the hall — the set progressed by
- * becket's own `Progression.next`, then asked who is across from whom — pairs
- * `6/8` at every k. The offsets were never *wrong*, in 1,728 checked cases they
- * never named the wrong dancer; they said **nobody** where the hall says
- * somebody, 8 times of 12 at N2 and 12 of 12 at N3. The loop is those same
- * offsets with the ends joined up.
+ * **What the loop was for, and why the neighbour rows came off it (FR-C1,
+ * DD49).** M8b wrote neighbour k as a step round {@link BecketLoop}, on the
+ * reading that `N_k` *means* "the couple you face `k − 1` progressions from
+ * now". That reading is measurable and this file measured it: the two lines
+ * slide past each other two couple places a time through, so it made `N_k` two
+ * couple places a step, which puts a "diagonal" foursome two couples wide in
+ * the middle of a line and collinear at the end of a short one (M9e measured
+ * both). The user was asked which of the two readings the dances mean (E3) and
+ * answered with the caller's one: *"N2 would be your next neighbor"*, one
+ * couple place along. So the rows below count couples, not times through, and
+ * the invariant that made a step two places wide is the price — see
+ * {@link NEXT_NEIGHBOUR_STEP} for the arithmetic and `relations.test.ts` for
+ * the measurement of what it costs.
  *
  * - **Shadow k** is, as in duple improper, the opposite-role dancer who
  *   progresses the way you do, on the opposite side of you from your partner —
@@ -858,8 +861,19 @@ const otherRole = (role: RoleName): RoleName => (role === "lark" ? "robin" : "la
  * - **Trail buddy k** (the same role `k` couple places back along the loop) and
  *   **corner k** (the two dancers of the couple across from you) are
  *   **(unsure)**: nothing calls them, and M7/M9 own the figures that will pin
- *   them down. Both keep exactly M6's arithmetic, re-expressed on the loop so
- *   that they too are total.
+ *   them down. The trail buddy keeps M6's arithmetic re-expressed on the loop;
+ *   corner k is back on M6's own offset, with the neighbour rows.
+ *
+ * **`becket-right` shares this table and should not, for one row.** A
+ * right-progressing becket is a becket in every way but which way its lines
+ * slide, and `SetRules.ts` gives it this table and this lattice. Every row that
+ * is a step round the loop, and every row that reads `travel` as *facing*, is
+ * right for it; the neighbour row, which reads `travel` as *the way you
+ * progress*, is mirrored for it and would need `BECKET_LATTICE`'s
+ * `progressionStep` to be the formation's rather than shared. Nothing calls it
+ * — `becket-right` is a fixture with no dance and its only test is
+ * `lineUpShift.test.ts` — so FR-C1 wrote it down rather than splitting the
+ * table for a case with no evidence in it.
  */
 export const BECKET_RELATIONS: RelationTable = {
   id: "becket",
@@ -868,45 +882,83 @@ export const BECKET_RELATIONS: RelationTable = {
     const loop = becketLoop(span);
     if (loop === undefined) return offsetOnly(rel, from);
     const j = ring(loop, loopIndexOf(loop, from.slot));
-    /**
-     * The couple you face `k − 1` progressions from now, or `undefined` when
-     * that is your own couple — which is what a couple standing out at an end
-     * that time through looks like on the loop.
-     */
-    const neighbour = (k: number): number | undefined => {
-      const facing = ring(loop, loop.length - 2 - j - 2 * (k - 1));
-      return facing === j ? undefined : facing;
-    };
     switch (rel.kind) {
       case "partner":
         return slotAtLoop(loop, j, otherRole(from.role));
+      // The cross-set rows are **offsets on the two lines** again (FR-C1): a
+      // neighbour k couple places along is a place on the floor, and a place
+      // that is off the end of the other line is nobody, which is what the end
+      // of a set is. The loop below is kept for the rows that really are steps
+      // round it — your partner, your shadow, your trail buddy — because those
+      // are the same dancer for the whole dance however often the set turns
+      // round at an end.
       case "neighbor":
-      case "opposite": {
-        const facing = neighbour(rel.kind === "opposite" ? 1 : rel.k);
-        return facing === undefined ? undefined : slotAtLoop(loop, facing, otherRole(from.role));
-      }
+      case "opposite":
+      case "corner":
+        return offsetOnly(rel, from);
       case "shadow":
         return slotAtLoop(loop, j + partnerSide(from.role) * rel.k, otherRole(from.role));
       case "trail-buddy":
         return slotAtLoop(loop, j - rel.k, from.role);
-      case "corner": {
-        // The two dancers of the couple across from you: your neighbour, and
-        // their partner. (unsure)
-        const facing = neighbour(1);
-        if (facing === undefined) return undefined;
-        return slotAtLoop(loop, facing, rel.k === 1 ? otherRole(from.role) : from.role);
-      }
     }
   },
 };
 
 /**
- * M6's own offsets, for a set whose lattice is not a becket loop at all.
+ * **One step from `N_k` to `N_(k+1)`, in lattice positions, for a dancer whose
+ * `travel` is `+1`** — the user's ruling of 2026-09-15 (E3, DD49), and the one
+ * number this milestone changed.
+ *
+ * A couple place is two positions, and `BECKET_LATTICE.progressionStep` is
+ * `−2`: a becket couple slides one couple place to its own left a time through.
+ * So `−2` here is **one couple place along the other line in the direction the
+ * asking dancer's own couple progresses**, and `N_k` walks the neighbours in
+ * the order a dancer meets them: `N0` one place behind you, `N1` straight
+ * across, `N2` one place ahead, `N3` two.
+ *
+ * **It was `−4` until now, and the user's own words are why it is not.** DD27
+ * had read Are You 'Most Done?'s *"on right diagonal, hey"* as the couple
+ * across-and-one; M8b measured that becket's `N2` was the couple across-**and-
+ * two** and withdrew the reading (DD46); the user, asked (E3), answered that
+ * the two are the same thing — *"N2 would be your next neighbor"* — and the
+ * roadmap's rule is therefore **`N_k` is the k-th neighbour in the direction of
+ * progression**, one couple place a step.
+ *
+ * **What that costs, measured, and said here rather than in a report nobody
+ * reads.** One couple place a step is *not* who you face one progression from
+ * now, and no sign or offset can make it so: both lines slide one couple place
+ * a time through and they face opposite ways, so the two lines pass each other
+ * **two** couple places a time through. Write `N_k = across + (k − 1) × s` and
+ * ask for M6's invariant ("`N(k+1)` today is `N(k)` after one progression") and
+ * the arithmetic answers `s = 2 × progressionStep` uniquely — the `−4` this
+ * constant replaces. So the diagonal couple this row now names is a couple a
+ * becket dancer, measured over eight rounds of `BECKET.progression.next` at
+ * four line lengths, **never dances with**; `relations.test.ts` measures the
+ * gap rather than asserting it away. The word is the caller's and the geometry
+ * is the dance's, and where they disagree this table follows the caller.
+ *
+ * **The side.** "The direction your couple progresses" is a becket dancer's own
+ * **left** — `BECKET`'s `lineUpShiftOf` is `"left"`, and the code's own
+ * `rightOf(facing)` against the displacement `Progression.next` produces says
+ * so at every dancer. Are You 'Most Done?'s transcript calls its hey *"on right
+ * diagonal"*, which is the **other** one: the couple you came past, not the one
+ * you are heading for. FR-C1 followed the roadmap's rule (the direction of
+ * progression) rather than the transcript's word, because `N0` — "the neighbour
+ * you had last time through" — has to lie behind you for the series to mean
+ * anything, and because it is the reading the roadmap's own count test
+ * describes. Flipping the sign of this one constant mirrors the choice; the
+ * measured consequences of both are in this milestone's report.
+ */
+const NEXT_NEIGHBOUR_STEP = -2;
+
+/**
+ * M6's own offsets, for a set whose lattice is not a becket loop at all — and,
+ * since FR-C1, the row every **neighbour** answer comes from.
  *
  * A hand-built model in a test, or a line nobody stands on one side of, still
  * gets an answer rather than a throw — the same answer it got before M8b — and
- * `becketLoop` is what decides which of the two is in play. Every set either
- * formation builds is a loop.
+ * `becketLoop` is what decides which of the two is in play for the rows that
+ * still run on the loop. Every set either formation builds is a loop.
  */
 function offsetOnly(rel: Relation, from: DancerState): Slot {
   const { line, position } = from.slot;
@@ -916,7 +968,7 @@ function offsetOnly(rel: Relation, from: DancerState): Slot {
     case "partner":
       return { line, position: position + partnerSide(from.role) * t };
     case "neighbor":
-      return { line: other, position: position - (rel.k - 1) * 4 * t };
+      return { line: other, position: position + (rel.k - 1) * NEXT_NEIGHBOUR_STEP * t };
     case "opposite":
       return { line: other, position };
     case "shadow":

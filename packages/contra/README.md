@@ -210,24 +210,35 @@ which is exactly why relations cannot be `@caller/choreo` meanings.
 transcripts name resolves in both contra formations, and
 `dances/acceptance.test.ts`'s list of owed relations is empty.
 
-| word                       | duple improper                                                                                                                                                                                                                                                                                                                                          | becket                                                    |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `partner`                  | the **binding**, seeded from the other line at the same position                                                                                                                                                                                                                                                                                        | the binding, seeded from the same line one position along |
-| `opposite`                 | straight across the set — which here is your partner                                                                                                                                                                                                                                                                                                    | straight across — which here is your neighbour            |
-| `N0` … `Nk`                | same line, `(2k − 1) × travel` positions along                                                                                                                                                                                                                                                                                                          | the other line, `−(k − 1) × 4 × travel` positions along   |
-| `shadow` k, `S0` … `Sk`    | the other line, `−partnerSide × 2k × travel`                                                                                                                                                                                                                                                                                                            | your own line, `−partnerSide × (2k − 1) × travel`         |
-| `trail-buddy`, `T1` …      | same line, `2k × travel` — **(unsure)**, nothing calls it                                                                                                                                                                                                                                                                                               | same                                                      |
-| `corner`, `C1`, `C0`, `C2` | `C1` your **first** corner (the right diagonal) and `C0` your **second** (the left) — across the set and one dancing place along it, the sign being your own role, since the two of a couple look at each other across the set (FR-B1, DD45); `C2` and up keep M6's own row, the dancer straight along your own line, which is what a cast off pairs on | the same offsets                                          |
+| word                       | duple improper                                                                                                                                                                                                                                                                                                                                          | becket                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `partner`                  | the **binding**, seeded from the other line at the same position                                                                                                                                                                                                                                                                                        | the binding, seeded from the same line one position along                                                               |
+| `opposite`                 | straight across the set — which here is your partner                                                                                                                                                                                                                                                                                                    | straight across — which here is your neighbour                                                                          |
+| `N0` … `Nk`                | same line, `(2k − 1) × travel` positions along                                                                                                                                                                                                                                                                                                          | the other line, `−(k − 1) × 2 × travel` positions along — one couple place a step, the way your couple is going (FR-C1) |
+| `shadow` k, `S0` … `Sk`    | the other line, `−partnerSide × 2k × travel`                                                                                                                                                                                                                                                                                                            | your own line, `−partnerSide × (2k − 1) × travel`                                                                       |
+| `trail-buddy`, `T1` …      | same line, `2k × travel` — **(unsure)**, nothing calls it                                                                                                                                                                                                                                                                                               | same                                                                                                                    |
+| `corner`, `C1`, `C0`, `C2` | `C1` your **first** corner (the right diagonal) and `C0` your **second** (the left) — across the set and one dancing place along it, the sign being your own role, since the two of a couple look at each other across the set (FR-B1, DD45); `C2` and up keep M6's own row, the dancer straight along your own line, which is what a cast off pairs on | the same offsets                                                                                                        |
 
 Three things make the table what it is rather than a set of guesses.
 
-- **The general rule for `N_k`** falls out of the progression: if `Δ₁` is the
-  neighbour-1 offset and `step` is how many positions one progression moves a
-  dancer whose travel is `+1` (`SetLattice.progressionStep`: `+1` improper,
-  `−2` becket, because a becket couple slides `place − direction`), then
-  `N_k = Δ₁ + (k − 1) × 2 × step × travel`. `lattice.test.ts` checks the
-  property that derives it — the neighbour you have _next_ is the neighbour you
-  have after one more time through — for every dancer, every k, at every round.
+- **`N_k` is the k-th couple along the set in the direction you progress**, and
+  in becket that is a **couple place** a step, not a time through (the user, E3:
+  _"N2 would be your next neighbor"_). With `step` the positions one progression
+  moves a dancer whose travel is `+1` (`SetLattice.progressionStep`: `+1`
+  improper, `−2` becket, because a becket couple slides `place − direction`),
+  duple improper's row is `Δ₁ + (k − 1) × 2 × step × travel` and becket's is
+  `Δ₁ + (k − 1) × step × travel`.
+  **The two are not the same rule, and the difference is measured, not stylistic.**
+  Duple improper's derives from an invariant — the neighbour you have _next_ is
+  the neighbour you have after one more time through — which `lattice.test.ts`
+  still checks for every dancer, every k, at every round. Becket's contradicts
+  it: both becket lines slide a couple place a time through and they face
+  opposite ways, so the two lines pass each other **two** couple places and only
+  a two-place step could track them. The caller's word for the couple one place
+  along is `N2` and the corpus uses it that way (Are You 'Most Done?'s diagonal
+  hey, The Set Monster's `N2`/`N3`/`N4`), so the table follows the word and
+  `relations.test.ts` counts what that costs against the hall rather than
+  asserting it away.
 - **A shadow is the opposite-role dancer who progresses the way you do**, on the
   opposite side of you from your partner, and the side is `partnerSide` so that
   the relation is its own inverse. The sign is evidence rather than convention:

@@ -100,6 +100,26 @@ always on top of the lark's and the robin's arms always draw over the lark's
 (plan AC2). Bodies and heads are sorted up the screen; arms are sorted up the
 screen too, subject to those constraints.
 
+### A hand on somebody's arm (FR-C1)
+
+A **wrist star** has no shared hand point at all: everybody's hand is half way
+down the giving arm of the dancer ahead of them, so the rule above sees nothing
+and, before FR-C1, the four arms were drawn in plain screen order — which
+changes four times a revolution, and with it which hand was buried under whose
+forearm. `sceneOrder` therefore also asks whether a hand is drawn **on** another
+dancer's arm: within `REST_ON_ARM_PX` (1.6 px, half a drawn forearm and its
+outline) of either bone and more than `REST_OFF_HAND_PX` (2 px) from the far end
+of it, which is where two hands closing on a join would otherwise read as a
+grip. Measured on the star itself, a dancer's hand is 0.78 px from the arm it
+holds and 3.26 px from the next nearest, steady through the turn.
+
+Four hands round a star are a **cycle** — the clover leaf — and no flat painter
+can put every hand over the arm beneath it; one has to give. Which one is
+decided by dancer **id**, not by where anybody is standing, so it is the same
+overlap for the whole figure instead of a new one every time two dancers cross
+on the screen. A pair that is genuinely holding hands is never asked this
+question: the role rule owns them.
+
 ### Trails
 
 `trails` is a persistent offscreen layer. Each frame appends only the step just
