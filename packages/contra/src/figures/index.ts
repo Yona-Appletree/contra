@@ -93,9 +93,6 @@ export { rightAndLeftThrough } from "./right-and-left-through.js";
 export type { RobinsChainParams } from "./robins-chain.js";
 export { CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
 
-export type { HeyParams } from "./hey.js";
-export { hey } from "./hey.js";
-
 export type { BackHands, CourtesyTurn, CourtesyTurnSpec, OrbitTurnSpec } from "./courtesyTurn.js";
 export {
   COURTESY_HALF_TURN,

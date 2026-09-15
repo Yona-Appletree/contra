@@ -9,7 +9,7 @@ import {
 } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES } from "../dances/index.js";
-import { danceAlone, linesFor } from "../dances/oracle.js";
+import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
 import { legacyCyclePlanner } from "./planCycle.js";
 
 /**
@@ -55,8 +55,33 @@ const TOLERANCE = 1e-9;
 /** Two times through, which is what every other dance check uses. */
 const UNTIL: Beat = 128;
 
+/**
+ * The demo dances the **old path can dance at all**, which is what AC1 compares.
+ *
+ * `chainCalls` threads a dance by handing each figure the four stations of a
+ * hands-four and asking where it leaves people, and a figure that takes a
+ * **pair** cannot answer that — `anchor: "meet"` is minted one instance per
+ * pair by resolution and refuses four roles by name. M6 recorded this when it
+ * wrote the first such figure ("the old path cannot dance such a dance at all,
+ * which is honest"); M5 is where a **demo** dance calls one, because On the
+ * Prowl's shoulder round is a figure for two with no coded twin.
+ *
+ * So AC1 compares the dances both paths can dance, and the list of what it
+ * leaves out is asserted below by name rather than filtered quietly. What AC1
+ * claims is unchanged: where the two paths can both dance a dance, they dance it
+ * pose for pose.
+ */
+const COMPARABLE = DEMO_DANCES.filter(threadsOnTheOldPath);
+
 describe("AC1: the demo dances through the contra planner are pose-identical", () => {
-  for (const dance of DEMO_DANCES) {
+  it("compares every demo dance but the one the old path cannot thread", () => {
+    expect(
+      DEMO_DANCES.map((d) => d.slug).filter((s) => !COMPARABLE.some((d) => d.slug === s)),
+    ).toEqual(["on-the-prowl"]);
+    expect(COMPARABLE).toHaveLength(10);
+  });
+
+  for (const dance of COMPARABLE) {
     for (const couples of linesFor(dance)) {
       it(`${dance.slug} at ${String(couples)} couples`, () => {
         const old = danceAlone(dance, couples, UNTIL).timeline();

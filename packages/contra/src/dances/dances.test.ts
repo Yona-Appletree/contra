@@ -15,6 +15,7 @@ import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { createContraRegistry } from "../figures/registry.js";
 import { DEMO_DANCES, DEMO_DANCE_SLUGS, danceBySlug } from "./index.js";
+import { LAB_RUN } from "./danceLab.js";
 import { CLOSURE_PX, COLLISION_PX, linesFor, oraclesFor } from "./oracle.js";
 
 /**
@@ -74,7 +75,7 @@ describe("AC1, AC5 and AC6 over every encoded dance", () => {
   for (const dance of DEMO_DANCES) {
     for (const couples of linesFor(dance)) {
       it(`${dance.slug} with ${couples} couples`, () => {
-        const o = oraclesFor(dance, couples);
+        const o = oraclesFor(dance, couples, 128, {}, LAB_RUN);
         const where = JSON.stringify(o.worst);
         // AC5: closure, at every figure seam of eight times through.
         expect(o.seams).toBeGreaterThan(0);
@@ -104,13 +105,14 @@ describe("a programme of every dance, danced end to end", () => {
 
   it("switches from each dance to the next without anybody jumping", () => {
     const formations = [DUPLE_IMPROPER, BECKET];
-    const registry = createContraRegistry();
+    const registry = createContraRegistry(LAB_RUN.figures);
     const hall = createHall(DUPLE_IMPROPER, [{ id: "set0", couples: 5, centre: [0, 0], axis: 90 }]);
     const decider = createScriptDecider(
       program,
       registry,
       hall,
       createLibrary([...DEMO_DANCES], formations),
+      { cycle: LAB_RUN.cycle },
     );
     // Two times through each, plus the between-dances interval after each.
     decider.advance(DEMO_DANCES.length * ITEM_BEATS + 64);
@@ -120,13 +122,14 @@ describe("a programme of every dance, danced end to end", () => {
   });
 
   it("announces each next dance by name once per time round the programme", () => {
-    const registry = createContraRegistry();
+    const registry = createContraRegistry(LAB_RUN.figures);
     const hall = createHall(DUPLE_IMPROPER, [{ id: "set0", couples: 5, centre: [0, 0], axis: 90 }]);
     const decider = createScriptDecider(
       program,
       registry,
       hall,
       createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET]),
+      { cycle: LAB_RUN.cycle },
     );
     decider.advance(DEMO_DANCES.length * ITEM_BEATS);
     const announced = decider

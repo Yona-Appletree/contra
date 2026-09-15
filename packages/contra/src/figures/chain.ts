@@ -11,8 +11,9 @@ import type {
   Station,
 } from "@caller/choreo";
 import { HANDS_FOUR_GROUP, resolveSelector, validateDance, withDefaults } from "@caller/choreo";
-import type { Carried, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
+import type { Carried, ContraFigure, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
 import { contraFigureOf } from "./registry.js";
+import { templateFigureOf } from "../library/figures/index.js";
 
 /**
  * One call of a dance, before the places are threaded through it.
@@ -127,7 +128,8 @@ export function chainCalls(
   const ending: HandJoin[][] = [];
   const middle: HandJoin[][] = [];
   for (const call of calls) {
-    const def = contraFigureOf(call.figure);
+    const def = (contraFigureOf(call.figure) ??
+      (templateFigureOf(call.figure) as ContraFigure | undefined)) as ContraFigure | undefined;
     if (!def || reachesPastTheFour(call)) {
       // **A call the hands-four template cannot answer threads nothing.**
       //

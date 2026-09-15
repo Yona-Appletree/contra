@@ -2,7 +2,7 @@ import type { Dance, Formation } from "@caller/choreo";
 import type { ContraCall, ContraDanceSpec, ContraPhrase } from "../figures/chain.js";
 import { contraDance } from "../figures/chain.js";
 import { contraFigureOf } from "../figures/registry.js";
-import { GATHERER_DEFINITIONS } from "../library/figures/index.js";
+import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { paramDefaults } from "../library/interpret.js";
 import { REBIND_PARAM } from "../set/planCycle.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
@@ -145,7 +145,7 @@ function declaredParams(
       REBIND_PARAM,
     ]);
   }
-  const definition = GATHERER_DEFINITIONS.find((d) => d.id === figure);
+  const definition = DATA_DEFINITIONS.find((d) => d.id === figure);
   if (definition) return new Set([...Object.keys(paramDefaults(definition)), REBIND_PARAM]);
   if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
   throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);

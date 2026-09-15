@@ -33,7 +33,9 @@ describe("the registry", () => {
   });
 
   it("throws with the ids it does have when a dance calls something else", () => {
-    expect(() => createContraRegistry().get("mad-robin")).toThrow(/no figure "mad-robin"/);
+    // `mad-robin` is a real figure since M5, so the name a missing one is asked
+    // for has to be one nothing answers to.
+    expect(() => createContraRegistry().get("dolphin-hey")).toThrow(/no figure "dolphin-hey"/);
   });
 
   it("leaves every figure's defaults alone when no override names it", () => {

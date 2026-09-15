@@ -54,7 +54,7 @@ These are **guards**, not tuning targets: at 1.05× they would flake on the firs
 figure anybody re-tuned. `motionBounds.test.ts` re-derives every number above and
 fails if the code moves under it.
 
-## Over the ten demo dances
+## Over the demo dances
 
 Each dance run alone by the script decider for two times through (beats 0–128), duple improper at 4 couples and becket at 6, sampled every 1/32 beat.
 
@@ -63,15 +63,15 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `allemande` | 39.1 | 44.6 | 4.78 | 23.4 | 162 | 0.45 | 0 | **7.86** | `set0/c3/lark` L at beat 63.625 |
-| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 25.688 |
-| `swing` | 59.5 | **225.5** | **11.94** | 25.6 | 36 | 0.09 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
+| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 41.688 |
+| `swing` | 59.5 | **225.5** | **12.04** | 25.6 | 84 | 0.12 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 138 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
 | `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 32 | 0.13 | 0 | 0.00 | `set0/c2/lark` L at beat 51.000 |
 | `do-si-do` | 18.5 | 16.9 | 1.72 | 0.6 | 24 | 0.14 | 0 | 1.20 | `set0/c0/robin` R at beat 37.469 |
 | `hey` | 34.0 | 32.2 | 3.79 | 0.6 | 30 | 0.12 | 0 | 1.59 | `set0/c0/lark` R at beat 32.313 |
 | `long-lines` | 22.5 | 51.3 | 8.27 | 12.3 | 16 | 0.14 | 0 | 0.00 | `set0/c3/lark` L at beat 64.156 |
+| `mad-robin` | 19.4 | 17.7 | 1.40 | 0.7 | 32 | 0.32 | 0 | 1.23 | `set0/c0/robin` R at beat 65.500 |
 | `pass-through` | 42.7 | 47.5 | 3.58 | 0.4 | 24 | 0.92 | 0 | 1.96 | `set0/c3/robin` L at beat 126.344 |
-| `slide-left` | 35.2 | 31.4 | 2.56 | 0.7 | 8 | 0.97 | 0 | 1.20 | `set0/c2/lark` L at beat 64.344 |
 
 ### The ten worst seams
 
@@ -88,7 +88,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `allemande → wait-out` | 12.4 | 13.5 | 1.13 | 0.0 | 2 | 0.00 | 0 | 0.00 | `set0/c1/lark` R at beat 64.219 |
 | `pass-through → do-si-do` | 4.2 | 2.4 | 0.57 | 0.0 | 16 | 0.13 | 0 | 0.89 | `set0/c0/lark` R at beat 128.000 |
 
-Over all ten dances: 688,128 measurements, 588 hand-state flips, **0 of them not a finite number**.
+Over all ten dances: 753,664 measurements, 676 hand-state flips, **0 of them not a finite number**.
 
 ## Every figure, alone
 
@@ -110,6 +110,8 @@ it, so every number is the figure's own and no seam is folded in.
 | `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
 | `hey` | 22.0 | 26.3 | 2.30 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.750 |
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
+| `single-file-promenade` | 22.5 | 22.4 | 1.68 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.906 |
+| `mad-robin` | 9.6 | 7.9 | 1.51 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 4.000 |
 | `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
 | `balance-ring` | 17.5 | 21.2 | 1.61 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
 | `circle` | 17.2 | 25.6 | 1.85 | 9.0 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
@@ -332,6 +334,10 @@ All four join hands in a ring and walk round — circle left means the way your 
 
 Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.
 
+### `grand-right-and-left` — GRAND RIGHT AND LEFT
+
+Give your right hand to the dancer facing you, pull by, and give your left to the next one; right to the one after that. Keep going the way you started; three hands, two beats each, and the line moves past you the whole time.
+
 ### `hey` — HEY FOR FOUR
 
 The weave. All four dancers travel the same closed figure of eight across the set, passing each other by alternate shoulders and never taking hands: right shoulders with the one you meet in the centre of the set, left shoulders with the one you meet at the side, and a loop round the end before you come back. The robins start it, passing right shoulders in the centre; the larks loop at the ends and follow them in. Sixteen beats, four passes in the centre at counts 2, 6, 10 and 14 and three at the sides at 4, 8 and 12, and everybody is home where they started.
@@ -340,6 +346,10 @@ The weave. All four dancers travel the same closed figure of eight across the se
 
 Take hands all the way along your own line with the dancers beside you, walk four steps into the set, and walk four steps back out. The arms do not move in this figure: everyone is just holding hands, and only the bodies travel. You end where you started, still facing across.
 
+### `mad-robin` — MAD ROBIN
+
+Circle round the dancer you are dancing this with, one of you passing in front and the other behind, and do not turn round: keep facing exactly the way you were facing the whole way. Half way leaves you on each other's places, still looking the same way; all the way brings you home. Nobody takes hands. (unsure: many callers teach this as the robins circulating while the larks stand still.)
+
 ### `pass-through` — PASS THROUGH
 
 Walk forward past the dancer opposite you, passing right shoulders, and stop on the other side without turning round. Four beats. Whatever comes next is what tells you which way to face.
@@ -347,6 +357,10 @@ Walk forward past the dancer opposite you, passing right shoulders, and stop on 
 ### `petronella` — PETRONELLA TURN
 
 Everybody turns once round to their own right while travelling one place clockwise round the set, so the four of you rotate as a ring without holding anybody. Four beats, and it almost always follows a balance of the ring. The hands come up and out as you spin — nobody is holding on.
+
+### `pull-by` — PULL BY
+
+Give the named hand to the dancer coming toward you, walk straight past them passing that shoulder, and let go as you go by. You end where they were standing and they end where you were; do not turn round.
 
 ### `right-and-left-through` — RIGHT AND LEFT THROUGH
 
@@ -359,6 +373,14 @@ The two robins take right hands in the middle and pull by, passing right shoulde
 ### `roll-away` — ROLL AWAY WITH A HALF SASHAY
 
 Take your partner's near hand. The robin rolls across in front of the lark, turning once round as she goes, while the lark slides sideways into the place she came out of. You have traded places and you are both still facing the way you were. Four beats, hands joined through the roll.
+
+### `shoulder-round` — RIGHT SHOULDER ROUND
+
+Walk forward round each other keeping the named shoulder toward the other one, and keep looking at each other all the way round — nobody takes hands. Once round brings you back where you started; a half leaves you on each other's places; once and a half takes you round and past. (unsure: some callers use this name for a plain do-si-do, where the bodies stay square and only the head follows.)
+
+### `single-file-promenade` — SINGLE FILE PROMENADE
+
+Face the way the ring is going and walk round it in single file, one behind the other, nobody holding anything. A quarter is one place along and a half is two, and you stop facing the way you were travelling — whatever comes next is what turns you.
 
 ### `slide-left` — SLIDE LEFT ALONG THE SET
 

@@ -752,6 +752,108 @@ export type CourtesyEnds =
   /** The two chaining dancers trade places; the larks stay: the chain's. */
   | { kind: "trade" };
 
+/**
+ * **The hey: a schedule of meetings, laid along a lane** (M5, Q8).
+ *
+ * The other kinds answer "where do my feet go"; this one answers "**who do I
+ * meet, when, and by which shoulder**", and the feet fall out of it. A hey for
+ * four is seven meetings on counts 2 to 14 — the robins in the middle, then
+ * everybody at the lanes' edges, then the larks in the middle — and everything a
+ * caller can vary about a hey is a variation on that list: half a hey is its
+ * first three, a ricochet is one meeting you bounce out of instead of passing
+ * through, a hey for three is the same list with one dancer standing, and ending
+ * short is stopping on a meeting rather than walking home from it.
+ *
+ * The **pass list** (`RR NL LR PL RR NL LR`, D5) is that list written down, and
+ * `library/passList.ts` is its parser and printer. The shape reads it out of a
+ * parameter — or, when a call writes none, derives it from the dancers
+ * themselves — and expands it into one {@link ScheduleItem} list per figure-role
+ * (`kinds/schedule.ts`).
+ *
+ * **The lane** is the axis the weave runs along, which across a contra set is
+ * the axis between the two lines. Its stations are where the meetings happen:
+ * the centre of the set, the two lanes' edges where the lines stand, and the
+ * loops beyond the ends. See `kinds/schedule.ts` for the curve that threads
+ * them, and why its side-step swings once between the middle and the end.
+ */
+export interface ScheduleShape {
+  kind: "schedule";
+  /** How far a dancer steps to their own side of the lane at a meeting, px. */
+  passPx: NumberExpr;
+  /**
+   * How far the loop past the end of the lane reaches, as a multiple of the
+   * lane's own half-width.
+   *
+   * Dancers really do loop outside the set at the end of a hey; `√2` is how far
+   * the weave has to reach for its quarter points to land on the four places.
+   */
+  loopReach: NumberExpr;
+  /** Beats spent stepping on to the weave at the start and off it at the end. */
+  joinBeats: NumberExpr;
+  /** How far below shoulder height a `pull-by` meeting's joined hands sit, px. */
+  passDrop: NumberExpr;
+  /** Which of the figure's parameters the schedule is read from. */
+  shorthand: ScheduleShorthand;
+}
+
+/**
+ * The parameter names a {@link ScheduleShape} reads its schedule out of.
+ *
+ * Named rather than fixed so the kind knows nothing about any figure's
+ * vocabulary, exactly as `PathShape`'s `{ param }` references do.
+ */
+export interface ScheduleShorthand {
+  /** The canonical pass list: a string, or the words spelled out. */
+  passes: string;
+  /** Which contra role steps off into the middle first. */
+  start: string;
+  /** Which shoulder the first meeting is by. */
+  by: string;
+  /** How much of the weave is danced, when no pass list is written. */
+  amount: string;
+  /** A role-scoped ricochet, `robins@2`. */
+  ricochet: string;
+  /** How many dance it: four, or three with one standing out. */
+  for: string;
+  /** Which figure-role stands out of a hey for three. */
+  idle: string;
+  /** The lane's axis: the dancers' own spread, across, along, or a diagonal. */
+  axis: string;
+  /** Whether every meeting is a pull by rather than a pass. */
+  hands: string;
+}
+
+/** What happens when a {@link ScheduleItem}'s two dancers meet. */
+export type ScheduleMode =
+  /** Walk past each other and keep going: what almost every meeting is. */
+  | "pass"
+  /** Come into the middle and bounce back out the other side: a ricochet. */
+  | "bounce"
+  /** Pass, giving the shoulder's hand and letting go on the way by. */
+  | "pull-by"
+  /** Stand this one out: a hey for three's idle role. */
+  | "stand"
+  /** Nobody to meet — you are round the end of the lane, looping. */
+  | "loop";
+
+/**
+ * One meeting on one dancer's schedule.
+ *
+ * `meet` is a **relation** (`"neighbor"`, `"partner"`, `"N2"`) or a
+ * **figure-role**, which is the honest pair of answers: a pass in the middle is
+ * with the other dancer of your own role and a pass at the side is with whoever
+ * the set says is beside you. A `loop` or a `stand` meets nobody.
+ */
+export interface ScheduleItem {
+  meet?: string;
+  shoulder: "right" | "left";
+  mode: ScheduleMode;
+  /** The beat of the figure it happens on; the expansion fills it in. */
+  at?: Beat;
+  /** The figure stops here rather than walking on: the pass list's `~`. */
+  short?: boolean;
+}
+
 /** What the figure actually draws. */
 export type FigureShape =
   | LegacyShape
@@ -761,6 +863,7 @@ export type FigureShape =
   | RingWalkShape
   | PathShape
   | WaypointShape
+  | ScheduleShape
   | CourtesyTurnShape;
 
 /**
@@ -1031,5 +1134,14 @@ export interface FigureDefinition {
 export type { Symmetry } from "./symmetry.js";
 
 /** Re-exported so a definition file needs one import, not two. */
-export type { Moment, NumberExpr, AngleExpr, BoolExpr, SideExpr } from "./expr.js";
+export type {
+  Moment,
+  NumberExpr,
+  AngleExpr,
+  BoolExpr,
+  SideExpr,
+  PointExpr,
+  PoseExpr,
+  RoleExpr,
+} from "./expr.js";
 export type { Side };

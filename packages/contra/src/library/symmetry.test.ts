@@ -85,8 +85,15 @@ const RESOLVED_ELSEWHERE = DATA_DEFINITIONS.filter(
  * arm's swing. That is a fact about `drawnArms.ts` and not about the figure, so
  * the claim for a figure that swings its idle hands is made about its bodies
  * and not about those hands.
+ *
+ * The hey joined the list in M5 for exactly the same reason and nothing else:
+ * it takes no hands at all, so both of a dancer's arms are hung and swung by
+ * the renderer for the whole sixteen beats. Measured, so the exclusion is a
+ * size and not a shrug — the worst mirror difference in a hand is **0.8485 px**
+ * (`2 × √2 × 0.3` px, the hanging hand's forward swing twice over) and in a
+ * *body* it is zero to 1e-9.
  */
-const SWINGS_ITS_HANDS = ["do-si-do"];
+const SWINGS_ITS_HANDS = ["do-si-do", "hey"];
 
 /** Reflect a point across the set's own midline: local `x` is across the set. */
 const flipPoint = (p: Vec2): Vec2 => [-p[0], p[1]];
@@ -296,6 +303,7 @@ describe("symmetry as a transform", () => {
       "balance-and-swing",
       "grand-right-and-left",
       "pull-by",
+      "shoulder-round",
       "swing",
     ]);
   });

@@ -5,6 +5,7 @@ import { formationFor } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { probeGroup } from "../figures/testing.js";
+import { dataOnlyDefinitions } from "../library/figures/index.js";
 import { figureDefOf } from "./figureText.js";
 import type { Place } from "./landmark.js";
 import { facingClause, isHome, landmark, relationOf } from "./landmark.js";
@@ -104,7 +105,28 @@ describe("every figure the demo dances call has a landmark", () => {
     }
   }
 
-  it.each([...seen.keys()])("%s", (figure) => {
+  /**
+   * The figures a landmark can be asked of at all.
+   *
+   * `landmark` plans a figure over the **four** dancers of a hands-four group
+   * and reads its ends; a figure resolution mints **per pair** refuses four
+   * roles by name (`anchor: "meet"`). Every such figure had a coded twin to
+   * answer for it — and the coded figure is what `figureDefOf` hands back — until
+   * M5, whose shoulder round is a figure for two with only
+   * a definition — so it is asked nothing, and its walkthrough ends on a
+   * sentence of its own rather than on `{where}`. M7's shapes with named places
+   * are what give a figure for two a landmark.
+   */
+  const asked = [...seen.keys()].filter((id) => {
+    const def = dataOnlyDefinitions().find((each) => each.id === id);
+    return def === undefined || def.anchor === "hands-four" || def.anchor === "centroid";
+  });
+
+  it("asks every figure the demo calls but the ones minted per pair", () => {
+    expect([...seen.keys()].filter((id) => !asked.includes(id))).toEqual(["shoulder-round"]);
+  });
+
+  it.each(asked)("%s", (figure) => {
     const { slug, call } = seen.get(figure)!;
     const dance = DEMO_DANCES.find((d) => d.slug === slug)!;
     const def = figureDefOf(figure)!;

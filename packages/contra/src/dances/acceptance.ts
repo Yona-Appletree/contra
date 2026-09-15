@@ -346,15 +346,11 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
  * Every figure the twelve name that the library has not got yet, and the
  * milestone that owns it.
  *
- * Read off `plan.md`'s milestone table, not guessed: M5 the hey's own family,
- * M6 the slot figures, M7 the shapes with named places, M8 the record's growth,
+ * Read off `plan.md`'s milestone table, not guessed: M5's three landed with
+ * the hey, M6 the slot figures, M7 the shapes with named places, M8 the record's growth,
  * M9 the two Banner dances.
  */
 export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
-  // M5 — the hey as a schedule, and On the Prowl's three
-  "mad-robin": "M5",
-  "shoulder-round": "M5",
-  "single-file-promenade": "M5",
   // M6 — slots and offsets authoritative. `pull-by` and `grand-right-and-left`
   // landed; the three shapes below did not — see M6's report for what stopped
   // each of them and what the next milestone needs.

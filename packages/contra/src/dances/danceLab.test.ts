@@ -69,7 +69,13 @@ describe("the dance lab", () => {
       } else {
         expect(Object.keys(row.cast).sort(), row.figure).toEqual(["1L", "1R", "2L", "2R"]);
         expect(row.anchor, row.figure).toBe('"hands-four"');
-        expect(row.ends, row.figure).toBe('"relative"');
+        // The hey is `ends: "home"` and still takes the whole minor set (M5):
+        // a hey that *finishes* its weave lands on somebody's place by
+        // construction and gathers nothing, and one that **ends short** stops
+        // between two places and settles on the pair it stopped between. The
+        // places are what `ends: "home"` hands it; which of the two cases a
+        // call is, is the call's own pass list.
+        expect(row.ends, row.figure).toBe(row.figure === "hey" ? '"home"' : '"relative"');
       }
       expect(row.holdPlace, row.figure).toEqual([]);
     }

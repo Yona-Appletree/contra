@@ -27,7 +27,7 @@
       "name": "A2",
       "figures": [
         { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO PARTNER" },
-        { "figure": "hey", "beats": 8, "params": { "half": true }, "call": "HALF A HEY" }
+        { "figure": "hey", "beats": 8, "params": { "amount": 0.5 }, "call": "HALF A HEY" }
       ]
     },
     {

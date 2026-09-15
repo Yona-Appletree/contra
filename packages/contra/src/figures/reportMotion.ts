@@ -12,7 +12,9 @@ import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
 import { CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
 import { DEMO_DANCES } from "../dances/index.js";
-import { danceAlone, linesFor } from "../dances/oracle.js";
+import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
+import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
+import { LAB_RUN } from "../dances/danceLab.js";
 import { BECKET } from "../formation/becket.js";
 
 /**
@@ -112,9 +114,9 @@ function boundsSection(): string[] {
   ];
 }
 
-/** The motion oracle over the ten demo dances. */
+/** The motion oracle over the demo dances. */
 function dancesSection(): string[] {
-  const out: string[] = ["## Over the ten demo dances", ""];
+  const out: string[] = ["## Over the demo dances", ""];
   out.push(
     `Each dance run alone by the script decider for two times through (beats 0–${REPORT_BEATS}), ` +
       "duple improper at 4 couples and becket at 6, sampled every 1/32 beat.",
@@ -126,7 +128,14 @@ function dancesSection(): string[] {
   let overall: MotionStats | undefined;
   for (const dance of DEMO_DANCES) {
     const couples = linesFor(dance).includes(6) && dance.formation === BECKET.id ? 6 : 4;
-    const decider = danceAlone(dance, couples, REPORT_BEATS);
+    // On the engine that can dance it, which for every dance written before M5
+    // is the decider's own — the two differ by up to 1.16 px at the ends of a
+    // line (M3's cycle-start switch), and switching them all over is a rewrite
+    // of this whole report rather than a milestone's business. On the Prowl
+    // calls a figure for two with no coded twin and the old planner refuses it
+    // by name, so it is run on the contra planner and says so below.
+    const run = threadsOnTheOldPath(dance) ? {} : LAB_RUN;
+    const decider = danceAlone(dance, couples, REPORT_BEATS, {}, run);
     const report = motionReport(decider.timeline(), REPORT_BEATS, {
       bounds: CONTRA_MOTION_BOUNDS,
     });
@@ -168,11 +177,24 @@ function figuresSection(): string[] {
   return out;
 }
 
-/** One figure on its own timeline, measured; worst first. */
+/**
+ * One figure on its own timeline, measured; worst first.
+ *
+ * Every coded figure, and since M5 the **data-only** ones the hands-four
+ * template can plan too — the hey among them, whose coded twin this milestone
+ * deleted. A figure resolution mints per pair (`pull-by`, `shoulder-round`) or
+ * over a whole line (`grand-right-and-left`) cannot be run on a group of four
+ * and is not in this table; M7's shapes with named places are what would give
+ * those a figure-alone row.
+ */
 export function figureAloneRows(): MotionStats[] {
   const registry = createContraRegistry();
   const rows: MotionStats[] = [];
-  for (const id of CONTRA_FIGURE_IDS) {
+  const alone = [
+    ...CONTRA_FIGURE_IDS,
+    ...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined),
+  ];
+  for (const id of alone) {
     const def = registry.get(id);
     const group = checkGroup();
     const timeline = createTimeline(registry);

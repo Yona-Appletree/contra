@@ -38,7 +38,8 @@ import type {
 } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
-  DATA_ONLY_FIGURE_IDS,
+  dataOnlyDefinitions,
+  dataOnlyFigureIds,
   contraDataFigures,
   CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
@@ -108,8 +109,16 @@ export const TILE_MARGIN_PX = 18;
 /** No tile is drawn smaller than this, however little its figure moves. */
 export const MIN_TILE_WORLD = { w: 64, h: 48 } as const;
 
-/** How often a tile's world is sampled when it is being sized, in beats. */
-export const TILE_BOUNDS_STEP = 0.25;
+/**
+ * How often a tile's world is sampled when it is being sized, in beats.
+ *
+ * An **eighth** since M5, which is the step `galleryTiles.test.ts` checks the
+ * bounds at: at a quarter the sizer stepped straight over the widest moment of
+ * a shoulder round and drew two of On the Prowl's seam tiles 0.93 px too
+ * narrow. Measured over every tile in the gallery, the finer step changes the
+ * world of **exactly those two** and of nothing that was drawn before.
+ */
+export const TILE_BOUNDS_STEP = 0.125;
 
 /** A plain floor and no furniture, as M4 owns the hall's boards and walls. */
 export const FLOOR_COLOUR = "#c9a06a";
@@ -402,7 +411,7 @@ export function figureTiles(
   // `grand-right-and-left`) and `registry.get(id)` is what a tile reads its
   // beats and its call text off.
   const registry = createContraRegistry(contraDataFigures(), overrides);
-  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, "wait-out", "walk-to-station"];
+  const ids = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), "wait-out", "walk-to-station"];
   return ids.map((id) => figureTile(id, registry, overrides, engine));
 }
 
@@ -426,13 +435,40 @@ export function seamTiles(
   );
 }
 
+/**
+ * **Which engine a tile can actually be drawn on** (M5).
+ *
+ * The old planner hands a figure the four dancers of a hands-four and asks it
+ * where it leaves them; a figure resolution mints **per pair** refuses four
+ * roles by name. Until M5 every such figure had a coded twin to answer for it,
+ * and the shoulder round is the first that does not — so a tile of one is drawn
+ * on the contra planner whichever engine the page asked for, and says so. The
+ * choice goes away with the coded layer (M11).
+ */
+function tileEngine(ids: readonly string[], engine: EngineChoice): EngineChoice {
+  if (engine === "new") return "new";
+  const perPair = ids.some((id) =>
+    dataOnlyDefinitions().some(
+      (def) => def.id === id && def.anchor !== "hands-four" && def.anchor !== "centroid",
+    ),
+  );
+  return perPair ? "new" : "old";
+}
+
+/** The note a tile forced on to the other engine carries, so the page says so. */
+const FORCED_ENGINE_NOTE =
+  "Drawn on the new engine whichever the page asked for: this figure is minted " +
+  "one instance per pair, and the old planner asks a figure where it leaves the " +
+  "four dancers of a hands-four.";
+
 /** One figure, run three times over so its take and its release both have a seam. */
 function figureTile(
   id: string,
   registry: FigureRegistry,
   overrides: FigureDefaultsOverride = {},
-  engine: EngineChoice = DEFAULT_ENGINE,
+  asked: EngineChoice = DEFAULT_ENGINE,
 ): GalleryTile {
+  const engine = tileEngine([id], asked);
   const def = registry.get(id);
   const found = firstCallOf(id);
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
@@ -440,9 +476,10 @@ function figureTile(
   const params = withoutFrom(found?.call.params);
   const callText = found?.call.call ?? def.call;
   const notes: string[] = [];
+  if (engine !== asked) notes.push(FORCED_ENGINE_NOTE);
   const contra = contraFigureOf(id);
 
-  if (contra === undefined && !DATA_ONLY_FIGURE_IDS.includes(id)) {
+  if (contra === undefined && !dataOnlyFigureIds().includes(id)) {
     // `wait-out` and `walk-to-station` are `@caller/choreo`'s own figures, and
     // **the library does not hold them**: `legacyLibrary` bridges what answers
     // `joins`, which these two do not. A planner cannot resolve a call of a
@@ -622,11 +659,12 @@ export const seamByKey = (key: string): CorpusSeam | undefined =>
 export function seamTile(
   seam: CorpusSeam,
   overrides: FigureDefaultsOverride = {},
-  engine: EngineChoice = DEFAULT_ENGINE,
+  asked: EngineChoice = DEFAULT_ENGINE,
   window?: { before: Beat; after: Beat },
   key = seam.key,
 ): GalleryTile {
   const { dance, a, b, wrapped } = seam;
+  const engine = tileEngine([a.figure, b.figure], asked);
   const formation = formationFor(dance);
   const run = planTile({
     formation,
@@ -646,12 +684,15 @@ export function seamTile(
     engine,
   });
   const registry = createContraRegistry([], overrides);
-  const notes = wrapped
-    ? [
-        "the wrap: this dance's last figure into its first, one time through into the next",
-        "the hall re-forms the minor set between the two, and this tile does not: a place shift across this seam is the progression, not a jump",
-      ]
-    : [];
+  const notes = [
+    ...(wrapped
+      ? [
+          "the wrap: this dance's last figure into its first, one time through into the next",
+          "the hall re-forms the minor set between the two, and this tile does not: a place shift across this seam is the progression, not a jump",
+        ]
+      : []),
+    ...(engine === asked ? [] : [FORCED_ENGINE_NOTE]),
+  ];
   const before = window === undefined ? a.beats : Math.min(window.before, a.beats);
   const after = window === undefined ? b.beats : Math.min(window.after, b.beats);
   return sized({
@@ -1116,7 +1157,7 @@ function textsFor(call: FigureCall, group: Group): FigureTexts | undefined {
 let textRegistryCache: FigureRegistry | undefined;
 function textRegistry(): FigureRegistry {
   textRegistryCache ??= createContraRegistry(
-    contraDataFigures().filter((def) => DATA_ONLY_FIGURE_IDS.includes(def.id)),
+    contraDataFigures().filter((def) => dataOnlyFigureIds().includes(def.id)),
   );
   return textRegistryCache;
 }

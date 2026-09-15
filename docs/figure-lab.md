@@ -80,8 +80,11 @@ the registry has and the library does not (`wait-out`, `walk-to-station`)
 simply has no section 0, and a figure the **library** has and the registry
 does not is still measurable: the lab interprets the definition itself.
 
-After M4 that is every figure but the hey, so section 0 is the usual first
-thing to read: if the geometry is wrong, the definition is where it is wrong.
+After M5 that is **every figure**, so section 0 is the usual first thing to
+read: if the geometry is wrong, the definition is where it is wrong.
+Six of them have no coded twin at all — `pull-by`, `grand-right-and-left`,
+`hey`, `mad-robin`, `shoulder-round` and `single-file-promenade` — and the lab
+measures those the same way, off the definition.
 
 `--chain <n>` is **gone** (A6). It measured one of `robins-chain`'s five
 courtesy-turn candidates against the shipped one; M4 makes the lark's orbit

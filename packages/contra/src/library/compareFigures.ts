@@ -57,6 +57,17 @@ export interface CompareCase {
   /** The call's own parameters. */
   params?: Record<string, unknown>;
   /**
+   * The **coded** figure's parameters, when the two vocabularies differ.
+   *
+   * Every migration before M5 kept its predecessor's parameter names, so one
+   * object said the same thing to both. The hey is the first that does not: a
+   * caller's "hey, halfway" is `half: true` to the coded figure and
+   * `amount: 0.5` to the definition, and `start: "robins-right"` is two
+   * parameters now (D4's two tiers). Left out, the coded figure is given
+   * {@link CompareCase.params} exactly as before.
+   */
+  coded?: Record<string, unknown>;
+  /**
    * Where the dancers stand when the figure starts.
    *
    * `"stations"` is the formation's own places, which is DD21's condition and
@@ -183,7 +194,7 @@ function compareOne(
 
   // The coded figure, on the formation's own group.
   const codedGroup = createGroup(plan, formation.roleSet);
-  const codedParams = withDefaults(coded, { ...params, from: places }, beats);
+  const codedParams = withDefaults(coded, { ...(test.coded ?? params), from: places }, beats);
   const codedEnds = coded.ends(codedGroup, codedParams);
 
   // The definition, resolved the way a dance resolves it.

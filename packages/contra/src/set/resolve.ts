@@ -201,7 +201,16 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
         def.actors === "all"
           ? {
               figure: call.figure,
-              params,
+              params: {
+                ...params,
+                // **A gatherer is handed the formation's places whatever its
+                // actors rule is** (M5). `dataInstance` below has always done
+                // this; the whole-minor-set branch never had to, because every
+                // figure that took it was `ends: "relative"` until the hey
+                // arrived — and a hey that ends short settles on the two places
+                // it stopped between, which it cannot do without them.
+                ...(def.ends === "home" ? { homes: homesOf(plan, ctx) } : {}),
+              },
               cast: castOf(plan, stations),
               group: plan,
               frame: plan.frame,
@@ -488,13 +497,7 @@ function dataInstance(
   // **`homes`, not `places`** (M4): a figure may have a parameter of its own
   // called `places` — a circle's is how many quarters of the ring it walks —
   // and the two would share one name in one object.
-  const homes: Vec2[] = [];
-  if (def.ends === "home") {
-    for (const dancer of Object.values(plan.members)) {
-      if (ctx.model.dancers[dancer] === undefined) continue;
-      homes.push(localPoint(plan.frame, homeOf(ctx.model, dancer).p));
-    }
-  }
+  const homes: Vec2[] = def.ends === "home" ? homesOf(plan, ctx) : [];
 
   return {
     figure: call.figure,
@@ -623,6 +626,23 @@ function pairStations(
     out.push([id, otherStation]);
   }
   return out;
+}
+
+/**
+ * The formation's own home places, frame-local, for **every** dancer of the
+ * group a call resolved in — not just the ones an instance cast.
+ *
+ * A swing settles on to the nearest two places that suit it, whoever's they are,
+ * which is what makes "balance and swing your neighbour" the progression; see
+ * `library/kinds/places.ts`.
+ */
+function homesOf(plan: GroupPlan, ctx: ResolveContext): Vec2[] {
+  const homes: Vec2[] = [];
+  for (const dancer of Object.values(plan.members)) {
+    if (ctx.model.dancers[dancer] === undefined) continue;
+    homes.push(localPoint(plan.frame, homeOf(ctx.model, dancer).p));
+  }
+  return homes;
 }
 
 /** Where an instance's dancers meet, in the frame's own px. */

@@ -14,6 +14,7 @@ import {
   createHall,
   createLibrary,
   createScriptDecider,
+  danceSchedule,
   dist,
   poseAt,
   reachReport,
@@ -21,7 +22,9 @@ import {
 } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
 import type { FigureDefaultsOverride } from "../figures/registry.js";
-import { createContraRegistry } from "../figures/registry.js";
+import { contraFigureOf, createContraRegistry } from "../figures/registry.js";
+import { templateFigureOf } from "../library/figures/index.js";
+import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
 import { formationById } from "./formations.js";
 
 /**
@@ -57,6 +60,31 @@ export const BECKET_LINES = [4, 5, 6, 7, 8, 9, 10, 12] as const;
 /** The formation a dance's `formation` id names. */
 export function formationFor(dance: Dance): Formation {
   return formationById(dance.formation);
+}
+
+/**
+ * Whether the **old path** can dance this dance at all.
+ *
+ * `chainCalls` and `@caller/choreo`'s own `defaultCyclePlanner` both hand a
+ * figure the four stations of a hands-four and ask it where it leaves people. A
+ * figure that takes a **pair** cannot answer: `anchor: "meet"` is minted one
+ * instance per pair by resolution and refuses four roles by name. While every
+ * such figure had a coded twin the question never arose — the twin answered it
+ * — and M5 is where a demo dance calls one that does not, because On the Prowl's
+ * shoulder round has only ever been data.
+ *
+ * So this is the honest test of "can both engines dance this", and the two
+ * places that compare the engines ask it rather than filtering by slug. The
+ * demo itself runs on the new engine (`DEFAULT_ENGINE` since M3) and is
+ * unaffected.
+ */
+export function threadsOnTheOldPath(dance: Dance): boolean {
+  return danceSchedule(dance).every(
+    ({ call }) =>
+      call.figure === HOLD_PLACE_FIGURE ||
+      contraFigureOf(call.figure) !== undefined ||
+      templateFigureOf(call.figure) !== undefined,
+  );
 }
 
 /** The line lengths this dance's formation is checked at. */

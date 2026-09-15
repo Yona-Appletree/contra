@@ -1,0 +1,18 @@
+{
+  "id": "mad-robin",
+  "walkthrough": {
+    "short": "Circle round {pairs} without turning round: one in front, one behind, facing the same way throughout.",
+    "long": "Keep facing exactly the way you are facing now — that is the whole figure. Now travel: one of you slides across in front of {pairs} and the other goes behind, so the two of you go round the point between you as though it were a small circle. You are walking sideways and backwards past somebody while still looking where you were looking. Nobody takes hands. {where}"
+  },
+  "call": {
+    "short": "MAD ROBIN",
+    "long": "MAD ROBIN AROUND {pairs}"
+  },
+  "variants": {
+    "amount=1": {
+      "walkthrough": {
+        "short": "Circle all the way round {pairs} without turning round, and come back to your own place."
+      }
+    }
+  }
+}

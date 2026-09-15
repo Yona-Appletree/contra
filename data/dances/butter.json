@@ -51,7 +51,7 @@
         {
           "figure": "hey",
           "beats": 16,
-          "params": { "start": "robins-right" },
+          "params": { "start": "robin", "by": "right" },
           "call": "HEY FOR FOUR"
         }
       ]

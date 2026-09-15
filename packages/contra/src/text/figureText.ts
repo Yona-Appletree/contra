@@ -2,7 +2,7 @@ import type { AnyFigureDef, FigureParams, Group, StationId } from "@caller/chore
 import { WALK_TO_STATION } from "@caller/choreo";
 import { CONTRA_FIGURE_IDS, contraFigureOf } from "../figures/registry.js";
 import { waitOut } from "../figures/wait-out.js";
-import { DATA_ONLY_FIGURE_IDS, GATHERER_DEFINITIONS } from "../library/figures/index.js";
+import { DATA_DEFINITIONS, dataOnlyFigureIds } from "../library/figures/index.js";
 import { interpretDefinition } from "../library/interpret.js";
 import { landmark } from "./landmark.js";
 
@@ -19,12 +19,15 @@ import doSiDoText from "../../../../data/figures/do-si-do.json" with { type: "js
 import grandRightAndLeftText from "../../../../data/figures/grand-right-and-left.json" with { type: "json" };
 import heyText from "../../../../data/figures/hey.json" with { type: "json" };
 import longLinesText from "../../../../data/figures/long-lines.json" with { type: "json" };
+import madRobinText from "../../../../data/figures/mad-robin.json" with { type: "json" };
 import passThroughText from "../../../../data/figures/pass-through.json" with { type: "json" };
 import petronellaText from "../../../../data/figures/petronella.json" with { type: "json" };
 import pullByText from "../../../../data/figures/pull-by.json" with { type: "json" };
 import rightAndLeftThroughText from "../../../../data/figures/right-and-left-through.json" with { type: "json" };
 import robinsChainText from "../../../../data/figures/robins-chain.json" with { type: "json" };
 import rollAwayText from "../../../../data/figures/roll-away.json" with { type: "json" };
+import shoulderRoundText from "../../../../data/figures/shoulder-round.json" with { type: "json" };
+import singleFilePromenadeText from "../../../../data/figures/single-file-promenade.json" with { type: "json" };
 import slideLeftText from "../../../../data/figures/slide-left.json" with { type: "json" };
 import starText from "../../../../data/figures/star.json" with { type: "json" };
 import swingText from "../../../../data/figures/swing.json" with { type: "json" };
@@ -123,12 +126,15 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       grandRightAndLeftText,
       heyText,
       longLinesText,
+      madRobinText,
       passThroughText,
       petronellaText,
       pullByText,
       rightAndLeftThroughText,
       robinsChainText,
       rollAwayText,
+      shoulderRoundText,
+      singleFilePromenadeText,
       slideLeftText,
       starText,
       swingText,
@@ -318,7 +324,7 @@ export function figureDefOf(id: string): AnyFigureDef | undefined {
   // parameters, its beats and its call text live on the `FigureDefinition`, and
   // the interpreter is what turns those into the `AnyFigureDef` a text is
   // checked and resolved against.
-  const definition = GATHERER_DEFINITIONS.find((def) => def.id === id);
+  const definition = DATA_DEFINITIONS.find((def) => def.id === id);
   return definition === undefined
     ? undefined
     : (interpretDefinition(definition) as unknown as AnyFigureDef);
@@ -394,7 +400,12 @@ function amountWords(value: unknown, register: Register): string | undefined {
 }
 
 const AMOUNTS: Record<number, { call: string; prose: string }> = {
+  // A quarter and three quarters since M5: a single file promenade is a
+  // fraction of the ring rather than a count of places, and the corpus asks for
+  // both.
+  0.25: { call: "a quarter", prose: "a quarter of the way round" },
   0.5: { call: "half way", prose: "half way round" },
+  0.75: { call: "three quarters", prose: "three quarters of the way round" },
   1: { call: "once", prose: "once around" },
   1.5: { call: "one and a half", prose: "once and a half" },
   2: { call: "twice", prose: "twice around" },
@@ -416,7 +427,10 @@ const PLACES: Record<number, { call: string; prose: string }> = {
 function directionWords(value: unknown): string | undefined {
   if (value === 1) return "left";
   if (value === -1) return "right";
-  const words = ["left", "right", "across", "along"];
+  // `clockwise` and `counterclockwise` since M5: a mad robin and a single file
+  // promenade are the first figures whose direction is a way round rather than
+  // a hand, and a caller says the whole word.
+  const words = ["left", "right", "across", "along", "clockwise", "counterclockwise"];
   return typeof value === "string" && words.includes(value) ? value : undefined;
 }
 
@@ -445,11 +459,18 @@ function holdWords(value: unknown): string | undefined {
   return typeof value === "string" ? words[value] : undefined;
 }
 
-/** Who starts a hey, and by which shoulder. */
-function startWords(value: unknown): string | undefined {
-  if (value === "robins-right") return "the robins, by the right";
-  if (value === "larks-left") return "the larks, by the left";
-  return undefined;
+/**
+ * Which role steps off into the middle of a hey.
+ *
+ * Two words where there used to be one: M5 split the coded hey's
+ * `start: "robins-right"` into the role that starts and the shoulder it starts
+ * by, because `robins-left` and `larks-right` are heys a caller can ask for and
+ * the coded pair of words could not say either (D4's two tiers — `start` and
+ * `by` are both a caller's own vocabulary).
+ */
+function startWords(value: unknown, register: Register): string | undefined {
+  if (value !== "lark" && value !== "robin") return undefined;
+  return register === "call" ? `${value}s` : `the ${value}s`;
 }
 
 /**
@@ -465,7 +486,7 @@ function startWords(value: unknown): string | undefined {
  */
 export function checkFigureTexts(): string[] {
   const faults: string[] = [];
-  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
+  const ids = [...CONTRA_FIGURE_IDS, ...dataOnlyFigureIds(), waitOut.id, WALK_TO_STATION.id];
   for (const id of ids) {
     if (!hasFigureText(id)) faults.push(`${id}: no data/figures/${id}.json`);
   }
