@@ -15,7 +15,6 @@ import {
   createLibrary,
   createScriptDecider,
   concurrentCalls,
-  danceBeats,
   danceSchedule,
   dancePasses,
   dist,

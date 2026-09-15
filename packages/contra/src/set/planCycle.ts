@@ -25,7 +25,6 @@ import {
   callBeats,
   danceBeats,
   dancePassSpans,
-  danceSchedule,
   frameAngle,
   framePoint,
   localAngle,

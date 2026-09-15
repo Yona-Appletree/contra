@@ -82,7 +82,10 @@ export const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
 export function localFigureDefinitions(): readonly FigureDefinition[] {
   const out: FigureDefinition[] = [];
   for (const [name, file, definition] of localFigures()) {
-    const { texts: _texts, ...rest } = definition;
+    // Everything but the `texts` block, which belongs to `text/figureText.ts`
+    // and is not part of a `FigureDefinition`.
+    const rest: Record<string, unknown> = { ...(definition as Record<string, unknown>) };
+    delete rest["texts"];
     out.push({ ...(rest as unknown as FigureDefinition), id: localFigureId(file.slug, name) });
   }
   return out;
