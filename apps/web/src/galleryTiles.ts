@@ -52,6 +52,7 @@ import {
   createContraCyclePlanner,
   createContraRegistry,
   formationFor,
+  isRelationWord,
   resolveFigureText,
 } from "@caller/contra";
 import type { EngineChoice } from "./state/engineQuery.js";
@@ -454,19 +455,44 @@ export function seamTiles(
  *   carries.
  *
  * Both are the same question asked of `actors`: a figure resolution hands the
- * whole four is `"all"` or `"ring"`, and everything else needs the set. The
- * choice goes away with the coded layer (M11).
+ * whole four is `"all"` or `"ring"`, and everything else needs the set.
+ *
+ * **And a third, since M7b: the *call* rather than the figure.** A do-si-do is a
+ * figure for the whole four and the old planner draws it happily — until Whoosh
+ * asks for one with `pairs: "N2"`, which is a relation the lane resolves and a
+ * hands-four has no dancer for, and the coded figure's own pairing returns
+ * nothing to walk (`pairsOf("N2").map is not a function`). So a seam tile asks
+ * about its two calls as well as about their two figures.
+ *
+ * The choice goes away with the coded layer (M11).
  */
-function tileEngine(ids: readonly string[], engine: EngineChoice): EngineChoice {
+function tileEngine(
+  ids: readonly string[],
+  engine: EngineChoice,
+  calls: readonly { who?: unknown; params?: unknown }[] = [],
+): EngineChoice {
   if (engine === "new") return "new";
   // `needsTheSet` is the library's own predicate (M8) — the one question the
   // hands-four template, the symmetry harness and this page were all asking
   // separately: a figure resolution mints per pair or per dancer, or one whose
-  // shape reads the lattice, can only be planned against a real set.
-  const set = ids.some((id) =>
-    dataOnlyDefinitions().some((def) => def.id === id && needsTheSet(def)),
-  );
+  // shape reads the lattice, can only be planned against a real set. M7b asks it
+  // of the tile's own **calls** as well.
+  const set =
+    ids.some((id) => dataOnlyDefinitions().some((def) => def.id === id && needsTheSet(def))) ||
+    calls.some(callNeedsTheSet);
   return set ? "new" : "old";
+}
+
+/** Whether a call's own `who` or pairing names somebody a hands-four does not hold. */
+function callNeedsTheSet(call: { who?: unknown; params?: unknown }): boolean {
+  const params = call.params as Record<string, unknown> | undefined;
+  for (const value of [call.who, params?.["pairs"], params?.["couples"]]) {
+    if (typeof value !== "string") continue;
+    const word = value.trim();
+    if (word === "partners" || word === "neighbors") continue;
+    if (isRelationWord(word)) return true;
+  }
+  return false;
 }
 
 /** The note a tile forced on to the other engine carries, so the page says so. */
@@ -686,7 +712,7 @@ export function seamTile(
   key = seam.key,
 ): GalleryTile {
   const { dance, a, b, wrapped } = seam;
-  const engine = tileEngine([a.figure, b.figure], asked);
+  const engine = tileEngine([a.figure, b.figure], asked, [a, b]);
   const formation = formationFor(dance);
   const run = planTile({
     formation,

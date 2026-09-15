@@ -348,10 +348,51 @@ function whereText(id: string, params: FigureParams, group: Group | undefined): 
         `a figure danced outside a minor set of four must not use "{${WHERE}}"`,
     );
   }
+  // **A call that pairs past the four has no landmark either** (M7b). Whoosh
+  // allemandes its N4 and A Rare Bird rounds its N3: those are relations the
+  // *lane* resolves, and a hands-four template has no dancer for them at all —
+  // planning the figure over four stations to read its ends throws inside the
+  // coded figure's own pairing (`pairsOf("N4")` is not a list of pairs). The
+  // landmark is the last sentence of a walkthrough and leaving it out leaves a
+  // walkthrough, which is exactly what this function's own note says about the
+  // other answers it cannot give.
+  if (pairsPastTheFour(params)) return "";
   const def = figureDefOf(id);
   if (def === undefined) throw new Error(`${id}: no figure of that id, so no landmark`);
   return landmark(def, params, group) ?? "";
 }
+
+/** Whether a call's own pairing names somebody a minor set of four does not hold. */
+function pairsPastTheFour(params: FigureParams): boolean {
+  for (const key of ["pairs", "couples"]) {
+    const value = (params as unknown as Record<string, unknown>)[key];
+    if (typeof value !== "string") continue;
+    const word = value.trim().toLowerCase();
+    // `N1` is the neighbour a hands-four holds; every other relation — an
+    // indexed one (`N2`, `S2`, `C1`) or a named one (`shadow`, `opposite`) —
+    // reaches past it.
+    if (word === "n1") continue;
+    if (INDEXED.test(word) || NAMED_RELATIONS[word] !== undefined) return true;
+  }
+  return false;
+}
+
+/**
+ * **The relations that are not written with a number** (M7b), beside M8's
+ * indexed ones below.
+ *
+ * `shadow` and `opposite` are how the corpus writes them — Contrablend's
+ * "shadow roll away", and every `[with shadow]` bracket — where `S1` and `C1`
+ * are the same dancers spelled the way {@link INDEXED} reads. A word with no
+ * number needs its own row, or a walkthrough of the call has nothing to put in
+ * its `{pairs}`.
+ */
+const NAMED_RELATIONS: Readonly<Record<string, { call: string; prose: string }>> = {
+  shadow: { call: "shadow", prose: "your shadow" },
+  opposite: { call: "opposite", prose: "the dancer opposite you" },
+  "trail-buddy": { call: "trail buddy", prose: "your trail buddy" },
+  corner: { call: "corner", prose: "your corner" },
+};
 
 /** The figure a text belongs to, the two engine-supplied ones included. */
 export function figureDefOf(id: string): AnyFigureDef | undefined {
@@ -437,6 +478,10 @@ const INDEXED_WORDS: Readonly<Record<string, { call: string; prose: string }>> =
 };
 
 function pairingWords(value: unknown, register: Register): string | undefined {
+  if (typeof value === "string") {
+    const named = NAMED_RELATIONS[value.trim().toLowerCase()];
+    if (named) return named[register];
+  }
   const name = pairingName(value);
   if (name === undefined) return undefined;
   const words: Record<string, { call: string; prose: string }> = {

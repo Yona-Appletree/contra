@@ -83,7 +83,7 @@ export function danceTrace(dance: Dance, options: DanceTraceOptions = {}): Trace
   const seating = seatingOf(dance);
   const trace = sampleTrace(timeline, {
     to: beats,
-    dancers: minorSetAt(timeline, opening),
+    dancers: minorSetAt(timeline, opening, dance),
     frame: timeline.group(opening.group).frame,
     // **The rank is the place in the set, not the station a pen opened on.** A
     // figure resolved per pair opens on its own part (`lark`), whose leading
@@ -138,7 +138,14 @@ const CACHE = new Map<string, Trace>();
  * four dancers partitioned two ways — so every event of that minor set at beat
  * zero, pooled, is the four.
  */
-function minorSetAt(timeline: Timeline, opening: FigureEvent): string[] {
+function minorSetAt(timeline: Timeline, opening: FigureEvent, dance: Dance): string[] {
+  // **A dance that opens in the lane has no minor set to read** (M7b). Whoosh's
+  // first call is a grand right and left, which is resolved over the whole set
+  // in one group (`set0/lane`), so pooling "everybody in the opening figure's
+  // group at beat zero" is the whole hall and the plate came out with eight
+  // pens. The formation's own first hands-four is the four to draw, and it is
+  // the same partition every other call of the dance is resolved in.
+  if (minorSetOf(opening.group).endsWith("/lane")) return firstFour(dance);
   // **The opening figure's own dancers first**, in its own binding order, and
   // then whoever else of the minor set is dancing at beat zero. A dance whose
   // first call takes the whole four gets exactly the list it always got —
@@ -150,6 +157,24 @@ function minorSetAt(timeline: Timeline, opening: FigureEvent): string[] {
     for (const dancer of Object.values(event.bindings)) dancers.add(dancer);
   }
   return [...dancers];
+}
+
+/** The four dancers of the formation's own first hands-four, in station order. */
+function firstFour(dance: Dance): string[] {
+  const formation = formationFor(dance);
+  const hall = createHall(formation, [
+    { id: "set0", couples: couplesFor(dance), centre: [0, 0], axis: 90 },
+  ]);
+  for (const set of hall.sets) {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+      if (plan.kind !== "set") continue;
+      const four = plan.stations
+        .map((station) => plan.members[station.id])
+        .filter((id): id is string => id !== undefined);
+      if (four.length === 4) return four;
+    }
+  }
+  return [];
 }
 
 /**

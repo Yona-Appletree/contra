@@ -4,7 +4,7 @@
   "author": "Cary Ravitz",
   "formation": "duple-improper",
   "status": "lab",
-  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so.",
+  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so. B2's `circle right 3/4 [with shadow]` is M7b's relation-selected ring (`who` = N1): by B2 your partner **is** your shadow, so 'you, your partner, your neighbour and their partner' is four dancers out of two minor sets, standing on a 32 x 20 rectangle across the seam between them, each ring holding a shadow pair. Still owed: its **ends**. At five and six couples the two dancers at each end of the line have no shadow and no N2, so they stand through the last thirteen beats of B2 and end 32 to 37.7 px from where the next time through's `wait-out` starts them. That is the cross-set plan's ruling 2 - the outs do what the ins need - which this plan has only the simplest form of: a relation that names nobody leaves that dancer on hold-place. Green at 2, 3 and 4 couples.",
   "source": {
     "callersBoxId": 219,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=219",
@@ -64,6 +64,7 @@
         {
           "figure": "circle",
           "beats": 3,
+          "who": "N1",
           "params": { "direction": "right", "places": 3 },
           "call": "CIRCLE RIGHT THREE QUARTERS WITH YOUR SHADOW"
         },

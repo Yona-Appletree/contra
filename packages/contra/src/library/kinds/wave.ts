@@ -14,9 +14,10 @@ import { alongSet, otherLine, slotOfRole, slotPoint } from "../../set/shape.js";
 import type { SlotView } from "../../set/shape.js";
 import type { FigureRole, HoldSpec, WaveShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
-import { evalNumber } from "../expr.js";
+import { evalNumber, evalSide } from "../expr.js";
 import { joinKey, type ShapeInput } from "../interpret.js";
 import { idleHandAt } from "./holds.js";
+import { settleEnds } from "./places.js";
 
 /**
  * **The wave, and its balance** (M7, handed over from M6).

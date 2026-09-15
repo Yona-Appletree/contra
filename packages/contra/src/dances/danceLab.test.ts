@@ -113,10 +113,20 @@ describe("the dance lab", () => {
       // first two segments, and its rows in schedule order are its own run of
       // calls — with an extra row for each call that resolved into two pairs.
       const places = new Set(rows.map((r) => minorSetOf(r.group)));
+      // **A dance may be resolved in two partitions at once** (M7b). Whoosh's
+      // grand right and left, long wave and circulate are the **lane**'s —
+      // `set0/lane`, one group for the whole set — and its swing, stars and
+      // chains are the minor sets'. So neither partition runs every call of the
+      // dance, and what each one runs is every call that resolved *in it*. For
+      // a dance with no lane call at all that is every call of the schedule,
+      // which is what this asserted before and still does.
+      const inLane = (r: { group: string }) => minorSetOf(r.group).endsWith("/lane");
+      const laneCalls = new Set(rows.filter(inLane).map((r) => r.start)).size;
+      const fourCalls = new Set(rows.filter((r) => !inLane(r)).map((r) => r.start)).size;
       for (const place of places) {
         const run = rows.filter((r) => minorSetOf(r.group) === place);
         expect(run.length, `${dance.slug} ${place}`).toBeGreaterThanOrEqual(
-          danceSchedule(dance).length,
+          place.endsWith("/lane") ? laneCalls : fourCalls,
         );
         for (let i = 1; i < run.length; i++) {
           // What one call hands on is exactly what the next one takes over —

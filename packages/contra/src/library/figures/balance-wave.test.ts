@@ -36,7 +36,7 @@ const modelAt = (couples: number) =>
   );
 
 describe("balance the long wave, in Whoosh", () => {
-  const dance = danceBySlug("whoosh");
+  const dance = danceBySlug("whoosh")!;
   const table = setRulesFor(DUPLE_IMPROPER).relations;
 
   it("gives every N1 pair their right hands, at every line length", () => {
