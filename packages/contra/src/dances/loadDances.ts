@@ -226,6 +226,14 @@ export function danceFromFile(file: DanceFile): Dance {
     phrases: file.phrases,
     ...(file.passes === undefined ? {} : { passes: file.passes }),
     ...(file.progressEvery === undefined ? {} : { progressEvery: file.progressEvery }),
+    // **M8b**: this line was missing, and Contrablend is the only record that
+    // writes the field, so nothing had noticed. `ContraDanceSpec.progression`
+    // is M6's and `contraDance` threads it; `DanceFile` has always declared it
+    // (it is `Omit<ContraDanceSpec, "formation">`); the file loader simply did
+    // not copy it over, so `progressionOf(dance)` answered the single
+    // progression and Contrablend's larks and robins both moved one place. The
+    // record said "M1, W3" and the dance did not do it.
+    ...(file.progression === undefined ? {} : { progression: file.progression }),
     ...(file.notes === undefined ? {} : { notes: file.notes }),
     ...(file.startPlaces === undefined ? {} : { startPlaces: file.startPlaces }),
     ...(file.waitOut === undefined ? {} : { waitOut: file.waitOut }),

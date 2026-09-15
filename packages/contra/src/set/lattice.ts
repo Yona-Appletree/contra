@@ -1,6 +1,7 @@
 import type { Vec2 } from "@caller/core";
 import type { CoupleState, Dance, DancerId, Formation, RoleName, SetState } from "@caller/choreo";
 import { localPoint } from "@caller/choreo";
+import type { DanceProgression } from "../figures/chain.js";
 import type { Relation } from "./relations.js";
 import { relate } from "./relations.js";
 import type { DancerState, SetModel, Slot } from "./SetModel.js";
@@ -45,24 +46,55 @@ import { setRulesOf } from "./SetRules.js";
  * `Formation.progression`, which is untouched.
  */
 
-/** How far each role progresses in one time through, in dancing places. */
-export type RoleShift = Readonly<Record<RoleName, number>>;
+/**
+ * How a progression moves a dancer: how far along the set, per role, and
+ * whether they also cross to the other line.
+ *
+ * **`line` is M8b's addition and Anna's Reel is why.** Rick Mohr's Anna's Reel
+ * is filed by the Caller's Box under the formation *"other; single, swap
+ * sides"*, and M7 and M8 both measured its closure at **37.7359 px =
+ * `sqrt(32² + 20²)`** at every line length: the dancers end **across the set
+ * *and* one dancing place along**. A single progression is the `20`; the `32`
+ * is the swap, and there is nowhere in a per-role integer to put it.
+ *
+ * The ruling (DD, M8b's brief item 3) is that this belongs on the **record**
+ * and not in a new formation: a swap-sides dance is a duple improper dance
+ * whose progression has a second axis, and the roles it leaves standing on each
+ * line is exactly why such a dance writes its second time through out with the
+ * roles exchanged — which Anna's Reel does, in the corpus, phrase for phrase.
+ */
+export interface RoleShift {
+  /** Dancing places along the set, per role. Missing roles progress one place. */
+  readonly places: Readonly<Record<RoleName, number>>;
+  /** `"swap"`: everybody also crosses to the other line. Default `"along"`. */
+  readonly line?: "along" | "swap";
+}
 
 /**
- * The progression a dance declares, or the single one.
+ * The progression a dance declares, in the long form, or the single one.
  *
  * `Dance` is `@caller/choreo`'s and knows nothing about roles or progressions;
  * a contra dance carries its own on the object (`figures/chain.ts`'s
- * `ContraDance`), and this is the one place that reads it.
+ * `ContraDance`), and this is the one place that reads it. The **flat** form
+ * a record may write (`{ "lark": 1, "robin": 3 }`, which is what eleven records
+ * use and what Contrablend means by "M1, W3") is normalised here, so nothing
+ * downstream has to know there are two spellings.
  */
-export const progressionOf = (dance: Dance): RoleShift =>
-  (dance as { progression?: Readonly<Record<string, number>> }).progression ?? SINGLE_PROGRESSION;
+export function progressionOf(dance: Dance): RoleShift {
+  const written = (dance as { progression?: DanceProgression }).progression;
+  if (written === undefined) return SINGLE_PROGRESSION;
+  if ("places" in written && typeof written.places === "object") {
+    const long = written as { places: Record<RoleName, number>; line?: "along" | "swap" };
+    return { places: long.places, ...(long.line === undefined ? {} : { line: long.line }) };
+  }
+  return { places: written as Record<RoleName, number> };
+}
 
 /** The ordinary contra progression: everybody one position the way they travel. */
-export const SINGLE_PROGRESSION: RoleShift = { lark: 1, robin: 1 };
+export const SINGLE_PROGRESSION: RoleShift = { places: { lark: 1, robin: 1 } };
 
 /** How far this role shifts, defaulting to a single progression. */
-export const shiftFor = (shift: RoleShift, role: RoleName): number => shift[role] ?? 1;
+export const shiftFor = (shift: RoleShift, role: RoleName): number => shift.places[role] ?? 1;
 
 /**
  * The occupied reach of the lattice, per line.
@@ -104,9 +136,20 @@ export function progressModel(model: SetModel, shift: RoleShift = SINGLE_PROGRES
     const target = dancer.slot.position + steps;
     const reach = span.line[dancer.slot.line];
     const offTheEnd = reach === undefined || target < reach.lowest || target > reach.highest;
-    dancers[dancer.id] = offTheEnd
+    const moved = offTheEnd
       ? { ...dancer, ...crossOver(lattice, dancer), holds: {} }
       : { ...dancer, slot: { ...dancer.slot, position: target }, holds: {} };
+    // **The swap** (M8b): a `line: "swap"` progression crosses the whole set
+    // over as well as moving it along, and it does so **keeping each dancer's
+    // travel** — which is the difference between this and the crossing above.
+    // Running out of line turns you round and sends you back the other way; a
+    // swap-sides progression leaves everybody going the way they were and puts
+    // the other role on each line, which is exactly why Anna's Reel writes its
+    // second time through out with the roles exchanged.
+    dancers[dancer.id] =
+      shift.line === "swap"
+        ? { ...moved, slot: { ...moved.slot, line: moved.slot.line === 0 ? 1 : 0 } }
+        : moved;
   }
   const next: SetModel = { ...model, dancers };
   for (const dancer of Object.values(dancers)) {
@@ -248,7 +291,10 @@ export function progressSet(
 ): SetState {
   const roles = new Set(Object.values(model.dancers).map((d) => d.role));
   const each = [...roles].map((role) => shiftFor(shift, role));
-  const uniform = each.every((n) => n === each[0]);
+  // A **line swap** is not something any formation's own `Progression.next`
+  // does — it is the second axis M8b added to a progression — so a dance that
+  // asks for one takes the slot path however uniform its places are.
+  const uniform = shift.line !== "swap" && each.every((n) => n === each[0]);
   if (uniform) {
     const times = each[0] ?? 1;
     if (!Number.isInteger(times) || times < 0) {

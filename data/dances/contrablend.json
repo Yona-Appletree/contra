@@ -4,14 +4,17 @@
   "author": "Cary Ravitz",
   "formation": "duple-improper",
   "status": "lab",
-  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so. B2's `circle right 3/4 [with shadow]` is M7b's relation-selected ring (`who` = N1): by B2 your partner **is** your shadow, so 'you, your partner, your neighbour and their partner' is four dancers out of two minor sets, standing on a 32 x 20 rectangle across the seam between them, each ring holding a shadow pair. Still owed: its **ends**. At five and six couples the two dancers at each end of the line have no shadow and no N2, so they stand through the last thirteen beats of B2 and end 32 to 37.7 px from where the next time through's `wait-out` starts them. That is the cross-set plan's ruling 2 - the outs do what the ins need - which this plan has only the simplest form of: a relation that names nobody leaves that dancer on hold-place. Green at 2, 3 and 4 couples.",
+  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so — and **until M8b the file loader dropped `progression` on the floor**, so every measurement of this dance before now was of a dance progressing both roles one place. It is read now, and the robins really do travel three places: at six couples `c0/robin` ends the time through 60 px along the set and `c0/lark` 20, which is \"M1, W3\". **B2's `who` stays `N1`, and the reason is the rebind.** B1's second roll-away carries `rebind: { partner: \"shadow\" }`, so by B2 your partner *is* your shadow and \"you, your partner, your shadow and their partner\" is three names for two people — the ring comes out degenerate and `relationRings` skips it. Read with the lattice partner instead it is four dancers strung along one line 60 px apart, which is not a circle. The four that really stand in a rectangle, and the four that hold your shadow, are you, your partner, your **neighbour** and their partner: `relationRing.test.ts` asserts that every dancer's own shadow is in their ring and that the gaps are 20, 20, 32, 32, 38, 38. So `N1` is the relation that *cuts* the set into the dance's own fours and \"[with shadow]\" is the transcript describing whom you find yourself circling with, which is M7's own reading of Whoosh's `circulate ... [with N2]`. The plain hands-four is not an option: it circles the original minor set and nobody circles with their shadow. **The ends are settled** (DD30): a waiting couple's `wait-out` now starts from where the dance really left those two dancers rather than teleporting them on to the waiting places, so the four end dancers who stand through B2's last thirteen beats no longer jump 32 px (the robins) and 37.7359 px (the larks) at the cycle boundary. Closure is **0.0000 px at every checked length**, where it was 37.7359 at five and six couples. **Still owed, one thing, measured: `collision 0.000 px`** at 3, 4, 5 and 6 couples and 6.008 px at 2, all of it introduced by the dance finally doing its own progression. At six couples it is at **beat 80**, the end of the second time through's A1: the progression re-pairs the set, so `c0/lark` and `c1/robin` are a new couple at place 1 and A1's balance and swing settles both of them on to (-16, 20) while (16, 20) is left empty. A swing settles on \"the nearest two places that suit\", chosen per instance, and no two instances of one call agree about which places they have taken. At 2 couples it is milder and is a fact about the dance rather than the engine: a line whose robins progress three places wants more than two couples in it.",
   "source": {
     "callersBoxId": 219,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=219",
     "permission": "full",
     "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (6) Circle left 3/4  (10) Partner swing\nB1  (8) In long lines, go forward and back while partner roll away (W roll L, M side-step R)  (8) In long lines, go forward and back while shadow roll away (W roll L, M side-step R) (new partner)\nB2  (6) Circle right 3/4 [with shadow]; turn alone  (10) N2 neighbor right shoulder round 1 & 1/2; face N3"
   },
-  "progression": { "lark": 1, "robin": 3 },
+  "progression": {
+    "lark": 1,
+    "robin": 3
+  },
   "phrases": [
     {
       "name": "A1",
@@ -19,7 +22,11 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "neighbors", "balanceBeats": 4, "endFacing": "across" },
+          "params": {
+            "pairs": "neighbors",
+            "balanceBeats": 4,
+            "endFacing": "across"
+          },
           "call": "NEIGHBOUR BALANCE AND SWING"
         }
       ]
@@ -30,13 +37,19 @@
         {
           "figure": "circle",
           "beats": 6,
-          "params": { "direction": "left", "places": 3 },
+          "params": {
+            "direction": "left",
+            "places": 3
+          },
           "call": "CIRCLE LEFT THREE QUARTERS"
         },
         {
           "figure": "swing",
           "beats": 10,
-          "params": { "pairs": "partners", "endFacing": "across" },
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
           "call": "PARTNER SWING"
         }
       ]
@@ -47,13 +60,22 @@
         {
           "figure": "roll-away",
           "beats": 8,
-          "params": { "pairs": "partners", "roller": "robin" },
+          "params": {
+            "pairs": "partners",
+            "roller": "robin"
+          },
           "call": "LONG LINES FORWARD AND BACK, ROLL AWAY YOUR PARTNER"
         },
         {
           "figure": "roll-away",
           "beats": 8,
-          "params": { "pairs": "shadow", "roller": "robin", "rebind": { "partner": "shadow" } },
+          "params": {
+            "pairs": "shadow",
+            "roller": "robin",
+            "rebind": {
+              "partner": "shadow"
+            }
+          },
           "call": "AGAIN, ROLL AWAY YOUR SHADOW; NEW PARTNER"
         }
       ]
@@ -65,14 +87,25 @@
           "figure": "circle",
           "beats": 3,
           "who": "N1",
-          "params": { "direction": "right", "places": 3 },
+          "params": {
+            "direction": "right",
+            "places": 3
+          },
           "call": "CIRCLE RIGHT THREE QUARTERS WITH YOUR SHADOW"
         },
-        { "figure": "turn-alone", "beats": 3, "call": "TURN ALONE" },
+        {
+          "figure": "turn-alone",
+          "beats": 3,
+          "call": "TURN ALONE"
+        },
         {
           "figure": "shoulder-round",
           "beats": 10,
-          "params": { "pairs": "N2", "hand": "R", "amount": 1.5 },
+          "params": {
+            "pairs": "N2",
+            "hand": "R",
+            "amount": 1.5
+          },
           "call": "RIGHT SHOULDER ROUND NUMBER TWO, ONCE AND A HALF"
         }
       ]

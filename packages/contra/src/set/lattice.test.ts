@@ -60,7 +60,7 @@ describe("a progression is a shift of every dancer's slot (Q14)", () => {
     // in the acceptance set asks for this; M9's triple progression is uniform.
     const set = hallOf(BECKET, 6);
     const model = modelFromSet(BECKET, set, NOWHERE);
-    expect(() => progressSet(BECKET, model, set, { lark: 1, robin: 3 })).toThrow(
+    expect(() => progressSet(BECKET, model, set, { places: { lark: 1, robin: 3 } })).toThrow(
       /role-asymmetric progression in "becket".*\(M9\)/,
     );
   });
@@ -76,7 +76,9 @@ describe("a progression is a shift of every dancer's slot (Q14)", () => {
         seating(formation.progression.next(set)),
       );
       // A triple progression (M9's The Set Monster) is three of them.
-      expect(seating(progressSet(formation, model, set, { lark: 3, robin: 3 }))).toEqual(
+      expect(
+        seating(progressSet(formation, model, set, { places: { lark: 3, robin: 3 } })),
+      ).toEqual(
         seating(
           formation.progression.next(formation.progression.next(formation.progression.next(set))),
         ),
@@ -176,7 +178,7 @@ describe("a role-asymmetric progression re-partners the set (Contrablend)", () =
     const shadow = relate(model, table, "set0/c2/lark", parseRelation("shadow"));
     expect(shadow).toBe("set0/c0/robin");
 
-    const after = progressSet(DUPLE_IMPROPER, model, set, { lark: 1, robin: 3 });
+    const after = progressSet(DUPLE_IMPROPER, model, set, { places: { lark: 1, robin: 3 } });
     const couple = after.couples.find((c) => c.dancers["lark"] === "set0/c2/lark")!;
     // The transcript's own "(new partner)": whoever was your shadow is across
     // the set from you when the time through ends.
@@ -188,12 +190,100 @@ describe("a role-asymmetric progression re-partners the set (Contrablend)", () =
     let set = hallOf(DUPLE_IMPROPER, 6);
     for (let i = 0; i < 12; i++) {
       const model = modelFromSet(DUPLE_IMPROPER, set, NOWHERE);
-      set = progressSet(DUPLE_IMPROPER, model, set, { lark: 1, robin: 3 });
+      set = progressSet(DUPLE_IMPROPER, model, set, { places: { lark: 1, robin: 3 } });
       expect(set.couples).toHaveLength(6);
       for (const couple of set.couples) {
         expect(Object.keys(couple.dancers).sort(), `round ${String(i)}`).toEqual(["lark", "robin"]);
       }
       expect(new Set(set.couples.map((c) => c.place)).size).toBe(6);
     }
+  });
+});
+
+/**
+ * **The swap-sides progression** (M8b): `RoleShift.line`, the second axis a
+ * progression turned out to have, and Rick Mohr's Anna's Reel is the dance.
+ *
+ * Two claims, and they are the whole of what "other; single, swap sides" means:
+ * everybody crosses the set while still travelling the way they were, and doing
+ * it twice puts everybody back on their own line two places along — which is
+ * why such a dance is written as **two passes with the roles exchanged** and
+ * not as one.
+ */
+describe("a swap-sides progression crosses the set (Anna's Reel)", () => {
+  const SWAP = { places: { lark: 1, robin: 1 }, line: "swap" } as const;
+
+  it("crosses every dancer over and leaves them travelling the way they were", () => {
+    const set = hallOf(DUPLE_IMPROPER, 6);
+    const model = modelFromSet(DUPLE_IMPROPER, set, NOWHERE);
+    const after = progressModel(model, SWAP);
+    for (const was of Object.values(model.dancers)) {
+      const now = after.dancers[was.id]!;
+      expect(now.slot.line, `${was.id} line`).not.toBe(was.slot.line);
+      expect(now.travel, `${was.id} travel`).toBe(was.travel);
+      // One dancing place along, the way they travel — the `places` half.
+      expect(now.slot.position, `${was.id} position`).toBe(was.slot.position + was.travel);
+    }
+  });
+
+  it("puts the other role on each line, which is why the second pass is the mirror", () => {
+    const set = hallOf(DUPLE_IMPROPER, 6);
+    const model = modelFromSet(DUPLE_IMPROPER, set, NOWHERE);
+    const rolesOn = (m: typeof model, line: 0 | 1, travel: 1 | -1): Set<string> =>
+      new Set(
+        Object.values(m.dancers)
+          .filter((d) => d.slot.line === line && d.travel === travel)
+          .map((d) => d.role),
+      );
+    // Improper: the dancers travelling one way on one line are all one role.
+    expect(rolesOn(model, 1, 1)).toEqual(new Set(["lark"]));
+    expect(rolesOn(progressModel(model, SWAP), 1, 1)).toEqual(new Set(["robin"]));
+  });
+
+  it("is its own inverse: twice through is your own line, two places along", () => {
+    const set = hallOf(DUPLE_IMPROPER, 6);
+    const model = modelFromSet(DUPLE_IMPROPER, set, NOWHERE);
+    const twice = progressModel(progressModel(model, SWAP), SWAP);
+    for (const was of Object.values(model.dancers)) {
+      const now = twice.dancers[was.id]!;
+      // Interior dancers only: the ends turn round, which is the formation's
+      // own end effect and not the swap's.
+      if (Math.abs(was.slot.position + was.travel * 2 - 2.5) > 2.5) continue;
+      expect(now.slot.line, `${was.id} line`).toBe(was.slot.line);
+      expect(now.travel, `${was.id} travel`).toBe(was.travel);
+      expect(now.slot.position, `${was.id} position`).toBe(was.slot.position + was.travel * 2);
+    }
+  });
+
+  /**
+   * **A swap is invisible to the hall's seating, and that is a finding rather
+   * than a bug — but it is a limit worth writing down.**
+   *
+   * `SetState` records who is a couple, at which place, travelling which way,
+   * and a line swap changes none of the three: everybody keeps their place and
+   * their travel, and a couple is still a couple. What it changes is which
+   * **line** each dancer stands on, which lives on the slot and therefore in the
+   * `SetModel`. So `progressSet` answers the same seating as the plain
+   * progression, and the swap survives a **pass** boundary (where `planCycle`
+   * carries the model forward with `progressModel`) and is lost at a **cycle**
+   * boundary (where the model is rebuilt from the seating with `modelFromSet`).
+   *
+   * For Anna's Reel that is exactly right: it swaps twice per time through the
+   * record, and two swaps are none. A one-pass swap-sides dance would need the
+   * seating to carry it, and there is nowhere in `CoupleState` to put it — see
+   * this milestone's report.
+   */
+  it("changes the slots and not the seating, which is why two passes is one cycle", () => {
+    const set = hallOf(DUPLE_IMPROPER, 6);
+    const model = modelFromSet(DUPLE_IMPROPER, set, NOWHERE);
+    expect(seating(progressSet(DUPLE_IMPROPER, model, set, SWAP))).toEqual(
+      seating(DUPLE_IMPROPER.progression.next(set)),
+    );
+    const lines = (m: typeof model): string =>
+      Object.values(m.dancers)
+        .map((d) => `${d.id}:${String(d.slot.line)}`)
+        .sort()
+        .join(" ");
+    expect(lines(progressModel(model, SWAP))).not.toEqual(lines(progressModel(model)));
   });
 });

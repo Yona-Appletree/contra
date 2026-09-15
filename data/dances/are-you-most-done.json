@@ -4,7 +4,7 @@
   "author": "Russell Owen",
   "formation": "becket",
   "status": "lab",
-  "notes": "The Caller's Box 2842, permission: full. The Caller's Box's own notes: \"Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey.\" **Still owed, measured.** The record resolves and dances; the oracles do not pass. At 4 couples: closure 60.0000 px, progressed 0.0000 px, reach 46.6301 px short. At 5 couples and above `long-lines` throws `station \"1L\" has no line mate` in the second time through, which is the same fault one cycle on: three of a minor set's four on one side of it. The one thing owed is **which four dancers a right-diagonal hey is with, and what it leaves behind**. Two readings, and no measurement here decided between them: the star left 7/8 leaves your own minor set standing on a diagonal and you hey with it (what this record writes \u2014 `axis: \"diagonal\"`, the lane at whatever angle the four really make, Q12's fixed diagonal), or the hey is with the couple across the seam (`\"group\": \"shadow-pair\"`, which becket already partitions, and which makes the hey the progression). The diagonal **lane** is built and tested either way (`hey.test.ts`). Lisa Greenleaf's alternate B2 (#4700) is in the transcript and is not encoded: it is the same concurrent call with a shoulder round and a shift.",
+  "notes": "The Caller's Box 2842, permission: full. The Caller's Box's own notes: \"Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey.\" **B1's hey is danced by the N2 foursome** (DD27, M8b): on a becket set the four of \"on right diagonal, hey\" are your couple and the couple across the set one place to your right — the couple the transcript calls N2, which becket's relation table names since M8b joined the ends of the set's own loop up. The hey carries the progression, and the author's note is the check. Measured, that one word is what the dance was waiting for: **closure 60.0000 px became 0.0000 px at every checked length (4-12)**, reach 46.6301 px short became 0.0000 at 4-6 couples and 4.0278-4.6375 at 7 and up, and the `long lines: station \"1L\" has no line mate` throw that stopped eight of the nine lengths is gone. Q12's fixed diagonal is kept; the straightening drift is not built and the strip does not ask for it. **Still owed, one thing, measured: collision 0.000 px.** At 4 and 6 couples it is at the cycle boundary (beat 64), where the two couples standing out — whom `who: \"N2\"` now sweeps into the hey, because at those lengths N2 is exactly the couple that is out — settle on the same four places as the couples that danced: `c0/lark` and `c2/lark` both on (16, 60). At 8 couples it is inside B1 itself (beat 52). Both are one thing: two instances of one call settle on places chosen per instance, and nothing de-conflicts the choices across them. Lisa Greenleaf's alternate B2 (#4700) is in the transcript and is not encoded.",
   "source": {
     "callersBoxId": 2842,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=2842",
@@ -61,6 +61,7 @@
         {
           "figure": "hey",
           "beats": 16,
+          "who": "N2",
           "params": {
             "axis": "diagonal",
             "passes": "LR N2L RR PL LR N2L RR PL"
