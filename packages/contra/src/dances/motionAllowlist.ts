@@ -17,7 +17,8 @@
  */
 
 /** Which column of a motion row an allowance is about. */
-export type MotionMetric = "handSpeed" | "elbowSpeed" | "elbowPerHand" | "heightRate" | "dip";
+export type MotionMetric =
+  "handSpeed" | "elbowSpeed" | "elbowPerHand" | "heightRate" | "dip" | "travel";
 
 /** One tolerated over-bound row. */
 export interface MotionAllowance {
@@ -99,6 +100,53 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "make this bound mean something; until then it is the one column no figure " +
       "in the library has ever met. Listed once rather than per figure so that the " +
       "list stays readable.",
+  },
+  {
+    dance: "*",
+    key: "circle",
+    metric: "travel",
+    reason:
+      "M10's sustained-travel bound is 23.32 px/beat — one and a half swings " +
+      "(`figures/motionBounds.ts`). A circle three places round the ring takes " +
+      "25.13 px/beat when the card gives it **six** beats rather than the " +
+      "figure's own eight, which is how Airpants, Butter, The Nice " +
+      "Combination, The Carousel, After the Solstice and A Rare Bird all call " +
+      "it. Run alone at its nominal count the same circle is 14.14 px/beat, " +
+      "comfortably inside. So this is not the figure being wrong: it is a call " +
+      "asking four dancers to cover three quarters of a ring in six beats, " +
+      "which really is a fast circle, and the levers are the card's count or " +
+      "the ring's radius (`RING_NEIGHBOR_SPACING_PX`, the circle's own " +
+      "footprint clamp) — not the motion profile, which already took 2.6 " +
+      "px/beat off it.",
+  },
+  {
+    dance: "*",
+    key: "star",
+    metric: "travel",
+    reason:
+      "The same call-count arithmetic as the circle above, and M10's own " +
+      "bound: a star called over fewer beats than the figure's own count " +
+      "travels 25.13 px/beat where the figure alone is 18.85. A Rare Bird is " +
+      "the dance. The user's review has an open question about how wide a star " +
+      "should be (`figure-review.md`, the director's note of 09:58), and the " +
+      "ring's radius is the lever that would move this row — the figure review " +
+      "milestone that answers it, not the motion profile, which already took " +
+      "3.5 px/beat off the figure's own number.",
+  },
+  {
+    dance: "*",
+    key: "wait-out",
+    metric: "travel",
+    reason:
+      "**E27: the slide's pace.** A couple waiting out at the end of the set " +
+      "slides a whole place — 32 px — to rejoin, which is 28.7 px/beat " +
+      "sustained and the fastest travel in the programme, against M10's own " +
+      "bound of 23.32. S2 (#52) ruled the slide's pace and this is that " +
+      "ruling's cost, not a new defect. The levers are the transitions model " +
+      "or `PLACE_PITCH_PX`, and neither belongs to the figure-model roadmap: " +
+      "this row is the standing record of what the slide costs until a " +
+      "transitions milestone exists to move it. Butter is the dance that " +
+      "shows it.",
   },
 ];
 

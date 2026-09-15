@@ -435,6 +435,16 @@ number slides through every maximum in every other oracle silently, and an arm
 that is not a number is drawn as nothing at all. It is the one failure the rest
 of this file is blind to, so it gets its own column and sorts above everything.
 
+**`travel` is the one column about the body** (M10, R6): the fastest any dancer
+moves, averaged over a sliding **one-beat window**. Everything above it measures
+a drawn arm, and a figure can pass every one of them while walking its dancers
+across the hall at a run. Sustained, not instantaneous: a beat is the unit a
+count is written in, and what separates a walk from a take is that a take is
+over inside one. The window may reach back across a figure boundary and the row
+it counts against is the figure that owns the _end_ of it — a dancer still
+running a beat into the next figure is that figure's problem as much as the last
+one's. `MotionWorst.side` is left out for it: a body has no side.
+
 `motionReport` takes its bounds from the caller and never judges. `@caller/contra`'s
 `motionBounds.ts` derives the contra library's own.
 

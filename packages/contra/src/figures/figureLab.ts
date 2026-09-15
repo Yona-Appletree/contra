@@ -262,6 +262,7 @@ function worstOf(a: MotionStats, b: MotionStats): MotionStats {
       | "elbowSpeed"
       | "elbowPerHand"
       | "heightRate"
+      | "travel"
       | "elbowHeightRate"
       | "flipJump"
       | "dip",
@@ -274,6 +275,7 @@ function worstOf(a: MotionStats, b: MotionStats): MotionStats {
     elbowSpeed: worse("elbowSpeed"),
     elbowPerHand: worse("elbowPerHand"),
     heightRate: worse("heightRate"),
+    travel: worse("travel"),
     elbowHeightRate: worse("elbowHeightRate"),
     flipJump: worse("flipJump"),
     dip: worse("dip"),
