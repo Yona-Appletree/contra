@@ -321,9 +321,45 @@ function settle(
     // robin on its right; which of the pair is which is the dancers' own roles,
     // not the order the call named them in. The two ends are the **places
     // themselves**, so the pair really does finish standing on them.
-    const lark = ctx.role(a) === ctx.roleSet.top ? b : a;
-    const robin = lark === a ? b : a;
+    //
+    // ### A same-role pair has no lark and no robin (M9f)
+    //
+    // "Robins balance and swing" is two robins, and `ctx.role(a)` answers
+    // `robin` for both of them, so the test above always took the *first* of
+    // the pair as the robin — a coin toss that has nothing to do with where the
+    // two of them are standing. Half the time it names the end on the far side
+    // of the turn, and the pair then opens out **through itself**: the orbit
+    // holds `axisRole` at `psi` and the other dancer at `psi + 180`, and
+    // `placeAt` lerps each body from there straight to its end place, so two
+    // ends the wrong way round drag both bodies across the centre at once.
+    // Measured on Anna's Reel's B1 (`pairs: [["1R","2R"]]`), where the pair's
+    // own two places are a diagonal of the minor set: `collision 3.6187 px` at
+    // beat 47, at every checked length, the two robins passing through each
+    // other on the way out of their own swing.
+    //
+    // So when the two dancers share a role the ends go **by position**: the end
+    // the orbit finishes on. `round: "open"` turns the axis to `facing + 90` by
+    // construction (see `turn` above), so the axis role finishes on the right of
+    // the way the pair faces and the other on its left, which is the same
+    // arrangement a mixed pair gets from its roles. A pair whose two dancers
+    // have different roles never reaches this branch, so every swing in the
+    // corpus but a same-role one is bit-for-bit what it was.
     const left = dirOf(facing - 90);
+    const axisRole = shape.axisRole ?? b;
+    const psiEnd = shape.turn.round === "open" ? facing + 90 : psi0 + whole;
+    const axisDir = dirOf(psiEnd);
+    const axisOnLeft = axisDir[0] * left[0] + axisDir[1] * left[1] > 0;
+    const lark =
+      ctx.role(a) === ctx.role(b)
+        ? axisOnLeft
+          ? axisRole
+          : axisRole === a
+            ? b
+            : a
+        : ctx.role(a) === ctx.roleSet.top
+          ? b
+          : a;
+    const robin = lark === a ? b : a;
     const onLeft = (one[0] - pair.centre[0]) * left[0] + (one[1] - pair.centre[1]) * left[1] > 0;
     return {
       ends: {
