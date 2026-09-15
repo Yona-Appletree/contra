@@ -229,6 +229,8 @@ export function danceFromFile(file: DanceFile): Dance {
     phrases: file.phrases,
     ...(file.passes === undefined ? {} : { passes: file.passes }),
     ...(file.progressEvery === undefined ? {} : { progressEvery: file.progressEvery }),
+    ...(file.callBudgets === undefined ? {} : { callBudgets: file.callBudgets }),
+    ...(file.teach === undefined ? {} : { teach: file.teach }),
     // **M8b**: this line was missing, and Contrablend is the only record that
     // writes the field, so nothing had noticed. `ContraDanceSpec.progression`
     // is M6's and `contraDance` threads it; `DanceFile` has always declared it

@@ -306,6 +306,29 @@ dance in the corpus asks for.
   `data/figures/<name>.json`, drop the slug from the calls that name it, add a
   row to `packages/contra/README.md`. Nothing else changes.
 
+## What the caller says: `call`, `callBudgets`, `teach`
+
+Three fields, and all three exist because everything **else** the app says about
+a dance is derived and never stored (M13; `docs/move-texts.md`).
+
+- **`call`** on a figure is a **flourish**: the one line a caller says here that
+  no form of the figure can say. Everything else — "SWING YOUR PARTNER", "CIRCLE
+  LEFT THREE PLACES", "ROBINS CHAIN TO YOUR PARTNER" — comes out of
+  `data/figures/<id>.json`'s three call forms with the call's own parameters and
+  the dancer it names filled in, and out of the **resolution** for a chain's
+  target. A record that writes one anyway is refused by
+  `loadDances.test.ts` if any form can say it.
+- **`callBudgets`** is how many beats of words each time through gets, 1-based,
+  the last repeating: left out is `[4, 2, 2, 1]`, the whole sentence, then the
+  middle form twice, then a word. No dance in the programme writes one.
+- **`teach`** is a caller's own edits to this dance's walkthrough, keyed
+  `<phrase>/<figure>` — `"A2/robins-chain"`, `"B1/balance-ring/2"` for the second
+  of two in one phrase, `"A2/loop"` for a concurrent branch, and `opening` and
+  `wrap` for the two dance-level sentences. Each edit writes any of `before`,
+  `after` and `replace`. A key that names nothing **warns** at load and the rest
+  of the dance loads, because a stale key after a re-encoding must not take a
+  dance off the programme.
+
 ## Lab status
 
 `"status": "lab"` is a dance that is being worked on. It loads like any other, is
@@ -437,8 +460,15 @@ that has gone wrong at least once.
 7. **`||` becomes `while`**, with the branches' actors disjoint.
 8. **An exit clause is its own call** — a zero-beat one — or a `form` parameter.
 9. **A second pass is more phrases plus `passes`**, named `2A1 …`.
-10. **Write a `call` for every line**, in the caller's own words. The dance's own
-    words win over the generated ones, on the card and in the bubble alike.
+10. **Write a `call` only for a flourish** (M13). What the caller says is
+    **derived**: every figure writes three call forms in `data/figures/<id>.json`
+    — a whole sentence, a middle form and a word — and `callScript` picks the
+    longest that fits the room the call before it leaves and the register this
+    time through is in. So a `call` in a record is for the line no form can say:
+    Butter's "SHIFT LEFT", After the Solstice's "AND SWING", The Carousel's
+    "FULL HEY FOR FOUR". `loadDances.test.ts` refuses one that any form can say,
+    and refuses the encoder's own vocabulary ("ONE AND A HALF", "THREE
+    QUARTERS", "LADIES") in the ones that stay.
 11. **`status: "lab"`**, always, to begin with.
 12. **A selection the library cannot say is a reading, and it goes in `notes`**
     (M9). Three of them turned up in the two Banner dances and none is a bug:

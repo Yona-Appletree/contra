@@ -102,6 +102,16 @@ interface Formation {
 }
 ```
 
+**What the caller says is the form's business** (M13). The script decider takes
+an optional `callsFor(dance, timeThrough)` and says whatever list of
+`{ offset, text, beats? }` events it hands back, `offset` being the beat of the
+time through the utterance is said before and the lead applied to it exactly as
+it is to a call's own start. Left out, the decider does what it always did: one
+utterance per written call, the dance's own words or the figure's. `@caller/contra`
+supplies one that shortens a call as the hall learns the dance and says two short
+figures in one breath; none of that arithmetic is here, and none of it could be —
+the hook carries beats and text and never a relation or a figure-role.
+
 **A formation supplies its own words**, heard and read. `lineUpCalls` and
 `handsFourCalls` are what the caller says to get a hall standing in it (a
 becket hall hears a third sentence after it has hands); `walkthroughOpening` is

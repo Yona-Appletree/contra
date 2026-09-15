@@ -11,10 +11,7 @@
     "permission": "full",
     "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (6) Circle left 3/4  (10) Partner swing\nB1  (8) In long lines, go forward and back while partner roll away (W roll L, M side-step R)  (8) In long lines, go forward and back while shadow roll away (W roll L, M side-step R) (new partner)\nB2  (6) Circle right 3/4 [with shadow]; turn alone  (10) N2 neighbor right shoulder round 1 & 1/2; face N3"
   },
-  "progression": {
-    "lark": 1,
-    "robin": 3
-  },
+  "progression": { "lark": 1, "robin": 3 },
   "phrases": [
     {
       "name": "A1",
@@ -22,36 +19,15 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": {
-            "pairs": "neighbors",
-            "balanceBeats": 4,
-            "endFacing": "across"
-          },
-          "call": "NEIGHBOUR BALANCE AND SWING"
+          "params": { "pairs": "neighbors", "balanceBeats": 4, "endFacing": "across" }
         }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": {
-            "direction": "left",
-            "places": 3
-          },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "swing",
-          "beats": 10,
-          "params": {
-            "pairs": "partners",
-            "endFacing": "across"
-          },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
+        { "figure": "swing", "beats": 10, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     },
     {
@@ -60,22 +36,13 @@
         {
           "figure": "roll-away",
           "beats": 8,
-          "params": {
-            "pairs": "partners",
-            "roller": "robin"
-          },
+          "params": { "pairs": "partners", "roller": "robin" },
           "call": "LONG LINES FORWARD AND BACK, ROLL AWAY YOUR PARTNER"
         },
         {
           "figure": "roll-away",
           "beats": 8,
-          "params": {
-            "pairs": "shadow",
-            "roller": "robin",
-            "rebind": {
-              "partner": "shadow"
-            }
-          },
+          "params": { "pairs": "shadow", "roller": "robin", "rebind": { "partner": "shadow" } },
           "call": "AGAIN, ROLL AWAY YOUR SHADOW; NEW PARTNER"
         }
       ]
@@ -87,25 +54,14 @@
           "figure": "circle",
           "beats": 3,
           "who": "N1",
-          "params": {
-            "direction": "right",
-            "places": 3
-          },
+          "params": { "direction": "right", "places": 3 },
           "call": "CIRCLE RIGHT THREE QUARTERS WITH YOUR SHADOW"
         },
-        {
-          "figure": "turn-alone",
-          "beats": 3,
-          "call": "TURN ALONE"
-        },
+        { "figure": "turn-alone", "beats": 3 },
         {
           "figure": "shoulder-round",
           "beats": 10,
-          "params": {
-            "pairs": "N2",
-            "hand": "R",
-            "amount": 1.5
-          },
+          "params": { "pairs": "N2", "hand": "R", "amount": 1.5 },
           "call": "RIGHT SHOULDER ROUND NUMBER TWO, ONCE AND A HALF"
         }
       ]
