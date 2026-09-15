@@ -93,9 +93,11 @@ reached only by URL.
 
   **The dance stops between dances, and the gap carries no tune.** A dance is
   two times through of 64 beats and the medley switches tune every 64; the gap
-  between two dances is 44 — 8 beats of applause, 16 of the caller announcing
-  the next dance, 8 walking to places, 8 taking hands four in a ring, and 4 of
-  potatoes. If the tune kept looping through it, every dance switch would put
+  between two dances is 44 — 8 beats of the hall thanking its partner and
+  neighbour (no clapping — the user: "no one claps in contra"), 16 of the
+  caller announcing the next dance, 8 walking to places, 8 taking hands four in
+  a ring, and 4 of potatoes. If the tune kept looping through it, every dance
+  switch would put
   the music 44 beats out of phase with the dance and two switches would be more
   than a whole time through — which is the drift M9 measured, only worse. So
   the player stops at the end of the last time through, the silent clock
@@ -115,10 +117,11 @@ reached only by URL.
   `SCRIPT_DECIDER_DEFAULTS` (`betweenDancesBeats`), because the page's
   arithmetic and the decider's have to agree exactly or the tune drifts.
 
-  **The applause is a sound as well as a pose.** At the beat the tune stops the
-  page fires `@caller/music`'s `playApplause` on the same `AudioContext` —
-  noise rendered sample by sample, no sample file, no new dependency — and the
-  dancers dance `@caller/choreo`'s `applaud`.
+  **Nothing sounds between two dances but the potatoes.** The gap is silent
+  from the beat the tune stops to the first potato — no clap, no cheer, nothing
+  (B4: "no one claps in contra") — and the dancers dance `@caller/choreo`'s
+  `thanks`: half the stretch turned to the partner, half to the neighbour
+  across, each with a small nod, arms at their sides.
 
 - `src/hall.css` — the rules for `@caller/music`'s card and notation, which
   shipped with class names and no stylesheet because nothing had put them on
@@ -141,13 +144,14 @@ own copy deliberately).
 Unit tests: `src/musicClock.test.ts` (the tune starts on its own beat 0 at
 every dance start, over three switches), `src/hallFloor.test.ts` (every
 dancer of every dance stays on the dance floor — the only place in the repo
-that sees both the hall and the formations), `src/betweenDances.test.ts` (B1:
-the announce/applause/walk/ready gap between two dances), `src/program.test.ts`
+that sees both the hall and the formations), `src/betweenDances.test.ts` (B1,
+B4: the thanks/announce/walk/ready gap between two dances), `src/program.test.ts`
 (T1: the seeded medley shuffle never repeats a medley on two circularly
 adjacent dances, and dances every medley once before any repeats),
 `src/programme.test.ts` (the whole evening danced: every dancer has a figure
 at every beat, including a waiting couple's `wait-out` — the regression a
 plain coverage check missed), `src/galleryTiles.test.ts` (the gallery's
+
 figure and seam tiles cover every figure the registry holds and every seam
 the demo dances actually dance).
 

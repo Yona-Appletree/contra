@@ -1,7 +1,9 @@
-import type { Beat } from "@caller/core";
+import type { Angle, Beat } from "@caller/core";
+import { angleOfVec, dist } from "@caller/core";
 import type { Dance, Program } from "../dance/Dance.js";
 import { danceBeats, danceSchedule, validateDance } from "../dance/Dance.js";
 import type {
+  CoupleState,
   DancerId,
   Formation,
   GroupPlan,
@@ -17,12 +19,12 @@ import type { LineUpShift } from "../formation/lineUpShift.js";
 import { lineUpShiftOf, shiftPlaces } from "../formation/lineUpShift.js";
 import type { AnyFigureDef, EndPose, FigureRegistry } from "../figure/FigureDef.js";
 import { withDefaults } from "../figure/FigureDef.js";
-import { APPLAUD } from "../figure/applaud.js";
+import { THANKS } from "../figure/thanks.js";
 import { TAKE_HANDS, lineUpPlaces } from "../figure/takeHands.js";
 import { WAIT_OUT } from "../figure/waitOut.js";
 import { WALK_TO_STATION } from "../figure/walkToStation.js";
 import type { Group } from "../group/Group.js";
-import { createGroup } from "../group/Group.js";
+import { createGroup, groupStationPose, stationOf } from "../group/Group.js";
 import type { Timeline, TimelineEvent } from "../timeline/Timeline.js";
 import { createTimeline } from "../timeline/Timeline.js";
 import type { ChoreoLibrary, Decider, ScriptDeciderOptions, ScriptPosition } from "./Decider.js";
@@ -41,16 +43,17 @@ import { complementOf, resolveSelector } from "./resolveSelector.js";
  * touching it.
  *
  * **Between two dances** the dancing stops and a real interval runs, in five
- * stretches whose lengths are {@link ScriptDeciderOptions}': the hall applauds
- * where it stands (`applaud`, facing the band); the caller announces the next
- * dance's title and author and then how to stand for it, in the *formation's*
- * own words (`Formation.lineUpCalls`); everybody walks to where they take hands
- * four; they take hands four **in a ring** (`take-hands`), moving one place
- * round it if the formation's own progression runs sideways — which is what
- * makes a becket dance becket; and the band plays four potatoes into the dance
- * while the ring opens out on to that dance's first places. Nothing of the
- * dance happens in any of it, and nothing but the potatoes sounds, which is
- * `apps/web/src/program.ts`'s side of the same arithmetic.
+ * stretches whose lengths are {@link ScriptDeciderOptions}': the hall thanks
+ * the people it danced with, turning and nodding where it stands — no
+ * clapping (`thanks`, half to the partner, half to the neighbour); the caller
+ * announces the next dance's title and author and then how to stand for it, in
+ * the *formation's* own words (`Formation.lineUpCalls`); everybody walks to
+ * where they take hands four; they take hands four **in a ring** (`take-hands`),
+ * moving one place round it if the formation's own progression runs sideways —
+ * which is what makes a becket dance becket; and the band plays four potatoes
+ * into the dance while the ring opens out on to that dance's first places.
+ * Nothing of the dance happens in any of it, and nothing but the potatoes
+ * sounds, which is `apps/web/src/program.ts`'s side of the same arithmetic.
  *
  * A dance's first places are the formation's stations unless it says otherwise
  * (`Dance.startPlaces`), which is what lets a becket dance whose first figure is
@@ -79,7 +82,7 @@ export function createScriptDecider(
 
   if (!registry.has(WAIT_OUT.id)) registry.register(WAIT_OUT);
   if (!registry.has(WALK_TO_STATION.id)) registry.register(WALK_TO_STATION);
-  if (!registry.has(APPLAUD.id)) registry.register(APPLAUD);
+  if (!registry.has(THANKS.id)) registry.register(THANKS);
   if (!registry.has(TAKE_HANDS.id)) registry.register(TAKE_HANDS);
 
   const timeline = createTimeline(registry);
@@ -157,7 +160,7 @@ export function createScriptDecider(
   /**
    * The whole hall's ordinary minor-set partition, registered on the timeline.
    *
-   * What everything *between* two dances runs in — the applause, the standing
+   * What everything *between* two dances runs in — the thanks, the standing
    * about, the walk to the next dance's places. Those are not figure calls and
    * have no selector of their own: everybody is in the group they would dance
    * the next time through in.
@@ -370,28 +373,48 @@ export function createScriptDecider(
   };
 
   /**
-   * The applause: the hall stops where it is, turns to the band and claps.
+   * The thanks: the hall stops where it is, turns to its partner and nods,
+   * then to its neighbour across, and nods again. No clapping — the user's
+   * later word overruled the morning's "clap, etc." (DD39).
    *
    * Danced in the formation just finished, before any re-seating, because the
-   * dancers are still standing where that dance left them. `face` comes from
-   * the **set** frame rather than the group's: a group at the bottom end of a
-   * becket line runs in a frame turned end for end, and those dancers would
-   * applaud the back wall.
+   * dancers are still standing where that dance left them. Who is a partner
+   * and who is a neighbour is read off the set's own couples — a couple's two
+   * dancers never change across a progression, only where they stand — so
+   * this is "the person they danced the last time through with, as the
+   * timeline knows them", not a guess. A station whose couple cannot be found
+   * (should not happen: `planGroups()` always seats a couple's two dancers in
+   * the same group) falls back to the nearest other station in the group —
+   * "the person beside them in the line" — and a station with nobody left to
+   * face at all (a lone waiting couple, once it has already turned to its
+   * partner) simply keeps that facing for the second half.
    */
-  const emitApplause = (into: TimelineEvent[]): void => {
-    if (opts.applauseBeats <= 0) return;
+  const emitThanks = (into: TimelineEvent[]): void => {
+    if (opts.thanksBeats <= 0) return;
     const start = at.beat;
-    const def = registry.get(APPLAUD.id);
+    const def = registry.get(THANKS.id);
     for (const { set, group } of planGroups()) {
+      const partnerFace: Record<StationId, Angle | null> = {};
+      const neighbourFace: Record<StationId, Angle | null> = {};
+      for (const station of group.stations) {
+        const partner =
+          partnerStationOf(group, set.couples, station.id) ??
+          nearestStationOf(group, station.id, new Set());
+        partnerFace[station.id] = partner ? bearingOf(group, station.id, partner) : null;
+        const excluded = new Set<StationId>([station.id]);
+        if (partner !== undefined) excluded.add(partner);
+        const neighbour = nearestStationOf(group, station.id, excluded);
+        neighbourFace[station.id] = neighbour ? bearingOf(group, station.id, neighbour) : null;
+      }
       const params = withDefaults(
         def,
-        { origins: originsOf(group), face: set.frame.axis + 180 },
-        opts.applauseBeats,
+        { origins: originsOf(group), partnerFace, neighbourFace },
+        opts.thanksBeats,
       );
       emitFigure(into, group, def, params, Object.keys(group.members), start);
     }
-    sayEach(into, opts.applauseCalls, start, opts.applauseBeats);
-    at.beat = start + opts.applauseBeats;
+    sayEach(into, opts.thanksCalls, start, opts.thanksBeats);
+    at.beat = start + opts.thanksBeats;
   };
 
   /** Everybody stands where they are for `beats`, so the timeline stays covered. */
@@ -474,16 +497,16 @@ export function createScriptDecider(
   };
 
   /**
-   * The whole gap between two dances: applause, announcement, walk, hands four
+   * The whole gap between two dances: thanks, announcement, walk, hands four
    * in a ring, potatoes.
    *
-   * The re-seating that a formation change needs happens between the applause
-   * and the announcement — after the hall has finished clapping in the
-   * formation it danced, and before the caller says the words that get it
-   * standing in the new one.
+   * The re-seating that a formation change needs happens between the thanks
+   * and the announcement — after the hall has finished thanking its partner
+   * and neighbour in the formation it danced, and before the caller says the
+   * words that get it standing in the new one.
    */
   const emitBetweenDances = (into: TimelineEvent[], next: Dance): void => {
-    emitApplause(into);
+    emitThanks(into);
 
     const nextFormation = formationOf(library, next);
     if (nextFormation.id !== formation.id) {
@@ -605,6 +628,68 @@ function excludedByEnds(
   const denied = ends === "top" ? tags["wait-bottom"] : tags["wait-top"];
   const ids = new Set(stations.map((s) => s.id));
   return new Set((denied ?? []).filter((id) => ids.has(id)));
+}
+
+/**
+ * The station of `group` whose dancer is the other half of `station`'s own
+ * couple, or `undefined` if the set's couples do not say — "the person they
+ * danced the last time through with, as the timeline knows them".
+ *
+ * A couple's two dancers never change across a progression (only `place`
+ * does — see `dupleImproper.ts`'s and `becket.ts`'s own `progression.next`),
+ * so this reads the same two people as partners whichever set snapshot it is
+ * asked about, and it is form-neutral: a "couple" is `@caller/choreo`'s own
+ * concept, not a contra one, and `packages/choreo/src/testing/square.ts`
+ * proves it works for a form with four couples in a group rather than two.
+ */
+function partnerStationOf(
+  group: Group,
+  couples: readonly CoupleState[],
+  station: StationId,
+): StationId | undefined {
+  const dancer = group.members[station];
+  if (dancer === undefined) return undefined;
+  const couple = couples.find((c) => Object.values(c.dancers).includes(dancer));
+  if (couple === undefined) return undefined;
+  const other = Object.values(couple.dancers).find((d) => d !== dancer);
+  if (other === undefined) return undefined;
+  return stationOf(group, other);
+}
+
+/**
+ * The station of `group` geometrically nearest `station`, excluding
+ * `exclude` — "the person beside them in the line" when no partner is known,
+ * and how a neighbour "across" is found once the partner is: the nearest
+ * station that is not the partner turns out to be exactly `@caller/contra`'s
+ * own neighbour pairing, in both duple improper and becket, because the two
+ * formations lay their four stations out so that whichever pair is not
+ * side by side is the closer of the two remaining choices — a property of
+ * their geometry (see B4's report) rather than a fact this function assumes.
+ */
+function nearestStationOf(
+  group: Group,
+  station: StationId,
+  exclude: ReadonlySet<StationId>,
+): StationId | undefined {
+  const here = groupStationPose(group, station).p;
+  let best: StationId | undefined;
+  let bestDist = Infinity;
+  for (const s of group.stations) {
+    if (s.id === station || exclude.has(s.id)) continue;
+    const d = dist(here, groupStationPose(group, s.id).p);
+    if (d < bestDist) {
+      bestDist = d;
+      best = s.id;
+    }
+  }
+  return best;
+}
+
+/** The world angle `from` turns to face `to`, whatever `from`'s own facing is. */
+function bearingOf(group: Group, from: StationId, to: StationId): Angle {
+  const a = groupStationPose(group, from).p;
+  const b = groupStationPose(group, to).p;
+  return angleOfVec([b[0] - a[0], b[1] - a[1]]);
 }
 
 /**

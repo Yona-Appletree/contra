@@ -1,5 +1,5 @@
 import type { UtteranceEvent } from "@caller/choreo";
-import { APPLAUSE_CALLS, HANDS_FOUR_CALLS, HERE_WE_GO, nextDanceCall } from "@caller/choreo";
+import { HANDS_FOUR_CALLS, HERE_WE_GO, THANKS_CALLS, nextDanceCall } from "@caller/choreo";
 import { reachReport } from "@caller/choreo";
 import { becketHandsFourCalls, DEMO_DANCES, danceBySlug } from "@caller/contra";
 import { FONT, layoutBubble } from "@caller/hall";
@@ -7,12 +7,12 @@ import { layoutHall } from "@caller/hall";
 import { describe, expect, it } from "vitest";
 import {
   ANNOUNCE_BEATS,
-  APPLAUSE_BEATS,
   BETWEEN_DANCES_BEATS,
   CYCLE_BEATS,
   ITEM_BEATS,
   POTATO_BEATS,
   RING_BEATS,
+  THANKS_BEATS,
   TIMES_THROUGH,
   WALK_BEATS,
   bandPlaying,
@@ -28,12 +28,12 @@ import {
  * B1's ruling, in the user's words: "dance should stop between the dances.
  * caller should announce the dance, if its becket say 'turn one place to your
  * left …'. a little fanfare at the end of each dance would sell the illusion —
- * clap, etc." This is where the beats of that are pinned: how long each
- * stretch is, what the caller says over it, and that every one of those
- * sentences fits in the sixteen-column bubble the hall draws (DD16).
+ * clap, etc." — reversed by the user's later word (B4, DD39): "no one claps in
+ * contra." This is where the beats of that are pinned: how long each stretch
+ * is, what the caller says over it, and that every one of those sentences fits
+ * in the sixteen-column bubble the hall draws (DD16).
  *
- * The audio cannot be heard here or anywhere headless; `packages/music`'s
- * `applause.test.ts` measures the buffer instead.
+ * The audio cannot be heard here or anywhere headless.
  */
 
 /** The demo hall the page ships: two lines, five couples and four. */
@@ -44,7 +44,7 @@ const MAX_COLS = 16;
 
 /** Where the interval after the first dance of a programme starts, and its parts. */
 const GAP = TIMES_THROUGH * CYCLE_BEATS;
-const ANNOUNCE = GAP + APPLAUSE_BEATS;
+const ANNOUNCE = GAP + THANKS_BEATS;
 const WALK = ANNOUNCE + ANNOUNCE_BEATS;
 const RING = WALK + WALK_BEATS;
 const POTATOES = RING + RING_BEATS;
@@ -62,8 +62,8 @@ const saidOver = (first: string | undefined, from: number, to: number): Utteranc
 };
 
 describe("the interval is five stretches of the silent clock", () => {
-  it("is 8 applause, 16 announcement, 8 walk, 8 hands four and 4 potatoes — 44 in all", () => {
-    expect([APPLAUSE_BEATS, ANNOUNCE_BEATS, WALK_BEATS, RING_BEATS, POTATO_BEATS]).toEqual([
+  it("is 8 thanks, 16 announcement, 8 walk, 8 hands four and 4 potatoes — 44 in all", () => {
+    expect([THANKS_BEATS, ANNOUNCE_BEATS, WALK_BEATS, RING_BEATS, POTATO_BEATS]).toEqual([
       8, 16, 8, 8, 4,
     ]);
     expect(BETWEEN_DANCES_BEATS).toBe(44);
@@ -73,8 +73,8 @@ describe("the interval is five stretches of the silent clock", () => {
 
   it("names each stretch at its own beats, and nothing while the hall is dancing", () => {
     for (let beat = 0; beat < GAP; beat += 8) expect(betweenDancesAt(beat)).toBeNull();
-    expect(betweenDancesAt(GAP)).toBe("applause");
-    expect(betweenDancesAt(ANNOUNCE - 1e-9)).toBe("applause");
+    expect(betweenDancesAt(GAP)).toBe("thanks");
+    expect(betweenDancesAt(ANNOUNCE - 1e-9)).toBe("thanks");
     expect(betweenDancesAt(ANNOUNCE)).toBe("announcement");
     expect(betweenDancesAt(WALK - 1e-9)).toBe("announcement");
     expect(betweenDancesAt(WALK)).toBe("walk");
@@ -89,13 +89,13 @@ describe("the interval is five stretches of the silent clock", () => {
     const program = createDemoProgram(world);
     for (const [beat, phase] of [
       [0, null],
-      [GAP + 1, "applause"],
+      [GAP + 1, "thanks"],
       [ANNOUNCE + 1, "announcement"],
       [WALK + 1, "walk"],
       [RING + 1, "hands-four"],
       [POTATOES + 1, "potatoes"],
       [ITEM_BEATS, null],
-      [3 * ITEM_BEATS + GAP + 1, "applause"],
+      [3 * ITEM_BEATS + GAP + 1, "thanks"],
     ] as const) {
       const at = positionAt(program, beat);
       expect(at.between, `beat ${String(beat)}`).toBe(phase);
@@ -108,7 +108,7 @@ describe("the interval is five stretches of the silent clock", () => {
     const status = (beat: number): string => betweenDancesStatus(positionAt(program, beat));
     expect(status(0)).toBe("Time through 1 of 2");
     expect(status(CYCLE_BEATS)).toBe("Time through 2 of 2");
-    expect(status(GAP + 1)).toBe(`Applause for ${DEMO_DANCES[0]!.title}`);
+    expect(status(GAP + 1)).toBe(`Thanks for ${DEMO_DANCES[0]!.title}`);
     expect(status(ANNOUNCE + 1)).toBe(`The caller announces ${DEMO_DANCES[1]!.title}`);
     expect(status(WALK + 1)).toBe(`Lining up for ${DEMO_DANCES[1]!.title}`);
     expect(status(RING + 1)).toBe(`Hands four for ${DEMO_DANCES[1]!.title}`);
@@ -136,9 +136,9 @@ describe("the interval is five stretches of the silent clock", () => {
 });
 
 describe("what the caller says between two dances", () => {
-  it("thanks the partner and the band over the applause", () => {
+  it("thanks the partner and then the neighbour, not the band", () => {
     const said = saidOver(undefined, GAP, ANNOUNCE);
-    expect(said.map((u) => u.text)).toEqual([...APPLAUSE_CALLS]);
+    expect(said.map((u) => u.text)).toEqual([...THANKS_CALLS]);
     expect(said[0]!.start).toBe(GAP);
     expect(said[said.length - 1]!.end).toBe(ANNOUNCE);
   });
@@ -203,7 +203,7 @@ describe("every sentence fits the caller's bubble", () => {
     layoutBubble(FONT, text, world.caller, { world: world.world, maxCols: MAX_COLS });
 
   const everything: string[] = [
-    ...APPLAUSE_CALLS,
+    ...THANKS_CALLS,
     HERE_WE_GO,
     ...HANDS_FOUR_CALLS,
     ...becketHandsFourCalls("left"),
@@ -247,7 +247,7 @@ describe("nobody reaches further than an arm goes", () => {
   // ~20k arm solves; a couple of hundred ms here, and CI's runner is up to
   // fifteen times slower than this Mac under the full turbo run.
   it(
-    "holds AC1 through the applause, the walk, the ring and the potatoes",
+    "holds AC1 through the thanks, the walk, the ring and the potatoes",
     { timeout: 20_000 },
     () => {
       const program = createDemoProgram(world);

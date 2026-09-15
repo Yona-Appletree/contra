@@ -170,12 +170,12 @@ flourish data rather than a variant figure.
 
 Four built-in figures live here, because the decider itself needs them:
 
-| Figure            | What it does                                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `wait-out`        | The couple with nobody to dance with steps together, holds hands, lets go, and crosses over during the last eight beats |
-| `walk-to-station` | Everyone walks from one station to another, or stands; also the "who is left out" stand and the between-dance line-up   |
-| `applaud`         | The hall stops where it is, turns to the band and claps — the applause at the end of every dance                        |
-| `take-hands`      | Hands four: the group steps into a ring, joins hands round it, moves `places` round, and lets go on to its own places   |
+| Figure            | What it does                                                                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `wait-out`        | The couple with nobody to dance with steps together, holds hands, lets go, and crosses over during the last eight beats          |
+| `walk-to-station` | Everyone walks from one station to another, or stands; also the "who is left out" stand and the between-dance line-up            |
+| `thanks`          | The hall stops where it is, turns and nods to its partner, then to its neighbour across — no clapping, at the end of every dance |
+| `take-hands`      | Hands four: the group steps into a ring, joins hands round it, moves `places` round, and lets go on to its own places            |
 
 The contra figure library is M8's; these four are the engine's own.
 

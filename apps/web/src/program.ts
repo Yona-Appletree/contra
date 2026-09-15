@@ -17,9 +17,9 @@ import { medleys as musicMedleys } from "@caller/music";
  * long as the page is open.
  *
  * The script decider does the work — it dances each dance, stops, runs the
- * whole between-dances interval (applause, announcement, walk, ready) and
- * loops the programme — so the page only has to say which dances, in which
- * order, and read the timeline.
+ * whole between-dances interval (thanks, announcement, walk, ready) and loops
+ * the programme — so the page only has to say which dances, in which order,
+ * and read the timeline.
  */
 
 /** How many times through each dance is danced before the next one. */
@@ -36,11 +36,11 @@ export const CYCLE_BEATS = 64;
  * page's arithmetic and the decider's have to agree exactly or the tune drifts
  * against the dance, and the only way to keep two numbers equal is to have
  * one. The lengths themselves are `SCRIPT_DECIDER_DEFAULTS`' — 8 beats of
- * applause, 16 of announcement, 8 of walking, 8 taking hands four in a ring
+ * thanks, 16 of announcement, 8 of walking, 8 taking hands four in a ring
  * and 4 of potatoes, 44 in all, which at 112 bpm is about twenty-four seconds
  * between two dances.
  */
-export const APPLAUSE_BEATS = SCRIPT_DECIDER_DEFAULTS.applauseBeats;
+export const THANKS_BEATS = SCRIPT_DECIDER_DEFAULTS.thanksBeats;
 export const ANNOUNCE_BEATS = SCRIPT_DECIDER_DEFAULTS.announceBeats;
 export const WALK_BEATS = SCRIPT_DECIDER_DEFAULTS.lineUpBeats;
 export const RING_BEATS = SCRIPT_DECIDER_DEFAULTS.ringBeats;
@@ -299,7 +299,7 @@ export interface ProgramPosition {
   timeThrough: number;
   /** The beat within the dance's own sixty-four, or `null` between two dances. */
   danceBeat: Beat | null;
-  /** True for the whole between-dances interval, from the applause to the tune. */
+  /** True for the whole between-dances interval, from the thanks to the tune. */
   liningUp: boolean;
   /** Which stretch of the between-dances interval this is, or `null` while dancing. */
   between: BetweenDances | null;
@@ -308,16 +308,16 @@ export interface ProgramPosition {
 }
 
 /** The five stretches of the between-dances interval, in the order they run. */
-export type BetweenDances = "applause" | "announcement" | "walk" | "hands-four" | "potatoes";
+export type BetweenDances = "thanks" | "announcement" | "walk" | "hands-four" | "potatoes";
 
 /** Which stretch of the interval a beat `into` a programme item falls in. */
 export function betweenDancesAt(into: Beat): BetweenDances | null {
   const gap = into - TIMES_THROUGH * CYCLE_BEATS;
   if (gap < 0) return null;
-  if (gap < APPLAUSE_BEATS) return "applause";
-  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS) return "announcement";
-  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS + WALK_BEATS) return "walk";
-  if (gap < APPLAUSE_BEATS + ANNOUNCE_BEATS + WALK_BEATS + RING_BEATS) return "hands-four";
+  if (gap < THANKS_BEATS) return "thanks";
+  if (gap < THANKS_BEATS + ANNOUNCE_BEATS) return "announcement";
+  if (gap < THANKS_BEATS + ANNOUNCE_BEATS + WALK_BEATS) return "walk";
+  if (gap < THANKS_BEATS + ANNOUNCE_BEATS + WALK_BEATS + RING_BEATS) return "hands-four";
   return "potatoes";
 }
 
@@ -338,8 +338,8 @@ const intoItem = (beat: Beat): Beat => beat - Math.floor(beat / ITEM_BEATS) * IT
 /** What the page says it is doing, under the card, between two dances. */
 export function betweenDancesStatus(position: ProgramPosition): string {
   switch (position.between) {
-    case "applause":
-      return `Applause for ${position.dance.title}`;
+    case "thanks":
+      return `Thanks for ${position.dance.title}`;
     case "announcement":
       return `The caller announces ${position.next.title}`;
     case "walk":

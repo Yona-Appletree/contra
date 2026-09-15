@@ -12,10 +12,9 @@ import type { Tune } from "../tunes/Tune.js";
  *
  * Four onsets, one a beat, the fourth one beat before the tune's own bar 1 —
  * so the last thing the hall hears before beat 1 is a chord on beat 8 of a
- * phrase that never happened. Rendered sample by sample into a `Float32Array`
- * exactly as the applause is, which makes it pure, seeded and measurable
- * without an `AudioContext`; {@link playPotatoes} is the three lines that hand
- * the result to the browser.
+ * phrase that never happened. Rendered sample by sample into a `Float32Array`,
+ * which makes it pure, seeded and measurable without an `AudioContext`;
+ * {@link playPotatoes} is the three lines that hand the result to the browser.
  *
  * **What plays them.** The brief asks for "the loudest instrument of the
  * current tune's arrangement", chosen "from the tune's data, not hard-coded per
@@ -103,8 +102,8 @@ export function playPotatoes(
 ): AudioBufferSourceNode {
   const samples = renderPotatoes(ctx.sampleRate, options);
   const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
-  // `set` rather than `copyToChannel`, for the same DOM-typing reason
-  // `applause.ts` gives.
+  // `set` rather than `copyToChannel`: the DOM types pin the latter to a
+  // `Float32Array<ArrayBuffer>`, and a plain `new Float32Array(n)` is not one.
   buffer.getChannelData(0).set(samples);
   const source = ctx.createBufferSource();
   source.buffer = buffer;

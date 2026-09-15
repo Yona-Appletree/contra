@@ -69,15 +69,20 @@ export interface ScriptPosition {
  * Tuning for {@link import('./createScriptDecider.js').createScriptDecider}.
  *
  * The five `*Beats` numbers are the between-dances interval, in that order: the
- * music stops on the tune's last bar, the hall applauds, the caller announces
- * the next dance, everybody walks to their new places, they take hands four in
- * a ring (and a becket hall moves one place round it), and then the band plays
- * four potatoes into the dance. Nothing plays through any of it but those four
- * beats — see `apps/web/src/program.ts`.
+ * music stops on the tune's last bar, the hall turns and nods to thank the
+ * people it danced with, the caller announces the next dance, everybody walks
+ * to their new places, they take hands four in a ring (and a becket hall moves
+ * one place round it), and then the band plays four potatoes into the dance.
+ * Nothing plays through any of it but those four beats — see
+ * `apps/web/src/program.ts`.
  */
 export interface ScriptDeciderOptions {
-  /** Beats the hall claps for at the end of a dance, before anything is said. */
-  applauseBeats: Beat;
+  /**
+   * Beats the hall spends thanking the people it danced with, before anything
+   * is said: half turned to the partner, half to the neighbour. No clapping —
+   * the user: "no one claps in contra."
+   */
+  thanksBeats: Beat;
   /** Beats the caller spends announcing the next dance, standing still. */
   announceBeats: Beat;
   /** Beats spent walking to the new dance's start places, after the announcement. */
@@ -100,8 +105,8 @@ export interface ScriptDeciderOptions {
    * ring and the caller says the first figure.
    */
   readyBeats: Beat;
-  /** What the caller says over the applause, one bubble each. */
-  applauseCalls: readonly string[];
+  /** What the caller says over the thanks, one bubble each. */
+  thanksCalls: readonly string[];
   /**
    * What the caller says to get the hall into a formation that names no words
    * of its own ({@link import('../formation/Formation.js').Formation.lineUpCalls}).
@@ -158,17 +163,21 @@ export const HANDS_FOUR = HANDS_FOUR_CALLS[0]!;
 /** What the caller says over the first two potatoes, before the first figure. */
 export const HERE_WE_GO = "HERE WE GO";
 
-/** What the caller says over the applause, one bubble each. */
-export const APPLAUSE_CALLS: readonly string[] = ["THANK YOUR PARTNER", "THANK THE BAND"];
+/**
+ * What the caller says over the thanks, one bubble each — the user's later
+ * ruling replacing the morning's "clap, etc." (B4, DD39): thank your partner,
+ * then your neighbour, nobody claps.
+ */
+export const THANKS_CALLS: readonly string[] = ["THANK YOUR PARTNER", "THANK YOUR NEIGHBOR"];
 
 /** The pacing the demo uses, all overridable. */
 export const SCRIPT_DECIDER_DEFAULTS: ScriptDeciderOptions = {
-  applauseBeats: 8,
+  thanksBeats: 8,
   announceBeats: 16,
   lineUpBeats: 8,
   ringBeats: 8,
   readyBeats: 4,
-  applauseCalls: APPLAUSE_CALLS,
+  thanksCalls: THANKS_CALLS,
   lineUpCalls: HANDS_FOUR_CALLS,
   readyCall: HERE_WE_GO,
   utteranceTailBeats: 2,
@@ -185,4 +194,4 @@ export const SCRIPT_DECIDER_DEFAULTS: ScriptDeciderOptions = {
  * to keep two numbers equal is to have one.
  */
 export const betweenDancesBeats = (opts: ScriptDeciderOptions): Beat =>
-  opts.applauseBeats + opts.announceBeats + opts.lineUpBeats + opts.ringBeats + opts.readyBeats;
+  opts.thanksBeats + opts.announceBeats + opts.lineUpBeats + opts.ringBeats + opts.readyBeats;
