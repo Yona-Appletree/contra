@@ -1,16 +1,15 @@
 import type { Beat, Hand, Vec2 } from "@caller/core";
-import { addScaled, dirOf, dist, norm, ramp, sub } from "@caller/core";
+import { addScaled, dirOf, dist, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type { HandJoin, HoldWindow, LocalHand, Spot } from "../../figures/ContraFigure.js";
 import {
-  bearing,
   holdWindow,
   isHeld,
   joinPoint,
   joinedHands,
   midpoint,
-  polar,
 } from "../../figures/ContraFigure.js";
+import { wristPoint } from "../../figures/star.js";
 import { handDown } from "../../pair/PairFrame.js";
 import type {
   HoldSpec,
@@ -261,7 +260,13 @@ export function soloHandAt(
     return {
       side,
       hand: {
-        p: polar(env.anchor, bearing(env.anchor, ahead.p), evalNumber(point.radius, env)),
+        p: wristPoint(
+          env.anchor,
+          live(role).p,
+          shouldersAt(ahead.p, ahead.facing)[side],
+          ahead.p,
+          evalNumber(point.along, env),
+        ),
         drop,
       },
     };

@@ -1297,11 +1297,17 @@ export type SoloPoint =
   /** The shape's own origin: a hands-across star's middle. */
   | { kind: "anchor" }
   /**
-   * One forearm out from the anchor, in the direction of the dancer ahead of
-   * you round the ring — the spot your own reaching arm would occupy in a palm
-   * star, a forearm short of actually getting there. The wrist star's.
+   * **`along` of the way down the giving arm of the dancer ahead of you round
+   * the ring**: the wrist star's, and `figures/star.ts`'s `wristPoint` is the
+   * chain that solves — their own hand is this same point one place round, so
+   * it cannot be sampled and is worked out in closed form instead.
+   *
+   * `0` is their giving shoulder, which is where the old fixed radius put it
+   * and is what the user's review caught (FR-A1); `1` is their own hand, which
+   * for a whole ring is the pile at the middle. See `WRIST_ALONG` for where the
+   * fraction stops and why.
    */
-  | { kind: "wristOf"; of: RoleExpr; radius: NumberExpr }
+  | { kind: "wristOf"; of: RoleExpr; along: NumberExpr }
   /**
    * Half your own distance from `of`, straight on past you away from them:
    * where the next minor set's dancer puts their own hand by the same rule.

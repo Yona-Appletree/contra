@@ -1,5 +1,5 @@
 import type { NumberExpr, FigureDefinition, SoloHold } from "../FigureDefinition.js";
-import { WRIST_RADIUS_PX } from "../../figures/star.js";
+import { WRIST_ALONG } from "../../figures/star.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
 import { CIRCLE_IN_BEATS, CIRCLE_OUT_BEATS, CIRCLE_TAKE_BEATS } from "./circle.js";
 
@@ -93,7 +93,7 @@ export const starDefinition: FigureDefinition = {
       // The dancer immediately ahead of you round the ring, in the direction
       // the star actually turns — a role shift, and in a ring walk a role shift
       // runs round the ring.
-      point: { kind: "wristOf", of: { role: "shift", places: HAND_SIGN }, radius: WRIST_RADIUS_PX },
+      point: { kind: "wristOf", of: { role: "shift", places: HAND_SIGN }, along: WRIST_ALONG },
       drop: { param: "holdDrop" },
       stackPx: { param: "stackPx" },
       window: STAR_WINDOW,

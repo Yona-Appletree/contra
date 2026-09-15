@@ -7,6 +7,7 @@ import {
   dist,
   easeSeam,
   seamProgress,
+  shouldersAt,
 } from "@caller/core";
 import type { BeatWindow, Group, StationId, Track, TrajectoryResult } from "@caller/choreo";
 import {
@@ -25,7 +26,7 @@ import {
   withDefaults,
 } from "@caller/choreo";
 import type { ContraFigure, ContraParams } from "./ContraFigure.js";
-import { bearing, holdWindow, planContext, polar, worldSpot } from "./ContraFigure.js";
+import { bearing, holdWindow, planContext, worldSpot } from "./ContraFigure.js";
 import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
 import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
@@ -33,7 +34,12 @@ import { CONTRA_FIGURES } from "./registry.js";
 import { heyDefinition } from "../library/figures/hey.js";
 import { interpretDefinition } from "../library/interpret.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
-import { IN_BEATS as STAR_IN_BEATS, OUT_BEATS as STAR_OUT_BEATS, WRIST_RADIUS_PX } from "./star.js";
+import {
+  IN_BEATS as STAR_IN_BEATS,
+  OUT_BEATS as STAR_OUT_BEATS,
+  WRIST_ALONG,
+  wristPoint,
+} from "./star.js";
 
 /**
  * What each figure's `describe` says, turned into assertions.
@@ -378,9 +384,9 @@ function starChecks(params: CheckParams): FigureChecks {
 }
 
 /**
- * A giving hand stays on the wrist of the dancer ahead of it round the star: a
- * forearm's length out from the ring's centre, in the direction of wherever
- * the leader actually is at each instant.
+ * A giving hand stays on the wrist of the dancer ahead of it round the star:
+ * `WRIST_ALONG` of the way down that dancer's own giving arm, wherever the two
+ * of them actually are at each instant.
  *
  * This is not a `handsJoined` call: the leader's own hand is busy on somebody
  * else's wrist, so there is no second *hand* to compare against, only a point
@@ -407,7 +413,14 @@ function wristJoined(
     if (hand === "down") {
       return fail(label, `${giver}'s ${side} hand is down, not on a wrist`, at, Infinity, "px");
     }
-    const target = polar(SET_CENTRE, bearing(SET_CENTRE, track.pose(leader, i).p), WRIST_RADIUS_PX);
+    const ahead = track.pose(leader, i);
+    const target = wristPoint(
+      SET_CENTRE,
+      track.pose(giver, i).p,
+      shouldersAt(ahead.p, ahead.facing)[side],
+      ahead.p,
+      WRIST_ALONG,
+    );
     const gap = dist(hand.p, target);
     if (gap > worst) {
       worst = gap;
