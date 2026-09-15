@@ -1,14 +1,14 @@
 {
   "id": "mad-robin",
-  "description": "Two dancers circle round each other while both keep facing the same way.",
+  "description": "Two dancers orbit sideways round the dancer beside them, looking across the set.",
   "defaultLevel": "line",
   "walkthrough": {
-    "line": "Circle round {who}, one in front and one behind, facing the same way throughout.",
-    "teach": "Keep facing exactly the way you are facing now — that is the whole of it. Now travel: one of you slides across in front of {who} and the other goes behind, so the two of you go round the point between you as though it were a small circle. Your hands stay at your sides."
+    "line": "Look at {who} across the set and keep looking. Travel sideways round the dancer beside you.",
+    "teach": "You are facing {who} across the set, and you keep looking at them for the whole figure. The two of you travel sideways round the dancer standing beside you, one of you passing in front of them and the other behind, and come back to your own places. Callers often call it a sideways do-si-do danced while you look across the set. Your hands stay at your sides."
   },
   "call": {
-    "1": "MAD ROBIN",
+    "4": "{who} MAD ROBIN",
     "2": "MAD ROBIN",
-    "4": "{who} MAD ROBIN"
+    "1": "MAD ROBIN"
   }
 }

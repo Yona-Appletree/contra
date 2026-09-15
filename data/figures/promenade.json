@@ -1,14 +1,14 @@
 {
   "id": "promenade",
-  "description": "Two dancers walk side by side along the set as one.",
+  "description": "Two dancers side by side, both hands joined, walk along the set as one.",
   "defaultLevel": "line",
   "walkthrough": {
-    "line": "Side by side with {who}, inside hands joined, walk the two of you along the set.",
-    "teach": "Side by side with {who}, inside hands joined, the two of you walk as one along the line you are standing in — round the set itself rather than across your own four. Counterclockwise is the way you are already travelling and clockwise is back the other way. You end further along the set than you began."
+    "line": "Stand beside {who}, left hand in left and right in right, and walk along the set together.",
+    "teach": "Stand beside {who} facing the same way, your left hand in their left and your right hand in their right. Walk the two of you as one along the line you are standing in — round the set itself rather than across your own four. Counterclockwise is the way you are already travelling and clockwise is back the other way. You end further along the set than you began."
   },
   "call": {
-    "1": "PROMENADE",
+    "4": "{who} PROMENADE AROUND THE SET",
     "2": "PROMENADE",
-    "4": "{who} PROMENADE AROUND THE SET"
+    "1": "PROMENADE"
   }
 }

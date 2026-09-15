@@ -1,55 +1,55 @@
 {
   "id": "balance-wave-of-four",
-  "description": "Four dancers make a short row across the set and rock forward and back.",
+  "description": "Four dancers make a short row across the set and rock along it.",
   "defaultLevel": "line",
   "walkthrough": {
     "line": "Make a short row across the set, take hands along it, and rock forward and back.",
-    "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row, so everybody looks the opposite way to the dancers beside them. Rock forward together, then rock back."
+    "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row, so everybody looks the opposite way to the dancers beside them. Rock toward the dancer you are facing as far as the joined hands allow, then rock back."
   },
   "call": {
-    "1": "BALANCE",
+    "4": "BALANCE THE WAVE OF FOUR",
     "2": "BALANCE THE WAVE",
-    "4": "BALANCE THE WAVE OF FOUR"
+    "1": "BALANCE"
   },
   "variants": {
     "direction=left": {
       "walkthrough": {
         "line": "Make a short row across the set, take hands along it, and rock left, then right.",
-        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own left together, then rock to your own right."
+        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own left together as far as the joined hands allow, then rock to your own right."
       },
       "call": {
-        "2": "BALANCE LEFT AND RIGHT",
-        "4": "BALANCE THE WAVE LEFT AND RIGHT"
+        "4": "BALANCE THE WAVE LEFT AND RIGHT",
+        "2": "BALANCE LEFT AND RIGHT"
       }
     },
     "direction=right": {
       "walkthrough": {
         "line": "Make a short row across the set, take hands along it, and rock right, then left.",
-        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own right together, then rock to your own left."
+        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own right together as far as the joined hands allow, then rock to your own left."
       },
       "call": {
-        "2": "BALANCE RIGHT AND LEFT",
-        "4": "BALANCE THE WAVE RIGHT AND LEFT"
+        "4": "BALANCE THE WAVE RIGHT AND LEFT",
+        "2": "BALANCE RIGHT AND LEFT"
       }
     },
     "direction=left-and-back": {
       "walkthrough": {
         "line": "Make a short row across the set, take hands along it, rock left and come back.",
-        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own left together, then rock back to where you were."
+        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own left together as far as the joined hands allow, then rock back to where you were."
       },
       "call": {
-        "2": "BALANCE LEFT AND BACK",
-        "4": "BALANCE THE WAVE LEFT AND BACK"
+        "4": "BALANCE THE WAVE LEFT AND BACK",
+        "2": "BALANCE LEFT AND BACK"
       }
     },
     "direction=right-and-back": {
       "walkthrough": {
         "line": "Make a short row across the set, take hands along it, rock right and come back.",
-        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own right together, then rock back to where you were."
+        "teach": "The four of you make one short row straight across the set, looking up and down it rather than at each other. {centre} take hands in the middle by the {hand}, and each of them gives the other hand to the dancer on their own end of the row. Rock to your own right together as far as the joined hands allow, then rock back to where you were."
       },
       "call": {
-        "2": "BALANCE RIGHT AND BACK",
-        "4": "BALANCE THE WAVE RIGHT AND BACK"
+        "4": "BALANCE THE WAVE RIGHT AND BACK",
+        "2": "BALANCE RIGHT AND BACK"
       }
     }
   }
