@@ -176,6 +176,34 @@ describe("the ledger is one per frame, in resolution order", () => {
     const dancing = instances.find((i) => !i.holdPlace)!;
     expect((dancing.params["claims"] as { ledger: { held: Vec2[] } }).ledger.held).toEqual([]);
   });
+
+  /**
+   * **The ledger is written during planning, so the dance has to come out the
+   * same however many times a plan is built.**
+   *
+   * A plan is built at least three times per instance — `joins` for the carried
+   * holds, `moves` to advance the set, then `ends` and every `sample` — and
+   * `settleEnds` runs on every one of them. The ledger is keyed by the
+   * instance's index and an instance reads only the claims of instances before
+   * it, so re-planning writes the same answer back; this is the whole dance
+   * measured twice, which would catch any leak between runs as well.
+   */
+  it("plans the same dance twice to the same pose, at every eighth of a beat", () => {
+    const dance = danceBySlug("jeremy-corners")!;
+    const until = danceBeats(dance) * 2;
+    const dump = (): string => {
+      const timeline = danceAlone(dance, 4, until, {}, LAB_RUN).timeline();
+      const out: string[] = [];
+      for (let beat = 0; beat <= until; beat += 0.125) {
+        for (const dancer of timeline.dancers()) {
+          const p = poseAt(timeline, dancer, beat).p;
+          out.push(`${dancer}@${beat.toFixed(3)}=${p[0].toFixed(12)},${p[1].toFixed(12)}`);
+        }
+      }
+      return out.join("\n");
+    };
+    expect(dump()).toBe(dump());
+  });
 });
 
 describe("the three cases M8b, M9b and M9c measured", () => {

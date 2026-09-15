@@ -55,6 +55,12 @@ export interface ResolvedAnchor {
  *   pairs of a minor set swing at once and their orbits have to clear each
  *   other; one instance per pair means the clearance is a fact about the
  *   resolution rather than about the figure, so resolution supplies it.
+ * - **`claims`** (M9d) — the same fact one step further on: which of `homes`
+ *   the other instances have already *settled on*, and which of them somebody
+ *   is standing through the call on. `nearby` keeps two orbits from fouling
+ *   each other on the way round; `claims` keeps them from finishing on one
+ *   floor point. See `kinds/places.ts`'s `PlaceLedger` — no figure reads it
+ *   directly and none should.
  */
 export interface InterpretedParams extends ContraParams {
   /**
@@ -70,6 +76,15 @@ export interface InterpretedParams extends ContraParams {
   homes: readonly Vec2[];
   /** Frame-local centres of the sibling instances of this call. */
   nearby: readonly Vec2[];
+  /**
+   * This instance's seat at the call's per-frame place ledger (M9d), when the
+   * call was resolved against a set and handed the formation's places.
+   *
+   * Typed as `unknown` here on purpose: a figure must not read it. `takenIn`
+   * and `recordClaim` in `kinds/places.ts` are the only two that do, and
+   * `ShapeInput.spokenFor` is what a shape kind sees.
+   */
+  claims?: unknown;
   /**
    * The set's own lattice in this instance's frame, when the call was resolved
    * against a set (M7).
