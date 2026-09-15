@@ -61,6 +61,20 @@ export { createFigureRegistry, withDefaults } from "./figure/FigureDef.js";
 export type { ApplaudParams } from "./figure/applaud.js";
 export { APPLAUD, clapPhase } from "./figure/applaud.js";
 export { joinHands, joinedOrder } from "./figure/joinHands.js";
+export type { Ring, RingJoin, RingPlaces, RingWalk } from "./figure/ring.js";
+export {
+  bearing,
+  centreOf,
+  joinPoint,
+  mustPlace,
+  polar,
+  ringHands,
+  ringOf,
+  ringOrder,
+  ringShift,
+  ringWalk,
+  wrap360,
+} from "./figure/ring.js";
 export { standing, walking } from "./figure/standing.js";
 export type { WalkStep } from "./figure/walkPath.js";
 export { DEFAULT_BOW_PX, walkStep } from "./figure/walkPath.js";
