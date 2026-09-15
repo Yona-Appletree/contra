@@ -38,6 +38,8 @@ export interface ContraCall {
    */
   group?: GroupSelector;
   call?: string;
+  /** Overrides the spoken-length estimate for this call; see `FigureCall.spokenBeats`. */
+  spokenBeats?: Beat;
 }
 
 /** One phrase of a dance, before threading. */
@@ -124,6 +126,7 @@ export function chainCalls(
       ...(call.who === undefined ? {} : { who: call.who }),
       ...(call.group === undefined ? {} : { group: call.group }),
       ...(call.call === undefined ? {} : { call: call.call }),
+      ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
     });
   }
   carryHolds(out, ending, middle);
