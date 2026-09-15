@@ -59,7 +59,18 @@ export interface PlacePair {
 }
 
 /**
- * The two places square across `facing` whose midpoint is nearest `centre`.
+ * How near two gaps have to be to count as the same answer, px.
+ *
+ * Two candidate pairs of places symmetric about the same point have **exactly**
+ * the same midpoint, so this is floating-point slop and not a tolerance with a
+ * judgement in it.
+ */
+const SAME_GAP_PX = 1e-9;
+
+/**
+ * The two places square across `facing` whose midpoint is nearest `centre`, and
+ * — among the pairs that tie — the one whose two places are as far apart as the
+ * two dancers already are.
  *
  * This is `placeHalf`'s own search — the one the coded swing and allemande do
  * over the group's stations — answering with the **midpoint** as well as the
@@ -67,6 +78,29 @@ export interface PlacePair {
  * opened out `half` px either side of wherever the pair happened to meet, so a
  * pair left diagonal by a hey opened out diagonally, off the places, and a
  * dance had to write `endHalf` by hand to keep the spacing sane.
+ *
+ * ### Why the midpoint alone is not enough (M7b, A Rare Bird)
+ *
+ * The midpoint says *where* the pair lands and nothing at all about *how far
+ * apart*. Over a minor set's four places that never mattered: no two candidate
+ * pairs there share a midpoint unless they also share a span. Over the **lane**
+ * it matters every time, because a line's places are symmetric about their own
+ * middle, so every pair of places straddling the pair's centre ties at a gap of
+ * exactly zero and the widest one wins on list order alone.
+ *
+ * A Rare Bird is where that was measured. Its A1 reaches N3, which exists only
+ * at six couples, and the N3 shoulder round is `c0/lark` with `c5/robin`
+ * standing one place apart at `(16, 40)` and `(16, 60)`. Handed the whole line's
+ * twelve homes, the search answered `(16, 0)` and `(16, 100)` — the same
+ * midpoint, a hundred pixels apart — so the two of them flung out five places
+ * each as the turn opened, and `c0/lark` landed exactly on `c1/robin`, who had
+ * no N2 and no N3 and had been standing on `(16, 0)` since beat 2. That is the
+ * dance's `collision 0.000 px`, and it is a tie broken by array order rather
+ * than a fact about the dance.
+ *
+ * So the tie-break is the pair's own separation: a pair settles on to the two
+ * places it is standing **between**. It changes nothing where the search was
+ * never ambiguous, which is every dance in the programme.
  */
 export function placePairFor(
   places: readonly Vec2[],
@@ -85,6 +119,7 @@ export function placePairFor(
     half: fallbackHalf,
   };
   let bestGap = Infinity;
+  let bestSpread = Infinity;
   for (let i = 0; i < places.length; i++) {
     for (let j = i + 1; j < places.length; j++) {
       const a = places[i]!;
@@ -96,8 +131,13 @@ export function placePairFor(
       if (Math.abs(unit[0] * axis[0] + unit[1] * axis[1]) < SQUARE_SLOP) continue;
       const mid: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
       const gap = dist(mid, centre);
-      if (gap < bestGap) {
-        bestGap = gap;
+      // How much wider or narrower than the pair itself these two places are.
+      const spread = Math.abs(span - 2 * fallbackHalf);
+      const nearer = gap < bestGap - SAME_GAP_PX;
+      const tied = Math.abs(gap - bestGap) <= SAME_GAP_PX && spread < bestSpread;
+      if (nearer || tied) {
+        bestGap = Math.min(gap, bestGap);
+        bestSpread = spread;
         best = { ends: [a, b], centre: mid, half: span / 2 };
       }
     }

@@ -245,6 +245,14 @@ is the simplest one there is — that dancer dances hold-place for the call — 
 `pnpm dance` prints an end-effects table saying who, in which call, at which
 end.
 
+Since M7b the rule also applies **inside** a figure. A grand right and left is
+three pull-bys and one call, so near either end of the line one of them has
+nobody in it: a waypoint route stops at the first pass that finds no partner and
+that dancer stands where the pass before left them, for that pass and the ones
+after it. It is found geometrically — a pass finds its own partner — and the
+relation word each pass names (`meets` on the step) is only so the end-effects
+table can say which pass left whom out.
+
 ### Resolution — `src/set/resolve.ts`
 
 One call against the live set becomes concurrent **figure instances over
@@ -262,6 +270,13 @@ allemande left") — and everybody the pairing leaves out dances hold-place, whi
 is what the two robins really do. `"ring"` takes everybody in one instance.
 `"line"` (M6) is one instance **per line of the lattice**, which is what a long
 wave is and what a grand right and left is.
+
+A figure for four whose `who` is a **relation** is cut into rings of four that
+need not be a minor set (M7b): you, your partner, the dancer the relation names,
+and their partner. Contrablend's `circle right 3/4 [with shadow]` is the case —
+four dancers standing on a 32 × 20 rectangle across the seam between two minor
+sets — and the lane is used for it only when one of those rings really does span
+two, measured rather than declared.
 
 #### The lane (M6, Q15 and Q16)
 
@@ -421,7 +436,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `go-up-outside`          | 8     | `UP THE OUTSIDE`               | the same — **data**, no coded twin, `actors: "each"`                                                                                                                                                                                              |
 | `cast-off`               | 4     | `CAST OFF`                     | `pairs` `"C2"`, `outPx` 10 — **data**, no coded twin, `anchor: { pivot }`                                                                                                                                                                         |
 | `turn-contra-corners`    | 16    | `TURN CONTRA CORNERS`          | `holdDrop` 2; five turns, 2 + 4 + 2 + 4 + 4 — **data**, no coded twin                                                                                                                                                                             |
-| `balance-wave`           | 4     | `BALANCE THE WAVE`             | `hand` `"R"`, `facesIn` `"lark"`, `rock` 4 px, `closeBeats` 1, `holdDrop` 2 — **data**, no coded twin, `actors: "line"`                                                                                                                           |
+| `balance-wave`           | 4     | `BALANCE THE WAVE`             | `facesIn` `"lark"`, `rock` 4 px, `closeBeats` 1, `holdDrop` 2 — **data**, no coded twin, `actors: "line"`; `hand` is the record's own word, checked rather than obeyed (M7b)                                                                      |
 | `circulate`              | 4     | `CIRCULATE`                    | `hand` `"R"`, `radius` 6 — **data**, no coded twin, `actors: "line"`                                                                                                                                                                              |
 | `loop`                   | 4     | `LOOP`                         | `hand` `"R"`, `amount` 1, `radius` 5 — **data**, no coded twin, `actors: "each"`                                                                                                                                                                  |
 | `cast-back`              | 2     | `CAST BACK`                    | `outPx` 10 — **data**, no coded twin, `actors: "each"` (M8)                                                                                                                                                                                       |

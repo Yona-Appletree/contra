@@ -16,6 +16,7 @@ import { CONTRA_MOTION_BOUNDS } from "../figures/motionBounds.js";
 import type { Library } from "../library/Library.js";
 import { contraDataEngine } from "../library/engine.js";
 import { contraDataFigures } from "../library/figures/index.js";
+import { waypointMeets } from "../library/kinds/waypoints.js";
 import { latticeSpan } from "../set/lattice.js";
 import type { SetShapeKind, TargetShape } from "../set/shape.js";
 import { shapeFromEnds, shapeMiss, solveShape, turnsToTarget } from "../set/shape.js";
@@ -230,12 +231,13 @@ export function endEffects(dance: Dance, couples: number): EndEffectRow[] {
   const formation = formationFor(dance);
   const set = createHall(formation, [{ id: "set0", couples, centre: [0, 0], axis: 90 }]).sets[0];
   if (!set) return [];
+  const { library } = contraDataEngine();
   const model = modelFromSet(formation, set, new Map());
   const table = setRulesFor(formation).relations;
   const span = latticeSpan(model);
   const rows: EndEffectRow[] = [];
   for (const { call, start, phrase } of danceSchedule(dance)) {
-    for (const word of relationsOf(call)) {
+    for (const word of relationsOf(call, library)) {
       const rel = parseRelation(word);
       for (const dancer of Object.values(model.dancers)) {
         if (relate(model, table, dancer.id, rel) !== undefined) continue;
@@ -255,12 +257,27 @@ export function endEffects(dance: Dance, couples: number): EndEffectRow[] {
   return rows;
 }
 
-/** The relation words one call names, in `who` and in its `pairs` parameter. */
-function relationsOf(call: { who?: unknown; params?: unknown }): string[] {
+/**
+ * The relation words one call names: in `who`, in its `pairs` parameter, and —
+ * since M7b — inside the figure it calls.
+ *
+ * A grand right and left is three pull-bys with three different dancers and one
+ * call with no `pairs` at all, so the words that matter are the figure's own
+ * (`kinds/waypoints.ts`'s `meets`). Without them the table said nothing about
+ * the one call in Whoosh whose ends are busiest.
+ */
+function relationsOf(call: { figure?: string; who?: unknown; params?: unknown }, library: Library) {
   const out: string[] = [];
   const params = call.params as Record<string, unknown> | undefined;
   for (const value of [call.who, params?.["pairs"]]) {
     if (typeof value === "string" && isRelationWord(value)) out.push(value);
+  }
+  const def =
+    call.figure !== undefined && library.has(call.figure) ? library.get(call.figure) : undefined;
+  if (def?.shape.kind === "waypoints") {
+    for (const word of waypointMeets(def.shape)) {
+      if (isRelationWord(word)) out.push(word);
+    }
   }
   return [...new Set(out)];
 }

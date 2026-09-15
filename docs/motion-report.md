@@ -62,33 +62,33 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `pull-by` | 46.7 | 168.2 | **44.61** | 43.9 | 28 | 0.47 | 0 | 1.20 | `set0/c0/lark` R at beat 126.719 |
+| `grand-right-and-left` | 49.1 | 168.2 | **44.61** | 43.9 | 28 | 1.12 | 0 | 1.45 | `set0/c3/lark` L at beat 64.656 |
+| `balance-wave` | 35.3 | 155.2 | **41.18** | 22.0 | 12 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
 | `turn-as-couples` | 52.4 | 169.9 | 5.51 | 24.3 | 18 | 0.70 | 0 | **14.21** | `set0/c1/robin` L at beat 22.219 |
 | `turn-alone` | 47.4 | 44.6 | 1.79 | 24.3 | 6 | 0.22 | 0 | **14.21** | `set0/c2/lark` R at beat 20.219 |
 | `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
+| `circulate` | 17.5 | 16.1 | 1.47 | 1.1 | 16 | 0.27 | 0 | **13.82** | `set0/c3/lark` R at beat 86.000 |
 | `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 38 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
 | `bend-the-line` | 33.3 | 34.9 | 4.57 | 9.7 | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
-| `allemande` | 39.1 | 44.6 | 4.78 | 23.4 | 162 | 0.45 | 0 | **7.86** | `set0/c3/lark` L at beat 63.625 |
-| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 49.688 |
-| `swing` | 59.5 | **225.5** | **12.04** | 25.6 | 84 | 0.12 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
-| `balance-and-swing` | 57.9 | 153.7 | **19.32** | 15.5 | 160 | 0.14 | 0 | 1.47 | `set0/c3/lark` R at beat 64.156 |
-| `up-the-hall` | 14.4 | 23.2 | 5.29 | 24.3 | 18 | 0.09 | 0 | **6.72** | `set0/c2/lark` R at beat 24.313 |
+| `star` | 45.2 | 44.6 | 1.76 | 12.1 | 72 | 0.23 | 0 | **8.27** | `set0/c2/robin` R at beat 59.031 |
 
 ### The ten worst seams
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `balance-wave → circulate` | 7.8 | 6.2 | 1.04 | 1.1 | 0 | 0.00 | 0 | **13.82** | `set0/c3/lark` L at beat 20.375 |
 | `bend-the-line → circle` | 12.6 | 11.7 | 0.94 | 5.4 | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
+| `long-lines → star` | 25.5 | 35.8 | 1.42 | 7.2 | 0 | 0.00 | 0 | **8.27** | `set0/c3/lark` L at beat 56.375 |
 | `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
 | `long-lines → robins-chain` | 48.0 | 45.0 | 2.16 | 0.7 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 24.344 |
 | `long-lines → swing` | 59.5 | **225.5** | **10.75** | 25.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
 | `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 32 | 0.12 | 0 | 0.84 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
+| `do-si-do → wait-out` | 52.2 | 76.7 | **13.42** | 0.0 | 0 | 0.00 | 0 | 1.05 | `set0/c1/lark` R at beat 64.281 |
 | `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
-| `allemande → hey` | 34.0 | 29.9 | 2.57 | 0.0 | 30 | 0.12 | 0 | 1.49 | `set0/c0/lark` R at beat 32.313 |
-| `allemande → swing` | 42.6 | 59.1 | 1.65 | 25.6 | 36 | 0.09 | 0 | 0.00 | `set0/c0/lark` L at beat 24.344 |
-| `allemande → wait-out` | 12.4 | 13.5 | 1.13 | 0.0 | 2 | 0.00 | 0 | 0.00 | `set0/c1/lark` R at beat 64.219 |
 
-Over all ten dances: 884,736 measurements, 876 hand-state flips, **0 of them not a finite number**.
+Over all ten dances: 1,015,808 measurements, 1080 hand-state flips, **0 of them not a finite number**.
 
 ## Every figure, alone
 

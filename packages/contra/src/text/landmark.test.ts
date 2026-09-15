@@ -115,22 +115,28 @@ describe("every figure the demo dances call has a landmark", () => {
    * roles by name. Every such figure had a coded twin to answer for it — and
    * the coded figure is what `figureDefOf` hands back — until M5, whose
    * shoulder round is a figure for two with only a definition; M7 adds seven
-   * more. None of them uses `{where}` in its texts, so nothing asks for a
-   * landmark it cannot give, and each ends its walkthrough on a sentence of its
-   * own.
+   * more, and M7b's two dances add four (a pull-by and a grand right and left
+   * are M6's own travellers, and a long wave and a circulate are danced by a
+   * whole **line**, which is further from a hands-four still). None of them uses
+   * `{where}` in its texts, so nothing asks for a landmark it cannot give, and
+   * each ends its walkthrough on a sentence of its own.
    */
   const asked = [...seen.keys()].filter((id) => {
     const def = dataOnlyDefinitions().find((each) => each.id === id);
     return def === undefined || def.actors === "all" || def.actors === "ring";
   });
 
-  it("asks every figure the demo calls but the ones minted per pair or per dancer", () => {
+  it("asks every figure the demo calls but the ones minted per pair, per dancer or per line", () => {
     expect([...seen.keys()].filter((id) => !asked.includes(id)).sort()).toEqual([
+      "balance-wave",
       "cast-off",
+      "circulate",
       "go-down-outside",
       "go-up-outside",
+      "grand-right-and-left",
       "lead-down",
       "lead-up",
+      "pull-by",
       "shoulder-round",
       "turn-alone",
       "turn-as-couples",

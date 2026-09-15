@@ -415,6 +415,19 @@ function laneFor(
     !ctx.formation.tags(selector)[call.who] &&
     isRelationWord(call.who) &&
     relationLeavesTheFour(parseRelation(call.who));
+  if (def.actors === "ring" || def.actors === "all") {
+    if (reaches) return { among, plan: plan() };
+    // **Measured, like the pairing below.** A figure for four whose `who` names
+    // a relation is cut into rings (`relationRings`), and the lane is used only
+    // when one of those rings really does span two minor sets. Contrablend's B2
+    // is the case: `partner` has been rebound to the shadow, so "you, your
+    // partner, your neighbour and their partner" is four dancers out of two
+    // hands-fours even though N1 never leaves the four on its own.
+    const rings = relationRings(call, ctx, among, order);
+    if (rings === undefined) return undefined;
+    const spans = rings.some((four) => four.some((id) => !sameFour(ctx, four[0]!, id)));
+    return spans ? { among, plan: plan() } : undefined;
+  }
   if (def.actors !== "pairs") return reaches ? { among, plan: plan() } : undefined;
 
   const word = params["pairs"];
@@ -501,17 +514,32 @@ function resolveInLane(
   // the whole set. That is what a long wave is — the dancers of one line, joined
   // along it — and what a grand right and left is: two of them, one down each
   // line, passing nobody across the set. `"ring"` in the lane is the whole pool.
+  // **A ring the relation names** (M7b) comes before either of the whole-four
+  // rules, because it is the one thing neither of them can say: a circle of four
+  // that is not a minor set. See {@link relationRings}.
+  const rings =
+    def.actors === "ring" || def.actors === "all"
+      ? relationRings(
+          call,
+          ctx,
+          lane.among,
+          plan.stations.flatMap((s) => plan.members[s.id] ?? []),
+        )
+      : undefined;
+  const ringStations = rings?.map((four) => four.map((id) => slotOfDancer(ctx, id)));
   const dancing: StationId[][] =
     def.actors === "line"
       ? byLine(ctx, plan)
-      : def.actors === "ring"
-        ? [plan.stations.map((s) => s.id)]
-        : def.actors === "each"
-          ? plan.stations.map((s) => [s.id])
-          : tradeOrder(
-              params,
-              (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]),
-            );
+      : ringStations !== undefined
+        ? ringStations
+        : def.actors === "ring"
+          ? [plan.stations.map((s) => s.id)]
+          : def.actors === "each"
+            ? plan.stations.map((s) => [s.id])
+            : tradeOrder(
+                params,
+                (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]),
+              );
 
   // `homes`, not `places`: see `dataInstance`. A figure may have a parameter of
   // its own called `places`.
@@ -544,6 +572,63 @@ function resolveInLane(
     });
   }
   return out;
+}
+
+/**
+ * **The rings a relation names** (M7b): a circle of four that is not a minor
+ * set — *you, your partner, the dancer the relation names, and their partner*.
+ *
+ * Contrablend's B2 is the case, and it is the last thing in that dance nothing
+ * could resolve: *"Circle right 3/4 [with shadow]; turn alone"*. A circle is a
+ * figure for four and every figure for four the library has ever had took the
+ * four of a hands-four; this one takes two dancers out of one minor set and two
+ * out of the next, and which two is a **relation** rather than a partition. So
+ * it is resolved in the lane like every other call that reaches past the four
+ * (Q15), and cut up here rather than by `groupsFor`.
+ *
+ * The rule is the brief's own and is the smallest one that makes a ring: walk
+ * the lane in lattice order, and for each dancer not yet in a ring take the four
+ * `{ self, partner, who, partner-of-who }`. A dancer the relation leaves out —
+ * the ends of the line, where a shadow is off the end — is in no ring and gets
+ * hold-place, which is M6's end-of-set rule unchanged. Four distinct dancers or
+ * it is not a ring, and the ones that are not go back in the pool.
+ *
+ * Ring **order** is not this function's business: `kinds/ringWalk.ts` reads the
+ * order round the circle off where the dancers are standing (`ringOf`'s circular
+ * mean), and `anchor: "hands-four"` is the centroid of whoever the instance
+ * cast — so the four are framed on their own middle wherever in the set that is.
+ *
+ * `undefined` means "this call did not name a relation", and everything resolves
+ * exactly as it did.
+ */
+function relationRings(
+  call: FigureCall,
+  ctx: ResolveContext,
+  among: ReadonlySet<DancerId>,
+  order: readonly DancerId[],
+): DancerId[][] | undefined {
+  const who = call.who;
+  if (typeof who !== "string" || !isRelationWord(who)) return undefined;
+  if (ctx.formation.tags(HANDS_FOUR_GROUP)[who]) return undefined;
+  const rel = parseRelation(who);
+  const table = setRulesOf(ctx.formation.id).relations;
+  const used = new Set<DancerId>();
+  const rings: DancerId[][] = [];
+  for (const me of order) {
+    if (used.has(me)) continue;
+    const other = relate(ctx.model, table, me, rel);
+    if (other === undefined || !among.has(other) || used.has(other)) continue;
+    const four = [
+      me,
+      relate(ctx.model, table, me, { kind: "partner" }),
+      other,
+      relate(ctx.model, table, other, { kind: "partner" }),
+    ].filter((id): id is DancerId => id !== undefined && among.has(id) && !used.has(id));
+    if (new Set(four).size !== 4) continue;
+    for (const id of four) used.add(id);
+    rings.push(four);
+  }
+  return rings;
 }
 
 /** The lane's stations, cut into its two lines, each in order along the set. */

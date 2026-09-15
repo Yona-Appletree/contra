@@ -64,7 +64,7 @@ everything in it is either a fact about the dance or a parameter of a figure.
     {
       "figure": "allemande", // a figure id, or "<slug>/<name>" for a local one
       "beats": 8, // may be 0; see "Zero-beat calls"
-      "who": "larks", // which dancers, within the group
+      "who": "larks", // which dancers, within the group — or a relation; see below
       "group": "shadow-pair", // which partition of the set the call runs in
       "ends": "bottom", // which true end a widened group may reach
       "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
@@ -83,6 +83,16 @@ calls beside it".
 **`name` is a label.** `A1 A2 B1 B2` is the ordinary contra tune and is what
 most records write, but 113 corpus dances have phrases beyond it and a two-pass
 record writes its second pass as `2A1 … 2B2`. Nothing reads the four letters.
+
+**`who` may be a relation** (M7b), as well as a tag the formation defines
+(`larks`, `ones`, `all`) or a list of stations. For a figure danced by the whole
+four it names **which four**: resolution takes _you, your partner, the dancer the
+relation names, and their partner_, which is a ring that need not be a minor set.
+Contrablend's `"who": "N1"` is the case — its B2 circle right three quarters is
+four dancers out of two hands-fours, because B1 has rebound `partner` to the
+shadow — and the lane is used for it only when the ring really does span two,
+which is measured rather than declared. A relation that names nobody leaves that
+dancer out of the ring and on hold-place, as everywhere else.
 
 ## Shorthand and canonical parameters
 

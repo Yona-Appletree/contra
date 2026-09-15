@@ -229,7 +229,15 @@ function reachesPastTheFour(call: ContraCall): boolean {
       return true;
     }
   }
-  return false;
+  // **A `who` that is a relation at all** (M7b). `pairs: "N1"` is `neighbors` by
+  // another name and the template pairs it happily, but a *selector* is looked
+  // up in the formation's own tag table and `N1` is not one: Contrablend's B2
+  // circle names its four by relation, and without this `resolveSelector` threw
+  // `formation "duple-improper" has no tag "N1"` at **load** time and took the
+  // whole package's import down with it. Whether the ring that relation names
+  // really leaves the four is measured in `set/resolve.ts`; here it is enough
+  // that the template cannot answer the question.
+  return typeof call.who === "string" && /^n[01]$/i.test(call.who.trim());
 }
 
 /**

@@ -286,12 +286,19 @@ describe("danceOrder and the two engines (M3)", () => {
     expect(isLabDance("lab-owed", DEMO_DANCES, all)).toBe(true);
   });
 
-  it("holds the three dances M6 encoded, each as a lab dance", () => {
-    for (const slug of ["whoosh", "contrablend", "a-rare-bird"]) {
+  it("holds the three dances M6 encoded, two of them on the Stage now", () => {
+    // M7b: Whoosh and A Rare Bird are green at every checked line length and
+    // are in the programme; Contrablend stays in the lab, on its own ends — the
+    // dancers at either end of a five- or six-couple line have no shadow and no
+    // N2, so they stand through the last thirteen beats of B2 and end 32 to
+    // 37.7 px from where the next time through's `wait-out` starts them.
+    for (const slug of ["whoosh", "a-rare-bird"]) {
       const dance = ALL_DANCES.find((d) => d.slug === slug);
       expect(dance, slug).toBeDefined();
-      expect(isLabDance(slug), slug).toBe(true);
+      expect(isLabDance(slug), slug).toBe(false);
     }
+    expect(ALL_DANCES.find((d) => d.slug === "contrablend")).toBeDefined();
+    expect(isLabDance("contrablend")).toBe(true);
   });
 
   it("builds a programme that dances on either engine", () => {

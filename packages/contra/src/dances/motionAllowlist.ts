@@ -55,6 +55,57 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
   },
   {
     dance: "*",
+    key: "pull-by",
+    metric: "elbowPerHand",
+    reason:
+      "A pull-by's joined hand is one shared floor point half way between two " +
+      "dancers walking straight through each other, so at the middle of the pass " +
+      "the hand is **exactly** still while both arms swing round it from ahead to " +
+      "behind. Every number in this column for a pass is the elbow's own speed " +
+      "over STILL_HAND_PX (2 pi x 0.6 = 3.77), which is the ratio's floor for a " +
+      "hand that is not moving at all: 19.44x over an elbow of 73.3 px/beat where " +
+      "the dancer was already facing the way they were going, and 44.61x over " +
+      "168.2 where A Rare Bird's second pass along the sides asks for a half turn " +
+      "as well, because the six beats of shoulder round before it belong to an N3 " +
+      "that does not exist and left the dancer standing the other way. The elbow " +
+      "is inside its own bound of 188.3 either way. M10's motion profiles are " +
+      "what should give the ratio a hand-is-parked case; the half turn in two " +
+      "beats is the end-effects rule (the outs do what the ins need), which this " +
+      "plan has only the simplest form of.",
+  },
+  {
+    dance: "*",
+    key: "grand-right-and-left",
+    metric: "elbowPerHand",
+    reason:
+      "Three pull-bys in a row, and the same measurement: in Whoosh, 19.44x at " +
+      "beat 1.0 — the middle of the first pass — where c1/robin's right hand sits " +
+      "on the shared point between her and c1/lark and does not move while her " +
+      "elbow swings past it at 73.3 px/beat, and 44.61x over 168.2 at the top of " +
+      "the second time through, where the dancers come out of B2's do-si-do " +
+      "looking across the set and turn to face along it as the first hand goes " +
+      "up. See the pull-by row above; M10 owns both.",
+  },
+  {
+    dance: "whoosh",
+    key: "wait-out",
+    metric: "elbowPerHand",
+    reason:
+      "The **cycle boundary**, not a figure of the dance: at beat 64.09 c1/lark " +
+      "has just finished B2's star and do-si-do looking 302 degrees — a star " +
+      "leaves its dancers tangential to the ring — and wait-out turns him 238 " +
+      "degrees to stand out, which whips a hanging hand's elbow at 76.7 px/beat " +
+      "over a hand at 5.7. Measured at 13.42x. The row is **unchanged by M7b** " +
+      "(it stood at 13.42x with an elbow of 76.7 before any of this milestone's " +
+      "work) and it is not Whoosh's alone: On the Prowl, in the programme since " +
+      "M5, sits at 9.81x on the same row against a bound of 9.89. The turn is " +
+      "`@caller/choreo`'s own WAIT_OUT, which every dance in the programme shares " +
+      "and AC7 keeps contra out of; the elbow itself is well inside its bound of " +
+      "188.3. M10 owns it, and the honest fix is a wait-out that spends more of " +
+      "its sixty-four beats turning.",
+  },
+  {
+    dance: "*",
     key: "*",
     metric: "dip",
     reason:

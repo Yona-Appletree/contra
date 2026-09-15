@@ -74,16 +74,17 @@ const UNTIL: Beat = 128;
 const COMPARABLE = DEMO_DANCES.filter(threadsOnTheOldPath);
 
 describe("AC1: the demo dances through the contra planner are pose-identical", () => {
-  it("compares every demo dance but the three the old path cannot thread", () => {
+  it("compares every demo dance but the five the old path cannot thread", () => {
     // On the Prowl's shoulder round (M5), The Nice Combination's turn as
-    // couples and Chorus Jig's lead, cast and turn alone (M7): every one of
-    // them is a figure minted per pair or per dancer with no coded twin, which
+    // couples and Chorus Jig's lead, cast and turn alone (M7), A Rare Bird's
+    // pull-by and Whoosh's grand right and left (M7b): every one of them is a
+    // figure minted per pair, per dancer or per line with no coded twin, which
     // is exactly the question `threadsOnTheOldPath` asks.
     expect(
       DEMO_DANCES.map((d) => d.slug)
         .filter((s) => !COMPARABLE.some((d) => d.slug === s))
         .sort(),
-    ).toEqual(["chorus-jig", "on-the-prowl", "the-nice-combination"]);
+    ).toEqual(["a-rare-bird", "chorus-jig", "on-the-prowl", "the-nice-combination", "whoosh"]);
     expect(COMPARABLE).toHaveLength(10);
   });
 

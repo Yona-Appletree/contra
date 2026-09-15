@@ -96,7 +96,10 @@ describe("grand right and left", () => {
 
   it("takes a dancer three places along the set, one a pass", () => {
     const timeline = danceAlone(dance, 6, 6, {}, RUN).timeline();
-    const me = "set0/c2/lark";
+    // `c0/lark` is the dancer at the top of his line travelling down it, so all
+    // three of his neighbours exist in a six-couple set and he dances all three
+    // passes; `c2/lark` below is the one who does not.
+    const me = "set0/c0/lark";
     const start = poseAt(timeline, me, 0).p;
     for (const [beat, places] of [
       [2, 1],
@@ -107,6 +110,35 @@ describe("grand right and left", () => {
         places * PLACE_PITCH_PX,
         6,
       );
+    }
+  });
+
+  it("stops where a pass has nobody in it, and the lattice says which pass (M7b)", () => {
+    // M6's end-of-set rule, per pull-by inside the sequence. `c2/lark` meets N1
+    // and N2 in a six-couple line and has no N3, so he walks two places and
+    // stands for the third; the figure works that out **geometrically** — a pass
+    // whose swap has nobody in it stops the route — and what is checked here is
+    // that the geometry and the relation table agree, dancer by dancer, at every
+    // line length the oracles run at.
+    for (const couples of [2, 3, 4, 5, 6]) {
+      const timeline = danceAlone(dance, couples, 6, {}, RUN).timeline();
+      const model = modelAt(couples);
+      for (const me of Object.keys(model.dancers)) {
+        // How many of N1, N2, N3 exist, counting from the first: a dancer who
+        // has N1 and N3 but not N2 still stops at one, because the pass they
+        // cannot make is the second.
+        let passes = 0;
+        while (passes < 3 && relateWord(model, me, passes + 1) !== undefined) passes += 1;
+        // A dancer with no N1 at all is not in the call: resolution has already
+        // left them out, and what they do for the six beats is `wait-out`'s
+        // 9 px step in to the waiting place rather than this figure's business.
+        if (passes === 0) continue;
+        const start = poseAt(timeline, me, 0).p;
+        expect(dist(poseAt(timeline, me, 6).p, start), `${me} at ${String(couples)}`).toBeCloseTo(
+          passes * PLACE_PITCH_PX,
+          6,
+        );
+      }
     }
   });
 

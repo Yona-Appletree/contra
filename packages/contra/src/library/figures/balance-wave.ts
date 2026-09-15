@@ -44,7 +44,19 @@ export const balanceWaveDefinition: FigureDefinition = {
   params: {
     kind: "canonical",
     defaults: {
-      /** The hand you give the dancer one place along the way you travel. */
+      /**
+       * **The wave across the set reads this; the long wave derives it** (M7b).
+       *
+       * The transcripts write the hand — Whoosh's `N1R`, Anna's Reel's `NL,WR` —
+       * and M8's wave *across* the set takes its facings from it. Down the set it
+       * cannot be an input: which hand you really give the dancer beside you is a
+       * fact about your body, following from where the two of you stand and which
+       * way you are looking, and `facesIn` is what says the second of those. So
+       * the long wave in `kinds/wave.ts` derives every hand and this stays as the
+       * caller's word there, turned into a **measurement** by
+       * `balance-wave.test.ts`: Whoosh's wave really does put right hands into
+       * every N1 pair, at every line length.
+       */
       hand: "R",
       /** Which contra role looks in, toward the other line. */
       facesIn: "lark",
