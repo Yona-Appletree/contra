@@ -11,6 +11,7 @@ import {
   maxTileWorld,
   seamTiles,
   tileByKey,
+  tileDancers,
   tileMetrics,
 } from "./galleryTiles.js";
 import { chainOverridesFromQuery } from "./state/chainQuery.js";
@@ -80,7 +81,7 @@ describe("every tile", () => {
   // checked at every sampled beat of its window — it just gives each tile its
   // own budget.
   test.each(tiles)("gives every dancer a pose across its whole window: $key", (tile) => {
-    for (const dancer of tile.timeline.dancers()) {
+    for (const dancer of tileDancers(tile)) {
       for (const t of window(tile)) {
         expect(() => poseAt(tile.timeline, dancer, t), `${tile.key} @ ${t}`).not.toThrow();
       }
@@ -91,7 +92,7 @@ describe("every tile", () => {
   // slow CI runner isn't budgeted against all ~52 tiles in a single 5s case.
   test.each(tiles)("is drawn on a world its dancers stay inside: $key", (tile) => {
     const limit = [tile.world.w / 2 - TILE_MARGIN_PX, tile.world.h / 2 - TILE_MARGIN_PX];
-    for (const dancer of tile.timeline.dancers()) {
+    for (const dancer of tileDancers(tile)) {
       for (const t of window(tile)) {
         const p = poseAt(tile.timeline, dancer, t).p;
         expect(Math.abs(p[0]), `${tile.key} x @ ${t}`).toBeLessThanOrEqual(limit[0]! + 1e-6);
@@ -205,7 +206,7 @@ describe("`?chain=`'s registry override (F9)", () => {
 
 /** Whether any dancer of `a` samples to a different point than in `b`, at any beat of `a`'s window. */
 function moved(a: GalleryTile, b: GalleryTile): boolean {
-  for (const dancer of a.timeline.dancers()) {
+  for (const dancer of tileDancers(a)) {
     for (const t of window(a)) {
       if (dist(poseAt(a.timeline, dancer, t).p, poseAt(b.timeline, dancer, t).p) > 1e-9)
         return true;

@@ -1,12 +1,16 @@
 import type { Beat } from "@caller/core";
 import type {
   AnyFigureDef,
+  CycleEmission,
   Dance,
+  DancerId,
   EndPose,
   FigureCall,
   FigureRegistry,
   Formation,
   Group,
+  GroupPlan,
+  HallState,
   Station,
   StationId,
   Timeline,
@@ -14,36 +18,73 @@ import type {
 import {
   HANDS_FOUR_GROUP,
   WALK_TO_STATION,
-  complementOf,
   createGroup,
+  createHall,
   createTimeline,
+  defaultCyclePlanner,
   frame,
+  frameAngle,
+  framePoint,
   motionReport,
   poseAt,
-  resolveSelector,
   withDefaults,
 } from "@caller/choreo";
-import type { ContraCall, FigureDefaultsOverride, FigureTexts } from "@caller/contra";
+import type {
+  ContraCall,
+  FigureDefaultsOverride,
+  FigureTexts,
+  Library,
+  Spots,
+} from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
   CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
   DUPLE_IMPROPER,
-  chainCalls,
+  contraDance,
+  contraDataEngine,
   contraFigureOf,
+  createContraCyclePlanner,
   createContraRegistry,
   formationFor,
   resolveFigureText,
 } from "@caller/contra";
+import type { EngineChoice } from "./state/engineQuery.js";
+import { DEFAULT_ENGINE } from "./state/engineQuery.js";
 
 /**
  * The gallery's data: one tile per figure, one tile per figure-to-figure seam
  * the ten demo dances actually dance, each with a real timeline behind it.
  *
- * Nothing here calls `FigureDef.sample`. A tile owns a `Timeline` built the way
- * the script decider builds one — a group, figure events on it, `walk-to-station`
- * for anybody a `who` leaves out — and the page reads it with `poseAt`, so what
- * the gallery draws is what the hall draws, seam easing and all.
+ * Nothing here calls `FigureDef.sample`, and since M3 nothing here decides who
+ * dances either. A tile is **one two-couple set run through a cycle planner**
+ * for the tile's own window: a real `HallState`, a real synthetic `Dance` of
+ * the tile's calls, and the same `CyclePlanner` the Stage hands the decider.
+ * The page reads the result with `poseAt`, so what the gallery draws is what
+ * the hall draws, seam easing and all.
+ *
+ * ## Why it has to be the planner, and not a loop of its own
+ *
+ * Until M3 this file threaded its own calls (`chainCalls`), resolved its own
+ * `who` (`resolveSelector`), and gave everybody the selector left out a
+ * `walk-to-station` of its own — a second, smaller copy of the decider. M2
+ * made that copy unable to draw the new figures at all: a data figure's
+ * `anchor: "meet"` is a rule about *two dancers*, and it refuses a
+ * four-station hands-four group. Resolution is what turns a call into
+ * instances of two, so the gallery has to go through it.
+ *
+ * Which also fixes something the old loop got wrong: it ran every figure from
+ * the formation's own stations three times over, a place no dance ever hands a
+ * figure over. Now the tile's dancers stand where the tile's own dance puts
+ * them and the figure's `ends` decide the rest.
+ *
+ * ## The two engines
+ *
+ * A tile is built for one {@link EngineChoice}. `new` is the contra planner
+ * over `contraDataEngine()`'s registry-and-library pair; `old` is
+ * `defaultCyclePlanner` over the plain coded registry, which is the path every
+ * strip and plate before M3 was taken against. The Moves page runs `new`;
+ * `?engine=old` on it, and the seam lab, are how the two are compared.
  */
 
 /** The zooms the gallery offers (DD20). */
@@ -120,8 +161,19 @@ export interface GalleryTile {
   /** The figure a seam tile is filed under: its first figure. */
   under: string;
   formation: string;
+  /**
+   * The four (or two) dancers the tile draws, and where their stations are.
+   *
+   * Since M3 this is the minor set's own plan out of a real `HallState`, so
+   * its members are hall dancer ids (`set0/c0/lark`) rather than names this
+   * file made up. It is **not** the group the timeline's events are bound to —
+   * a data figure's instances are groups of two whose stations are figure-roles
+   * — it is who to draw and where the tile's own axes are.
+   */
   group: Group;
   timeline: Timeline;
+  /** Which engine planned this tile's timeline. */
+  engine: EngineChoice;
   /** The looping window on that timeline: where it starts and how long it is. */
   window: { start: Beat; beats: Beat };
   /** The world this tile is drawn on, before zoom: its own travel plus a margin. */
@@ -170,8 +222,11 @@ export const dancerOn = (station: Station): string => `${GROUP_ID}/${station.id}
  * — its own row and every seam it appears in — at the overridden defaults
  * instead of the shipped ones. See {@link FigureDefaultsOverride}.
  */
-export function galleryTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
-  return [...figureTiles(overrides), ...seamTiles(overrides)];
+export function galleryTiles(
+  overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
+): GalleryTile[] {
+  return [...figureTiles(overrides, engine), ...seamTiles(overrides, engine)];
 }
 
 /** One figure and every seam that leaves it, in the order the page lists them. */
@@ -335,10 +390,13 @@ export function tileByKey(tiles: readonly GalleryTile[], key: string): GalleryTi
  * One tile per figure in `createContraRegistry()`: the sixteen contra figures,
  * contra's own `wait-out`, and the engine's `walk-to-station`.
  */
-export function figureTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
+export function figureTiles(
+  overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
+): GalleryTile[] {
   const registry = createContraRegistry([], overrides);
   const ids = [...CONTRA_FIGURE_IDS, "wait-out", "walk-to-station"];
-  return ids.map((id) => figureTile(id, registry, overrides));
+  return ids.map((id) => figureTile(id, registry, overrides, engine));
 }
 
 /**
@@ -346,17 +404,14 @@ export function figureTiles(overrides: FigureDefaultsOverride = {}): GalleryTile
  * including the wrap from a dance's last figure back into its first — a dance
  * is danced twice through, so that seam is danced too.
  */
-export function seamTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
+export function seamTiles(
+  overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
+): GalleryTile[] {
   const byKey = new Map<string, GalleryTile>();
-  for (const dance of DEMO_DANCES) {
-    const flat = dance.phrases.flatMap((p) => p.figures);
-    for (let i = 0; i < flat.length; i++) {
-      const a = flat[i]!;
-      const b = flat[(i + 1) % flat.length]!;
-      const key = `${a.figure}--${b.figure}`;
-      if (byKey.has(key)) continue;
-      byKey.set(key, seamTile(dance, a, b, i + 1 === flat.length, overrides));
-    }
+  for (const seam of corpusSeams()) {
+    if (byKey.has(seam.key)) continue;
+    byKey.set(seam.key, seamTile(seam, overrides, engine));
   }
   const order = new Map(CONTRA_FIGURE_IDS.map((id, i) => [id as string, i]));
   return [...byKey.values()].sort(
@@ -369,6 +424,7 @@ function figureTile(
   id: string,
   registry: FigureRegistry,
   overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
 ): GalleryTile {
   const def = registry.get(id);
   const found = firstCallOf(id);
@@ -379,73 +435,65 @@ function figureTile(
   const notes: string[] = [];
   const contra = contraFigureOf(id);
 
-  let group: Group;
-  let calls: FigureCall[];
-  let start: Beat;
-
-  if (contra !== undefined) {
-    group = galleryGroup(formation, 4);
-    const one: ContraCall = {
-      figure: id,
-      beats,
-      params,
-      ...(found?.call.who === undefined ? {} : { who: found.call.who }),
-    };
-    // Three times over, threaded: the middle one is the tile, so its first beat
-    // eases out of the figure before it and its last beat releases into the
-    // figure after it. `chainCalls` is what gives each instance its `from`.
-    const thrice = chainCalls(formation, [one, one, one], { stations: group.stations }).calls;
-    if (closes(group.stations, thrice)) {
-      calls = thrice;
-      start = beats;
-    } else {
-      // A figure that progresses walks away from itself: three of them in a row
-      // end a couple place or more down the hall, which makes the tile a map of
-      // the drift rather than a look at the figure. So the brief's other
-      // bracket — stand, figure, stand — with the standing places taken from
-      // where the figure starts and where it leaves everybody.
-      calls = [
-        standCall(thrice[0]!, BRACKET_BEATS),
-        thrice[0]!,
-        standCall(thrice[1]!, BRACKET_BEATS),
-      ];
-      start = BRACKET_BEATS;
-      notes.push(
-        "does not end where it began: bracketed by standing rather than by itself, and the loop jumps back when it wraps",
-      );
-    }
-  } else if (id === "walk-to-station") {
-    group = galleryGroup(DUPLE_IMPROPER, 4);
-    const one: FigureCall = { figure: id, beats, params };
-    calls = [one, one, one];
-    start = beats;
-    notes.push("the engine's own placeholder: nobody is told to go anywhere, so nobody moves");
-  } else {
-    // `wait-out` dances in a group of two and is not a `chainCalls` figure, so
-    // it runs alone: the seam into it is the start of the timeline.
-    group = galleryGroup(formation, 2);
-    calls = [{ figure: id, beats, params }];
-    start = 0;
-    notes.push("runs alone: the engine's own figures are not threaded by chainCalls");
-    notes.push("a group of two — the couple waiting out at the end of the line");
+  if (contra === undefined) {
+    // `wait-out` and `walk-to-station` are `@caller/choreo`'s own figures, and
+    // **the library does not hold them**: `legacyLibrary` bridges what answers
+    // `joins`, which these two do not. A planner cannot resolve a call of a
+    // figure it has no definition for, so these two tiles keep a timeline built
+    // by hand — one group, the figure on every station, nobody left out and so
+    // no complement to fill. It is the smallest exception the re-base allows
+    // and it disappears when M4 and M5 give the library everything.
+    return engineFigureTile(id, def, formation, beats, params, callText, found, engine);
   }
 
-  if (found === undefined && contra !== undefined) {
+  const one: ContraCall = {
+    figure: id,
+    beats,
+    params,
+    ...(found?.call.who === undefined ? {} : { who: found.call.who }),
+  };
+
+  // Three times over: the middle one is the tile, so its first beat eases out
+  // of the figure before it and its last beat releases into the figure after
+  // it. The planner is what carries each instance's start, its holds and its
+  // ends into the next.
+  let run = planTile({ formation, cycles: [{ calls: [one, one, one] }], overrides, engine });
+  let start: Beat = beats;
+  if (!closes(run, beats)) {
+    // A figure that progresses walks away from itself: three of them in a row
+    // end a couple place or more down the hall, which makes the tile a map of
+    // the drift rather than a look at the figure. So the other bracket —
+    // stand, figure, stand — with the standing places taken from where the
+    // figure starts and where it leaves everybody.
+    run = planTile({
+      formation,
+      cycles: [{ calls: [one] }],
+      overrides,
+      engine,
+      bracket: BRACKET_BEATS,
+    });
+    start = BRACKET_BEATS;
+    notes.push(
+      "does not end where it began: bracketed by standing rather than by itself, and the loop jumps back when it wraps",
+    );
+  }
+
+  if (found === undefined) {
     notes.push(
       "no demo dance calls this figure: it runs from the formation's stations on its own defaults, which is not where a dance would hand it over",
     );
   }
 
-  const shown = calls.find((c) => c.figure === id) ?? calls[0]!;
   return sized({
     kind: "figure",
     key: id,
     title: id,
-    calls: [listed(shown, callText, group, def.describe)],
+    calls: [listed(run.calls[0]!, callText, run.group, def.describe)],
     under: id,
     formation: formation.id,
-    group,
-    timeline: buildTimeline(group, formation, calls, overrides),
+    group: run.group,
+    timeline: run.timeline,
+    engine,
     window: { start, beats },
     world: MIN_TILE_WORLD,
     ...(found === undefined ? {} : { source: found.dance.slug }),
@@ -456,26 +504,140 @@ function figureTile(
 /** How long the standing bracket around a figure that progresses lasts. */
 const BRACKET_BEATS = 4;
 
-/** Everybody standing where `call` found them, for `beats`. */
-function standCall(call: FigureCall, beats: Beat): FigureCall {
-  const from = (call.params as { from?: Record<StationId, EndPose> } | undefined)?.from ?? {};
-  return {
-    figure: WALK_TO_STATION.id,
-    beats,
-    params: { startPlaces: from, endPlaces: from },
-  };
+/**
+ * A tile for one of `@caller/choreo`'s own figures, built without a planner.
+ *
+ * See {@link figureTile} for why these two cannot go through resolution. The
+ * group is the gallery's own four (or two) stations rather than a hall's,
+ * which is exactly what it was before M3, so these two tiles are unchanged by
+ * the re-base and their strips are byte-identical.
+ */
+function engineFigureTile(
+  id: string,
+  def: AnyFigureDef,
+  formation: Formation,
+  beats: Beat,
+  params: Record<string, unknown>,
+  callText: string,
+  found: { dance: Dance; call: FigureCall } | undefined,
+  engine: EngineChoice,
+): GalleryTile {
+  const alone = id !== "walk-to-station";
+  const group = galleryGroup(alone ? formation : DUPLE_IMPROPER, alone ? 2 : 4);
+  const calls: FigureCall[] = alone
+    ? [{ figure: id, beats, params }]
+    : [
+        { figure: id, beats, params },
+        { figure: id, beats, params },
+        { figure: id, beats, params },
+      ];
+  const timeline = createTimeline(createContraRegistry());
+  timeline.addGroup(group);
+  let at: Beat = 0;
+  for (const call of calls) {
+    addEmission(timeline, {
+      group,
+      def,
+      params: withDefaults(def, call.params, call.beats),
+      stations: group.stations.map((s) => s.id),
+      start: at,
+    });
+    at += call.beats;
+  }
+  const notes = alone
+    ? [
+        "runs alone: the engine's own figures have no definition in the library, so the planner cannot resolve a call of one",
+        "a group of two — the couple waiting out at the end of the line",
+      ]
+    : ["the engine's own placeholder: nobody is told to go anywhere, so nobody moves"];
+  return sized({
+    kind: "figure",
+    key: id,
+    title: id,
+    calls: [listed(calls[0]!, callText, group, def.describe)],
+    under: id,
+    formation: formation.id,
+    group,
+    timeline,
+    engine,
+    window: { start: alone ? 0 : beats, beats },
+    world: MIN_TILE_WORLD,
+    ...(found === undefined ? {} : { source: found.dance.slug }),
+    notes,
+  });
 }
 
-/** Two figures from one dance, back to back, with the seam in the middle. */
-function seamTile(
-  dance: Dance,
-  a: FigureCall,
-  b: FigureCall,
-  wrapped: boolean,
+/** One `(figure A → figure B)` boundary of one demo dance. */
+export interface CorpusSeam {
+  key: string;
+  dance: Dance;
+  a: FigureCall;
+  b: FigureCall;
+  /** The dance's last figure back into its first: a time through into the next. */
+  wrapped: boolean;
+}
+
+/**
+ * Every `(figure A → figure B)` the ten demo dances dance, in dance order,
+ * including each dance's wrap.
+ *
+ * Exported shape rather than an inline loop because the seam lab (`#/lab`)
+ * looks a seam up by the same key the Moves page files it under, and two
+ * places deciding separately what "the hey into the balance and swing" means
+ * would eventually disagree.
+ */
+export function corpusSeams(dances: readonly Dance[] = DEMO_DANCES): CorpusSeam[] {
+  const out: CorpusSeam[] = [];
+  for (const dance of dances) {
+    const flat = dance.phrases.flatMap((p) => p.figures);
+    for (let i = 0; i < flat.length; i++) {
+      const a = flat[i]!;
+      const b = flat[(i + 1) % flat.length]!;
+      out.push({ key: `${a.figure}--${b.figure}`, dance, a, b, wrapped: i + 1 === flat.length });
+    }
+  }
+  return out;
+}
+
+/** The first seam of this key anywhere in the demo dances, or `undefined`. */
+export const seamByKey = (key: string): CorpusSeam | undefined =>
+  corpusSeams().find((s) => s.key === key);
+
+/**
+ * Two figures from one dance, back to back, with the seam in the middle.
+ *
+ * The seam starts **where the dance really has it** — the tile's set is stood
+ * on the first call's own threaded places, not on the formation's stations —
+ * because a seam is a fact about two figures meeting somewhere in particular,
+ * and the same two figures meeting at the top of a dance would be a different
+ * picture.
+ */
+export function seamTile(
+  seam: CorpusSeam,
   overrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
+  window?: { before: Beat; after: Beat },
+  key = seam.key,
 ): GalleryTile {
+  const { dance, a, b, wrapped } = seam;
   const formation = formationFor(dance);
-  const group = galleryGroup(formation, 4);
+  const run = planTile({
+    formation,
+    // One time through for an ordinary seam, so the second figure starts from
+    // where the first one left everybody and the hold between them carries.
+    // **Two for a wrap**, because that is what a wrap is: the dance's first
+    // figure starts from the dance's own first places, whoever the last figure
+    // left where — and the place shift that makes at the seam is the
+    // progression, which this tile does not draw and says so.
+    cycles: wrapped
+      ? [
+          { calls: [unthreaded(a)], startPlaces: startOf(a) },
+          { calls: [unthreaded(b)], startPlaces: startOf(b) },
+        ]
+      : [{ calls: [unthreaded(a), unthreaded(b)], startPlaces: startOf(a) }],
+    overrides,
+    engine,
+  });
   const registry = createContraRegistry([], overrides);
   const notes = wrapped
     ? [
@@ -483,31 +645,57 @@ function seamTile(
         "the hall re-forms the minor set between the two, and this tile does not: a place shift across this seam is the progression, not a jump",
       ]
     : [];
+  const before = window === undefined ? a.beats : Math.min(window.before, a.beats);
+  const after = window === undefined ? b.beats : Math.min(window.after, b.beats);
   return sized({
     kind: "seam",
-    key: `${a.figure}--${b.figure}`,
+    key,
     title: `${a.figure} → ${b.figure}`,
-    calls: [a, b].map((c) => {
+    calls: run.calls.map((c) => {
       const def = registry.get(c.figure);
-      return listed(c, c.call ?? def.call, group, def.describe);
+      return listed(c, c.call ?? def.call, run.group, def.describe);
     }),
     under: a.figure,
     formation: formation.id,
-    group,
-    timeline: buildTimeline(group, formation, [a, b], overrides),
-    window: { start: 0, beats: a.beats + b.beats },
+    group: run.group,
+    timeline: run.timeline,
+    engine,
+    window: { start: a.beats - before, beats: before + after },
     world: MIN_TILE_WORLD,
-    seamAt: a.beats,
+    seamAt: before,
     ...(wrapped ? { wrapped: true } : {}),
     source: dance.slug,
     notes,
   });
 }
 
+/** A dance's call as a call again: the two things the chain derived stripped off. */
+function unthreaded(call: FigureCall): ContraCall {
+  const params: Record<string, unknown> = withoutFrom(call.params);
+  delete params["carried"];
+  return {
+    figure: call.figure,
+    beats: call.beats,
+    params,
+    ...(call.who === undefined ? {} : { who: call.who }),
+    ...(call.group === undefined ? {} : { group: call.group }),
+    ...(call.call === undefined ? {} : { call: call.call }),
+  };
+}
+
+/** Where the dance had this call's dancers standing, frame-local. */
+const startOf = (call: FigureCall): Spots | undefined =>
+  (call.params as { from?: Spots } | undefined)?.from;
+
 /**
- * The tile with a world big enough for it: every dancer sampled across the
- * looping window, plus {@link TILE_MARGIN_PX} for the body the pose point only
- * marks the feet of.
+ * The tile with a world big enough for it: every dancer **the tile draws**
+ * sampled across the looping window, plus {@link TILE_MARGIN_PX} for the body
+ * the pose point only marks the feet of.
+ *
+ * The tile's own group, not `timeline.dancers()`: a becket set needs four
+ * couples to have a minor set at all, so its timeline also holds the two
+ * couples waiting out at the ends of the line, a couple place away and not
+ * drawn here.
  *
  * Per tile rather than one size for all, because a becket dance starts a whole
  * couple place off its stations and a balance moves nobody more than a step:
@@ -517,7 +705,7 @@ function seamTile(
 function sized(tile: GalleryTile): GalleryTile {
   let x = 0;
   let y = 0;
-  for (const dancer of tile.timeline.dancers()) {
+  for (const dancer of tileDancers(tile)) {
     for (let t = 0; t <= tile.window.beats; t += TILE_BOUNDS_STEP) {
       const pose = poseAt(
         tile.timeline,
@@ -537,83 +725,282 @@ function sized(tile: GalleryTile): GalleryTile {
   };
 }
 
-/**
- * A timeline holding one group and these calls back to back, built the way the
- * script decider builds one: the selected stations get the figure, everybody
- * else stands where the call found them.
- */
-function buildTimeline(
-  group: Group,
-  formation: Formation,
-  calls: readonly FigureCall[],
-  overrides: FigureDefaultsOverride = {},
-): Timeline {
-  const registry = createContraRegistry([], overrides);
-  const timeline = createTimeline(registry);
-  timeline.addGroup(group);
-
-  let at: Beat = 0;
-  for (const call of calls) {
-    const def = registry.get(call.figure);
-    const selected = resolveSelector(
-      call.who,
-      formation,
-      call.group ?? HANDS_FOUR_GROUP,
-      group.stations,
-    );
-    addEvent(timeline, group, def, withDefaults(def, call.params, call.beats), selected, at);
-
-    const resting = complementOf(group.stations, selected);
-    if (resting.length > 0) {
-      const here = placesOf(call, resting);
-      const stand = withDefaults(
-        WALK_TO_STATION,
-        { startPlaces: here, endPlaces: here },
-        call.beats,
-      );
-      addEvent(timeline, group, WALK_TO_STATION as AnyFigureDef, stand, resting, at);
-    }
-    at += call.beats;
+/** The dancers a tile draws: its own group's members, in station order. */
+export function tileDancers(tile: GalleryTile): DancerId[] {
+  const out: DancerId[] = [];
+  for (const station of tile.group.stations) {
+    const dancer = tile.group.members[station.id];
+    if (dancer !== undefined) out.push(dancer);
   }
-  return timeline;
+  return out;
 }
 
-function addEvent(
-  timeline: Timeline,
-  group: Group,
-  def: AnyFigureDef,
-  params: object & { beats: Beat },
-  stations: readonly StationId[],
-  start: Beat,
-): void {
-  if (stations.length === 0) return;
-  const bindings: Record<StationId, string> = {};
-  for (const id of stations) {
-    const dancer = group.members[id];
-    if (dancer === undefined) throw new Error(`gallery group has nobody on station "${id}"`);
+/** One two-couple set, planned: the timeline, who to draw, and what was called. */
+interface TileRun {
+  timeline: Timeline;
+  /** The minor set the tile draws, out of the hall the run was planned in. */
+  group: Group;
+  /** The calls as the tile's own dance holds them, threaded. */
+  calls: readonly FigureCall[];
+}
+
+/** One time through, as a tile asks for it. */
+interface TileCycle {
+  /** The calls, **unthreaded**: the tile's own dance threads them. */
+  calls: readonly ContraCall[];
+  /** Where the set stands at this cycle's beat 0, frame-local. Left out: the stations. */
+  startPlaces?: Spots | undefined;
+}
+
+/** What {@link planTile} is asked for. */
+interface TileSpec {
+  formation: Formation;
+  /**
+   * The times through, back to back.
+   *
+   * Almost always one. **A wrap tile is two**: a dance's last figure into its
+   * own first is a cycle boundary, and the first figure of a time through
+   * starts from the dance's own first places rather than from wherever the
+   * last figure left anybody — which is why a wrap tile's dancers shift a
+   * place at the seam, and why the tile says that shift is the progression
+   * rather than a jump. Two planner runs is what that is, honestly.
+   */
+  cycles: readonly TileCycle[];
+  overrides: FigureDefaultsOverride;
+  engine: EngineChoice;
+  /**
+   * Beats of standing before and after the calls, for a figure that does not
+   * close. Left out (or 0) the calls fill the whole timeline.
+   */
+  bracket?: Beat;
+}
+
+/**
+ * **One two-couple set run through a cycle planner** — the whole of how a tile
+ * gets its timeline since M3.
+ *
+ * Everything here is the real thing: a real `HallState` (`createHall`), a real
+ * `Dance` (`contraDance`, which threads the calls exactly as a dance file is
+ * threaded at load), a real `CyclePlanner`, and the emissions added to the
+ * timeline the way `createScriptDecider`'s own `emitFigure` adds them. What is
+ * *not* here is any decision about who dances, where they start, or what
+ * anybody left out does: those are resolution's, and resolution is what the
+ * new figures need.
+ *
+ * The hall is stood so that **the minor set's own frame is the world's
+ * origin**, which is where the gallery has always drawn from — a tile's world
+ * is sized symmetrically about the centre, so a set sitting a couple place off
+ * would draw every figure in the corner of a tile twice the size it needs.
+ */
+function planTile(spec: TileSpec): TileRun {
+  const { formation, cycles, overrides, engine } = spec;
+  const bracket = spec.bracket ?? 0;
+  const { hall, plan } = tileHall(formation);
+
+  const { registry, library } = engineHalves(engine, overrides);
+  const timeline = createTimeline(registry);
+  let seq = 0;
+  const mintGroup = (p: GroupPlan): Group => {
+    const group = createGroup({ ...p, id: `${p.id}#${seq++}` }, formation.roleSet);
+    timeline.addGroup(group);
+    return group;
+  };
+  // The tile's own group is minted first, so it is on the timeline and can
+  // carry the standing bracket's events whether or not the planner happens to
+  // mint this plan for itself. A data figure's instances are groups of two
+  // whose stations are figure-roles, so it very often does not.
+  const group = mintGroup(plan);
+
+  // Stand, figure, stand, for a figure that does not close — with the standing
+  // places taken from where the figure starts and from where it leaves
+  // everybody, which is the same pair of answers the old bracket read off the
+  // chain's `from`. The leading half has to go on **before** the figures:
+  // `Timeline.add` wants each dancer's own events in chronological order.
+  if (bracket > 0) stand(timeline, group, stationPoses(group), 0, bracket);
+
+  const planner =
+    library === undefined ? defaultCyclePlanner : createContraCyclePlanner({ library });
+  const ends = new Map<DancerId, EndPose>();
+  const threaded: FigureCall[] = [];
+  let at: Beat = bracket;
+  for (const cycle of cycles) {
+    const dance = contraDance({
+      slug: "gallery",
+      title: "gallery",
+      author: "the moves page",
+      formation,
+      phrases: [{ name: "A1", figures: [...cycle.calls] }],
+      ...(cycle.startPlaces === undefined ? {} : { startPlaces: cycle.startPlaces }),
+    });
+    const planned = planner({
+      dance,
+      formation,
+      registry,
+      // The hall is **not** progressed between two cycles, exactly as the wrap
+      // tile has always not progressed it: a tile is a picture of two figures
+      // meeting, and moving the whole set a place between them would draw the
+      // progression twice.
+      hall,
+      start: at,
+      first: true,
+      standingAt: new Map(),
+      mintGroup,
+    });
+    for (const emission of planned.emissions) {
+      addEmission(timeline, emission);
+      const to = emission.def.ends(emission.group, emission.params);
+      for (const id of emission.stations) {
+        const dancer = emission.group.members[id];
+        const end = to[id];
+        if (dancer !== undefined && end) ends.set(dancer, end);
+      }
+    }
+    threaded.push(...dance.phrases[0]!.figures);
+    at += danceBeatsOf(cycle.calls);
+  }
+
+  if (bracket > 0) stand(timeline, group, only(ends, group), at, bracket);
+
+  return { timeline, group, calls: threaded };
+}
+
+/** How long a run of calls lasts. */
+const danceBeatsOf = (calls: readonly { beats: Beat }[]): Beat =>
+  calls.reduce((sum, c) => sum + c.beats, 0);
+
+/** One emission on the timeline, exactly as `createScriptDecider.emitFigure` puts it there. */
+function addEmission(timeline: Timeline, emission: CycleEmission): void {
+  if (emission.stations.length === 0) return;
+  const bindings: Record<StationId, DancerId> = {};
+  for (const id of emission.stations) {
+    const dancer = emission.group.members[id];
+    if (dancer === undefined) {
+      throw new Error(`group "${emission.group.id}" has nobody on station "${id}"`);
+    }
     bindings[id] = dancer;
   }
   timeline.add({
     kind: "figure",
-    group: group.id,
-    figure: def.id,
-    params,
+    group: emission.group.id,
+    figure: emission.def.id,
+    params: emission.params,
     bindings,
-    start,
-    end: start + params.beats,
+    start: emission.start,
+    end: emission.start + emission.params.beats,
   });
 }
 
-/** Where a call found these stations, frame-local: the `from` `chainCalls` threaded. */
-function placesOf(call: FigureCall, stations: readonly StationId[]): Record<StationId, EndPose> {
-  const from = (call.params as { from?: Record<StationId, EndPose> } | undefined)?.from;
+/** Everybody in `group` standing still at `origins` for `beats`. */
+function stand(
+  timeline: Timeline,
+  group: Group,
+  origins: Record<StationId, EndPose>,
+  start: Beat,
+  beats: Beat,
+): void {
+  addEmission(timeline, {
+    group,
+    def: WALK_TO_STATION as AnyFigureDef,
+    // `origins` and nothing else: with no `to` and no `endPlaces`, every
+    // dancer's end pose *is* their start pose, which is what standing means.
+    params: withDefaults(WALK_TO_STATION, { origins }, beats),
+    stations: group.stations.map((s) => s.id),
+    start,
+  });
+}
+
+/** Where a group's stations are, in world px: where its dancers start. */
+function stationPoses(group: Group): Record<StationId, EndPose> {
   const out: Record<StationId, EndPose> = {};
-  if (from === undefined) return out;
-  for (const id of stations) {
-    const place = from[id];
-    if (place !== undefined) out[id] = place;
+  for (const station of group.stations) {
+    out[station.id] = {
+      p: framePoint(group.frame, station.p),
+      facing: frameAngle(group.frame, station.facing),
+    };
   }
   return out;
+}
+
+/** The ends of the dancers on `group`'s stations, keyed by station. */
+function only(ends: ReadonlyMap<DancerId, EndPose>, group: Group): Record<StationId, EndPose> {
+  const out: Record<StationId, EndPose> = {};
+  for (const station of group.stations) {
+    const dancer = group.members[station.id];
+    const end = dancer === undefined ? undefined : ends.get(dancer);
+    if (end) out[station.id] = end;
+  }
+  return out;
+}
+
+/**
+ * The hall a tile dances in: **one minor set**, and whatever the formation
+ * needs around it, stood so the minor set's frame is the world's origin.
+ *
+ * Duple improper makes a minor set out of two couples, which is the brief's
+ * "one two-couple set". Becket refuses a set of fewer than four couples — its
+ * minor set is two couples side by side facing two more across the way — so it
+ * gets four, of which two wait out at the ends of the line. The extra two are
+ * in the timeline and are not drawn: {@link tileDancers} is the tile's own
+ * four.
+ *
+ * The count is found by asking rather than by naming formations, so a third
+ * contra formation (M7's proper) needs nothing here.
+ */
+function tileHall(formation: Formation): { hall: HallState; plan: GroupPlan } {
+  const couples = minCouples(formation);
+  const at = (centre: [number, number]): { hall: HallState; plan: GroupPlan } => {
+    const hall = createHall(formation, [{ id: "set0", couples, centre, axis: AXIS }]);
+    const plan = formation.groupsFor(HANDS_FOUR_GROUP, hall.sets[0]!).find((p) => p.kind === "set");
+    if (plan === undefined) {
+      throw new Error(`formation "${formation.id}" has no minor set at ${String(couples)} couples`);
+    }
+    return { hall, plan };
+  };
+  // `groupsFor`'s frames are a rigid translation of the set's own, so the
+  // offset measured from the origin is exactly the offset to stand back by.
+  const centred = at([0, 0]).plan.frame.centre;
+  return at([-centred[0]!, -centred[1]!]);
+}
+
+/** The smallest number of couples this formation will make a minor set out of. */
+function minCouples(formation: Formation): number {
+  for (let n = 2; n <= 8; n++) {
+    try {
+      const hall = createHall(formation, [{ id: "set0", couples: n, centre: [0, 0], axis: AXIS }]);
+      if (formation.groupsFor(HANDS_FOUR_GROUP, hall.sets[0]!).some((p) => p.kind === "set")) {
+        return n;
+      }
+    } catch {
+      // A formation that refuses a short line says so by throwing; try a longer one.
+    }
+  }
+  throw new Error(`formation "${formation.id}" makes no minor set in a line of eight or fewer`);
+}
+
+/**
+ * The registry and the library one engine runs on, built once per engine and
+ * per override map.
+ *
+ * `contraDataEngine()` interprets five definitions and builds a registry, and
+ * the gallery asks for a tile fifty-odd times; the pair is a pure function of
+ * its two arguments, so building it once per distinct pair of arguments is the
+ * same answer for a fraction of the work.
+ */
+const engineCache = new Map<string, { registry: FigureRegistry; library?: Library }>();
+function engineHalves(
+  engine: EngineChoice,
+  overrides: FigureDefaultsOverride,
+): { registry: FigureRegistry; library?: Library } {
+  const key = `${engine}|${JSON.stringify(overrides)}`;
+  let halves = engineCache.get(key);
+  if (halves === undefined) {
+    halves =
+      engine === "new"
+        ? contraDataEngine([], overrides)
+        : { registry: createContraRegistry([], overrides) };
+    engineCache.set(key, halves);
+  }
+  return halves;
 }
 
 /** The first call of this figure anywhere in the ten demo dances. */
@@ -668,20 +1055,23 @@ function textRegistry(): FigureRegistry {
 }
 
 /**
- * Whether one instance of a chained figure leaves everybody where it found
- * them, to 0.01 px — the closure tolerance the dances are checked to.
+ * Whether one instance of a figure leaves everybody where it found them, to
+ * 0.01 px — the closure tolerance the dances are checked to.
+ *
+ * Measured off the run itself rather than off the chain's threaded places: the
+ * pose at the top of the second instance against the pose at the top of the
+ * first is the same question, asked of whatever actually happened.
  *
  * A figure that does not close is a figure that progresses, and looping it on
  * its own middle instance has to jump back somewhere; the tile says so.
  */
-function closes(stations: readonly Station[], calls: readonly FigureCall[]): boolean {
-  const first = (calls[0]?.params as { from?: Record<StationId, EndPose> } | undefined)?.from;
-  const second = (calls[1]?.params as { from?: Record<StationId, EndPose> } | undefined)?.from;
-  if (first === undefined || second === undefined) return true;
-  return stations.every((s) => {
-    const a = first[s.id];
-    const b = second[s.id];
-    if (a === undefined || b === undefined) return true;
-    return Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1]) < 0.01;
-  });
+function closes(run: TileRun, beats: Beat): boolean {
+  for (const station of run.group.stations) {
+    const dancer = run.group.members[station.id];
+    if (dancer === undefined) continue;
+    const a = poseAt(run.timeline, dancer, 0).p;
+    const b = poseAt(run.timeline, dancer, beats).p;
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) >= 0.01) return false;
+  }
+  return true;
 }
