@@ -44,9 +44,7 @@ export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] 
     // men go forward" teaches both halves, one after the other, and each half
     // has its own figure and its own words.
     for (const call of phrase.figures.flatMap((written) => concurrentCalls(written))) {
-      const def = registry.get(call.figure);
-      const params = withDefaults(def, call.params, call.beats);
-      const texts = resolveFigureText(call.figure, params, group);
+      const texts = textsFor(registry, group, call);
       if (texts === undefined) continue;
       steps.push({
         phrase: phrase.name,
@@ -57,4 +55,29 @@ export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] 
     }
   }
   return steps;
+}
+
+/**
+ * One call's texts, or `undefined` for a call that has none this page can print.
+ *
+ * The header says a call whose texts do not resolve is left out and never given
+ * a placeholder, and until M8 that meant the one case `resolveFigureText`
+ * answers `undefined` for: a figure with no text file. A **lab** dance has two
+ * more — a figure a later milestone owns, which the registry does not hold at
+ * all, and a parameter value the text layer has no words for — and both of those
+ * *throw*, which took the whole dance page down rather than one step of it. A
+ * lab dance is exactly the kind of dance whose figures are half written, so the
+ * page catches here and shows the rest of the walkthrough.
+ */
+function textsFor(
+  registry: ReturnType<typeof createContraRegistry>,
+  group: ReturnType<typeof probeGroup>,
+  call: { figure: string; params?: object; beats: number },
+): ReturnType<typeof resolveFigureText> {
+  try {
+    const def = registry.get(call.figure);
+    return resolveFigureText(call.figure, withDefaults(def, call.params, call.beats), group);
+  } catch {
+    return undefined;
+  }
 }

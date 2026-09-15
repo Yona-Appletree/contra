@@ -402,9 +402,18 @@ export function renderSlot(name: string, value: unknown, register: Register): st
   return SLOTS[name]?.(value, register);
 }
 
-/** `"partners"`, `"neighbors"`, or the two robins or the two larks written out. */
+/**
+ * `"partners"`, `"neighbors"`, an indexed relation, or the two robins or the two
+ * larks written out.
+ *
+ * **An indexed relation is a pairing too** (M8). The corpus writes "N2 neighbor
+ * allemande" and "shadow roll away" as ordinary calls, and 1,696 dances name N2
+ * alone; before this they had no words at all, so a walkthrough of one threw
+ * `nothing to put in "{pairs}"` and took the whole dance page down with it.
+ */
 export function pairingName(value: unknown): string | undefined {
   if (value === "partners" || value === "neighbors") return value;
+  if (typeof value === "string" && INDEXED.test(value)) return value.toUpperCase();
   if (!Array.isArray(value)) return undefined;
   const ids = (value.flat() as unknown[]).filter((x): x is StationId => typeof x === "string");
   if (ids.length !== 2) return undefined;
@@ -417,6 +426,16 @@ export function pairingName(value: unknown): string | undefined {
   return undefined;
 }
 
+/** A relation written with a number: `N2`, `S2`, `C1`. */
+const INDEXED = /^(n|s|c)\d+$/i;
+
+/** What a caller calls each indexed relation's letter. */
+const INDEXED_WORDS: Readonly<Record<string, { call: string; prose: string }>> = {
+  N: { call: "number", prose: "the neighbor" },
+  S: { call: "shadow", prose: "the shadow" },
+  C: { call: "corner", prose: "the corner" },
+};
+
 function pairingWords(value: unknown, register: Register): string | undefined {
   const name = pairingName(value);
   if (name === undefined) return undefined;
@@ -426,8 +445,28 @@ function pairingWords(value: unknown, register: Register): string | undefined {
     robins: { call: "robins", prose: "the other robin" },
     larks: { call: "larks", prose: "the other lark" },
   };
-  return words[name]?.[register];
+  const written = words[name]?.[register];
+  if (written !== undefined) return written;
+  if (!INDEXED.test(name)) return undefined;
+  // "number two", "the neighbor two along": a caller says the letter's word and
+  // then the number, which is how the Caller's Box's own lines read.
+  const letter = INDEXED_WORDS[name[0]!.toUpperCase()];
+  const index = name.slice(1);
+  if (letter === undefined) return undefined;
+  return register === "call"
+    ? `${letter.call} ${NUMBER_WORDS[index] ?? index}`
+    : `${letter.prose} ${NUMBER_WORDS[index] ?? index} along`;
 }
+
+/** The small numbers a relation is indexed by, in words. */
+const NUMBER_WORDS: Readonly<Record<string, string>> = {
+  "0": "zero",
+  "1": "one",
+  "2": "two",
+  "3": "three",
+  "4": "four",
+  "5": "five",
+};
 
 function sideWords(value: unknown): string | undefined {
   return value === "R" ? "right" : value === "L" ? "left" : undefined;

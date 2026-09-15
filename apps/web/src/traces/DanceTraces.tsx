@@ -45,15 +45,34 @@ export function DanceTraces({
 }): JSX.Element {
   const [view, setView] = useState<RowTraceView>(() => viewFromQuery(params?.get("view") ?? null));
   const wrap = wrapFromQuery(params?.get("wrap") ?? null);
+  // **A lab dance may not dance at all** (M8). The trace runs the real decider
+  // over the real dance, and a record whose figures are still being worked out
+  // throws somewhere inside it — which used to take the whole dance page down
+  // with it, so a lab dance had no page at all and neither did its card or its
+  // walkthrough. The drawings are the part that cannot be made; everything else
+  // on the page can, so the failure is caught here and said in words, exactly as
+  // the resolution table's already is.
   const drawings = useMemo(() => {
-    const trace = danceTrace(dance, { wrap });
-    return {
-      plot: cardPenPlot(trace),
-      march: cardMarch(trace),
-      seismograph: cardSeismograph(trace),
-      strip: cardStrip(trace),
-    };
+    try {
+      const trace = danceTrace(dance, { wrap });
+      return {
+        plot: cardPenPlot(trace),
+        march: cardMarch(trace),
+        seismograph: cardSeismograph(trace),
+        strip: cardStrip(trace),
+      };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
   }, [dance, wrap]);
+
+  if ("error" in drawings) {
+    return (
+      <p className="text-xs" data-testid="dance-traces-error">
+        This dance does not dance yet, so there is no shape to draw: {drawings.error}
+      </p>
+    );
+  }
 
   return (
     <div
