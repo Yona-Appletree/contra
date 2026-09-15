@@ -188,9 +188,44 @@ Becket: your partner is the same line one position along, your neighbour
 straight across. Same two words, opposite two answers, from the same lattice —
 which is exactly why relations cannot be `@caller/choreo` meanings.
 
-M1 answers partner and neighbour 1. Everything else the corpus uses _parses_,
-and `relate` throws `unsupported: <word> (M6)`, so `dances/acceptance.test.ts`
-can hold the list of what is still owed as a test rather than a memory.
+**The table is complete since M6.** Every relation the acceptance set's twelve
+transcripts name resolves in both contra formations, and
+`dances/acceptance.test.ts`'s list of owed relations is empty.
+
+| word                    | duple improper                                                   | becket                                                    |
+| ----------------------- | ---------------------------------------------------------------- | --------------------------------------------------------- |
+| `partner`               | the **binding**, seeded from the other line at the same position | the binding, seeded from the same line one position along |
+| `opposite`              | straight across the set — which here is your partner             | straight across — which here is your neighbour            |
+| `N0` … `Nk`             | same line, `(2k − 1) × travel` positions along                   | the other line, `−(k − 1) × 4 × travel` positions along   |
+| `shadow` k, `S0` … `Sk` | the other line, `−partnerSide × 2k × travel`                     | your own line, `−partnerSide × (2k − 1) × travel`         |
+| `trail-buddy`, `T1` …   | same line, `2k × travel` — **(unsure)**, nothing calls it        | same                                                      |
+| `corner`, `C1`, `C2`    | the two dancers of the four you are dancing with — **(unsure)**  | the couple across from you — **(unsure)**                 |
+
+Three things make the table what it is rather than a set of guesses.
+
+- **The general rule for `N_k`** falls out of the progression: if `Δ₁` is the
+  neighbour-1 offset and `step` is how many positions one progression moves a
+  dancer whose travel is `+1` (`SetLattice.progressionStep`: `+1` improper,
+  `−2` becket, because a becket couple slides `place − direction`), then
+  `N_k = Δ₁ + (k − 1) × 2 × step × travel`. `lattice.test.ts` checks the
+  property that derives it — the neighbour you have _next_ is the neighbour you
+  have after one more time through — for every dancer, every k, at every round.
+- **A shadow is the opposite-role dancer who progresses the way you do**, on the
+  opposite side of you from your partner, and the side is `partnerSide` so that
+  the relation is its own inverse. The sign is evidence rather than convention:
+  Contrablend's transcript says its shadow roll-away leaves you with a **new
+  partner**, which is true for the dancer this row names and false for the one
+  two places the other way.
+- **`partner` is a binding, not an offset.** It is seeded from the lattice and
+  re-seeded at every progression, so the two agree everywhere nothing has
+  rebound anything — but a call may carry `params.rebind: { partner: "shadow" }`
+  and every "partner" after it means the new one.
+
+A relation that answers **nobody** is an ordinary answer, not a failure: at the
+end of a line the slot an offset points at is off the end. M6's end-of-set rule
+is the simplest one there is — that dancer dances hold-place for the call — and
+`pnpm dance` prints an end-effects table saying who, in which call, at which
+end.
 
 ### Resolution — `src/set/resolve.ts`
 
@@ -201,12 +236,33 @@ array, a tag the formation defines — and now also a **relation word**
 (`who: "N2"`). An instance is a `Group` whose stations are figure-roles, which
 is what leaves `FigureEvent`, `poseAt`, the oracles and the renderer untouched.
 
-Three actor rules so far. `"all"` is the legacy bridge's: one instance per minor
+Four actor rules so far. `"all"` is the legacy bridge's: one instance per minor
 set over everybody the call selected. `"pairs"` makes an instance per pair, the
 pairs named by `params.pairs` — a relation word resolved against the live set,
 or the station pairs a dance record writes today (`[["1L","2L"]]`, "larks
 allemande left") — and everybody the pairing leaves out dances hold-place, which
 is what the two robins really do. `"ring"` takes everybody in one instance.
+`"line"` (M6) is one instance **per line of the lattice**, which is what a long
+wave is and what a grand right and left is.
+
+#### The lane (M6, Q15 and Q16)
+
+A call that reaches past the four is resolved in the **lane**: the whole set as
+one pool, with a station per dancer named by the slot they stand on (`L1@3`), in
+the set's own frame. `groupsFor` is left doing the two things it is the
+authority on — the hall's **seating** and **the outs**, so the couples standing
+out at the ends are not in the pool and still get their own `wait-out` — and
+everything else is an offset.
+
+Which calls go there is **measured, not declared**: the pairing is worked out
+over the whole set first, and the lane is used only if some pair it produces
+spans two minor sets. Every call written before M6 pairs partners or neighbours,
+which are inside the four by construction, so every one of them keeps the
+minor-set frame and the minor-set group ids it always had.
+
+A definition whose `roles` is `["*"]` has **one part per dancer**, because how
+many parts a long wave has is how long the hall is. Its shape reads the wildcard
+track (`kinds/pathM6.ts`) instead of a part per name.
 
 The **anchor** is where a shape's own origin sits _inside_ the instance's frame,
 not a frame of its own: `"meet"` is the pair's midpoint where they stand when the
