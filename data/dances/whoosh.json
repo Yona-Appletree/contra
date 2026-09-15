@@ -3,7 +3,7 @@
   "title": "Whoosh",
   "author": "Becky Hill",
   "formation": "duple-improper",
-  "notes": "The Caller's Box 10875, permission: full. M6's own dance: the grand right and left runs three neighbours out along the line and the allemandes bring you back, so every call names the dancer it wants by a relation rather than by a place in a minor set. The dance the end-of-set rule was written for: at four couples nobody's N3 exists at all, so its A1 is three pull-bys of which most dancers make one or two, and the end-effects table names which pass leaves whom out. Green at 2, 3, 4, 5 and 6 couples since M7b - closure 0.0000 px, reach 0.0000 px, collision 8.500 px.",
+  "notes": "The Caller's Box 10875, permission: full. M6's own dance: the grand right and left runs three neighbours out along the line and the allemandes bring you back, so every call names the dancer it wants by a relation rather than by a place in a minor set. The dance the end-of-set rule was written for: at four couples nobody's N3 exists at all, so its A1 is three pull-bys of which most dancers make one or two, and the end-effects table names which pass leaves whom out. Green at 2, 3, 4, 5 and 6 couples since M7b - closure 0.0000 px, reach 0.0000 px, collision 8.500 px, and still exactly those three numbers with FR-B1's rebuilt box circulate. **The progression stays at the cycle boundary, measured** (FR-B1, against DD43). DD43 asks for the circulate's `[with N2]` to be the progression taken at the call's start; the mechanism exists (`\"progresses\": \"start\"`, M9e) and this dance will not take it. With it the dance fails the collision oracle at every length - 1.274 px at 2 couples and 6.117 px at 3, 4, 5 and 6 against a bound of 8.5 - and every dancer ends the time through 32.0000 px (the width of the set) from the progressed station. `\"progresses\": \"end\"` is worse again: reach fails at 1.1737 px and collision at 6.008/7.350 px. The reason is not the timing but the shift itself: A1 walks you out to N4 and back to N2 through three pull-bys and two allemandes, so the card has already carried you along the line by hand, and re-partitioning the hands-fours half way through hands B1 and B2 a different couple to dance with. Decrementing B2's `N2` to a plain neighbour with the shift in place changes none of the numbers, which is the evidence that what moves is the **groups** and not any named relation. So the record keeps `[with N2]` exactly as written and progresses where it always did.",
   "source": {
     "callersBoxId": 10875,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10875",
@@ -66,6 +66,7 @@
           "figure": "circulate",
           "beats": 4,
           "params": {
+            "facesIn": "lark",
             "hand": "R"
           },
           "call": "CIRCULATE: LARKS CROSS, ROBINS LOOP RIGHT"

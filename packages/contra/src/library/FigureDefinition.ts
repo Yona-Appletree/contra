@@ -553,6 +553,22 @@ export interface PathShape {
 export interface WaypointShape {
   kind: "waypoints";
   /**
+   * **Which of two tracks a dancer takes, decided by a parameter** (DD43).
+   *
+   * The box circulate is why. The user: *"everyone is in long wavy lines up and
+   * down the set. alternating face in, face out. the people facing out orbit
+   * around to face in while the ones facing in walk across the set."* So which
+   * of the two routes you dance is a fact about **which way you are looking**,
+   * and in a long wave which role that is is the wave's own clause — "men face
+   * in". `param` names the parameter carrying that contra role, exactly as
+   * `WaveShape.facesIn` does; a dancer of that role takes the track named
+   * `then` and everybody else the one named `else`.
+   *
+   * Left out, a track is found by figure-role, by contra role, then by the
+   * wildcard, which is every waypoint figure written before this.
+   */
+  by?: { param: string; then: string; else: string };
+  /**
    * One route per role.
    *
    * A key of `"*"` is every dancer's; a key that is one of the **contra** roles

@@ -4,60 +4,87 @@ import { LANE_ROLES } from "../../set/resolve.js";
 import type { PathStep } from "../kinds/waypoints.js";
 
 /**
- * **Circulate** (M7, handed over from M6): everybody moves one place along the
- * box, the larks across the set and the robins round the end of their own line.
+ * **The box circulate** (M7, rebuilt to the user's words in FR-B1, DD43): from
+ * long wavy lines, the four places of a box turn one place round, and nobody
+ * changes minor set.
  *
- * Whoosh's A2 — *"Circulate: Men cross, women loop right"* — and the figure M6
- * could not write. Its report says exactly why, and it is worth quoting, because
- * this definition is the answer:
+ * The user, on the Moves page (2026-09-15 08:20 and 09:20):
  *
- * > "Men cross, women loop right" is a figure whose destinations are **lattice
- * > places**: the lark ends across the set and one place along, the robin one
- * > place along her own line. The expression calculus has no `PointExpr` for a
- * > slot … and in a lane instance the roles are the dancers' own slot names, so a
- * > definition cannot name the dancer whose place it is walking to. Every way of
- * > faking it is wrong for one of the two lines, because "across the set" is `+x`
- * > for one line and `−x` for the other and no expression can see which.
+ * > "I only know 'box-circulate' which this is not."
  *
- * With `{ point: "slot" }` the two destinations are two sentences, and both come
- * out right on both lines:
+ * > "**box-circulate** — everyone is in long wavy lines up and down the set.
+ * > alternating face in, face out. the people facing out orbit around to face in
+ * > while the ones facing in walk across the set. **you stay in your current
+ * > minor set.**"
  *
- * - a lark goes to `{ line: "other", along: 0 }` — straight across the set;
- * - a robin goes to `{ line: "same", along: 1 }` — one place on, her own line.
+ * Three sentences, and each is one thing this definition says:
  *
- * `along` counts positions **the way the dancer travels**, which is what makes
- * the two halves of a line circulate the same way round the box rather than into
- * each other.
+ * - **The box is the minor set's own four places**, two on each line, and a
+ *   circulate turns them one place round. Two dancers cross it and two walk the
+ *   length of it, which is the only way four places rotate by one without
+ *   anybody walking through anybody: a crosser's place is taken by a looper and
+ *   a looper's by a crosser, all the way round the box. So the destinations are
+ *   the two the lattice can name and nothing else — `{ line: "other", along: 0 }`
+ *   straight across, and `{ line: "same", along: 1 }` the other place of the box
+ *   on your own line.
+ * - **`along` counts the way the dancer travels**, which is what keeps everybody
+ *   inside their own box. The two couples of a minor set travel opposite ways,
+ *   so one place "on" is the *same* pair of places read from either end: the
+ *   dancer at the top of the box going down and the dancer at the bottom going
+ *   up each name the other's place, and neither of them names the next minor
+ *   set's.
+ * - **Which route you dance is which way you are looking**, not which role you
+ *   are. In a long wave the dancers alternate facing in and facing out, the ones
+ *   facing in walk straight across, and the ones facing out loop round to face
+ *   in. Which role is which is the wave's own clause — Whoosh's *"men face in"* —
+ *   so it is the same `facesIn` parameter `balance-wave` reads, and
+ *   {@link WaypointShape.by} is what routes the two tracks off it.
  *
- * ## Why the lark does not also move along
+ * ## What changed from M7's circulate
  *
- * Because everybody would land on top of somebody. A line of the lattice
- * alternates larks and robins, so if both crossed *and* moved along, the lark
- * coming across from the other line and the robin looping along this one would
- * claim the same slot — measured, before the arithmetic was corrected, as two
- * dancers 0.000 px apart. The box is four places, two on each line, and a
- * circulate turns it one place round: two dancers cross it and two walk the
- * length of it, which is exactly what "men cross, women loop right" says.
+ * M7 hard-wired the two routes to the two **contra roles** — the larks crossed
+ * and the robins looped, because Whoosh's card says *"Men cross, women loop
+ * right"* — and left everybody's facing exactly as it was. Both are wrong away
+ * from Whoosh's own wave: a wave with the robins facing in circulates the other
+ * way round, and a dancer who loops out of the line and back into it is facing
+ * **in** when they arrive, which is what makes the wave a wave again. The
+ * geometry of the box is unchanged, and Whoosh's own circulate is the same four
+ * places with the two facings corrected.
  *
- * ## The lark crosses and the robin loops
+ * ## The progression is taken at the start
  *
- * The difference is not only where they end but how they get there. A lark walks
- * straight across, bowed to their own left, so two larks crossing pass right
- * shoulders. A robin has nowhere to walk straight to — her place is one along her
- * own line with somebody standing in it until they move — so she loops out of
- * the line, round and back in, which is the waypoint's own `around` about a
- * centre one radius off her shoulder.
+ * Whoosh's card writes the circulate `[with N2]`, and the user's rule of
+ * 2026-09-15 09:25 is what settles it: *"you absolutely can progress as that
+ * card assumes… progressing at the start of any move in long (wavy) lines is
+ * valid."* So the box is formed with the next neighbour and the shift happens
+ * before the call, which is `"progresses": "start"` on the call and not anything
+ * in this figure (`set/planCycle.ts`, DD43). No figure reads it and none should.
  */
 
-/** A place of the box: straight across the set, or one along my own line. */
+/** A place of the box: straight across the set, or the other place on my line. */
 const destination = (line: "same" | "other"): PointExpr => ({
   point: "slot",
   line,
   along: line === "other" ? 0 : 1,
 });
 
-/** Facing: keep the way you were looking. A circulate turns nobody round. */
+/** Facing: keep the way you were looking. A crossing turns nobody round. */
 const KEEP: AngleExpr = { angle: "facingOf", role: { role: "self" }, at: "start" };
+
+/**
+ * **Facing in, from the place you loop to**: straight across the set at the
+ * dancer who will be opposite you there.
+ *
+ * The other half of *"the people facing out orbit around to face in"*. It has to
+ * be read at the **new** place rather than turned by a written angle, because
+ * "in" is `+x` for one line of the set and `−x` for the other and no angle can
+ * see which.
+ */
+const FACE_IN: AngleExpr = {
+  angle: "bearing",
+  from: { point: "slot", line: "same", along: 1 },
+  to: { point: "slot", line: "other", along: 1 },
+};
 
 /** Straight across the set, bowed to your own left so two crossing pass right. */
 const cross: readonly PathStep[] = [
@@ -65,17 +92,17 @@ const cross: readonly PathStep[] = [
 ];
 
 /**
- * Out of the line, round, and in again one place along.
+ * Out of the line, round, and in again on the other place of the box, facing in.
  *
  * The centre of the loop is `radius` px off the shoulder named by `hand`, so
  * "loop right" really is a loop to the dancer's right; the sweep is a half turn,
- * which is what carries a body from one place to the next one along without
+ * which is what carries a body from one place of the box to the other without
  * walking through anybody standing in between.
  */
 const loop: readonly PathStep[] = [
   {
     at: { fromEnd: 0 },
-    pose: { p: destination("same"), facing: KEEP },
+    pose: { p: destination("same"), facing: FACE_IN },
     around: {
       centre: {
         point: "offset",
@@ -101,7 +128,7 @@ export const circulateDefinition: FigureDefinition = {
   id: "circulate",
   call: "CIRCULATE",
   describe:
-    "Everybody moves one place along the box, all at the same time. The larks cross straight over the set, passing right shoulders, and the robins loop out of their own line and back into it one place along. You end in the same wave you started in, with different people beside you.",
+    "From long wavy lines up and down the set, everybody moves one place round the box of four you are standing in, all at the same time. If you are facing in, walk straight across the set to the place opposite, passing right shoulders. If you are facing out, loop out of your own line, round, and back into it on the other place of your box, and arrive facing in. Nobody leaves the four they are dancing with.",
   lead: 4,
   nominalBeats: 4,
   roles: [LANE_ROLES],
@@ -110,14 +137,28 @@ export const circulateDefinition: FigureDefinition = {
   params: {
     kind: "canonical",
     defaults: {
+      /**
+       * Which contra role is facing **in** — toward the other line — when the
+       * circulate starts, the other role facing out. The wave's own clause:
+       * Whoosh forms its long wave with "men face in".
+       */
+      facesIn: "lark",
       /** Which way the looping role loops. */
       hand: "R",
       /** How far outside the line the loop bulges, px. */
       radius: 6,
     },
   },
-  shape: { kind: "waypoints", tracks: { lark: cross, robin: loop } },
+  shape: {
+    kind: "waypoints",
+    by: { param: "facesIn", then: "crossing", else: "looping" },
+    tracks: { crossing: cross, looping: loop },
+  },
   holds: [],
   ends: "relative",
   timing: { stretch: "distance", profile: "smooth" },
+  // Which role faces in is a parameter and the loop's hand is a parameter, so
+  // the mirror image of a circulate is a circulate with the other role facing in
+  // and the other hand leading — which is a real wave somebody really dances.
+  symmetry: { mirror: { kind: "parameters", hands: ["hand"] }, roles: ["facesIn"] },
 };
