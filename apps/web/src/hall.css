@@ -400,8 +400,12 @@
   max-width: none;
 }
 
-/* The pen plot is square: on the traces page it would otherwise be a metre. */
-[data-testid="traces-page"] .trace-svg[data-kind="pen"] svg {
+/*
+ * The pen plot is square: on a traces page it would otherwise be a metre.
+ * Both traces pages share this — the dance's own and T4's per-figure one.
+ */
+[data-testid="traces-page"] .trace-svg[data-kind="pen"] svg,
+[data-testid="move-traces-page"] .trace-svg[data-kind="pen"] svg {
   max-width: 540px;
   margin-inline: auto;
 }
@@ -417,6 +421,41 @@
   flex-direction: column;
   gap: 0.25rem;
   margin-top: 0.25rem;
+}
+
+/*
+ * T4's plot · march · seismo switch: three small buttons, the column's own
+ * width, wrapping rather than overflowing on the narrowest tile column so it
+ * never pushes the text beside it. The current one reads like the zoom and
+ * speed buttons in the control shelf above, at a size that fits under a
+ * 136 px canvas.
+ */
+.moves-view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1875rem;
+}
+
+.moves-view-switch button {
+  flex: 1 1 auto;
+  min-height: 1.375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.0625rem 0.25rem;
+  font-size: 0.625rem;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.moves-view-switch button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.moves-view-switch button.moves-view-active {
+  border-color: var(--primary);
+  color: var(--foreground);
+  font-weight: 600;
 }
 
 /* On a dance card: the strip, then the plot, both the card's own width. */

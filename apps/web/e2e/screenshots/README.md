@@ -40,6 +40,12 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t3-facing-hey-390-ticks.png`          | T3: the real `#/moves/hey` row at 390 × 844, `?facing=ticks` (default)       |
 | `t3-facing-hey-390-wake.png`           | T3: the same row, `?facing=wake`                                             |
 | `t3-facing-hey-390-arrowheads.png`     | T3: the same row, `?facing=arrowheads`                                       |
+| `t4-moves-row-plot-390.png`            | T4: `#/moves/hey?beat=6&zoom=2` at 390 × 844, the switch on `plot` (default) |
+| `t4-moves-row-march-390.png`           | T4: the same row, the switch on `march`                                      |
+| `t4-moves-row-seismograph-390.png`     | T4: the same row, the switch on `seismograph`                                |
+| `t4-moves-row-march-1280.png`          | T4: the same row and view at 1280 × 800                                      |
+| `t4-move-traces-390.png`               | T4: `#/moves/hey/traces` at 390 × 844                                        |
+| `t4-move-traces-1280.png`              | T4: the same page at 1280 × 800                                              |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -103,6 +109,19 @@ They are near-identical at a glance — the row's pen plot is small and
 `facingPx` is 3.5 px there — which is itself a finding, written up in the
 milestone's own report; a crop of just the pen plot at 3× shows wake's
 stippled edge plainly even at that size.
+
+The six T4 pictures are the look gate for the row's plot &middot; march &middot;
+seismograph switch and the per-figure traces page: `#/moves/hey` (16 beats, so
+the march and seismograph both have real width to show) at 390 × 844 once per
+view, the same row's march again at 1280 × 800 to show the switch survives the
+breakpoint that moves the prose beside the tile, and `#/moves/hey/traces` at
+both sizes — the Moves tab's mirror of `#/dances/<slug>/traces`, with the
+figure's own `describe`, all four views with their reading guides, and links
+to `hey`'s two seams. The row pictures are the evidence for "the switch must
+fit the phone row without pushing the text column": march and seismograph are
+drawn at the same square footprint the pen plot always used and scroll inside
+their own box when a figure is wider than that, exactly as the traces page's
+own beat-axis views already do — the column itself never grows.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.

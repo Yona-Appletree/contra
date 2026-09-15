@@ -19,7 +19,8 @@ import {
 } from "../galleryTiles.js";
 import { hallFrame, seedOf } from "../hallFrame.js";
 import { FigureTraces } from "../traces/FigureTraces.js";
-import { facingFromQuery } from "../traces/traceDrawings.js";
+import type { RowTraceView } from "../traces/traceDrawings.js";
+import { facingFromQuery, viewFromQuery } from "../traces/traceDrawings.js";
 
 /**
  * The Moves tab: every figure the registry holds and every figure-to-figure
@@ -48,6 +49,11 @@ import { facingFromQuery } from "../traces/traceDrawings.js";
  * - `?facing=wake` or `?facing=arrowheads` swaps the row's pen-plot facing
  *   style away from the shipped default (ticks), T3's live comparison —
  *   no rebuild needed to try the user's gradient-wake idea on a phone.
+ * - `?view=march` or `?view=seismograph` opens every row's trace panel on
+ *   that view instead of the shipped default (`plot`, the pen plot); a small
+ *   switch in each panel changes it from there for the rest of the visit
+ *   (T4). `#/moves/<figure-id>/traces` shows all three, plus the strip, at
+ *   full width with a reading guide each.
  */
 
 /** The tempo the gallery loops at, matching the pair page's plain clock. */
@@ -95,6 +101,7 @@ export function MovesPage({
   const [zoom, setZoom] = useState(() => zoomFrom(params.get("zoom"), solo !== null));
   const [speed, setSpeed] = useState(() => speedFrom(params.get("speed")));
   const [trails, setTrails] = useState(params.get("trails") === "1");
+  const [view, setView] = useState<RowTraceView>(() => viewFromQuery(params.get("view")));
   const [beat, setBeat] = useState(() => (frozen === null ? 0 : Number(frozen)));
   const [paused, setPaused] = useState(frozen !== null);
   const [strips, setStrips] = useState<ReadonlySet<string>>(
@@ -300,6 +307,8 @@ export function MovesPage({
               side={slot}
               reach={reach}
               facing={facing}
+              view={view}
+              onView={setView}
             />
             {group.seams.length === 0 ? null : (
               <ol className="moves-seams">
@@ -318,6 +327,8 @@ export function MovesPage({
                       side={slot}
                       reach={reach}
                       facing={facing}
+                      view={view}
+                      onView={setView}
                     />
                   </li>
                 ))}
@@ -347,6 +358,8 @@ function Row({
   side,
   reach,
   facing,
+  view,
+  onView,
 }: {
   tile: GalleryTile;
   beat: Beat;
@@ -365,6 +378,10 @@ function Row({
   reach: number;
   /** T3's `?facing=` override for the row's pen plot. */
   facing: FacingStyle;
+  /** T4's switch: which of the trace panel's three views is showing. */
+  view: RowTraceView;
+  /** Called when this row's switch is tapped; shared by every row on the page. */
+  onView: (view: RowTraceView) => void;
 }): JSX.Element {
   // A seam row sits under the figure it comes out of, whose own row says what
   // that figure is, so the prose that is new here is the figure it goes into.
@@ -383,7 +400,14 @@ function Row({
     >
       <div className="moves-row-tile">
         <TileCanvas tile={tile} beat={beat} zoom={zoom} trails={trails} />
-        <FigureTraces tile={tile} side={side} reach={reach} facing={facing} />
+        <FigureTraces
+          tile={tile}
+          side={side}
+          reach={reach}
+          facing={facing}
+          view={view}
+          onView={onView}
+        />
       </div>
 
       <div className="moves-row-head">
@@ -424,6 +448,7 @@ function Row({
             {strip ? "hide strip" : "strip"}
           </button>
           <a href={soloHref(tile)}>loop this one</a>
+          {tile.kind === "figure" ? <a href={`#/moves/${tile.key}/traces`}>all views →</a> : null}
         </p>
         {strip ? (
           <div className="moves-row-strip">

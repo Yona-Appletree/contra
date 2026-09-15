@@ -7,7 +7,7 @@ import { HallPage } from "./routes/hall.js";
 import { hashRoute } from "./routes/hashRoute.js";
 import { MovesPage } from "./routes/moves.js";
 import { PairPage } from "./routes/pair.js";
-import { TracesPage } from "./routes/traces.js";
+import { MoveTracesPage, TracesPage } from "./routes/traces.js";
 import { readHallRoute } from "./state/hallUrl.js";
 
 export function App() {
@@ -35,6 +35,22 @@ export function App() {
 
   // `?bare=1` is for screenshots: one canvas, no chrome, so no tab bar either.
   const bare = route.params.get("bare") === "1";
+
+  // `#/moves/<figure-id>/traces`: one figure, all four views, at full width —
+  // the Moves tab's mirror of `#/dances/<slug>/traces` below. Checked before
+  // the general `/moves` route, since that one matches every `/moves/...`
+  // path too.
+  const moveTraces = moveTracesId(route.path);
+  if (moveTraces !== undefined) {
+    const page = (
+      <MoveTracesPage
+        key={`${moveTraces}|${route.params.toString()}`}
+        id={moveTraces}
+        params={route.params}
+      />
+    );
+    return bare ? page : <Tabbed tab="moves">{page}</Tabbed>;
+  }
 
   if (route.path === "/moves" || route.path.startsWith("/moves/")) {
     const page = (
@@ -89,6 +105,12 @@ function tracesSlug(path: string): string | undefined {
   return parts.length === 3 && parts[0] === "dances" && parts[2] === "traces"
     ? parts[1]
     : undefined;
+}
+
+/** The figure id of `#/moves/<figure-id>/traces`, or `undefined` otherwise. */
+function moveTracesId(path: string): string | undefined {
+  const parts = path.split("/").filter((part) => part.length > 0);
+  return parts.length === 3 && parts[0] === "moves" && parts[2] === "traces" ? parts[1] : undefined;
 }
 
 /** Which tabs there are, in order, and where each one goes. */
