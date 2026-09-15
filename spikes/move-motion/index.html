@@ -87,9 +87,11 @@ kbd{font:11px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px s
 <section id="s2">
   <h2>2. Where the beat lives when the body glides — two feet models</h2>
   <p class="hint">One dancer at 8×, walking the figure's own path (default: the cruise profile of 1c, so the body is smooth and only the feet differ). <b>2a</b> is today's quiet motion: both feet oscillate ±2.6 px in the body's own frame, scaled by speed, so at walking pace both shoes slide along the boards with the body. <b>2b</b> plants: a foot lands on the beat and stays fixed to the floor while the body glides over it, then swings to its next plant in the last half of the beat. From above a planted shoe is the strongest step cue there is, and it costs the body path nothing. The sway is the same 1.5° in both.</p>
+  <p class="hint"><b>A finding, before judging:</b> at the contract's sizes the shoes sit <i>under</i> the torso — they rest 2.5 px forward of the body centre and the torso ellipse is 3.6 px deep — so a shoe only peeks out by about a pixel at full swing, in the shipped renderer and here alike. From directly above, the feet are a quiet channel whichever model drives them. <b>X-ray</b> fades the torso and draws the shoes over everything (cream on the floor, brighter and bigger in the air) so the two models can be compared at all; it is an instrument, not a look.</p>
   <div class="controls inner">
     <div class="grp"><span class="l">body path for this section</span><span id="feetPathChips"></span></div>
     <div class="grp"><span class="l">stride cap</span><input type="range" id="stride" min="10" max="40" value="26"><span id="strideV">2.6 px</span></div>
+    <div class="grp"><button id="xray">x-ray torso</button></div>
   </div>
   <div class="two" id="feet"></div>
 </section>
@@ -392,13 +394,15 @@ function layout(st,pose,beat,feetModel,style,beats){
   const hL=hand('L'),hR=hand('R');
   return {st,pose,p,torsoAngle,feet,arms:[solveArm(sh.L,hL,'L',torsoAngle),solveArm(sh.R,hR,'R',torsoAngle)],joined:{L:pose.hands.L!=='down',R:pose.hands.R!=='down'}};
 }
-function drawBody(g,L){
+function drawBody(g,L,xray=false){
   const a=L.st.person;const p=L.p;const angle=L.torsoAngle;const rad=angle*Math.PI/180;
   const q=bodyPoint(p,angle,-0.2,0);ell(g,q[0]+1,q[1]+1.3,4.6,6.2,rad,SHADOW,false);
-  for(const side of ['L','R']){const f=L.feet[side];ell(g,f.p[0],f.p[1],1.8+0.35*f.air,1.1+0.25*f.air,rad,SHOE,true);}
+  for(const side of ['L','R']){const f=L.feet[side];ell(g,f.p[0],f.p[1],1.8+0.35*f.air,1.1+0.25*f.air,rad,f.air>0?'#5a3a24':SHOE,true);}
   const lean=L.pose.lean||0;const t=bodyPoint(p,angle,lean*0.5,0);
+  if(xray)g.globalAlpha=0.35;
   ell(g,t[0],t[1],3.6,5.6,rad,a.shirtDark,true);ell(g,t[0],t[1],2.5,4.3,rad,a.shirt,false);
   const hl=bodyPoint(p,angle,lean*0.5+0.6,-1.2);ell(g,hl[0],hl[1],1.2,2.0,rad,a.shirtLite,false);
+  g.globalAlpha=1;
 }
 function drawArms(g,L){
   const a=L.st.person;
@@ -427,6 +431,8 @@ function drawHead(g,L){
   g.restore();
   const nose=bodyPoint(c,look,r+0.3,0);circ(g,nose[0],nose[1],0.7,a.skin,true);
 }
+/** X-ray instrument: the two shoes drawn over everything, cream on the floor and brighter and bigger in the air, so the feet can be compared at all from above. */
+function drawFeetOver(g,L){const rad=L.torsoAngle*Math.PI/180;for(const side of ['L','R']){const f=L.feet[side];ell(g,f.p[0],f.p[1],2.0+0.5*f.air,1.3+0.3*f.air,rad,f.air>0.05?'#fff0c8':'#d9b878',true);}}
 /** The set drawn in the contract's scene order: bodies, then arms larks first and robins last, then heads. */
 function drawSet(g,layouts,ghosts,figKey,modelKey,opts){
   if(ghosts){const beats=FIGS[figKey].beats;g.save();g.globalAlpha=0.28;
@@ -467,7 +473,7 @@ function drawGraph(cv,figKey,modelKey,beat,opts,vmax){
 function peakOverAverage(figKey,modelKey,opts){const beats=FIGS[figKey].beats;const N=beats*64;let vmax=0,sum=0;for(let i=0;i<=N;i++){const {v}=progressAndSpeed(figKey,modelKey,beats*i/N,opts);vmax=Math.max(vmax,v);sum+=v;}const avg=sum/(N+1);return {vmax,ratio:vmax/avg};}
 
 // ============================================================ state
-const S={fig:'long-lines',beat:0,playing:true,tempo:112,depth:0.35,ramp:1,strideCap:2.6,feet:'swing',zoom:3,ghosts:false,click:false,cols:'half',feetPath:'cruise',dialPath:'pulse',dialFeet:'gait'};
+const S={xray:false,fig:'long-lines',beat:0,playing:true,tempo:112,depth:0.35,ramp:1,strideCap:2.6,feet:'swing',zoom:3,ghosts:false,click:false,cols:'half',feetPath:'cruise',dialPath:'pulse',dialFeet:'gait'};
 const opts=()=>({depth:S.depth,ramp:S.ramp,strideCap:S.strideCap});
 let lastTs=null;let lastWhole=-1;
 let audio=null;
@@ -535,7 +541,7 @@ function frame(ts){
     g.save();g.translate(w/2-pose.p[0],h/2-pose.p[1]);
     floorWorld(g,pose.p,w,h);
     const L=layout(st,pose,S.beat,f.f.key,o,FIGS[S.fig].beats);
-    drawBody(g,L);drawArms(g,L);drawHead(g,L);g.restore();});
+    if(S.xray){drawBody(g,L,true);}else{drawBody(g,L);}drawArms(g,L);drawHead(g,L);if(S.xray)drawFeetOver(g,L);g.restore();});
   if(dialEl){const g=mkCanvas(dialEl.cv,6);renderSet(g,S.fig,S.dialPath,S.beat,o,S.dialFeet,S.ghosts);drawGraph(dialEl.graph,S.fig,S.dialPath,S.beat,o,vmax);const pk=peakOverAverage(S.fig,S.dialPath,o);
     const m=MODELS.find(x=>x.key===S.dialPath);dialEl.name.textContent=`${m.name} · ${S.dialFeet==='gait'?'planted gait':'body-local swing'}`;
     dialEl.read.textContent=`${FIGS[S.fig].label} · peak ${pk.vmax.toFixed(2)} ${S.fig==='long-lines'?'px/beat':'/beat'} = ${pk.ratio.toFixed(2)}× average · pulse depth ${S.depth.toFixed(2)} · cruise ramp ${S.ramp.toFixed(2)} beat · stride cap ${S.strideCap.toFixed(1)} px`;}
@@ -553,6 +559,7 @@ $('scrub').oninput=e=>{S.beat=+e.target.value;S.playing=false;$('btnPlay').textC
 $('depth').oninput=e=>{S.depth=e.target.value/100;$('depthV').textContent=S.depth.toFixed(2);drawMatrix();};
 $('ramp').oninput=e=>{S.ramp=e.target.value/100;$('rampV').textContent=S.ramp.toFixed(2)+' beat';drawMatrix();};
 $('stride').oninput=e=>{S.strideCap=e.target.value/10;$('strideV').textContent=S.strideCap.toFixed(1)+' px';};
+$('xray').onclick=()=>{S.xray=!S.xray;$('xray').classList.toggle('on',S.xray);};
 $('ghosts').onclick=()=>{S.ghosts=!S.ghosts;$('ghosts').classList.toggle('on',S.ghosts);};
 $('click').onclick=()=>{S.click=!S.click;$('click').classList.toggle('on',S.click);if(S.click&&!audio){audio=new (window.AudioContext||window.webkitAudioContext)();}};
 document.querySelectorAll('[data-fig]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-fig]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.fig=b.dataset.fig;S.beat=0;build();});
@@ -566,6 +573,7 @@ const params=new URLSearchParams(location.search);
 if(params.get('beat')!==null){S.beat=+params.get('beat');S.playing=false;$('btnPlay').textContent='▶ Play';}
 if(params.get('fig')){S.fig=params.get('fig');document.querySelectorAll('[data-fig]').forEach(x=>x.classList.toggle('on',x.dataset.fig===S.fig));}
 if(params.get('feet')){S.feet=params.get('feet');document.querySelectorAll('[data-feet]').forEach(x=>x.classList.toggle('on',x.dataset.feet===S.feet));}
+if(params.get('xray')){S.xray=true;$('xray').classList.add('on');}
 if(params.get('ghosts')){S.ghosts=true;$('ghosts').classList.add('on');}
 if(params.get('depth')){S.depth=+params.get('depth');$('depth').value=S.depth*100;$('depthV').textContent=S.depth.toFixed(2);}
 build();
