@@ -1,5 +1,5 @@
-import type { Beat, Hand, Vec2 } from "@caller/core";
-import { angleDiff, dist, ramp, sub } from "@caller/core";
+import type { Beat, Hand } from "@caller/core";
+import { angleDiff, dist, ramp } from "@caller/core";
 import type { RoleName, StationId } from "@caller/choreo";
 import type {
   ContraParams,
@@ -10,6 +10,8 @@ import type {
   Spots,
 } from "./ContraFigure.js";
 import {
+  CLEARANCE_PX,
+  centreOf,
   contraFigure,
   joinPoint,
   joinedHands,
@@ -18,7 +20,15 @@ import {
   takeAndRelease,
 } from "./ContraFigure.js";
 import type { CourtesyTurn } from "./courtesyTurn.js";
-import { courtesyBackHands, courtesyHold, courtesyTurn } from "./courtesyTurn.js";
+import {
+  COURTESY_PIVOT_FROM_LARK_PX,
+  courtesyBackHands,
+  courtesyHold,
+  courtesyTurn,
+  orbitTurn,
+  stepInHold,
+  stepInTurn,
+} from "./courtesyTurn.js";
 
 /** {@link robinsChain}'s parameters. */
 export interface RobinsChainParams extends ContraParams {
@@ -27,14 +37,12 @@ export interface RobinsChainParams extends ContraParams {
   /** How long the pull by takes, in beats; the rest is the courtesy turn. */
   pullBeats: Beat;
   /**
-   * How far each chaining dancer bows to their own left, so they pass right
-   * shoulders, px.
+   * How far each robin bows to her own left on the way across, px.
    *
-   * The bow is a sine over the whole walk, and the two of them meet about two
-   * thirds of the way along it rather than half way — they stop short of their
-   * places for the courtesy turn — so the bow has already begun to close by the
-   * time they cross. This is what leaves them a clear pass rather than a
-   * collision at the point where they actually meet.
+   * See {@link CHAIN_BOW_PX}: in this figure the bow no longer buys a
+   * right-shoulder pass, because the courtesy turn's take is on the near side
+   * of the couple's centre and the two robins therefore stop short of each
+   * other. It only decides how near the two of them come.
    */
   bowPx: number;
   /** How far below shoulder height the joined hands sit, px. */
@@ -42,35 +50,131 @@ export interface RobinsChainParams extends ContraParams {
   /** How much higher the robin's hand sits, px. */
   stackPx: number;
   /**
-   * How far short of her place the robin is when the lark takes her hand, px.
-   *
-   * She is still on the line she pulled by along, and he has stepped off his
-   * place into the set to meet her there, so the take happens between the two
-   * places rather than at them. The bigger this is the earlier in her walk the
-   * hands close, and the nearer the middle of the set the turning couple sits —
-   * which is what the couple turning beside it has to be left room by, so it
-   * cannot grow without measuring the clearance again.
+   * How far from the lark the couple pivots, px; see
+   * {@link COURTESY_PIVOT_FROM_LARK_PX}. The user's ruling is that it is near
+   * him; the exact distance is theirs to judge by eye. Only the rigid turn has
+   * a pivot: at `stepInPx > 0` this number is not read.
    */
-  scoopPx: number;
+  pivotFromLark: number;
+  /**
+   * How far the lark steps off his place to meet her, px — **0 for the rigid
+   * turn**, which is the default and is what the branch ships.
+   *
+   * F9's other two candidates. Above zero the couple stops being a rigid body:
+   * the lark steps `stepInPx` into the set, the robin comes the whole way past
+   * the middle and stops `stepInPx` short of her own place, and the two of them
+   * **spin** — both bodies turning a half while the couple's line barely moves
+   * and its centre drifts out on to the places. See {@link stepInTurn} for why
+   * a right-shoulder pull by needs exactly that, and what it costs.
+   */
+  stepInPx: number;
+  /**
+   * Which beat the arriving robin joins the lark's orbit on — **0 for no orbit
+   * at all**, which is the default and is what the figure ships.
+   *
+   * F10's candidate 5, and the only one of the five in which the lark is
+   * walking from beat one: above zero the courtesy turn becomes
+   * {@link orbitTurn}, the lark orbits a whole turn backwards over the figure's
+   * eight beats, and the pull by is the robins' walk on to the far side of that
+   * orbit. The user's own number is 2 — a quarter of the way through. Reading
+   * this at all overrides {@link RobinsChainParams.pullBeats} (the pull by *is*
+   * the join) and leaves {@link RobinsChainParams.pivotFromLark} and
+   * {@link RobinsChainParams.stepInPx} unread: an orbit has one circle and no
+   * pivot to choose.
+   */
+  joinBeat: Beat;
+  /**
+   * How far to her own left of the set's centre each robin passes, px — only
+   * read when {@link RobinsChainParams.joinBeat} is above zero.
+   *
+   * The two robins' paths are point reflections of each other through the set's
+   * centre, so they cross exactly `2 · passPx` apart with right shoulders
+   * together: this number is half the pull by's clearance, and
+   * {@link CHAIN_PASS_PX} is the smallest that keeps it at AC6's torso floor.
+   */
+  passPx: number;
 }
 
 /**
- * Robins chain: the two robins pull by the right in the middle and courtesy
- * turn with the lark of the couple they land on.
+ * How far each robin bows to her own left on the way across, px.
  *
- * The user: "robins pull-by right in the center, give left hand to the larks
- * left, right hand goes on their back and lark's right goes there too, robins
- * walk forward a half turn while larks walk backwards until both face in again,
- * with robin on the right."
+ * Down from 7, and the reason is the whole of deviation 1 in F7's report and
+ * the whole of F8's. The rigid turn's take is the finish reflected through the
+ * pivot, so each robin stops 21.75 px short of her new place, on the **near**
+ * side of her couple's centre — and two robins who both stop short of the
+ * middle pass on each other's *left*, 19.36 px apart, however they walk. Where
+ * the pivot sits does not move that number by a thousandth of a pixel: her take
+ * is one hold behind his, so it is the *couple's* clearance that decides it.
+ * Bowing to her own
+ * left now closes that gap instead of opening it: 3.5 px of bow brings the two
+ * of them to 13.4 px in duple improper and 8.6 px in becket, which is as close
+ * as AC6's 8 px will let them come. At 7 they were 7.6 px apart in becket,
+ * inside the clearance.
+ */
+const CHAIN_BOW_PX = 3.5;
+
+/**
+ * How far to her own left of the set's centre each robin passes on an orbit
+ * chain, px: **half the library's own clearance**, 4.25.
  *
- * So the lark turns about to face out of the set and steps off his place to
- * meet the robin coming across; she arrives on his **left** with her left hand
- * in his left and both their right hands at her back; and then the two of them
- * turn a half — she walking forward, he walking backward — which leaves both of
- * them facing back into the set with her on his **right**, because a body that
- * turns 180° swaps which of its own sides a fixed direction is on. See
- * {@link courtesyTurn} for what that costs the couple's own line, which is the
- * part of this figure that is a model rather than a transcription.
+ * The two robins' paths are point reflections of each other through the set's
+ * centre at every instant (F8's closed form, and it is still true here), so the
+ * pair's clearance at the pull by is twice one robin's distance from that
+ * centre and nothing else — which makes "the smallest dip that keeps them at or
+ * above the torso floor" arithmetic rather than a sweep. Exactly 4 px puts them
+ * exactly 8.000 px apart, which is AC6's floor **and** AC6's own test is a
+ * strict `>`, so the dip that actually clears it is the next number the library
+ * already has: {@link CLEARANCE_PX} halved, which is 4.25 and puts them
+ * **8.500 px** apart — the same room every other figure for two leaves the pair
+ * beside it.
+ *
+ * It is *to her own left* because that is what passes right shoulders in this
+ * coordinate system (y down; see {@link passRight}), and because without it the
+ * pass is the wrong way round: her take lies up the hall of the straight line
+ * from her place to her new one, so the undipped paths cross with each robin on
+ * the other's **left**.
+ */
+export const CHAIN_PASS_PX = CLEARANCE_PX / 2;
+
+/**
+ * Which beat of the orbit chain the robin joins the lark on: **2**, the user's
+ * own number — "the robins pull by to join the larks 1/4 of the way through.
+ * (2 beats)".
+ *
+ * F10 measured 2, 2.5 and 3 and the table is in its report. 2 is the earliest
+ * take and the fastest robin; it is also the one the user said.
+ */
+export const CHAIN_JOIN_BEAT: Beat = 2;
+
+/**
+ * Robins chain: the two robins pull by the right in the middle, and each joins
+ * the backward orbit of the lark whose couple she is arriving at.
+ *
+ * The user, watching a video walkthrough (F10): "the larks orbit backwards 1
+ * full turn around the point between where they and the robin started. the
+ * robins pull by to join the larks 1/4 of the way through. (2 beats) they both
+ * finish the orbit."
+ *
+ * So the lark is moving from the first beat, not waiting on his place: he backs
+ * round a small circle centred halfway between his own place and the place
+ * beside him — one hold across — turning as he goes, so his back is always to
+ * that centre. The robin coming to him pulls by the other robin with right
+ * hands in the middle of the set, passing right shoulders, and arrives on the
+ * far side of his circle — its **antipode** — at the join beat, moving with the
+ * orbit's own velocity so she joins it rather than being picked up standing
+ * still. From there the pair is rigid about that same centre: her left hand in
+ * his left, his right hand behind her back and her own right hand there too,
+ * she walking forward as he keeps walking backward, both turning at the
+ * orbit's own rate. They face directly out of the set together at the half and
+ * back in at the end, with her now on his right, and open out on to the two
+ * places over the last beat and a half.
+ *
+ * This is F10's candidate 5 of five ({@link CHAIN_CANDIDATES}) — the only one
+ * of them a different figure rather than a tuning of the rigid pivot F7/F8/F9
+ * shipped, because a quarter of an orbit carries the lark's take on to the
+ * **inner** side of his line, where a right-shoulder pull by can reach it.
+ * F13 makes it the default; 1 through 4 stay reachable behind `?chain=` for
+ * comparison. See {@link orbitTurn}.
  *
  * Which lark is *her* lark is the couple she lands on, not the nearest one on
  * the floor: in duple improper the two robins stand on a diagonal, so the lark
@@ -85,22 +189,28 @@ export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at turns about to face out and steps off his place to meet her; she comes to his left, her left hand in his left, his right hand on her back and her own right hand there too. Then the couple turns a half — she walks forward, he walks backward — until both of them face in again with the robin on the lark's right, and opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops; and the couple's own line barely turns while the two bodies turn a half, because the places it ends on are a whole set's width apart.)",
+    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at is already moving: from the first beat he backs round a small circle centred halfway between his own place and the place beside him, one hold across. She reaches him a quarter of the way round it, at the far side of his circle, and takes it up with him — her left hand in his left, her own right hand behind her own back and his right hand on it — walking forward as he keeps walking backward, both of them turning about that same centre. They face directly out of the set together at the halfway point and back in at the end, with the robin now on the lark's right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops.)",
   lead: 4,
   beats: 8,
   defaults: {
     from: {},
     chains: "robin",
     pullBeats: 4.5,
-    bowPx: 7,
+    bowPx: CHAIN_BOW_PX,
     holdDrop: 6,
     stackPx: 1,
-    scoopPx: 10,
+    pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
+    stepInPx: 0,
+    joinBeat: CHAIN_JOIN_BEAT,
+    passPx: CHAIN_PASS_PX,
   },
 
   plan(ctx: PlanContext, params: RobinsChainParams): FigurePlan {
     const beats = params.beats;
-    const pullBeats = Math.min(params.pullBeats, beats);
+    // An orbit chain's pull by *is* its join: she walks on to the lark's circle
+    // and the figure turns from there, so the join beat replaces `pullBeats`
+    // rather than sitting beside it.
+    const pullBeats = Math.min(params.joinBeat > 0 ? params.joinBeat : params.pullBeats, beats);
     const turnBeats = beats - pullBeats;
     const openBeats = Math.min(OPEN_BEATS, turnBeats / 2);
     const chaining = ctx.ids.filter((id) => ctx.role(id) === params.chains);
@@ -163,60 +273,96 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     }));
     const pivots = couples.map((couple) => couple.pivot);
 
+    /** The middle of the set: where the pull by happens on an orbit chain. */
+    const setCentre = centreOf(ctx.ids.map((id) => ctx.spot(id)));
+
     /**
      * Where each dancer of a turning couple stands when the hands close, and
      * the turn that takes them from there on to their places.
      *
-     * She stops `scoopPx` short of her place, still on the line she pulled by
-     * along; the hold is a whole `hold` across from her, back along the line
-     * the couple ends on, and that is where he has to be — which puts him off
-     * his place and into the set, facing out, waiting for her.
+     * The couple's turn is rigid, so the take is not a choice: it is the pair
+     * of end places reflected through the point between them and brought in to
+     * the hold ({@link courtesyTurn}). He stands on *her* side of that point and
+     * she on *his*, both facing out, she on his right. What the figure has to
+     * do is walk the two of them there over the pull by — unless the turn is an
+     * {@link orbitTurn}, which is already walking them itself and says so with
+     * {@link CourtesyTurn.approach}.
      */
     const take: Record<StationId, Spot> = {};
     const turns: Record<StationId, { turn: CourtesyTurn; mine: "lark" | "robin" }> = {};
     for (const { robin, lark, pivot } of couples) {
-      const larkPlace = ctx.spot(lark);
-      const landing = ends[robin]!;
-      // She stops `scoopPx` short of her place, still on the line she pulled by
-      // along; he steps the same `scoopPx` off his place straight at her, but
-      // never so far that the two of them are inside the hold before the turn
-      // has begun — in becket her landing place is only 17 px from his and the
-      // whole step would walk him into her. She arrives on his *left* and
-      // leaves on his right, so the couple's own line barely turns: the two
-      // bodies do all of it.
-      const hold = courtesyHold(ctx.spacing, pivot, pivots);
-      const robinTake = toward(landing.p, ctx.spot(robin).p, params.scoopPx);
-      const step = Math.min(params.scoopPx, Math.max(0, dist(larkPlace.p, robinTake) - hold));
-      const turn = courtesyTurn({
-        larkTake: toward(larkPlace.p, robinTake, step),
-        robinTake,
-        lark: larkPlace,
-        robin: landing,
-        hold,
-        beats: turnBeats,
-        closeBeats: openBeats,
-        openBeats,
-      });
+      const turn =
+        params.joinBeat > 0
+          ? orbitTurn({
+              lark: ctx.spot(lark),
+              robin: ends[robin]!,
+              robinFrom: ctx.spot(robin),
+              centre: setCentre,
+              // A couple that orbits has no arc and no circle to divide the
+              // clearance between, exactly like a couple that spins, so it
+              // takes the spin's rule rather than a third one.
+              hold: stepInHold(ctx.spacing, pivot, pivots),
+              joinBeat: pullBeats,
+              passPx: params.passPx,
+              beats,
+              openBeats,
+            })
+          : params.stepInPx > 0
+            ? stepInTurn({
+                lark: ctx.spot(lark),
+                robin: ends[robin]!,
+                robinFrom: ctx.spot(robin).p,
+                hold: stepInHold(ctx.spacing, pivot, pivots),
+                stepInPx: params.stepInPx,
+                beats: turnBeats,
+                closeBeats: openBeats,
+                openBeats,
+              })
+            : courtesyTurn({
+                lark: ctx.spot(lark),
+                robin: ends[robin]!,
+                hold: courtesyHold(ctx.spacing, pivot, pivots, params.pivotFromLark),
+                beats: turnBeats,
+                openBeats,
+                pivotFromLark: params.pivotFromLark,
+              });
       take[lark] = turn.takes.lark;
       take[robin] = turn.takes.robin;
       turns[lark] = { turn, mine: "lark" };
       turns[robin] = { turn, mine: "robin" };
     }
 
-    /** How long the lark spends turning about and stepping out to meet her. */
-    const stepBeats = pullBeats / 2;
-
     const placeAt = (station: StationId, t: Beat): Spot => {
       const start = ctx.spot(station);
       const turning = turns[station];
       if (!turning) return start;
       if (t <= pullBeats) {
-        if (swap[station] === undefined) {
-          // The lark waits on his place while the robins cross — their bowed
-          // paths come past the lark places, and in becket they come past them
-          // closely — then turns about and steps out into the set to meet the
-          // one coming to him. He turns the opposite way from the courtesy
-          // turn, so the two of them cancel and he ends facing as he began.
+        // An orbit turn is already moving both of them before the take — he is
+        // a quarter of the way round his circle and she has to arrive on it at
+        // its own speed — so it places them itself and the walk below is not
+        // used at all. See {@link CourtesyTurn.approach}.
+        const { approach } = turning.turn;
+        if (approach) return approach(turning.mine, t);
+        // Everybody walks to their take over the pull by: the robins across
+        // the set, bowing to their own left; the lark straight across it to the
+        // place she has to find him on her right, which is on her side of the
+        // couple's centre. `walkStep` turns each of them to face the way they
+        // are walking and then, over the **last beat**, to the facing the take
+        // wants — so the lark's turn to face out is folded into his step rather
+        // than done standing still, and the take is one motion.
+        //
+        // The lark is given {@link LARK_LEAD_BEATS} of head start, so that he
+        // is standing on his take before she arrives at hers.
+        const mine = swap[station] !== undefined;
+        if (!mine && params.stepInPx > 0) {
+          // A step-in turn's lark has only a few pixels to cover, so he waits
+          // on his place while the robins cross — their bowed paths come past
+          // the lark places, and in becket they come past them closely — and
+          // then turns about and steps out into the set to meet the one coming
+          // to him, over the second half of the pull by. He turns the opposite
+          // way from the courtesy turn, so the two cancel and he ends facing as
+          // he began.
+          const stepBeats = pullBeats / 2;
           const wait = pullBeats - stepBeats;
           const step = passRight(start, take[station]!, t - wait, stepBeats, 0);
           return {
@@ -224,28 +370,59 @@ export const robinsChain = contraFigure<RobinsChainParams>({
             facing: start.facing - turning.turn.bodyTurn * ramp(t, wait, pullBeats),
           };
         }
-        // The robins pull by along the diagonal, bowing to their own left so
-        // they pass right shoulders in the middle, and stop short of their
-        // places where the hands close.
-        const step = passRight(start, take[station]!, t, pullBeats, params.bowPx);
+        const walk = mine ? pullBeats : Math.max(pullBeats - LARK_LEAD_BEATS, 1);
+        const step = passRight(
+          start,
+          take[station]!,
+          Math.min(t, walk),
+          walk,
+          mine ? params.bowPx : 0,
+        );
         return { p: step.p, facing: step.facing };
       }
       const into = t - pullBeats;
       return turning.mine === "lark" ? turning.turn.lark(into) : turning.turn.robin(into);
     };
 
-    // A beat to take, and the whole of the opening out to let go over. Right
-    // and left through matches its take to its closing up because its couple
-    // closes 10 px and a hand that finishes its take while the target is still
-    // travelling has to chase it; a chain's couple closes about a pixel, so
-    // there is nothing to chase and a beat of held hold is worth more.
+    // The hands go up over the **last beat of the pull by**, so that they are
+    // joined at the instant the rigid turn begins and stay joined for every
+    // sample of it. Taking them after it begins instead means each hand is
+    // chasing a point that is swinging round the pivot: measured, the lark's
+    // right hand on her back does 9.20 elbow-per-hand that way against 5.15
+    // this way, on a guard of 9.5833.
+    //
+    // Both windows are fractions of the pull by's own length rather than fixed
+    // beats, because an orbit chain's pull by is two beats where the rigid
+    // turn's is four and a half, and a hand that is still letting go of the
+    // other robin when the lark's hand arrives on her back jumps. `PULL_WINDOW_
+    // BEATS` is the figure's own default, so every number below is exactly what
+    // it was at the default pull by and the four earlier candidates do not move.
+    const pullScale = pullBeats / PULL_WINDOW_BEATS;
     const window = {
-      takeFrom: pullBeats,
-      takeTo: pullBeats + Math.min(1, turnBeats / 2),
+      takeFrom: Math.max(0, pullBeats - TAKE_BEATS * pullScale),
+      takeTo: pullBeats,
       releaseFrom: beats - openBeats,
       releaseTo: beats,
     };
-    const pull = { takeFrom: 0.8, takeTo: 1.6, releaseFrom: 2.4, releaseTo: 3.2 };
+    // The pull by's own two hands **start** where scaling puts them and then
+    // last as long as there is room for, up to the default's own 0.8 of a beat.
+    // A hand that has to go up and come down inside a two-beat pull by is a
+    // fast hand and there is no reason to make it faster than it must be — but
+    // it may not start any earlier either, because at beat zero the two robins
+    // are a set apart and the point between them is nowhere near either hip.
+    // So the take grows forwards, to the crossing at the middle of the pull by
+    // and no further, and the release grows forwards to where the courtesy
+    // turn's own hands begin. At the default pull by every one of the four is
+    // exactly the number it always was.
+    const takeFrom = 0.8 * pullScale;
+    const takeTo = Math.min(Math.max(1.6 * pullScale, takeFrom + PULL_TAKE_BEATS), pullBeats / 2);
+    const releaseFrom = Math.max(2.4 * pullScale, takeTo);
+    const pull = {
+      takeFrom,
+      takeTo,
+      releaseFrom,
+      releaseTo: Math.min(releaseFrom + PULL_TAKE_BEATS, window.takeFrom),
+    };
 
     const joins: HandJoin[] = [];
     for (const [id, lark] of Object.entries(host))
@@ -306,17 +483,92 @@ export const robinsChain = contraFigure<RobinsChainParams>({
 /**
  * How long the couple takes to open out on to its two places, beats.
  *
- * The turn happens at the hold and the places are a set's width apart, so the
- * last beat and a half of the figure is the couple opening out and letting go
- * at the same time.
+ * The rigid turn happens at the hold and the places are a set's width apart, so
+ * the last beat and a half of the figure is the couple opening out and letting
+ * go at the same time, after the rotation is over.
  */
 const OPEN_BEATS: Beat = 1.5;
 
-/** The point `px` px from `from` toward `to`; `from` itself when they are one point. */
-function toward(from: Vec2, to: Vec2, px: number): Vec2 {
-  const d = sub(to, from);
-  const away = Math.hypot(d[0], d[1]);
-  if (away <= 1e-9) return [from[0], from[1]];
-  const k = Math.min(px, away) / away;
-  return [from[0] + d[0] * k, from[1] + d[1] * k];
-}
+/** How long the hands take to close, at the end of the pull by, beats. */
+const TAKE_BEATS: Beat = 1;
+
+/**
+ * The pull by the two hand windows above are written in beats of: the figure's
+ * own `pullBeats` default.
+ *
+ * Both windows scale with the pull by's actual length, so a chain whose pull by
+ * is two beats rather than four and a half takes and lets go proportionally
+ * rather than running off the end of it. At the default the scale is exactly 1
+ * — `4.5 / 4.5` is 1 to the last bit — so this changes no number of the four
+ * candidates that came before F10.
+ */
+const PULL_WINDOW_BEATS: Beat = 4.5;
+
+/**
+ * How long the pull by's own right hands take to close, and to let go, beats:
+ * the default pull by's own `1.6 − 0.8` and `3.2 − 2.4`, named.
+ *
+ * Where the pull by is shorter than the default the window's *position* scales
+ * with it but its two ramps keep this length wherever there is room for them,
+ * because the alternative is a hand that crosses a hold in a third of a beat —
+ * over the oracle's hand-speed guard, measured, and for no reason but
+ * arithmetic.
+ */
+const PULL_TAKE_BEATS: Beat = 0.8;
+
+/**
+ * How long before the hands close the lark is standing on his take, beats.
+ *
+ * He has to be across the set and turned about before she gets there — the take
+ * is the couple's finish reflected through the pivot, so his side of it is the
+ * far side — and the two of them are converging on a hold 8.625 px wide from
+ * opposite directions. Getting there ahead of her is what keeps that
+ * convergence outside AC6's 8 px: walking in step with her they cross **6.98
+ * px** apart at beat 3.34 in duple improper and 7.47 px at 3.56 in becket, and
+ * half a beat of head start makes those 8.46 and 8.35.
+ *
+ * F7 did not need this, because its pivot sat midway between the two bodies and
+ * its couple therefore turned 11.5 px apart: the nearer pivot of F8 closes the
+ * hold to 8.625 and with it the room the two of them had to converge in.
+ *
+ * **Half a beat and no more**, and the number is measured rather than chosen. A
+ * lark who is standing still for the *whole* of the beat his right hand takes
+ * her back over is F3c's elbow-azimuth singularity again — a hand nearly still
+ * while its target rotates — and the elbow-per-hand it costs is a cliff, not a
+ * slope: 6.85 at half a beat of lead, 30.50 at 0.6 and 35.28 at 0.7, on a guard
+ * of 9.5833. At half a beat he is still walking when the hand leaves his hip
+ * and stops before it lands, which is the only part of the window that matters.
+ */
+const LARK_LEAD_BEATS: Beat = 0.5;
+
+/**
+ * PR #35's four earlier courtesy-turn candidates, plus F10's, kept as one
+ * comparison table behind the `?chain=` number a page's URL picks (and
+ * `pnpm figure --chain`): which `pivotFromLark`/`stepInPx`/`joinBeat` triple
+ * each one asks for.
+ *
+ * **F13 makes 5 the figure's own default** — `robinsChain.defaults` restates
+ * it directly — so every one of 1 through 4 now has to say `joinBeat: 0`
+ * itself to turn the orbit back off: before F13 that was the shared default
+ * and none of the four needed to name it. 1 is the rigid turn, pivot a
+ * quarter of the hold off the lark, which is what the figure shipped through
+ * F9. 2 is the same rigid turn with the pivot at the lark himself. 3 and 4 are
+ * the couple-spins family: the lark steps 4 px, respectively 8 px, into the
+ * set to meet her instead of waiting on his place, so `pivotFromLark` is not
+ * read.
+ *
+ * **5 is F10's**, and it is a different figure rather than a fifth tuning: the
+ * lark orbits a whole turn backwards over all eight beats and she joins him a
+ * quarter of the way through, which is the user's own account of the move (see
+ * {@link orbitTurn}). Neither `pivotFromLark` nor `stepInPx` is read. Its own
+ * entry here restates the shipped default so all five candidates stay one
+ * table; **2 is the user's own join beat**, and F10's report also measured 2.5
+ * and 3 beside it.
+ */
+export const CHAIN_CANDIDATES: Readonly<Record<string, Partial<RobinsChainParams>>> = {
+  "1": { pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX, stepInPx: 0, joinBeat: 0 },
+  "2": { pivotFromLark: 0, stepInPx: 0, joinBeat: 0 },
+  "3": { stepInPx: 4, joinBeat: 0 },
+  "4": { stepInPx: 8, joinBeat: 0 },
+  "5": { joinBeat: CHAIN_JOIN_BEAT, passPx: CHAIN_PASS_PX },
+};

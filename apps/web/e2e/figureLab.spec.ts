@@ -22,6 +22,14 @@ import { join } from "node:path";
 const ID = process.env.FIGURE_LAB_ID;
 const OUT = process.env.FIGURE_LAB_OUT;
 
+/**
+ * `pnpm figure <id> --chain <n>`'s candidate, as the page's own `?chain=`
+ * (F10) — so the pictures show the same figure the numbers above them measure.
+ * Unset, which is every ordinary run, is no query and the shipped default.
+ */
+const CHAIN = process.env.FIGURE_LAB_CHAIN;
+const CHAIN_QUERY = CHAIN === undefined ? "" : `chain=${CHAIN}`;
+
 /** The brief's zoom for the strip picture. */
 const ZOOM = 4;
 
@@ -29,14 +37,16 @@ test("figure lab pictures", async ({ page }) => {
   test.skip(ID === undefined || OUT === undefined, "only runs for `pnpm figure <id>`");
   mkdirSync(OUT!, { recursive: true });
 
-  await page.goto(`#/moves/${ID}?bare=1&strip=1&zoom=${ZOOM}`);
+  await page.goto(
+    `#/moves/${ID}?bare=1&strip=1&zoom=${ZOOM}${CHAIN_QUERY ? `&${CHAIN_QUERY}` : ""}`,
+  );
   const strip = page.getByTestId("moves-strip");
   await expect(strip).toHaveAttribute("data-key", ID!);
   const cells = Number(await strip.getAttribute("data-cells"));
   await expect(strip.locator('canvas[data-ready="1"]')).toHaveCount(cells);
   writeFileSync(join(OUT!, `${ID}-strip.png`), await strip.screenshot());
 
-  await page.goto(`#/moves/${ID}`);
+  await page.goto(`#/moves/${ID}${CHAIN_QUERY ? `?${CHAIN_QUERY}` : ""}`);
   const traces = page.getByTestId("moves-row-traces").first();
   await expect(traces).toBeVisible();
   const pen = traces.locator('[data-testid="trace-svg"][data-kind="pen"]');

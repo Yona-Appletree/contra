@@ -8,7 +8,7 @@ import {
   motionReport,
   withDefaults,
 } from "@caller/choreo";
-import type { FigureChecks } from "./figureChecks.js";
+import type { CheckOverrides, FigureChecks } from "./figureChecks.js";
 import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
@@ -56,8 +56,12 @@ export function danceCouples(dance: Dance): number {
  * `undefined` when the id names no registry figure (an engine figure such as
  * `wait-out` and `walk-to-station`, or a typo — the caller decides which).
  */
-export function figureAloneRow(id: string, kind: "duple" | "becket"): MotionStats | undefined {
-  const registry = createContraRegistry();
+export function figureAloneRow(
+  id: string,
+  kind: "duple" | "becket",
+  overrides: CheckOverrides = {},
+): MotionStats | undefined {
+  const registry = createContraRegistry([], overrides);
   if (!registry.has(id)) return undefined;
   const def = registry.get(id);
   const group = aloneGroup(kind);
@@ -114,12 +118,16 @@ export function seamKeysFor(id: string, dance: Dance): string[] {
  * wrap seam), worst of the dances merged when more than one produces the same
  * seam key.
  */
-export function figureSeamRows(id: string, dances: readonly Dance[]): MotionStats[] {
+export function figureSeamRows(
+  id: string,
+  dances: readonly Dance[],
+  overrides: CheckOverrides = {},
+): MotionStats[] {
   const seams = new Map<string, MotionStats>();
   for (const dance of dances) {
     const couples = danceCouples(dance);
     const until = danceBeats(dance) + WRAP_BUFFER;
-    const decider = danceAlone(dance, couples, until);
+    const decider = danceAlone(dance, couples, until, overrides);
     const report = motionReport(decider.timeline(), until, { bounds: CONTRA_MOTION_BOUNDS });
     for (const row of report.seams) {
       if (!isSeamKeyFor(row.key, id)) continue;
@@ -173,8 +181,8 @@ function worstOf(a: MotionStats, b: MotionStats): MotionStats {
  * any seam group with it on either side (e.g. `balance → swing` for
  * `id === "swing"`).
  */
-export function figureAssertionGroups(id: string): FigureChecks[] {
-  return figureChecks().filter((group) => group.key === id || isSeamKeyFor(group.key, id));
+export function figureAssertionGroups(id: string, overrides: CheckOverrides = {}): FigureChecks[] {
+  return figureChecks(overrides).filter((group) => group.key === id || isSeamKeyFor(group.key, id));
 }
 
 /** One dance's closure/reach/collision oracle, over one time through. */
@@ -186,11 +194,20 @@ export interface FigureOracleRow {
 }
 
 /** AC5, AC1 and AC6 over the dances that call this figure, one time through each. */
-export function figureOracles(id: string, dances: readonly Dance[]): FigureOracleRow[] {
+export function figureOracles(
+  id: string,
+  dances: readonly Dance[],
+  overrides: CheckOverrides = {},
+): FigureOracleRow[] {
   return dances.map((dance) => {
     const couples = danceCouples(dance);
     const until = danceBeats(dance);
-    return { dance: dance.slug, couples, until, oracles: oraclesFor(dance, couples, until) };
+    return {
+      dance: dance.slug,
+      couples,
+      until,
+      oracles: oraclesFor(dance, couples, until, overrides),
+    };
   });
 }
 
@@ -216,13 +233,22 @@ export interface FigureLabReport {
  * defaults to {@link DEMO_DANCES} (what `pnpm figure` always passes) and
  * exists otherwise so a test can substitute a small fixture rather than
  * paying for the sweep over every real demo dance.
+ *
+ * `overrides` is what `pnpm figure <id> --chain <n>` passes: the same
+ * figure-id-to-defaults-override map `createContraRegistry`'s second argument
+ * and `?chain=` already take, threaded through **all four** of the sections
+ * below — the assertions, the motion rows alone, the seam rows and the oracles
+ * — so a candidate is measured the whole way down and not only where it is
+ * convenient. The empty map, which is every caller but the flag, is the
+ * shipped figure and every number in this file is unchanged by its presence.
  */
 export function figureLabReport(
   id: string,
   dance?: string,
   demoDances: readonly Dance[] = DEMO_DANCES,
+  overrides: CheckOverrides = {},
 ): FigureLabReport {
-  const registry = createContraRegistry();
+  const registry = createContraRegistry([], overrides);
   const known = registry.has(id);
   const def = known ? registry.get(id) : undefined;
 
@@ -230,11 +256,11 @@ export function figureLabReport(
   const scoped = dance === undefined ? usedDances : usedDances.filter((d) => d.slug === dance);
   const becketUsed = usedDances.some((d) => d.formation === BECKET.id);
 
-  const assertionGroups = figureAssertionGroups(id);
-  const duple = figureAloneRow(id, "duple");
-  const becket = becketUsed ? figureAloneRow(id, "becket") : undefined;
-  const seams = figureSeamRows(id, scoped);
-  const oracleRows = figureOracles(id, scoped);
+  const assertionGroups = figureAssertionGroups(id, overrides);
+  const duple = figureAloneRow(id, "duple", overrides);
+  const becket = becketUsed ? figureAloneRow(id, "becket", overrides) : undefined;
+  const seams = figureSeamRows(id, scoped, overrides);
+  const oracleRows = figureOracles(id, scoped, overrides);
 
   let ok = known;
   const lines: string[] = [`# pnpm figure ${id}`, ""];

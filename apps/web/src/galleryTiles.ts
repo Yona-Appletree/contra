@@ -23,7 +23,7 @@ import {
   resolveSelector,
   withDefaults,
 } from "@caller/choreo";
-import type { ContraCall, FigureTexts } from "@caller/contra";
+import type { ContraCall, FigureDefaultsOverride, FigureTexts } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
   CONTRA_MOTION_BOUNDS,
@@ -163,9 +163,15 @@ export function galleryGroup(formation: Formation, n = 4): Group {
 /** The dancer standing on a station of a gallery group. */
 export const dancerOn = (station: Station): string => `${GROUP_ID}/${station.id}`;
 
-/** Every tile, figures first, then the seams grouped under their first figure. */
-export function galleryTiles(): GalleryTile[] {
-  return [...figureTiles(), ...seamTiles()];
+/**
+ * Every tile, figures first, then the seams grouped under their first figure.
+ *
+ * `overrides` is `?chain=`'s route in: a figure named in it dances every tile
+ * — its own row and every seam it appears in — at the overridden defaults
+ * instead of the shipped ones. See {@link FigureDefaultsOverride}.
+ */
+export function galleryTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
+  return [...figureTiles(overrides), ...seamTiles(overrides)];
 }
 
 /** One figure and every seam that leaves it, in the order the page lists them. */
@@ -329,10 +335,10 @@ export function tileByKey(tiles: readonly GalleryTile[], key: string): GalleryTi
  * One tile per figure in `createContraRegistry()`: the sixteen contra figures,
  * contra's own `wait-out`, and the engine's `walk-to-station`.
  */
-export function figureTiles(): GalleryTile[] {
-  const registry = createContraRegistry();
+export function figureTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
+  const registry = createContraRegistry([], overrides);
   const ids = [...CONTRA_FIGURE_IDS, "wait-out", "walk-to-station"];
-  return ids.map((id) => figureTile(id, registry));
+  return ids.map((id) => figureTile(id, registry, overrides));
 }
 
 /**
@@ -340,7 +346,7 @@ export function figureTiles(): GalleryTile[] {
  * including the wrap from a dance's last figure back into its first — a dance
  * is danced twice through, so that seam is danced too.
  */
-export function seamTiles(): GalleryTile[] {
+export function seamTiles(overrides: FigureDefaultsOverride = {}): GalleryTile[] {
   const byKey = new Map<string, GalleryTile>();
   for (const dance of DEMO_DANCES) {
     const flat = dance.phrases.flatMap((p) => p.figures);
@@ -349,7 +355,7 @@ export function seamTiles(): GalleryTile[] {
       const b = flat[(i + 1) % flat.length]!;
       const key = `${a.figure}--${b.figure}`;
       if (byKey.has(key)) continue;
-      byKey.set(key, seamTile(dance, a, b, i + 1 === flat.length));
+      byKey.set(key, seamTile(dance, a, b, i + 1 === flat.length, overrides));
     }
   }
   const order = new Map(CONTRA_FIGURE_IDS.map((id, i) => [id as string, i]));
@@ -359,7 +365,11 @@ export function seamTiles(): GalleryTile[] {
 }
 
 /** One figure, run three times over so its take and its release both have a seam. */
-function figureTile(id: string, registry: FigureRegistry): GalleryTile {
+function figureTile(
+  id: string,
+  registry: FigureRegistry,
+  overrides: FigureDefaultsOverride = {},
+): GalleryTile {
   const def = registry.get(id);
   const found = firstCallOf(id);
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
@@ -435,7 +445,7 @@ function figureTile(id: string, registry: FigureRegistry): GalleryTile {
     under: id,
     formation: formation.id,
     group,
-    timeline: buildTimeline(group, formation, calls),
+    timeline: buildTimeline(group, formation, calls, overrides),
     window: { start, beats },
     world: MIN_TILE_WORLD,
     ...(found === undefined ? {} : { source: found.dance.slug }),
@@ -457,10 +467,16 @@ function standCall(call: FigureCall, beats: Beat): FigureCall {
 }
 
 /** Two figures from one dance, back to back, with the seam in the middle. */
-function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean): GalleryTile {
+function seamTile(
+  dance: Dance,
+  a: FigureCall,
+  b: FigureCall,
+  wrapped: boolean,
+  overrides: FigureDefaultsOverride = {},
+): GalleryTile {
   const formation = formationFor(dance);
   const group = galleryGroup(formation, 4);
-  const registry = createContraRegistry();
+  const registry = createContraRegistry([], overrides);
   const notes = wrapped
     ? [
         "the wrap: this dance's last figure into its first, one time through into the next",
@@ -478,7 +494,7 @@ function seamTile(dance: Dance, a: FigureCall, b: FigureCall, wrapped: boolean):
     under: a.figure,
     formation: formation.id,
     group,
-    timeline: buildTimeline(group, formation, [a, b]),
+    timeline: buildTimeline(group, formation, [a, b], overrides),
     window: { start: 0, beats: a.beats + b.beats },
     world: MIN_TILE_WORLD,
     seamAt: a.beats,
@@ -526,8 +542,13 @@ function sized(tile: GalleryTile): GalleryTile {
  * script decider builds one: the selected stations get the figure, everybody
  * else stands where the call found them.
  */
-function buildTimeline(group: Group, formation: Formation, calls: readonly FigureCall[]): Timeline {
-  const registry = createContraRegistry();
+function buildTimeline(
+  group: Group,
+  formation: Formation,
+  calls: readonly FigureCall[],
+  overrides: FigureDefaultsOverride = {},
+): Timeline {
+  const registry = createContraRegistry([], overrides);
   const timeline = createTimeline(registry);
   timeline.addGroup(group);
 

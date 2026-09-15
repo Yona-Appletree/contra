@@ -184,7 +184,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                         |
 | `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                           |
 | `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 7, `holdDrop` 6, `stackPx` 1, `scoopPx` 10                                      |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 3.5, `holdDrop` 6, `stackPx` 1, plus the five candidates' knobs                 |
 | `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                               |
 | `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                               |
 | `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                 |
@@ -405,19 +405,34 @@ dance sets it and this loader does not read it.
 - **What the couple's own line does is not free.** Which of the lark's sides
   the robin is on is `bearing(lark, robin) − larkFacing`, and it changes by
   `sweep − bodyTurn`, so a body turn of 180° and a side change together mean a
-  sweep of nothing. Right and left through arrives with the robin already on
-  the lark's right and leaves her there on the other pair of places, so its
-  line sweeps a clean 180° with the bodies — the textbook picture. A chain
-  arrives with her on his **left**, because she has come across the set and he
-  has stepped off his place to meet her coming, so its line sweeps about 13°
-  while the two bodies turn the half. Asking for a 180° sweep _and_ a side
-  change describes no motion at all.
-- **The hold is capped twice.** Two couples courtesy turn at once with their
-  centres one place pitch apart, so `courtesyHold` shrinks it until
-  `CLEARANCE_PX` is left — 11.5 px in duple improper, where the library's own
-  hold spacing is 14. It is capped again at `COURTESY_REACH_HOLD_PX`, which is
-  how far apart two dancers can stand and still have the lark's right hand on
-  the robin's back rather than past the end of his arm.
+  sweep of nothing. Both figures arrive with the robin already on the lark's
+  right and leave her there, so the line sweeps a clean 180° with the bodies
+  and she is on his right at every sample in between. Asking for a 180° sweep
+  _and_ a side change describes no motion at all, which is what F5 shipped and
+  F7 undid.
+- **The pivot sits near the lark** (`pivotFromLark`, a user ruling of
+  2026-09-14): he backs round a circle of 2.875 px while she walks the arc of
+  the rest of the hold round him — 9 px of walking against her 18 over the two
+  beats of the turn. Midway between the two bodies, which is where F7 put it,
+  is 18 px each.
+- **The hold is capped twice, and is now a sum.** The robin's arc is what has
+  to clear the couple turning beside it — their centres are one place pitch
+  apart — so `courtesyHold` shrinks _her radius_ until `CLEARANCE_PX` is left,
+  which is 5.75 px, and the hold is her radius plus his circle: 8.625 px where
+  the library's own hold spacing is 14. It is capped again at
+  `COURTESY_REACH_HOLD_PX`, which is how far apart two dancers can stand and
+  still have the lark's right hand on the robin's back rather than past the end
+  of his arm. A pivot of 0 — the lark turning on the spot — would leave the
+  couple turning 5.75 px apart, which is two torsos inside AC6's 8 px, and that
+  is why the default is a quarter of the hold and not nothing.
+- **This rigid turn is `right-and-left-through`'s own default and is still
+  `robins-chain`'s at `?chain=1`, but it is no longer the chain's own default.**
+  F13 makes the chain's default `orbitTurn` (F10's candidate 5, `?chain=5`):
+  the lark orbits a whole turn backward round a circle `hold / 2` off his own
+  place, and the robin joins him at the antipode of it at `joinBeat` (2, the
+  user's own number) rather than being walked to a reflected take. See
+  `courtesyTurn.ts`'s own `orbitTurn` doc, and this package's `robins-chain.ts`
+  for `CHAIN_CANDIDATES`, the full comparison table `?chain=1`–`5` still reach.
 - **A roll away** lets the hands go as the roll turns: a dancer spinning a whole
   turn cannot keep a hand on a point 10 px away and still have an arm that
   reaches it.

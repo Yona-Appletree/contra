@@ -1,3 +1,4 @@
+import { dist } from "@caller/core";
 import { poseAt } from "@caller/choreo";
 import { DEMO_DANCES, createContraRegistry } from "@caller/contra";
 import { describe, expect, test } from "vitest";
@@ -12,6 +13,7 @@ import {
   tileByKey,
   tileMetrics,
 } from "./galleryTiles.js";
+import { chainOverridesFromQuery } from "./state/chainQuery.js";
 
 /** Fine enough to catch a frame the renderer would have clipped. */
 const STEP = 0.125;
@@ -156,6 +158,61 @@ describe("what a row reads off a tile (U2)", () => {
     }
   });
 });
+
+describe("`?chain=`'s registry override (F9)", () => {
+  // F13 makes the orbit (`joinBeat` > 0) `robins-chain`'s own default, so a
+  // step-in override has to turn it off explicitly to reach the step-in path
+  // at all — the same shape `CHAIN_CANDIDATES["4"]` uses.
+  const overrides = { "robins-chain": { stepInPx: 8, joinBeat: 0 } };
+
+  test("changes nothing when no figure is named", () => {
+    expect(figureTiles({}).map((t) => t.key)).toEqual(figureTiles().map((t) => t.key));
+  });
+
+  test("reaches the figure's own tile", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const overridden = tileByKey(figureTiles(overrides), "robins-chain")!;
+    expect(moved(plain, overridden)).toBe(true);
+  });
+
+  // F10/F13: the same route, driven by the query parser the three routes
+  // share rather than a hand-written override, so `?chain=` reaching the
+  // tiles is the thing under test and not a map somebody typed here. `1` is
+  // the rigid turn F9 shipped — since F13 the one that moves the tile, now
+  // that `5`, the lark's orbit, restates the figure's own default.
+  test("carries `?chain=1`, the rigid turn, the whole way from the URL", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const rigid = tileByKey(figureTiles(chainOverridesFromQuery("1")), "robins-chain")!;
+    expect(moved(plain, rigid)).toBe(true);
+  });
+
+  test("`?chain=5` restates the figure's own default (F13)", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const orbit = tileByKey(figureTiles(chainOverridesFromQuery("5")), "robins-chain")!;
+    expect(moved(plain, orbit)).toBe(false);
+  });
+
+  test("reaches every seam the figure is under, and leaves the others alone", () => {
+    const plainSeams = seamTiles();
+    const overriddenSeams = seamTiles(overrides);
+    for (const plain of plainSeams) {
+      const overridden = tileByKey(overriddenSeams, plain.key)!;
+      const involvesChain = plain.calls.some((c) => c.figure === "robins-chain");
+      expect(moved(plain, overridden), plain.key).toBe(involvesChain);
+    }
+  });
+});
+
+/** Whether any dancer of `a` samples to a different point than in `b`, at any beat of `a`'s window. */
+function moved(a: GalleryTile, b: GalleryTile): boolean {
+  for (const dancer of a.timeline.dancers()) {
+    for (const t of window(a)) {
+      if (dist(poseAt(a.timeline, dancer, t).p, poseAt(b.timeline, dancer, t).p) > 1e-9)
+        return true;
+    }
+  }
+  return false;
+}
 
 /** Every beat of a tile's looping window, the last one included. */
 function* window(tile: GalleryTile): Generator<number> {

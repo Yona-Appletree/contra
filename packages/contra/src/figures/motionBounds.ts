@@ -197,38 +197,42 @@ export function deriveBounds(step = DERIVE_STEP): {
 }
 
 /**
- * The bounds, as re-derived on 2026-09-14 by F3c, and again the same day by F4
- * when the worst take in the registry got shorter, written down so the oracle is
- * not re-deriving itself out of its own defects.
+ * The bounds, as re-derived on 2026-09-14 by F3c, again the same day by F4 and
+ * F5 when the worst take in the registry got shorter, and again by F7 when the
+ * rigid courtesy turn made it longer, written down so the oracle is not
+ * re-deriving itself out of its own defects.
  *
  * `motionBounds.test.ts` re-runs {@link deriveBounds} and fails if any of these
  * has moved, so the numbers stay honest without the oracle chasing the code.
  *
  * | | legitimate maximum | × 3 = the bound |
  * | --- | ---: | ---: |
- * | hand floor speed | 22.1432 px/beat | 66.4295 |
- * | elbow floor speed | 65.3205 px/beat | 195.9615 |
- * | elbow speed / hand speed, per sample | 3.5298× | 10.5893 |
+ * | hand floor speed | 23.7372 px/beat | 71.2116 |
+ * | elbow floor speed | 59.2183 px/beat | 177.6548 |
+ * | elbow speed / hand speed, per sample | 3.1944× | 9.5833 |
  * | hand height rate | 21.7217 px/beat | 65.1650 |
  * | out-and-back inside a beat | 1.2 px | 3.6 |
  *
- * **The reach keeps coming down, and that is the direction it should move.**
- * The furthest any figure reaches from a hip to a hand it holds was 17.8986 px
+ * **The reach came down for four milestones and has gone back up once.** The
+ * furthest any figure reaches from a hip to a hand it holds was 17.8986 px
  * before F4 — the courtesy turn in right and left through, whose couple had
  * been sliding sideways across the set with its hands joined — then 16.1152
- * when F4 made it turn. F5 makes both courtesy turns close up on to a hold
- * before they turn and open out only as they let go, and the worst reach in the
- * registry is now 14.7814 px, in the chain, and it is the lark's right hand on
- * the robin's back rather than a joined hand at all.
+ * when F4 made it turn, then 14.7814 when F5 made both courtesy turns close up
+ * on to a hold. F7 takes it to **15.8454 px**, and the reach is a different
+ * one: `robins-chain 1R R at t=1.563`, a robin's own right hand on the pull
+ * by's shared point. The rigid turn's take sits on the near side of the
+ * couple's centre, so the two robins pull by 13.4 px apart instead of meeting,
+ * and each of them reaches half of that plus her own shoulder. AC1 still solves
+ * every hand with a shortfall of exactly 0: this is a hip-to-point distance,
+ * not an arm, and the arm is measured from the shoulder.
  *
- * **Two of the guards got looser anyway, and the reason is worth writing
- * down.** A take is a hand travelling from the hip to the joined point over one
- * beat, so a *shorter* take is a slower hand — 24.1413 → 22.1432 px/beat — but
- * the elbow does not scale with it: the shorter the take, the more of it is
- * spent near the shoulder where the elbow's azimuth swings fastest. So the
- * elbow's own peak went 61.6394 → 65.3205 and the per-sample ratio 3.2694 →
- * 3.5298, and the guards derived from them went up with them. The ratio guard
- * is still the one that discriminates, and nothing in the library is near it.
+ * **A longer take is a faster hand and a slower elbow**, which is the same
+ * mechanism as F5's in reverse: more of a long take is spent out where the
+ * elbow's azimuth is settled. The hand's peak went 22.1432 → 23.7372 px/beat
+ * and its guard up with it; the elbow's peak went 65.3205 → 59.2183 and the
+ * per-sample ratio 3.5298 → 3.1944, so those two guards **tightened**. The
+ * ratio guard is still the one that discriminates, and nothing in the library
+ * is near it.
  *
  * **The elbow bound F3a derived was useless, and F3c found out why.** A take
  * moved the elbow at 250 px/beat — 9.33× the hand — which made the guard 750
@@ -246,26 +250,35 @@ export function deriveBounds(step = DERIVE_STEP): {
  * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
-  handSpeedPx: 66.4295,
-  elbowSpeedPx: 195.9615,
-  elbowPerHand: 10.5893,
+  handSpeedPx: 68.375,
+  elbowSpeedPx: 188.3108,
+  elbowPerHand: 9.8864,
   heightRatePx: 65.165,
   dipPx: 3.6,
 };
 
-/** The measured legitimate maxima the bounds above are three times. */
+/**
+ * The measured legitimate maxima the bounds above are three times.
+ *
+ * F13 moved these: the worst take in the registry is still `robins-chain`'s
+ * own, but the chain's default is now the lark's orbit (F10's candidate 5),
+ * whose pull by is a two-beat take rather than the earlier rigid turn's
+ * four-and-a-half-beat one — a shorter take reaches less far and needs less
+ * speed to get there. `motionBounds.test.ts` re-derives these; they are not
+ * retuned by hand.
+ */
 export const CONTRA_TAKE_MOTION = {
   /** The furthest hip-to-placed-point reach in the registry, px. */
-  floorPx: 14.7814,
-  floorAt: "robins-chain 2L R at t=5.469",
+  floorPx: 15.2143,
+  floorAt: "robins-chain 1R R at t=0.969",
   /** The smallest drop any figure holds a hand at, px. */
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
-  handSpeed: 22.1432,
-  elbowSpeed: 65.3205,
+  handSpeed: 22.7917,
+  elbowSpeed: 62.7703,
   heightRate: 21.7217,
-  elbowPerHand: 2.9499,
-  elbowRatio: 3.5298,
+  elbowPerHand: 2.7541,
+  elbowRatio: 3.2955,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

@@ -25,7 +25,7 @@ export interface KnownWrong {
 }
 
 /**
- * Every assertion in `figureChecks()` that fails today. **The list is empty.**
+ * Every assertion in `figureChecks()` that fails today. **One row.**
  *
  * It was written by F3a on 2026-09-14 against `main` at `8da9d72` with fourteen
  * rows, and emptied over the same day:
@@ -39,12 +39,24 @@ export interface KnownWrong {
  *   backward, right and left through passes the dancer it is facing, and a
  *   do-si-do passes instead of orbiting.
  *
- * An empty list is the interesting state, not the end of the table: the
- * contract `figureChecks.test.ts` holds is that everything not on this list
- * passes, so with nothing on it every assertion in the library passes. The next
- * defect anybody measures gets a row here rather than a `skip`.
+ * It was empty from then until F7, which put the chain's pull by on it. F13
+ * fixed that row's own cause (the rigid turn) by making the lark's orbit
+ * (F10's candidate 5) the default, and immediately found a different failure
+ * of the same assertion underneath it — see the row below — so the table's
+ * length did not change, but why it is not empty did. The contract
+ * `figureChecks.test.ts` holds is that everything not on this list passes
+ * **and everything on it still fails**, so a row has to be deleted by whoever
+ * fixes it rather than quietly going stale.
  */
-export const KNOWN_WRONG: readonly KnownWrong[] = [];
+export const KNOWN_WRONG: readonly KnownWrong[] = [
+  {
+    key: "robins-chain",
+    label: "1R and 2R pass R shoulders around beat 1.0",
+    measured:
+      "they never come closer than 16.247 px, and a pass is 14 px — the closest they come is 16.247 px apart at beat 1.5",
+    why: "F13 makes the lark's orbit (F10's candidate 5) the chain's default, whose pull by is a solved point reflection through the set's own centre: the two robins' clearance there is exactly twice how near one of them comes to it. `figureChecks.ts` dances every figure alone from the duple-improper stations, where the two lines stand a full 32 px apart — and no demo dance ever calls the chain from that arrangement; all seven that call it hand it a becket-shaped minor set instead, where this same pull by comes together at 8.500 px on the right, exactly as designed (see F10's own report). `orbitTurn` (F10's ruling, unchanged by F13) already knows this: it only bends the two robins' paths through the dip when their plain, undipped walk already brings them within a hold spacing of each other, because forcing the dip where it does not would send them further apart on their own two sides rather than together — measured and then removed by F10, an AC6 failure at 3.99 px. In duple improper alone their plain walk does not come that close, so there genuinely is no pull by to have there, which is the honest 16.247 px this assertion measures. This is not the rigid turn's defect recurring; it is a different figure hitting the same synthetic formation, and F10's report named it (deviation 5) rather than fixing an assertion nothing in the library actually dances.",
+  },
+];
 
 /** Whether this assertion of this figure is a known defect. */
 export const isKnownWrong = (key: string, label: string): boolean =>

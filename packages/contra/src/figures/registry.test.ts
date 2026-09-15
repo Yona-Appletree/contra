@@ -35,6 +35,23 @@ describe("the registry", () => {
   it("throws with the ids it does have when a dance calls something else", () => {
     expect(() => createContraRegistry().get("mad-robin")).toThrow(/no figure "mad-robin"/);
   });
+
+  it("leaves every figure's defaults alone when no override names it", () => {
+    const registry = createContraRegistry();
+    for (const id of CONTRA_FIGURE_IDS) {
+      expect(registry.get(id).defaults, id).toBe(CONTRA_FIGURES[id].defaults);
+    }
+  });
+
+  it("merges an override over one figure's defaults and leaves the rest untouched", () => {
+    const registry = createContraRegistry([], { "robins-chain": { stepInPx: 8 } });
+    expect(registry.get("robins-chain").defaults).toEqual({
+      ...CONTRA_FIGURES["robins-chain"].defaults,
+      stepInPx: 8,
+    });
+    // Untouched: no key of `overrides` names it.
+    expect(registry.get("circle").defaults).toBe(CONTRA_FIGURES.circle.defaults);
+  });
 });
 
 describe("chaining a dance", () => {

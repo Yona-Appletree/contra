@@ -31,11 +31,13 @@ assertion alone.
 merely bounded.** F4 through F6 each tightened the registry's own worst
 "take" (a hand travelling from a dancer's hip to a joined point over one
 beat) while fixing the hey, the chain, right-and-left-through and the star:
-17.8986 px (F4's starting point) → 16.1152 (F4) → 14.7814 px (F5, the
-courtesy turn's own reach, `robins-chain 2L R at t=5.469`) → unchanged by F6.
-`docs/motion-report.md`'s own derived bounds are built from that number.
-Nothing this milestone touched changed it further; there is no longer a
-known overreach to record as a bound — the number to record is `0`.
+17.8986 px (F4's starting point) → 16.1152 (F4) → 14.7814 px (F5 through F12,
+the rigid courtesy turn's own reach, `robins-chain 2L R at t=5.469`) →
+**15.2143 px (F13, the lark's orbit's own reach, `robins-chain 1R R at
+t=0.969`)**. F13 made the chain's default the lark's orbit (F10's candidate 5) rather than the rigid pivot, which moved the registry's own worst take —
+a shorter, faster pull by reaches less far but needs less time to get there —
+and `docs/motion-report.md`'s derived bounds are rebuilt from the new number.
+AC1's own number is unaffected by any of this: it is still `0`.
 
 ## AC4 — music is the master clock
 
@@ -143,18 +145,24 @@ have to find by scrolling it.
   dances (unchanged since F3a fixed the `NaN`-producing balance seam; every
   milestone since has re-confirmed it at 0).
 - **The derived bounds** (re-derived, not picked, at 3× the worst legitimate
-  take in the library): hand floor speed 66.4295 px/beat, elbow floor speed
-  195.9615 px/beat, elbow-speed-÷-hand-speed ratio 10.5893×, hand height
-  rate 65.1650 px/beat, out-and-back-in-one-beat (dip) 3.6000 px. The worst
-  take itself reaches 14.7814 px from a dancer's own hip (`robins-chain`'s
-  courtesy turn).
-- **The known-wrong table's current length: 0 rows.** F3a found fourteen;
-  F3c fixed three; F4, F5 and F6 fixed the remaining eleven (the hey, the
-  robins chain, right-and-left-through, do-si-do) by fixing the choreography
-  itself, never by loosening an assertion. `KNOWN_WRONG` is `[]` in
-  `packages/contra/src/figures/knownWrong.ts`, and its own doc comment says
-  why an empty list is the interesting state rather than the end of the
-  table.
+  take in the library — F13's own numbers, after moving the chain's default
+  to the lark's orbit): hand floor speed 68.3750 px/beat, elbow floor speed
+  188.3108 px/beat, elbow-speed-÷-hand-speed ratio 9.8864×, hand height rate
+  65.1650 px/beat, out-and-back-in-one-beat (dip) 3.6000 px. The worst take
+  itself reaches 15.2143 px from a dancer's own hip (`robins-chain 1R R at
+t=0.969`, the orbit's own pull by).
+- **The known-wrong table's current length: 1 row.** Empty from F3c until F7,
+  which put the chain's pull-by assertion on it: the rigid turn's take could
+  not reach a right-shoulder pass at the set's width. F13 replaced the
+  chain's default with the lark's orbit (F10's candidate 5) and, with it, the
+  row's own text — the orbit's pull by _is_ right-shoulder and exact in every
+  real dance (all seven that call the chain hand it a becket-shaped
+  arrangement, per F9's own finding) — but the row could not be deleted: the
+  same assertion still fails in the synthetic duple-improper-alone formation
+  `figureChecks.ts` dances every figure from, where no demo dance ever calls
+  the chain and the plain walk never brings the two robins near enough to
+  pull by at all. A different figure hitting the same synthetic gap, not the
+  original defect recurring — see `packages/contra/src/figures/knownWrong.ts`.
 
 ## `(unsure: …)` markers still in the library
 
@@ -164,13 +172,15 @@ Three `describe` texts still carry one:
 - `california-twirl.ts`: "which of the two turns under varies from hall to
   hall; this turns the robin under."
 - `robins-chain.ts`: "a lark can twirl her under his hand instead, and this
-  only scoops; and the couple's own line barely turns while the two bodies
-  turn a half, because the places it ends on are a whole set's width apart."
-- `right-and-left-through.ts`: "a hall turns a courtesy turn at a hold and
-  stands in the lines at a hold, where this model's lines are more than
-  twice that far apart, so the couple has to close up before it turns and
-  open out again as it lets go — and the two couples turning at once pass
-  8.5 px, which is as much room as a place pitch leaves them."
+  only scoops." (F13 resolved the marker's other clause — the rigid turn's
+  own 32-px-lines artefact — by replacing the chain's default with the lark's
+  orbit, which does not have that turn to begin with.)
+- `right-and-left-through.ts`: "exact pivot distance — the user judges by eye.
+  And a hall turns a courtesy turn at a hold and stands in the lines at a
+  hold, where this model's lines are nearly four times that far apart, so the
+  couple stops short of the line to turn and opens out again as it lets go."
+  (F11 reworded this one; unrelated to the chain, refreshed here in passing
+  since this file predated it too.)
 
 (`star.ts`'s own marker was resolved by F6, per the user's ruling on the
 wrist grip.)

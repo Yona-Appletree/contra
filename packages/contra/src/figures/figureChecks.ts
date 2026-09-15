@@ -20,6 +20,7 @@ import {
   sampleTrack,
   shoulderOf,
   staysOnPlace,
+  velocity,
   walksBackward,
   withDefaults,
 } from "@caller/choreo";
@@ -27,6 +28,7 @@ import type { ContraFigure, ContraParams } from "./ContraFigure.js";
 import { bearing, holdWindow, planContext, polar, worldSpot } from "./ContraFigure.js";
 import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
+import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
 import { CONTRA_FIGURES } from "./registry.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { IN_BEATS as STAR_IN_BEATS, OUT_BEATS as STAR_OUT_BEATS, WRIST_RADIUS_PX } from "./star.js";
@@ -73,6 +75,13 @@ export function checkGroup(): Group {
     DUPLE_IMPROPER.roleSet,
   );
 }
+
+/**
+ * A figure-id-to-defaults-override map, as `createContraRegistry`'s second
+ * argument takes it: what `?chain=` and `pnpm figure --chain` pick a candidate
+ * with. The empty map — the default everywhere — is the shipped figure.
+ */
+export type CheckOverrides = Readonly<Record<string, object>>;
 
 /** One figure sampled over its whole length, with the hands it says it joins. */
 export function figureTrack(
@@ -144,23 +153,28 @@ const CENTRE_PX = HOLD_SPACING_PX / 2;
  * Nothing here throws and nothing here is skipped: a figure that is wrong
  * produces a failing result with the number that says so.
  */
-export function figureChecks(): FigureChecks[] {
+export function figureChecks(overrides: CheckOverrides = {}): FigureChecks[] {
+  /** One figure's override, as the extra params its own track is built with. */
+  const of = (id: string): Record<string, unknown> => ({ ...overrides[id] });
   return [
-    heyChecks(),
-    robinsChainChecks(),
-    longLinesChecks(),
-    starChecks(),
-    circleChecks(),
-    allemandeChecks(),
-    doSiDoChecks(),
-    rightAndLeftThroughChecks(),
-    petronellaChecks(),
-    balanceChecks(),
-    swingChecks(),
-    balanceAndSwingChecks(),
+    heyChecks(of("hey")),
+    robinsChainChecks(of("robins-chain")),
+    longLinesChecks(of("long-lines")),
+    starChecks(of("star")),
+    circleChecks(of("circle")),
+    allemandeChecks(of("allemande")),
+    doSiDoChecks(of("do-si-do")),
+    rightAndLeftThroughChecks(of("right-and-left-through")),
+    petronellaChecks(of("petronella")),
+    balanceChecks(of("balance")),
+    swingChecks(of("swing")),
+    balanceAndSwingChecks(of("balance-and-swing")),
     balanceToSwingSeam(),
   ];
 }
+
+/** What one builder is handed: the extra params its figure's track is built with. */
+type CheckParams = Record<string, unknown>;
 
 const describeOf = (id: string): string | undefined =>
   ((CONTRA_FIGURES as Record<string, { describe?: string }>)[id] ?? {}).describe;
@@ -172,8 +186,8 @@ const describeOf = (id: string): string | undefined =>
  * The user: "some moves, like the hey are just totally wrong. that's a weaving
  * figure, they should be passing shoulders in the center of the set."
  */
-function heyChecks(): FigureChecks {
-  const { track } = figureTrack("hey");
+function heyChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("hey", params);
   // The four passes in the centre alternate robins, larks, robins, larks, and
   // every one of them is by the right; the passes on the *sides* are the left
   // ones. 1R and 2R are the robins of a duple improper minor set, 1L and 2L
@@ -206,47 +220,75 @@ function heyChecks(): FigureChecks {
 }
 
 /**
- * A chain is a pull by in the centre, then a courtesy turn in which the lark
- * walks backward with his left hand in her left throughout.
+ * A chain is a right-shoulder pull by in the centre, then the lark's orbit: he
+ * backs a whole turn round the point between his own place and the place
+ * beside him, and she joins him at the antipode of that circle at the join
+ * beat, riding it the rest of the way as one rigid pair.
  *
- * The user: "robins chain is totally wrong too. robins pull by in the center,
- * then the larks scoop them and walk backwards or they twirl them."
+ * F13 replaces the four rigid-half-turn assertions that only made sense of
+ * the earlier default (a courtesy turn between beats 4.5 and 6.5) with the
+ * orbit's own: F10's report is what proved each of these, over the two
+ * candidates it measured; this is what makes them the tests.
  */
-function robinsChainChecks(): FigureChecks {
-  const { track, group } = figureTrack("robins-chain");
-  // The chain's own default timing: the pull by is the first half and the
-  // courtesy turn the second, and the turn lets go over its last 1.5 beats.
-  const take: Beat = 4.5;
-  const held = win(5.5, 6.5);
+function robinsChainChecks(params: CheckParams): FigureChecks {
+  const { track, group, beats } = figureTrack("robins-chain", params);
+  // From the join beat the pair is rigid about the orbit's own centre until
+  // the couple opens out over the last 1.5 beats — `CHAIN_JOIN_BEAT` and
+  // `OPEN_BEATS` are `robins-chain.ts`'s own numbers for the shipped default.
+  const rigid = win(CHAIN_JOIN_BEAT, 6.5);
+  // Each lark's own circle centre, measured rather than recomputed from the
+  // figure's own formula: `orbitTurn` puts it `hold / 2` off the lark's place
+  // toward the robin's, not at the true midpoint of the two original places
+  // (F10's own deviation 4) — so this reads it off three points on his own
+  // circle instead of assuming the number. The lark's radius is constant for
+  // the whole eight beats (only the robin's opens out), so any three distinct
+  // samples of his own track determine it.
+  const centre1L = circumcentre(track, "1L", beats);
+  const centre2L = circumcentre(track, "2L", beats);
   const results = [
+    // The pull by crosses right shoulders near the set's own centre, close to
+    // beat 1 at the shipped join beat of 2.
     passes(track, "1R", "2R", {
       within: CLOSE_PX,
       near: SET_CENTRE,
       nearPx: CENTRE_PX,
       shoulder: "R",
-      beatWindow: win(1, 4),
+      beatWindow: win(0, 2),
     }),
-    // He backs out of the set from the moment the couple has closed up; the
-    // first beat and a half of the turn is the closing, where he is still
-    // stepping in to meet her.
-    walksBackward(track, "1L", win(6, 7.5)),
-    walksBackward(track, "2L", win(6, 7.5)),
+    // The lark is walking backward from the first sample: an orbit has no
+    // separate turn phase the way a rigid pivot does.
+    walksBackwardThroughout(track, "1L", win(0, 8)),
+    walksBackwardThroughout(track, "2L", win(0, 8)),
+    // He sweeps the whole circle once, about the point between the two places.
+    orbitsWholeTurn(track, "1L", centre1L, win(0, 8)),
+    orbitsWholeTurn(track, "2L", centre2L, win(0, 8)),
+    // She joins his orbit at its antipode, at the join beat exactly.
+    joinsAtAntipode(track, "1L", "2R", centre1L, CHAIN_JOIN_BEAT),
+    joinsAtAntipode(track, "2L", "1R", centre2L, CHAIN_JOIN_BEAT),
     // 2R lands on 1R's place, and the lark she is a couple with there is the
     // one across the set from it — 1L. 1R lands on 2R's place and pairs with
     // 2L. A courtesy turn is with the lark of the place you arrive at, not the
     // nearest lark on the floor.
-    handsJoined(track, "1L", "L", "2R", "L", held, HAND_TOLERANCE_PX),
-    handsJoined(track, "2L", "L", "1R", "L", held, HAND_TOLERANCE_PX),
-    // The half turn itself: both bodies turn 180° between the take and the end,
-    // and it leaves her on his right facing back into the set.
-    turnsHalf(track, "1L", "2R", take),
-    turnsHalf(track, "2L", "1R", take),
+    handsJoined(track, "1L", "L", "2R", "L", rigid, HAND_TOLERANCE_PX),
+    handsJoined(track, "2L", "L", "1R", "L", rigid, HAND_TOLERANCE_PX),
+    // From the join she is on his right throughout, and the four hands ride
+    // the bodies that carry them, exactly as a rigid pivot's own turn does.
+    onHisRightThroughout(track, "1L", "2R", rigid),
+    onHisRightThroughout(track, "2L", "1R", rigid),
+    handsRideTheBodies(track, "1L", "2R", rigid),
+    handsRideTheBodies(track, "2L", "1R", rigid),
+    // Both dancers of both couples face out of the set at the halfway point.
+    facesRelativeToCentre(track, "1L", 4, "out"),
+    facesRelativeToCentre(track, "2R", 4, "out"),
+    facesRelativeToCentre(track, "2L", 4, "out"),
+    facesRelativeToCentre(track, "1R", 4, "out"),
+    // And both face in again at the end, the robin on the lark's right.
     endsBesideOnTheRight(track, "1L", "2R"),
     endsBesideOnTheRight(track, "2L", "1R"),
     // AC6: the couple turning beside you gets left room.
-    clearsEveryone(track, win(take, 8)),
+    clearsEveryone(track, win(rigid.from, 8)),
     // The pull by's own right hands, over the window the figure declares.
-    joinedThroughout(track, "1R", "R", "2R", "R", win(1.6, 2.4)),
+    joinedThroughout(track, "1R", "R", "2R", "R", win(0.5, 1.5)),
     endsOn(track, "1R", { id: "2R", p: stationAt(group, "2R") }, 0.5),
     endsOn(track, "2R", { id: "1R", p: stationAt(group, "1R") }, 0.5),
   ];
@@ -260,8 +302,8 @@ function robinsChainChecks(): FigureChecks {
  * The user: "the arms flair around a bit in the long lines — arms don't really
  * move in that figure, everyone's just holding hands."
  */
-function longLinesChecks(): FigureChecks {
-  const { track } = figureTrack("long-lines");
+function longLinesChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("long-lines", params);
   const results = [
     handsStill(track, "1L", win(1, 7), 1.5),
     handsStill(track, "1R", win(1, 7), 1.5),
@@ -284,14 +326,14 @@ function longLinesChecks(): FigureChecks {
  * the person in front of you... doing all in a pile in the center (that's
  * awkward)."
  */
-function starChecks(): FigureChecks {
-  const { track: wrist, beats } = figureTrack("star");
+function starChecks(params: CheckParams): FigureChecks {
+  const { track: wrist, beats } = figureTrack("star", params);
   // The figure's own take/release window: `WRIST_JOIN_WINDOW`-shaped, but read
   // straight off `star.ts`'s own constants so a change there cannot go stale
   // here.
   const held = holdWindow(beats, STAR_IN_BEATS + 0.4, STAR_OUT_BEATS);
   const wristHeld = win(held.takeTo, held.releaseFrom);
-  const { track: across } = figureTrack("star", { hold: "hands-across" });
+  const { track: across } = figureTrack("star", { ...params, hold: "hands-across" });
   const acrossHeld = joinWindow(across, "1R", "R", "2R", "R") ?? win(1, 7);
   const results = [
     // The wrist hold: a four-person star's ring alternates role at every
@@ -358,8 +400,8 @@ function wristJoined(
 }
 
 /** A circle: hands joined all the way round, all the way through. */
-function circleChecks(): FigureChecks {
-  const { track } = figureTrack("circle");
+function circleChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("circle", params);
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "R", win(1, 7)),
     joinedThroughout(track, "1R", "L", "1L", "R", win(1, 7)),
@@ -370,8 +412,8 @@ function circleChecks(): FigureChecks {
 }
 
 /** An allemande: one joined hand over one spot, never let go of. */
-function allemandeChecks(): FigureChecks {
-  const { track } = figureTrack("allemande");
+function allemandeChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("allemande", params);
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "L", win(1.5, 6.5)),
     joinedThroughout(track, "1R", "L", "2L", "L", win(1.5, 6.5)),
@@ -383,8 +425,8 @@ function allemandeChecks(): FigureChecks {
  * A do-si-do: pass right shoulders on the way out, nobody takes hands, and
  * nobody turns round — you end facing the way you started.
  */
-function doSiDoChecks(): FigureChecks {
-  const { track, group } = figureTrack("do-si-do");
+function doSiDoChecks(params: CheckParams): FigureChecks {
+  const { track, group } = figureTrack("do-si-do", params);
   const results = [
     passes(track, "1L", "2R", { within: CLOSE_PX, shoulder: "R", beatWindow: win(0.5, 3) }),
     endsOn(track, "1L", { id: "1L", p: stationAt(group, "1L") }, 0.5),
@@ -397,23 +439,31 @@ function doSiDoChecks(): FigureChecks {
  * Right and left through: pass right shoulders across, then a courtesy turn in
  * which the lark walks backward with the robin's left hand in his left.
  */
-function rightAndLeftThroughChecks(): FigureChecks {
-  const { track } = figureTrack("right-and-left-through");
-  // Its own default timing: the pass through is 3.5 beats and the turn the
-  // remaining 4.5, letting go over the last 1.5 of them.
-  const take: Beat = 3.5;
-  const held = win(5, 6.5);
+function rightAndLeftThroughChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("right-and-left-through", params);
+  // Its own default timing: the pass through is 3.5 beats, the couple closes up
+  // over the next one, the rigid half turn is beats 4.5 to 6.5, and the last
+  // 1.5 beats open out.
+  const turn = win(4.5, 6.5);
   const results = [
     passes(track, "1L", "2R", { within: CLOSE_PX, shoulder: "R", beatWindow: win(0.5, 3.5) }),
-    walksBackward(track, "1L", held),
-    walksBackward(track, "2L", held),
-    handsJoined(track, "1L", "L", "1R", "L", held, HAND_TOLERANCE_PX),
-    handsJoined(track, "2L", "L", "2R", "L", held, HAND_TOLERANCE_PX),
-    turnsHalf(track, "1L", "1R", take),
-    turnsHalf(track, "2L", "2R", take),
+    walksBackward(track, "1L", turn),
+    walksBackward(track, "2L", turn),
+    handsJoined(track, "1L", "L", "1R", "L", turn, HAND_TOLERANCE_PX),
+    handsJoined(track, "2L", "L", "2R", "L", turn, HAND_TOLERANCE_PX),
+    sweepsHalf(track, "1L", "1R", turn),
+    sweepsHalf(track, "2L", "2R", turn),
+    turnsHalf(track, "1L", "1R", turn),
+    turnsHalf(track, "2L", "2R", turn),
+    onHisRightThroughout(track, "1L", "1R", turn),
+    onHisRightThroughout(track, "2L", "2R", turn),
+    handsRideTheBodies(track, "1L", "1R", turn),
+    handsRideTheBodies(track, "2L", "2R", turn),
+    backsRoundASmallCircle(track, "1L", "1R", turn),
+    backsRoundASmallCircle(track, "2L", "2R", turn),
     endsBesideOnTheRight(track, "1L", "1R"),
     endsBesideOnTheRight(track, "2L", "2R"),
-    clearsEveryone(track, win(take, 8)),
+    clearsEveryone(track, win(turn.from, 8)),
   ];
   return { key: "right-and-left-through", describe: describeOf("right-and-left-through"), results };
 }
@@ -431,18 +481,23 @@ const HAND_TOLERANCE_PX = 0.01;
 const HALF_TURN_SLACK_DEG = 1;
 
 /**
- * Both dancers of a courtesy turn turn a **half** between the take and the end.
+ * Both dancers of a courtesy turn turn a **half** over the turn.
  *
- * The user: "robins walk forward a half turn while larks walk backwards until
- * both face in again, with robin on the right." This is that sentence's first
- * half, and {@link endsBesideOnTheRight} is its second. It is the bodies that
- * turn 180°; what the line between them does is geometry and depends on which
- * side she arrived on — see `courtesyTurn`.
+ * The user: "then they pivot around the center point (both walking, lark
+ * backwards, robin forwards) to put the robin back on the right." A rigid body
+ * has one angular velocity, so this and {@link sweepsHalf} have to agree — and
+ * because they are measured separately, a couple that shears instead of
+ * pivoting fails one of them and not the other.
  */
-function turnsHalf(track: Track, lark: string, robin: string, take: Beat): TrajectoryResult {
-  const label = `${lark} and ${robin} each turn a half between beat ${take} and the end`;
-  const first = track.indexAt(take);
-  const last = track.beats.length - 1;
+function turnsHalf(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${lark} and ${robin} each turn a half between beat ${window.from} and ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
   let worst = 0;
   let who = lark;
   for (const id of [lark, robin]) {
@@ -463,6 +518,404 @@ function turnsHalf(track: Track, lark: string, robin: string, take: Beat): Traje
     note: `both of them turn 180.000°, within ${worst.toFixed(4)}°`,
     worst: { beat, value: worst, unit: "deg" },
   };
+}
+
+/**
+ * The couple's own **line** sweeps a half over the turn: the pair pivots rather
+ * than spinning on the spot.
+ *
+ * This is the assertion F5 did not have and could not have had. Its chain's
+ * robin arrived on the lark's *left* and left on his right, and a body that
+ * turns 180° swaps which of its sides a fixed direction is on, so the line had
+ * to sweep nothing at all: the couple span in place. The user's ruling is that
+ * the couple pivots as one rigid unit, and a rigid unit's line turns with its
+ * bodies. `bearing(lark, robin) − larkFacing` is which side she is on and it
+ * changes by `sweep − bodyTurn`, so this passing *and* {@link turnsHalf}
+ * passing is exactly {@link onHisRightThroughout} passing.
+ */
+function sweepsHalf(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `the line from ${lark} to ${robin} sweeps a half between beat ${window.from} and ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  const from = bearing(track.pose(lark, first).p, track.pose(robin, first).p);
+  const to = bearing(track.pose(lark, last).p, track.pose(robin, last).p);
+  const swept = Math.abs(angleDiff(from, to));
+  const off = Math.abs(180 - swept);
+  const beat = track.beats[last] ?? 0;
+  if (off > HALF_TURN_SLACK_DEG) {
+    return fail(label, `it sweeps ${swept.toFixed(3)}°, not a half`, beat, off, "deg");
+  }
+  return {
+    label,
+    pass: true,
+    note: `it sweeps 180.000°, within ${off.toFixed(4)}°`,
+    worst: { beat, value: off, unit: "deg" },
+  };
+}
+
+/**
+ * The robin is on the lark's right at **every sample** of the turn, not only at
+ * the end.
+ *
+ * The user: "to put the robin back on the right." A rigid pivot never takes her
+ * off it, which is what this measures: the least she is ever to his right, in
+ * px, over the whole turn.
+ */
+function onHisRightThroughout(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${robin} is on ${lark}'s right for the whole turn, beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let least = Infinity;
+  let beat = track.beats[first] ?? 0;
+  for (let i = first; i <= last; i++) {
+    const him = track.pose(lark, i);
+    const right = dirOf(him.facing + 90);
+    const her = track.pose(robin, i).p;
+    const off = right[0] * (her[0] - him.p[0]) + right[1] * (her[1] - him.p[1]);
+    if (off < least) {
+      least = off;
+      beat = track.beats[i] ?? 0;
+    }
+  }
+  if (least <= 0) {
+    return fail(label, `she is ${(-least).toFixed(3)} px to his left`, beat, least, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `she is never less than ${least.toFixed(3)} px to his right`,
+    worst: { beat, value: least, unit: "px" },
+  };
+}
+
+/**
+ * Every hand of the hold keeps the same place on the body that carries it, for
+ * the whole turn.
+ *
+ * The user: "the arm basically stay put during the move." Two bodies whose
+ * relative pose never changes carry every point they hold with them, so on a
+ * rigid pivot each hand's offset — forward and to the right of its own dancer —
+ * is a constant. This measures the spread of those four offsets, and the brief
+ * asks for 0.05 px.
+ */
+function handsRideTheBodies(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `the four hands of ${lark} and ${robin} stay put on their bodies from beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let worst = 0;
+  let beat = track.beats[first] ?? 0;
+  let who = "";
+  for (const id of [lark, robin]) {
+    for (const side of ["L", "R"] as const) {
+      let from: Vec2 | undefined;
+      for (let i = first; i <= last; i++) {
+        const pose = track.pose(id, i);
+        const hand = pose.hands[side];
+        if (hand === "down") {
+          return fail(label, `${id}'s ${side} hand is down`, track.beats[i] ?? 0, Infinity, "px");
+        }
+        const ahead = dirOf(pose.facing);
+        const right = dirOf(pose.facing + 90);
+        const v: Vec2 = [hand.p[0] - pose.p[0], hand.p[1] - pose.p[1]];
+        const here: Vec2 = [v[0] * ahead[0] + v[1] * ahead[1], v[0] * right[0] + v[1] * right[1]];
+        from ??= here;
+        const moved = Math.hypot(here[0] - from[0], here[1] - from[1]);
+        if (moved > worst) {
+          worst = moved;
+          beat = track.beats[i] ?? 0;
+          who = `${id}'s ${side}`;
+        }
+      }
+    }
+  }
+  if (worst > HAND_RIDE_TOLERANCE_PX) {
+    return fail(label, `${who} moves ${worst.toFixed(4)} px on the body`, beat, worst, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `no hand moves more than ${worst.toFixed(4)} px on its own body`,
+    worst: { beat, value: worst, unit: "px" },
+  };
+}
+
+/** How far a held hand may wander on the body that carries it, px: the brief's number. */
+const HAND_RIDE_TOLERANCE_PX = 0.05;
+
+/**
+ * `id` faces away from its own velocity at **every sample** of the window, not
+ * only on net.
+ *
+ * {@link walksBackward} measures the *net* displacement over a window
+ * projected on the facing at its midpoint, which is right for a courtesy
+ * turn's short pivot but reads a whole circle as standing still — an orbit
+ * ends back on its own start, so its net displacement is zero. This measures
+ * the thing F10's report actually found: the dot of facing and the unit
+ * velocity, sampled throughout, staying negative. Samples where the dancer is
+ * nearly still (the orbit's own eased ends) are skipped rather than counted,
+ * because a direction is noise once the speed that defines it is gone.
+ */
+function walksBackwardThroughout(track: Track, id: string, window: BeatWindow): TrajectoryResult {
+  const label = `${id} faces away from the way they are walking at every sample from beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let worst = -1;
+  let beat = track.beats[first] ?? 0;
+  for (let i = first; i <= last; i++) {
+    const v = velocity(track, id, i);
+    const speed = Math.hypot(v[0], v[1]);
+    if (speed < STILL_SPEED_PX_PER_BEAT) continue;
+    const face = dirOf(track.pose(id, i).facing);
+    const dot = (face[0] * v[0] + face[1] * v[1]) / speed;
+    if (dot > worst) {
+      worst = dot;
+      beat = track.beats[i] ?? 0;
+    }
+  }
+  if (worst > -BACKWARD_DOT_TOLERANCE) {
+    return fail(
+      label,
+      `facing·velocity reaches ${worst.toFixed(4)} at its worst, not walking backward there`,
+      beat,
+      worst,
+      "dot",
+    );
+  }
+  return {
+    label,
+    pass: true,
+    note: `facing·velocity never rises above ${worst.toFixed(4)}`,
+    worst: { beat, value: worst, unit: "dot" },
+  };
+}
+
+/** Below this floor speed a direction is noise, not evidence, px/beat. */
+const STILL_SPEED_PX_PER_BEAT = 0.1;
+
+/** How near `-1` facing·velocity must stay to count as walking dead astern. */
+const BACKWARD_DOT_TOLERANCE = 0.99;
+
+/**
+ * The centre of the circle through three floor points, by the standard
+ * determinant formula.
+ */
+function circumcentreOf(a: Vec2, b: Vec2, c: Vec2): Vec2 {
+  const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+  const sq = (p: Vec2) => p[0] * p[0] + p[1] * p[1];
+  const ux = (sq(a) * (b[1] - c[1]) + sq(b) * (c[1] - a[1]) + sq(c) * (a[1] - b[1])) / d;
+  const uy = (sq(a) * (c[0] - b[0]) + sq(b) * (a[0] - c[0]) + sq(c) * (b[0] - a[0])) / d;
+  return [ux, uy];
+}
+
+/**
+ * `id`'s own orbit centre, read off three of its own floor points rather than
+ * recomputed from the figure's formula — see the note on
+ * {@link robinsChainChecks}'s own `centre1L`/`centre2L`. A circle needs three
+ * points and the lark's radius is constant for the whole figure, so three
+ * samples spread across the window pin it down exactly.
+ */
+function circumcentre(track: Track, id: string, beats: Beat): Vec2 {
+  return circumcentreOf(
+    track.pose(id, track.indexAt(0)).p,
+    track.pose(id, track.indexAt(beats / 3)).p,
+    track.pose(id, track.indexAt((2 * beats) / 3)).p,
+  );
+}
+
+/**
+ * `id` sweeps a whole turn about `centre` over the window: the cumulative
+ * signed angle from `centre` to `id`'s own floor point totals a full circle.
+ *
+ * The endpoint facing alone cannot tell a whole turn from no turn at all — a
+ * dancer who never moves also "turns" 0° net — so this sums the small signed
+ * step between consecutive samples, which is safe at the oracle's own 1/32
+ * beat resolution because no single step approaches the ±180° a signed sum
+ * would need unwrapping for.
+ */
+function orbitsWholeTurn(
+  track: Track,
+  id: string,
+  centre: Vec2,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${id} orbits a whole turn about his own circle's centre, beat ${window.from} to ${window.to}`;
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let total = 0;
+  let prev = bearing(centre, track.pose(id, first).p);
+  let minR = Infinity;
+  let maxR = -Infinity;
+  for (let i = first; i <= last; i++) {
+    const p = track.pose(id, i).p;
+    const r = dist(centre, p);
+    if (r < minR) minR = r;
+    if (r > maxR) maxR = r;
+    if (i === first) continue;
+    const here = bearing(centre, p);
+    total += angleDiff(prev, here);
+    prev = here;
+  }
+  const off = Math.abs(Math.abs(total) - 360);
+  const beat = track.beats[last] ?? 0;
+  if (off > HALF_TURN_SLACK_DEG) {
+    return fail(
+      label,
+      `he sweeps ${total.toFixed(3)}° about it, not a whole turn`,
+      beat,
+      off,
+      "deg",
+    );
+  }
+  return {
+    label,
+    pass: true,
+    note: `he sweeps ${total.toFixed(3)}° about the centre, radius ${minR.toFixed(2)}–${maxR.toFixed(2)} px`,
+    worst: { beat, value: off, unit: "deg" },
+  };
+}
+
+/**
+ * `robin` arrives exactly on the antipode of `lark`'s own position on his
+ * circle — the point reflection of where he is through `centre` — at `beat`.
+ *
+ * This is the join itself: the user's "the robin has pulled by and is just
+ * about to let go of the other robin... as she does so, the lark is still
+ * pivoting backwards around that point, which puts his right hand right about
+ * where hers is, because she's basically joining the backwards pivot."
+ */
+function joinsAtAntipode(
+  track: Track,
+  lark: string,
+  robin: string,
+  centre: Vec2,
+  beat: Beat,
+): TrajectoryResult {
+  const label = `${robin} joins ${lark}'s orbit at its antipode, beat ${beat}`;
+  const i = track.indexAt(beat);
+  const larkP = track.pose(lark, i).p;
+  const robinP = track.pose(robin, i).p;
+  const antipode: Vec2 = [2 * centre[0] - larkP[0], 2 * centre[1] - larkP[1]];
+  const off = dist(antipode, robinP);
+  if (off > HAND_TOLERANCE_PX) {
+    return fail(label, `she is ${off.toFixed(3)} px from his antipode there`, beat, off, "px");
+  }
+  return {
+    label,
+    pass: true,
+    note: `she is ${off.toFixed(4)} px from his antipode, within ${HAND_TOLERANCE_PX} px`,
+    worst: { beat, value: off, unit: "px" },
+  };
+}
+
+/**
+ * `id` faces `which` the set's own centre at `beat`: the dot of their facing
+ * with the radial direction from {@link SET_CENTRE} to where they stand.
+ *
+ * Used for "both face out of the set at the halfway point" — {@link
+ * endsBesideOnTheRight} already makes the same measurement, inward, for the
+ * figure's last frame.
+ */
+function facesRelativeToCentre(
+  track: Track,
+  id: string,
+  beat: Beat,
+  which: "in" | "out",
+): TrajectoryResult {
+  const label = `${id} faces ${which} of the set at beat ${beat}`;
+  const i = track.indexAt(beat);
+  const pose = track.pose(id, i);
+  const look = dirOf(pose.facing);
+  const radial: Vec2 = [pose.p[0] - SET_CENTRE[0], pose.p[1] - SET_CENTRE[1]];
+  const dot = look[0] * radial[0] + look[1] * radial[1];
+  const value = which === "out" ? dot : -dot;
+  if (value <= 0) {
+    const other = which === "out" ? "in" : "out";
+    return fail(
+      label,
+      `facing ${(-value).toFixed(3)} px ${other} of the set instead`,
+      beat,
+      value,
+      "px",
+    );
+  }
+  return {
+    label,
+    pass: true,
+    note: `facing ${value.toFixed(2)} px ${which} of the set`,
+    worst: { beat, value, unit: "px" },
+  };
+}
+
+/**
+ * The pivot sits **near the lark**: he backs round a circle smaller than the
+ * couple's own hold spacing while she walks the big arc round him.
+ *
+ * The user, asked where the courtesy turn's pivot sits: "I think its near the
+ * lark, but its a little hard for me to imagine without doing the dance with 4
+ * people." Near the lark is not a distance, so this measures the two things
+ * that are true at every distance the user could mean and false at the one they
+ * corrected — F7's pivot midway between the two bodies, where the two of them
+ * walk the same arc and his is 18.06 px long.
+ *
+ * `HOLD_SPACING_PX` is the yardstick because it is the library's own number for
+ * how far apart two dancers stand to take hands: a lark who walks further than
+ * that to turn a robin has left his place, and the whole point of the ruling is
+ * that he does not.
+ */
+function backsRoundASmallCircle(
+  track: Track,
+  lark: string,
+  robin: string,
+  window: BeatWindow,
+): TrajectoryResult {
+  const label = `${lark} backs round a circle smaller than a hold spacing while ${robin} walks the arc, beat ${window.from} to ${window.to}`;
+  const his = walked(track, lark, window);
+  const hers = walked(track, robin, window);
+  const beat = window.to;
+  if (his > HOLD_SPACING_PX) {
+    return fail(label, `he walks ${his.toFixed(2)} px round the pivot`, beat, his, "px");
+  }
+  if (his > hers) {
+    return fail(
+      label,
+      `he walks ${his.toFixed(2)} px and she walks ${hers.toFixed(2)}, so the pivot is nearer her`,
+      beat,
+      his - hers,
+      "px",
+    );
+  }
+  return {
+    label,
+    pass: true,
+    note: `he walks ${his.toFixed(2)} px of circle — under the ${HOLD_SPACING_PX} px hold spacing — and she walks ${hers.toFixed(2)} px of arc`,
+    worst: { beat, value: his, unit: "px" },
+  };
+}
+
+/** How far one dancer's feet travel over a window, px. */
+function walked(track: Track, id: string, window: BeatWindow): number {
+  const first = track.indexAt(window.from);
+  const last = track.indexAt(window.to);
+  let sum = 0;
+  for (let i = first + 1; i <= last; i++) {
+    sum += dist(track.pose(id, i - 1).p, track.pose(id, i).p);
+  }
+  return sum;
 }
 
 /**
@@ -545,8 +998,8 @@ const fail = (
 ): TrajectoryResult => ({ label, pass: false, note, worst: { beat, value, unit } });
 
 /** A petronella: nobody holds anybody, and everybody lands one place on. */
-function petronellaChecks(): FigureChecks {
-  const { track, group } = figureTrack("petronella");
+function petronellaChecks(params: CheckParams): FigureChecks {
+  const { track, group } = figureTrack("petronella", params);
   const results = [
     endsOn(track, "1L", { id: "1R", p: stationAt(group, "1R") }, 1),
     endsOn(track, "1R", { id: "2L", p: stationAt(group, "2L") }, 1),
@@ -563,8 +1016,8 @@ function petronellaChecks(): FigureChecks {
  * close 9 px to the hold spacing before it can hold hands at all, which is a
  * deliberate deviation of M8's and not the thing being checked.
  */
-function balanceChecks(): FigureChecks {
-  const { track } = figureTrack("balance");
+function balanceChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("balance", params);
   const results = [
     handsJoined(track, "1L", "L", "2R", "R", win(1.5, 4)),
     handsJoined(track, "1L", "R", "2R", "L", win(1.5, 4)),
@@ -574,8 +1027,8 @@ function balanceChecks(): FigureChecks {
 }
 
 /** A swing: the outside hands are one point, held for the whole turn. */
-function swingChecks(): FigureChecks {
-  const { track } = figureTrack("swing");
+function swingChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("swing", params);
   const results = [joinedThroughout(track, "1L", "L", "2R", "R", win(1.5, 6))];
   return { key: "swing", describe: describeOf("swing"), results };
 }
@@ -612,8 +1065,8 @@ function balanceToSwingSeam(): FigureChecks {
  * `balance-and-swing`: the hold the rock takes is the hold the turn uses, and
  * it is one floor point from the moment it is taken until the pair opens out.
  */
-function balanceAndSwingChecks(): FigureChecks {
-  const { track } = figureTrack("balance-and-swing", { pairs: "neighbors", beats: 16 });
+function balanceAndSwingChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("balance-and-swing", { ...params, pairs: "neighbors", beats: 16 });
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "R", win(1.5, 14)),
     // And the rock's own second pair of hands, which the turn does let go of:
