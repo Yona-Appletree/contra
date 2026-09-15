@@ -250,26 +250,35 @@ export function deriveBounds(step = DERIVE_STEP): {
  * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
-  handSpeedPx: 71.2116,
-  elbowSpeedPx: 177.6548,
-  elbowPerHand: 9.5833,
+  handSpeedPx: 68.375,
+  elbowSpeedPx: 188.3108,
+  elbowPerHand: 9.8864,
   heightRatePx: 65.165,
   dipPx: 3.6,
 };
 
-/** The measured legitimate maxima the bounds above are three times. */
+/**
+ * The measured legitimate maxima the bounds above are three times.
+ *
+ * F13 moved these: the worst take in the registry is still `robins-chain`'s
+ * own, but the chain's default is now the lark's orbit (F10's candidate 5),
+ * whose pull by is a two-beat take rather than the earlier rigid turn's
+ * four-and-a-half-beat one — a shorter take reaches less far and needs less
+ * speed to get there. `motionBounds.test.ts` re-derives these; they are not
+ * retuned by hand.
+ */
 export const CONTRA_TAKE_MOTION = {
   /** The furthest hip-to-placed-point reach in the registry, px. */
-  floorPx: 15.8454,
-  floorAt: "robins-chain 1R R at t=1.563",
+  floorPx: 15.2143,
+  floorAt: "robins-chain 1R R at t=0.969",
   /** The smallest drop any figure holds a hand at, px. */
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
-  handSpeed: 23.7372,
-  elbowSpeed: 59.2183,
+  handSpeed: 22.7917,
+  elbowSpeed: 62.7703,
   heightRate: 21.7217,
-  elbowPerHand: 2.4947,
-  elbowRatio: 3.1944,
+  elbowPerHand: 2.7541,
+  elbowRatio: 3.2955,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

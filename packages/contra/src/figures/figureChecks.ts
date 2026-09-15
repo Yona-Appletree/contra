@@ -25,7 +25,7 @@ import {
   withDefaults,
 } from "@caller/choreo";
 import type { ContraFigure, ContraParams } from "./ContraFigure.js";
-import { bearing, holdWindow, midpoint, planContext, polar, worldSpot } from "./ContraFigure.js";
+import { bearing, holdWindow, planContext, polar, worldSpot } from "./ContraFigure.js";
 import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
 import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
@@ -231,15 +231,20 @@ function heyChecks(params: CheckParams): FigureChecks {
  * candidates it measured; this is what makes them the tests.
  */
 function robinsChainChecks(params: CheckParams): FigureChecks {
-  const { track, group } = figureTrack("robins-chain", params);
+  const { track, group, beats } = figureTrack("robins-chain", params);
   // From the join beat the pair is rigid about the orbit's own centre until
   // the couple opens out over the last 1.5 beats — `CHAIN_JOIN_BEAT` and
   // `OPEN_BEATS` are `robins-chain.ts`'s own numbers for the shipped default.
   const rigid = win(CHAIN_JOIN_BEAT, 6.5);
-  // Each lark's circle centres on the midpoint of his own place and the place
-  // of the robin who stood beside him and leaves — 1R for 1L, 2R for 2L.
-  const centre1L = midpoint(stationAt(group, "1L"), stationAt(group, "1R"));
-  const centre2L = midpoint(stationAt(group, "2L"), stationAt(group, "2R"));
+  // Each lark's own circle centre, measured rather than recomputed from the
+  // figure's own formula: `orbitTurn` puts it `hold / 2` off the lark's place
+  // toward the robin's, not at the true midpoint of the two original places
+  // (F10's own deviation 4) — so this reads it off three points on his own
+  // circle instead of assuming the number. The lark's radius is constant for
+  // the whole eight beats (only the robin's opens out), so any three distinct
+  // samples of his own track determine it.
+  const centre1L = circumcentre(track, "1L", beats);
+  const centre2L = circumcentre(track, "2L", beats);
   const results = [
     // The pull by crosses right shoulders near the set's own centre, close to
     // beat 1 at the shipped join beat of 2.
@@ -706,6 +711,33 @@ const STILL_SPEED_PX_PER_BEAT = 0.1;
 const BACKWARD_DOT_TOLERANCE = 0.99;
 
 /**
+ * The centre of the circle through three floor points, by the standard
+ * determinant formula.
+ */
+function circumcentreOf(a: Vec2, b: Vec2, c: Vec2): Vec2 {
+  const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+  const sq = (p: Vec2) => p[0] * p[0] + p[1] * p[1];
+  const ux = (sq(a) * (b[1] - c[1]) + sq(b) * (c[1] - a[1]) + sq(c) * (a[1] - b[1])) / d;
+  const uy = (sq(a) * (c[0] - b[0]) + sq(b) * (a[0] - c[0]) + sq(c) * (b[0] - a[0])) / d;
+  return [ux, uy];
+}
+
+/**
+ * `id`'s own orbit centre, read off three of its own floor points rather than
+ * recomputed from the figure's formula — see the note on
+ * {@link robinsChainChecks}'s own `centre1L`/`centre2L`. A circle needs three
+ * points and the lark's radius is constant for the whole figure, so three
+ * samples spread across the window pin it down exactly.
+ */
+function circumcentre(track: Track, id: string, beats: Beat): Vec2 {
+  return circumcentreOf(
+    track.pose(id, track.indexAt(0)).p,
+    track.pose(id, track.indexAt(beats / 3)).p,
+    track.pose(id, track.indexAt((2 * beats) / 3)).p,
+  );
+}
+
+/**
  * `id` sweeps a whole turn about `centre` over the window: the cumulative
  * signed angle from `centre` to `id`'s own floor point totals a full circle.
  *
@@ -721,7 +753,7 @@ function orbitsWholeTurn(
   centre: Vec2,
   window: BeatWindow,
 ): TrajectoryResult {
-  const label = `${id} orbits a whole turn about the midpoint of the two places, beat ${window.from} to ${window.to}`;
+  const label = `${id} orbits a whole turn about his own circle's centre, beat ${window.from} to ${window.to}`;
   const first = track.indexAt(window.from);
   const last = track.indexAt(window.to);
   let total = 0;

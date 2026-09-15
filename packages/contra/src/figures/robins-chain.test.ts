@@ -12,30 +12,31 @@ import {
   stationSpot,
 } from "./testing.js";
 
-describe("`?chain=`'s four candidates (PR #35)", () => {
-  it("names candidate 1 the figure's own shipped default", () => {
+describe("`?chain=`'s five candidates, 5 the default since F13", () => {
+  it("names candidate 1 the rigid turn F9 shipped — 1 through 4 now say joinBeat: 0 explicitly, to turn F13's orbit back off", () => {
     expect(CHAIN_CANDIDATES["1"]).toEqual({
-      pivotFromLark: robinsChain.defaults.pivotFromLark,
-      stepInPx: robinsChain.defaults.stepInPx,
+      pivotFromLark: COURTESY_PIVOT_FROM_LARK_PX,
+      stepInPx: 0,
+      joinBeat: 0,
     });
     expect(robinsChain.defaults.pivotFromLark).toBe(COURTESY_PIVOT_FROM_LARK_PX);
     expect(robinsChain.defaults.stepInPx).toBe(0);
   });
 
-  it("puts candidate 2's pivot at the lark, still rigid", () => {
-    expect(CHAIN_CANDIDATES["2"]).toEqual({ pivotFromLark: 0, stepInPx: 0 });
+  it("puts candidate 2's pivot at the lark, still rigid, still off", () => {
+    expect(CHAIN_CANDIDATES["2"]).toEqual({ pivotFromLark: 0, stepInPx: 0, joinBeat: 0 });
   });
 
-  it("steps candidates 3 and 4 in 4 px and 8 px, the couple spinning", () => {
-    expect(CHAIN_CANDIDATES["3"]).toEqual({ stepInPx: 4 });
-    expect(CHAIN_CANDIDATES["4"]).toEqual({ stepInPx: 8 });
+  it("steps candidates 3 and 4 in 4 px and 8 px, the couple spinning, still off", () => {
+    expect(CHAIN_CANDIDATES["3"]).toEqual({ stepInPx: 4, joinBeat: 0 });
+    expect(CHAIN_CANDIDATES["4"]).toEqual({ stepInPx: 8, joinBeat: 0 });
   });
 
-  it("makes candidate 5 the lark's orbit, joined a quarter of the way through", () => {
+  it("makes candidate 5 the lark's orbit, joined a quarter of the way through, and now the figure's own default (F13)", () => {
     expect(CHAIN_CANDIDATES["5"]).toEqual({ joinBeat: CHAIN_JOIN_BEAT, passPx: CHAIN_PASS_PX });
     expect(CHAIN_JOIN_BEAT).toBe(2);
-    // Nothing but candidate 5 asks for an orbit, so the default is no orbit.
-    expect(robinsChain.defaults.joinBeat).toBe(0);
+    expect(robinsChain.defaults.joinBeat).toBe(CHAIN_JOIN_BEAT);
+    expect(robinsChain.defaults.passPx).toBe(CHAIN_PASS_PX);
   });
 
   it("has no sixth candidate", () => {
@@ -70,10 +71,10 @@ describe("robins chain", () => {
     expect(() => figureMoves(robinsChain, { chains: "nobody" }, BECKET)).toThrow(/exactly two/);
   });
 
-  // F9's other candidate. The default is the rigid turn and everything above
-  // measures it; these two pin what `stepInPx` is for, so the comparison the
-  // user picks from cannot quietly rot.
-  it("chains rigidly by default", () => {
+  // F9's other candidate, still reachable behind `?chain=3`/`?chain=4` even
+  // though F13 moved the default off the rigid turn entirely: `stepInPx` only
+  // matters when `joinBeat` is 0, and the default no longer is.
+  it("still has a step-in family behind stepInPx, off by default", () => {
     expect(robinsChain.defaults.stepInPx).toBe(0);
   });
 
@@ -107,9 +108,10 @@ describe("robins chain", () => {
     }
   });
 
-  // F10's candidate. The four facts the whole milestone rests on, pinned: the
-  // pull by is on the right shoulder and clear of AC6, the lark walks backward
-  // the whole way round, the couple faces out at the half and in at the end,
+  // F10's candidate, F13's default. The four facts the whole milestone rests
+  // on, pinned: the pull by is on the right shoulder and clear of AC6, the
+  // lark walks backward the whole way round, the couple faces out at the half
+  // and in at the end,
   // and both of them land exactly on their places.
   it("orbits the lark a whole turn backwards and pulls by on the right", () => {
     const orbit = CHAIN_CANDIDATES["5"]!;

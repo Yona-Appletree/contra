@@ -39,18 +39,22 @@ export interface KnownWrong {
  *   backward, right and left through passes the dancer it is facing, and a
  *   do-si-do passes instead of orbiting.
  *
- * It was empty from then until F7, which put the chain's pull by on it. The
- * contract `figureChecks.test.ts` holds is that everything not on this list
- * passes **and everything on it still fails**, so the row below has to be
- * deleted by whoever fixes it rather than quietly going stale.
+ * It was empty from then until F7, which put the chain's pull by on it. F13
+ * fixed that row's own cause (the rigid turn) by making the lark's orbit
+ * (F10's candidate 5) the default, and immediately found a different failure
+ * of the same assertion underneath it — see the row below — so the table's
+ * length did not change, but why it is not empty did. The contract
+ * `figureChecks.test.ts` holds is that everything not on this list passes
+ * **and everything on it still fails**, so a row has to be deleted by whoever
+ * fixes it rather than quietly going stale.
  */
 export const KNOWN_WRONG: readonly KnownWrong[] = [
   {
     key: "robins-chain",
-    label: "1R and 2R pass R shoulders around beat 2.5",
+    label: "1R and 2R pass R shoulders around beat 1.0",
     measured:
-      "they come 13.497 px apart at beat 2.719, 6.75 px from the middle of the set — a pass, and in the middle — but 2R is on 1R's LEFT by 13.16 px, and the same three numbers at every pivot F8 measured (0, 1.4375, 2.875, 4.3125 and 5.75 px from the lark)",
-    why: "F7's ruling makes the courtesy turn a rigid pivot, and a rigid pivot's take is the finish reflected through the pivot: the robin's take is exactly one hold behind the lark's along the line she is travelling, so she stops short of her new couple's centre on the near side of it. Two robins who both stop short of the middle are on each other's left however they walk — their straight paths come no nearer than 19.36 px, and the bow that closes that gap cannot change which side of it they are on. F8 moved the pivot to the lark, which the ruling hoped would carry her take across the set, and it does not move it at all: her take is a hold behind his whatever the pivot, so the shoulder is decided by the couple's hold and not by where between them they turn. The arithmetic: with the two robins' paths point-symmetric about the set's centre, the sign that decides the shoulder works out to 320 − 10 m in duple improper, where m is how far her take is along the line from her lark — so it needs m > 32, her take past her own destination, which needs the lark's take a hold past that again, 11.5 px outside a 32 px set. Getting them on to right shoulders that way puts four dancers in the middle at once and breaks AC6 (F7's measured best: 6.78 px against 8). Ruling wanted: the rigid turn and the right-shoulder pull by cannot both be had at this set width, and the pivot is not the knob that buys it.",
+      "they never come closer than 16.247 px, and a pass is 14 px — the closest they come is 16.247 px apart at beat 1.5",
+    why: "F13 makes the lark's orbit (F10's candidate 5) the chain's default, whose pull by is a solved point reflection through the set's own centre: the two robins' clearance there is exactly twice how near one of them comes to it. `figureChecks.ts` dances every figure alone from the duple-improper stations, where the two lines stand a full 32 px apart — and no demo dance ever calls the chain from that arrangement; all seven that call it hand it a becket-shaped minor set instead, where this same pull by comes together at 8.500 px on the right, exactly as designed (see F10's own report). `orbitTurn` (F10's ruling, unchanged by F13) already knows this: it only bends the two robins' paths through the dip when their plain, undipped walk already brings them within a hold spacing of each other, because forcing the dip where it does not would send them further apart on their own two sides rather than together — measured and then removed by F10, an AC6 failure at 3.99 px. In duple improper alone their plain walk does not come that close, so there genuinely is no pull by to have there, which is the honest 16.247 px this assertion measures. This is not the rigid turn's defect recurring; it is a different figure hitting the same synthetic formation, and F10's report named it (deviation 5) rather than fixing an assertion nothing in the library actually dances.",
   },
 ];
 
