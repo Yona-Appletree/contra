@@ -23,11 +23,7 @@ import {
   resolveSelector,
   withDefaults,
 } from "@caller/choreo";
-import type {
-  ContraCall,
-  FigureDefaultsOverride,
-  FigureTexts,
-} from "@caller/contra";
+import type { ContraCall, FigureDefaultsOverride, FigureTexts } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
   CONTRA_MOTION_BOUNDS,

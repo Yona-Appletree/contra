@@ -34,8 +34,7 @@ beat) while fixing the hey, the chain, right-and-left-through and the star:
 17.8986 px (F4's starting point) → 16.1152 (F4) → 14.7814 px (F5 through F12,
 the rigid courtesy turn's own reach, `robins-chain 2L R at t=5.469`) →
 **15.2143 px (F13, the lark's orbit's own reach, `robins-chain 1R R at
-t=0.969`)**. F13 made the chain's default the lark's orbit (F10's candidate
-5) rather than the rigid pivot, which moved the registry's own worst take —
+t=0.969`)**. F13 made the chain's default the lark's orbit (F10's candidate 5) rather than the rigid pivot, which moved the registry's own worst take —
 a shorter, faster pull by reaches less far but needs less time to get there —
 and `docs/motion-report.md`'s derived bounds are rebuilt from the new number.
 AC1's own number is unaffected by any of this: it is still `0`.
@@ -151,12 +150,12 @@ have to find by scrolling it.
   188.3108 px/beat, elbow-speed-÷-hand-speed ratio 9.8864×, hand height rate
   65.1650 px/beat, out-and-back-in-one-beat (dip) 3.6000 px. The worst take
   itself reaches 15.2143 px from a dancer's own hip (`robins-chain 1R R at
-  t=0.969`, the orbit's own pull by).
+t=0.969`, the orbit's own pull by).
 - **The known-wrong table's current length: 1 row.** Empty from F3c until F7,
   which put the chain's pull-by assertion on it: the rigid turn's take could
   not reach a right-shoulder pass at the set's width. F13 replaced the
   chain's default with the lark's orbit (F10's candidate 5) and, with it, the
-  row's own text — the orbit's pull by *is* right-shoulder and exact in every
+  row's own text — the orbit's pull by _is_ right-shoulder and exact in every
   real dance (all seven that call the chain hand it a becket-shaped
   arrangement, per F9's own finding) — but the row could not be deleted: the
   same assertion still fails in the synthetic duple-improper-alone formation

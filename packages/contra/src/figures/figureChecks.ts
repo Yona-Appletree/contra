@@ -773,7 +773,13 @@ function orbitsWholeTurn(
   const off = Math.abs(Math.abs(total) - 360);
   const beat = track.beats[last] ?? 0;
   if (off > HALF_TURN_SLACK_DEG) {
-    return fail(label, `he sweeps ${total.toFixed(3)}° about it, not a whole turn`, beat, off, "deg");
+    return fail(
+      label,
+      `he sweeps ${total.toFixed(3)}° about it, not a whole turn`,
+      beat,
+      off,
+      "deg",
+    );
   }
   return {
     label,
@@ -839,7 +845,13 @@ function facesRelativeToCentre(
   const value = which === "out" ? dot : -dot;
   if (value <= 0) {
     const other = which === "out" ? "in" : "out";
-    return fail(label, `facing ${(-value).toFixed(3)} px ${other} of the set instead`, beat, value, "px");
+    return fail(
+      label,
+      `facing ${(-value).toFixed(3)} px ${other} of the set instead`,
+      beat,
+      value,
+      "px",
+    );
   }
   return {
     label,
