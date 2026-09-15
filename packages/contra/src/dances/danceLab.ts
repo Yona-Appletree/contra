@@ -80,7 +80,15 @@ export function danceResolution(dance: Dance, couples: number): ResolutionRow[] 
       if (event.figure !== call.figure) continue;
       const def = library.has(call.figure) ? library.get(call.figure) : undefined;
       const carried = (event.params as { carried?: Carried }).carried;
-      const standing = holds.filter((h) => h.group === event.group);
+      // The dancers this call left out, in the **same minor set** as this
+      // instance — not in the same group. A data figure's instance is a group
+      // of two minted per pair (`set0/p0/allemande/1R-2R#3`) and the hold-place
+      // instance beside it is the minor set's own (`set0/p0#4`), so comparing
+      // whole group ids matched nothing and the table silently dropped every
+      // hold-place row from the moment M2 migrated a figure. The minor set is
+      // the first two segments of either id.
+      const mine = minorSetOf(event.group);
+      const standing = holds.filter((h) => minorSetOf(h.group) === mine);
       rows.push({
         phrase,
         figure: call.figure,
@@ -97,6 +105,17 @@ export function danceResolution(dance: Dance, couples: number): ResolutionRow[] 
     }
   }
   return rows;
+}
+
+/**
+ * The minor set a group instance belongs to: the first two segments of its id.
+ *
+ * `set0/p0#4` and `set0/p0/allemande/1R-2R#3` are the same four dancers' minor
+ * set, partitioned two different ways by two different calls. Everything after
+ * the second segment names the instance rather than the place.
+ */
+function minorSetOf(group: string): string {
+  return group.split("/").slice(0, 2).join("/").replace(/#\d+$/, "");
 }
 
 /**

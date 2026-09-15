@@ -16,6 +16,7 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
  */
 
 const BUTTER = danceBySlug("butter")!;
+const AIRPANTS = danceBySlug("airpants")!;
 
 /** The minor set a group id belongs to: `set0/p0` out of `set0/p0/swing/1L-2R#3`. */
 const minorSetOf = (group: string): string => group.split("#")[0]!.split("/").slice(0, 2).join("/");
@@ -72,6 +73,21 @@ describe("the dance lab", () => {
       }
       expect(row.holdPlace, row.figure).toEqual([]);
     }
+  });
+
+  it("names the dancers a call leaves out, beside the instance that left them out", () => {
+    // "Robins allemande right": the two larks are not in the figure at all and
+    // dance an explicit hold-place figure (M2), which is a **different group**
+    // from the pair's own instance — `set0/p0#4` beside
+    // `set0/p0/allemande/1R-2R#3`. Matching the two by whole group id found
+    // nothing, and the table silently dropped every hold-place row from the
+    // moment M2 migrated a figure; the minor set is the first two segments.
+    const rows = danceResolution(AIRPANTS, 2);
+    const allemande = rows.find((r) => r.figure === "allemande");
+    expect(allemande?.group).toMatch(/^set0\/p0\/allemande\//);
+    expect(allemande?.holdPlace).toEqual(["set0/c0/lark", "set0/c1/lark"]);
+    // And a call that leaves nobody out still says nobody.
+    expect(rows.find((r) => r.figure === "long-lines")?.holdPlace).toEqual([]);
   });
 
   it("reports the hands that cross a figure boundary, and they agree on both sides", () => {
