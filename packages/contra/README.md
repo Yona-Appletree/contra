@@ -184,7 +184,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                         |
 | `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                           |
 | `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 7, `holdDrop` 6, `stackPx` 1, `scoopPx` 10                                      |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 3.5, `holdDrop` 6, `stackPx` 1, plus the five candidates' knobs                 |
 | `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                               |
 | `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                               |
 | `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                 |

@@ -13,6 +13,7 @@ import {
   tileByKey,
   tileMetrics,
 } from "./galleryTiles.js";
+import { chainOverridesFromQuery } from "./state/chainQuery.js";
 
 /** Fine enough to catch a frame the renderer would have clipped. */
 const STEP = 0.125;
@@ -169,6 +170,15 @@ describe("`?chain=`'s registry override (F9)", () => {
     const plain = tileByKey(figureTiles(), "robins-chain")!;
     const overridden = tileByKey(figureTiles(overrides), "robins-chain")!;
     expect(moved(plain, overridden)).toBe(true);
+  });
+
+  // F10: the same route, driven by the query parser the three routes share
+  // rather than a hand-written override, so `?chain=5` reaching the tiles is
+  // the thing under test and not a map somebody typed here.
+  test("carries `?chain=5`, the lark's orbit, the whole way from the URL", () => {
+    const plain = tileByKey(figureTiles(), "robins-chain")!;
+    const orbit = tileByKey(figureTiles(chainOverridesFromQuery("5")), "robins-chain")!;
+    expect(moved(plain, orbit)).toBe(true);
   });
 
   test("reaches every seam the figure is under, and leaves the others alone", () => {
