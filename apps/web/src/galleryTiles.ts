@@ -18,6 +18,7 @@ import type {
 import {
   HANDS_FOUR_GROUP,
   WALK_TO_STATION,
+  concurrentCalls,
   createGroup,
   createHall,
   createTimeline,
@@ -39,6 +40,7 @@ import type {
 import {
   CONTRA_FIGURE_IDS,
   dataOnlyDefinitions,
+  needsTheSet,
   dataOnlyFigureIds,
   contraDataFigures,
   CONTRA_MOTION_BOUNDS,
@@ -457,12 +459,14 @@ export function seamTiles(
  */
 function tileEngine(ids: readonly string[], engine: EngineChoice): EngineChoice {
   if (engine === "new") return "new";
-  const needsTheSet = ids.some((id) =>
-    dataOnlyDefinitions().some(
-      (def) => def.id === id && def.actors !== "all" && def.actors !== "ring",
-    ),
+  // `needsTheSet` is the library's own predicate (M8) — the one question the
+  // hands-four template, the symmetry harness and this page were all asking
+  // separately: a figure resolution mints per pair or per dancer, or one whose
+  // shape reads the lattice, can only be planned against a real set.
+  const set = ids.some((id) =>
+    dataOnlyDefinitions().some((def) => def.id === id && needsTheSet(def)),
   );
-  return needsTheSet ? "new" : "old";
+  return set ? "new" : "old";
 }
 
 /** The note a tile forced on to the other engine carries, so the page says so. */
@@ -643,11 +647,19 @@ export interface CorpusSeam {
 export function corpusSeams(dances: readonly Dance[] = DEMO_DANCES): CorpusSeam[] {
   const out: CorpusSeam[] = [];
   for (const dance of dances) {
-    const flat = dance.phrases.flatMap((p) => p.figures);
-    for (let i = 0; i < flat.length; i++) {
-      const a = flat[i]!;
-      const b = flat[(i + 1) % flat.length]!;
-      out.push({ key: `${a.figure}--${b.figure}`, dance, a, b, wrapped: i + 1 === flat.length });
+    // **One step of the dance may be several figures** (M8): a concurrent call
+    // is two figures over the same beats, so a step is a *list* and a seam is
+    // every figure of one step into every figure of the next. Two branches make
+    // four seams out of one boundary, which is right — the robins' loop into the
+    // partner swing is as real a seam as the larks' allemande into it.
+    const steps = dance.phrases.flatMap((p) => p.figures).map((call) => concurrentCalls(call));
+    for (let i = 0; i < steps.length; i++) {
+      const wrapped = i + 1 === steps.length;
+      for (const a of steps[i]!) {
+        for (const b of steps[(i + 1) % steps.length]!) {
+          out.push({ key: `${a.figure}--${b.figure}`, dance, a, b, wrapped });
+        }
+      }
     }
   }
   return out;

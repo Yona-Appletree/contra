@@ -2,6 +2,8 @@ import type { Beat } from "@caller/core";
 import type { Dance, DancerId, MotionStats, PhraseName, StationId } from "@caller/choreo";
 import {
   MOTION_STEP,
+  callBeats,
+  concurrentCalls,
   createHall,
   danceBeats,
   danceSchedule,
@@ -94,37 +96,41 @@ export function danceResolution(dance: Dance, couples: number): ResolutionRow[] 
   const { library } = contraDataEngine();
   const timeline = danceAlone(dance, couples, danceBeats(dance), {}, LAB_RUN).timeline();
   const rows: ResolutionRow[] = [];
-  for (const { call, start, phrase } of danceSchedule(dance)) {
-    const here = timeline
-      .figures()
-      .filter((e) => e.start === start && e.end === start + call.beats);
+  for (const { call: written, start, phrase } of danceSchedule(dance)) {
+    // **A concurrent call is several figures at one beat** (M8), and the table
+    // has a row for each of them: the larks' allemande and the robins' loop are
+    // both what happened at beat 48.
+    const beats = callBeats(written);
+    const here = timeline.figures().filter((e) => e.start === start && e.end <= start + beats);
     const holds = here.filter((e) => e.figure === HOLD_PLACE_FIGURE);
-    for (const event of here) {
-      if (event.figure !== call.figure) continue;
-      const def = library.has(call.figure) ? library.get(call.figure) : undefined;
-      const carried = (event.params as { carried?: Carried }).carried;
-      // The dancers this call left out, in the **same minor set** as this
-      // instance — not in the same group. A data figure's instance is a group
-      // of two minted per pair (`set0/p0/allemande/1R-2R#3`) and the hold-place
-      // instance beside it is the minor set's own (`set0/p0#4`), so comparing
-      // whole group ids matched nothing and the table silently dropped every
-      // hold-place row from the moment M2 migrated a figure. The minor set is
-      // the first two segments of either id.
-      const mine = minorSetOf(event.group);
-      const standing = holds.filter((h) => minorSetOf(h.group) === mine);
-      rows.push({
-        phrase,
-        figure: call.figure,
-        start,
-        beats: call.beats,
-        group: event.group,
-        cast: { ...event.bindings },
-        anchor: def === undefined ? "—" : JSON.stringify(def.anchor),
-        ends: def === undefined ? "—" : JSON.stringify(def.ends),
-        carriedIn: joinsOf(carried?.in, event.bindings),
-        carriedOut: joinsOf(carried?.out, event.bindings),
-        holdPlace: standing.flatMap((h) => Object.values(h.bindings)),
-      });
+    for (const call of concurrentCalls(written)) {
+      for (const event of here) {
+        if (event.figure !== call.figure || event.end !== start + call.beats) continue;
+        const def = library.has(call.figure) ? library.get(call.figure) : undefined;
+        const carried = (event.params as { carried?: Carried }).carried;
+        // The dancers this call left out, in the **same minor set** as this
+        // instance — not in the same group. A data figure's instance is a group
+        // of two minted per pair (`set0/p0/allemande/1R-2R#3`) and the hold-place
+        // instance beside it is the minor set's own (`set0/p0#4`), so comparing
+        // whole group ids matched nothing and the table silently dropped every
+        // hold-place row from the moment M2 migrated a figure. The minor set is
+        // the first two segments of either id.
+        const mine = minorSetOf(event.group);
+        const standing = holds.filter((h) => minorSetOf(h.group) === mine);
+        rows.push({
+          phrase,
+          figure: call.figure,
+          start,
+          beats: call.beats,
+          group: event.group,
+          cast: { ...event.bindings },
+          anchor: def === undefined ? "—" : JSON.stringify(def.anchor),
+          ends: def === undefined ? "—" : JSON.stringify(def.ends),
+          carriedIn: joinsOf(carried?.in, event.bindings),
+          carriedOut: joinsOf(carried?.out, event.bindings),
+          holdPlace: standing.flatMap((h) => Object.values(h.bindings)),
+        });
+      }
     }
   }
   return rows;

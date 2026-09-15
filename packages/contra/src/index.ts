@@ -242,6 +242,7 @@ export {
   dataOnlyDefinitions,
   dataOnlyFigureIds,
   dataOnlyFigures,
+  needsTheSet,
   templateFigureOf,
   MINOR_SET_ROLES,
   PAIR_ROCK,

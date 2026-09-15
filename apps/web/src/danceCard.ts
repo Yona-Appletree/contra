@@ -1,5 +1,5 @@
 import type { Dance } from "@caller/choreo";
-import { withDefaults } from "@caller/choreo";
+import { callBeats, withDefaults } from "@caller/choreo";
 import { createContraRegistry, resolveFigureCall } from "@caller/contra";
 import type { CardPhrase } from "@caller/music";
 
@@ -41,8 +41,21 @@ export function cardDance(dance: Dance): {
     phrases: dance.phrases.map((phrase) => ({
       name: phrase.name,
       figures: phrase.figures.map((call) => ({
-        beats: call.beats,
+        // **A concurrent call is one row of the card with two lines** (M8): it
+        // is one figure of the phrase — the caller says one thing — and each
+        // line says what one half of the hall does. The row's length is the
+        // longest of them, which is what `callBeats` answers.
+        beats: callBeats(call),
         call: call.call ?? fallbackCall(registry, call),
+        ...((call.while ?? []).length === 0
+          ? {}
+          : {
+              with: (call.while ?? []).map(
+                (branch) =>
+                  branch.call ??
+                  fallbackCall(registry, { ...branch, beats: branch.beats ?? call.beats }),
+              ),
+            }),
       })),
     })),
   };

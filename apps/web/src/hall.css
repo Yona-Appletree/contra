@@ -205,6 +205,21 @@
   opacity: 1;
 }
 
+/*
+ * The second line of a concurrent call (M8): one row of the card, two lines,
+ * the branch indented under the call it runs beside with the corpus's own `||`
+ * before it.
+ */
+.caller-music-card-figure-with {
+  display: block;
+  padding-left: 0.75rem;
+}
+
+.caller-music-card-figure-with::before {
+  content: "‖ ";
+  opacity: 0.6;
+}
+
 /* Whatever the page puts on the card under the phrases — the tune. */
 .caller-music-card-extra {
   padding: 0 0.5rem 0.5rem;

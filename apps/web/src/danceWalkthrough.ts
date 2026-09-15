@@ -1,5 +1,5 @@
 import type { Dance } from "@caller/choreo";
-import { withDefaults } from "@caller/choreo";
+import { concurrentCalls, withDefaults } from "@caller/choreo";
 import {
   contraDataFigures,
   createContraRegistry,
@@ -39,7 +39,11 @@ export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] 
   const group = probeGroup(formationFor(dance), 4);
   const steps: DanceWalkthroughStep[] = [];
   for (const phrase of dance.phrases) {
-    for (const call of phrase.figures) {
+    // **A concurrent call is walked through as its own steps** (M8), in the
+    // order the record writes them: a caller teaching "women cast back while
+    // men go forward" teaches both halves, one after the other, and each half
+    // has its own figure and its own words.
+    for (const call of phrase.figures.flatMap((written) => concurrentCalls(written))) {
       const def = registry.get(call.figure);
       const params = withDefaults(def, call.params, call.beats);
       const texts = resolveFigureText(call.figure, params, group);
