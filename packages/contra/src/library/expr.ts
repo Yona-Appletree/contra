@@ -78,7 +78,18 @@ export type NumberExpr =
    * about their part in the figure, which is why it reads a parameter naming a
    * role rather than a figure-role.
    */
-  | { number: "ifRole"; role: string; then: NumberExpr; else: NumberExpr };
+  | { number: "ifRole"; role: string; then: NumberExpr; else: NumberExpr }
+  /**
+   * How far apart two points are, px.
+   *
+   * The one number a figure cannot write down because it is a fact about where
+   * the dancers are standing: a mad robin circulates around the point between
+   * the pair, and how far out that circle is depends on how far apart they are
+   * — 20 px along a duple improper line and 32 across it, and the figure is the
+   * same figure either way. M5's, and the only leaf in the calculus that reads a
+   * length off the floor rather than out of a parameter.
+   */
+  | { number: "distance"; from: PointExpr; to: PointExpr };
 
 /**
  * A beat of the figure, counted from its start or from its end.
@@ -241,6 +252,11 @@ export function evalNumber(expr: NumberExpr, env: ExprEnv): number {
     return Math.sign(of || 1);
   }
   if (expr.number === "beats") return env.beats;
+  if (expr.number === "distance") {
+    const from = evalPoint(expr.from, env);
+    const to = evalPoint(expr.to, env);
+    return Math.hypot(to[0] - from[0], to[1] - from[1]);
+  }
   if (expr.number === "ifRole") {
     const want = paramOf(env, expr.role);
     const mine = env.ctx.role(env.self);

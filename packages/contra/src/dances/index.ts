@@ -18,6 +18,7 @@ import contrablendFile from "../../../../data/dances/contrablend.json" with { ty
 import jubilationFile from "../../../../data/dances/jubilation.json" with { type: "json" };
 import kitchenStompFile from "../../../../data/dances/kitchen-stomp.json" with { type: "json" };
 import neighborNeighborOnTheWallFile from "../../../../data/dances/neighbor-neighbor-on-the-wall.json" with { type: "json" };
+import onTheProwlFile from "../../../../data/dances/on-the-prowl.json" with { type: "json" };
 import programmeFile from "../../../../data/dances/programme.json" with { type: "json" };
 import thanksToTheGeneFile from "../../../../data/dances/thanks-to-the-gene.json" with { type: "json" };
 import theBabyRoseFile from "../../../../data/dances/the-baby-rose.json" with { type: "json" };
@@ -37,6 +38,7 @@ const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
       jubilationFile,
       kitchenStompFile,
       neighborNeighborOnTheWallFile,
+      onTheProwlFile,
       thanksToTheGeneFile,
       theBabyRoseFile,
       theCarouselFile,
@@ -114,7 +116,14 @@ export { LARKS, ROBINS } from "./pairs.js";
 export type { MotionAllowance, MotionMetric } from "./motionAllowlist.js";
 export { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";
 export type { DanceLabReport, EndEffectRow, ResolutionRow } from "./danceLab.js";
-export { danceLabReport, danceOwes, danceResolution, endEffects, labCouples } from "./danceLab.js";
+export {
+  LAB_RUN,
+  danceLabReport,
+  danceOwes,
+  danceResolution,
+  endEffects,
+  labCouples,
+} from "./danceLab.js";
 export type { AcceptanceDance } from "./acceptance.js";
 export { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./acceptance.js";
 export type { DanceFile, DanceFileSource } from "./loadDances.js";
@@ -130,4 +139,5 @@ export {
   formationFor,
   linesFor,
   oraclesFor,
+  threadsOnTheOldPath,
 } from "./oracle.js";

@@ -175,21 +175,28 @@ describe("the registry's figure-defaults override", () => {
   // A figure named in the override map dances at those defaults instead of its
   // own shipped ones, wherever it appears — the registry's own seam, and the
   // way to compare one tuning of a figure against another without a rebuild.
-  // The hey's `weavePx` is a harmless thing to move: it is how far each dancer
-  // swings off the middle of the weave, so it changes the path the tile draws
-  // and nothing else. It also has to be a figure the **registry** still owns —
-  // the eleven carriers and five gatherers are interpreted definitions now, and
-  // those come into the registry as `extra` past the override merge, so the hey
-  // is the one figure left whose coded defaults an override still reaches.
-  const overrides = { hey: { weavePx: 4 } };
+  //
+  // **On the old engine**, which is where an override reaches anything at all:
+  // an interpreted definition arrives in the registry past the override merge
+  // (M4's finding), and M5 deleted the hey — the last figure whose *coded*
+  // defaults the new engine's registry still owned. The mechanism goes when the
+  // coded layer does (M11); until then this is what it reaches.
+  //
+  // Long lines' `forwardPx` is a harmless thing to move: how far each dancer
+  // walks forward and back, which changes the path the tile draws and nothing
+  // else. It also has to be a parameter **no dance writes**, because a call's
+  // own params beat a figure's defaults and every demo call of a circle names
+  // its own `places`.
+  const ENGINE = "old" as const;
+  const overrides = { "long-lines": { forwardPx: 4 } };
 
   test("changes nothing when no figure is named", () => {
     expect(figureTiles({}).map((t) => t.key)).toEqual(figureTiles().map((t) => t.key));
   });
 
   test("reaches the figure's own tile", () => {
-    const plain = tileByKey(figureTiles(), "hey")!;
-    const overridden = tileByKey(figureTiles(overrides), "hey")!;
+    const plain = tileByKey(figureTiles({}, ENGINE), "long-lines")!;
+    const overridden = tileByKey(figureTiles(overrides, ENGINE), "long-lines")!;
     expect(moved(plain, overridden)).toBe(true);
   });
 
@@ -198,17 +205,17 @@ describe("the registry's figure-defaults override", () => {
   // what reach the tile, rather than the act of passing a map rebuilding it
   // down some other path.
   test("restating the figure's own default moves nothing", () => {
-    const plain = tileByKey(figureTiles(), "hey")!;
-    const same = tileByKey(figureTiles({ hey: { weavePx: 6.5 } }), "hey")!;
+    const plain = tileByKey(figureTiles({}, ENGINE), "long-lines")!;
+    const same = tileByKey(figureTiles({ "long-lines": { forwardPx: 9 } }, ENGINE), "long-lines")!;
     expect(moved(plain, same)).toBe(false);
   });
 
   test("reaches every seam the figure is under, and leaves the others alone", () => {
-    const plainSeams = seamTiles();
-    const overriddenSeams = seamTiles(overrides);
+    const plainSeams = seamTiles({}, ENGINE);
+    const overriddenSeams = seamTiles(overrides, ENGINE);
     for (const plain of plainSeams) {
       const overridden = tileByKey(overriddenSeams, plain.key)!;
-      const involvesFigure = plain.calls.some((c) => c.figure === "hey");
+      const involvesFigure = plain.calls.some((c) => c.figure === "long-lines");
       expect(moved(plain, overridden), plain.key).toBe(involvesFigure);
     }
   });

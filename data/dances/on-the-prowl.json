@@ -1,0 +1,92 @@
+{
+  "slug": "on-the-prowl",
+  "title": "On the Prowl",
+  "author": "Chris Page",
+  "formation": "duple-improper",
+  "waitOut": { "joinBeats": 2 },
+  "notes": "The Caller's Box 10626, permission: full. The acceptance set's timing dance and its ricochet: a mad robin in three beats, a promenade in two, a shoulder round in three, and a hey that ricochets on the seventh pass and ends short on the eighth.",
+  "source": {
+    "callersBoxId": 10626,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10626",
+    "permission": "full",
+    "transcript": "A1  (3) Mad robin clockwise 1/2 around neighbor  (2) Single file promenade clockwise 1/4  (3) Partner right shoulder round 1/2  (8) Partner swing\nA2  (3) Mad robin clockwise 1/2 around partner  (2) Single file promenade clockwise 1/4  (3) Neighbor right shoulder round 1/2  (8) Neighbor swing\nB1  (8) In long lines, go forward and back  (8) Ladies chain to partner\nB2  (16) Ricochet hey (WR;NL;MR;PL;WR;NL;M ricochet;NL~)"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "mad-robin",
+          "beats": 3,
+          "params": { "pairs": "neighbors", "amount": 0.5, "direction": "clockwise" },
+          "call": "MAD ROBIN HALF WAY AROUND YOUR NEIGHBOUR"
+        },
+        {
+          "figure": "single-file-promenade",
+          "beats": 2,
+          "params": { "direction": "clockwise", "amount": 0.25 },
+          "call": "SINGLE FILE PROMENADE A QUARTER"
+        },
+        {
+          "figure": "shoulder-round",
+          "beats": 3,
+          "params": { "pairs": "partners", "hand": "R", "amount": 0.5 },
+          "call": "HALF A RIGHT SHOULDER ROUND WITH YOUR PARTNER"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "mad-robin",
+          "beats": 3,
+          "params": { "pairs": "partners", "amount": 0.5, "direction": "clockwise" },
+          "call": "MAD ROBIN HALF WAY AROUND YOUR PARTNER"
+        },
+        {
+          "figure": "single-file-promenade",
+          "beats": 2,
+          "params": { "direction": "clockwise", "amount": 0.25 },
+          "call": "SINGLE FILE PROMENADE A QUARTER"
+        },
+        {
+          "figure": "shoulder-round",
+          "beats": 3,
+          "params": { "pairs": "neighbors", "hand": "R", "amount": 0.5 },
+          "call": "HALF A RIGHT SHOULDER ROUND WITH YOUR NEIGHBOUR"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOR SWING"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR PARTNER" }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "hey",
+          "beats": 16,
+          "params": { "passes": "RR NL LR PL RR NL L! NL~" },
+          "call": "RICOCHET HEY FOR FOUR"
+        }
+      ]
+    }
+  ]
+}

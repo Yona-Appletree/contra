@@ -1,6 +1,13 @@
 import type { Beat, Dance, FigureEvent, Timeline, Trace } from "@caller/choreo";
 import { danceBeats, sampleTrace } from "@caller/choreo";
-import { BECKET, danceAlone, danceBySlug, formationFor } from "@caller/contra";
+import {
+  BECKET,
+  LAB_RUN,
+  danceAlone,
+  danceBySlug,
+  formationFor,
+  threadsOnTheOldPath,
+} from "@caller/contra";
 
 /** Whether a dance's trace folds its along-hall drift, and by how much. */
 export interface DanceTraceOptions {
@@ -24,6 +31,23 @@ export interface DanceTraceOptions {
  * — and then reads one minor set's four dancers off the timeline, so what the
  * pen draws is what the hall would draw.
  *
+ * **Which engine** is the one thing it has to choose, and M5 is where the
+ * choice stopped being free. Every plate in this repository was drawn on the
+ * decider's own planner, and the two engines differ by up to 1.16 px at the ends
+ * of a line (M3's cycle-start switch), so switching them all over is a diff on
+ * forty committed drawings and not this milestone's to make. But a dance that
+ * calls a **figure for two with no coded twin** cannot be drawn on the old path
+ * at all — it asks the figure where it leaves four dancers and the figure
+ * refuses by name — which is On the Prowl's shoulder round. So a dance is drawn
+ * on the engine that can dance it, and the two are the same engine for every
+ * dance drawn before this one.
+ *
+ * **For M11**: when the coded layer goes, every dance draws on the contra
+ * planner and this choice goes with it. `openingFigure` below needs one change
+ * when it does — on the new path the first figure of most demo dances is an
+ * instance for **two**, so the four dancers of the minor set have to come off
+ * the event's *group* rather than off its bindings.
+ *
  * Every trace here is cached by slug and by whether it wraps, because a dance
  * card re-renders on every beat of the music and re-deciding a dance sixty
  * times a second is not a thing to do (director ruling E5: no renderer perf
@@ -35,7 +59,13 @@ export function danceTrace(dance: Dance, options: DanceTraceOptions = {}): Trace
   const cached = CACHE.get(cacheKey);
   if (cached !== undefined) return cached;
   const beats = danceBeats(dance);
-  const timeline = danceAlone(dance, couplesFor(dance), beats + LOOKAHEAD_BEATS).timeline();
+  const timeline = danceAlone(
+    dance,
+    couplesFor(dance),
+    beats + LOOKAHEAD_BEATS,
+    {},
+    threadsOnTheOldPath(dance) ? {} : LAB_RUN,
+  ).timeline();
   const opening = openingFigure(timeline);
   const pitch = wrap ? formationFor(dance).hallPitch : undefined;
   const trace = sampleTrace(timeline, {

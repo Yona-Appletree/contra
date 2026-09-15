@@ -458,14 +458,20 @@ const danceOracles = (dance: Dance, couples: number, until: Beat): DanceOracles 
   oraclesFor(dance, couples, until, {}, LAB_RUN);
 
 /**
- * How the lab runs a dance: the contra planner, and a registry whose five
- * migrated ids are the **interpreted** figures rather than the coded ones.
+ * How the lab runs a dance: the contra planner, and a registry whose migrated
+ * ids are the **interpreted** figures rather than the coded ones.
  *
  * Both halves or neither. `poseAt` resolves a figure by id in the registry, so
  * a run with the new library and the old registry would plan a data swing and
  * draw a coded one; `planCycle` refuses that by name rather than dancing it.
+ *
+ * Exported since M5, because it is no longer only the lab's: it is **what the
+ * demo runs on** (`DEFAULT_ENGINE` has been `"new"` since M3), and a dance that
+ * calls a figure for two with no coded twin — On the Prowl's shoulder round —
+ * cannot be sampled on the old path at all. `dances.test.ts` runs AC5, AC1 and
+ * AC6 on this, so what those three check is the dance as it ships.
  */
-const LAB_RUN = { cycle: contraCyclePlanner, figures: contraDataFigures() };
+export const LAB_RUN = { cycle: contraCyclePlanner, figures: contraDataFigures() };
 
 /** One motion row, with every over-bound value marked and said to be allowed or not. */
 function motionLine(row: MotionStats, slug: string, problems: readonly MotionMetric[]): string {

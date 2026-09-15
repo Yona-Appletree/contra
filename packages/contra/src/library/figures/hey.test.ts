@@ -39,8 +39,13 @@ import { HEY_WEAVE_GOLDEN } from "./heyWeaveGolden.js";
 const TOLERANCE_PX = 0.01;
 const TOLERANCE_DEG = 0.1;
 
+/** A call's own parameters, whatever they are: the probes take a partial. */
+interface HeyParams extends ContraParams {
+  [key: string]: unknown;
+}
+
 /** The hey, as the engine samples it. */
-const HEY = interpretDefinition(heyDefinition) as unknown as ContraFigure<ContraParams>;
+const HEY = interpretDefinition(heyDefinition) as unknown as ContraFigure<HeyParams>;
 
 /** The parameters each frozen case was written with, in the new vocabulary. */
 const GOLDEN_CASES: Readonly<Record<string, { params: Record<string, unknown>; beats: Beat }>> = {

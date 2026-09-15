@@ -3,7 +3,7 @@ import type { Dance, FigureEvent, Timeline } from "@caller/choreo";
 import { ORACLE_STEP, poseAt, validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES, danceBySlug } from "../dances/index.js";
-import { danceAlone } from "../dances/oracle.js";
+import { danceAlone, threadsOnTheOldPath } from "../dances/oracle.js";
 import { contraDance } from "../figures/chain.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraDataFigures } from "../library/figures/index.js";
@@ -155,7 +155,8 @@ describe("a figure's ends can rebind who your partner is (Q14)", () => {
 
 describe("the contra planner emits the same timeline shape", () => {
   it("emits the same figures, in the same order, over the same beats and dancers", () => {
-    for (const dance of DEMO_DANCES) {
+    // Only the dances the old path can dance at all; see `threadsOnTheOldPath`.
+    for (const dance of DEMO_DANCES.filter(threadsOnTheOldPath)) {
       const couples = dance.formation === "becket" ? 7 : 5;
       const old = figures(danceAlone(dance, couples, 128).timeline());
       const now = figures(

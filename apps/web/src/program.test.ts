@@ -275,9 +275,11 @@ describe("danceOrder and the two engines (M3)", () => {
    * with it. Its own page still holds the record and says what it owes.
    */
   it("leaves out a lab dance that owes a figure the rebuild has not written", () => {
-    const lab = labDance("lab-owed", "shoulder-round");
+    // `circulate` is M6's, and still owed; `shoulder-round` was M5's and is
+    // written now, which is exactly what this list is supposed to notice.
+    const lab = labDance("lab-owed", "circulate");
     const all = [...DEMO_DANCES, lab];
-    expect(danceOwes(lab)).toEqual(["shoulder-round"]);
+    expect(danceOwes(lab)).toEqual(["circulate"]);
     expect(danceOrder("lab-owed", DEMO_DANCES, all)).toEqual([...DEMO_DANCES]);
     // It is still a lab dance, and the Dances tab still lists it.
     expect(isLabDance("lab-owed", DEMO_DANCES, all)).toBe(true);

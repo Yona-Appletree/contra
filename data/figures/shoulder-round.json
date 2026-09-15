@@ -1,0 +1,18 @@
+{
+  "id": "shoulder-round",
+  "walkthrough": {
+    "short": "Walk round {pairs} keeping your {hand} shoulder toward them, and keep looking at each other. No hands.",
+    "long": "Nobody takes hands for this one. Walk forward round {pairs} with your {hand} shoulder toward them, turning your body as you go so the two of you are looking at each other the whole way round — that is what makes it a shoulder round rather than a do-si-do. {amount}, and you finish where that leaves you."
+  },
+  "call": {
+    "short": "SHOULDER ROUND",
+    "long": "{pairs} {hand} SHOULDER ROUND {amount}"
+  },
+  "variants": {
+    "amount=0.5": {
+      "walkthrough": {
+        "short": "Half a shoulder round with {pairs}, {hand} shoulders, eyes on each other: you end on their place."
+      }
+    }
+  }
+}

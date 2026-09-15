@@ -303,6 +303,7 @@ describe("symmetry as a transform", () => {
       "balance-and-swing",
       "grand-right-and-left",
       "pull-by",
+      "shoulder-round",
       "swing",
     ]);
   });

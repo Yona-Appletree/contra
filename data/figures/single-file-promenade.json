@@ -1,0 +1,18 @@
+{
+  "id": "single-file-promenade",
+  "walkthrough": {
+    "short": "Face the way the ring is going and walk it in single file, one behind the other, holding nothing.",
+    "long": "Turn to face the way the ring is going — {direction} — and walk round it in single file, each of you behind the one in front, with nobody holding anything at all. A quarter of the ring is one place along and a half is two. You stop still facing the way you were travelling, so whatever comes next is what turns you round. {where}"
+  },
+  "call": {
+    "short": "SINGLE FILE",
+    "long": "SINGLE FILE PROMENADE {direction} {amount}"
+  },
+  "variants": {
+    "amount=0.5": {
+      "walkthrough": {
+        "short": "Walk half way round the ring in single file, one behind the other, holding nothing."
+      }
+    }
+  }
+}

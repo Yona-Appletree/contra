@@ -13,6 +13,7 @@ import { circleDefinition } from "./circle.js";
 import { doSiDoDefinition } from "./do-si-do.js";
 import { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
 import { heyDefinition } from "./hey.js";
+import { madRobinDefinition } from "./mad-robin.js";
 import { longLinesDefinition } from "./long-lines.js";
 import { passThroughDefinition } from "./pass-through.js";
 import { petronellaDefinition } from "./petronella.js";
@@ -20,6 +21,8 @@ import { pullByDefinition } from "./pull-by.js";
 import { rightAndLeftThroughDefinition } from "./right-and-left-through.js";
 import { robinsChainDefinition } from "./robins-chain.js";
 import { rollAwayDefinition } from "./roll-away.js";
+import { shoulderRoundDefinition } from "./shoulder-round.js";
+import { singleFilePromenadeDefinition } from "./single-file-promenade.js";
 import { slideLeftDefinition } from "./slide-left.js";
 import { starDefinition } from "./star.js";
 import { swingDefinition } from "./swing.js";
@@ -82,9 +85,15 @@ export const CARRIER_DEFINITIONS: readonly FigureDefinition[] = [
  *
  * A list of its own rather than more carriers, because what they share is the
  * milestone rather than the gate: the hey is held to reproducing the coded
- * weave, and the other three have no predecessor to be held to at all.
+ * weave it replaced, and the other three have no predecessor to be held to at
+ * all — they are held to their dances instead.
  */
-export const SCHEDULE_DEFINITIONS: readonly FigureDefinition[] = [heyDefinition];
+export const SCHEDULE_DEFINITIONS: readonly FigureDefinition[] = [
+  heyDefinition,
+  madRobinDefinition,
+  shoulderRoundDefinition,
+  singleFilePromenadeDefinition,
+];
 
 /** Every figure the library holds as data. */
 export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
@@ -205,3 +214,6 @@ export { swingDefinition, SWING_HOLD, SWING_ORBIT } from "./swing.js";
 export { pullByDefinition } from "./pull-by.js";
 export { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
 export { heyDefinition } from "./hey.js";
+export { madRobinDefinition } from "./mad-robin.js";
+export { shoulderRoundDefinition } from "./shoulder-round.js";
+export { singleFilePromenadeDefinition } from "./single-file-promenade.js";

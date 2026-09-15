@@ -1,5 +1,5 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleDiff, angleOfVec, clamp01, dist, ramp, smooth } from "@caller/core";
+import { angleDiff, angleLerp, angleOfVec, clamp01, dist, ramp, smooth } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type {
   FigurePlan,
@@ -21,6 +21,7 @@ import type { FigureRole, HoldSpec, ScheduleItem, ScheduleShape } from "../Figur
 import type { ExprEnv } from "../expr.js";
 import { evalNumber } from "../expr.js";
 import type { ShapeInput } from "../interpret.js";
+import { settleOnPlaces } from "./places.js";
 import type { PassToken, Shoulder } from "../passList.js";
 import {
   amountOfPassList,
@@ -402,6 +403,27 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
   };
 
   /**
+   * **Which way a dancer is looking**, which across a bounce is not the same
+   * question as which way the weave is going.
+   *
+   * A chord a quarter beat long is the tangent everywhere the weave has one, and
+   * at a ricochet it has none: the dancer comes to a stop and leaves the other
+   * way, so the chord swings through the whole turn inside a quarter beat. What
+   * they actually do is *turn round*, over about the time they are turning
+   * round, so across the bounce the heading is taken from the way they came in
+   * to the way they go out and eased between the two. Measured: the hand speed
+   * over the bounce falls from **208.6** px/beat to inside the bound, and the
+   * facing never moves faster than the dancer really turns.
+   */
+  const headingAt = (role: FigureRole, t: Beat): Angle => {
+    const tb = bounceAt[role];
+    if (tb === undefined || Math.abs(t - tb) >= bounceEase) return travelAt(role, t);
+    const into = travelAt(role, tb - bounceEase);
+    const away = travelAt(role, tb + bounceEase);
+    return angleLerp(into, away, smooth((t - (tb - bounceEase)) / (2 * bounceEase)));
+  };
+
+  /**
    * Whose place each dancer lands on: whoever stands where they end up on the
    * weave, **by phase** and not by distance.
    *
@@ -591,6 +613,25 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
    * Butter's own hey.
    */
   const ends: Spots = {};
+  /**
+   * **Where a hey that ends short really leaves you.**
+   *
+   * A hey that finishes its weave lands on somebody's place by construction —
+   * the weave's own quarter points *are* the four places — so its end is the
+   * landing dancer's spot and nothing has to be gathered. A hey that **stops on
+   * a meeting** does not: it leaves the pair at the lane's edge, `√2 × passPx`
+   * apart, which is between two places rather than on them. So the honest end is
+   * the pair of places they are between, which is M2's `ends: "home"` rule and
+   * the same reason Butter's `endHalf` override went (`kinds/places.ts`).
+   *
+   * On the Prowl is what settles it: its B2 ends short and its cycle ends there,
+   * so the two dancers at a lane's edge are the two who dance the next time
+   * through's mad robin. Left on the weave they are 5.40 px off their places and
+   * the cycle boundary is a jump; settled, they are beside each other on the
+   * line, facing each other, which is exactly what the transcript's `~` means
+   * and what the next figure wants.
+   */
+  const settled = short && input.gathers && input.places ? settleShort() : undefined;
   for (const role of roles) {
     if (standing.has(role)) {
       ends[role] = ctx.spot(role);
@@ -600,20 +641,51 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       ends[role] = ctx.spot(landing[role]!);
       continue;
     }
-    // Ending short: where the last meeting leaves you, turned to face whoever
-    // you met there. "Beside X, facing X."
-    const p = placeAt(role, beats);
-    const met = meets[role]![meets[role]!.length - 1];
-    const facing = met === undefined ? travelAt(role, beats) : bearing(p, placeAt(met, beats));
-    ends[role] = { p, facing };
+    ends[role] = { p: settled?.[role] ?? placeAt(role, beats), facing: 0 };
+  }
+  if (short) {
+    // "Beside X, facing X": the facing is read off the settled places, so both
+    // halves of the sentence are true of where the dancers actually stop.
+    for (const role of roles) {
+      if (standing.has(role)) continue;
+      const met = meets[role]![meets[role]!.length - 1];
+      const mine = ends[role]!;
+      const theirs = met === undefined ? undefined : ends[met];
+      mine.facing = theirs === undefined ? travelAt(role, beats) : bearing(mine.p, theirs.p);
+    }
+  }
+
+  /**
+   * The four end points, settled on to the formation's own nearest places.
+   *
+   * It also **re-aims the step off the weave**: `offEnd` was zero while the
+   * meetings were being read (a short hey's last meeting is *at* its last beat,
+   * and who you meet there has to be read where the weave leaves you), and now
+   * that the ends are known it carries the dancer off the weave and on to them
+   * over the same `joinBeats` every other hey steps off over. So the figure ends
+   * where `ends` says it does, which is what the probes check.
+   */
+  function settleShort(): Record<FigureRole, Vec2> {
+    const dancing = roles.filter((role) => !standing.has(role));
+    const points: Record<string, Vec2> = {};
+    for (const role of dancing) points[role] = placeAt(role, beats);
+    const out = settleOnPlaces(dancing, points, input.places ?? []);
+    for (const role of dancing) {
+      const to = out[role];
+      if (to === undefined) continue;
+      const on = onWeave(role, beats);
+      const want = toWeave(to);
+      offEnd[role] = [want[0] - on[0], want[1] - on[1]];
+    }
+    return out;
   }
 
   const turnIn: Record<FigureRole, number> = {};
   const turnOut: Record<FigureRole, number> = {};
   for (const role of roles) {
     if (standing.has(role)) continue;
-    turnIn[role] = angleDiff(travelAt(role, 0), ctx.spot(role).facing);
-    turnOut[role] = angleDiff(travelAt(role, beats), (ends[role] ?? ctx.spot(role)).facing);
+    turnIn[role] = angleDiff(headingAt(role, 0), ctx.spot(role).facing);
+    turnOut[role] = angleDiff(headingAt(role, beats), (ends[role] ?? ctx.spot(role)).facing);
   }
 
   const spotAt = (role: FigureRole, t: Beat): Spot => {
@@ -624,7 +696,7 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       // the end facing — eased, because a body turning is the one thing in the
       // figure that should not start at full speed.
       facing:
-        travelAt(role, t) +
+        headingAt(role, t) +
         turnIn[role]! * (1 - ramp(t, 0, joinBeats)) +
         turnOut[role]! * ramp(t, beats - joinBeats, beats),
     };

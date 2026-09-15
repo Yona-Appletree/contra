@@ -1134,5 +1134,14 @@ export interface FigureDefinition {
 export type { Symmetry } from "./symmetry.js";
 
 /** Re-exported so a definition file needs one import, not two. */
-export type { Moment, NumberExpr, AngleExpr, BoolExpr, SideExpr } from "./expr.js";
+export type {
+  Moment,
+  NumberExpr,
+  AngleExpr,
+  BoolExpr,
+  SideExpr,
+  PointExpr,
+  PoseExpr,
+  RoleExpr,
+} from "./expr.js";
 export type { Side };

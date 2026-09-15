@@ -19,12 +19,15 @@ import doSiDoText from "../../../../data/figures/do-si-do.json" with { type: "js
 import grandRightAndLeftText from "../../../../data/figures/grand-right-and-left.json" with { type: "json" };
 import heyText from "../../../../data/figures/hey.json" with { type: "json" };
 import longLinesText from "../../../../data/figures/long-lines.json" with { type: "json" };
+import madRobinText from "../../../../data/figures/mad-robin.json" with { type: "json" };
 import passThroughText from "../../../../data/figures/pass-through.json" with { type: "json" };
 import petronellaText from "../../../../data/figures/petronella.json" with { type: "json" };
 import pullByText from "../../../../data/figures/pull-by.json" with { type: "json" };
 import rightAndLeftThroughText from "../../../../data/figures/right-and-left-through.json" with { type: "json" };
 import robinsChainText from "../../../../data/figures/robins-chain.json" with { type: "json" };
 import rollAwayText from "../../../../data/figures/roll-away.json" with { type: "json" };
+import shoulderRoundText from "../../../../data/figures/shoulder-round.json" with { type: "json" };
+import singleFilePromenadeText from "../../../../data/figures/single-file-promenade.json" with { type: "json" };
 import slideLeftText from "../../../../data/figures/slide-left.json" with { type: "json" };
 import starText from "../../../../data/figures/star.json" with { type: "json" };
 import swingText from "../../../../data/figures/swing.json" with { type: "json" };
@@ -123,12 +126,15 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       grandRightAndLeftText,
       heyText,
       longLinesText,
+      madRobinText,
       passThroughText,
       petronellaText,
       pullByText,
       rightAndLeftThroughText,
       robinsChainText,
       rollAwayText,
+      shoulderRoundText,
+      singleFilePromenadeText,
       slideLeftText,
       starText,
       swingText,
@@ -394,7 +400,12 @@ function amountWords(value: unknown, register: Register): string | undefined {
 }
 
 const AMOUNTS: Record<number, { call: string; prose: string }> = {
+  // A quarter and three quarters since M5: a single file promenade is a
+  // fraction of the ring rather than a count of places, and the corpus asks for
+  // both.
+  0.25: { call: "a quarter", prose: "a quarter of the way round" },
   0.5: { call: "half way", prose: "half way round" },
+  0.75: { call: "three quarters", prose: "three quarters of the way round" },
   1: { call: "once", prose: "once around" },
   1.5: { call: "one and a half", prose: "once and a half" },
   2: { call: "twice", prose: "twice around" },
@@ -416,7 +427,10 @@ const PLACES: Record<number, { call: string; prose: string }> = {
 function directionWords(value: unknown): string | undefined {
   if (value === 1) return "left";
   if (value === -1) return "right";
-  const words = ["left", "right", "across", "along"];
+  // `clockwise` and `counterclockwise` since M5: a mad robin and a single file
+  // promenade are the first figures whose direction is a way round rather than
+  // a hand, and a caller says the whole word.
+  const words = ["left", "right", "across", "along", "clockwise", "counterclockwise"];
   return typeof value === "string" && words.includes(value) ? value : undefined;
 }
 

@@ -362,35 +362,45 @@ the figure's natural duration — a dance may say otherwise, and the figure is
 told what it actually got. Every parameter list starts with `from`, which is
 where the dancers already stand (below); the defaults given are the rest.
 
-| id                       | beats | call                           | parameters (defaults)                                                                                                           |
-| ------------------------ | ----- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1 — **data** |
-| `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6 — **data**                                                                      |
-| `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees) — **data**           |
-| `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters — **data**                                                  |
-| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2 — **data**                                          |
-| `pull-by`                | 2     | `PULL BY`                      | `pairs` `"neighbors"`, `hand` `"R"`, `holdDrop` 2 — **data**, no coded twin                                                     |
-| `grand-right-and-left`   | 6     | `GRAND RIGHT AND LEFT`         | none; three passes along the line, right, left, right — **data**, no coded twin, `actors: "line"`                               |
-| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null` — **data**                                                      |
-| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1 — **data**                                                                             |
-| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1 — **data**                                               |
-| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2, `hold` `"wrist"` — **data**                                   |
-| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1, `bowPx` 3 — **data**                                                                      |
-| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0, `direction` 1 — **data**                                                                    |
-| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1, `pivotFromLark` 2.875 — **data**                 |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `holdDrop` 6, `stackPx` 1, `joinBeat` 2, `passPx` 4.25 — **data** (A6: the orbit is the only regime)        |
-| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5 — **data**                                                                       |
-| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6 — **data**                                       |
-| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1 — **data**                                                                         |
-| `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `weavePx` 6.5, `joinBeats` 2                                          |
-| `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                        |
+| id                       | beats | call                           | parameters (defaults)                                                                                                                                                                                                                             |
+| ------------------------ | ----- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1 — **data**                                                                                                                   |
+| `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6 — **data**                                                                                                                                                                                        |
+| `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees) — **data**                                                                                                                             |
+| `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters — **data**                                                                                                                                                                    |
+| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2 — **data**                                                                                                                                                            |
+| `pull-by`                | 2     | `PULL BY`                      | `pairs` `"neighbors"`, `hand` `"R"`, `holdDrop` 2 — **data**, no coded twin                                                                                                                                                                       |
+| `grand-right-and-left`   | 6     | `GRAND RIGHT AND LEFT`         | none; three passes along the line, right, left, right — **data**, no coded twin, `actors: "line"`                                                                                                                                                 |
+| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null` — **data**                                                                                                                                                                        |
+| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1 — **data**                                                                                                                                                                                               |
+| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1 — **data**                                                                                                                                                                 |
+| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2, `hold` `"wrist"` — **data**                                                                                                                                                     |
+| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1, `bowPx` 3 — **data**                                                                                                                                                                                        |
+| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0, `direction` 1 — **data**                                                                                                                                                                                      |
+| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1, `pivotFromLark` 2.875 — **data**                                                                                                                                   |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `holdDrop` 6, `stackPx` 1, `joinBeat` 2, `passPx` 4.25 — **data** (A6: the orbit is the only regime)                                                                                                                          |
+| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5 — **data**                                                                                                                                                                                         |
+| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6 — **data**                                                                                                                                                         |
+| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1 — **data**                                                                                                                                                                                           |
+| `hey`                    | 16    | `HEY FOR FOUR`                 | `passes` `""` (a pass list, `RR NL LR PL RR NL LR`), `start` `"robin"`, `by` `"right"`, `amount` 1, `ricochet` `""`, `for` 4, `idle` `""`, `axis` `"spread"`, `hands` false, `weavePx` 6.5, `joinBeats` 2, `passDrop` 6 — **data**, no coded twin |
+| `mad-robin`              | 8     | `MAD ROBIN`                    | `pairs` `"neighbors"`, `amount` 0.5, `direction` `"clockwise"` — **data**, no coded twin                                                                                                                                                          |
+| `shoulder-round`         | 8     | `RIGHT SHOULDER ROUND`         | `pairs` `"neighbors"`, `hand` `"R"`, `amount` 1 — **data**, no coded twin                                                                                                                                                                         |
+| `single-file-promenade`  | 8     | `SINGLE FILE PROMENADE`        | `direction` `"clockwise"`, `amount` 0.25 (of the ring) — **data**, no coded twin                                                                                                                                                                  |
+| `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                                                                                                                                          |
 
 A figure marked **data** is a `FigureDefinition` in `src/library/figures/`; its
 row above is the coded figure it replaced, which stays in this directory until
-M11 deletes it and is what the per-figure golden holds it to. After M4 that is
-**every figure but the hey**, which M5 takes. `endHalf` is gone from the swing
-and the allemande: a gatherer reads its end spacing off the formation rather
-than guessing it.
+M11 deletes it and is what the per-figure golden holds it to. After M5 that is
+**every figure**, and `src/figures/hey.ts` is the first coded figure actually
+**deleted**: the hey's own gate ran against it and its numbers are frozen in
+`library/figures/heyWeaveGolden.ts`, which the definition is still held to.
+`endHalf` is gone from the swing and the allemande: a gatherer reads its end
+spacing off the formation rather than guessing it.
+
+Four rows say **no coded twin**: M6's two travellers, M5's hey (whose twin was
+deleted with the milestone) and M5's three new figures. Those are the ones
+`dataOnlyFigureIds()` names, and the ones `createContraRegistry()` seeds from
+the library so that everything which draws a figure can find them.
 
 The eleven M4 migrated are the **carriers** — they leave people wherever their
 own shape put them, where the five M2 migrated are **gatherers** and settle on
@@ -612,7 +622,12 @@ dance sets it and this loader does not read it.
   `v = weavePx·sin 3ψ` across it — walked by all four dancers a quarter of it
   apart. The three in `sin 3ψ` is what alternates the shoulders: right in the
   centre, left at the sides. The passes land on counts 2, 4, 6, 8, 10, 12 and
-  14 exactly, which is closer than a hall gets. What is a model rather than a
+  14 exactly, which is closer than a hall gets. Since M5 the weave is the
+  `schedule` shape kind's rather than the figure's, and what the figure carries
+  is the **list of meetings** it is made of — the pass list, `RR NL LR PL RR NL
+LR` (D5) — so half a hey is that list's first three, a ricochet is one meeting
+  you bounce out of, and ending short is stopping on one. What is a model rather
+  than a
   transcription is the ends: the weave reaches `√2 ×` the set's half width, so
   a dancer loops about 6 px outside the line, and the four places are off the
   weave, so everybody steps on to it over `joinBeats` and off it again. Who
@@ -680,8 +695,8 @@ is the most this repository can say. Against those notes:
 | A Thing of Trust            | no      | pousette (M8 scope says later)                                   |
 | Theory of Mind              | no      | Rory O'More — short waves (later)                                |
 | You Can Get There From Here | no      | Rory O'More, give and take (both later)                          |
-| Diamond Allotrope           | no      | short waves, a diamond, a ricochet hey (all later)               |
-| Spring Break                | no      | a ricochet hey (later); its balances and petronellas are here    |
+| Diamond Allotrope           | no      | short waves and a diamond (later); its ricochet hey is here      |
+| Spring Break                | no      | its ricochet hey, balances and petronellas are all here          |
 | Frederick Contra            | no      | down the hall four in line — a figure that leaves the minor set  |
 | Zag It Back                 | no      | slice, weave the line                                            |
 | The Judge                   | no      | a diagonal chain — a pairing with a couple outside the minor set |

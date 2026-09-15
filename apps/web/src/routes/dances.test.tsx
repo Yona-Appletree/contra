@@ -1,6 +1,7 @@
 import type { Dance } from "@caller/choreo";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DEMO_DANCES } from "@caller/contra";
 import { isLabDance } from "../program.js";
 import { DancePage, DancesPage } from "./dances.js";
 
@@ -116,11 +117,15 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
 });
 
 describe("DancesPage (U3: the inline diagrams are gone)", () => {
-  it("has ten cards, no trace drawing on any of them, and a link to each dance page", () => {
+  it("has a card per demo dance, no trace drawing on any of them, and a link to each dance page", () => {
+    // Eleven since M5 put On the Prowl in the programme; read off the programme
+    // rather than written down, so the next dance to land is not a test edit.
     const html = renderToStaticMarkup(<DancesPage />);
-    expect((html.match(/data-testid="dance-card"/g) ?? []).length).toBe(10);
+    const many = DEMO_DANCES.length;
+    expect(many).toBe(11);
+    expect((html.match(/data-testid="dance-card"/g) ?? []).length).toBe(many);
     expect(html).not.toContain('data-testid="dance-traces"');
-    expect((html.match(/data-testid="dance-page-link"/g) ?? []).length).toBe(10);
+    expect((html.match(/data-testid="dance-page-link"/g) ?? []).length).toBe(many);
     expect(html).toContain('href="#/dances/airpants"');
   });
 });

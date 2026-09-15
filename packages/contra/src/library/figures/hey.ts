@@ -99,10 +99,14 @@ export const heyDefinition: FigureDefinition = {
     },
   },
   holds: [],
-  // A hey leaves you where its last meeting leaves you — on somebody's place
-  // after a whole one or a half one, and beside the dancer you met after one
-  // that ends short. Never on the formation's own places by fiat.
-  ends: "relative",
+  // **A hey that finishes its weave lands on somebody's place by construction**
+  // — the weave's quarter points are the four places — so its end is that
+  // dancer's own spot and nothing is gathered. A hey that **ends short** stops
+  // between two places, and the honest answer to "where does that leave me" is
+  // the pair of places the two of you are between: `ends: "home"` is what hands
+  // the shape the formation's own places to settle on, and `kinds/schedule.ts`
+  // uses them for exactly that one case. See On the Prowl.
+  ends: "home",
   timing: { stretch: "distance", profile: "smooth" },
   // **A hey by the left is a hey by the right in a mirror**, and nothing else
   // about it changes: reflecting the set adds a half turn to every dancer's
