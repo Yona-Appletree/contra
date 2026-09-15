@@ -32,12 +32,37 @@ export {
   BUZZ_SWING_PX,
   BUZZ_TRAILING_FOOT,
   FOOT_REST_FORWARD_PX,
+  FOOT_REST_L,
   FOOT_REST_LATERAL_PX,
+  FOOT_REST_R,
   FULL_AMPLITUDE_SPEED,
   lerpFeet,
   quietMotion,
 } from "./kinematics/quietMotion.js";
 export { swingFeet } from "./kinematics/swingFeet.js";
+export type { MotionProfile } from "./kinematics/motionProfile.js";
+export {
+  CRUISE_RAMP_BEATS,
+  cruiseRamp,
+  peakOverAverage,
+  profileProgress,
+  profileSpeed,
+} from "./kinematics/motionProfile.js";
+export type { BodyPath, BodyPose, GaitOptions, Plant } from "./kinematics/plantedGait.js";
+export {
+  PLANT_BAND_PX,
+  PLANT_CYCLE_BEATS,
+  PLANT_HOLD_BEATS,
+  PLANT_SWING_BEATS,
+  PLANT_VELOCITY_HALF_STEP,
+  STRIDE_CAP_PX,
+  STRIDE_LEAD_FRACTION,
+  footRest,
+  memoPlants,
+  plantAt,
+  plantSide,
+  plantedGait,
+} from "./kinematics/plantedGait.js";
 export { trapezoid, trapezoidSpeed } from "./kinematics/trapezoid.js";
 export type { ReachCheck } from "./kinematics/armShortfall.js";
 export { armShortfall } from "./kinematics/armShortfall.js";

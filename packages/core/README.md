@@ -120,9 +120,38 @@ function resolveHand(pose: PoseSample, p: Vec2, side: "L" | "R", beat: Beat): Ha
 function drawnArms(pose: PoseSample, beat: Beat, p?: Vec2, torsoAngle?: Angle): DrawnArms;
 const handDown = hangingHand; // the name a figure calls it by
 
-// what a figure moves on — src/kinematics/trapezoid.ts, swingFeet.ts, armShortfall.ts
+// what a figure moves on — src/kinematics/trapezoid.ts, motionProfile.ts,
+// plantedGait.ts, swingFeet.ts, armShortfall.ts
 function trapezoid(t: number, a0: number, a1: number, b0: number, b1: number): number;
 function trapezoidSpeed(t: number, a0: number, a1: number, b0: number, b1: number): number;
+
+type MotionProfile = "smooth" | "cruise";
+const CRUISE_RAMP_BEATS = 1;
+function cruiseRamp(beats: Beat): Beat; // min(1, beats / 4)
+function profileProgress(profile: MotionProfile, t: Beat, beats: Beat): number;
+function profileSpeed(profile: MotionProfile, t: Beat, beats: Beat): number;
+function peakOverAverage(profile: MotionProfile, beats: Beat): number;
+
+type BodyPose = { p: Vec2; facing: Angle };
+type BodyPath = (t: Beat) => BodyPose;
+interface Plant {
+  beat: Beat;
+  p: Vec2;
+  side: "L" | "R";
+}
+const PLANT_HOLD_BEATS = 1.5;
+const PLANT_SWING_BEATS = 0.5;
+const PLANT_CYCLE_BEATS = 2;
+const PLANT_BAND_PX = FOOT_SWING_PX; // D1 (a)
+const STRIDE_CAP_PX = FOOT_SWING_PX;
+const STRIDE_LEAD_FRACTION = 0.75;
+const PLANT_VELOCITY_HALF_STEP = 1 / 32;
+function plantSide(k: number, rightOnEven?: boolean): "L" | "R";
+function footRest(pose: BodyPose, side: "L" | "R"): Vec2;
+function plantAt(body: BodyPath, k: number, options?: GaitOptions): Plant;
+function memoPlants(body: BodyPath, options?: GaitOptions): (k: number) => Plant;
+function plantedGait(body: BodyPath, t: Beat, options?: GaitOptions): { L: Vec2; R: Vec2 };
+
 function swingFeet(t: Beat, facing: Angle, velocity: Vec2, buzz: number): { L: Vec2; R: Vec2 };
 function armShortfall(
   pose: PoseSample,
@@ -196,9 +225,43 @@ returned as the normalised distance travelled, so a figure that ends where it
 started uses it directly as a turn fraction. `trapezoidSpeed` is the same
 profile's speed, which is what a skirt flares on.
 
+`MotionProfile` is **how a leg of travel spends its beats** (M10). `smooth` is
+the smoothstep every walking figure eased on before M10; `cruise` is the
+constant-speed trapezoid, with ramps of `min(1 beat, leg / 4)`, which is what a
+body walking _on_ the beat rather than easing through it looks like. Its
+peak-over-average speed is 4/3 on any leg of four beats or fewer and 8/7 on an
+eight-beat one, against the smoothstep's 3/2 at every length. `profileProgress`
+guards both ends exactly — closure is 0.01 px and a seam is matched to the bit —
+and `profileSpeed` is its analytic derivative, so a figure that has to hand a
+dancer on at the right speed gets the number rather than a difference of it.
+(`@caller/contra`'s `TimingProfile.profile` also admits `"trapezoid"`, which
+names a figure's own **explicit** four-corner speed window; that is a different
+thing and stays where it is.)
+
+`plantedGait` is **the feet** (M10). A foot lands at a whole beat, stays where
+the floor is for `PLANT_HOLD_BEATS` while the body travels over it, and swings
+through to its next landing over `PLANT_SWING_BEATS`, arriving `0.75 × speed`
+(capped at `STRIDE_CAP_PX`) ahead of the body's own rest position. The feet
+alternate and the **right** lands on even beats, which is count 1 of a phrase;
+parity is carried by the absolute beat, so a three-beat figure hands the
+alternation on rather than restarting it. It takes a `BodyPath` — the body at
+_other_ beats, not just the one being drawn — which is why it is a pure function
+here fed by `@caller/choreo`'s `poseAt` rather than something a figure carries.
+
+**D1 (a), the band.** A foot cannot both stay nailed down for a beat and a half
+and stay inside `FOOT_SWING_PX` of its rest at the library's real walking speeds
+(a pass through peaks at about 10.7 px/beat). The contract wins: a foot is fixed
+on the floor only while it is inside `PLANT_BAND_PX` of rest and is dragged at
+the band's edge past that. At 3 px/beat the whole hold is a true plant; at
+8 px/beat the true plant lasts about 0.65 beat. Every foot the gait returns is
+clamped, so the invariant is structural rather than a property three branches
+have to be trusted to keep. `PLANT_BAND_PX` is a named constant so that
+comparing D1 (b) — exempting planted feet — is one edit.
+
 `swingFeet` cross-fades the walking feet into the buzz step's pivot-and-push,
 because `buzz` is a boolean that replaces the feet outright and a swing has to
-take the step up over the beat the hold takes.
+take the step up over the beat the hold takes. Since M10 its walking half is the
+planted gait's, not a body-local sine.
 
 `armShortfall` solves one pose's arms the way `@caller/hall` draws them — body
 position quantised, shoulders hung off the _swaying_ torso, a `'down'` hand
@@ -231,6 +294,10 @@ reversal (director rubric E-look), even by a pixel.
 `SHOULDER_FORWARD_PX` (0.3) is look parity ported from the spike, not an AC3
 invariant.
 
+`FOOT_SWING_PX` has not moved, but since M10 it means **the band a foot may be
+from its rest position** rather than the amplitude of a swing along the
+direction of travel: the planted gait plants inside it and drags at its edge.
+
 ## What was ported from `spikes/two-dancers/index.html`
 
 Production code never imports from `spikes/`; these behaviours were read from
@@ -241,11 +308,28 @@ the spike and retyped.
 | `solveArm` / `solveArm3d`                                                             | `solveArm(S, H, drop, outward)`, the two-bone 3D IK with the down-and-outward pole and the `(L1 + L2) / d` clamp                                                                                                        |
 | `planarReach`                                                                         | `reach = sqrt(max(0, (L1 + L2)² − hz²))`                                                                                                                                                                                |
 | `shoulders`                                                                           | `bodyPt(P, torsoA, 0.3, ±SHW)` — but at 11 px, not the spike's 10.4; see the deviations below                                                                                                                           |
-| `quietMotion`                                                                         | the `sampleAt` block: `vu`/`vw`, `ampS = min(1, speed / 4) × amp`, `feet = [2.5 ± 2.6·sn·vu·ampS, ∓2.0 ± 2.6·sn·vw·ampS]`, the buzz feet, `torsoA = a + 1.5·sn·ampS`                                                    |
+| `quietMotion`                                                                         | the `sampleAt` block: `vu`/`vw`, `ampS = min(1, speed / 4) × amp`, the buzz feet, `torsoA = a + 1.5·sn·ampS`. Its walking feet (`[2.5 ± 2.6·sn·vu·ampS, ∓2.0 ± 2.6·sn·vw·ampS]`) were **removed** by M10                |
 | `easeSeam` / `seamProgress`                                                           | the `SEAM = 0.4` block: `w = smooth(t / SEAM)`, `mixHand`, `alerp` on facing, `lerp` on lean. F3c replaced the spike's switch for a `'down'` hand with an interpolation through where the hand hangs — hence the `beat` |
 | `createClock`                                                                         | the `clock` object: `refBeat + (now − ref) × bpm / 60`, `pause`/`resume`/`setTempo`                                                                                                                                     |
 | `smooth ramp clamp01 q256 dirOf leftOf rightOf bodyPoint angleOf angleDiff angleLerp` | the helper block at the top of the spike's script                                                                                                                                                                       |
 | `stackJoined`                                                                         | "the robin's hand on top, the lark's underneath", stated in the spike header and drawn by `drawArms`'s `under` flag                                                                                                     |
+
+### What was ported from `spikes/move-motion/index.html`
+
+The same rule: read from the spike and retyped, never imported.
+
+| Here                           | Spike                                                                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profileProgress("cruise", …)` | `legs(t, ramp)` and the pass-through's `trapezoid(t, 0, r, 4 − r, 4)` — one rule, `r = min(1, beats / 4)`, instead of a ramp each figure picked for itself                       |
+| `plantAt`                      | `feetGait`'s plant: `rest(bodyAt(k)) + dir × lead`, `lead = min(cap, 0.75 × \|v(k + 0.5)\|)`, `dir = v(k + 0.5)/\|v\|` or the facing when still; `k % 2 === 0` is the right foot |
+| `plantedGait`                  | `feetGait`'s hold and swing: hold for `u < 1.5`, then `smooth((u − 1.5) / 0.5)` to the plant two beats on                                                                        |
+
+**One deviation, and it is D1.** The spike's stride cap bounds where a foot
+_lands_; it does not bound where the body then carries it, so the spike's own
+shoes leave the contract's band at every speed above about 3.5 px/beat. The
+band clamp — a foot dragged at `PLANT_BAND_PX` rather than left behind — is
+this layer's, not the spike's. The spike's `air = sin(πw)` size cue was not
+ported: `feet` stays two body-local `Vec2`s and the renderer is untouched (Q6).
 
 ### Golden fixtures
 

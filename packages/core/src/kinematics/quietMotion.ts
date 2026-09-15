@@ -4,7 +4,7 @@ import type { Vec2 } from "../geometry/Vec2.js";
 import { dot } from "../geometry/Vec2.js";
 import type { PoseSample, Style } from "./PoseSample.js";
 import { NEUTRAL_STYLE } from "./PoseSample.js";
-import { FOOT_SWING_PX, TORSO_SWAY_DEG } from "./RenderingContract.js";
+import { TORSO_SWAY_DEG } from "./RenderingContract.js";
 
 /**
  * What the beat does to a dancer who is not doing anything else. Contra
@@ -22,8 +22,19 @@ export interface QuietMotion {
 export const FOOT_REST_FORWARD_PX = 2.5;
 export const FOOT_REST_LATERAL_PX = 2.0;
 
-/** Speed, in px per beat, at which the quiet motion reaches full amplitude. */
+/**
+ * Speed, in px per beat, at which the quiet motion reaches full amplitude.
+ *
+ * Since M10 this scales the **sway** only: the walking foot swing is gone from
+ * here and the feet are the figure's own or the timeline's planted gait (see
+ * `plantedGait.ts`). The buzz step, which is a foot motion and not a walk, still
+ * reads it through `swingFeet`.
+ */
 export const FULL_AMPLITUDE_SPEED = 4;
+
+/** Where the feet sit with no figure and no gait to say otherwise. */
+export const FOOT_REST_L: Vec2 = [FOOT_REST_FORWARD_PX, -FOOT_REST_LATERAL_PX];
+export const FOOT_REST_R: Vec2 = [FOOT_REST_FORWARD_PX, FOOT_REST_LATERAL_PX];
 
 /** Buzz step: the pivot foot's swing amplitude and the trailing foot's rest. */
 export const BUZZ_SWING_PX = 1.8;
@@ -42,15 +53,22 @@ const STILL_PX_PER_BEAT = 1e-3;
 const TAU = Math.PI * 2;
 
 /**
- * Foot swing and torso sway for one dancer at one beat.
+ * Torso sway — and whatever the feet were told to do — for one dancer at one beat.
  *
- * The feet swing ±{@link FOOT_SWING_PX} px along the direction of travel and
- * the torso sways ±{@link TORSO_SWAY_DEG}°, both scaled by how fast the dancer
- * is moving, by the sample's `amp`, and by the style's `bounce`. A dancer
- * standing still has planted feet and no sway. Nothing here moves vertically.
+ * The torso sways ±{@link TORSO_SWAY_DEG}°, scaled by how fast the dancer is
+ * moving, by the sample's `amp`, and by the style's `bounce`. A dancer standing
+ * still has no sway. Nothing here moves vertically.
  *
- * A sample that carries explicit `feet` keeps them: the figure has said what
- * the feet do, and this only supplies the sway.
+ * **The feet are not this function's any more** (M10). Before it, a walking
+ * dancer's shoes slid forward and back in the dancer's *own* frame while the
+ * body glided over the floor, which is a mannequin's walk. The feet now come
+ * from the figure that placed them or, for every dancer whose figure left them
+ * undefined, from the timeline's planted gait (`plantedGait.ts`), which lands
+ * each foot on the floor and holds it there. What is left here is the rest
+ * position, which is what a sample with nothing to say gets, and the buzz step,
+ * which is a figure's own foot motion rather than a walk.
+ *
+ * A sample that carries explicit `feet` keeps them, exactly as before.
  *
  * @param sample the dancer's pose
  * @param beat absolute beat, which is what the step phase is measured against
@@ -75,12 +93,8 @@ export function quietMotion(
     Math.min(1, speed / FULL_AMPLITUDE_SPEED) * clamp01(sample.amp) * clamp01(style.bounce);
   const phase = beat * sample.stepRate;
   const sn = Math.sin(TAU * phase);
-  const swing = FOOT_SWING_PX * sn * amplitude;
 
-  let feet: { L: Vec2; R: Vec2 } = sample.feet ?? {
-    L: [FOOT_REST_FORWARD_PX + swing * vu, -FOOT_REST_LATERAL_PX + swing * vw],
-    R: [FOOT_REST_FORWARD_PX - swing * vu, FOOT_REST_LATERAL_PX - swing * vw],
-  };
+  let feet: { L: Vec2; R: Vec2 } = sample.feet ?? { L: FOOT_REST_L, R: FOOT_REST_R };
 
   if (sample.buzz) {
     const bz = Math.sin(TAU * BUZZ_STEPS_PER_BEAT * beat);
