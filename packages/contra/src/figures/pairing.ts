@@ -1,6 +1,6 @@
 import type { StationId } from "@caller/choreo";
+import { mustPlace, ringOrder as choreoRingOrder, wrap360 as choreoWrap360 } from "@caller/choreo";
 import type { Spot, Spots } from "./ContraFigure.js";
-import { bearing, centreOf } from "./ContraFigure.js";
 
 /**
  * Who dances a figure with whom.
@@ -62,22 +62,11 @@ export function mustPair(pairing: Pairing, station: StationId): StationId {
  * facing the ring's centre moves to their own left as their angle about the
  * centre increases — the direction this order runs in.
  */
-export function ringOrder(spots: Spots, ids: readonly StationId[]): StationId[] {
-  const places = ids.map((id) => mustSpot(spots, id));
-  const centre = centreOf(places);
-  return [...ids].sort(
-    (a, b) =>
-      wrap360(bearing(centre, mustSpot(spots, a).p)) -
-      wrap360(bearing(centre, mustSpot(spots, b).p)),
-  );
-}
+export const ringOrder = (spots: Spots, ids: readonly StationId[]): StationId[] =>
+  choreoRingOrder(spots, ids);
 
 /** A spot from a map, or a clear error. */
-export function mustSpot(spots: Spots, id: StationId): Spot {
-  const spot = spots[id];
-  if (!spot) throw new Error(`no spot for station "${id}" in [${Object.keys(spots).join(", ")}]`);
-  return spot;
-}
+export const mustSpot = (spots: Spots, id: StationId): Spot => mustPlace(spots, id);
 
 /** An angle in `[0, 360)`. */
-export const wrap360 = (a: number): number => ((a % 360) + 360) % 360;
+export const wrap360 = (a: number): number => choreoWrap360(a);

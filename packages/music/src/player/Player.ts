@@ -1,12 +1,28 @@
 import { createClock, type Beat, type Clock } from "@caller/core";
 import { renderAbc, synth, type TuneObject } from "abcjs";
 import type { Medley, Tune } from "../tunes/Tune.js";
+import { playPotatoes, potatoesFor } from "./potatoes.js";
+
+/** What {@link Player.play} takes beyond the beat to start at. */
+export interface PlayOptions {
+  /**
+   * Beats of **potatoes** to play before the tune's own beat 0 — the four
+   * strong chords a band counts a dance in with (B3). Default 0.
+   *
+   * The whole lead-in sits *before* `atBeat`: the potato buffer starts now, the
+   * tune's first cycle starts `potatoBeats` later, and the clock is rebased so
+   * that `atBeat` still falls exactly where the tune's bar 1 does. So a page
+   * that wants potatoes calls `play` four beats early, not late, and nothing
+   * about the tune's own arithmetic moves.
+   */
+  potatoBeats?: Beat;
+}
 
 export interface Player {
   /** Prime the synth for every tune in the medley (async; `play` stays synchronous). */
   load(medley: Medley): Promise<void>;
   /** Start playback at the given beat. Synchronous: `load` already primed the buffers. */
-  play(atBeat: Beat): void;
+  play(atBeat: Beat, options?: PlayOptions): void;
   stop(): void;
   /** Change tempo: the clock keeps its current beat (no jump), and the synth re-primes. */
   setTempo(bpm: number): void;
@@ -52,8 +68,19 @@ export function createPlayer(ctx?: AudioContext): Player {
   let lastFiredCycle: number | null = null;
 
   // Real-audio scheduling state.
-  let currentSource: AudioBufferSourceNode | null = null;
+  //
+  // **Every** source that has been started and not yet finished, not just the
+  // most recent one. `scheduleCycle` chains the next cycle's buffer `LOOKAHEAD`
+  // seconds before the current one ends, so for a fifth of a second there are
+  // two live sources; when this held only the latest of them, a `stop()` inside
+  // that window stopped the buffer that had not started yet and left the one
+  // that was *sounding* to play itself out. That is exactly the window the end
+  // of a dance falls in, and B3's R1 is that nothing sounds through the
+  // interval — so the set is the fix, in the player rather than by muting.
+  const sources = new Set<AudioBufferSourceNode>();
   let chainTimer: ReturnType<typeof setTimeout> | null = null;
+  /** A deferred cycle-boundary event, when the buffer starts later than now. */
+  let cycleTimer: ReturnType<typeof setTimeout> | null = null;
   // Silence-mode scheduling state.
   let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -108,19 +135,32 @@ export function createPlayer(ctx?: AudioContext): Player {
   }
 
   function stopSource(): void {
-    if (currentSource) {
+    for (const source of sources) {
       try {
-        currentSource.stop();
+        source.stop();
       } catch {
         // already stopped
       }
-      currentSource.disconnect();
-      currentSource = null;
+      source.disconnect();
     }
+    sources.clear();
     if (chainTimer !== null) {
       clearTimeout(chainTimer);
       chainTimer = null;
     }
+    if (cycleTimer !== null) {
+      clearTimeout(cycleTimer);
+      cycleTimer = null;
+    }
+  }
+
+  /** Start one buffer, and keep hold of it until it has finished. */
+  function start(source: AudioBufferSourceNode, when: number, offsetSeconds = 0): void {
+    sources.add(source);
+    source.onended = (): void => {
+      sources.delete(source);
+    };
+    source.start(when, offsetSeconds);
   }
 
   function stopSilentPoll(): void {
@@ -140,11 +180,24 @@ export function createPlayer(ctx?: AudioContext): Player {
     const source = ctx.createBufferSource();
     source.buffer = primedTune.buffer;
     source.connect(ctx.destination);
-    source.start(startAt, offsetSeconds);
-    currentSource = source;
+    start(source, startAt, offsetSeconds);
 
-    clock.rebase(startAt - offsetSeconds, cycle * 64, bpm);
-    fireCycle(cycle, tune);
+    const cycleStartsAt = startAt - offsetSeconds;
+    clock.rebase(cycleStartsAt, cycle * 64, bpm);
+    // The cycle boundary is an event about the *music*, so it fires when the
+    // cycle actually begins. Ordinarily that is within `LOOKAHEAD` of now and
+    // firing straight away is right; with B3's potatoes in front of the first
+    // cycle it is four beats away, and a listener told "the dance has started"
+    // four beats early would show the wrong tune over the count-in.
+    const dueSeconds = cycleStartsAt - ctx.currentTime;
+    if (dueSeconds <= LOOKAHEAD) {
+      fireCycle(cycle, tune);
+    } else {
+      cycleTimer = setTimeout(() => {
+        cycleTimer = null;
+        if (playing) fireCycle(cycle, tune);
+      }, dueSeconds * 1000);
+    }
 
     const cycleDurationSeconds = (64 * 60) / bpm;
     const nextStartAt = startAt - offsetSeconds + cycleDurationSeconds;
@@ -173,7 +226,7 @@ export function createPlayer(ctx?: AudioContext): Player {
     return primeAll(bpm);
   }
 
-  function play(atBeat: Beat): void {
+  function play(atBeat: Beat, options: PlayOptions = {}): void {
     stop();
     if (sequence.length === 0) return;
     playing = true;
@@ -190,8 +243,25 @@ export function createPlayer(ctx?: AudioContext): Player {
 
     const offsetBeats = atBeat - cycle * 64;
     const offsetSeconds = (offsetBeats * 60) / bpm;
-    const when = ctx.currentTime + START_LATENCY;
-    scheduleCycle(cycle, when, offsetSeconds);
+    const potatoBeats = Math.max(0, options.potatoBeats ?? 0);
+    const potatoSeconds = (potatoBeats * 60) / bpm;
+    const countIn = ctx.currentTime + START_LATENCY;
+    // The potatoes go in *front*: they start now and the tune starts when they
+    // finish, so the fourth chord lands one beat before bar 1 with no gap and
+    // no overlap, and the clock is rebased by `scheduleCycle` against the tune
+    // rather than against them.
+    const tune = tuneAt(cycle);
+    if (potatoBeats > 0 && tune) {
+      const source = playPotatoes(ctx, countIn, {
+        ...potatoesFor(tune, bpm),
+        beats: potatoBeats,
+      });
+      sources.add(source);
+      source.onended = (): void => {
+        sources.delete(source);
+      };
+    }
+    scheduleCycle(cycle, countIn + potatoSeconds, offsetSeconds);
   }
 
   function stop(): void {

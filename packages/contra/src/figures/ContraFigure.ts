@@ -1,15 +1,5 @@
 import type { Angle, Beat, Hand, PoseSample, Side, Vec2 } from "@caller/core";
-import {
-  HOLD_SPACING_PX,
-  angleDiff,
-  angleOfVec,
-  dist,
-  lerpHand,
-  mix,
-  ramp,
-  shouldersAt,
-  sub,
-} from "@caller/core";
+import { HOLD_SPACING_PX, angleDiff, dist, lerpHand, mix, ramp } from "@caller/core";
 import type {
   EndPose,
   FigureDef,
@@ -453,11 +443,7 @@ export const passRight = (from: Spot, to: Spot, t: Beat, beats: Beat, bowPx = 0)
   walkStep(asPose(from), asPose(to), t, beats, -bowPx);
 
 /** The shared floor point where two dancers' named hands meet. */
-export function joinPoint(a: Spot, aSide: Side, b: Spot, bSide: Side): Vec2 {
-  const sa = shouldersAt(a.p, a.facing)[aSide];
-  const sb = shouldersAt(b.p, b.facing)[bSide];
-  return [(sa[0] + sb[0]) / 2, (sa[1] + sb[1]) / 2];
-}
+export { joinPoint } from "@caller/choreo";
 
 /**
  * The two hands of a join, as one floor point, stacked with the role set's top
@@ -601,28 +587,17 @@ export function orbitRadius(
 /** Where a spot's centre is, as a plain pose. */
 export const midpoint = (a: Vec2, b: Vec2): Vec2 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 
-/** The centre of a set of spots. */
-export function centreOf(spots: readonly Spot[]): Vec2 {
-  let x = 0;
-  let y = 0;
-  for (const s of spots) {
-    x += s.p[0];
-    y += s.p[1];
-  }
-  return [x / spots.length, y / spots.length];
-}
+/**
+ * The centre of a set of spots, the bearing between two points and a polar
+ * offset — `@caller/choreo`'s, under the names the contra figures already use.
+ *
+ * These four moved down a layer with the ring geometry that reads them (B3);
+ * they are re-exported rather than re-implemented so there is one of each.
+ */
+export { bearing, centreOf, polar } from "@caller/choreo";
 
 /** How far apart two spots stand. */
 export const spotGap = (a: Spot, b: Spot): number => dist(a.p, b.p);
-
-/** The angle from one point to another. */
-export const bearing = (from: Vec2, to: Vec2): Angle => angleOfVec(sub(to, from));
-
-/** A point `r` px from `centre` at `angle`. */
-export const polar = (centre: Vec2, angle: Angle, r: number): Vec2 => {
-  const t = (angle * Math.PI) / 180;
-  return [centre[0] + Math.cos(t) * r, centre[1] + Math.sin(t) * r];
-};
 
 /**
  * Turn an angle so it is within half a turn of `near`, keeping the same

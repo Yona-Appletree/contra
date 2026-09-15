@@ -34,6 +34,8 @@ const GOLDENS: Array<{ name: string; zoom: number; file: string }> = [
   { name: "hall-empty-2-lines", zoom: 1, file: "hall-empty-2-lines@1x.png" },
   { name: "hall-empty-2-lines", zoom: 3, file: "hall-empty-2-lines@3x.png" },
   { name: "hall-bubble", zoom: 3, file: "hall-bubble@3x.png" },
+  // B3's R1.2 evidence: the announcement stretch, with the band at rest.
+  { name: "hall-announcement", zoom: 3, file: "hall-announcement@3x.png" },
 ];
 
 const UPDATE = process.env["UPDATE_GOLDENS"] === "1";

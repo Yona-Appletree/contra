@@ -184,14 +184,21 @@ was rejected outright. See the rendering-contract ADR.
 
 ## Fixtures, goldens and stories
 
-`src/testing/fixtures.ts` holds five static frames with fixed seeds and no
+`src/testing/fixtures.ts` holds six static frames with fixed seeds and no
 animation. Three are dancers on the bare backdrop: `facings` (one dancer at each
 of eight facings), `two-hand-hold` (the contract's 14 px), and `swing` (the
-stacking invariant). Two are the hall with nobody dancing in it:
-`hall-empty-2-lines` and `hall-bubble`, the second with the caller calling
-"HANDS FOUR FROM THE TOP". A hall fixture carries a `paint(renderer)` that
+stacking invariant). Three are the hall with nobody dancing in it:
+`hall-empty-2-lines`; `hall-bubble`, with the caller calling "HANDS FOUR FROM
+THE TOP"; and `hall-announcement`, the band **at rest** while the caller talks
+between two dances (B3's R1). A hall fixture carries a `paint(renderer)` that
 paints the floor layer before the frame is drawn, which is the only thing that
 makes a hall frame a hall.
+
+`hall-announcement` is frozen at a **quarter** beat rather than a whole one on
+purpose: every beat-driven term in `drawFurniture` rides `sin(2πbeat)`, which is
+zero at every whole beat, so a rest-pose golden at beat 0 would look the same
+whether the band was playing or not and would prove nothing. A quarter beat in
+is where a playing band is at the top of its bow.
 
 `apps/web`'s hidden `#/frame?fixture=<name>&zoom=<n>` route draws one of them,
 Playwright screenshots it, and `apps/web/e2e/frame.spec.ts` compares it with

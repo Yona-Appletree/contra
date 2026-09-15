@@ -33,7 +33,7 @@ interface Medley {
 
 interface Player {
   load(medley: Medley): Promise<void>;
-  play(atBeat: Beat): void;
+  play(atBeat: Beat, options?: { potatoBeats?: Beat }): void;
   stop(): void;
   setTempo(bpm: number): void;
   clock: Clock;
@@ -48,6 +48,16 @@ function playApplause(
   when?: number,
   options?: Partial<ApplauseOptions>,
 ): AudioBufferSourceNode;
+
+// The potatoes: four chords that count a dance in, src/player/potatoes.ts
+function renderPotatoes(sampleRate: number, options?: Partial<PotatoOptions>): Float32Array;
+function playPotatoes(
+  ctx: AudioContext,
+  when?: number,
+  options?: Partial<PotatoOptions>,
+): AudioBufferSourceNode;
+function potatoesFor(tune: Tune, bpm: number): Partial<PotatoOptions>;
+function keyOf(tune: Tune): { rootHz: number; mode: "major" | "minor"; name: string };
 
 // React components, src/ui/
 function Notation(props: { tune: Tune; beat: Beat }): JSX.Element;
@@ -79,6 +89,24 @@ testable with no `AudioContext` at all; `playApplause` is the three lines that
 copy it into a buffer and start it. **No sample file and no new dependency** —
 which is the point, and why it is written out rather than synthesised through a
 graph of `AudioNode`s.
+
+`renderPotatoes` is built the same way, for the four chords a band counts a
+dance in with (B3, the user: "four chords or strong notes … its basically '5 6
+7 8' before the '1 2 3 4 …' of the dance"). Four strikes, one a beat: the root,
+its fifth, the octave, the third above that and the twelfth, under eight
+milliseconds of noise and a plucked decay. The buffer is exactly four beats
+long, so `Player.play(atBeat, { potatoBeats: 4 })` schedules it to finish where
+the tune's first cycle starts and the fourth chord lands one beat before bar 1
+with no gap and no overlap. The **key comes from the tune's own ABC** (`keyOf`
+reads the `K:` field), so a tune added tomorrow gets potatoes in its own key
+with nothing else written. What it cannot come from is the tune's arrangement:
+a `Tune` here is one melody line rendered by `abcjs` as a single voice, so
+there is no "loudest instrument" to pick, and the potato voice is one loud,
+bright, plucked timbre for every tune.
+
+With potatoes in front of it, `play` still rebases the clock against the
+**tune** rather than against the count-in, and defers the cycle-boundary event
+so `onCycle` fires on the dance's own beat 0 rather than four beats early.
 
 `CardProps["dance"]` is structural, and `@caller/choreo`'s `Dance` satisfies
 it exactly — so the card draws a real dance with no shim and no conversion

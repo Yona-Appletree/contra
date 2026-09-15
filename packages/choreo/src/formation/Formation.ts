@@ -1,6 +1,8 @@
 import type { Angle, Vec2 } from "@caller/core";
 import type { Frame } from "./Frame.js";
 import { frameAngle, framePoint } from "./Frame.js";
+// Type-only, and erased: `lineUpShift.ts` reads this module for `Formation`.
+import type { LineUpShift } from "./lineUpShift.js";
 
 /** A dancer, stable for the life of a hall. */
 export type DancerId = string;
@@ -173,6 +175,23 @@ export interface Formation {
    * between them, so three short lines read better than one long one.
    */
   lineUpCalls?: readonly string[];
+  /**
+   * What the caller says while the hall walks to its places and takes hands
+   * four, given the shift the formation's own progression asks for.
+   *
+   * Empty for a formation that lines up where it dances. Becket's is the user's
+   * own three sentences — "move one place to the left. this is a becket dance.
+   * your partner should be on the side of the set with you." — and it is a
+   * function of the shift rather than a fixed list because the *direction* is
+   * the formation's progression's business, not a word anybody types: a
+   * right-progressing becket says right.
+   *
+   * Said over the walk and the hands-four stretches rather than over the
+   * announcement, which is when a caller actually says it: the hall is already
+   * moving, and the sentence is about what to do next rather than about which
+   * dance this is.
+   */
+  handsFourCalls?: (shift: LineUpShift) => readonly string[];
   /** The layout of a group of `n` dancers, in frame-local px. */
   group(n: number): Station[];
   /**

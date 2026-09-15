@@ -16,8 +16,8 @@ reached only by URL.
   through to a medley, with the band on stage, a caller calling each figure
   in a pixel speech bubble, and the dance card and the tune's notation
   following along. The programme runs itself: after the second time through
-  the caller announces the next dance, everybody lines up over eight beats,
-  and the next dance starts. The URL follows the dance without reloading
+  the caller announces the next dance, everybody lines up and takes hands four
+  in a ring, the band plays four potatoes, and the next dance starts. The URL follows the dance without reloading
   (`src/state/hallUrl.ts`). Query parameters, used by the tests:
   - `beat=<n>` freezes one frame and sets `data-hall-ready`.
   - `zoom=<1|2|3|4|6>` pins the zoom (otherwise it fits the space, up to 2×).
@@ -77,8 +77,8 @@ reached only by URL.
   `musicBeatOf` / `programBeatOf` convert between the evening's beat and the
   **music beat**, which counts dancing beats only. It also holds the seeded
   medley shuffle (T1, `shuffleMedleyAssignment`) and the between-dances gap's
-  own beat counts (B1: `ANNOUNCE_BEATS`, `APPLAUSE_BEATS`, `WALK_BEATS`,
-  `READY_BEATS`). `src/state/hallUrl.ts` reads `?seed=` and `?lines=` off the
+  own beat counts (B1/B3: `APPLAUSE_BEATS`, `ANNOUNCE_BEATS`, `WALK_BEATS`,
+  `RING_BEATS`, `POTATO_BEATS`). `src/state/hallUrl.ts` reads `?seed=` and `?lines=` off the
   URL for `createDemoProgram` and `layoutHall` to build the evening from.
 - `src/hallFrame.ts` — the timeline turned into a `Frame`: one `Person` per
   dancer, seeded off the dancer's id so the same hall comes back every time,
@@ -91,18 +91,25 @@ reached only by URL.
   player clock — a linear function of `AudioContext.currentTime` — while a
   tune is playing (plan AC4). Nothing else reads a timer.
 
-  **The dance stops between dances, and the gap is silent.** A dance is two
-  times through of 64 beats and the medley switches tune every 64; the gap
-  between two dances is 36 — 8 beats of applause, 16 of the caller announcing
-  the next dance, 8 walking to places and 4 standing ready. If the tune kept
-  looping through it, every dance switch would put the music 36 beats out of
-  phase with the dance and two switches would be more than a whole time
-  through — which is the drift M9 measured, only worse. So the player stops at
-  the end of the last time through, the silent clock carries the whole
-  interval, and the next tune starts at **its own beat 0** exactly as the next
-  dance does. The page's beat is the tune's beat read back through
-  `programBeatOf` while the tune is the clock, so the notation, the card and
-  the dancers all still read one clock.
+  **The dance stops between dances, and the gap carries no tune.** A dance is
+  two times through of 64 beats and the medley switches tune every 64; the gap
+  between two dances is 44 — 8 beats of applause, 16 of the caller announcing
+  the next dance, 8 walking to places, 8 taking hands four in a ring, and 4 of
+  potatoes. If the tune kept looping through it, every dance switch would put
+  the music 44 beats out of phase with the dance and two switches would be more
+  than a whole time through — which is the drift M9 measured, only worse. So
+  the player stops at the end of the last time through, the silent clock
+  carries the whole interval, and the next tune starts at **its own beat 0**
+  exactly as the next dance does. The page's beat is the tune's beat read back
+  through `programBeatOf` while the tune is the clock, so the notation, the
+  card and the dancers all still read one clock.
+
+  **The potatoes are the one sound in the gap.** Four beats before the dance
+  the page calls `player.play(musicBeat, { potatoBeats: 4 })`, which schedules
+  four struck chords in the next tune's key in front of the tune's own first
+  cycle — and keeps the _silent_ clock running through them, because those four
+  beats belong to the interval. `handOver` swaps in the player's clock at beat 0. The band's drawn motion follows the same rule (`bandPlaying`): still for
+  the whole interval, moving again from the first potato.
 
   The interval's lengths are not written down here: `program.ts` reads them off
   `SCRIPT_DECIDER_DEFAULTS` (`betweenDancesBeats`), because the page's

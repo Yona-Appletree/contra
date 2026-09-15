@@ -5,13 +5,14 @@ import { sceneOrder } from "../renderer/sceneOrder.js";
 import { FIXTURES, FIXTURE_NAMES, fixture } from "./fixtures.js";
 
 describe("fixtures", () => {
-  it("has the three dancer frames and the two hall frames", () => {
+  it("has the three dancer frames and the three hall frames", () => {
     expect(FIXTURE_NAMES).toEqual([
       "facings",
       "two-hand-hold",
       "swing",
       "hall-empty-2-lines",
       "hall-bubble",
+      "hall-announcement",
     ]);
     expect(() => fixture("nope")).toThrow(/no fixture named/);
   });

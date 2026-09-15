@@ -49,6 +49,21 @@ export interface Fixture {
 /** The call the bubble golden says, so the director can read it at zoom 3. */
 export const BUBBLE_CALL = "HANDS FOUR FROM THE TOP";
 
+/** The call the announcement golden says: B3's own first line-up bubble. */
+export const ANNOUNCEMENT_CALL = "TAKE HANDS FOUR FROM THE TOP";
+
+/**
+ * The beat the announcement golden is frozen at.
+ *
+ * Deliberately **not** a whole beat. Every beat-driven term in `drawFurniture`
+ * rides `sin(2πbeat)`, which is zero at every whole beat — so a rest-pose
+ * golden taken at beat 0 would look the same whether the band was playing or
+ * not and would prove nothing. A quarter beat in is where a playing band is at
+ * the top of its bow, its loudest strum and the far end of the pianist's slide;
+ * this fixture is that beat with the tune stopped.
+ */
+export const ANNOUNCEMENT_BEAT = 0.25;
+
 /** The contra role set's hand stacking: the robin's hand on top. */
 export const CONTRA_ROLE_SET = { top: "robin" } as const;
 
@@ -245,18 +260,45 @@ function hallBubbleFixture(): Fixture {
     world: { ...DEMO_HALL.world },
     skirts: true,
     frame: { beat: 0, people: [], roleSet: CONTRA_ROLE_SET },
-    paint: (renderer) => paintHall(renderer, true),
+    paint: (renderer) => paintHall(renderer, BUBBLE_CALL),
   };
 }
 
-function paintHall(renderer: Renderer, bubble: boolean): void {
+/**
+ * The hall in the middle of the between-dances announcement: nobody dancing,
+ * nothing playing, and the band holding still while the caller talks.
+ *
+ * B3's R1.2 evidence frame. The same hall as {@link emptyHallFixture} at a
+ * quarter beat — where a playing band is mid-bow — with `playing: false`, so
+ * the golden is a picture of the rest pose rather than of a paused animation.
+ */
+function hallAnnouncementFixture(): Fixture {
+  return {
+    name: "hall-announcement",
+    description: `The band still and silent while the caller says "${ANNOUNCEMENT_CALL}".`,
+    world: { ...DEMO_HALL.world },
+    skirts: true,
+    frame: { beat: ANNOUNCEMENT_BEAT, people: [], roleSet: CONTRA_ROLE_SET },
+    paint: (renderer) =>
+      paintHall(renderer, ANNOUNCEMENT_CALL, {
+        beat: ANNOUNCEMENT_BEAT,
+        playing: false,
+      }),
+  };
+}
+
+function paintHall(
+  renderer: Renderer,
+  bubble: string | false,
+  opts: { beat?: number; playing?: boolean } = {},
+): void {
   const g = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
   if (g === null) return;
   drawFloor(g, DEMO_HALL, "grange");
-  drawFurniture(g, DEMO_HALL, 0, { skirts: true });
-  if (bubble) {
+  drawFurniture(g, DEMO_HALL, opts.beat ?? 0, { skirts: true, playing: opts.playing ?? true });
+  if (bubble !== false) {
     // Anchored on the caller's head, which is where the tail has to land.
-    drawBubble(g, FONT, BUBBLE_CALL, DEMO_HALL.caller, { world: DEMO_HALL.world });
+    drawBubble(g, FONT, bubble, DEMO_HALL.caller, { world: DEMO_HALL.world });
   }
 }
 
@@ -276,6 +318,7 @@ export const FIXTURES: Readonly<Record<string, Fixture>> = Object.freeze(
       swingFixture(),
       emptyHallFixture(),
       hallBubbleFixture(),
+      hallAnnouncementFixture(),
     ].map((f) => [f.name, f]),
   ),
 );

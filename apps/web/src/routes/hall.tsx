@@ -32,7 +32,9 @@ import type { DemoProgram } from "../program.js";
 import {
   LOOKAHEAD_BEATS,
   MUSIC_BEATS_PER_ITEM,
+  POTATO_BEATS,
   TIMES_THROUGH,
+  bandPlaying,
   betweenDancesStatus,
   createDemoProgram,
   demoLines,
@@ -249,6 +251,18 @@ export function HallPage({
     [],
   );
 
+  /**
+   * True once the next tune's buffers are scheduled but the silent clock is
+   * still the one being read — the four potatoes before a dance.
+   */
+  const countingInRef = useRef(false);
+  /**
+   * How many times the band has counted a dance in, so a headless test can tell
+   * that it did. Nobody can hear the potatoes from a Playwright run (DD12), so
+   * the proxy is the count and the beat it happened on — the same proxy B1 used
+   * for the applause.
+   */
+  const potatoesRef = useRef(0);
   /** Where the tune this player is on stops, in its own beats, and in the evening's. */
   const musicEndRef = useRef(0);
   const lineUpAtRef = useRef(0);
@@ -263,6 +277,9 @@ export function HallPage({
       silent.resume();
       clockRef.current = silent;
       musicOnRef.current = false;
+      // A seek — or the end of a dance — while the potatoes were counting in
+      // throws those away with everything else the player had scheduled.
+      countingInRef.current = false;
       previousRef.current = undefined;
     },
     [silent],
@@ -291,14 +308,39 @@ export function HallPage({
     playApplause(ctx);
   }, []);
 
-  /** Start the next tune at its own beat 0 and let it be the clock again. */
-  const goMusic = useCallback((musicBeat: Beat): void => {
+  /**
+   * Start the next tune, optionally `potatoBeats` of potatoes ahead of it.
+   *
+   * With potatoes the tune's own buffers are scheduled *now* and start four
+   * beats from now, so the clock is not handed over yet: the silent clock goes
+   * on carrying the last beats of the interval and `handOver` swaps it for the
+   * player's at the dance's own beat 0. Without them (the start of the evening,
+   * or a seek that lands inside a dance) the hand-over is immediate, exactly as
+   * it was.
+   */
+  const goMusic = useCallback((musicBeat: Beat, potatoBeats = 0): void => {
     const player = playerRef.current;
     if (player === null || !primedRef.current) return;
     musicEndRef.current = musicItemEnd(musicBeat);
     lineUpAtRef.current = lineUpStartOf(musicBeat);
     itemStartRef.current = lineUpStartOf(musicBeat) - MUSIC_BEATS_PER_ITEM;
-    player.play(musicBeat);
+    player.play(musicBeat, { potatoBeats });
+    if (potatoBeats > 0) {
+      potatoesRef.current += 1;
+      countingInRef.current = true;
+      return;
+    }
+    countingInRef.current = false;
+    clockRef.current = player.clock;
+    musicOnRef.current = true;
+    previousRef.current = undefined;
+  }, []);
+
+  /** Let the tune's own clock take over, now that its first beat has come. */
+  const handOver = useCallback((): void => {
+    const player = playerRef.current;
+    if (player === null) return;
+    countingInRef.current = false;
     clockRef.current = player.clock;
     musicOnRef.current = true;
     previousRef.current = undefined;
@@ -364,7 +406,11 @@ export function HallPage({
       const floor = renderer.layers.floor.getContext("2d") as BlitCtx2D | null;
       if (floor !== null) {
         drawFloor(floor, world, THEME);
-        drawFurniture(floor, world, at, { skirts: true });
+        // The band plays while a tune is on and over the four potatoes that
+        // count the next dance in, and holds still for the rest of the
+        // interval — B3's "band shouldn't be playing when no dancing is
+        // happening", on the canvas as well as in the speakers.
+        drawFurniture(floor, world, at, { skirts: true, playing: bandPlaying(at) });
         const call = callAt(program, at);
         if (call !== "") {
           drawBubble(floor, FONT, call, world.caller, {
@@ -400,7 +446,7 @@ export function HallPage({
       // The tune stops at the end of the dance's last time through, the whole
       // between-dances interval runs on the silent clock, and the next tune
       // starts at its own beat 0 exactly as the next dance does. Without this
-      // the tune would loop through the interval and put the music 36 beats
+      // the tune would loop through the interval and put the music 44 beats
       // out of phase with the dance at every switch.
       if (wantsMusicRef.current && primedRef.current) {
         if (musicOnRef.current) {
@@ -410,8 +456,22 @@ export function HallPage({
             applaud();
           }
         } else {
-          const next = musicBeatOf(clockRef.current.beat());
-          if (next !== null) goMusic(next);
+          const beat = clockRef.current.beat();
+          const next = musicBeatOf(beat);
+          if (next !== null) {
+            // The dance has begun. Either the potatoes were scheduled four
+            // beats ago and the tune is coming in under its own clock now, or
+            // this is the first dance of the evening (or a seek) and there is
+            // nothing to count in.
+            if (countingInRef.current) handOver();
+            else goMusic(next);
+          } else if (!countingInRef.current) {
+            // The potatoes: four beats before the dance, the band picks up and
+            // plays it in. `musicBeatOf` is null right through the interval and
+            // becomes the next dance's beat 0 exactly `POTATO_BEATS` from here.
+            const counting = musicBeatOf(beat + POTATO_BEATS);
+            if (counting !== null) goMusic(counting, POTATO_BEATS);
+          }
         }
       }
       const now = beatNow();
@@ -427,7 +487,7 @@ export function HallPage({
     return () => {
       running = false;
     };
-  }, [draw, frozen, beatNow, goMusic, goSilent, applaud]);
+  }, [draw, frozen, beatNow, goMusic, goSilent, handOver, applaud]);
 
   // Keep the address bar on the dance that is actually playing. "Shuffle"
   // does not round-trip through `?tune=` — it is the default, so leaving it
@@ -485,8 +545,10 @@ export function HallPage({
       // How many times the hall has applauded. Nothing can be heard headlessly,
       // so this is the proxy for "the clap fired, once, at the right moment".
       applause: () => applauseRef.current,
+      // How many times the band has played a dance in with four potatoes.
+      potatoes: () => potatoesRef.current,
       // Jump the evening to a beat, keeping whichever clock should be running
-      // there. A programme item is 164 beats, which is nearly a minute and a
+      // there. A programme item is 172 beats, which is nearly a minute and a
       // half of wall clock, so this is the only way a headless test can watch a
       // dance switch happen.
       seek: (to: Beat) => {
@@ -811,6 +873,7 @@ declare global {
       beat: () => Beat;
       musicOn: () => boolean;
       applause: () => number;
+      potatoes: () => number;
       seek: (to: Beat) => void;
       call: (at?: Beat) => string;
       bench: (frames: number) => number[];
