@@ -1,5 +1,5 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
-import { angleOfVec, hangingHand, lerpHand, norm, ramp, shouldersAt, sub } from "@caller/core";
+import { angleOfVec, dot, hangingHand, lerpHand, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
 import { frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
@@ -254,9 +254,47 @@ function geometry(group: Group, params: WaitOutParams) {
   const shB = shouldersAt(holdB, faceB).R;
   const joinPoint: Vec2 = [(shA[0] + shB[0]) / 2, (shA[1] + shB[1]) / 2];
 
+  /**
+   * **Which end of the hold each dancer takes: the one they are standing at.**
+   *
+   * The two ends and the point where the hands meet are the *stations*' — the
+   * couple ends up `frame.spacing` apart, centred on the same midpoint, on the
+   * same axis, whoever is where. What the stations cannot say is which of the
+   * two dancers takes which end, because a dance may leave the couple on each
+   * other's sides: Anna's Reel's swap-sides progression does it across the set,
+   * Fatal Attraction's mid-cycle shift does it along the line. Assigned by
+   * station, the two then walk straight lines that cross, and the couple steps
+   * *through itself* on the way to its own hold — measured at 0.0000 px (the
+   * 0.17 and 0.45 px a 1/8-beat grid reports are the samples either side of the
+   * crossing), 44 times over three dances and every line length they are
+   * checked at.
+   *
+   * So the near end, which is the one they would take: `u` runs from `b`'s
+   * station to `a`'s, and a couple standing the other way round along it swaps
+   * ends. The inside hand follows the end rather than the station — it is
+   * whichever hand is nearer the mate — and `joinPoint` does not move, because
+   * it is the midpoint of the two shoulders of the two ends and neither end has
+   * moved. `home` follows too, so the step back out and the crossing that
+   * follows it are reckoned from the end the dancer is actually standing at;
+   * `target` reads `start`, so where the couple *lands* is untouched either way.
+   *
+   * Inert for a couple that arrives the way its stations expect, which is every
+   * dance in the programme.
+   */
+  const swapped = dot(sub(startA.p, startB.p), u) < 0;
+  const endOfA: Omit<WaitSide, "start"> = {
+    home: homeA,
+    hold: { p: holdA, facing: faceA },
+    inside: "L",
+  };
+  const endOfB: Omit<WaitSide, "start"> = {
+    home: homeB,
+    hold: { p: holdB, facing: faceB },
+    inside: "R",
+  };
   const sides: Record<StationId, WaitSide> = {
-    [a.id]: { start: startA, home: homeA, hold: { p: holdA, facing: faceA }, inside: "L" },
-    [b.id]: { start: startB, home: homeB, hold: { p: holdB, facing: faceB }, inside: "R" },
+    [a.id]: { ...(swapped ? endOfB : endOfA), start: startA },
+    [b.id]: { ...(swapped ? endOfA : endOfB), start: startB },
   };
 
   // `join` false means there is no ramp *in*: a gap that does not open at the
