@@ -53,11 +53,14 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
     key: "*",
     metric: "dip",
     reason:
-      "The out-and-back bound (1.2 px, one hanging-hand swing) is measured against " +
-      "a hand that is *hanging*; every figure that places a hand and lets it go " +
-      "inside one beat reads as a dip. It is the one bound the library has never " +
-      "met anywhere, and M10 is where the motion profiles make it meaningful. " +
-      "Listed once rather than per figure so that the list stays readable.",
+      "The out-and-back bound is derived from a *hanging* hand — one swing of " +
+      "2 x HAND_HANG_SWING_PX = 1.2 px, guarded at 3x to 3.6 px — and a figure " +
+      "that places a hand and lets it go again inside one beat legitimately moves " +
+      "it further than that and reads as a dip. The chain's courtesy turn is the " +
+      "worst at 7.86 px (docs/motion-report.md). M10 is where the motion profiles " +
+      "make this bound mean something; until then it is the one column no figure " +
+      "in the library has ever met. Listed once rather than per figure so that the " +
+      "list stays readable.",
   },
 ];
 
