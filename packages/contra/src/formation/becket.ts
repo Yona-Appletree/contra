@@ -108,30 +108,20 @@ const HALF_ACROSS = ACROSS_PX / 2;
 const HALF_COUPLE = PLACE_PITCH_PX / 2;
 
 /**
- * How far down the hall an **even** becket set's frame sits from the point a
- * hall hands it, px: one waiting place plus half a couple, which is where place
- * `-1`'s first dancer stands.
+ * How far down the hall a becket set's frame sits from the point a hall hands
+ * it, px: one waiting place plus half a couple, which is where place `-1`'s
+ * first dancer stands.
  *
- * An odd set has no waiting place at the top — its first dancer is the one at
- * dancing place `0` — so its frame sits {@link COUPLE_PITCH_PX} higher and the
- * two lines of a mixed hall still start their first dancer on the same row. See
- * {@link becketTopOffsetPx}.
+ * **The same for both parities**, which is what keeps a hall's lines dancing in
+ * step with each other. An odd line has no couple standing out at the top, so
+ * its first dancer is the one at dancing place `0` and its line simply starts a
+ * couple place lower down than an even line's — while every *dancing* place, and
+ * the waiting place at the bottom, sits on exactly the row the line beside it
+ * uses. Offsetting the odd set's frame to bring its first dancer up to
+ * `spec.centre` was tried and reverted: it lines up the two lines' *ends* at the
+ * cost of their fours, and the hall reads by its fours.
  */
 export const BECKET_TOP_OFFSET_PX = COUPLE_PITCH_PX + HALF_COUPLE;
-
-/** The topmost occupied place of a becket set of `couples` couples. */
-const topPlaceOf = (couples: number): number => (couples % 2 === 0 ? -1 : 0);
-
-/**
- * Where a becket set's frame sits below the point a hall hands it, px.
- *
- * `spec.centre` is where the *first* dancer of a line stands, whatever the
- * formation, so this is whatever puts the topmost couple's first dancer there:
- * half a couple below that couple's own place. Even sets keep
- * {@link BECKET_TOP_OFFSET_PX} exactly.
- */
-export const becketTopOffsetPx = (couples: number): number =>
-  HALF_COUPLE - topPlaceOf(couples) * COUPLE_PITCH_PX;
 
 /**
  * What the caller says between two dances to get a hall standing in becket.
@@ -621,15 +611,13 @@ export const BECKET: Formation = {
       id: spec.id,
       // `spec.centre` is where the *first* dancer of a line stands — that is what
       // it means for a duple improper set, and a hall hands the same point to
-      // both formations. A becket set's first dancer is on its topmost place,
-      // so the frame sits that place plus half a couple down the hall from it,
-      // and the two formations — and a hall's even and odd becket lines — lay
-      // their lines out from the same place.
+      // both formations. A becket set's first dancer is at place `-1`, so the
+      // frame sits one waiting place plus half a couple down the hall from it,
+      // and the two formations lay their lines out from the same place. An odd
+      // line, which has nobody at `-1`, keeps the same frame and starts a couple
+      // place lower — see {@link BECKET_TOP_OFFSET_PX}.
       frame: frame(
-        framePoint(frame(spec.centre, spec.axis, HOLD_SPACING_PX), [
-          0,
-          becketTopOffsetPx(spec.couples),
-        ]),
+        framePoint(frame(spec.centre, spec.axis, HOLD_SPACING_PX), [0, BECKET_TOP_OFFSET_PX]),
         spec.axis,
         HOLD_SPACING_PX,
       ),
