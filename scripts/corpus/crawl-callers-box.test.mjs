@@ -13,6 +13,7 @@ import {
   computeStartId,
   danceUrl,
   loadManifest,
+  parseArgs,
   runCrawl,
 } from "./crawl-callers-box.mjs";
 
@@ -66,6 +67,53 @@ function makeHarness() {
     now: () => "2026-09-14T00:00:00.000Z",
   };
 }
+
+describe("parseArgs", () => {
+  it("defaults miss-limit and start-id to null when not given", () => {
+    const args = parseArgs([]);
+    expect(args.missLimit).toBeNull();
+    expect(args.startId).toBeNull();
+  });
+
+  it("parses --miss-limit as a positive integer", () => {
+    const args = parseArgs(["--miss-limit", "3000"]);
+    expect(args.missLimit).toBe(3000);
+  });
+
+  it("parses --start-id as a positive integer", () => {
+    const args = parseArgs(["--start-id", "8584"]);
+    expect(args.startId).toBe(8584);
+  });
+
+  it("parses --miss-limit and --start-id together alongside other flags", () => {
+    const args = parseArgs(["--start-id", "8584", "--max-id", "20000", "--miss-limit", "3000"]);
+    expect(args.startId).toBe(8584);
+    expect(args.maxId).toBe(20000);
+    expect(args.missLimit).toBe(3000);
+  });
+
+  it("rejects a non-positive --miss-limit", () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("exit");
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => parseArgs(["--miss-limit", "0"])).toThrow("exit");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it("rejects a non-positive --start-id", () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("exit");
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => parseArgs(["--start-id", "-1"])).toThrow("exit");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+});
 
 describe("buildUserAgent", () => {
   it("names the project, the repo, and the contact", () => {
@@ -293,6 +341,48 @@ describe("runCrawl", () => {
     // the count, so all five ids are attempted.
     expect(counts).toEqual({ ok: 1, missing: 4, error: 0, skipped: 0 });
     expect(fetchImpl).toHaveBeenCalledTimes(5);
+  });
+
+  it("honours a custom consecutiveMissLimit, continuing past it when a hit lands first", async () => {
+    // Misses ids 1-4 (below a limit of 5, so the crawl must not stop yet),
+    // then hits at id 5, resetting the counter so id 6 is still attempted.
+    const fetchImpl = vi.fn(async (url) => {
+      const id = Number(/[?&]id=(\d+)/.exec(url)[1]);
+      return id === 5 ? fakeResponse(200, danceBody({ id })) : fakeResponse(404, "");
+    });
+    const h = makeHarness();
+
+    const { counts, lastId } = await runCrawl({
+      fetchImpl,
+      userAgent: "test-agent",
+      manifestById: new Map(),
+      startId: 1,
+      maxId: 6,
+      consecutiveMissLimit: 5,
+      ...h,
+    });
+
+    expect(counts).toEqual({ ok: 1, missing: 5, error: 0, skipped: 0 });
+    expect(lastId).toBe(6);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+  });
+
+  it("stops exactly at a custom (larger) consecutiveMissLimit", async () => {
+    const fetchImpl = vi.fn(async () => fakeResponse(404, ""));
+    const h = makeHarness();
+
+    const { counts, lastId } = await runCrawl({
+      fetchImpl,
+      userAgent: "test-agent",
+      manifestById: new Map(),
+      startId: 1,
+      consecutiveMissLimit: 12,
+      ...h,
+    });
+
+    expect(counts.missing).toBe(12);
+    expect(lastId).toBe(12);
+    expect(fetchImpl).toHaveBeenCalledTimes(12);
   });
 
   it("--dry-run style limit stops after N attempts regardless of maxId", async () => {
