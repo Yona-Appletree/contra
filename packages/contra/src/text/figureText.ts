@@ -2,6 +2,8 @@ import type { AnyFigureDef, FigureParams, Group, StationId } from "@caller/chore
 import { WALK_TO_STATION } from "@caller/choreo";
 import { CONTRA_FIGURE_IDS, contraFigureOf } from "../figures/registry.js";
 import { waitOut } from "../figures/wait-out.js";
+import { DATA_ONLY_FIGURE_IDS, GATHERER_DEFINITIONS } from "../library/figures/index.js";
+import { interpretDefinition } from "../library/interpret.js";
 import { landmark } from "./landmark.js";
 
 // Every figure's texts, as data. The same shape `data/dances/` has: plain JSON
@@ -14,10 +16,12 @@ import balanceText from "../../../../data/figures/balance.json" with { type: "js
 import californiaTwirlText from "../../../../data/figures/california-twirl.json" with { type: "json" };
 import circleText from "../../../../data/figures/circle.json" with { type: "json" };
 import doSiDoText from "../../../../data/figures/do-si-do.json" with { type: "json" };
+import grandRightAndLeftText from "../../../../data/figures/grand-right-and-left.json" with { type: "json" };
 import heyText from "../../../../data/figures/hey.json" with { type: "json" };
 import longLinesText from "../../../../data/figures/long-lines.json" with { type: "json" };
 import passThroughText from "../../../../data/figures/pass-through.json" with { type: "json" };
 import petronellaText from "../../../../data/figures/petronella.json" with { type: "json" };
+import pullByText from "../../../../data/figures/pull-by.json" with { type: "json" };
 import rightAndLeftThroughText from "../../../../data/figures/right-and-left-through.json" with { type: "json" };
 import robinsChainText from "../../../../data/figures/robins-chain.json" with { type: "json" };
 import rollAwayText from "../../../../data/figures/roll-away.json" with { type: "json" };
@@ -116,10 +120,12 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       californiaTwirlText,
       circleText,
       doSiDoText,
+      grandRightAndLeftText,
       heyText,
       longLinesText,
       passThroughText,
       petronellaText,
+      pullByText,
       rightAndLeftThroughText,
       robinsChainText,
       rollAwayText,
@@ -306,7 +312,16 @@ function whereText(id: string, params: FigureParams, group: Group | undefined): 
 export function figureDefOf(id: string): AnyFigureDef | undefined {
   if (id === waitOut.id) return waitOut as AnyFigureDef;
   if (id === WALK_TO_STATION.id) return WALK_TO_STATION as AnyFigureDef;
-  return contraFigureOf(id) as AnyFigureDef | undefined;
+  const coded = contraFigureOf(id) as AnyFigureDef | undefined;
+  if (coded) return coded;
+  // **A figure that is data with no coded twin** (M6's `pull-by`): its
+  // parameters, its beats and its call text live on the `FigureDefinition`, and
+  // the interpreter is what turns those into the `AnyFigureDef` a text is
+  // checked and resolved against.
+  const definition = GATHERER_DEFINITIONS.find((def) => def.id === id);
+  return definition === undefined
+    ? undefined
+    : (interpretDefinition(definition) as unknown as AnyFigureDef);
 }
 
 /**
@@ -450,7 +465,7 @@ function startWords(value: unknown): string | undefined {
  */
 export function checkFigureTexts(): string[] {
   const faults: string[] = [];
-  const ids = [...CONTRA_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
+  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
   for (const id of ids) {
     if (!hasFigureText(id)) faults.push(`${id}: no data/figures/${id}.json`);
   }

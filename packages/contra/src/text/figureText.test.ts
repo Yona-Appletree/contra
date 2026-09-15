@@ -7,6 +7,7 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { CONTRA_FIGURE_IDS } from "../figures/registry.js";
 import { probeGroup } from "../figures/testing.js";
 import { waitOut } from "../figures/wait-out.js";
+import { DATA_ONLY_FIGURE_IDS } from "../library/figures/index.js";
 import {
   FIGURE_TEXTS,
   LONG_CALL_WORDS,
@@ -23,8 +24,11 @@ import {
   variantValue,
 } from "./figureText.js";
 
-/** Every figure the registry holds, which is what must have texts. */
-const IDS = [...CONTRA_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
+/**
+ * Every figure the library holds, which is what must have texts: the coded
+ * ones, the ones that are **only** data (M6's `pull-by`), and the engine's two.
+ */
+const IDS = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, waitOut.id, WALK_TO_STATION.id];
 
 /** How many words a text is, with a `{slot}` counted as the one word it becomes. */
 const words = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
@@ -48,7 +52,14 @@ describe("every move has its four texts", () => {
   });
 
   it("ends every long walkthrough of a figure danced in a set of four on the landmark", () => {
-    const outside = new Set<string>([waitOut.id, WALK_TO_STATION.id]);
+    // The landmark asks a figure where it leaves the **four** dancers of a
+    // hands-four group. Three figures cannot answer: the engine's two, which
+    // nobody calls, and M6's travellers, which are figures of the whole line —
+    // a pull-by is two dancers of a lane and a grand right and left is all of
+    // them, so "you should be across the set from your partner" is not a
+    // sentence either of them could finish. M7's shapes with named places are
+    // what give a lane figure a landmark of its own.
+    const outside = new Set<string>([waitOut.id, WALK_TO_STATION.id, ...DATA_ONLY_FIGURE_IDS]);
     for (const id of IDS) {
       if (outside.has(id)) continue;
       expect(FIGURE_TEXTS[id]!.walkthrough.long, id).toMatch(/\{where\}$/);

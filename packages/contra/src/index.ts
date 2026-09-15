@@ -133,6 +133,7 @@ export { contraDataEngine, contraDataRegistry } from "./library/engine.js";
 export {
   GATHERER_DEFINITIONS,
   GATHERER_IDS,
+  DATA_ONLY_FIGURE_IDS,
   PAIR_ROCK,
   SWING_HOLD,
   SWING_ORBIT,

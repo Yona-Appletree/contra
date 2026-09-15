@@ -1,4 +1,5 @@
 import type { AnyFigureDef, FigureRegistry } from "@caller/choreo";
+import { CONTRA_FIGURE_IDS } from "../../figures/registry.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { createLibrary, type Library } from "../Library.js";
 import { interpretDefinition } from "../interpret.js";
@@ -49,6 +50,19 @@ export const GATHERER_DEFINITIONS: readonly FigureDefinition[] = [
 
 /** Their ids, for the bridge to skip and for a test to check the two lists agree. */
 export const GATHERER_IDS: readonly string[] = GATHERER_DEFINITIONS.map((def) => def.id);
+
+/**
+ * The definitions with **no coded twin**: figures that have only ever been data.
+ *
+ * M2's five each replaced a coded figure of the same id, so every consumer that
+ * walks the coded registry still saw them. M6's are new — nothing in
+ * `figures/` answers to `pull-by` — so anything that enumerates figures has to
+ * ask for these as well as for `CONTRA_FIGURE_IDS`. The Moves gallery is the
+ * one that does.
+ */
+export const DATA_ONLY_FIGURE_IDS: readonly string[] = GATHERER_DEFINITIONS.filter(
+  (def) => !CONTRA_FIGURE_IDS.includes(def.id as (typeof CONTRA_FIGURE_IDS)[number]),
+).map((def) => def.id);
 
 /**
  * The five as figures the engine can sample, for a registry.
