@@ -78,6 +78,9 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `u3-dance-page-bottom-390.png`         | U3: the same page scrolled to the bottom                                     |
 | `u3-dance-page-butter-390-march.png`   | U3: `#/dances/butter`, a becket dance, the shapes switched to march          |
 | `u3-dances-390.png`                    | U3: the Dances tab at 390 × 844, no diagrams, each card linking its page     |
+| `f9-chain-strips.png`                  | F9: the chain's four candidate courtesy turns, strips stacked, beats aligned |
+| `f9-chain-pens.png`                    | F9: the same four as pen plots, one shared scale                             |
+| `f9-chain-table.png`                   | F9: the same four, measured — pull by, travel, clearance, oracles            |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -205,6 +208,30 @@ is the control: a duple improper dance's minor set never travels down the hall
 at all (the ones and twos merely swap places), so its trace is byte-identical
 whether or not wrapping is asked for — asserted in the spec that took the
 picture, not just eyeballed.
+
+The three `f9-chain-*.png` are the comparison the user picks the chain's
+courtesy turn from, and they are the only pictures here of code that is **not**
+the default: `robins-chain`'s shipped parameters are candidate 1, and the other
+three are the same figure run at `pivotFromLark: 0`, `stepInPx: 4` and
+`stepInPx: 8`. Recipe, from a scratch spec deleted afterwards:
+
+```bash
+# one `pnpm figure robins-chain --out <scratch>/vN` per candidate, with that
+# candidate's numbers patched into the figure's own `defaults` and put back
+# again, which is where the four strip PNGs come from
+pnpm --filter @caller/web exec playwright test <scratch spec>
+```
+
+The strips are the gallery's own, becket, one frame a beat at 4×, stacked at
+one CSS width so beat _n_ is the same column in all four — the frames are the
+same zoom, but each candidate's world is sized to its own travel, so the four
+images are different pixel widths before that stretch. The pen plots are
+`rowPenPlot` called directly with **one shared `reach`** for all four, which is
+the only way the ink compares: left to their own scales, the two candidates
+whose robins swing outside the lines would be drawn smaller and look tamer than
+the two whose robins stay in. The table's numbers are the figure danced alone in
+a becket minor set of four at 1/64 beat, except the oracle column, which is
+`pnpm figure robins-chain`'s verdict over the seven demo dances.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
