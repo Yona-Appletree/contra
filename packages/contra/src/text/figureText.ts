@@ -9,6 +9,7 @@ import { localFigureTexts } from "../dances/danceFiles.js";
 import { interpretDefinition, paramDefaults } from "../library/interpret.js";
 import type { Register, WhoWord } from "./relationWords.js";
 import { relationWords, whoOf } from "./relationWords.js";
+import { scheduleTeach } from "./scheduleTeach.js";
 
 // Every figure's texts, as data. The same shape `data/dances/` has: plain JSON
 // on disk, one file per figure, imported by name so a file that goes missing is
@@ -287,9 +288,26 @@ export function resolveFigureText(
   return {
     description: merged.description,
     defaultLevel: merged.defaultLevel,
-    walkthrough: { line: teach(merged.walkthrough.line), teach: teach(merged.walkthrough.teach) },
+    walkthrough: {
+      line: teach(merged.walkthrough.line),
+      // **A schedule figure's teach is generated** (A24): the hey's is its own
+      // pass list read aloud in the user's shape, because there are more heys a
+      // caller can ask for than anybody will ever write teach texts for. The
+      // file keeps the opening sentence and `scheduleTeach` writes the rest.
+      teach: generatedTeach(id, teach(merged.walkthrough.teach), full),
+    },
     forms: formsOf(id, merged.call, full, slots),
   };
+}
+
+/**
+ * One figure's teach: generated where the figure's shape says the teach is a
+ * list, and the written one everywhere else.
+ */
+function generatedTeach(id: string, written: string, params: Record<string, unknown>): string {
+  const def = definitionOf(id);
+  if (def === undefined || def.shape.kind !== "schedule") return written;
+  return scheduleTeach(def, params, written, TEACH_WORDS);
 }
 
 /**
