@@ -66,11 +66,13 @@ export function DancesPage(): JSX.Element {
  * The user, looking at the front page on a phone: "where did those diagrams
  * come from on the front-page? … I think they go on the dance page, which
  * should be linked from the main page." This is that page: the head, the
- * static calling card, the shapes (T2's traces, with T4's switch), and — where
- * the text layer makes it cheap — the walkthrough, the dance's own figures in
- * order with the long teach each resolves to (W1's `resolveFigureText`,
- * `landmark()` filling `{where}` from `ends()`). "Play on the Stage" links to
- * the Stage's own singular route, top and bottom.
+ * static calling card, the shapes (T2's traces, with T4's plot/march/seismo
+ * switch and T6's along-hall wrap — `?view=` and `?wrap=0` both reach
+ * `DanceTraces` through this page's own `params`), and — where the text layer
+ * makes it cheap — the walkthrough, the dance's own figures in order with the
+ * long teach each resolves to (W1's `resolveFigureText`, `landmark()` filling
+ * `{where}` from `ends()`). "Play on the Stage" links to the Stage's own
+ * singular route, top and bottom.
  */
 export function DancePage({
   slug,

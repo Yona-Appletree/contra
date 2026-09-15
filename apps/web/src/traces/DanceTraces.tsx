@@ -43,9 +43,7 @@ export function DanceTraces({
   dance: Dance;
   params?: URLSearchParams;
 }): JSX.Element {
-  const [view, setView] = useState<RowTraceView>(() =>
-    viewFromQuery(params?.get("view") ?? null),
-  );
+  const [view, setView] = useState<RowTraceView>(() => viewFromQuery(params?.get("view") ?? null));
   const wrap = wrapFromQuery(params?.get("wrap") ?? null);
   const drawings = useMemo(() => {
     const trace = danceTrace(dance, { wrap });

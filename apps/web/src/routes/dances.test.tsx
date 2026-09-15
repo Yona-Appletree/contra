@@ -37,6 +37,30 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
     expect(html).toContain("becket, progresses left");
   });
 
+  it("wraps the shapes by default (T6) and honours ?wrap=0, mirroring ?view=", () => {
+    // Butter is T6's own acceptance case: the one becket dance in the demo
+    // programme whose slide actually travels down the hall, so it is the one
+    // dance whose trace differs between wrapped and unwrapped.
+    const wrapped = renderToStaticMarkup(
+      <DancePage slug="butter" params={new URLSearchParams()} />,
+    );
+    const unwrapped = renderToStaticMarkup(
+      <DancePage slug="butter" params={new URLSearchParams("wrap=0")} />,
+    );
+    expect(wrapped).not.toBe(unwrapped);
+
+    // A non-progressing dance's minor set never travels down the hall, so its
+    // trace is byte-identical whether or not wrapping is asked for — the same
+    // control T6's own screenshots use.
+    const airpantsWrapped = renderToStaticMarkup(
+      <DancePage slug="airpants" params={new URLSearchParams()} />,
+    );
+    const airpantsUnwrapped = renderToStaticMarkup(
+      <DancePage slug="airpants" params={new URLSearchParams("wrap=0")} />,
+    );
+    expect(airpantsWrapped).toBe(airpantsUnwrapped);
+  });
+
   it("carries the walkthrough, one step per figure, in order", () => {
     const html = renderToStaticMarkup(<DancePage slug="airpants" params={new URLSearchParams()} />);
     expect(html).toContain('data-testid="dance-page-walkthrough"');
