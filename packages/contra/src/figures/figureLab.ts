@@ -263,6 +263,8 @@ function worstOf(a: MotionStats, b: MotionStats): MotionStats {
       | "elbowPerHand"
       | "heightRate"
       | "travel"
+      | "roleSpread"
+      | "partSpread"
       | "elbowHeightRate"
       | "flipJump"
       | "dip",
@@ -276,6 +278,8 @@ function worstOf(a: MotionStats, b: MotionStats): MotionStats {
     elbowPerHand: worse("elbowPerHand"),
     heightRate: worse("heightRate"),
     travel: worse("travel"),
+    roleSpread: worse("roleSpread"),
+    partSpread: worse("partSpread"),
     elbowHeightRate: worse("elbowHeightRate"),
     flipJump: worse("flipJump"),
     dip: worse("dip"),
@@ -438,6 +442,21 @@ export function figureLabReport(
             .join(" · "),
         "",
       );
+      // **Evenness** (M10b): the same means, compared rather than reported. The
+      // pace line above says how peaky each role is against its own count; this
+      // says whether the roles are dancing the figure at the same speed at all.
+      const means = pace.map((row) => row.averagePx).filter((mean) => mean > 0.01);
+      if (means.length >= 2) {
+        const roles = Math.max(...means) / Math.min(...means);
+        lines.push(
+          `**Evenness** of ${measured}: roles ` +
+            `${over(roles, CONTRA_MOTION_BOUNDS.spread, 3)}× ` +
+            `(${Math.max(...means).toFixed(2)} fastest / ${Math.min(...means).toFixed(2)} slowest ` +
+            `mean px per beat), against a bound of ` +
+            `${CONTRA_MOTION_BOUNDS.spread.toFixed(2)}× — the minor set's own rectangle.`,
+          "",
+        );
+      }
     }
   }
 
@@ -558,6 +577,9 @@ function motionLine(label: string, row: MotionStats | undefined): string {
     `elbow ${over(row.elbowSpeed.value, b.elbowSpeedPx)} px/beat · ` +
     `elbow/hand ${over(row.elbowPerHand.value, b.elbowPerHand, 2)}× · ` +
     `height ${over(row.heightRate.value, b.heightRatePx)} px/beat · ` +
+    `travel ${over(row.travel.value, b.travelPx)} px/beat · ` +
+    `roles ${spread(row.roleSpread.value, b.spread)}× · ` +
+    `halves ${spread(row.partSpread.value, b.spread)}× · ` +
     `flips ${String(row.stateFlips)} · NaN ${String(row.nonFinite)} · ` +
     `dip ${over(row.dip.value, b.dipPx, 2)} px${worst}`
   );
@@ -566,3 +588,11 @@ function motionLine(label: string, row: MotionStats | undefined): string {
 /** A number, marked `**like this**` when it is over its bound. */
 const over = (value: number, bound: number, places = 1): string =>
   value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
+
+/**
+ * A spread, marked when it is over its bound and `—` where it was not measured.
+ *
+ * Zero means "nothing to compare" — a seam row, or a figure fewer than two of
+ * whose roles moved at all — and not "perfectly even", which is `1.00`.
+ */
+const spread = (value: number, bound: number): string => (value <= 0 ? "—" : over(value, bound, 2));

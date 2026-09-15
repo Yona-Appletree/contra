@@ -587,6 +587,8 @@ export function danceLabReport(
       `elbow ${CONTRA_MOTION_BOUNDS.elbowSpeedPx.toFixed(1)} · ` +
       `elbow/hand ${CONTRA_MOTION_BOUNDS.elbowPerHand.toFixed(2)}× · ` +
       `height ${CONTRA_MOTION_BOUNDS.heightRatePx.toFixed(1)} · ` +
+      `travel ${CONTRA_MOTION_BOUNDS.travelPx.toFixed(1)} · ` +
+      `spread ${CONTRA_MOTION_BOUNDS.spread.toFixed(2)}× · ` +
       `dip ${CONTRA_MOTION_BOUNDS.dipPx.toFixed(2)} px. ` +
       "A value over its bound fails unless `motionAllowlist.ts` says why.",
     "",
@@ -661,12 +663,14 @@ function motionLine(row: MotionStats, slug: string, problems: readonly MotionMet
     `elbow/hand ${over(row.elbowPerHand.value, b.elbowPerHand, 2)}× · ` +
     `height ${over(row.heightRate.value, b.heightRatePx)} · ` +
     `travel ${over(row.travel.value, b.travelPx)} · ` +
+    `roles ${spread(row.roleSpread.value, b.spread)}× · ` +
+    `halves ${spread(row.partSpread.value, b.spread)}× · ` +
     `dip ${over(row.dip.value, b.dipPx, 2)} · ` +
     `flips ${String(row.stateFlips)} · NaN ${String(row.nonFinite)}${verdict}`
   );
 }
 
-/** Which of a row's six bounded columns are over their bound. */
+/** Which of a row's eight bounded columns are over their bound. */
 function overBound(row: MotionStats): MotionMetric[] {
   const b = CONTRA_MOTION_BOUNDS;
   const out: MotionMetric[] = [];
@@ -675,6 +679,8 @@ function overBound(row: MotionStats): MotionMetric[] {
   if (row.elbowPerHand.value > b.elbowPerHand) out.push("elbowPerHand");
   if (row.heightRate.value > b.heightRatePx) out.push("heightRate");
   if (row.travel.value > b.travelPx) out.push("travel");
+  if (row.roleSpread.value > b.spread) out.push("roleSpread");
+  if (row.partSpread.value > b.spread) out.push("partSpread");
   if (row.dip.value > b.dipPx) out.push("dip");
   return out;
 }
@@ -686,6 +692,15 @@ const fixed = (n: number): string => (Number.isFinite(n) ? n.toFixed(3) : "—")
 /** A number, marked `**like this**` when it is over its bound. */
 const over = (value: number, bound: number, places = 1): string =>
   value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
+
+/**
+ * A spread, marked when it is over its bound and `—` when it was not measured.
+ *
+ * A seam row is half of each of two figures, so neither spread column is a
+ * number on one; nor is a figure whose span the sampled window cut. Zero means
+ * "nothing to compare", not "perfectly even" — that is `1.00`.
+ */
+const spread = (value: number, bound: number): string => (value <= 0 ? "—" : over(value, bound, 2));
 
 /** `set0/c3/lark` as `c3/lark`: the set is the same one all the way down the table. */
 const short = (dancer: DancerId): string => dancer.split("/").slice(1).join("/");

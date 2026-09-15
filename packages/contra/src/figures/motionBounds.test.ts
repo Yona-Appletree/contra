@@ -1,6 +1,7 @@
 import { HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import {
+  CONTRA_EVENNESS,
   CONTRA_MOTION_BOUNDS,
   CONTRA_TAKE_MOTION,
   CONTRA_TRAVEL_MOTION,
@@ -8,6 +9,7 @@ import {
   TRAVEL_GUARD_FACTOR,
   TRAVEL_REFERENCE_FIGURE,
   deriveBounds,
+  floorAspect,
 } from "./motionBounds.js";
 import { handDown } from "../pair/PairFrame.js";
 
@@ -91,7 +93,68 @@ describe("the derived motion bounds", () => {
       expect(by("pass-through")).toBeLessThan(11.8952);
       expect(by("roll-away")).toBeLessThan(11.8678);
       expect(by("long-lines")).toBeCloseTo(3, 3);
-      expect(by("robins-chain")).toBeCloseTo(19.7104, 3);
+      // M10b took the chain back down: 19.7104 before the opening out became a
+      // chord, and 19.1282 after. It is still the figure that went *up* against
+      // its pre-cruise 18.3288, which is the constant-rate orbit and is ruled.
+      expect(by("robins-chain")).toBeCloseTo(19.1282, 3);
+    });
+  });
+
+  describe("the evenness bound (M10b)", () => {
+    it("is the minor set's own rectangle, measured off the formations", () => {
+      // 32 px across the set over 20 px along it, and the same three ways: a
+      // bound that moved with the formation would be a bound about nothing.
+      expect(floorAspect()).toBeCloseTo(CONTRA_EVENNESS.spread, 9);
+      expect(derived.evenness.spread).toBeCloseTo(CONTRA_EVENNESS.spread, 9);
+      expect(CONTRA_EVENNESS.acrossPx / CONTRA_EVENNESS.alongPx).toBeCloseTo(
+        CONTRA_EVENNESS.spread,
+        9,
+      );
+      expect(CONTRA_MOTION_BOUNDS.spread).toBeCloseTo(CONTRA_EVENNESS.spread, 9);
+    });
+
+    it("has no guard factor on top, and the reference is what carries the headroom", () => {
+      // Every other bound here is a magnitude times three or times one and a
+      // half. This one is a ratio whose ideal is 1, so a multiple of it would
+      // be a licence: at GUARD_FACTOR the bound would be 4.8.
+      expect(derived.bounds.spread).toBe(derived.evenness.spread);
+      // The evidence that the aspect really is the floor's own ceiling: the two
+      // figures that walk the rectangle come in just under it.
+      const by = (id: string): number =>
+        derived.evenness.ranking.find((row) => row.id === id)?.roleSpread ?? Infinity;
+      expect(by(CONTRA_EVENNESS.witnessId)).toBeCloseTo(CONTRA_EVENNESS.witnessSpread, 3);
+      expect(by(CONTRA_EVENNESS.witnessId)).toBeLessThan(CONTRA_EVENNESS.spread);
+      expect(by("petronella")).toBeCloseTo(1.5455, 3);
+      expect(by("petronella")).toBeLessThan(CONTRA_EVENNESS.spread);
+    });
+
+    it("ranks exactly these figures over the bound, run alone", () => {
+      // A new one is a failure; an old one is a named debt. `robins-chain` is
+      // M10b's own figure and `bend-the-line` is the same probe artefact its
+      // travel row is.
+      const roles = derived.evenness.ranking
+        .filter((row) => row.roleSpread > CONTRA_MOTION_BOUNDS.spread)
+        .map((row) => row.id);
+      expect(roles).toEqual(["bend-the-line", "robins-chain"]);
+      const halves = derived.evenness.ranking
+        .filter((row) => row.partSpread > CONTRA_MOTION_BOUNDS.spread)
+        .map((row) => row.id)
+        .sort();
+      expect(halves).toEqual([
+        "balance",
+        "bend-the-line",
+        "down-the-hall",
+        "interrupted-square-through",
+        "up-the-hall",
+      ]);
+    });
+
+    it("leaves a figure nobody moves in out of the ranking rather than calling it even", () => {
+      // `turn-alone` turns four dancers on the spot: no body travels, so there
+      // is nothing to compare and 0 says so. 1.00 would be a claim.
+      const still = derived.evenness.ranking.find((row) => row.id === "turn-alone");
+      expect(still?.roleSpread).toBe(0);
+      expect(still?.partSpread).toBe(0);
     });
   });
 

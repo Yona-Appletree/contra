@@ -9,7 +9,7 @@ import {
   solveArm,
 } from "@caller/core";
 import type { DancerId } from "../formation/Formation.js";
-import type { Timeline } from "../timeline/Timeline.js";
+import type { FigureEvent, Timeline } from "../timeline/Timeline.js";
 import { poseAt, sampleEvent } from "../timeline/poseAt.js";
 
 /**
@@ -199,6 +199,12 @@ function forEachStep(from: Beat, to: Beat, step: Beat, visit: (beat: Beat) => vo
  * fastest any dancer moves averaged over a sliding one-beat window. Every other
  * column is about a drawn arm, and a figure can pass all of them while walking
  * its dancers across the hall at a run.
+ *
+ * Since M10b it measures the body a second way, in the two **spread** columns —
+ * `roleSpread` and `partSpread`. Those are the only two numbers here that are
+ * about a whole figure *instance* rather than about one sample, and they are
+ * the only two a seam row does not get: a seam is half of each of two figures
+ * and a mean speed over half a figure is not one.
  */
 
 /** How finely the motion oracle samples: every 1/32 beat. */
@@ -253,6 +259,44 @@ export interface MotionStats {
    * body has no side.
    */
   travel: MotionWorst;
+  /**
+   * **How evenly one figure instance spreads its speed over its roles**: the
+   * fastest role's mean speed over the whole figure divided by the slowest's.
+   *
+   * M10b, and the column the user asked for: "people try to move at a constant
+   * speed throughout the moves for the most part". {@link travel} is a *peak*
+   * and catches a figure that runs; this is a *comparison* and catches a figure
+   * where one role sprints while another strolls, which no peak can see because
+   * neither role need be fast.
+   *
+   * Mean speed is the dancer's whole path through the instance divided by the
+   * instance's own beats, so it is blind to how the figure spends them — two
+   * roles that cover the same ground are even here however peaky either is.
+   * A role whose whole path is under {@link STILL_BODY_PX} is **left out**: a
+   * dancer standing still is not dancing slowly, and an instance with fewer
+   * than two roles that move is not measured at all.
+   *
+   * `dancer` is the fastest role of the worst instance and `beat` is where that
+   * instance began. `side` is left out: a body has no side.
+   */
+  roleSpread: MotionWorst;
+  /**
+   * **How evenly one dancer spreads their own speed over one figure**: their
+   * faster half of the figure's mean speed divided by their slower half's.
+   *
+   * The second half of M10b's row — the chain's pull by against its courtesy
+   * turn, a balance's rock against the swing that follows it. **Halves**, and
+   * not a sliding window, because the cruise profile ramps in at the start of a
+   * figure and out at the end by exactly the same amount: a figure danced at
+   * one speed has equal halves at every count, where its first sliding window
+   * is half the speed of its middle one whatever it does. So the halves see the
+   * figure's own parts and are blind to the profile.
+   *
+   * A dancer whose slower half is under {@link STILL_BODY_PX} is left out, for
+   * the reason above: somebody who stands through half a figure is waiting in
+   * it, not dancing it unevenly.
+   */
+  partSpread: MotionWorst;
   /** Worst rate of change of an elbow's height, px per beat. Not tabled. */
   elbowHeightRate: MotionWorst;
   /** How many times a hand flipped between placed and hanging. */
@@ -326,6 +370,12 @@ export interface MotionBounds {
    * {@link MotionStats.travel}.
    */
   travelPx: number;
+  /**
+   * How far apart one figure's speeds may be, as a ratio; see
+   * {@link MotionStats.roleSpread} and {@link MotionStats.partSpread}, which
+   * share it.
+   */
+  spread: number;
   /** An out-and-back inside one beat, px. */
   dipPx: number;
 }
@@ -353,7 +403,23 @@ export const DEFAULT_MOTION_BOUNDS: MotionBounds = {
   // Wide enough that nothing hand-written trips it: `@caller/contra` derives
   // its own from the library (`CONTRA_TRAVEL_MOTION`) and passes it in.
   travelPx: 40,
+  // The same: `@caller/contra` derives its own from the floor it dances on
+  // (`CONTRA_EVENNESS`), which is 1.6.
+  spread: 4,
 };
+
+/**
+ * How far a body has to travel through a whole figure before it counts as
+ * having danced it at all, px: **one rendered pixel**.
+ *
+ * The floor under {@link MotionStats.roleSpread} and
+ * {@link MotionStats.partSpread}, and the reason neither is ever a division by
+ * nothing. A dancer who holds their place through a figure — a hold place, the
+ * idle cast of a sequence part, the couple waiting out — has a path of exactly
+ * zero, and they are not moving *slowly*, they are not moving. One pixel is the
+ * renderer's own quantum: under it nothing on the screen has moved.
+ */
+export const STILL_BODY_PX = 1;
 
 /**
  * How fast a hand moves while its dancer stands still, px per beat: the hanging
@@ -393,6 +459,8 @@ export function motionReport(
   const travelled = new Map<DancerId, BodyTrail>();
   /** How many steps make a beat, which is the window `travel` is averaged over. */
   const travelWindow = Math.max(1, Math.round(1 / step));
+  /** One entry per figure *instance*, which is what the two spread columns are about. */
+  const instances = new Map<string, Instance>();
 
   for (let i = 0; i <= steps; i++) {
     const beat = from + i * step;
@@ -420,6 +488,15 @@ export function motionReport(
         const here = body.along[body.along.length - 1]!;
         const back = body.along[body.along.length - 1 - travelWindow]!;
         for (const row of rows) keep(row.travel, here - back, { dancer, beat });
+      }
+
+      // **Evenness** (M10b): the same steps, banked per figure *instance* and
+      // per half of it, so that the two spread columns can be worked out once
+      // the whole instance has been walked.
+      if (body.along.length > 1) {
+        const moved = body.along[body.along.length - 1]! - body.along[body.along.length - 2]!;
+        const half = instanceOf(instances, event).halves(dancer);
+        half[beat <= (event.start + event.end) / 2 ? 0 : 1] += moved;
       }
 
       for (const [index, side] of SIDES.entries()) {
@@ -495,6 +572,40 @@ export function motionReport(
     }
   }
 
+  // **Evenness**, once every instance has been walked. Only whole instances
+  // count: a figure the sampled window cut in half has a mean speed that is an
+  // artefact of where the window fell and not a fact about the figure.
+  for (const instance of instances.values()) {
+    if (instance.start < from || instance.end > until) continue;
+    const beats = instance.end - instance.start;
+    if (beats <= 0) continue;
+    const beat = instance.start;
+    const row = figures.get(instance.figure);
+    const into = row ? [overall, row] : [overall];
+
+    const moved = [...instance.dancers].filter(
+      ([, halves]) => halves[0]! + halves[1]! >= STILL_BODY_PX,
+    );
+    if (moved.length >= 2) {
+      let fastest = { mean: -Infinity, dancer: moved[0]![0] };
+      let slowest = Infinity;
+      for (const [dancer, halves] of moved) {
+        const mean = (halves[0]! + halves[1]!) / beats;
+        if (mean > fastest.mean) fastest = { mean, dancer };
+        slowest = Math.min(slowest, mean);
+      }
+      const where = { dancer: fastest.dancer, beat };
+      for (const stats of into) keep(stats.roleSpread, fastest.mean / slowest, where);
+    }
+
+    for (const [dancer, halves] of instance.dancers) {
+      const low = Math.min(halves[0]!, halves[1]!);
+      const high = Math.max(halves[0]!, halves[1]!);
+      if (low < STILL_BODY_PX) continue;
+      for (const stats of into) keep(stats.partSpread, high / low, { dancer, beat });
+    }
+  }
+
   const severity = (s: MotionStats): number =>
     Math.max(
       s.handSpeed.value / bounds.handSpeedPx,
@@ -502,6 +613,8 @@ export function motionReport(
       s.elbowPerHand.value / bounds.elbowPerHand,
       s.heightRate.value / bounds.heightRatePx,
       s.travel.value / bounds.travelPx,
+      s.roleSpread.value / bounds.spread,
+      s.partSpread.value / bounds.spread,
       s.dip.value / bounds.dipPx,
       s.stateFlips > 0 ? 1 : 0,
       // An arm that is not a number is drawn as nothing, which is worse than
@@ -530,7 +643,8 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
       `Bounds: hand ${report.bounds.handSpeedPx} px/beat, elbow ${report.bounds.elbowSpeedPx} px/beat, ` +
       `elbow/hand ${report.bounds.elbowPerHand}×, ` +
       `height ${report.bounds.heightRatePx} px/beat, dip ${report.bounds.dipPx} px, ` +
-      `travel ${report.bounds.travelPx.toFixed(2)} px/beat.`,
+      `travel ${report.bounds.travelPx.toFixed(2)} px/beat, ` +
+      `spread ${report.bounds.spread.toFixed(2)}×.`,
   );
   lines.push("");
   lines.push("**Per figure**");
@@ -544,8 +658,8 @@ export function formatMotionReport(report: MotionReport, top = Infinity): string
 }
 
 const MOTION_HEADER = [
-  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | flips | NaN | dip px | where the worst hand was |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | roles × | halves × | flips | NaN | dip px | where the worst hand was |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function motionTable(rows: readonly MotionStats[]): string[] {
@@ -557,6 +671,7 @@ function motionTable(rows: readonly MotionStats[]): string[] {
         `| \`${r.key}\` | ${r.handSpeed.value.toFixed(1)} | ${r.elbowSpeed.value.toFixed(1)} | ` +
         `${r.elbowPerHand.value.toFixed(2)} | ` +
         `${r.heightRate.value.toFixed(1)} | ${r.travel.value.toFixed(1)} | ` +
+        `${spread(r.roleSpread)} | ${spread(r.partSpread)} | ` +
         `${r.stateFlips} | ${r.nonFinite} | ` +
         `${r.dip.value.toFixed(2)} | ${motionPlace(r.handSpeed)} |`,
     ),
@@ -565,6 +680,16 @@ function motionTable(rows: readonly MotionStats[]): string[] {
 
 const motionPlace = (w: MotionWorst): string =>
   w.dancer === undefined ? "—" : `${w.dancer} ${w.side} at beat ${w.beat!.toFixed(3)}`;
+
+/**
+ * A spread, or `—` where there was nothing to compare.
+ *
+ * A seam row is half of each of two figures and never a whole instance of
+ * either, so neither spread is measured on one; nor is a figure whose window
+ * the report cut. Zero is "not measured" and is not a perfectly even figure,
+ * which is `1.00`.
+ */
+const spread = (w: MotionWorst): string => (w.value <= 0 ? "—" : w.value.toFixed(2));
 
 const fraction = (step: number): string =>
   Number.isInteger(1 / step) ? `1/${Math.round(1 / step)}` : String(step);
@@ -632,6 +757,8 @@ const emptyStats = (key: string): MotionStats => ({
   elbowPerHand: { value: 0 },
   heightRate: { value: 0 },
   travel: { value: 0 },
+  roleSpread: { value: 0 },
+  partSpread: { value: 0 },
   elbowHeightRate: { value: 0 },
   stateFlips: 0,
   flipJump: { value: 0 },
@@ -653,6 +780,46 @@ function keep(
   // A body has no side, which is what the `travel` column measures.
   if (where.side === undefined) delete worst.side;
   else worst.side = where.side;
+}
+
+/**
+ * One figure instance, and how far each of its dancers walked in each half of
+ * it — which is all the two spread columns need.
+ *
+ * Keyed by the group, the figure and the span, so that the same call danced by
+ * two groups over the same beats is two instances: they are two sets of people
+ * and a spread is a comparison between people who are dancing together.
+ */
+interface Instance {
+  figure: string;
+  start: Beat;
+  end: Beat;
+  /** Path length in the first and the second half of the figure, px. */
+  dancers: Map<DancerId, [number, number]>;
+  halves(dancer: DancerId): [number, number];
+}
+
+/** The instance record for one figure event, minted on first sight. */
+function instanceOf(instances: Map<string, Instance>, event: FigureEvent): Instance {
+  const key = `${event.group}|${event.figure}|${String(event.start)}|${String(event.end)}`;
+  const found = instances.get(key);
+  if (found) return found;
+  const dancers = new Map<DancerId, [number, number]>();
+  const made: Instance = {
+    figure: event.figure,
+    start: event.start,
+    end: event.end,
+    dancers,
+    halves(dancer) {
+      const was = dancers.get(dancer);
+      if (was) return was;
+      const fresh: [number, number] = [0, 0];
+      dancers.set(dancer, fresh);
+      return fresh;
+    },
+  };
+  instances.set(key, made);
+  return made;
 }
 
 /** One dancer's path length so far, one entry per sampled step. */

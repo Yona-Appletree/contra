@@ -3,13 +3,15 @@ import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { interpretDefinition } from "../library/interpret.js";
 import type { MotionBounds } from "@caller/choreo";
-import { STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
+import { STILL_BODY_PX, STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot } from "./ContraFigure.js";
 import { holdWindow, takeAndRelease } from "./ContraFigure.js";
 import { CONTRA_FIGURES, CONTRA_FIGURE_IDS } from "./registry.js";
 import { probeGroup } from "./testing.js";
 import { handDown } from "../pair/PairFrame.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { PROPER } from "../formation/proper.js";
+import { BECKET } from "../formation/becket.js";
 
 /**
  * How fast a drawn arm is *allowed* to move, derived rather than picked.
@@ -265,6 +267,169 @@ function plansAlone(def: ContraFigure<ContraParams>): boolean {
   }
 }
 
+/** One figure's own worst evenness, run alone at its nominal count. */
+export interface EvennessRow {
+  id: string;
+  /** The fastest role's mean speed over the slowest's; `0` where nobody moved. */
+  roleSpread: number;
+  /** The worst dancer's faster half over their slower half; `0` where nobody moved. */
+  partSpread: number;
+  /** Which role was fastest, and whose halves were worst. */
+  at: string;
+}
+
+/** The evenness derivation: the floor's own aspect, and every figure ranked against it. */
+export interface EvennessMotion {
+  /** The bound itself: the aspect of the minor set's own rectangle. */
+  spread: number;
+  /** How that number was arrived at, in words a table can carry. */
+  spreadAt: string;
+  /** Every figure that can be run alone, worst role spread first. */
+  ranking: readonly EvennessRow[];
+}
+
+/**
+ * **How far apart one figure's speeds may be** (M10b): the aspect of the floor
+ * it is danced on.
+ *
+ * The user, judging M10's chain: *"people try to move at a constant speed
+ * throughout the moves for the most part."* So the ideal of both spread columns
+ * is **1.0**, and the only question a bound has to answer is how far from it a
+ * figure is entitled to be.
+ *
+ * The answer is the floor. Four dancers stand on the four places of a minor
+ * set, and that is a **rectangle and not a square**: `ACROSS_PX` = 32 px across
+ * the set against `PLACE_PITCH_PX` = 20 px along it, in every formation this
+ * library dances — duple improper, proper and becket all measure the same
+ * 32 × 20. A figure that sends its roles round those places therefore *must*
+ * send some of them further than others, in the ratio of the rectangle's two
+ * sides, and `petronella` — which is exactly that figure, every dancer moving
+ * one place clockwise round the ring — measures **1.5455**, with
+ * `single-file-promenade`, which walks the whole rectangle, at **1.5960**. Both
+ * sit just under the aspect, which is the evidence that the aspect is the
+ * ceiling the floor imposes rather than a number picked to sit above them.
+ *
+ * **There is no guard factor on top, and that is deliberate.** Every other
+ * bound in this file multiplies a *magnitude* — a speed, a distance — by three
+ * or by one and a half, because the honest maximum of a magnitude is a typical
+ * case and a guard has to clear it. This one is a **ratio whose ideal is 1**,
+ * and a multiple of it would be a licence rather than a guard: at
+ * {@link GUARD_FACTOR} the bound would be 4.8, which permits a figure to walk
+ * one role nearly five times as fast as another. The headroom is in the
+ * reference instead — the aspect is the *worst* the floor can do to a figure,
+ * not a typical one.
+ *
+ * Measured rather than typed: the four places are read off the formations
+ * themselves, and `motionBounds.test.ts` re-derives the number.
+ */
+export function deriveEvenness(step: Beat = DERIVE_STEP): EvennessMotion {
+  const group = probeGroup(DUPLE_IMPROPER, 4, DUPLE_IMPROPER_FRAME);
+  const ranking: EvennessRow[] = [];
+
+  for (const id of travelFigureIds()) {
+    const def = travelFigureOf(id);
+    if (def === undefined) continue;
+    const params = withDefaults(def, {}, def.beats);
+    const steps = Math.round(def.beats / step);
+    const halves: { role: string; first: number; second: number }[] = [];
+    let plannable = true;
+    for (const station of group.stations) {
+      let first = 0;
+      let second = 0;
+      let previous: Vec2 | undefined;
+      for (let i = 0; i <= steps; i++) {
+        const t = i * step;
+        let p: Vec2;
+        try {
+          p = def.sample(group, station.id, t, params).p;
+        } catch {
+          plannable = false;
+          break;
+        }
+        if (previous !== undefined) {
+          if (t <= def.beats / 2) first += dist(previous, p);
+          else second += dist(previous, p);
+        }
+        previous = p;
+      }
+      if (!plannable) break;
+      halves.push({ role: station.id, first, second });
+    }
+    if (!plannable) continue;
+    ranking.push({ id, ...spreadsOf(halves, def.beats) });
+  }
+
+  ranking.sort((a, b) => b.roleSpread - a.roleSpread || a.id.localeCompare(b.id));
+  return {
+    spread: floorAspect(),
+    spreadAt: "the minor set's own rectangle, long side over short",
+    ranking,
+  };
+}
+
+/** One figure's two spreads, from each role's two half-path-lengths. */
+function spreadsOf(
+  halves: readonly { role: string; first: number; second: number }[],
+  beats: Beat,
+): Omit<EvennessRow, "id"> {
+  const moved = halves.filter((h) => h.first + h.second >= STILL_BODY_PX);
+  let roleSpread = 0;
+  let fastest = "";
+  if (moved.length >= 2 && beats > 0) {
+    let high = -Infinity;
+    let low = Infinity;
+    for (const h of moved) {
+      const mean = (h.first + h.second) / beats;
+      if (mean > high) {
+        high = mean;
+        fastest = h.role;
+      }
+      low = Math.min(low, mean);
+    }
+    roleSpread = high / low;
+  }
+  let partSpread = 0;
+  let worst = "";
+  for (const h of moved) {
+    const low = Math.min(h.first, h.second);
+    if (low < STILL_BODY_PX) continue;
+    const ratio = Math.max(h.first, h.second) / low;
+    if (ratio > partSpread) {
+      partSpread = ratio;
+      worst = h.role;
+    }
+  }
+  return { roleSpread, partSpread, at: `fastest ${fastest || "—"}, halves ${worst || "—"}` };
+}
+
+/**
+ * The aspect of the minor set's own rectangle: its long side over its short
+ * one, over every formation the library dances.
+ *
+ * Read off the stations rather than off the two constants, so that a formation
+ * that laid its places out differently would move the bound rather than
+ * silently disagree with it. The **largest** aspect wins, because a bound has
+ * to hold on the most out-of-square floor there is. All three are 1.6 today.
+ */
+export function floorAspect(): number {
+  let worst = 0;
+  for (const formation of [DUPLE_IMPROPER, PROPER, BECKET]) {
+    const places = formation.group(4);
+    const gaps = new Set<number>();
+    for (let i = 0; i < places.length; i++) {
+      for (let j = i + 1; j < places.length; j++) {
+        gaps.add(Number(dist(places[i]!.p, places[j]!.p).toFixed(6)));
+      }
+    }
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const short = sorted[0];
+    const long = sorted[1];
+    if (short === undefined || long === undefined || short <= 0) continue;
+    worst = Math.max(worst, long / short);
+  }
+  return worst;
+}
+
 /**
  * One `takeAndRelease` take, measured: a dancer standing still lifts one hand
  * from their hip to a joined point `floorPx` away and `drop` px below the
@@ -338,15 +503,18 @@ export function deriveBounds(step = DERIVE_STEP): {
   extremes: TakeExtremes;
   take: TakeMotion;
   travel: TravelMotion;
+  evenness: EvennessMotion;
   bounds: MotionBounds;
 } {
   const extremes = takeExtremes(step);
   const take = deriveTakeMotion(extremes.floorPx, extremes.drop, step);
   const travel = deriveTravel(step);
+  const evenness = deriveEvenness(step);
   return {
     extremes,
     take,
     travel,
+    evenness,
     bounds: {
       handSpeedPx: GUARD_FACTOR * take.handSpeed,
       elbowSpeedPx: GUARD_FACTOR * take.elbowSpeed,
@@ -356,6 +524,9 @@ export function deriveBounds(step = DERIVE_STEP): {
       // exactly `2 × HAND_HANG_SWING_PX`, and the only one the model asks for.
       dipPx: GUARD_FACTOR * 2 * HAND_HANG_SWING_PX,
       travelPx: TRAVEL_GUARD_FACTOR * travel.travelPx,
+      // M10b: the floor's own aspect, with no guard factor on top; see
+      // `deriveEvenness` for why a ratio whose ideal is 1 takes none.
+      spread: evenness.spread,
     },
   };
 }
@@ -421,6 +592,8 @@ export const CONTRA_MOTION_BOUNDS: MotionBounds = {
   dipPx: 3.6,
   // M10, R6: 1.5 × the swing's own orbit; see `CONTRA_TRAVEL_MOTION`.
   travelPx: 23.3194,
+  // M10b: the minor set's own rectangle; see `CONTRA_EVENNESS`.
+  spread: 1.6,
 };
 
 /**
@@ -453,6 +626,10 @@ export const CONTRA_MOTION_BOUNDS: MotionBounds = {
  * the two-beat join instead of 56°, and a constant rate over the middle of the
  * figure is faster in the middle than a smoothstep's own peak is wide.
  *
+ * **M10b took 0.58 px/beat of that back**: 19.7104 → **19.1282**, by making the
+ * chain's opening out a chord instead of a spiral. The worst beat of a chain —
+ * which was the worst beat in the library — went from 17.09 px/beat to 15.37.
+ *
  * ### The figures above the bound, run alone
  *
  * Three, and each is a fact about the probe rather than about a dance — a
@@ -473,6 +650,45 @@ export const CONTRA_TRAVEL_MOTION = {
   /** The fastest figure in the ranking, which is not the reference; see above. */
   fastestPx: 28.8617,
   fastestId: "bend-the-line",
+} as const;
+
+/**
+ * **The evenness bound** (M10b), derived by {@link deriveEvenness} and
+ * re-derived by `motionBounds.test.ts`.
+ *
+ * The minor set is 32 px across and 20 px along in all three formations, so the
+ * bound is **1.6** and it is the same number for `roleSpread` and for
+ * `partSpread`. See {@link deriveEvenness} for why there is no guard factor.
+ *
+ * ### The library, run alone at its nominal count
+ *
+ * Every figure that can be planned over a whole minor set standing alone, worst
+ * role spread first. `—` is a figure where fewer than two roles moved at all,
+ * which is not an even figure but an unmeasured one.
+ *
+ * | figure | roles × | halves × | note |
+ * | --- | ---: | ---: | --- |
+ * | `bend-the-line` | 1.9577 | 2.5815 | a two-beat figure probed outside the line of four it is danced in; the same probe artefact as its travel row. No programme dance calls it. |
+ * | `robins-chain` | 1.7584 | 1.3268 | **M10b's own figure**, 1.7641 / 1.3344 before, and still over on `roles`: see `dances/motionAllowlist.ts`, which has the arithmetic and the whole lever sweep. |
+ * | `single-file-promenade` | 1.5960 | 1.0135 | the figure that walks the rectangle itself, and the evidence for the bound. |
+ * | `petronella` | 1.5455 | 1.0000 | one place clockwise round the ring, which is the rectangle again. |
+ * | `interrupted-square-through` | 1.0000 | 7.2051 | it is *interrupted*: the figure stops in the middle by construction. |
+ * | `balance` | 1.0000 | 1.7146 | a rock in and a rock out, which is not one walk. |
+ * | `down-the-hall` / `up-the-hall` | 1.0921 | 1.6954 | walk down, then turn at the bottom. |
+ *
+ * Everything else in the library is inside the bound on both columns; the whole
+ * ranking is what `deriveEvenness` returns and what the test pins.
+ */
+export const CONTRA_EVENNESS = {
+  /** The bound: the long side of the minor set's rectangle over its short side. */
+  spread: 1.6,
+  /** Across the set, px. */
+  acrossPx: 32,
+  /** Along the set, px. */
+  alongPx: 20,
+  /** The figure whose measured spread is the evidence for the bound. */
+  witnessId: "single-file-promenade",
+  witnessSpread: 1.596,
 } as const;
 
 /**

@@ -21,6 +21,12 @@ import { DEFAULT_MOTION_BOUNDS, formatMotionReport, motionReport } from "./oracl
 interface TestParams extends FigureParams {
   /** Where the hand goes: a fixed point, a jump half way through, or `NaN`. */
   hand: "still" | "far" | "jump" | "broken" | "down";
+  /**
+   * What the two **bodies** do, which is all the spread columns look at
+   * (M10b). Absent is what every test written before them passes: nobody
+   * moves, so there is nothing to compare and both columns stay at zero.
+   */
+  walk?: "roles" | "halves";
 }
 
 const still: Hand = { p: [0, -4], drop: 5 };
@@ -34,7 +40,18 @@ const TEST_FIGURE: FigureDef<TestParams> = {
   beats: 4,
   defaults: { hand: "still" },
   sample(_group: Group, station: StationId, t: Beat, params: TestParams): PoseSample {
-    const p: Vec2 = station === "a" ? [0, 0] : [20, 0];
+    const home: Vec2 = station === "a" ? [0, 0] : [20, 0];
+    // `roles`: `b` walks four times as far as `a` over the same four beats.
+    // `halves`: both walk 1 px a beat for two beats and then 3 px a beat.
+    const along =
+      params.walk === "roles"
+        ? (station === "a" ? 1 : 4) * t
+        : params.walk === "halves"
+          ? t <= 2
+            ? t
+            : 2 + 3 * (t - 2)
+          : 0;
+    const p: Vec2 = [home[0], home[1] + along];
     const hand: Hand | "down" =
       params.hand === "down"
         ? "down"
@@ -66,6 +83,11 @@ const registry = createFigureRegistry([TEST_FIGURE]);
 
 /** A timeline of `hand` settings, one figure instance per entry, back to back. */
 function timelineOf(...hands: TestParams["hand"][]) {
+  return walkingTimeline(undefined, ...hands);
+}
+
+/** The same, with every instance walking the same way. */
+function walkingTimeline(walk: TestParams["walk"], ...hands: TestParams["hand"][]) {
   const stations = [
     { id: "a", role: "x", facing: 0, p: [0, 0] as Vec2 },
     { id: "b", role: "y", facing: 0, p: [20, 0] as Vec2 },
@@ -88,7 +110,7 @@ function timelineOf(...hands: TestParams["hand"][]) {
       kind: "figure",
       group: "g",
       figure: "test",
-      params: { beats: 4, hand },
+      params: { beats: 4, hand, ...(walk === undefined ? {} : { walk }) },
       bindings: { a: "a", b: "b" },
       start: i * 4,
       end: (i + 1) * 4,
@@ -153,6 +175,44 @@ describe("motionReport", () => {
     // The seam itself no longer holds a flip at all: the hand is placed for the
     // whole of it and only becomes hanging once it has arrived.
     expect(report.seams[0]!.stateFlips).toBe(0);
+  });
+
+  describe("the spread columns (M10b)", () => {
+    it("measures nothing where nobody moves, rather than calling it even", () => {
+      // Zero is "there was nothing to compare"; a perfectly even figure is
+      // 1.00, and the two must not be the same number.
+      const row = motionReport(timelineOf("still"), 4).figures[0]!;
+      expect(row.roleSpread.value).toBe(0);
+      expect(row.partSpread.value).toBe(0);
+    });
+
+    it("compares the roles' mean speeds over the whole instance", () => {
+      const row = motionReport(walkingTimeline("roles", "still"), 4).figures[0]!;
+      expect(row.roleSpread.value).toBeCloseTo(4, 6);
+      // The fastest role, and the beat the instance began at.
+      expect(row.roleSpread.dancer).toBe("b");
+      expect(row.roleSpread.beat).toBe(0);
+      expect(row.roleSpread.side).toBeUndefined();
+      // Both dancers walk at one speed throughout, so their halves are equal.
+      expect(row.partSpread.value).toBeCloseTo(1, 6);
+    });
+
+    it("compares one dancer's two halves of the figure", () => {
+      const row = motionReport(walkingTimeline("halves", "still"), 4).figures[0]!;
+      // 2 px in the first half against 6 px in the second.
+      expect(row.partSpread.value).toBeCloseTo(3, 6);
+      // Both dancers do the same thing, so the roles are even.
+      expect(row.roleSpread.value).toBeCloseTo(1, 6);
+    });
+
+    it("does not put either on a seam row, where there is no whole figure", () => {
+      const report = motionReport(walkingTimeline("roles", "still", "far"), 8);
+      const seam = report.seams[0]!;
+      expect(seam.key).toBe("test → test");
+      expect(seam.roleSpread.value).toBe(0);
+      expect(seam.partSpread.value).toBe(0);
+      expect(formatMotionReport(report)).toContain("roles ×");
+    });
   });
 
   it("sorts an offending figure above a quiet one and marks it in the markdown", () => {
