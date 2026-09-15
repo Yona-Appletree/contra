@@ -1,11 +1,14 @@
 {
   "id": "lead-down",
+  "description": "A couple comes into the middle of the set and walks down it side by side.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Take the inside hand of the dancer across from you and walk down the middle of the set.",
-    "long": "Come together into the middle of the set, take the hand nearest your partner, and walk down the hall side by side. You end facing down the hall, still holding on and still in the middle."
+    "line": "Take the inside hand of {who} and walk down the middle of the set.",
+    "teach": "Come together into the middle of the set, take the hand nearest {who}, and walk down the hall side by side. You end facing down the hall, still holding on and still in the middle."
   },
   "call": {
-    "short": "LEAD DOWN",
-    "long": "LEAD DOWN THE CENTRE"
+    "1": "DOWN",
+    "2": "LEAD DOWN",
+    "4": "LEAD DOWN THE CENTRE"
   }
 }

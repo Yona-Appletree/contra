@@ -60,10 +60,11 @@ their own and are reached by URL or by a link on the page above them.
     gathers people home / carries them / makes a shape (`ends`), its timing
     profile, and its figure-roles — with a role word that names a contra role
     lightly coloured in the role colour (D5; `ROLE_COLOURS`, `docs/role-colours.md`);
-  - the move's own walkthrough — the short one, the full teach behind a "teach"
-    disclosure, and the caller's two registers as `SHORT · LONG`, all four read
+  - the figure's own texts — what it is in the third person, the mechanics line,
+    the full teach behind a "teach" disclosure with the generated ending hint
+    under it, and the caller's three forms longest first as `4 · 2 · 1`, all read
     from `data/figures/<id>.json` and resolved against **this** tile's
-    parameters (W1; `docs/move-texts.md`);
+    parameters and the dancer its call names (M13; `docs/move-texts.md`);
   - the motion oracle's measured numbers (`src/galleryTiles.ts`'s
     `tileMetrics`), with any number over `@caller/contra`'s bound picked out in
     colour;

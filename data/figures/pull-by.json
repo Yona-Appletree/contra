@@ -1,11 +1,14 @@
 {
   "id": "pull-by",
+  "description": "Two dancers give one hand and walk straight past each other.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Give {hand} hands to {pairs} and walk straight past each other.",
-    "long": "Give {hand} hands to {pairs}, walk straight past them passing that shoulder, and let go as you go by. You end where they were standing and they end where you were — do not turn round, because whatever comes next is waiting for you there."
+    "line": "Give {hand} hands to {who} and walk straight past each other.",
+    "teach": "Give {hand} hands to {who}, walk straight past them passing that shoulder, and let go as you go by. You end where they were standing and they end where you were. Keep facing the way you walked; whatever comes next is waiting for you there."
   },
   "call": {
-    "short": "PULL BY",
-    "long": "{pairs} PULL BY THE {hand}"
+    "1": "PULL BY",
+    "2": "PULL BY {hand}",
+    "4": "{who} PULL BY THE {hand}"
   }
 }

@@ -1,11 +1,14 @@
 {
   "id": "balance",
+  "description": "Two dancers take hands, rock in toward each other, and rock back.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Take {hold} with {pairs} and rock: two steps in toward them, two steps back.",
-    "long": "Take {hold} with {pairs}. Step in toward them on to one foot and touch the other beside it, then step back out and touch again. Two beats in, two beats out, and nobody travels anywhere. Keep hold at the end. {where}"
+    "line": "Take {hold} with {who} and rock: two steps in toward them, two steps back.",
+    "teach": "Take {hold} with {who}. Step in toward them on to one foot and touch the other beside it, then step back out and touch again. Two beats in, two beats out, and you stay on your own place. Keep hold at the end, ready for whatever follows."
   },
   "call": {
-    "short": "BALANCE",
-    "long": "{pairs} BALANCE"
+    "1": "BALANCE",
+    "2": "BALANCE",
+    "4": "{who} BALANCE"
   }
 }

@@ -897,8 +897,9 @@ function DanceIndex({ entry }: { entry: MoveEntry }): JSX.Element | null {
 }
 
 /**
- * What one move says, on its row: the short walkthrough, the full teach behind
- * a disclosure, and the two calls.
+ * What one figure says, on its row: what it is, the mechanics line, the full
+ * teach behind a disclosure with the ending hint under it, and the three call
+ * forms with their beats.
  *
  * The AI paragraph that used to stand here is gone (W1). The user, who calls:
  * "the moves all have a lot of ai generated text description. it feels very
@@ -908,7 +909,7 @@ function DanceIndex({ entry }: { entry: MoveEntry }): JSX.Element | null {
  * whoever wants it.
  *
  * `describe` is still the fallback for a figure with no text file. Nothing in
- * the registry is in that state, and the line says so plainly if one ever is.
+ * the library is in that state, and the line says so plainly if one ever is.
  */
 function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.Element {
   const label = named ? <b>{call.figure}: </b> : null;
@@ -922,18 +923,29 @@ function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.E
   }
   return (
     <div className="moves-row-text" data-testid="moves-text" data-figure={call.figure}>
-      <p className="moves-row-describe" data-testid="moves-walkthrough-short">
+      <p className="moves-row-dim" data-testid="moves-description">
+        {call.texts.description}
+      </p>
+      <p className="moves-row-describe" data-testid="moves-walkthrough-line">
         {label}
-        {call.texts.walkthrough.short}
+        {call.texts.walkthrough.line}
       </p>
       <details className="moves-row-teach">
         <summary>teach</summary>
-        <p data-testid="moves-walkthrough-long">{call.texts.walkthrough.long}</p>
+        <p data-testid="moves-walkthrough-teach">{call.texts.walkthrough.teach}</p>
+        {call.hint === undefined ? null : (
+          <p className="moves-row-hint" data-testid="moves-hint">
+            {call.hint}
+          </p>
+        )}
       </details>
       <p className="moves-row-callpair" data-testid="moves-calls">
-        <span className="moves-row-callshort">{call.texts.call.short}</span>
-        <span className="moves-row-dim"> &middot; </span>
-        <span>{call.texts.call.long}</span>
+        {call.texts.forms.map((form, i) => (
+          <span key={form.beats}>
+            {i === 0 ? null : <span className="moves-row-dim"> &middot; </span>}
+            <span className={i === 0 ? "moves-row-callshort" : undefined}>{form.text}</span>
+          </span>
+        ))}
       </p>
     </div>
   );

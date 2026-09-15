@@ -57,13 +57,16 @@
         "profile": "smooth"
       },
       "texts": {
+        "description": "One dancer walks forward one place along their own line.",
+        "defaultLevel": "line",
         "walkthrough": {
-          "short": "Walk forward one place along your own line while the dancer beside you casts back.",
-          "long": "On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them. Nobody's hand: the two of you are dancing different figures in the same two beats."
+          "line": "Walk forward one place along your own line, looking the way you were looking.",
+          "teach": "On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them. Your hands stay at your sides: the two of you are dancing different figures in the same two beats."
         },
         "call": {
-          "short": "GO FORWARD",
-          "long": "GO FORWARD ONE PLACE"
+          "1": "GO FORWARD",
+          "2": "{who} GO FORWARD",
+          "4": "{who} GO FORWARD ONE PLACE"
         }
       }
     }

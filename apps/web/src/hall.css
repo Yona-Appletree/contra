@@ -410,7 +410,20 @@
   padding-left: 0.625rem;
 }
 
-/* The caller's two registers, in the bubble's own capitals. */
+/*
+ * **The ending hint** (D22, D24, D29): where the figure leaves you, generated
+ * from the engine's own end places rather than written. Italic and muted, and
+ * with **no rule bar** — the user: "lets do away with the quote line on the
+ * left of the sub-text" — which is what tells it from the teach it sits under.
+ */
+.moves-row-teach > p.moves-row-hint {
+  border-left: 0;
+  padding-left: 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+/* The caller's three forms, longest first, in the bubble's own capitals. */
 .moves-row-callpair {
   margin-top: 0.375rem;
   font-size: 0.75rem;

@@ -35,11 +35,13 @@ describe("danceWalkthrough", () => {
     expect(first.call).toBe("NEIGHBOR BALANCE AND SWING");
   });
 
-  it("ends airpants' opening balance-and-swing on the user's own landmark sentence", () => {
+  it("stops the written teach at how far, and leaves where you end to the hint", () => {
+    // D22, M13's A3: `{where}` is gone from the written language. The teach says
+    // what the dancers do; where the figure leaves them is generated at the seam
+    // and rendered beside the text, never baked into it.
     const airpants = danceBySlug("airpants")!;
     const first = danceWalkthrough(airpants)[0]!;
-    expect(first.text).toContain(
-      "You should be across the set from your partner, next to your neighbor.",
-    );
+    expect(first.text).toContain("Take both hands with your neighbor");
+    expect(first.text).not.toContain("You should be across the set");
   });
 });

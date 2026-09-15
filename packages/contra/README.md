@@ -1040,13 +1040,19 @@ sentences of what the dancers do, in a caller's words. `star` and
 two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
 square to the other line, danced in two steps, and the figure now says so.
 
-**`describe` is the fallback now, not what the app shows** (W1). Every move's
-prose lives in `data/figures/<id>.json` — a short and a long walkthrough, a
-short and a long call, each a template over that figure's own parameters —
-loaded by `src/text/`. `resolveFigureText(id, params, group)` fills every slot
-from one call's own tuning, and `landmark(def, params, group)` writes the last
-sentence of the long walkthrough from `FigureDef.ends`: "you should be across
-the set from your partner, next to your neighbor". See
-[`docs/move-texts.md`](../../docs/move-texts.md) for the voice and the slot
-vocabulary. `describe` stays on the figure contract until the cleanup that
-removes it.
+**`describe` is the fallback now, not what the app shows** (W1, M13). Every
+figure's prose lives in `data/figures/<id>.json` — a third-person
+`description`, a `defaultLevel`, a mechanics `line`, a full `teach`, and the
+caller's `call` forms keyed by how many **beats** each takes to say — loaded by
+`src/text/`. `resolveFigureText(id, params, slots)` fills every slot from one
+call's own shorthand tuning and the dancer that call names (`callWho(call)`),
+and `resolveFigureForms` is the cheap half for the places that want the caller's
+words alone. One table — `src/text/relationWords.ts` — says who a relation is,
+in both registers, for every text in the app.
+
+Where a figure **leaves** you is no longer written (D22): `{where}` is gone from
+the texts, and `landmark(def, params, group)` generates the sentence beside them
+— "Your partner is across from you. Your neighbor is beside you." See
+[`docs/move-texts.md`](../../docs/move-texts.md) for the voice, the file shape
+and the slot vocabulary. `describe` stays on the figure contract until the
+cleanup that removes it.

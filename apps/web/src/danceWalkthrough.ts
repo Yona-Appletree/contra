@@ -1,12 +1,6 @@
 import type { Dance } from "@caller/choreo";
-import { concurrentCalls, withDefaults } from "@caller/choreo";
-import {
-  contraDataFigures,
-  createContraRegistry,
-  formationFor,
-  probeGroup,
-  resolveFigureText,
-} from "@caller/contra";
+import { concurrentCalls } from "@caller/choreo";
+import { callWho, formFor, resolveFigureText } from "@caller/contra";
 
 /** One figure of a dance walkthrough: what the caller says, and the full teach. */
 export interface DanceWalkthroughStep {
@@ -19,38 +13,30 @@ export interface DanceWalkthroughStep {
 }
 
 /**
- * The dance's figures in order, each with its long walkthrough text resolved
- * through the text layer (W1) — the first "walkthrough card" the vision
- * addenda name as a product pillar (U3).
+ * The dance's figures in order, each with its full teach resolved through the
+ * text layer — the first "walkthrough card" the vision addenda name as a
+ * product pillar (U3).
  *
- * `probeGroup(formationFor(dance), 4)` is the exact group
- * `figureText.test.ts`'s "leaves no slot unresolved" case already proves
- * resolves every call of every phrase of all ten demo dances without an
- * unresolved `{slot}` — a plain four-station group in the dance's own
- * formation, not the (possibly widened) group a call actually danced in.
- * `landmark()` only ever reads the four canonical stations off it, so the
- * difference does not reach the sentence.
+ * **P4 of the walkthrough-language plan replaces this file** with
+ * `danceWalkthrough` in `@caller/contra`, which dances the dance through the
+ * planner and carries the seam hints, the headings and the wrap. What is here
+ * is U3's list, moved on to M13's seven texts and nothing more.
  */
 export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] {
-  // With the interpreted definitions in it: since M6 a figure can be data
-  // with no coded twin, and M7's are the first such figures a **programme**
-  // dance calls, so a plain coded registry has no `down-the-hall` to read.
-  const registry = createContraRegistry(contraDataFigures());
-  const group = probeGroup(formationFor(dance), 4);
   const steps: DanceWalkthroughStep[] = [];
   for (const phrase of dance.phrases) {
     // **A concurrent call is walked through as its own steps** (M8), in the
-    // order the record writes them: a caller teaching "women cast back while
-    // men go forward" teaches both halves, one after the other, and each half
+    // order the record writes them: a caller teaching "robins cast back while
+    // larks go forward" teaches both halves, one after the other, and each half
     // has its own figure and its own words.
     for (const call of phrase.figures.flatMap((written) => concurrentCalls(written))) {
-      const texts = textsFor(registry, group, call);
+      const texts = textsFor(call);
       if (texts === undefined) continue;
       steps.push({
         phrase: phrase.name,
         figure: call.figure,
-        call: call.call ?? texts.call.long,
-        text: texts.walkthrough.long,
+        call: call.call ?? formFor(texts.forms, 4)?.text ?? call.figure,
+        text: texts.walkthrough.teach,
       });
     }
   }
@@ -61,22 +47,22 @@ export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] 
  * One call's texts, or `undefined` for a call that has none this page can print.
  *
  * The header says a call whose texts do not resolve is left out and never given
- * a placeholder, and until M8 that meant the one case `resolveFigureText`
- * answers `undefined` for: a figure with no text file. A **lab** dance has two
- * more — a figure a later milestone owns, which the registry does not hold at
- * all, and a parameter value the text layer has no words for — and both of those
- * *throw*, which took the whole dance page down rather than one step of it. A
- * lab dance is exactly the kind of dance whose figures are half written, so the
- * page catches here and shows the rest of the walkthrough.
+ * a placeholder. A **lab** dance is the case that needs the catch: a figure a
+ * later milestone owns, or a parameter value the text layer has no words for,
+ * *throws*, which took the whole dance page down rather than one step of it.
  */
-function textsFor(
-  registry: ReturnType<typeof createContraRegistry>,
-  group: ReturnType<typeof probeGroup>,
-  call: { figure: string; params?: object; beats: number },
-): ReturnType<typeof resolveFigureText> {
+function textsFor(call: {
+  figure: string;
+  params?: object;
+  beats: number;
+  who?: unknown;
+}): ReturnType<typeof resolveFigureText> {
   try {
-    const def = registry.get(call.figure);
-    return resolveFigureText(call.figure, withDefaults(def, call.params, call.beats), group);
+    return resolveFigureText(
+      call.figure,
+      { ...(call.params ?? {}), beats: call.beats },
+      { who: callWho(call) },
+    );
   } catch {
     return undefined;
   }

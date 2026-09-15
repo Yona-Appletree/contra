@@ -102,12 +102,19 @@ and need none: nothing here is quoted from The Caller's Box or from any
 other publication, and the permission note below is about `corpus/`, not
 about these.
 
-Each text is a template over that figure's own parameters — `{pairs}`,
-`{hand}`, `{amount}` and a short list of others — because the words depend
-on who is where: the same do-si-do is "your neighbor" in one dance and
-"your partner" in the next. `{where}` is the one slot nobody writes; the
-engine fills it from the figure's own end places. A `variants` block gives
-one parameter value its own prose where a slot is not enough.
+A file holds **seven texts**: a third-person `description`, a `defaultLevel`
+(whether a dance walkthrough opens the entry on the figure's name or on its
+mechanics line), `walkthrough.line` and `walkthrough.teach`, and a `call` block
+keyed by how many **beats** each form takes to say — `"4"`, `"2"` and `"1"`.
+
+Each text is a template over that figure's own **shorthand parameters** —
+`{hand}`, `{amount}`, `{places}` and a short list of others — plus `{who}`, the
+dancer this call names, because the words depend on who is where: the same
+do-si-do is "your neighbor" in one dance and "your partner" in the next. Where
+the figure **leaves** you is never written: it is generated at the seam from the
+engine's own end places and shown beside the text. A `variants` block, keyed
+`"<param>=<value>"`, gives one parameter value its own prose where a slot is
+not enough.
 
 They are plain JSON on purpose: the user is a caller and will edit them,
 and editing them must not need a build. `docs/move-texts.md` is the voice

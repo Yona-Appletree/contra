@@ -5,8 +5,9 @@ import {
   ALL_DANCES,
   DEMO_DANCES,
   FIGURE_TEXTS,
+  formFor,
   paramDefaults,
-  resolveFigureCall,
+  resolveFigureForms,
 } from "@caller/contra";
 import { callsOf, definitionIds, definitionOf } from "./galleryTiles.js";
 import { alternativeValues, paramValueText } from "./moveParams.js";
@@ -398,7 +399,7 @@ export const MAX_VARIANTS: Readonly<Record<MoveVariantSource, number>> = {
  * The caller's short line for one tuning, or nothing where the texts cannot say
  * it.
  *
- * `resolveFigureCall` throws by name rather than leaving a `{slot}` showing,
+ * `resolveFigureForms` throws by name rather than leaving a `{slot}` showing,
  * which is the right rule for a page that shows a dance's own calls and the
  * wrong one for a page that **generates** tunings from a parameter spec — the
  * whole point of a generated row is that nobody has written prose for it yet.
@@ -406,12 +407,15 @@ export const MAX_VARIANTS: Readonly<Record<MoveVariantSource, number>> = {
  */
 function shortCallOf(id: string, params: Record<string, ParamValue>): string | undefined {
   try {
-    return resolveFigureCall(id, params as unknown as Parameters<typeof resolveFigureCall>[1])
-      ?.short;
+    const forms = resolveFigureForms(id, params);
+    return forms === undefined ? undefined : formFor(forms, SHORT_CALL_BEATS)?.text;
   } catch {
     return undefined;
   }
 }
+
+/** The register a parameter row's one call line is printed in: the 2-beat form. */
+const SHORT_CALL_BEATS = 2;
 
 /** A value from a variant key, given the shape the definition's own default has. */
 function sameShapeAs(like: ParamValue | undefined, written: string): ParamValue {

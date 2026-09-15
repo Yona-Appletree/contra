@@ -1,11 +1,14 @@
 {
   "id": "petronella",
+  "description": "Four dancers each spin once to the right and travel one place round the ring.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Spin once round to your own right and travel round the set, {places}. Nobody holds on.",
-    "long": "Nobody takes hands. Turn once round to your own right and travel clockwise round the set as you spin — {places} — so the four of you move as a ring without holding anybody. Four beats, and the hands come up and out as you spin. {where}"
+    "line": "Spin once round to your own right and travel {places} round the set as you go.",
+    "teach": "Hands free, spin once round to your own right and travel clockwise round the set as you spin — {places} — so the four of you move round the ring together. Four beats, and the hands come up and out as you go."
   },
   "call": {
-    "short": "PETRONELLA",
-    "long": "PETRONELLA TURN"
+    "1": "TURN",
+    "2": "PETRONELLA",
+    "4": "PETRONELLA TURN"
   }
 }

@@ -1,11 +1,14 @@
 {
   "id": "pass-through",
+  "description": "Two dancers walk past each other by the right shoulder to the other side.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Walk past the dancer you face {direction} the set, right shoulders, without turning.",
-    "long": "Walk forward past the dancer facing you {direction} the set, passing right shoulders, and stop on the other side. Do not turn around: whatever comes next is what tells you which way to face. Four beats. {where}"
+    "line": "Walk past the dancer you face {direction} the set, right shoulders, and stop there.",
+    "teach": "Walk forward past the dancer facing you {direction} the set, passing right shoulders, and stop on the other side. Keep facing the way you walked; the next call tells you where to look. Four beats."
   },
   "call": {
-    "short": "PASS THROUGH",
-    "long": "PASS THROUGH {direction} THE SET"
+    "1": "PASS",
+    "2": "PASS THROUGH",
+    "4": "PASS THROUGH {direction} THE SET"
   }
 }
