@@ -843,7 +843,14 @@ function planTile(spec: TileSpec): TileRun {
       hall,
       start: at,
       first: true,
-      standingAt: new Map(),
+      // Where everybody is standing as this time through opens. In the hall
+      // the line-up before a dance puts that there; here it has to be said.
+      // It is not decoration: a call that leaves somebody out gives them a
+      // hold-place instance whose `origins` are read out of exactly this, and
+      // an empty map left the two robins of "larks allemande left" standing on
+      // their **stations** — a whole couple place, 20 px, from where the dance
+      // has them.
+      standingAt: standingOn(formation, hall, cycle.startPlaces),
       mintGroup,
     });
     for (const emission of planned.emissions) {
@@ -907,6 +914,37 @@ function stand(
     stations: group.stations.map((s) => s.id),
     start,
   });
+}
+
+/**
+ * Where every dancer in the hall stands at the top of a time through, in world
+ * px: the cycle's own first places, or the formation's stations.
+ *
+ * The same answer `planCycle`'s own `firstPlaces` computes, read off
+ * `groupsFor("hands-four", …)` for the same reason — a waiting couple's wait
+ * stations are not lattice homes, and a becket dance's `startPlaces` reaches
+ * them by the `WL`/`WR` ids `wait-out` uses.
+ */
+function standingOn(
+  formation: Formation,
+  hall: HallState,
+  startPlaces: Spots | undefined,
+): Map<DancerId, EndPose> {
+  const standing = new Map<DancerId, EndPose>();
+  for (const set of hall.sets) {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+      for (const station of plan.stations) {
+        const dancer = plan.members[station.id];
+        if (dancer === undefined) continue;
+        const place = startPlaces?.[station.id] ?? { p: station.p, facing: station.facing };
+        standing.set(dancer, {
+          p: framePoint(plan.frame, place.p),
+          facing: frameAngle(plan.frame, place.facing),
+        });
+      }
+    }
+  }
+  return standing;
 }
 
 /** Where a group's stations are, in world px: where its dancers start. */

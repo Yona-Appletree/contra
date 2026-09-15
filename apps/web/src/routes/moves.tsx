@@ -227,7 +227,14 @@ export function MovesPage({
           beats the tile loops.
           {solo === null ? " Every seam sits under the figure it comes out of." : ""} A number in{" "}
           <span className="moves-over px-1">this colour</span> is over the bound{" "}
-          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.
+          <code>@caller/contra</code> derives from the library — a thing to look at, not a verdict.{" "}
+          Every tile here is one two-couple set run through the{" "}
+          <b>{engine === "new" ? "new" : "old"}</b> engine
+          {engine === "new" ? "" : " (?engine=old)"}; the{" "}
+          <a href="#/lab" data-testid="moves-lab-link">
+            seam lab
+          </a>{" "}
+          dances two of these seams through both at once.
         </p>
       </header>
 
@@ -538,7 +545,7 @@ function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.E
 }
 
 /** The oracle's line for one row: six numbers, the ones over a bound marked. */
-function Metrics({
+export function Metrics({
   tile,
   metrics,
 }: {
@@ -599,8 +606,8 @@ function useMetrics(
   return measured;
 }
 
-/** The looping canvas of one tile. */
-function TileCanvas({
+/** The looping canvas of one tile. Exported for the seam lab, which loops two. */
+export function TileCanvas({
   tile,
   beat,
   zoom,
@@ -703,7 +710,8 @@ export function stripCells(tile: GalleryTile, step: number): Array<{ at: Beat; l
   return cells;
 }
 
-function StripCell({
+/** One frame of a strip: the tile at `cell.at`, with its beat drawn under it. */
+export function StripCell({
   tile,
   cell,
   zoom,

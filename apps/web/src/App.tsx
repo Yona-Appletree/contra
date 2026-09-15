@@ -5,6 +5,7 @@ import { DancePage, DancesPage } from "./routes/dances.js";
 import { FramePage } from "./routes/frame.js";
 import { HallPage } from "./routes/hall.js";
 import { hashRoute } from "./routes/hashRoute.js";
+import { SeamLabPage } from "./routes/lab.js";
 import { MovesPage } from "./routes/moves.js";
 import { PairPage } from "./routes/pair.js";
 import { MoveTracesPage, TracesPage } from "./routes/traces.js";
@@ -46,6 +47,21 @@ export function App() {
       <MoveTracesPage
         key={`${moveTraces}|${route.params.toString()}`}
         id={moveTraces}
+        params={route.params}
+      />
+    );
+    return bare ? page : <Tabbed tab="moves">{page}</Tabbed>;
+  }
+
+  // `#/lab` and `#/lab/seam/<a>--<b>`: the seam lab (M3, gate G1) — one seam
+  // danced through both engines at once. Filed under the Moves tab, because a
+  // seam is a move's edge, but a route of its own: it ignores most of the
+  // Moves page's controls and has four of its own.
+  if (route.path === "/lab" || route.path.startsWith("/lab/")) {
+    const page = (
+      <SeamLabPage
+        key={`${route.path}|${route.params.toString()}`}
+        path={route.path}
         params={route.params}
       />
     );
