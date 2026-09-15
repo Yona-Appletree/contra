@@ -30,7 +30,7 @@ export interface TraceViewPen {
   role: string;
   /** 1 for contra's ones, 2 for its twos, 0 for a station that is not ranked. */
   rank: number;
-  samples: readonly { beat: Beat; p: Vec2; facing: Angle; span: number }[];
+  samples: readonly { beat: Beat; p: Vec2; facing: Angle; span: number; wrapped?: boolean }[];
 }
 
 /** One figure instance under the ink. */

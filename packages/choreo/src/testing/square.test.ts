@@ -189,6 +189,10 @@ describe("the square, which is not a contra", () => {
     expect(SQUARE.progression.next(set)).toBe(set);
   });
 
+  it("has no along-hall period: a square is a ring, not a line (T6)", () => {
+    expect(SQUARE.hallPitch).toBeUndefined();
+  });
+
   it("names its own station subsets, and knows nothing of ones and twos", () => {
     expect(SQUARE.tags("hands-four").heads).toEqual(SQUARE_HEADS);
     expect(SQUARE.tags("hands-four").ones).toBeUndefined();

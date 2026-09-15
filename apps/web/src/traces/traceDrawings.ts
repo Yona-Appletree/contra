@@ -38,6 +38,20 @@ export function facingFromQuery(param: string | null): FacingStyle | undefined {
 }
 
 /**
+ * `?wrap=<0|1>` from the URL, or `undefined` when the query is absent or
+ * names anything else.
+ *
+ * `undefined` rather than a default of its own, exactly like
+ * {@link facingFromQuery}: the default (wrapped, T6) lives in
+ * `danceTrace.ts`, and the address bar only ever overrides it — a dance
+ * route's `?wrap=0` is the live comparison against the fixed-frame trace a
+ * figure keeps.
+ */
+export function wrapFromQuery(param: string | null): boolean | undefined {
+  return param === "0" ? false : param === "1" ? true : undefined;
+}
+
+/**
  * The three views a Moves row's trace panel can switch between (T4): the pen
  * plot T2 shipped, plus the march and the seismograph the per-figure traces
  * page also draws. The figure-strip cell is not one of the three — it stays

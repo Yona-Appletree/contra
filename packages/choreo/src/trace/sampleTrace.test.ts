@@ -131,6 +131,135 @@ function ringTimeline(calls: readonly { figure: string; beats: Beat; only?: Stat
   return { timeline, dancers: ["d1", "d2"] };
 }
 
+/**
+ * A single dancer walking a straight line along the frame's own `y`, for T6's
+ * wrap tests: `wrap` folds `y`, and a formation's own concept of "along the
+ * hall" (contra's `Formation.hallPitch`) is exactly this axis in a real
+ * timeline. One dancer is enough — the fold is per-pen, not a property of the
+ * group.
+ */
+interface DriftParams extends FigureParams {
+  /** Where the walk starts and ends, in frame-local `y`. */
+  from: number;
+  to: number;
+}
+
+const DRIFT_STATION: Station = { id: "1a", role: "walker", facing: 0, p: [0, 0] };
+
+const DRIFT: FigureDef<DriftParams> = {
+  id: "drift",
+  call: "DRIFT",
+  lead: 0,
+  beats: 8,
+  defaults: { from: 0, to: 0 },
+  sample(group: Group, _station: StationId, t: Beat, params: DriftParams): PoseSample {
+    const y = params.from + (params.to - params.from) * (t / params.beats);
+    return {
+      p: [group.frame.centre[0], group.frame.centre[1] + y],
+      facing: 90,
+      look: 90,
+      lean: 0,
+      hands: { L: "down", R: "down" },
+      stepRate: 1,
+      buzz: false,
+      flare: 0,
+      amp: 0,
+    };
+  },
+  ends(_group: Group, params: DriftParams): Record<StationId, EndPose> {
+    return { "1a": { p: [0, params.to], facing: 90 } };
+  },
+};
+
+/**
+ * One dancer, walking a straight drift of `to − from` along the frame's `y`.
+ *
+ * The frame's axis is 90° — the same axis the ring fixture above uses — so
+ * that world `+y` lands on local `+y` with no rotation to account for (an
+ * axis of 90° is the one where {@link Frame}'s `along` unit is `(0, 1)`,
+ * matching `DRIFT`'s own world-space walk exactly).
+ */
+function driftTimeline(from: number, to: number): { timeline: Timeline; dancers: string[] } {
+  const members = { "1a": "d1" };
+  const group = createGroup(
+    {
+      id: "line",
+      kind: "set",
+      frame: frame([0, 0], 90),
+      stations: [DRIFT_STATION],
+      members,
+      couples: [],
+    },
+    { roles: ["walker"], top: "walker" },
+  );
+  const timeline = createTimeline(createFigureRegistry([DRIFT]));
+  timeline.addGroup(group);
+  timeline.add({
+    kind: "figure",
+    group: "line",
+    figure: "drift",
+    params: { beats: 8, from, to },
+    bindings: members,
+    start: 0,
+    end: 8,
+  });
+  return { timeline, dancers: ["d1"] };
+}
+
+describe("sampleTrace's wrap option (T6)", () => {
+  it("folds a drift into one period, marks exactly one break, and bounds the extent", () => {
+    // A pitch of 20, and a drift from 0 to 24: just over one pitch, so the
+    // fold crosses exactly one lap boundary (at y = 10) partway through —
+    // never at a sampled beat exactly, so there is no boundary tie to argue
+    // about which lap it falls in.
+    const { timeline, dancers } = driftTimeline(0, 24);
+    const trace = sampleTrace(timeline, { to: 8, dancers, wrap: { y: 20 } });
+    const pen = trace.pens[0]!;
+
+    // Every folded sample sits inside the period, centred on the frame.
+    for (const sample of pen.samples) {
+      expect(sample.p[1]).toBeGreaterThanOrEqual(-10 - 1e-9);
+      expect(sample.p[1]).toBeLessThanOrEqual(10 + 1e-9);
+    }
+    // `extent` is computed after the fold, so it never sees the raw drift.
+    expect(trace.extent.y).toBeLessThanOrEqual(10 + 1e-9);
+    expect(trace.extent.y).toBeLessThan(24);
+
+    // Exactly one sample is the first after a fold.
+    const wraps = pen.samples.filter((s) => s.wrapped === true);
+    expect(wraps).toHaveLength(1);
+    // The very first sample never wraps: there is no previous lap to fold
+    // away from, so it is explicitly `false` rather than absent (`wrap` was
+    // asked for; every sample gets an answer).
+    expect(pen.samples[0]!.wrapped).toBe(false);
+  });
+
+  it("draws the same picture a plain fixed frame would when nothing wraps", () => {
+    // A drift well inside the period never changes lap, so folding is a
+    // no-op: same positions, no break.
+    const { timeline, dancers } = driftTimeline(-4, 4);
+    const wrapped = sampleTrace(timeline, { to: 8, dancers, wrap: { y: 20 } });
+    const plain = sampleTrace(timeline, { to: 8, dancers });
+    expect(wrapped.pens[0]!.samples.map((s) => s.p)).toEqual(
+      plain.pens[0]!.samples.map((s) => s.p),
+    );
+    expect(wrapped.pens[0]!.samples.some((s) => s.wrapped === true)).toBe(false);
+  });
+
+  it("leaves facing alone: only y is folded", () => {
+    const { timeline, dancers } = driftTimeline(0, 24);
+    const trace = sampleTrace(timeline, { to: 8, dancers, wrap: { y: 20 } });
+    for (const sample of trace.pens[0]!.samples) expect(sample.facing).toBe(90);
+  });
+
+  it("does nothing when wrap is not asked for", () => {
+    const { timeline, dancers } = driftTimeline(0, 24);
+    const trace = sampleTrace(timeline, { to: 8, dancers });
+    expect(trace.extent.y).toBeCloseTo(24, 6);
+    expect(trace.pens[0]!.samples.every((s) => s.wrapped === undefined)).toBe(true);
+  });
+});
+
 describe("sampleTrace", () => {
   it("samples eight times a beat and lands exactly on both ends", () => {
     const { timeline, dancers } = ringTimeline([{ figure: "turn", beats: 8 }]);

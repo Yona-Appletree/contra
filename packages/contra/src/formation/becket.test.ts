@@ -48,6 +48,14 @@ describe("becket stations", () => {
     expect([...xs].sort((a, b) => a - b)).toEqual([-ACROSS_PX / 2, ACROSS_PX / 2]);
   });
 
+  it("exposes the along-hall length of one minor set, one couple-place wide (T6)", () => {
+    // Unlike duple improper, becket's two minor-set couples share one place —
+    // the slide moves a couple exactly one place, COUPLE_PITCH_PX — so that,
+    // not twice it, is the along-hall period.
+    expect(BECKET.hallPitch).toBe(COUPLE_PITCH_PX);
+    expect(BECKET.hallPitch).toBe(40);
+  });
+
   it("stands partners beside each other, robin on the lark's right", () => {
     const by = (id: string) => BECKET_STATIONS.find((s) => s.id === id)!;
     // The `+1` line faces across at 0°, so its right is +y.

@@ -162,6 +162,22 @@ export interface Formation {
   id: string;
   roleSet: RoleSet;
   /**
+   * The along-hall length of one minor set, in px: how far down the hall a
+   * group's own repeat runs before the next minor set's shape repeats it.
+   *
+   * `undefined` for a formation with no hall at all (the square fixture is a
+   * ring, not a line). Where it exists, it is not simply {@link SetState.pitch}
+   * — a duple improper minor set spans *two* places (ones and twos, so twice
+   * `pitch`) while a becket minor set's two couples share *one* place (so
+   * `pitch` itself) — which is exactly why this is the formation's own number
+   * rather than something derived generically from a set.
+   *
+   * T6's trace sampler reads this to fold a dance's along-hall progression
+   * into one period, so a becket slide draws as a bounded shape instead of
+   * stretching the trace the length of the whole time through.
+   */
+  hallPitch?: number;
+  /**
    * What the caller says between two dances to get the hall standing in this
    * formation, one speech bubble at a time.
    *

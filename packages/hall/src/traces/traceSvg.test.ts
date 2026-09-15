@@ -375,6 +375,62 @@ describe("the ink", () => {
     const runs = inkRuns(TRACE.pens[0]!, (s) => s.p, { window: { from: 2, to: 4 } });
     expect(runs.flat()).toHaveLength(9);
   });
+
+  it("breaks a run at a wrap mark, even with no jump in position (T6)", () => {
+    // The gap either side of the fold (5 to −5, 10 px) is well under
+    // TRACE_JUMP_PX (12): the break has to come from the mark itself, not
+    // from the distance test.
+    const wrapped: TraceViewPen = {
+      ...TRACE.pens[0]!,
+      samples: [
+        { beat: 0, p: [0, 4.9], facing: 0, span: 0 },
+        { beat: 0.25, p: [0, 5], facing: 0, span: 0 },
+        { beat: 0.5, p: [0, -5], facing: 0, span: 0, wrapped: true },
+        { beat: 0.75, p: [0, -4.9], facing: 0, span: 0 },
+      ],
+    };
+    expect(inkRuns(wrapped, (s) => s.p)).toHaveLength(2);
+    // The unwrapped twin of the same samples (`wrapped` left off) is one run:
+    // the mark, not the small step at the fold, is what breaks it.
+    const unmarked: TraceViewPen = {
+      ...wrapped,
+      samples: wrapped.samples.map((s) => ({
+        beat: s.beat,
+        p: s.p,
+        facing: s.facing,
+        span: s.span,
+      })),
+    };
+    expect(inkRuns(unmarked, (s) => s.p)).toHaveLength(1);
+  });
+});
+
+describe("the wake breaks at a wrap too (T6)", () => {
+  it("draws two sub-paths in the band, not one running across the fold", () => {
+    const wrapped: TraceView = {
+      ...TRACE,
+      pens: [
+        {
+          ...TRACE.pens[0]!,
+          samples: [
+            { beat: 0, p: [0, 4.9], facing: 90, span: 0 },
+            { beat: 0.25, p: [0, 5], facing: 90, span: 0 },
+            { beat: 0.5, p: [0, -5], facing: 90, span: 0, wrapped: true },
+            { beat: 0.75, p: [0, -4.9], facing: 90, span: 0 },
+          ],
+        },
+      ],
+    };
+    const svg = penPlotSvg(wrapped, { facing: "wake" });
+    const band = /<g mask="url\(#mask-[^"]+\)"[^>]*><path d="([^"]+)"/.exec(svg)![1]!;
+    // Two `M`s: two sub-paths in the one stroked band, not a line drawn
+    // straight across the fold.
+    expect([...band.matchAll(/M/g)]).toHaveLength(2);
+    // The ink itself breaks the same way: two separate stroked runs, not one
+    // continuous line.
+    const ink = /<mask[^>]*><path d="([^"]+)"/.exec(svg)![1]!;
+    expect([...ink.matchAll(/M/g)]).toHaveLength(2);
+  });
 });
 
 describe("the colours", () => {

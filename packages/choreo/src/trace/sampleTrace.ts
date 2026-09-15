@@ -45,6 +45,13 @@ export interface TraceSample {
   facing: Angle;
   /** Index into {@link Trace.spans} of the figure that owns this sample. */
   span: number;
+  /**
+   * True on the first sample after {@link TraceOptions.wrap} has folded `y`
+   * into a fresh lap of the period: the renderer breaks the ink here rather
+   * than drawing a line across the fold (T6). Never set when `wrap` was not
+   * asked for.
+   */
+  wrapped?: boolean;
 }
 
 /** One dancer, drawn as one pen. */
@@ -118,12 +125,42 @@ export interface TraceOptions {
   familyOf?: (figure: string) => string;
   /** Figure ids that lose a cell. Default {@link TRACE_FILLER_FIGURES}. */
   filler?: readonly string[];
+  /**
+   * Fold each sample's along-hall `y` into one period centred on the frame,
+   * `y ∈ [−pitch/2, +pitch/2)`, and mark the first sample after each fold
+   * with {@link TraceSample.wrapped}. Facing is unchanged; `extent` is
+   * computed **after** the fold.
+   *
+   * Off by default: a fixed frame draws the progression as the travel it
+   * actually is, which is what a figure's own picture wants (the header
+   * comment above). A dance whose progression carries the group down the
+   * hall — a becket slide, a duple improper minor set is not one, since the
+   * couples merely swap places — grows `extent.y` without bound over a long
+   * enough window; folding is what keeps the shape the size of one minor set.
+   * `y` is the sampler's own convention (down the hall), never `x`: nothing
+   * in this package's own geometry drifts across the set.
+   */
+  wrap?: { y: number };
 }
 
 /** The rank a station's id names: `"2R"` is 2, `"WL"` is 0. */
 export function stationRank(station: StationId): number {
   const digits = /^\d+/.exec(station);
   return digits === null ? 0 : Number(digits[0]);
+}
+
+/**
+ * Fold `y` into the lap of `period` nearest zero: `y - lap * period`, which
+ * lands in `[−period/2, +period/2]`, plus which lap it came from.
+ *
+ * The lap is what {@link sampleTrace} compares between consecutive samples to
+ * mark a wrap — a change of lap is a fold, whether or not the folded value
+ * itself happens to jump far (a dancer easing to a stop right at the fold
+ * would barely move at all in the folded picture, and still wants the break).
+ */
+function foldToPeriod(y: number, period: number): { y: number; lap: number } {
+  const lap = Math.round(y / period);
+  return { y: y - lap * period, lap };
 }
 
 /**
@@ -167,19 +204,28 @@ export function sampleTrace(timeline: Timeline, options: TraceOptions): Trace {
     const role = opening === undefined ? "" : roleOn(timeline, opening, station);
     const samples: TraceSample[] = [];
     let span = -1;
+    let lap: number | undefined;
     for (const beat of beatsOf(from, to, step)) {
       const pose = poseAt(timeline, dancer, beat);
-      const p = localPoint(frame, pose.p);
+      let p = localPoint(frame, pose.p);
       const event = timeline.figureAt(dancer, beat);
       // The sample that lands exactly on `to` belongs to the next figure, which
       // the window does not cover; it keeps the tag of the figure it closes.
       const owner = event === undefined ? undefined : spanIndex.get(event);
       span = owner ?? span;
+      let wrapped: boolean | undefined;
+      if (options.wrap !== undefined && options.wrap.y > 0) {
+        const folded = foldToPeriod(p[1], options.wrap.y);
+        wrapped = lap !== undefined && folded.lap !== lap;
+        lap = folded.lap;
+        p = [p[0], folded.y];
+      }
       samples.push({
         beat,
         p,
         facing: localAngle(frame, pose.facing),
         span,
+        ...(wrapped === undefined ? {} : { wrapped }),
       });
       extentX = Math.max(extentX, Math.abs(p[0]));
       extentY = Math.max(extentY, Math.abs(p[1]));
