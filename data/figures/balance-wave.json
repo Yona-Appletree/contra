@@ -1,8 +1,8 @@
 {
   "id": "balance-wave",
   "walkthrough": {
-    "short": "In your wave, rock forward together and rock back.",
-    "long": "You are in a wave: give your {hand} hand to the dancer one place along the set and your other hand to the one behind you, so the whole line is joined and the dancers beside you are looking the other way. Rock forward on the first beat and back on the third. Nobody goes anywhere."
+    "short": "In your wave, step forward together and come back to the line.",
+    "long": "You are in a wave: give your {hand} hand to the dancer one place along the set and your other hand to the one behind you, so the whole line is joined and the dancers beside you are looking the other way. Step forward on the first beat and back to the line on the third. Keep it small: the dancers either side of you step the other way with your arms joined, so nobody goes through the line."
   },
   "call": {
     "short": "BALANCE THE WAVE",

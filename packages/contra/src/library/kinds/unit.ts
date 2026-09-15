@@ -1,7 +1,7 @@
 import type { Beat, Vec2 } from "@caller/core";
 import { addScaled, dirOf, dist, lerp, ramp } from "@caller/core";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
-import { bearing, joinedHands, midpoint } from "../../figures/ContraFigure.js";
+import { bearing, joinPoint, joinedHands, midpoint } from "../../figures/ContraFigure.js";
 import type { FigureRole, HoldSpec, UnitShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
 import { evalAngle, evalNumber } from "../expr.js";
@@ -99,10 +99,32 @@ export function planUnit(
 
   const natural: Spots = { [a]: placeAt(a, beats), [b]: placeAt(b, beats) };
   const ends = settleEnds(input, natural);
+  /**
+   * **The promenade hold, as the user describes it** (FR-A2): *"in a promenade
+   * you stand beside each other, left in left, right in right, walking the same
+   * direction."*
+   *
+   * Two joins rather than one, and neither of them between the two bodies: left
+   * hand to left hand and right hand to right hand puts both pairs of arms
+   * across the front of the couple, each pair meeting where the two arms
+   * actually reach — which is what `joinPoint` answers and what the inside
+   * hold's body midpoint cannot. The right pair rides {@link UnitShape.topRise}
+   * px above the left so the two crossed arms are not drawn through each other;
+   * inside each join the role set's top role is still on top, which is the
+   * rendering contract's and not this figure's to decide.
+   */
+  const promenade = shape.hold === "promenade";
+  const rise = promenade ? evalNumber(shape.topRise ?? 0, env) : 0;
+  const stackPx = promenade ? evalNumber(shape.stackPx ?? 0, env) : 0;
   const held: HandJoin[] =
     drop === null
       ? []
-      : [{ a, aSide: handSide(startA, startB), b, bSide: handSide(startB, startA) }];
+      : promenade
+        ? [
+            { a, aSide: "L", b, bSide: "L" },
+            { a, aSide: "R", b, bSide: "R" },
+          ]
+        : [{ a, aSide: handSide(startA, startB), b, bSide: handSide(startB, startA) }];
 
   return {
     ends,
@@ -116,12 +138,21 @@ export function planUnit(
         L: idleHandAt(shape.idleHands, self, "L", t, at),
         R: idleHandAt(shape.idleHands, self, "R", t, at),
       };
-      const join = held[0];
-      if (join && drop !== null) {
+      for (const join of held) {
+        if (drop === null) break;
         const mine = join.a === role ? join.aSide : join.bSide;
+        const yours = join.a === role ? join.bSide : join.aSide;
         const other = join.a === role ? join.b : join.a;
         const theirs = t >= beats ? (ends[other] ?? placeAt(other, t)) : placeAt(other, t);
-        const both = joinedHands(ctx, role, other, midpoint(self.p, theirs.p), drop, 0);
+        const point = promenade ? joinPoint(self, mine, theirs, yours) : midpoint(self.p, theirs.p);
+        const both = joinedHands(
+          ctx,
+          role,
+          other,
+          point,
+          drop - (mine === "R" ? rise : 0),
+          stackPx,
+        );
         const hand = both[role];
         if (hand) hands[mine] = hand;
       }

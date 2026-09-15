@@ -472,7 +472,27 @@ export type RingTravel =
    * bulges `R(1 − cos(arc / 2))` beyond the set — most of the gap to the next
    * minor set — which is `petronella.ts`'s own `bowPx` note.
    */
-  | { kind: "chord"; bow: NumberExpr; spins: NumberExpr; flare: NumberExpr };
+  | { kind: "chord"; bow: NumberExpr; spins: NumberExpr; flare: NumberExpr }
+  /**
+   * **Round the set itself, one behind another: the bike chain** (FR-A2).
+   *
+   * The user, on the single file promenade: *"not at all right. you don't just
+   * rotate about the center. you walk around the set single file like in a bike
+   * chain."* So the path is the **loop through the dancers' own places** — the
+   * set's own outline — and not a ring the four step in to: each dancer walks
+   * the straight run to the place in front of them, rounds the corner where the
+   * set turns, and walks the next run, exactly as a chain runs round its
+   * sprockets. Nobody steps in, nobody steps out, and the shape of the set is
+   * what the path is shaped like.
+   *
+   * `corner` is how far either side of a place the body is turned over, px.
+   *
+   * With this travel, {@link RingWalkShape.faceOffset} and a `tangent`
+   * {@link RingFacing}'s offset are read against the **direction of travel**
+   * rather than against a radius: on a loop with corners there is no radius to
+   * measure a tangent off.
+   */
+  | { kind: "chain"; corner: NumberExpr };
 
 /**
  * A dancer's own written path: a walk to a computed point, along a named curve,
@@ -990,6 +1010,24 @@ export interface UnitShape {
   spacing: NumberExpr | null;
   /** How far below shoulder height their joined hands sit, or `null` for none. */
   handDrop: NumberExpr | null;
+  /**
+   * **How the two of them hold on** (FR-A2). Left out is `"inside"`.
+   *
+   * - `"inside"` — the one hand each that points at the other, joined half way
+   *   between the two bodies. A turn as couples', and every unit written before
+   *   this parameter existed.
+   * - `"promenade"` — the skater's hold: *"in a promenade you stand beside each
+   *   other, left in left, right in right, walking the same direction"* (the
+   *   user). **Both** hands are joined, each pair where the two arms meet, so
+   *   the arms cross in front of the couple and the joins sit outside them
+   *   rather than between them. {@link UnitShape.topRise} lifts the right-hand
+   *   pair clear of the left.
+   */
+  hold?: "inside" | "promenade";
+  /** For `"promenade"`: how much higher than the left pair the right pair sits, px. */
+  topRise?: NumberExpr;
+  /** For `"promenade"`: how far the role on top lifts its hand over the other's. */
+  stackPx?: NumberExpr;
   idleHands: IdleHands;
 }
 
@@ -1035,7 +1073,18 @@ export interface WaveShape {
    * the long wave: an across wave's facings follow from its hands.
    */
   facesIn: string;
-  /** How far the body rocks forward, px. */
+  /**
+   * The parameter naming **which way the wave balances** (FR-A2): one of
+   * `forward`, `left`, `right`, `left-and-back`, `right-and-back`. Left out —
+   * or named but not given — is `forward`, forwards and back, which is what a
+   * card that says nothing means. See `kinds/wave.ts`'s `WaveDirection`.
+   */
+  direction?: string;
+  /**
+   * How far the body rocks off the line of the wave, px. Bounded by
+   * `kinds/wave.ts`'s `WAVE_ROCK_CAP_PX`, so no call can shear the wave past
+   * the width of a dancer.
+   */
   rock: NumberExpr;
   /** Beats spent closing up on to the wave. */
   closeBeats: NumberExpr;

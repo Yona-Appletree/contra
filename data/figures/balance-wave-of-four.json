@@ -1,11 +1,41 @@
 {
   "id": "balance-wave-of-four",
   "walkthrough": {
-    "short": "One short line across the set, hands along it, and rock forward and back.",
-    "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each of them gives their other hand to the dancer on their own end of the row, so everybody is looking the opposite way to the dancers beside them. Rock forward together and back, and nobody goes anywhere."
+    "short": "One short line across the set, hands along it, and balance forwards and back.",
+    "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each gives their other hand to the dancer on their own end, so everybody looks the opposite way to the dancers beside them. Step forwards on the first beat and back to the line on the third."
   },
   "call": {
     "short": "BALANCE THE WAVE",
     "long": "BALANCE THE WAVE OF FOUR"
+  },
+  "variants": {
+    "direction=left": {
+      "walkthrough": {
+        "short": "One short line across the set, hands along it, and balance left then right.",
+        "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each gives their other hand to the dancer on their own end. Balance to your own left on the first beat and to your own right on the third."
+      },
+      "call": { "short": "BALANCE LEFT AND RIGHT", "long": "BALANCE THE WAVE LEFT AND RIGHT" }
+    },
+    "direction=right": {
+      "walkthrough": {
+        "short": "One short line across the set, hands along it, and balance right then left.",
+        "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each gives their other hand to the dancer on their own end. Balance to your own right on the first beat and to your own left on the third."
+      },
+      "call": { "short": "BALANCE RIGHT AND LEFT", "long": "BALANCE THE WAVE RIGHT AND LEFT" }
+    },
+    "direction=left-and-back": {
+      "walkthrough": {
+        "short": "One short line across the set, hands along it: balance left and come back.",
+        "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each gives their other hand to the dancer on their own end. Balance to your own left on the first beat and back to where you were on the third."
+      },
+      "call": { "short": "BALANCE LEFT AND BACK", "long": "BALANCE THE WAVE LEFT AND BACK" }
+    },
+    "direction=right-and-back": {
+      "walkthrough": {
+        "short": "One short line across the set, hands along it: balance right and come back.",
+        "long": "The four of you make one short line straight across the set, looking up and down it rather than at each other. The two in the middle take hands there by the {hand}, and each gives their other hand to the dancer on their own end. Balance to your own right on the first beat and back to where you were on the third."
+      },
+      "call": { "short": "BALANCE RIGHT AND BACK", "long": "BALANCE THE WAVE RIGHT AND BACK" }
+    }
   }
 }

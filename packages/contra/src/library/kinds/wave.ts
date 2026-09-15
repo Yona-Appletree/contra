@@ -1,5 +1,15 @@
 import type { Beat, Side, Vec2 } from "@caller/core";
-import { HOLD_SPACING_PX, addScaled, angleLerp, angleOf, dirOf, lerp, ramp } from "@caller/core";
+import {
+  HOLD_SPACING_PX,
+  SHOULDER_WIDTH_PX,
+  addScaled,
+  angleLerp,
+  angleOf,
+  dirOf,
+  dist,
+  lerp,
+  ramp,
+} from "@caller/core";
 import type {
   FigurePlan,
   HandJoin,
@@ -78,6 +88,7 @@ export function planWave(
   const closeBeats = evalNumber(shape.closeBeats, env);
   const drop = evalNumber(shape.handDrop, env);
   const facesIn = String(input.params[shape.facesIn] ?? "lark");
+  const direction = waveDirectionOf(shape, input);
 
   /**
    * Where each dancer stands on the wave, and which way they look.
@@ -177,9 +188,7 @@ export function planWave(
     const to = ends[role] ?? onWave[role] ?? start;
     const k = ramp(t, 0, closeBeats);
     const place = { p: lerp(start.p, to.p, k), facing: angleLerp(start.facing, to.facing, k) };
-    const f = balanceRock(t);
-    const off = rock * f * (f > 0 ? 1 : BALANCE_BACK_RATIO);
-    return { p: addScaled(place.p, dirOf(place.facing), off), facing: place.facing };
+    return waveRocked(place, direction, rock, t);
   };
 
   const held: HandJoin[] = [];
@@ -245,12 +254,138 @@ export function planWave(
       return {
         p: self.p,
         facing: self.facing,
-        lean: Math.max(-BALANCE_LEAN_CAP, Math.min(BALANCE_LEAN_CAP, balanceRock(t))),
+        lean: waveLeanAt(direction, t),
         hands,
         amp: 0,
       };
     },
   };
+}
+
+/**
+ * **Which way a wave balances** (FR-A2), in the caller's own words.
+ *
+ * The user: *"there are multiple ways to balance the wave. left first, right
+ * first, left and back, right and back, forwards and back. often dances call
+ * out which is which, sometimes not."* Those are the five, named for what a
+ * caller says:
+ *
+ * - `forward` — forwards and back: a step the way you are looking and back to
+ *   the line. What a card that says nothing means, so it is the default.
+ * - `left` — left first: a step to your own left, then one to your own right.
+ * - `right` — right first, the mirror of it.
+ * - `left-and-back` — left, and back to where you were rather than on through.
+ * - `right-and-back` — the same to the right.
+ *
+ * "Your own left" is the dancer's own, not the hall's, because that is how the
+ * call is given — and in a wave, where the dancers beside you are looking the
+ * other way, it is the only reading under which everybody is told the same
+ * thing.
+ */
+export type WaveDirection = "forward" | "left" | "right" | "left-and-back" | "right-and-back";
+
+/** The five, for a definition's parameter spec and for an error message. */
+export const WAVE_DIRECTIONS: readonly WaveDirection[] = [
+  "forward",
+  "left",
+  "right",
+  "left-and-back",
+  "right-and-back",
+];
+
+/**
+ * **How far a wave's body may leave the line, px** (FR-A2).
+ *
+ * The user, on the first wave balance the Moves page drew: *"people don't move
+ * past each other when balancing, that would break their arms. the move towards
+ * and then back, but not past."* — and on the wave of four: *"same problem,
+ * these people don't have shoulders."*
+ *
+ * Two dancers side by side in a wave are looking opposite ways, so a rock along
+ * the facing **shears** the line: as I step out, the dancer whose hand I am
+ * holding steps out the other way, and the two of us offset by twice the rock
+ * while the joined hand stays between us. Past half a shoulder of that the two
+ * bodies read as having slid past one another and the arms are being wrenched
+ * along the line rather than held down it. So the shear is bounded by the
+ * dancer's own width: at a quarter of {@link SHOULDER_WIDTH_PX} each, the two
+ * offset by half a shoulder and the line still reads as a line.
+ *
+ * It is a bound and not the amount: every other balance in the library rocks
+ * 1 px, and since FR-A2 the two waves do too, well inside it.
+ */
+export const WAVE_ROCK_CAP_PX = SHOULDER_WIDTH_PX / 4;
+
+/**
+ * **How far a dancer bows on their way in to a wave of four** (FR-A2): the most,
+ * px, and the share of the walk it is taken from.
+ *
+ * Two dancers who have to change places to make the row would otherwise walk
+ * through each other. A quarter of the walk, capped at three and a half px, is
+ * enough to pass right shoulders on Anna's Reel's worst crossing and is nothing
+ * at all for a dancer who is already standing where the row wants them.
+ */
+export const WAVE_CLOSE_BOW_PX = 3.5;
+export const WAVE_CLOSE_BOW_SHARE = 0.25;
+
+/**
+ * **A wave's balance goes out and comes back to the line, never through it**
+ * (FR-A2): *"the move towards and then back, but not past"*.
+ *
+ * {@link balanceRock} is a rock for a pair facing each other, where the second
+ * half is a step **away** from the other dancer and is the other half of the
+ * move. In a wave there is nobody in front of you to step away from: carrying
+ * on past the line puts your body through the line of joined hands and out the
+ * far side of the dancers beside you, which is the thing the user is looking at
+ * when he says their arms would break. So the two-sided directions keep both
+ * halves — one is genuinely left and the other genuinely right — and the
+ * "and back" directions keep only the first, which lands the step on the 1 and
+ * the return on the 3 exactly as the whole rock does, and leaves the dancer
+ * standing in the wave the figure after it starts from.
+ */
+function waveRockAt(direction: WaveDirection, t: Beat): number {
+  const f = balanceRock(t);
+  if (direction === "left" || direction === "right") {
+    return f > 0 ? f : f * BALANCE_BACK_RATIO;
+  }
+  return Math.max(f, 0);
+}
+
+/** Which way off a dancer's facing the balance travels. */
+const waveRockBearing = (direction: WaveDirection, facing: number): number => {
+  if (direction === "forward") return facing;
+  return direction.startsWith("left") ? facing - 90 : facing + 90;
+};
+
+/** A dancer's place, moved off the line by the balance it is dancing. */
+function waveRocked(place: Spot, direction: WaveDirection, rock: number, t: Beat): Spot {
+  const amount = Math.min(rock, WAVE_ROCK_CAP_PX) * waveRockAt(direction, t);
+  return {
+    p: addScaled(place.p, dirOf(waveRockBearing(direction, place.facing)), amount),
+    facing: place.facing,
+  };
+}
+
+/**
+ * How much the torso pitches with the balance.
+ *
+ * Forwards only: a dancer stepping to their own left does not lean forward to
+ * do it, and a wave that never goes behind the line never leans back either.
+ */
+function waveLeanAt(direction: WaveDirection, t: Beat): number {
+  if (direction !== "forward") return 0;
+  return Math.min(BALANCE_LEAN_CAP, Math.max(0, balanceRock(t)));
+}
+
+/** The direction a wave shape's call asked for, checked against the five. */
+function waveDirectionOf(shape: WaveShape, input: ShapeInput): WaveDirection {
+  if (shape.direction === undefined) return "forward";
+  const asked = input.params[shape.direction];
+  if (asked === undefined) return "forward";
+  const word = String(asked);
+  if (!WAVE_DIRECTIONS.includes(word as WaveDirection)) {
+    throw new Error(`a wave balances one of [${WAVE_DIRECTIONS.join(", ")}], not "${word}"`);
+  }
+  return word as WaveDirection;
 }
 
 /** The lattice this wave is read on, for a caller that wants to check it. */
@@ -322,6 +457,7 @@ function planWaveAcross(shape: WaveShape, input: ShapeInput): FigurePlan {
   const closeBeats = evalNumber(shape.closeBeats, env);
   const drop = evalNumber(shape.handDrop, env);
   const middleRole = String(input.params[shape.centre ?? "centre"] ?? "robin");
+  const direction = waveDirectionOf(shape, input);
 
   // **The row runs from one line of the set to the other.** Read off the
   // lattice rather than off the dancers, so that four who are standing anywhere
@@ -399,14 +535,43 @@ function planWaveAcross(shape: WaveShape, input: ShapeInput): FigurePlan {
     reach.get(row[i + 1]!)![side] = row[i]!;
   }
 
+  /**
+   * **Coming in to the row, nobody walks through anybody** (FR-A2).
+   *
+   * Anna's Reel's A1 is a robins' allemande once and a half in the middle of the
+   * set and then this wave, and the allemande leaves the two of them on the
+   * **opposite** sides to the ones the lattice gives them — so the two who come
+   * to the middle of the row have to change places to get there, and read off
+   * the straight line between the two points they walk through each other.
+   * Measured at four, five and six couples, `c2/robin ~ c3/robin` came within
+   * **2.143 px** at beat 8.625; the balance's own amplitude is nothing to do with
+   * it (a smaller rock reads *closer*, 1.698 px, because the old oversized shear
+   * was pushing them apart as they crossed).
+   *
+   * What a dancer does instead is what a dancer always does: bow to their own
+   * left, so two who meet pass right shoulders. The bow is a quarter of the way
+   * each dancer has to travel, capped, so somebody already standing on their
+   * place walks straight there and only somebody crossing the set bows at all.
+   */
+  const bowOf = (role: FigureRole): number => {
+    const to = onWave[role];
+    if (to === undefined) return 0;
+    return Math.min(WAVE_CLOSE_BOW_PX, dist(ctx.spot(role).p, to.p) * WAVE_CLOSE_BOW_SHARE);
+  };
+  const bows: Record<FigureRole, number> = {};
+  for (const role of row) bows[role] = bowOf(role);
+
   const placeAt = (role: FigureRole, t: Beat): Spot => {
     const start = ctx.spot(role);
     const to = onWave[role] ?? start;
     const k = ramp(t, 0, closeBeats);
-    const place = { p: lerp(start.p, to.p, k), facing: angleLerp(start.facing, to.facing, k) };
-    const f = balanceRock(t);
-    const off = rock * f * (f > 0 ? 1 : BALANCE_BACK_RATIO);
-    return { p: addScaled(place.p, dirOf(place.facing), off), facing: place.facing };
+    const facing = angleLerp(start.facing, to.facing, k);
+    const bow = (bows[role] ?? 0) * Math.sin(Math.PI * k);
+    const place = {
+      p: addScaled(lerp(start.p, to.p, k), dirOf(facing - 90), bow),
+      facing,
+    };
+    return waveRocked(place, direction, rock, t);
   };
 
   const held: HandJoin[] = [];
@@ -458,7 +623,7 @@ function planWaveAcross(shape: WaveShape, input: ShapeInput): FigurePlan {
       return {
         p: self.p,
         facing: self.facing,
-        lean: Math.max(-BALANCE_LEAN_CAP, Math.min(BALANCE_LEAN_CAP, balanceRock(t))),
+        lean: waveLeanAt(direction, t),
         hands,
         amp: 0,
       };
