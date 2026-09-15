@@ -4,6 +4,8 @@
 // through `SetRules.ts` and evaluate before their own formations exist.
 import type { DancerId } from "@caller/choreo";
 import type { DancerState, SetModel, Slot } from "./SetModel.js";
+import type { LatticeSpan } from "./span.js";
+import { latticeSpan } from "./span.js";
 
 /**
  * Relations: who "partner", "neighbor" and the rest name, from where you stand.
@@ -43,11 +45,25 @@ export type Relation =
  * and returns a slot — occupied or not — for one it has. Whether anybody is
  * *standing* on that slot is {@link relate}'s question, not the table's: at the
  * end of a line the answer is legitimately nobody.
+ *
+ * **`span` is the third argument M8b had to add, and becket is why.** An offset
+ * alone cannot say who your `N2` is, because a set has *ends*: the couple you
+ * will face next time through may be one that is standing out at the far end of
+ * the line right now, having run off one end of its own line and come back on
+ * the other. Where those ends are is a fact about the occupied lattice, not
+ * about the asking dancer, so the table is handed it. Duple improper's rows
+ * ignore it (see that table's own note, and this milestone's report, for what
+ * that costs); becket's are written in terms of its own loop.
+ *
+ * **A table may answer `undefined`**, which means "this relation names nobody
+ * for this dancer", and is not the same as "the slot it names is empty". A
+ * becket couple standing out at an end really has no neighbour, and the slot
+ * arithmetic would otherwise point back at their own partner.
  */
 export interface RelationTable {
   /** The formation this table belongs to. */
   id: string;
-  slotFor(rel: Relation, from: DancerState): Slot;
+  slotFor(rel: Relation, from: DancerState, span: LatticeSpan): Slot | undefined;
 }
 
 /**
@@ -163,7 +179,8 @@ export function relate(
   if (!from) throw new Error(`set "${model.id}" has no dancer "${me}"`);
   if (rel.kind === "self") return me;
   if (rel.kind === "partner") return from.partner === me ? undefined : from.partner;
-  const slot = table.slotFor(rel, from);
+  const slot = table.slotFor(rel, from, latticeSpan(model));
+  if (slot === undefined) return undefined;
   for (const dancer of Object.values(model.dancers)) {
     if (dancer.slot.line === slot.line && dancer.slot.position === slot.position) return dancer.id;
   }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { NEIGHBORS, PARTNERS } from "../figures/pairing.js";
+import { relatedPairs } from "./lattice.js";
 import {
   isRelationWord,
   isSymmetricRelation,
@@ -184,28 +185,51 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
    * `c3`/`c4` at place 1 and `c5` waits beyond the bottom. A couple occupies
    * two adjacent positions of **one** line, so a couple place is two positions
    * and the two lines slide past each other four positions a time through.
+   *
+   * **The `N3` and `N4` rows were `undefined` until M8b and are not
+   * (DD28).** Becket's six couples make one closed loop — down one line, across
+   * at the end, back up the other — so the couple you face `k − 1` times
+   * through from now always exists, unless it is your own couple, which is a
+   * time through you spend standing out. Written out for `c1/lark`, whose
+   * couple sits at loop slot 1 of 6 (`becket.ts`'s {@link BecketLoop}):
+   *
+   * ```text
+   *   N_k(1) = (6 − 2 − 1 − 2(k−1)) mod 6 = (3 − 2(k−1)) mod 6
+   *   k = 0 → 5 (c5)   k = 1 → 3 (c2)   k = 2 → 1 (your own couple: nobody)
+   *   k = 3 → 5 (c5)   k = 4 → 3 (c2)
+   * ```
+   *
+   * so this dancer's line of neighbours reads c5, c2, **out**, c5, c2, out —
+   * a six-couple becket line really does only ever give you two neighbours and
+   * a time through off. `N2` staying `undefined` here is therefore the *same*
+   * answer as before for a different reason: not "the offset ran off the end"
+   * but "that is the time through you are out".
    */
   const BECKET_ROUND_0: Record<string, Record<string, string | undefined>> = {
-    // c1/lark: line 0, position 0, travelling toward the top.
+    // c1/lark: line 0, position 0, travelling toward the top; loop slot 1.
     "set0/c1/lark": {
       partner: "set0/c1/robin",
       opposite: "set0/c2/robin",
       N0: "set0/c5/robin",
       N1: "set0/c2/robin",
       N2: undefined,
-      N3: undefined,
+      N3: "set0/c5/robin",
+      N4: "set0/c2/robin",
       shadow: "set0/c0/robin",
+      S2: "set0/c2/robin",
       "trail-buddy": "set0/c3/lark",
     },
-    // c4/lark: line 1, position 3, travelling toward the bottom.
+    // c4/lark: line 1, position 3, travelling toward the bottom; loop slot 4.
     "set0/c4/lark": {
       partner: "set0/c4/robin",
       opposite: "set0/c3/robin",
       N0: "set0/c0/robin",
       N1: "set0/c3/robin",
       N2: undefined,
-      N3: undefined,
+      N3: "set0/c0/robin",
+      N4: "set0/c3/robin",
       shadow: "set0/c5/robin",
+      S2: "set0/c3/robin",
       "trail-buddy": "set0/c2/lark",
     },
   };
@@ -277,7 +301,34 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
       expect(cases).toBe(12 * WORDS.length * 6);
     });
 
-    it(`${formation.id}: a neighbour is the other role, a shadow travels with you`, () => {
+    /**
+     * **Who a relation names, and the one claim M8b had to stop making about
+     * becket.**
+     *
+     * The *role* claims hold everywhere and are what every pairing depends on:
+     * a neighbour and a shadow are the other role, a trail buddy is yours.
+     *
+     * The *travel* claims — a neighbour travels the other way, a shadow travels
+     * yours — are **duple improper's**, where every row is a straight offset
+     * along two straight lines. Becket's are steps round a closed loop
+     * (`becket.ts`'s {@link BecketLoop}, DD28), and a loop has two points where
+     * it changes line: a couple runs off the end of one line and comes back up
+     * the other. A relation whose step crosses one of those says something true
+     * about a *time through* rather than about today's geometry — your shadow
+     * is standing out at the end of the set while you are still dancing, and
+     * will be beside you again next time through. Asserting a direction of
+     * travel there would be asserting that a becket set is two straight lines,
+     * which is exactly the claim that made `N2` pair 2 couples of 8.
+     *
+     * What becket gets instead is stronger and is measured two tests down:
+     * `N_k` today **is** who you face `k − 1` times through from now, read off
+     * the set progressed by becket's own `Progression.next`; and, in
+     * `lattice.test.ts`, that your shadow is still your shadow after a
+     * progression — the definitional property the travel claim was a proxy for,
+     * which the loop rows keep for every dancer rather than for some.
+     */
+    it(`${formation.id}: a neighbour is the other role, a shadow is the other role`, () => {
+      const alongTheLines = formation === DUPLE_IMPROPER;
       for (const { model } of rounds(formation, 6, 6)) {
         for (const me of Object.values(model.dancers)) {
           for (const k of [0, 1, 2, 3, 4]) {
@@ -285,7 +336,9 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
             if (n !== undefined) {
               const them = model.dancers[n]!;
               expect(them.role, `${me.id} N${String(k)} role`).not.toBe(me.role);
-              expect(them.travel, `${me.id} N${String(k)} travel`).toBe(-me.travel);
+              if (alongTheLines) {
+                expect(them.travel, `${me.id} N${String(k)} travel`).toBe(-me.travel);
+              }
             }
             if (k === 0) continue;
             const s = relate(model, table, me.id, { kind: "shadow", k });
@@ -294,24 +347,140 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
             expect(them.role, `${me.id} S${String(k)} role`).not.toBe(me.role);
             // The whole point of a shadow: they progress the way you do, so
             // you keep meeting them and never dance with them.
-            expect(them.travel, `${me.id} S${String(k)} travel`).toBe(me.travel);
+            if (alongTheLines) {
+              expect(them.travel, `${me.id} S${String(k)} travel`).toBe(me.travel);
+            }
           }
         }
       }
     });
 
-    it(`${formation.id}: a trail buddy is your own role, travelling with you`, () => {
+    it(`${formation.id}: a trail buddy is your own role`, () => {
       for (const { model } of rounds(formation, 6, 6)) {
         for (const me of Object.values(model.dancers)) {
           const t = relate(model, table, me.id, { kind: "trail-buddy", k: 1 });
           if (t === undefined) continue;
           const them = model.dancers[t]!;
           expect(them.role, `${me.id} trail-buddy role`).toBe(me.role);
-          expect(them.travel, `${me.id} trail-buddy travel`).toBe(me.travel);
+          // Same story as the shadow above, and this row is `(unsure)` anyway:
+          // nothing calls a trail buddy yet.
+          if (formation === DUPLE_IMPROPER) {
+            expect(them.travel, `${me.id} trail-buddy travel`).toBe(me.travel);
+          }
         }
       }
     });
   }
+
+  /**
+   * **DD28's own measurement, as a regression**: how many of a bare lattice's
+   * dancers each relation pairs up, with no dance in it at all.
+   *
+   * `relatedPairs(model, rel, everybody)` over an eight-couple set of each
+   * formation. Sixteen dancers make at most eight pairs, so `6/8` means twelve
+   * dancers found each other and four did not.
+   *
+   * Read the becket row across: **the same count at every k**, because a becket
+   * set is one closed loop and `N_k` is a rotation of it — six couples dance and
+   * two stand out every time through, whichever time through you are asking
+   * about. Only *who* changes. Before M8b the row read `6, 2, 0, 0`, and Fatal
+   * Attraction's `pairs: "N2"` therefore pairing nobody is what sent this
+   * milestone looking.
+   *
+   * Duple improper's row alternates `8, 6, 8, 6` for the same reason read the
+   * other way: an even line dances everybody one time through and stands two
+   * couples out the next. **It falls off after N2 and that is a known gap, not
+   * a property of the formation** — a duple improper set is a loop too (a couple
+   * that runs out of line waits a time through and comes back up the other
+   * line), and this table has never followed it round. It is left alone here on
+   * purpose: Whoosh is in the programme, its A1 reaches N3 and N4, and every
+   * number, plate and strip of it was measured against these answers. See this
+   * milestone's report.
+   */
+  it("counts who each relation pairs on a bare eight-couple lattice (DD28)", () => {
+    const counts = (formation: typeof DUPLE_IMPROPER): Record<string, string> => {
+      const { model } = modelAnd(formation, 8);
+      const everybody = new Set(Object.keys(model.dancers));
+      const row: Record<string, string> = {};
+      for (const word of ["N1", "N2", "N3", "N4", "shadow", "S2"]) {
+        row[word] = `${String(relatedPairs(model, parseRelation(word), everybody).length)}/8`;
+      }
+      return row;
+    };
+    expect(counts(BECKET)).toEqual({
+      N1: "6/8",
+      N2: "6/8",
+      N3: "6/8",
+      N4: "6/8",
+      // A shadow is never out: the loop keeps every dancer one of them.
+      shadow: "8/8",
+      S2: "8/8",
+    });
+    expect(counts(DUPLE_IMPROPER)).toEqual({
+      N1: "8/8",
+      N2: "6/8",
+      N3: "4/8",
+      N4: "2/8",
+      shadow: "6/8",
+      S2: "4/8",
+    });
+  });
+
+  /**
+   * **What `N_k` means, checked against the hall rather than against itself.**
+   *
+   * Progress the set `k − 1` times with the formation's **own**
+   * `Progression.next`, ask who is across the set from whom there, and compare
+   * with what the table answers today. This is the claim DD28 is about, and it
+   * is the one measurement that can tell a wrong offset from a missing end.
+   *
+   * Two results, both worth having in a test rather than in a report:
+   *
+   * - **Neither table ever names the wrong dancer.** Over both formations, four
+   *   values of k and two line lengths, there is not one case where the table
+   *   says somebody and the hall says somebody else. M6's offsets were right as
+   *   far as they went.
+   * - **Becket's table now answers exactly when the hall does**, and duple
+   *   improper's still falls silent at `N3` and beyond, by the count below.
+   *   That count is the size of the gap described in the test above, and it is
+   *   deliberately *asserted* rather than left implicit, so that closing it is a
+   *   decision somebody makes on purpose.
+   */
+  it("N_k today is who you face k−1 times through from now", () => {
+    const missing: Record<string, number> = {};
+    for (const [formation, lengths] of [
+      [BECKET, [8, 12]],
+      [DUPLE_IMPROPER, [8, 12]],
+    ] as const) {
+      const table = setRulesFor(formation).relations;
+      let gaps = 0;
+      for (const couples of lengths) {
+        const now = modelAnd(formation, couples);
+        for (const k of [1, 2, 3, 4]) {
+          let set = now.set;
+          for (let i = 1; i < k; i++) set = formation.progression.next(set);
+          const later = modelFromSet(formation, set, NOWHERE);
+          for (const dancer of Object.values(now.model.dancers)) {
+            const hall = relate(later, table, dancer.id, { kind: "neighbor", k: 1 });
+            const said = relate(now.model, table, dancer.id, { kind: "neighbor", k });
+            if (said !== undefined) {
+              // Never the wrong dancer, in either formation, at any k.
+              expect(said, `${formation.id} ${String(couples)}c ${dancer.id} N${String(k)}`).toBe(
+                hall,
+              );
+            } else if (hall !== undefined) {
+              gaps += 1;
+            }
+          }
+        }
+      }
+      missing[formation.id] = gaps;
+    }
+    // Becket follows its loop round; duple improper does not follow its own.
+    // The 32 are `N3` and `N4` at both lengths, eight dancers each: exactly the
+    // couples that have turned round at an end since the table last looked.
+    expect(missing).toEqual({ becket: 0, "duple-improper": 32 });
+  });
 
   it("answers `self` without asking the table at all", () => {
     const { model, table } = modelAnd(BECKET, 6);

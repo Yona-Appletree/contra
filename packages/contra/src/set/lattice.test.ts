@@ -107,6 +107,13 @@ describe("the relations are what the progression makes them", () => {
    * land on a real dancer once somebody down there has turned. That is a fact
    * about contra rather than about the table. The count below is how many cases
    * really are compared; a wrong sign anywhere would break most of them.
+   *
+   * **Becket's count went from 96 to 288 in M8b and not one case changed its
+   * answer.** The rows are the same rows — the same offsets in the middle of a
+   * line — written on the set's own loop, so where they used to fall silent at
+   * an end they now follow it round (`becket.ts`, DD28). Three times as many
+   * cases pass the very property that pins the sign, which is the strongest
+   * evidence available that the loop is those offsets rather than new ones.
    */
   it("N(k+1) today is N(k) after one progression, wherever both name somebody", () => {
     const counted: Record<string, number> = {};
@@ -134,7 +141,7 @@ describe("the relations are what the progression makes them", () => {
       }
       counted[formation.id] = cases;
     }
-    expect(counted).toEqual({ "duple-improper": 48, becket: 96 });
+    expect(counted).toEqual({ "duple-improper": 48, becket: 288 });
   });
 
   /** A shadow is the dancer you keep: the progression moves you both alike. */

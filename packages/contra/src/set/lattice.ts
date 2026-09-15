@@ -5,6 +5,7 @@ import type { Relation } from "./relations.js";
 import { relate } from "./relations.js";
 import type { DancerState, SetModel, Slot } from "./SetModel.js";
 import { homeOf, latticePartner } from "./SetModel.js";
+import { latticeSpan as spanOf } from "./span.js";
 import { setRulesOf } from "./SetRules.js";
 
 /**
@@ -63,40 +64,16 @@ export const SINGLE_PROGRESSION: RoleShift = { lark: 1, robin: 1 };
 /** How far this role shifts, defaulting to a single progression. */
 export const shiftFor = (shift: RoleShift, role: RoleName): number => shift[role] ?? 1;
 
-/** The lowest and highest position anybody stands on, per line. */
-export interface LatticeSpan {
-  /** By `Slot.line`; `undefined` for a line nobody stands on. */
-  line: Readonly<Record<number, { lowest: number; highest: number }>>;
-  lowest: number;
-  highest: number;
-}
-
 /**
- * How far the occupied lattice reaches.
+ * The occupied reach of the lattice, per line.
  *
- * Read from the dancers rather than from `SetModel.positions`, which is the
- * *span* (highest minus lowest plus one) and says nothing about where the span
- * sits — settled here rather than redefined, because `positions` is what M1
- * built, nothing reads it for arithmetic, and a count is a poor thing to do
- * arithmetic with. `plan.md`'s parenthetical "2 × couples for improper" matches
- * neither formation and is not what either lattice does.
+ * **Moved to `span.ts` in M8b** and re-exported here, unchanged, so the
+ * relation tables can read it: a formation file cannot import this module
+ * without closing the cycle `becket → lattice → SetRules → becket`, and
+ * becket's `N_k` is defined in terms of where its two lines end.
  */
-export function latticeSpan(model: SetModel): LatticeSpan {
-  const line: Record<number, { lowest: number; highest: number }> = {};
-  let lowest = Infinity;
-  let highest = -Infinity;
-  for (const dancer of Object.values(model.dancers)) {
-    const { line: l, position } = dancer.slot;
-    const seen = line[l];
-    line[l] =
-      seen === undefined
-        ? { lowest: position, highest: position }
-        : { lowest: Math.min(seen.lowest, position), highest: Math.max(seen.highest, position) };
-    lowest = Math.min(lowest, position);
-    highest = Math.max(highest, position);
-  }
-  return { line, lowest, highest };
-}
+export type { LatticeSpan } from "./span.js";
+export { latticeSpan } from "./span.js";
 
 /**
  * **One time through, on the slots**: every dancer's position moves by their
@@ -119,7 +96,7 @@ export function latticeSpan(model: SetModel): LatticeSpan {
  * the set from you.
  */
 export function progressModel(model: SetModel, shift: RoleShift = SINGLE_PROGRESSION): SetModel {
-  const span = latticeSpan(model);
+  const span = spanOf(model);
   const { relations, lattice } = setRulesOf(model.formation);
   const dancers: Record<DancerId, DancerState> = {};
   for (const dancer of Object.values(model.dancers)) {
