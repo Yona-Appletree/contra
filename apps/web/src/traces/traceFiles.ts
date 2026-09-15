@@ -1,5 +1,5 @@
 import type { Trace } from "@caller/choreo";
-import { DEMO_DANCES } from "@caller/contra";
+import { ALL_DANCES } from "@caller/contra";
 import { figureTiles } from "../galleryTiles.js";
 import { danceTrace } from "./danceTrace.js";
 import { figureTrace } from "./figureTrace.js";
@@ -22,7 +22,15 @@ export function traceFiles(): TraceFile[] {
   for (const tile of figureTiles()) {
     files.push(...drawingsOf("figures", tile.key, tile.title, figureTrace(tile)));
   }
-  for (const dance of DEMO_DANCES) {
+  // **Every encoded dance, not only the ones on the Stage** (M9b). A lab dance
+  // is exactly the dance a reviewer most needs to *see* — it is in the lab
+  // because a number says something is wrong with it — and until this it had no
+  // plates at all, so `pnpm dance <slug>` ended in a stack trace
+  // (`traces:export --dance <slug>: no dance trace named that`) for every one of
+  // them and a review gate had no strip to look at. The Stage still shows
+  // `DEMO_DANCES` and nothing about the programme changes; what changes is that
+  // the pictures exist.
+  for (const dance of ALL_DANCES) {
     files.push(...drawingsOf("dances", dance.slug, dance.title, danceTrace(dance)));
   }
   return files;

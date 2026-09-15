@@ -7,7 +7,12 @@ import { danceAlone, threadsOnTheOldPath } from "../dances/oracle.js";
 import { contraDance } from "../figures/chain.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraDataFigures } from "../library/figures/index.js";
-import { REBIND_PARAM, contraCyclePlanner, legacyCyclePlanner } from "./planCycle.js";
+import {
+  PROGRESSES_PARAM,
+  REBIND_PARAM,
+  contraCyclePlanner,
+  legacyCyclePlanner,
+} from "./planCycle.js";
 
 /**
  * What the contra planner claims beyond AC1's poses: that the **chain is off
@@ -177,5 +182,84 @@ describe("the contra planner emits the same timeline shape", () => {
         expect(poseAt(b, dancer, beat)).toEqual(poseAt(a, dancer, beat));
       }
     }
+  });
+});
+
+/**
+ * **The progression carried by a figure in the middle of the dance** (M9b).
+ *
+ * `"params": { "progresses": true }` on a call says the set's slots shift at
+ * *its* end rather than at the end of the time through. Fatal Attraction is the
+ * dance that needed it — its A1 promenades round the major set and its A2 casts
+ * back, so the calls after it name their neighbours from one place along — and
+ * what is asserted here is the three things the clause claims: the relations
+ * really do move at that call, the boundary does not move them a second time,
+ * and a record that does not write the clause is untouched.
+ */
+describe("a call that carries the progression", () => {
+  const FATAL = danceBySlug("fatal-attraction")!;
+  const RUN = { cycle: contraCyclePlanner, figures: contraDataFigures() };
+
+  /** Who each dancer dances the call at `beat` with, as `a+b` pairs. */
+  const pairsAt = (dance: Dance, couples: number, beat: number, figure: string): string[] =>
+    figures(danceAlone(dance, couples, 128, {}, RUN).timeline())
+      .filter((e) => e.start === beat && e.figure === figure)
+      .map((e) => Object.values(e.bindings).join("+"))
+      .sort();
+
+  /** The same record with the clause taken out of every call that writes it. */
+  const withoutTheClause = (dance: Dance): Dance =>
+    validateDance({
+      ...dance,
+      phrases: dance.phrases.map((phrase) => ({
+        ...phrase,
+        figures: phrase.figures.map((call) => {
+          const params = { ...(call.params as Record<string, unknown> | undefined) };
+          delete params[PROGRESSES_PARAM];
+          return { ...call, params };
+        }),
+      })),
+    });
+
+  it("moves the seating at the call, so a later call names a different dancer", () => {
+    // A2's cast-back (beats 16-18) carries it, and A2's swing at beat 24 asks
+    // for `neighbors`. With the clause the neighbour it finds is the couple the
+    // promenade has just carried everybody round to; without it, the couple
+    // they started beside. The same record, the same run, one field apart.
+    const withIt = pairsAt(FATAL, 8, 24, "swing");
+    const without = pairsAt(withoutTheClause(FATAL), 8, 24, "swing");
+    expect(withIt.length).toBeGreaterThan(0);
+    expect(without.length).toBeGreaterThan(0);
+    expect(withIt).not.toEqual(without);
+  });
+
+  it("progresses once: the boundary does not shift a pass a call already shifted", () => {
+    // Twice through. If the boundary shifted as well, the second time through
+    // would start two places along and its own A1 would chain a different four
+    // from the one the first time through's progression put together.
+    const timeline = danceAlone(FATAL, 8, 256, {}, RUN).timeline();
+    const chains = timeline
+      .figures()
+      .filter((e) => e.figure === "robins-chain")
+      .map((e) => ({ start: e.start, four: Object.values(e.bindings).sort().join("+") }));
+    const first = chains.filter((c) => c.start === 0).map((c) => c.four);
+    const second = chains.filter((c) => c.start === 64).map((c) => c.four);
+    const third = chains.filter((c) => c.start === 128).map((c) => c.four);
+    expect(first.length).toBeGreaterThan(0);
+    // One shift per time through, so the third chain is two shifts on from the
+    // first and never the same as it, and no two consecutive ones agree.
+    expect(second).not.toEqual(first);
+    expect(third).not.toEqual(second);
+  });
+
+  it("leaves a record that does not write the clause exactly as it was", () => {
+    // Butter progresses at the boundary like every other programme dance, and
+    // its timeline is identical to the one the old path threads (AC1's claim,
+    // re-asserted here because the fill is now cut one run per seating).
+    const old = figures(danceAlone(BUTTER, 7, 128).timeline());
+    const now = figures(danceAlone(BUTTER, 7, 128, {}, { cycle: legacyCyclePlanner }).timeline());
+    expect(now.map((e) => [e.figure, e.start, e.end])).toEqual(
+      old.map((e) => [e.figure, e.start, e.end]),
+    );
   });
 });
