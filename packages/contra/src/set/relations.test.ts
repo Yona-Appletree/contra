@@ -183,51 +183,65 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
   /**
    * Becket, six couples: `c0` waits beyond the top, `c1`/`c2` dance at place 0,
    * `c3`/`c4` at place 1 and `c5` waits beyond the bottom. A couple occupies
-   * two adjacent positions of **one** line, so a couple place is two positions
-   * and the two lines slide past each other four positions a time through.
+   * two adjacent positions of **one** line, so a couple place is two positions;
+   * the two lines slide past each other four positions a time through, and
+   * since FR-C1 `N_k` steps **two** — one couple place, the way your own couple
+   * is going (E3, DD49, and `becket.ts`'s `NEXT_NEIGHBOUR_STEP`).
    *
-   * **The `N3` and `N4` rows were `undefined` until M8b and are not
-   * (DD28).** Becket's six couples make one closed loop — down one line, across
-   * at the end, back up the other — so the couple you face `k − 1` times
-   * through from now always exists, unless it is your own couple, which is a
-   * time through you spend standing out. Written out for `c1/lark`, whose
-   * couple sits at loop slot 1 of 6 (`becket.ts`'s {@link BecketLoop}):
+   * So the whole line of neighbours is read off the floor rather than off the
+   * set's loop: `N0` is the couple across and one place behind you, `N1` the
+   * couple you face, `N2` the couple across and one place ahead, and each one
+   * further is one place further, until the count runs off the end of the other
+   * line and answers nobody. Six couples is short enough that it runs off
+   * quickly: line 0 holds positions `−2 … 3` and line 1 holds `0 … 5`, so the
+   * couples dancing at place 0 have no `N2` at all and the ones at place 1 do.
+   *
+   * Written out for `c1/lark`, at line 0 position 0 travelling `+1`, whose own
+   * couple slides toward `−position`:
    *
    * ```text
-   *   N_k(1) = (6 − 2 − 1 − 2(k−1)) mod 6 = (3 − 2(k−1)) mod 6
-   *   k = 0 → 5 (c5)   k = 1 → 3 (c2)   k = 2 → 1 (your own couple: nobody)
-   *   k = 3 → 5 (c5)   k = 4 → 3 (c2)
+   *   N_k = line 1, position 0 − 2(k − 1)
+   *   k = 0 → 2 (c4/robin)   k = 1 → 0 (c2/robin)   k = 2 → −2 (nobody)
    * ```
-   *
-   * so this dancer's line of neighbours reads c5, c2, **out**, c5, c2, out —
-   * a six-couple becket line really does only ever give you two neighbours and
-   * a time through off. `N2` staying `undefined` here is therefore the *same*
-   * answer as before for a different reason: not "the offset ran off the end"
-   * but "that is the time through you are out".
    */
   const BECKET_ROUND_0: Record<string, Record<string, string | undefined>> = {
-    // c1/lark: line 0, position 0, travelling toward the top; loop slot 1.
+    // c1/lark: line 0, position 0, travelling toward the top — the top end of
+    // the dancing line, so the couple it is heading for is off the lattice.
     "set0/c1/lark": {
       partner: "set0/c1/robin",
       opposite: "set0/c2/robin",
-      N0: "set0/c5/robin",
+      N0: "set0/c4/robin",
       N1: "set0/c2/robin",
       N2: undefined,
-      N3: "set0/c5/robin",
-      N4: "set0/c2/robin",
+      N3: undefined,
+      N4: undefined,
       shadow: "set0/c0/robin",
       S2: "set0/c2/robin",
       "trail-buddy": "set0/c3/lark",
     },
-    // c4/lark: line 1, position 3, travelling toward the bottom; loop slot 4.
+    // c3/lark: line 0, position 2, travelling toward the top — one place
+    // further down, so this one has an `N2`: the couple at place 0 on line 1.
+    "set0/c3/lark": {
+      partner: "set0/c3/robin",
+      opposite: "set0/c4/robin",
+      N0: "set0/c5/robin",
+      N1: "set0/c4/robin",
+      N2: "set0/c2/robin",
+      N3: undefined,
+      shadow: "set0/c1/robin",
+      S2: "set0/c0/robin",
+      "trail-buddy": "set0/c5/lark",
+    },
+    // c4/lark: line 1, position 3, travelling toward the bottom, so its own
+    // count runs the other way along the lattice and off the far end.
     "set0/c4/lark": {
       partner: "set0/c4/robin",
       opposite: "set0/c3/robin",
-      N0: "set0/c0/robin",
+      N0: "set0/c1/robin",
       N1: "set0/c3/robin",
       N2: undefined,
-      N3: "set0/c0/robin",
-      N4: "set0/c3/robin",
+      N3: undefined,
+      N4: undefined,
       shadow: "set0/c5/robin",
       S2: "set0/c3/robin",
       "trail-buddy": "set0/c2/lark",
@@ -380,12 +394,13 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
    * formation. Sixteen dancers make at most eight pairs, so `6/8` means twelve
    * dancers found each other and four did not.
    *
-   * Read the becket row across: **the same count at every k**, because a becket
-   * set is one closed loop and `N_k` is a rotation of it — six couples dance and
-   * two stand out every time through, whichever time through you are asking
-   * about. Only *who* changes. Before M8b the row read `6, 2, 0, 0`, and Fatal
-   * Attraction's `pairs: "N2"` therefore pairing nobody is what sent this
-   * milestone looking.
+   * Read the becket row across: **one couple fewer at each end per k**, which
+   * is what an offset along two straight lines does. M8b's loop row read `6, 6,
+   * 6, 6` — the same count at every k, because a rotation of a closed loop
+   * never runs out of set — and FR-C1's ruling (E3, DD49) takes the neighbour
+   * rows off the loop, so `N_k` counts couples along the floor again and the
+   * ends are ends. M6's own row read `6, 2, 0, 0`: the same shape, two couple
+   * places a step instead of one.
    *
    * Duple improper's row alternates `8, 6, 8, 6` for the same reason read the
    * other way: an even line dances everybody one time through and stands two
@@ -409,9 +424,12 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
     };
     expect(counts(BECKET)).toEqual({
       N1: "6/8",
-      N2: "6/8",
-      N3: "6/8",
-      N4: "6/8",
+      // One couple place a step (FR-C1), so the row falls away one couple at
+      // each end per k, exactly as duple improper's does — a becket line is two
+      // straight lines again as far as a neighbour is concerned.
+      N2: "4/8",
+      N3: "2/8",
+      N4: "0/8",
       // A shadow is never out: the loop keeps every dancer one of them.
       shadow: "8/8",
       S2: "8/8",
@@ -434,26 +452,29 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
    * with what the table answers today. This is the claim DD28 is about, and it
    * is the one measurement that can tell a wrong offset from a missing end.
    *
-   * Two results, both worth having in a test rather than in a report:
+   * **This is the measurement FR-C1 is honest about rather than quiet about.**
+   * The user's ruling (E3, DD49) is that becket's `N2` is the couple across the
+   * set and one couple place along — *"your next neighbor"* — and the hall,
+   * asked, says the couple you face one progression from now is the couple
+   * across and **two** couple places along, because both lines slide one place
+   * a time through and they face opposite ways. The two readings are not the
+   * same couple and nothing can make them so, so this test stopped asserting
+   * that they are and started counting.
    *
-   * - **Neither table ever names the wrong dancer.** Over both formations, four
-   *   values of k and two line lengths, there is not one case where the table
-   *   says somebody and the hall says somebody else. M6's offsets were right as
-   *   far as they went.
-   * - **Becket's table now answers exactly when the hall does**, and duple
-   *   improper's still falls silent at `N3` and beyond, by the count below.
-   *   That count is the size of the gap described in the test above, and it is
-   *   deliberately *asserted* rather than left implicit, so that closing it is a
-   *   decision somebody makes on purpose.
+   * Duple improper's row is the control and is untouched: still never the wrong
+   * dancer, still silent at `N3` and beyond (M8b's known gap), by the same
+   * counts as before.
    */
-  it("N_k today is who you face k−1 times through from now", () => {
-    const missing: Record<string, number> = {};
+  it("N_k against the hall: duple improper's is who you face k−1 times through, becket's is not", () => {
+    const counted: Record<string, { same: number; other: number; silent: number }> = {};
     for (const [formation, lengths] of [
       [BECKET, [8, 12]],
       [DUPLE_IMPROPER, [8, 12]],
     ] as const) {
       const table = setRulesFor(formation).relations;
-      let gaps = 0;
+      let same = 0;
+      let other = 0;
+      let silent = 0;
       for (const couples of lengths) {
         const now = modelAnd(formation, couples);
         for (const k of [1, 2, 3, 4]) {
@@ -463,23 +484,152 @@ describe("the relation table, over a six-couple set at every round (M6)", () => 
           for (const dancer of Object.values(now.model.dancers)) {
             const hall = relate(later, table, dancer.id, { kind: "neighbor", k: 1 });
             const said = relate(now.model, table, dancer.id, { kind: "neighbor", k });
-            if (said !== undefined) {
-              // Never the wrong dancer, in either formation, at any k.
-              expect(said, `${formation.id} ${String(couples)}c ${dancer.id} N${String(k)}`).toBe(
-                hall,
-              );
-            } else if (hall !== undefined) {
-              gaps += 1;
+            if (said === undefined) {
+              if (hall !== undefined) silent += 1;
+              continue;
             }
+            if (said === hall) {
+              same += 1;
+              continue;
+            }
+            other += 1;
+            // Only becket's row names a dancer the hall does not: duple
+            // improper's offsets are still exactly the hall's own.
+            expect(formation.id, `${formation.id} ${String(couples)}c ${dancer.id} N${k}`).toBe(
+              "becket",
+            );
           }
         }
       }
-      missing[formation.id] = gaps;
+      counted[formation.id] = { same, other, silent };
     }
-    // Becket follows its loop round; duple improper does not follow its own.
-    // The 32 are `N3` and `N4` at both lengths, eight dancers each: exactly the
-    // couples that have turned round at an end since the table last looked.
-    expect(missing).toEqual({ becket: 0, "duple-improper": 32 });
+    // Becket's 32 agreements are **`k = 1` and nothing else** — 12 dancers at
+    // eight couples and 20 at twelve, which is every dancer who is not standing
+    // out — because the couple you face is the couple you face. Every one of
+    // the 48 others is `N2`, `N3` or `N4`, and the 48 silences are the same
+    // rows running off the end of the line. **The couple one couple place along
+    // is never the couple you meet next**, at any k, at either length: the two
+    // lines slide past each other two couple places a time through, so a
+    // one-place step and the hall's own progression never coincide. That is the
+    // measurement FR-C1's report is about; the word `N2` is the caller's, and
+    // this test is what it costs. Duple improper is untouched by this milestone
+    // and is here as the control: still never the wrong dancer, still silent at
+    // `N3` and beyond (M8b's known gap, 32 cases).
+    expect(counted).toEqual({
+      becket: { same: 32, other: 48, silent: 48 },
+      "duple-improper": { same: 112, other: 0, silent: 32 },
+    });
+  });
+
+  /**
+   * **Which couple `N2` is, in words, at 4, 6 and 8 couples, for a dancer of
+   * each role** — the test FR-C1's brief asks for, and the one that would catch
+   * a flipped sign that every count above would sail through.
+   *
+   * A becket set is laid out with its two lines **offset by one couple place**:
+   * line 0 (the couples travelling `+1`, which slide toward the top) reaches
+   * from place `−1` to place `places − 1`, and line 1 from place `0` to
+   * `places`, because the couple standing out at each end is beyond the far end
+   * of the *other* line. A becket couple slides to its own left, which is
+   * `place − direction`, so the couple `N2` names is the one across the set at
+   * `place − direction` — and at the end of the line that place is off the
+   * lattice and `N2` names nobody, which is what the row below says in words.
+   */
+  it("names N2 in words: the couple across and one place the way you are going", () => {
+    /** Where a dancer stands, as a caller would say it. */
+    const where = (model: ReturnType<typeof modelAnd>["model"], id: string): string => {
+      const d = model.dancers[id];
+      if (d === undefined) return "nobody";
+      const place = Math.floor(d.slot.position / 2);
+      return `${d.role} of the couple at place ${String(place)} on line ${String(d.slot.line)}`;
+    };
+    const said: Record<string, string> = {};
+    for (const couples of [4, 6, 8]) {
+      const { model } = modelAnd(BECKET, couples);
+      // Both roles of the first three couples that are not standing out at the
+      // top: `c1` and `c2` are the four dancing at place 0, one couple from
+      // each line, and `c3` is the next couple along (line 0 where the set is
+      // long enough to have one, the couple standing out at the bottom at four).
+      for (const who of [
+        "set0/c1/lark",
+        "set0/c1/robin",
+        "set0/c2/lark",
+        "set0/c2/robin",
+        "set0/c3/lark",
+        "set0/c3/robin",
+      ]) {
+        if (model.dancers[who] === undefined) continue;
+        const n2 = relate(model, setRulesFor(BECKET).relations, who, parseRelation("N2"));
+        said[`${String(couples)}c ${where(model, who)}`] =
+          n2 === undefined ? "nobody" : where(model, n2);
+      }
+    }
+    expect(said).toEqual({
+      // **Four couples: nobody has an N2 at all.** One four dances, at place 0,
+      // and both of its couples are at the end of their own line's reach — the
+      // only couples across the set from them are the two standing out, and
+      // those are beyond the far end, not one place along. A four-couple becket
+      // hall has no diagonal in it, and a dance that calls one leaves everybody
+      // on hold-place.
+      "4c lark of the couple at place 0 on line 0": "nobody",
+      "4c robin of the couple at place 0 on line 0": "nobody",
+      "4c lark of the couple at place 0 on line 1": "nobody",
+      "4c robin of the couple at place 0 on line 1": "nobody",
+      "4c lark of the couple at place 1 on line 1": "nobody",
+      "4c robin of the couple at place 1 on line 1": "nobody",
+      // **Six couples: the diagonal closes in the middle of the set.** Line 0
+      // slides toward the top, so the couple at place 1 looks across to place
+      // 0; line 1 slides the other way, so the couple at place 0 looks across
+      // to place 1. They are the two ends of the same diagonal, which is what
+      // makes the row its own inverse. The couple at the top of line 0 still
+      // has nobody: it is at the end of its own line's travel.
+      "6c lark of the couple at place 0 on line 0": "nobody",
+      "6c robin of the couple at place 0 on line 0": "nobody",
+      "6c lark of the couple at place 0 on line 1": "robin of the couple at place 1 on line 0",
+      "6c robin of the couple at place 0 on line 1": "lark of the couple at place 1 on line 0",
+      "6c lark of the couple at place 1 on line 0": "robin of the couple at place 0 on line 1",
+      "6c robin of the couple at place 1 on line 0": "lark of the couple at place 0 on line 1",
+      // **Eight couples: word for word the same**, because the answer is a
+      // couple place away and not a fraction of the set. Only how many couples
+      // have one grows with the line.
+      "8c lark of the couple at place 0 on line 0": "nobody",
+      "8c robin of the couple at place 0 on line 0": "nobody",
+      "8c lark of the couple at place 0 on line 1": "robin of the couple at place 1 on line 0",
+      "8c robin of the couple at place 0 on line 1": "lark of the couple at place 1 on line 0",
+      "8c lark of the couple at place 1 on line 0": "robin of the couple at place 0 on line 1",
+      "8c robin of the couple at place 1 on line 0": "lark of the couple at place 0 on line 1",
+    });
+  });
+
+  /**
+   * **Only the end couples lack an `N2` on a bare lattice** — the roadmap's own
+   * count test for FR-C1, exhibited rather than implied by a number.
+   *
+   * "End" means the end of your own line's reach toward the couple you are
+   * progressing to: line 0 slides toward the top, so its two topmost couples
+   * (the one standing out at place `−1` and the one dancing at place `0`) have
+   * no couple across and one place further up; line 1 slides the other way, so
+   * its two bottom couples are the ones without. Everybody in between has one.
+   */
+  it("only the couples at the ends of a bare becket lattice lack an N2", () => {
+    for (const couples of [6, 8, 12]) {
+      const { model } = modelAnd(BECKET, couples);
+      const without = Object.values(model.dancers)
+        .filter(
+          (d) =>
+            relate(model, setRulesFor(BECKET).relations, d.id, parseRelation("N2")) === undefined,
+        )
+        .map((d) => ({ line: d.slot.line, place: Math.floor(d.slot.position / 2) }));
+      const places = Math.floor((couples - 1) / 2);
+      for (const { line, place } of without) {
+        const atMyEnd = line === 0 ? place <= 0 : place >= places - 1;
+        expect(atMyEnd, `${String(couples)}c line ${String(line)} place ${String(place)}`).toBe(
+          true,
+        );
+      }
+      // Two couples at each end of the set, four dancers each.
+      expect(without.length, `${String(couples)} couples`).toBe(8);
+    }
   });
 
   it("answers `self` without asking the table at all", () => {

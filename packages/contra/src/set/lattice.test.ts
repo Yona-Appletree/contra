@@ -98,34 +98,41 @@ describe("a progression is a shift of every dancer's slot (Q14)", () => {
 
 describe("the relations are what the progression makes them", () => {
   /**
-   * The defining property of `N_k`, and the only thing that pins its sign: the
-   * neighbour you have **next** is the neighbour you have after one more time
-   * through. Measured for every dancer, every k, at every round.
+   * M6's sign invariant — the neighbour you have **next** is the neighbour you
+   * have after one more time through — and **the price of FR-C1, stated as a
+   * number rather than deleted**.
    *
-   * The property is asked wherever **both** answers name somebody, which is the
-   * honest scope of it: a dancer who reaches the end of the line turns round,
-   * and every offset written along their direction of travel turns round with
-   * them, so an offset that ran off the end while it was pointing one way can
-   * land on a real dancer once somebody down there has turned. That is a fact
-   * about contra rather than about the table. The count below is how many cases
-   * really are compared; a wrong sign anywhere would break most of them.
+   * It still holds for duple improper, where it is what pins the sign, and it
+   * is asked wherever **both** answers name somebody, which is the honest scope
+   * of it: a dancer who reaches the end of the line turns round, and every
+   * offset written along their direction of travel turns round with them.
    *
-   * **Becket's count went from 96 to 288 in M8b and not one case changed its
-   * answer.** The rows are the same rows — the same offsets in the middle of a
-   * line — written on the set's own loop, so where they used to fall silent at
-   * an end they now follow it round (`becket.ts`, DD28). Three times as many
-   * cases pass the very property that pins the sign, which is the strongest
-   * evidence available that the loop is those offsets rather than new ones.
+   * **It cannot hold for becket any more, and no choice of sign would save
+   * it.** Write `N_k = across + (k − 1) × s` positions along the other line.
+   * One time through moves the asking dancer `p` positions and the other line
+   * `−p`, so the couple standing where `N_k` pointed has been replaced by the
+   * one that was `2p` further on; the invariant is `(k − 1)s + 2p = k·s`, that
+   * is `s = 2p`. Becket's `p` is `progressionStep = −2`, so the *only* `s` that
+   * satisfies it is `−4`: **two** couple places a step, which is what M6 wrote
+   * and M8b kept. The user's ruling (E3, DD49) is that `N2` is the couple one
+   * couple place along — the caller's "next neighbour" — so `s` is `−2` and the
+   * invariant goes. It goes **all the way**: every one of the 216 compared
+   * becket cases disagrees, by exactly one couple place, because a series that
+   * steps one place cannot track a set that slides two.
+   *
+   * The count is asserted, and the disagreement asserted to be becket's alone,
+   * so that the day somebody restores the two-place step this test says so.
    */
-  it("N(k+1) today is N(k) after one progression, wherever both name somebody", () => {
-    const counted: Record<string, number> = {};
+  it("N(k+1) today is N(k) after one progression — duple improper's, and what becket does instead", () => {
+    const counted: Record<string, { agree: number; disagree: number }> = {};
     for (const [formation, couples] of [
       [DUPLE_IMPROPER, 6],
       [BECKET, 12],
     ] as const) {
       const table = setRulesFor(formation).relations;
       let set = hallOf(formation, couples);
-      let cases = 0;
+      let agree = 0;
+      let disagree = 0;
       for (let round = 0; round < 6; round++) {
         const now = modelFromSet(formation, set, NOWHERE);
         const then = modelFromSet(formation, formation.progression.next(set), NOWHERE);
@@ -135,15 +142,24 @@ describe("the relations are what the progression makes them", () => {
             const next = relate(now, table, dancer.id, { kind: "neighbor", k: k + 1 });
             const after = relate(then, table, dancer.id, { kind: "neighbor", k });
             if (next === undefined || after === undefined) continue;
-            expect(next, `${formation.id} ${dancer.id} N${String(k + 1)}`).toBe(after);
-            cases += 1;
+            if (next === after) {
+              agree += 1;
+              continue;
+            }
+            disagree += 1;
+            // Becket's disagreement is exactly one couple place, every time:
+            // the series steps one place and the set slides two.
+            expect(formation.id, `${formation.id} ${dancer.id} N${String(k + 1)}`).toBe("becket");
           }
         }
         set = formation.progression.next(set);
       }
-      counted[formation.id] = cases;
+      counted[formation.id] = { agree, disagree };
     }
-    expect(counted).toEqual({ "duple-improper": 48, becket: 288 });
+    expect(counted).toEqual({
+      "duple-improper": { agree: 48, disagree: 0 },
+      becket: { agree: 0, disagree: 216 },
+    });
   });
 
   /** A shadow is the dancer you keep: the progression moves you both alike. */
