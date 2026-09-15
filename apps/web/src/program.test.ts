@@ -274,14 +274,24 @@ describe("danceOrder and the two engines (M3)", () => {
    * it reaches — so the evening leaves it out rather than taking the Stage down
    * with it. Its own page still holds the record and says what it owes.
    */
-  it("leaves out a lab dance that owes a figure the rebuild has not written", () => {
-    // `square-through` is M8's, and still owed; `shoulder-round` was M5's and
-    // `circulate` M6's-then-M7's, and both are written now — which is exactly
-    // what this list is supposed to notice.
+  it("owes nothing since M9, so every lab dance can be planned", () => {
+    // **The list this test used to read is empty.** `square-through` was M8's
+    // and then M9's, `shoulder-round` was M5's and `circulate` M6's-then-M7's,
+    // and all of them are written now — which is exactly what the list is
+    // supposed to notice, and M9 emptied it
+    // (`acceptance.test.ts`: `UNSUPPORTED_FIGURES` is `[]`). So there is no
+    // figure id left that a dance can owe, `danceOwes` answers nothing for
+    // every dance, and the evening leaves nobody out for that reason.
+    //
+    // The guard it exercised is still in `danceOrder` and is **untested until a
+    // later milestone puts a name back on the list**; there is no way to make a
+    // dance owe a figure while the list is empty, and inventing one would test
+    // the fixture rather than the rule.
     const lab = labDance("lab-owed", "square-through");
     const all = [...DEMO_DANCES, lab];
-    expect(danceOwes(lab)).toEqual(["square-through"]);
-    expect(danceOrder("lab-owed", DEMO_DANCES, all)).toEqual([...DEMO_DANCES]);
+    expect(danceOwes(lab)).toEqual([]);
+    for (const dance of all) expect(danceOwes(dance), dance.slug).toEqual([]);
+    expect(danceOrder("lab-owed", DEMO_DANCES, all)[0]).toBe(lab);
     // It is still a lab dance, and the Dances tab still lists it.
     expect(isLabDance("lab-owed", DEMO_DANCES, all)).toBe(true);
   });

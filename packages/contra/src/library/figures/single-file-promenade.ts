@@ -77,8 +77,13 @@ export const singleFilePromenadeDefinition: FigureDefinition = {
   },
   shape: {
     kind: "ringWalk",
-    // A ring of four: a quarter of it is one place along.
-    places: { number: "mul", of: [{ param: "amount" }, 4] },
+    // **A quarter of a ring of four is one place along, and a third of a ring
+    // of three is too** (M9). The ring's size is read off the cast rather than
+    // written down, because both are called: On the Prowl and A Rare Bird
+    // promenade a whole minor set and Jeremy Corners' B2 promenades **three** —
+    // *"[Man one and twos] Single file promenade clockwise 1/3"* — and nothing
+    // in the figure changes but how many places a fraction of the ring is.
+    places: { number: "mul", of: [{ param: "amount" }, { number: "dancers" }] },
     sign: SPIN,
     faceOffset: ALONG_THE_RING,
     inBeats: STEP_IN,

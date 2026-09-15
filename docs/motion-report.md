@@ -97,6 +97,8 @@ it, so every number is the figure's own and no seam is folded in.
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `square-through` | 68.0 | 108.0 | **28.65** | 37.3 | 8 | 0.15 | 0 | 1.20 | `2L` L at beat 2.281 |
+| `interrupted-square-through` | 68.0 | 108.0 | **28.65** | 37.3 | 12 | 0.12 | 0 | 1.20 | `2L` L at beat 6.281 |
 | `bend-the-line` | 41.7 | **217.4** | **18.62** | 9.7 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.375 |
 | `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
 | `robins-chain` | **69.2** | 149.3 | 8.57 | 45.4 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 1.719 |
@@ -108,6 +110,7 @@ it, so every number is the figure's own and no seam is folded in.
 | `up-the-hall` | 26.5 | 129.2 | 7.06 | 6.5 | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.563 |
 | `star` | 35.7 | 35.2 | 1.68 | 12.1 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
+| `jersey-twirl` | 29.2 | 66.0 | 4.47 | 21.7 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 2.000 |
 | `balance-and-swing` | 24.8 | 36.5 | 4.08 | 15.5 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
 | `petronella` | 24.7 | 26.8 | 1.86 | 0.0 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.781 |
 | `allemande` | 22.2 | 32.5 | 2.45 | 23.4 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 7.563 |
@@ -358,6 +361,10 @@ All four join hands in a ring and walk round — circle left means the way your 
 
 Everybody moves one place along the box, all at the same time. The larks cross straight over the set, passing right shoulders, and the robins loop out of their own line and back into it one place along. You end in the same wave you started in, with different people beside you.
 
+### `diamond` — FORM DIAMONDS
+
+Pass through across the set with the other active, passing right shoulders, then turn to your right and cast round the dancer standing one place along the line you have arrived on, going outside the line. Come into the middle of the set and stop facing the other active a long way off. The two who stood still are the sides of the diamond and the two of you are its points.
+
 ### `do-si-do` — DO-SI-DO
 
 Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.
@@ -385,6 +392,14 @@ Give your right hand to the dancer facing you, pull by, and give your left to th
 ### `hey` — HEY FOR FOUR
 
 The weave. All four dancers travel the same closed figure of eight across the set, passing each other by alternate shoulders and never taking hands: right shoulders with the one you meet in the centre of the set, left shoulders with the one you meet at the side, and a loop round the end before you come back. The robins start it, passing right shoulders in the centre; the larks loop at the ends and follow them in. Sixteen beats, four passes in the centre at counts 2, 6, 10 and 14 and three at the sides at 4, 8 and 12, and everybody is home where they started.
+
+### `interrupted-square-through` — INTERRUPTED SQUARE THROUGH
+
+Take right hands with the dancer you are facing and balance: step in toward them and back out. Then pull by on that same hand, give your left to the dancer you are facing now, and pull by again. Eight beats: four of balance and two hands of two beats each.
+
+### `jersey-twirl` — JERSEY TWIRL
+
+Take inside hands with the dancer beside you and raise them. One of you walks forward and round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: this turns the dancer on the left under, which is the one thing that tells a Jersey twirl from a California twirl.)
 
 ### `lead-down` — LEAD DOWN THE CENTRE
 
@@ -445,6 +460,10 @@ Face the way the ring is going and walk round it in single file, one behind the 
 ### `slide-left` — SLIDE LEFT ALONG THE SET
 
 In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.
+
+### `square-through` — SQUARE THROUGH
+
+Give your right hand to the dancer you are facing and pull by, then give your left to the dancer you are facing now and pull by again. Two hands, two different people, and you end facing out of where you started.
 
 ### `star` — STAR RIGHT
 

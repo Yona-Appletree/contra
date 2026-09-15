@@ -51,6 +51,10 @@ import turnAloneText from "../../../../data/figures/turn-alone.json" with { type
 import turnAsCouplesText from "../../../../data/figures/turn-as-couples.json" with { type: "json" };
 import turnContraCornersText from "../../../../data/figures/turn-contra-corners.json" with { type: "json" };
 import upTheHallText from "../../../../data/figures/up-the-hall.json" with { type: "json" };
+import jerseyTwirlText from "../../../../data/figures/jersey-twirl.json" with { type: "json" };
+import diamondText from "../../../../data/figures/diamond.json" with { type: "json" };
+import squareThroughText from "../../../../data/figures/square-through.json" with { type: "json" };
+import interruptedSquareThroughText from "../../../../data/figures/interrupted-square-through.json" with { type: "json" };
 
 /**
  * The four texts a move is written in, as data: what a caller says and what a
@@ -175,6 +179,10 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       castBackText,
       promenadeText,
       balanceWaveOfFourText,
+      jerseyTwirlText,
+      diamondText,
+      squareThroughText,
+      interruptedSquareThroughText,
       // **A dance-local figure's texts are in its own dance file** (D10, M8),
       // beside the definition literal they belong to, so that promoting one is
       // still a copy of one thing rather than of two things in two directories.

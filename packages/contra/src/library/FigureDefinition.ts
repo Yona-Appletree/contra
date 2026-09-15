@@ -138,8 +138,16 @@ export interface SequenceShape {
 
 /** One part of a {@link SequenceShape}. */
 export interface SequencePart {
-  /** How many of the figure's beats this part takes; the rest go to `"rest"`. */
-  beats: NumberExpr | "rest";
+  /**
+   * How many of the figure's beats this part takes; the rest go to `"rest"`.
+   *
+   * `{ share }` is a **fraction of whatever count the card gives the figure**
+   * (D3, M9), which is what a figure made of equal parts wants: a square
+   * through's two pull-bys are half the count each whether the caller gives it
+   * four beats or six, where a written `2` would leave the second pull-by with
+   * the whole of the difference.
+   */
+  beats: NumberExpr | "rest" | { share: number };
   shape: FigureShape;
   /** The holds this part takes, in the same form a definition's own are. */
   holds: readonly HoldSpec[];
@@ -166,9 +174,33 @@ export interface SequencePart {
    * for Chorus Jig's twos, who are not in the figure at all; casts inside an
    * instance is what a figure whose own parts take turns needs, and M5's hey for
    * three wants the same thing for the same reason.
+   *
+   * **A part's casts may be a parameter** (M9). A square through's two pull-bys
+   * are with two *different* people and which two is the call's business — The
+   * Set Monster's is `(N3R;PL)`, a neighbour and then a partner — so the list is
+   * written as `{ param: … }` and read off the call in exactly the form
+   * {@link PairingRule}'s own `{ kind: "param" }` reads it: `"partners"`,
+   * `"neighbors"`, or the station pairs written out. And it may be a **choice
+   * between written lists**, which is `{ number: "select" }`'s idea one level
+   * up: contra corners' `axis` says whether your first corner is the one
+   * diagonally across the set or the one straight along it, and the two answers
+   * are two lists of pairs rather than a number.
    */
-  casts?: readonly (readonly FigureRole[])[];
+  casts?: PartCasts;
 }
+
+/**
+ * Who dances one part of a sequence: written out, named by a parameter, or
+ * chosen between written lists by a parameter's own word.
+ *
+ * @see SequencePart.casts
+ */
+export type PartCasts =
+  | readonly (readonly FigureRole[])[]
+  /** A {@link PairingRule}-shaped parameter: `"partners"`, `"neighbors"`, or pairs. */
+  | { param: string }
+  /** One of several written lists, chosen by a parameter's own word. */
+  | { select: string; cases: Readonly<Record<string, readonly (readonly FigureRole[])[]>> };
 
 /**
  * Two dancers turning about a shared centre: the swing and the allemande.

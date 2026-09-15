@@ -2,7 +2,15 @@ import type { Beat, Hand } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type { FigurePlan, HandJoin, PlanContext, Spots } from "../../figures/ContraFigure.js";
 import { planContext } from "../../figures/ContraFigure.js";
-import type { FigureRole, FigureShape, HoldSpec, SequenceShape } from "../FigureDefinition.js";
+import type { Pairing } from "../../figures/pairing.js";
+import { pairsOf } from "../../figures/pairing.js";
+import type {
+  FigureRole,
+  FigureShape,
+  HoldSpec,
+  PartCasts,
+  SequenceShape,
+} from "../FigureDefinition.js";
 import { joinKey, type ShapeInput } from "../interpret.js";
 
 /**
@@ -162,7 +170,7 @@ function run(
     const part = shape.parts[i]!;
     const beats = shares[i]!;
     const before = parts[i - 1];
-    const casts = part.casts ?? [input.roles];
+    const casts = castsOf(part.casts, input) ?? [input.roles];
     const named = new Set(casts.flat());
     for (const role of named) {
       if (!input.roles.includes(role)) {
@@ -192,6 +200,7 @@ function run(
               const hand = was.plan.at(role, before.beats).hands[side];
               return hand === "down" ? undefined : hand;
             };
+      const isLast = i === shape.parts.length - 1;
       const partInput: ShapeInput = {
         ...input,
         ctx,
@@ -200,11 +209,17 @@ function run(
         anchor: input.anchorOf(ctx),
         // Only the last part settles the figure: the rock in the middle of a
         // balance and swing ends where it rocked, and the turn is what gathers.
-        gathers: i === shape.parts.length - 1 && input.gathers,
+        gathers: isLast && input.gathers,
         joinedIn: joinedIn(i),
         joinedOut: joinedOut(i),
         ...(handsIn === undefined ? {} : { handsIn }),
       };
+      // **And only the last part forms the figure's shape** (M9), for the same
+      // reason and with a second one of its own: a diamond is four dancers and
+      // a part is planned over whoever its casts named, so a target imposed part
+      // by part would arrange the two who moved into a shape the four of them
+      // are supposed to end in. `diamond`'s cast is what found it.
+      if (!isLast) delete partInput.target;
       planned.push({ roles, plan: planPart(part.shape, part.holds, partInput) });
     }
     const idle: Spots = {};
@@ -217,6 +232,53 @@ function run(
     start += beats;
   }
   return parts;
+}
+
+/**
+ * **Who dances this part** (M9): the list written out, the list a parameter
+ * names, or the one of several written lists a parameter's own word picks.
+ *
+ * A pairing parameter is read exactly the way `kinds/pairing.ts` reads one, by
+ * `pairsOf`, so `"neighbors"` means the same thing inside a sequence part as it
+ * does in a `path`'s pairing — and a pair whose two stations this instance does
+ * not hold is dropped rather than throwing, because a part is entitled to name
+ * somebody the call left out and the dancers who are here still dance.
+ * `undefined` is the old answer: everybody, as one cast.
+ */
+function castsOf(
+  casts: PartCasts | undefined,
+  input: ShapeInput,
+): readonly (readonly FigureRole[])[] | undefined {
+  if (casts === undefined) return undefined;
+  if (Array.isArray(casts)) return casts as readonly (readonly FigureRole[])[];
+  // `Array.isArray` does not narrow a **readonly** array out of a union, so the
+  // rule is named here rather than asserted at each of its two fields.
+  const rule = casts as Exclude<PartCasts, readonly (readonly FigureRole[])[]>;
+  const here = new Set(input.roles);
+  if ("select" in rule) {
+    const word = input.params[rule.select];
+    if (typeof word !== "string") {
+      throw new Error(
+        `a sequence part chooses its casts on "${rule.select}", which is ` +
+          `${JSON.stringify(word)} and not one of ${Object.keys(rule.cases).join(", ")}`,
+      );
+    }
+    const chosen = rule.cases[word];
+    if (chosen === undefined) {
+      throw new Error(
+        `"${rule.select}" is "${word}", which is not one of ` +
+          `${Object.keys(rule.cases).join(", ")}`,
+      );
+    }
+    return chosen;
+  }
+  const named = input.params[rule.param];
+  if (named === undefined) {
+    throw new Error(`a sequence part's casts read "${rule.param}", which is not a parameter`);
+  }
+  return pairsOf(named as Pairing)
+    .filter(([a, b]) => here.has(a) && here.has(b))
+    .map(([a, b]) => [a, b]);
 }
 
 /** How many beats each part gets; one `"rest"` takes whatever is left. */
@@ -249,6 +311,9 @@ function sharesOf(shape: SequenceShape, input: ShapeInput): Beat[] {
 function beatsOf(expr: SequenceShape["parts"][number]["beats"], input: ShapeInput): Beat {
   if (expr === "rest") throw new Error(`"rest" is not a number`);
   if (typeof expr === "number") return Math.min(expr, input.beats / 2);
+  // **A share of the figure's own count** (M9): equal parts stay equal at every
+  // count the card gives the figure, which a written number cannot do.
+  if ("share" in expr) return input.beats * expr.share;
   if (!("param" in expr)) throw new Error(`a part's beats must be a number or a parameter`);
   const value = input.params[expr.param];
   if (typeof value !== "number") {

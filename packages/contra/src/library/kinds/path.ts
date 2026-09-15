@@ -98,6 +98,13 @@ export function planPath(
     order: roles,
     anchor: input.anchor.centre,
     mate: mateOf,
+    // **The set's own lattice, when there is one under the figure** (M9). M7
+    // gave `{ point: "slot" }` to `kinds/waypoints.ts` alone, because M7's
+    // slot-naming figures were all waypoint routes; the diamond's cast is a
+    // sequence of paths whose ends are written in slots, and without this the
+    // calculus refuses them by name — *"1L cannot name a slot: this figure was
+    // not resolved against a set"* — even where resolution handed one in.
+    ...(input.slots === undefined ? {} : { slots: input.slots }),
     ...(ends === undefined ? {} : { ends }),
   });
 

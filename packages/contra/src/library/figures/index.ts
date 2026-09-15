@@ -40,6 +40,10 @@ import { turnContraCornersDefinition } from "./turn-contra-corners.js";
 import { castBackDefinition } from "./cast-back.js";
 import { promenadeDefinition } from "./promenade.js";
 import { balanceWaveOfFourDefinition } from "./balance-wave-of-four.js";
+import { jerseyTwirlDefinition } from "./jersey-twirl.js";
+import { diamondDefinition } from "./diamond.js";
+import { squareThroughDefinition } from "./square-through.js";
+import { interruptedSquareThroughDefinition } from "./interrupted-square-through.js";
 import { localFigureDefinitions } from "../../dances/danceFiles.js";
 
 /**
@@ -152,6 +156,22 @@ export const RECORD_DEFINITIONS: readonly FigureDefinition[] = [
 ];
 
 /**
+ * **M9's**: the figures the two Banner dances needed.
+ *
+ * A list of its own for the same reason M8's is: what they share is the
+ * milestone rather than the gate. `diamond` is the cast that forms one —
+ * the shape has been in `set/shape.ts` since M7 and nothing made one —
+ * `square-through` and `interrupted-square-through` are the pull-bys the two
+ * dances do inside it, and `jersey-twirl` has no predecessor anywhere.
+ */
+export const BANNER_DEFINITIONS: readonly FigureDefinition[] = [
+  diamondDefinition,
+  squareThroughDefinition,
+  interruptedSquareThroughDefinition,
+  jerseyTwirlDefinition,
+];
+
+/**
  * Every figure the library holds as data, the dance files' own **local**
  * figures last (D10, M8).
  *
@@ -168,6 +188,7 @@ export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...SCHEDULE_DEFINITIONS,
   ...SHAPE_DEFINITIONS,
   ...RECORD_DEFINITIONS,
+  ...BANNER_DEFINITIONS,
   ...localFigureDefinitions(),
 ];
 
@@ -227,7 +248,28 @@ export const dataOnlyFigures = (): AnyFigureDef[] =>
  * resolution and there is no other kind of harness left.
  */
 export const needsTheSet = (def: FigureDefinition): boolean =>
-  (def.actors !== "all" && def.actors !== "ring") || def.shape.kind === "wave";
+  (def.actors !== "all" && def.actors !== "ring") || readsTheLattice(def.shape);
+
+/**
+ * **Whether this shape names a place on the set's own lattice.**
+ *
+ * The second half of {@link needsTheSet}, asked of the shape rather than
+ * guessed from its kind. M8 wrote it as `kind === "wave"`, which was every
+ * figure that read the lattice at the time; M9's `diamond` is a `sequence` of
+ * `path`s whose ends are `{ point: "slot" }`, and the harnesses planned it
+ * without a set and got the expression calculus's own refusal by name.
+ *
+ * A definition is plain data — `figures/*.test.ts` asserts it survives
+ * `JSON.parse(JSON.stringify(def))` — so looking for the node is honest and
+ * total where a list of kinds is a memory that goes stale.
+ */
+function readsTheLattice(node: unknown): boolean {
+  if (Array.isArray(node)) return node.some(readsTheLattice);
+  if (node === null || typeof node !== "object") return false;
+  const here = node as Record<string, unknown>;
+  if (here["point"] === "slot" || here["kind"] === "wave") return true;
+  return Object.values(here).some(readsTheLattice);
+}
 
 /**
  * A data-only figure the **hands-four template** can plan, or `undefined`.
@@ -317,3 +359,7 @@ export { turnContraCornersDefinition } from "./turn-contra-corners.js";
 export { balanceWaveDefinition } from "./balance-wave.js";
 export { circulateDefinition } from "./circulate.js";
 export { loopDefinition } from "./loop.js";
+export { jerseyTwirlDefinition } from "./jersey-twirl.js";
+export { diamondDefinition } from "./diamond.js";
+export { squareThroughDefinition, squareThroughPass } from "./square-through.js";
+export { interruptedSquareThroughDefinition } from "./interrupted-square-through.js";

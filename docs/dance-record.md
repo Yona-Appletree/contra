@@ -306,7 +306,20 @@ that has gone wrong at least once.
 10. **Write a `call` for every line**, in the caller's own words. The dance's own
     words win over the generated ones, on the card and in the bubble alike.
 11. **`status: "lab"`**, always, to begin with.
-12. **`pnpm dance <slug>`.** Read it from the top: section 0 says what figures
+12. **A selection the library cannot say is a reading, and it goes in `notes`**
+    (M9). Three of them turned up in the two Banner dances and none is a bug:
+    a group selection that names four dancers out of two minor sets one by one
+    (_"[with twos, W1, and N2 M1]"_ — `who` takes a tag, a list of stations of
+    **one** group, or a relation ring of you, your partner, the dancer the
+    relation names and their partner, and none of those is that four); a
+    transcript token that cannot be read at all (_"Square through 2
+    (NR;SRNL)"_); and a figure called for **half of itself** (_"(4) In long
+    lines, go forward (facing out)"_, where `long-lines` goes forward and back
+    in whatever count it is given and has no parameter for either half). Write
+    the nearest thing the library does say, and write down in `notes` what the
+    transcript said and what you wrote instead. Do not invent a parameter for
+    one dance.
+13. **`pnpm dance <slug>`.** Read it from the top: section 0 says what figures
     are still owed, 1 is who dances what, 2 is the oracles at every line length,
     3 is who the ends leave out, 3b is how far off a stated shape anybody is, and
     4 is the motion. Green at every length is what earns a place in

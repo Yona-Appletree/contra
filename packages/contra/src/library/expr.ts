@@ -71,6 +71,17 @@ export type NumberExpr =
    */
   | { number: "beats" }
   /**
+   * **How many dancers this instance of the figure has** (M9).
+   *
+   * The other fact a figure cannot write down, beside `{ number: "distance" }`:
+   * a single file promenade's "a quarter" is one place along a ring of four and
+   * a third is one place along a ring of three, and Jeremy Corners calls both —
+   * *"[Man one and twos] Single file promenade clockwise 1/3"*. Written as a
+   * parameter it would be a number a call could get wrong; read off the cast it
+   * is a measurement, like everything else in the hub.
+   */
+  | { number: "dancers" }
+  /**
    * `then` when the dancer this is being evaluated for has the **contra role**
    * the named parameter says, and `else` otherwise.
    *
@@ -283,6 +294,7 @@ export function evalNumber(expr: NumberExpr, env: ExprEnv): number {
     return Math.sign(of || 1);
   }
   if (expr.number === "beats") return env.beats;
+  if (expr.number === "dancers") return env.order.length;
   if (expr.number === "distance") {
     const from = evalPoint(expr.from, env);
     const to = evalPoint(expr.to, env);

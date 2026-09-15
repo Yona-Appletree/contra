@@ -1,0 +1,182 @@
+{
+  "slug": "jeremy-corners",
+  "title": "Jeremy Corners",
+  "author": "Isaac Banner",
+  "formation": "duple-improper",
+  "status": "lab",
+  "passes": 2,
+  "notes": "The Caller's Box 20362, permission: full. The author's own note: \"Author recommends you not call this dance.\" And the one that decides how it is encoded: \"Square through is done in a diamond formation.\" A two-pass record, the second pass the same with the twos active; the set progresses at the end of each pass, which is what makes the second pass's own selections the next neighbour along. **Still owed, one thing, measured.** Closure **32.0000 px** at 2 couples and **37.7359 px** at 3-6, which are exactly the width of the set and `sqrt(32^2 + 20^2)` - across the set, and across it and one dancing place along. The ones **cross the set in A1** (\"pass through across\") and nothing in the record crosses them back: everything after it happens in the middle of the set, and the swing that ends B2 settles them on the nearest two places that suit, which from the middle is whichever line they are already nearer. What would cross them back is the square through danced with the four the transcript names, and that four is the one thing this record cannot write - see reading (1). **Three readings, none of them settled by measurement.** (1) The square through's group is written as the minor set the diamond is made of. The transcript names four dancers out of two minor sets - \"[with twos, W1, and N2 M1]\" - and no group selector in the library names \"the twos, one robin, and the lark of the couple after\": `who` takes a tag, a list of stations of one group, or a relation ring of you, your partner, the dancer the relation names and their partner. The second pass is written with `who: \"N2\"`, which is the nearest the library has to \"[with N2]\". (2) The second token of \"Square through 2 (NR;SRNL)\" could not be read. The first is a neighbour by the right; the second is written here as the partner by the left, because a square through's second hand is with somebody other than the first and a partner is who that is in a diamond. (3) \"Ones turn contra corners (along the set)\" is `axis: \"along\"`, which swaps which corner is first. `axis: \"across\"` was measured too and closes at 32.0000 px at 2, 4 and 6 couples against 37.7359 at 3 and 5, so the transcript's own word is kept and the other reading is a pixel or two better at half the line lengths. Neither changes the motion: `turn-contra-corners` runs a hand at **297.4 px/beat** against a bound of 68.4 either way, because after the diamond the actives are standing in the middle of the set and their corners are a whole dancing place and a half away.",
+  "source": {
+    "callersBoxId": 20362,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=20362",
+    "permission": "full",
+    "transcript": "A1  (8) Ones pass through across (1R); turn right; cast clockwise around one; step into center and face partner in distance; form diamonds  (8) Interrupted square through 2 [with twos, W1, and N2 M1]: (4) Neighbor balance (RH)  (4) Square through 2 (NR;SRNL)\nA2  (16) Ones turn contra corners (along the set)\nB1  (4) Ones balance  (12) Ones swing; face down\nB2  (4) Balance ring  (4) [Man one and twos] Single file promenade clockwise 1/3  (8) Neighbor swing\n2A1-2B2: the same with the twos active, [with N2]/[N3] selections.\nAuthor recommends you _not_ call this dance. Square through is done in a diamond formation."
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "diamond",
+          "beats": 8,
+          "params": {
+            "actives": [["1L", "1R"]]
+          },
+          "call": "ONES PASS THROUGH ACROSS, CAST ROUND ONE, AND FORM DIAMONDS"
+        },
+        {
+          "figure": "interrupted-square-through",
+          "beats": 8,
+          "params": {
+            "balanceWith": "neighbors",
+            "firstPass": "neighbors",
+            "firstHand": "R",
+            "secondPass": "partners",
+            "secondHand": "L"
+          },
+          "call": "BALANCE THE RIGHT WITH YOUR NEIGHBOUR AND SQUARE THROUGH TWO"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "turn-contra-corners",
+          "beats": 16,
+          "params": {
+            "axis": "along"
+          },
+          "call": "ONES TURN CONTRA CORNERS ALONG THE SET"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "who": "ones",
+          "params": {
+            "pairs": "partners",
+            "balanceBeats": 4,
+            "endFacing": "down"
+          },
+          "call": "ONES BALANCE AND SWING, FACE DOWN"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "balance-ring",
+          "beats": 4,
+          "call": "BALANCE THE RING"
+        },
+        {
+          "figure": "single-file-promenade",
+          "beats": 4,
+          "who": ["1L", "2L", "2R"],
+          "params": {
+            "direction": "clockwise",
+            "amount": 0.3333333333333333
+          },
+          "call": "LARK ONE AND THE TWOS, SINGLE FILE PROMENADE CLOCKWISE A THIRD"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "neighbors"
+          },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    },
+    {
+      "name": "2A1",
+      "figures": [
+        {
+          "figure": "diamond",
+          "beats": 8,
+          "params": {
+            "actives": [["2L", "2R"]]
+          },
+          "call": "TWOS PASS THROUGH ACROSS, CAST ROUND ONE, AND FORM DIAMONDS"
+        },
+        {
+          "figure": "interrupted-square-through",
+          "beats": 8,
+          "who": "N2",
+          "params": {
+            "balanceWith": "neighbors",
+            "firstPass": "neighbors",
+            "firstHand": "R",
+            "secondPass": "partners",
+            "secondHand": "L"
+          },
+          "call": "WITH NUMBER TWO, BALANCE THE RIGHT AND SQUARE THROUGH TWO"
+        }
+      ]
+    },
+    {
+      "name": "2A2",
+      "figures": [
+        {
+          "figure": "turn-contra-corners",
+          "beats": 16,
+          "params": {
+            "axis": "along"
+          },
+          "call": "TWOS TURN CONTRA CORNERS ALONG THE SET"
+        }
+      ]
+    },
+    {
+      "name": "2B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "who": "twos",
+          "params": {
+            "pairs": "partners",
+            "balanceBeats": 4,
+            "endFacing": "down"
+          },
+          "call": "TWOS BALANCE AND SWING, FACE DOWN"
+        }
+      ]
+    },
+    {
+      "name": "2B2",
+      "figures": [
+        {
+          "figure": "balance-ring",
+          "beats": 4,
+          "call": "BALANCE THE RING"
+        },
+        {
+          "figure": "single-file-promenade",
+          "beats": 4,
+          "who": ["2L", "1L", "1R"],
+          "params": {
+            "direction": "clockwise",
+            "amount": 0.3333333333333333
+          },
+          "call": "LARK TWO AND THE ONES, SINGLE FILE PROMENADE CLOCKWISE A THIRD"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "neighbors"
+          },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    }
+  ]
+}
