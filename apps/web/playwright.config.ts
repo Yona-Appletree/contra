@@ -15,13 +15,33 @@ import { fileURLToPath } from "node:url";
  * each worktree its own server and keeps the reuse inside it. CI has one
  * checkout, so it lands wherever its path hashes to and nothing contends.
  */
-const PORT =
+const PORT = safePort(
   4173 +
-  (createHash("sha256")
-    .update(dirname(fileURLToPath(import.meta.url)))
-    .digest()
-    .readUInt16BE(0) %
-    1000);
+    (createHash("sha256")
+      .update(dirname(fileURLToPath(import.meta.url)))
+      .digest()
+      .readUInt16BE(0) %
+      1000),
+);
+
+/**
+ * The same port, stepped past the ones Chrome refuses to navigate to at all.
+ *
+ * Chrome keeps a list of ports it will not open (`net::ERR_UNSAFE_PORT`) for
+ * protocols that can be smuggled over HTTP — 4190 is ManageSieve and 5060/5061
+ * are SIP. A worktree whose path happens to hash on to one of them cannot run
+ * a single golden: every `page.goto` fails before the server is even asked.
+ * That is a one-in-three-hundred accident of the path, and it took a whole
+ * worktree's goldens out until it was found, so the derivation steps over them
+ * rather than leaving the next worktree to rediscover it. Nothing else about
+ * the hash changes, so every path that was already fine keeps the port it had.
+ */
+function safePort(port: number): number {
+  const BLOCKED = new Set([4190, 5060, 5061]);
+  let at = port;
+  while (BLOCKED.has(at)) at += 1;
+  return at;
+}
 
 const BASE_URL = `http://localhost:${String(PORT)}/contra/`;
 
