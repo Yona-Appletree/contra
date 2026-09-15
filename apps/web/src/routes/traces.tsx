@@ -205,7 +205,7 @@ const VIEWS = [
   {
     kind: "pen" as const,
     title: "Pen plot",
-    how: "The whole time through on the set, each dancer a pen. The band's rail is the bar across the top and the faint box is where the four started. A tick on every beat points the way that dancer was facing, which is what tells a forward pass from a backward one.",
+    how: "The whole time through on the set, each dancer a pen. The band's rail is the bar across the top and the faint box is where the four started. A soft wake comes off whichever side each dancer was facing, which is what tells a forward pass from a backward one.",
   },
   {
     kind: "march" as const,

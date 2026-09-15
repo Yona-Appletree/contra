@@ -25,15 +25,16 @@ export const TRACE_BEAT_PX = 14;
 export const TRACE_PEN_SIDE = 480;
 
 /**
- * `?facing=<style>` from the URL, or the default when the query is absent or
- * names something that isn't one of the three T3 offers.
+ * `?facing=<style>` from the URL, or `undefined` when the query is absent or
+ * names something that isn't one of the three styles.
  *
- * One parser shared by the Moves page and the traces view (T3's brief): the
- * default — `"ticks"`, T2's shipped look — never changes on its own, only
- * when a reader actually asks for `wake` or `arrowheads` in the address bar.
+ * One parser shared by the Moves page and the traces view. `undefined` rather
+ * than a style of its own, so that the default lives in exactly one place —
+ * the renderer's, which is the wake since T5 — and the address bar can only
+ * ever override it, never restate it.
  */
-export function facingFromQuery(param: string | null): FacingStyle {
-  return param === "wake" || param === "arrowheads" ? param : "ticks";
+export function facingFromQuery(param: string | null): FacingStyle | undefined {
+  return param === "wake" || param === "arrowheads" || param === "ticks" ? param : undefined;
 }
 
 /**

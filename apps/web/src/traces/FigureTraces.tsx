@@ -19,8 +19,8 @@ import { rowMarch, rowPenPlot, rowSeismograph, rowStrip } from "./traceDrawings.
  * one scale: a balance draws small beside a hey instead of being blown up to
  * match it.
  *
- * `facing` is T3's `?facing=` query parameter, threaded down from the Moves
- * page; `undefined` draws the shipped default (ticks).
+ * `facing` is the `?facing=` query parameter, threaded down from the Moves
+ * page; `undefined` draws the shipped default, which is the wake since T5.
  *
  * `view` is T4's switch — plot, march or seismograph — one of the three shown
  * at a time in the same square footprint the pen plot always drew at; the
@@ -69,7 +69,7 @@ export interface FigureTracesProps {
   side: number;
   /** The widest floor half-extent on the page, in set-local px. */
   reach: number;
-  /** T3's `?facing=` override. `undefined` draws the default (ticks). */
+  /** The `?facing=` override. `undefined` draws the default, the wake. */
   facing?: FacingStyle;
   /** T4's `?view=` switch: which of the three beat-based views is shown. */
   view: RowTraceView;
@@ -79,7 +79,7 @@ export interface FigureTracesProps {
 
 /** What each view's picture says, for the drawing's `aria-label`. */
 const VIEW_LABEL: Record<RowTraceView, string> = {
-  plot: "the path each dancer walks, larks gold and robins red, ones darker, with a tick a beat for facing",
+  plot: "the path each dancer walks, larks gold and robins red, ones darker, with a wake off the side each dancer faced",
   march: "the same path marching across the beats, the set sliding right as they pass",
   seismograph: "each dancer's place across the set, then along it, against time",
 };
