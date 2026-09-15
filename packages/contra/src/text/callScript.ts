@@ -389,11 +389,22 @@ function chainTargets(dance: Dance, formation?: Formation): Array<WhoWord | unde
 export function classifyCall(text: string): readonly CallToken[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
   const kinds = words.map((word) => WORD_KIND[word.replace(/[^A-Za-z-]/g, "").toUpperCase()]);
-  // A joining word belongs to the part it joins, exactly as in a template.
-  for (const [i, word] of words.entries()) {
+  // A **run** of joining words belongs to the part it runs into, exactly as in
+  // a template: "with your partner" is three words about one person.
+  for (let i = 0; i < words.length; i++) {
     if (kinds[i] !== undefined) continue;
-    if (!JOINING.has(word.toUpperCase())) continue;
-    kinds[i] = kinds[i + 1] ?? kinds[i - 1];
+    if (!JOINING.has(words[i]!.toUpperCase())) continue;
+    let end = i;
+    while (
+      end + 1 < words.length &&
+      kinds[end + 1] === undefined &&
+      JOINING.has(words[end + 1]!.toUpperCase())
+    ) {
+      end++;
+    }
+    const kind = kinds[end + 1] ?? kinds[i - 1];
+    for (let j = i; j <= end; j++) kinds[j] = kind;
+    i = end;
   }
   const out: CallToken[] = [];
   for (const [i, word] of words.entries()) {
