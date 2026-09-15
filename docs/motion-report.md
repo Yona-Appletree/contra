@@ -64,21 +64,20 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `pull-by` | 46.7 | 168.2 | **44.61** | 43.9 | 28 | 0.47 | 0 | 1.20 | `set0/c0/lark` R at beat 126.719 |
 | `grand-right-and-left` | 49.1 | 168.2 | **44.61** | 43.9 | 28 | 1.12 | 0 | 1.45 | `set0/c3/lark` L at beat 64.656 |
-| `balance-wave` | 35.3 | 155.2 | **41.18** | 22.0 | 12 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
 | `turn-as-couples` | 52.4 | 169.9 | 5.51 | 24.3 | 18 | 0.70 | 0 | **14.21** | `set0/c1/robin` L at beat 22.219 |
 | `turn-alone` | 47.4 | 44.6 | 1.79 | 24.3 | 6 | 0.22 | 0 | **14.21** | `set0/c2/lark` R at beat 20.219 |
 | `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
-| `circulate` | 17.5 | 16.1 | 1.47 | 1.1 | 16 | 0.27 | 0 | **13.82** | `set0/c3/lark` R at beat 86.000 |
-| `circle` | 28.6 | 42.7 | 2.09 | 9.0 | 38 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
+| `circle` | 28.6 | 37.2 | 1.90 | 8.0 | 38 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
 | `bend-the-line` | 33.3 | 34.9 | 4.57 | 9.7 | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
 | `star` | 45.2 | 44.6 | 1.76 | 12.1 | 72 | 0.23 | 0 | **8.27** | `set0/c2/robin` R at beat 59.031 |
+| `allemande` | 67.4 | 69.9 | 5.35 | 23.4 | 166 | 0.45 | 0 | **7.86** | `set0/c0/lark` R at beat 14.438 |
+| `robins-chain` | 62.0 | 153.0 | 7.94 | 45.4 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` L at beat 49.688 |
 
 ### The ten worst seams
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `balance-wave → circulate` | 7.8 | 6.2 | 1.04 | 1.1 | 0 | 0.00 | 0 | **13.82** | `set0/c3/lark` L at beat 20.375 |
-| `bend-the-line → circle` | 12.6 | 11.7 | 0.94 | 5.4 | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
+| `bend-the-line → circle` | 12.6 | 11.4 | 0.91 | 3.0 | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
 | `long-lines → star` | 25.5 | 35.8 | 1.42 | 7.2 | 0 | 0.00 | 0 | **8.27** | `set0/c3/lark` L at beat 56.375 |
 | `long-lines → allemande` | 17.1 | 16.0 | 1.41 | 0.6 | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
 | `long-lines → robins-chain` | 48.0 | 45.0 | 2.16 | 0.7 | 0 | 0.00 | 0 | **7.86** | `set0/c3/robin` R at beat 24.344 |
@@ -86,7 +85,8 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `star → balance-and-swing` | 57.9 | 153.7 | **19.32** | 7.9 | 32 | 0.12 | 0 | 0.84 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → balance-and-swing` | 55.3 | 112.2 | **15.73** | 7.9 | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
 | `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
-| `allemande → balance-wave` | 35.3 | 49.9 | 2.65 | 22.0 | 4 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
+| `allemande → balance-wave` | 30.2 | 44.2 | 1.82 | 22.0 | 4 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
+| `allemande → hey` | 34.0 | 29.9 | 2.57 | 0.0 | 30 | 0.12 | 0 | 1.49 | `set0/c0/lark` R at beat 32.313 |
 
 Over all ten dances: 1,015,808 measurements, 1080 hand-state flips, **0 of them not a finite number**.
 
@@ -117,11 +117,11 @@ it, so every number is the figure's own and no seam is folded in.
 | `pass-through` | 23.0 | 22.5 | 1.60 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
 | `hey` | 22.0 | 26.3 | 2.30 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.750 |
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
-| `single-file-promenade` | 22.5 | 22.4 | 1.68 | 0.0 | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.906 |
+| `single-file-promenade` | 11.1 | 9.8 | 1.57 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 6.500 |
 | `mad-robin` | 9.6 | 7.9 | 1.51 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 4.000 |
 | `slide-left` | 15.4 | 15.4 | 1.10 | 0.0 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
 | `balance-ring` | 17.5 | 21.2 | 1.61 | 12.5 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
-| `circle` | 17.2 | 25.6 | 1.85 | 9.0 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
+| `circle` | 17.2 | 22.3 | 1.44 | 3.8 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
 | `balance` | 11.8 | 14.8 | 1.26 | 9.9 | 0 | 0.00 | 0 | 0.00 | `2R` L at beat 0.469 |
 
 ## Known wrong
@@ -331,11 +331,11 @@ All four join hands in a ring. Balance in toward the middle for two beats and ba
 
 ### `balance-wave` — BALANCE THE WAVE
 
-You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.
+You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Step forward on to the first beat and back to the line on the third. It is a small step and it never carries you through the line, because the dancers either side of you are stepping the other way and your arms are joined down it. Nobody goes anywhere.
 
 ### `balance-wave-of-four` — BALANCE THE WAVE OF FOUR
 
-The four of you make one short line straight across the set, looking up and down it rather than at each other: the two named take hands in the middle, and each of them gives their other hand to the dancer on their own end of the row. Everybody is looking the opposite way to the dancers beside them, which is what makes it a wave. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.
+The four of you make one short line straight across the set, looking up and down it rather than at each other: the two named take hands in the middle, and each of them gives their other hand to the dancer on their own end of the row. Everybody is looking the opposite way to the dancers beside them, which is what makes it a wave. Balance the way the call says — forwards and back unless it says left or right — stepping out on to the first beat and back on the third. It is a small step and it never carries you through the line. Nobody goes anywhere.
 
 ### `bend-the-line` — BEND THE LINE
 
@@ -431,7 +431,7 @@ Everybody turns once round to their own right while travelling one place clockwi
 
 ### `promenade` — PROMENADE AROUND THE SET
 
-Side by side with the dancer named, inside hands joined, walk the two of you as one round the whole set — not across your own little circle of four but along the line you are standing in, the way a ring of couples goes round a hall. Counterclockwise is the way you are already travelling; clockwise is back the other way. You end further along the set than you began, which is the point of it.
+Stand beside the dancer named, both of you looking the same way, and take both hands: left in left and right in right, so your arms cross in front of you and the right hands ride over the left. Walk the two of you as one round the whole set — not across your own little circle of four but along the line you are standing in, the way a ring of couples goes round a hall. Counterclockwise is the way you are already travelling; clockwise is back the other way. You end further along the set than you began, which is the point of it.
 
 ### `pull-by` — PULL BY
 
@@ -455,7 +455,7 @@ Walk forward round each other keeping the named shoulder toward the other one, a
 
 ### `single-file-promenade` — SINGLE FILE PROMENADE
 
-Face the way the ring is going and walk round it in single file, one behind the other, nobody holding anything. A quarter is one place along and a half is two, and you stop facing the way you were travelling — whatever comes next is what turns you.
+Face the way you are going and walk round the outside of the set in single file, one behind the other, nobody holding anything — each of you walking to the place of the dancer in front, the way a chain runs round its sprockets. A quarter is one place along and a half is two, and you stop facing the way you were travelling: whatever comes next is what turns you.
 
 ### `slide-left` — SLIDE LEFT ALONG THE SET
 
