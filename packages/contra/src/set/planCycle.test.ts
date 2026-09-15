@@ -3,7 +3,13 @@ import type { Dance, FigureEvent, Timeline } from "@caller/choreo";
 import { ORACLE_STEP, poseAt, validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES, danceBySlug } from "../dances/index.js";
-import { danceAlone, threadsOnTheOldPath } from "../dances/oracle.js";
+import {
+  CLOSURE_PX,
+  danceAlone,
+  linesFor,
+  oraclesFor,
+  threadsOnTheOldPath,
+} from "../dances/oracle.js";
 import { contraDance } from "../figures/chain.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraDataFigures } from "../library/figures/index.js";
@@ -250,6 +256,73 @@ describe("a call that carries the progression", () => {
     // first and never the same as it, and no two consecutive ones agree.
     expect(second).not.toEqual(first);
     expect(third).not.toEqual(second);
+  });
+
+  /**
+   * **At the call's start, which is DD43's rule and Fatal Attraction's own
+   * answer** (M9e). The user's rule of 2026-09-15 — "progressing at the start
+   * of any move in long (wavy) lines is valid" — is the same mechanism a beat
+   * earlier, and which of the two a dance wants is a measurement. Fatal
+   * Attraction's is decisive: its promenade round the major set has already put
+   * the bodies on N2's places when the cast-back begins, and moving the shift
+   * from the cast-back's end to its start closes the dance — **closure
+   * 29.9228/39.1798 px became 0.0000 at every checked length**.
+   */
+  describe('"start" against "end"', () => {
+    /** The same record with every `progresses` clause moved to the call's end. */
+    const atTheEnd = (dance: Dance): Dance =>
+      validateDance({
+        ...dance,
+        phrases: dance.phrases.map((phrase) => ({
+          ...phrase,
+          figures: phrase.figures.map((call) => {
+            const params = { ...(call.params as Record<string, unknown> | undefined) };
+            if (params[PROGRESSES_PARAM] === undefined) return call;
+            return { ...call, params: { ...params, [PROGRESSES_PARAM]: true } };
+          }),
+        })),
+      });
+
+    it("is what Fatal Attraction writes, and it is what closes it", () => {
+      for (const couples of linesFor(FATAL)) {
+        const start = oraclesFor(FATAL, couples, 128, {}, RUN);
+        const end = oraclesFor(atTheEnd(FATAL), couples, 128, {}, RUN);
+        expect(start.closurePx, `${String(couples)} couples, at the start`).toBeLessThan(
+          CLOSURE_PX,
+        );
+        // And the comparison is not vacuous: the end reading really is the one
+        // that does not close, at every length but the shortest.
+        if (couples > 4) {
+          expect(end.closurePx, `${String(couples)} couples, at the end`).toBeGreaterThan(20);
+        }
+      }
+    });
+
+    it("shifts the seating before the call rather than after it", () => {
+      // A2's cast-back is the call. Which couples are standing out changes at
+      // the shift, so the cast-back itself is danced by a different set of
+      // dancers under the two readings — which is the whole difference between
+      // them, said without an oracle.
+      const start = pairsAt(FATAL, 8, 16, "cast-back");
+      const end = pairsAt(atTheEnd(FATAL), 8, 16, "cast-back");
+      expect(start.length).toBeGreaterThan(0);
+      expect(start).not.toEqual(end);
+    });
+
+    it("refuses a word that is neither", () => {
+      const bad = validateDance({
+        ...FATAL,
+        phrases: FATAL.phrases.map((phrase) => ({
+          ...phrase,
+          figures: phrase.figures.map((call) => {
+            const params = { ...(call.params as Record<string, unknown> | undefined) };
+            if (params[PROGRESSES_PARAM] === undefined) return call;
+            return { ...call, params: { ...params, [PROGRESSES_PARAM]: "middle" } };
+          }),
+        })),
+      });
+      expect(() => danceAlone(bad, 8, 64, {}, RUN)).toThrow(/"start" or at "end"/);
+    });
   });
 
   it("leaves a record that does not write the clause exactly as it was", () => {

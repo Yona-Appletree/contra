@@ -259,6 +259,18 @@ function planContraCycle(
         // body like any other. See `ContraWaitOutParams.crossShort`; a planner
         // that restarts from the first places instead teleports everybody on to
         // the new places and the crossing must land on its own.
+        //
+        // **Measured, and unconditional even where the boundary's own shift is
+        // dropped** (M9e). A pass whose figure carried the progression makes no
+        // shift at the boundary, so "one couple place behind" looks as though it
+        // should not apply — and gating it on that costs Fatal Attraction
+        // `closure 0.0000 -> 20.0000 px` at every checked length while moving
+        // its collision from `0.000 px` at beat 64 to `0.286` at beat 15. The
+        // bodies of a dance that progresses mid-cycle are not on their slots at
+        // the boundary either; they are `progressed 60.0000 px` from them, and
+        // the crossing that lands a place short is the nearer of the two. Left
+        // as M9c wrote it, with the measurement recorded rather than the rule
+        // changed.
         crossShort: picksUpWhereItLeftOff,
         ...(dance.waitOut ?? {}),
       },
@@ -417,9 +429,24 @@ function planContraCycle(
       // **A call that carries the progression** (M9b) ends one seating and
       // starts another; the seating it ran in is what its own run of beats has
       // to be filled against, so it is snapshotted before any set is shifted.
+      //
+      // **At the call's start or at its end** (DD43, M9e). The user's rule of
+      // 2026-09-15 — "progressing at the start of any move in long (wavy) lines
+      // is valid" — is the same mechanism a beat earlier: the shift happens
+      // before this call resolves, so the call itself is danced by the seating
+      // it leaves the set in. Which of the two a dance wants is a measurement;
+      // see {@link PROGRESSES_PARAM}.
       const carries = progressesHere(call);
-      const seatedIn = carries ? new Map(states) : undefined;
+      const seatedIn = carries === undefined ? undefined : new Map(states);
+      /** Where the seating this call runs in ends: its own start, or its end. */
+      const seatedTo: Beat = carries === "start" ? offset : offset + callBeats(call);
       for (const set of hall.sets) {
+        if (carries === "start") {
+          const before = models.get(set.id)!;
+          writeOutsBack(before, states.get(set.id)!, claimed, seatedFrom, seatedTo);
+          states.set(set.id, progressSet(formation, before, states.get(set.id)!, shift));
+          models.set(set.id, progressModel(before, shift));
+        }
         const model = models.get(set.id)!;
         const groups = formation.groupsFor(selector, states.get(set.id)!);
         const instances = resolveConcurrent(
@@ -565,22 +592,28 @@ function planContraCycle(
         // where the figure left them, which is what a boundary shift does too —
         // and the boundary's own shift is dropped for this pass below. See
         // {@link PROGRESSES_PARAM}.
-        if (carries) {
-          progressedInPass = true;
-          writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, offset + callBeats(call));
+        if (carries === "end") {
+          writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, seatedTo);
           states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
           models.set(set.id, progressModel(model, shift));
         }
       }
       if (seatedIn !== undefined) {
-        const until = offset + callBeats(call);
-        fills.push({ span: { start: seatedFrom, end: until }, claimed, states: seatedIn });
-        seatedFrom = until;
+        progressedInPass = true;
+        // A call that takes the progression at its own **start**, written as the
+        // first call of a pass, ends no run of beats: there is nothing before it
+        // to fill against its old seating.
+        if (seatedTo > seatedFrom) {
+          fills.push({ span: { start: seatedFrom, end: seatedTo }, claimed, states: seatedIn });
+        }
+        seatedFrom = seatedTo;
       }
     }
 
     // What this pass's schedule did not claim is filled in **after every pass
     // has been planned** — see the fill loop below, and `everClaimed` for why.
+    /** Whether this pass's boundary shifts the slots at all (M9b). */
+    const boundaryShifts = !progressedInPass && (passIndex + 1) % progressEvery === 0;
     fills.push({ span: { start: seatedFrom, end: span.end }, claimed, states: new Map(states) });
 
     // **The pass boundary** (M8). The set progresses at the end of every pass
@@ -601,7 +634,7 @@ function planContraCycle(
       if (passIndex + 1 < spans.length) {
         writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, span.end);
       }
-      if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
+      if (boundaryShifts) {
         states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
         if (passIndex + 1 < spans.length) models.set(set.id, progressModel(model, shift));
       }
@@ -730,17 +763,42 @@ function callParams(instance: FigureInstance): Record<string, unknown> {
   return rest;
 }
 
+/** Where in a call the progression it carries happens: M9b's end, or DD43's start. */
+export type ProgressesAt = "start" | "end";
+
 /**
- * Whether this call carries the progression itself (M9b).
+ * Whether this call carries the progression itself (M9b), and where in it
+ * (DD43).
  *
  * Read off the written call rather than off an instance, because it is true of
  * the call as a whole: a concurrent call's branches are one call and the shift
- * happens once at its end, whichever branch wrote the clause.
+ * happens once, whichever branch wrote the clause. `true` is `"end"`, which is
+ * what every record written before DD43 means and what M9b built.
  */
-function progressesHere(call: FigureCall): boolean {
-  return concurrentCalls(call).some(
-    (each) => (each.params as Record<string, unknown> | undefined)?.[PROGRESSES_PARAM] === true,
-  );
+function progressesHere(call: FigureCall): ProgressesAt | undefined {
+  let found: ProgressesAt | undefined;
+  for (const each of concurrentCalls(call)) {
+    const value = (each.params as Record<string, unknown> | undefined)?.[PROGRESSES_PARAM];
+    if (value === undefined || value === false) continue;
+    const at: ProgressesAt =
+      value === true || value === "end"
+        ? "end"
+        : value === "start"
+          ? "start"
+          : (() => {
+              throw new Error(
+                `"${PROGRESSES_PARAM}" is ${JSON.stringify(value)}, and a call progresses at ` +
+                  `"start" or at "end" (\`true\` is "end")`,
+              );
+            })();
+    if (found !== undefined && found !== at) {
+      throw new Error(
+        `one call cannot progress at "${found}" and at "${at}": its branches disagree`,
+      );
+    }
+    found = at;
+  }
+  return found;
 }
 
 /** The shape a definition says it forms, or `undefined` (M7). */
@@ -768,8 +826,23 @@ export const REBIND_PARAM = "rebind";
  * **The call-level parameter that says the progression happens here** (M9b),
  * at the end of this call rather than at the end of the time through.
  *
- * Written in a dance record as `"params": { "progresses": true }`.
+ * Written in a dance record as `"params": { "progresses": true }` — the
+ * progression at this call's **end** — or `"progresses": "start"`, at its
+ * start. `true` and `"end"` are the same word; every record written before
+ * DD43 means the end.
  *
+ * **Why a call may take it at its start** (DD43, the user's rule of
+ * 2026-09-15: "progressing at the start of any move in long (wavy) lines is
+ * valid"). A figure that *is* the progression carries the bodies across the
+ * shift while it dances, and where the seating changes relative to it is a fact
+ * about the dance rather than about the engine: Whoosh's circulate forms its
+ * box with the couple it is about to become neighbours with, and Fatal
+ * Attraction's promenade round the major set has put the bodies on N2's places
+ * before the cast-back begins. Taken at the start, the call resolves against
+ * the seating it leaves the set in and the run of beats filled against the old
+ * seating ends at the call's own start beat.
+ *
+
  * The engine has always shifted the slots at the cycle boundary, because that
  * is where a contra dance usually progresses: the last figure leaves you one
  * place along and the boundary is where the set admits it. A dance whose

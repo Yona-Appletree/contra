@@ -147,12 +147,12 @@ because `FigureCall` is `@caller/choreo`'s and all four are contra words, and
 the layer above the figure reads them and strips them out before any figure is
 planned:
 
-| parameter    | read by             | what it says                                                                                                                    |
-| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
-| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
-| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
-| `progresses` | the **set**         | `true` — the progression happens at the end of _this_ call, not at the end of the time through (M9b)                            |
+| parameter    | read by             | what it says                                                                                                                                    |
+| ------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)")                 |
+| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                                |
+| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                                |
+| `progresses` | the **set**         | `true` / `"end"` — the progression happens at the end of _this_ call, not at the end of the time through (M9b); `"start"` — at its start (DD43) |
 
 ### `progresses`: the progression in the middle of the dance
 
@@ -180,6 +180,24 @@ the same thing here as there. After it:
 - **nobody moves.** What moves is the seating, exactly as at a boundary — which
   also means the couples standing out change there, so the pass is filled with
   `wait-out` one run of beats per seating rather than one per pass.
+
+#### At the call's start, or at its end
+
+`true` is `"end"`, and every record written before this meant the end.
+`"progresses": "start"` puts the same shift **before** the call resolves, so the
+call itself is danced by the seating it leaves the set in. The user's rule of
+2026-09-15 (DD43) is that a figure in long wavy lines may take the progression
+at its start; the general form is that a figure which _is_ the progression
+carries the bodies across the shift while it dances, and where the seating
+changes relative to it is the dance's own fact.
+
+**Which one a dance wants is a measurement.** Fatal Attraction's is decisive and
+it is worked in `planCycle.test.ts`: its A1 promenade round the major set has
+already carried the bodies to N2's places when the cast-back begins, so its
+cast-back writes `"start"` — and the dance's **closure went from 29.9228 px (odd
+lengths) and 39.1798 (even) to 0.0000 at every checked length**, with its reach
+18.3771/26.7595 px short becoming 12.0327/15.6049. Written at the end, the two
+beats of the cast-back are danced by the seating the dance has already left.
 
 ## Concurrent calls (`while`)
 
