@@ -1,7 +1,9 @@
-import { withDefaults } from "@caller/choreo";
+import type { Group } from "@caller/choreo";
+import { createGroup, withDefaults } from "@caller/choreo";
 import { angleDiff } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { BECKET, COUPLE_PITCH_PX } from "../formation/becket.js";
+import { PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 import { STEP_BEATS, slideLeft, stepped } from "./slide-left.js";
 import { figureMoves, figureProblems, probeFigure, probeGroup, stationSpot } from "./testing.js";
 
@@ -141,5 +143,109 @@ describe("stepped", () => {
     for (let x = 0; x <= 1 + 1e-9; x += 1 / 32) {
       expect(stepped(x, 1)).toBeCloseTo(x * x * (3 - 2 * x), 12);
     }
+  });
+});
+
+/**
+ * The odd line's cross-over (S2).
+ *
+ * An odd becket line has one waiting place, so at the other end the couple that
+ * runs out of line crosses straight over with no time out — see `becket.ts`'s
+ * header for the loop that makes that so. `Station.crossedOver` is how the
+ * shift knows, and this is what it does with it.
+ */
+describe("slide left crosses a marked couple over instead", () => {
+  /** A becket minor set whose `2` couple got here by crossing the set. */
+  function crossedGroup(): Group {
+    const plain = probeGroup(BECKET);
+    const stations = plain.stations.map((s) =>
+      s.id.startsWith("2") ? { ...s, crossedOver: true } : { ...s },
+    );
+    return createGroup(
+      {
+        id: "probe",
+        kind: "set",
+        frame: plain.frame,
+        stations,
+        members: plain.members,
+        couples: [],
+      },
+      BECKET.roleSet,
+    );
+  }
+
+  it("starts them on the station opposite and leaves them on their own, exactly", () => {
+    const group = crossedGroup();
+    // The same four stations with nobody marked: a dancer standing on each of
+    // them, which is what a probe group with no `from` samples at t = 0.
+    const plain = probeGroup(BECKET);
+    const params = withDefaults(slideLeft, {}, CALLED_BEATS);
+    /** Where a station's own rest pose is, in the probe frame's world px. */
+    const rest = (id: string) => slideLeft.sample(plain, id, 0, params);
+    // The mirror pairs: `1L` is the point opposite `2L` through the set's centre.
+    for (const [crossed, opposite] of [
+      ["2L", "1L"],
+      ["2R", "1R"],
+    ] as const) {
+      const at0 = slideLeft.sample(group, crossed, 0, params);
+      const was = rest(opposite);
+      expect(at0.p[0], crossed).toBeCloseTo(was.p[0], 9);
+      expect(at0.p[1], crossed).toBeCloseTo(was.p[1], 9);
+      expect(Math.abs(angleDiff(at0.facing, was.facing)), crossed).toBeLessThan(1e-9);
+      const end = slideLeft.sample(group, crossed, CALLED_BEATS, params);
+      const home = rest(crossed);
+      expect(end.p[0], crossed).toBeCloseTo(home.p[0], 9);
+      expect(end.p[1], crossed).toBeCloseTo(home.p[1], 9);
+      expect(Math.abs(angleDiff(end.facing, home.facing)), crossed).toBeLessThan(1e-9);
+    }
+  });
+
+  it("keeps the crossing couple a place apart the whole way, so they never pass through each other", () => {
+    const group = crossedGroup();
+    const params = withDefaults(slideLeft, {}, CALLED_BEATS);
+    for (let t = 0; t <= CALLED_BEATS + 1e-9; t += 1 / 32) {
+      const l = slideLeft.sample(group, "2L", t, params).p;
+      const r = slideLeft.sample(group, "2R", t, params).p;
+      // They turn as a couple about their own centre, so the gap never moves.
+      // Walking them straight to their new stations instead would put them
+      // both on the centre of the set at the same instant.
+      expect(Math.hypot(l[0] - r[0], l[1] - r[1]), `at ${String(t)}`).toBeCloseTo(
+        PLACE_PITCH_PX,
+        9,
+      );
+    }
+  });
+
+  it("leaves the couple that is not crossing sliding exactly as it always did", () => {
+    const crossed = crossedGroup();
+    const plain = probeGroup(BECKET);
+    const params = withDefaults(slideLeft, {}, CALLED_BEATS);
+    for (const id of ["1L", "1R"]) {
+      for (let t = 0; t <= CALLED_BEATS + 1e-9; t += 1 / 32) {
+        expect(slideLeft.sample(crossed, id, t, params), `${id} at ${String(t)}`).toEqual(
+          slideLeft.sample(plain, id, t, params),
+        );
+      }
+    }
+  });
+
+  it("turns on its own ease so the turn and the steps never peak together", () => {
+    const group = crossedGroup();
+    const params = withDefaults(slideLeft, {}, CALLED_BEATS);
+    const step = 1 / 64;
+    let peak = 0;
+    let last = slideLeft.sample(group, "2L", 0, params).p;
+    for (let t = step; t <= CALLED_BEATS + 1e-9; t += step) {
+      const p = slideLeft.sample(group, "2L", t, params).p;
+      peak = Math.max(peak, Math.hypot(p[0] - last[0], p[1] - last[1]) / step);
+      last = p;
+    }
+    // Turning half way round while walking across costs more top speed than
+    // sliding along does, and it is the fastest body motion in the library.
+    // Pinned so it cannot creep: S2 measured **40.78** px/beat here, against
+    // **44.47** with the turn driven by the steps and **29.99** for the plain
+    // slide. The whole table is in S2's report.
+    expect(peak).toBeGreaterThan(COUPLE_PITCH_PX / CALLED_BEATS);
+    expect(peak).toBeLessThan(42);
   });
 });

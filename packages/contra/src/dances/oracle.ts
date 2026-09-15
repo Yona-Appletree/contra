@@ -36,13 +36,16 @@ export const COLLISION_PX = 8;
 /** The line lengths a duple improper dance is checked at (the plan's 2 to 6). */
 export const DUPLE_LINES = [2, 3, 4, 5, 6] as const;
 /**
- * A becket set holds `2 × places + 2` couples, so its lengths are 4 to 12.
+ * A becket set holds `2 × places + 2` couples when the hall is even and
+ * `2 × places + 1` when it is odd, so its lengths are 4 to 12.
  *
- * Five is in the list because the demo hall's longer line is five couples and
- * an odd becket set is a different shape — the odd couple out takes a second
- * waiting place — so it is worth measuring rather than assuming.
+ * The odd lengths are in the list because an odd becket line is a different
+ * shape — one waiting place rather than two, and a couple crossing straight
+ * over at the other end (S2) — so it is worth measuring rather than assuming.
+ * **Seven is the demo hall's own shorter line** (P1's `DEMO_LINES = [8, 7]`),
+ * which is the odd shape the user actually watches.
  */
-export const BECKET_LINES = [4, 5, 6, 8, 10, 12] as const;
+export const BECKET_LINES = [4, 5, 6, 7, 8, 9, 10, 12] as const;
 
 /** The formation a dance's `formation` id names. */
 export function formationFor(dance: Dance): Formation {

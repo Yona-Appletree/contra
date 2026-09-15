@@ -44,9 +44,16 @@ export const shiftPlaces = (shift: LineUpShift): number =>
  *
  * Every dancing station is measured and they must agree; a formation whose
  * dancers disagree, or whose progression moves nobody, has no single shift and
- * gets `null`. A dancer the progression puts in a waiting group is skipped —
- * a couple sliding off the end of a line travels somewhere the shift is not
- * about.
+ * gets `null`. Two kinds of dancer are skipped, for the same reason — they
+ * travel somewhere the shift is not about:
+ *
+ * - one the progression puts in a **waiting** group, a couple sliding off the
+ *   end of a line;
+ * - one the progression **crossed over** ({@link Station.crossedOver}), the
+ *   couple an odd becket line sends straight across the set at the end with no
+ *   waiting place. Their travel is across their own facing rather than along
+ *   their line, so measuring them would answer `null` for the whole hall — and
+ *   it did, until the odd-line model arrived and this case with it.
  */
 export function lineUpShiftOf(formation: Formation, set: SetState): LineUpShift {
   const here = measure(formation, set);
@@ -79,7 +86,8 @@ function measure(formation: Formation, set: SetState): { shift: LineUpShift; mea
   let measured = false;
   for (const [dancer, from] of before) {
     const to = after.get(dancer);
-    if (to === undefined) continue;
+    // Out of the set, or crossed straight over it: neither is this shift.
+    if (to === undefined || to.crossedOver) continue;
     measured = true;
     const moved: Vec2 = [to.p[0] - from.p[0], to.p[1] - from.p[1]];
     const forward = dot(moved, dirOf(from.facing));
@@ -105,14 +113,20 @@ const EPSILON = 1e-6;
  * survives a progression: a couple that progresses takes a different station of
  * a different group, which is the whole point of measuring this way.
  */
-function poses(formation: Formation, set: SetState): Map<DancerId, { p: Vec2; facing: number }> {
-  const out = new Map<DancerId, { p: Vec2; facing: number }>();
+function poses(
+  formation: Formation,
+  set: SetState,
+): Map<DancerId, { p: Vec2; facing: number; crossedOver: boolean }> {
+  const out = new Map<DancerId, { p: Vec2; facing: number; crossedOver: boolean }>();
   for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
     if (plan.kind !== "set") continue;
     for (const station of plan.stations) {
       const dancer: DancerId | undefined = plan.members[station.id as StationId];
       if (dancer === undefined) continue;
-      out.set(dancer, stationPose(plan.frame, station));
+      out.set(dancer, {
+        ...stationPose(plan.frame, station),
+        crossedOver: station.crossedOver === true,
+      });
     }
   }
   return out;

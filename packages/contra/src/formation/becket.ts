@@ -45,8 +45,62 @@ import { partitionShadowSeams } from "./shadowSeam.js";
  * between the waiting place and the place they are coming back to — so the same
  * built-in figure does becket's end effect and duple improper's.
  *
- * A becket set therefore has two waiting places, `-1` and `places`, and
- * `2 × places + 2` couples, exactly as a hall of contra dancers really stands.
+ * ## The loop, and what an odd line does differently
+ *
+ * Every couple travels one closed loop: down one line, across at the end, back
+ * up the other, across again. Write the loop out for a set with `places`
+ * dancing places, reading each arrow as one time through:
+ *
+ * ```text
+ *   ... → A@1 → A@0 → [the top end] → B@0 → B@1 → ...  → [the bottom end] → ...
+ * ```
+ *
+ * where `A` is the line that slides toward the top (`direction: 1`) and `B` the
+ * line that slides toward the bottom. Two couples dance at every place `0 …
+ * places − 1`, one from each line, so the loop has as many slots as the set has
+ * couples and the whole thing is a rotation: one step a time through, every
+ * couple, for ever.
+ *
+ * **An end is either a waiting place or a plain cross-over, and which it is
+ * follows from the arithmetic, not from taste.** `places` fours need `2 ×
+ * places` couples on the floor; every couple left over stands at an end. So an
+ * **even** line has two spare couples and both ends are waiting places (`-1`
+ * and `places`): a couple runs off the end, spends a time through out, and
+ * comes in on the other line one place along. An **odd** line has exactly one
+ * spare couple, so only one end can be a waiting place, and at the other end the
+ * couple that runs out of line **crosses straight over** — no time out, because
+ * the place opposite has just been vacated by the couple that slid away from it.
+ * This is forced: two couples out of an odd line would leave an odd number
+ * dancing, which cannot make fours at all.
+ *
+ * Which end waits is the one a caller would pick. A hall takes hands four **from
+ * the top**, so the couple with nobody to dance with is the one at the bottom;
+ * an odd becket line therefore has its one waiting place beyond the **bottom**,
+ * and the cross-over at the top. A different couple is out every time through
+ * and every couple is out exactly once per loop, but it is always the bottom —
+ * see this milestone's report for why alternating ends is not reachable.
+ *
+ * ### Seven couples, worked
+ *
+ * `places` is 3, so three fours dance and one couple is out. Line `A` holds
+ * `c0 c2 c4` at places 0, 1, 2; line `B` holds `c1 c3 c5` at the same three
+ * places and `c6` on the waiting place at 3.
+ *
+ * | time through | the three fours (place: A, B) | out, at place 3 |
+ * | --- | --- | --- |
+ * | 1 | 0: c0 c1 · 1: c2 c3 · 2: c4 c5 | **c6** |
+ * | 2 | 0: c2 c0 · 1: c4 c1 · 2: c6 c3 | **c5** |
+ * | 3 | 0: c4 c2 · 1: c6 c0 · 2: c5 c1 | **c3** |
+ *
+ * Read time 1 → 2 slot by slot: `c0` is at the top of line `A` with nowhere to
+ * slide, so it crosses to `B@0`; `c2` and `c4` slide up one; `c1`, `c3`, `c5`
+ * slide down one, `c5` taking the place `c3` left; and `c6`, out at the bottom,
+ * does `wait-out`'s mirror on to `A@2`. Seven times through brings the set back
+ * to time 1 with every couple having been out exactly once.
+ *
+ * So a becket set has **two** waiting places, `-1` and `places`, and
+ * `2 × places + 2` couples when the hall is even; **one**, beyond the bottom,
+ * and `2 × places + 1` couples when it is odd.
  */
 export const COUPLE_PITCH_PX = PLACE_PITCH_PX * 2;
 
@@ -57,6 +111,15 @@ const HALF_COUPLE = PLACE_PITCH_PX / 2;
  * How far down the hall a becket set's frame sits from the point a hall hands
  * it, px: one waiting place plus half a couple, which is where place `-1`'s
  * first dancer stands.
+ *
+ * **The same for both parities**, which is what keeps a hall's lines dancing in
+ * step with each other. An odd line has no couple standing out at the top, so
+ * its first dancer is the one at dancing place `0` and its line simply starts a
+ * couple place lower down than an even line's — while every *dancing* place, and
+ * the waiting place at the bottom, sits on exactly the row the line beside it
+ * uses. Offsetting the odd set's frame to bring its first dancer up to
+ * `spec.centre` was tried and reverted: it lines up the two lines' *ends* at the
+ * cost of their fours, and the hall reads by its fours.
  */
 export const BECKET_TOP_OFFSET_PX = COUPLE_PITCH_PX + HALF_COUPLE;
 
@@ -217,6 +280,19 @@ function shadowGroupPlan(set: SetState, part: ShadowPart): GroupPlan {
   };
 }
 
+/**
+ * A dancing place's four stations, with {@link Station.crossedOver} set on
+ * whichever couple's two got here by crossing the set rather than sliding
+ * along it. `a` is the `+1` couple (stations `1L`/`1R`), `b` the `-1`
+ * (`2L`/`2R`); only an odd line ever has either flag set.
+ */
+function dancingStations(a: CoupleState, b: CoupleState): Station[] {
+  return BECKET_STATIONS.map((s) => {
+    const crossed = s.id.startsWith("1") ? a.crossedOver : b.crossedOver;
+    return crossed === true ? { ...s, crossedOver: true } : { ...s };
+  });
+}
+
 /** One part of a becket set for one time through. */
 interface Part {
   kind: GroupKind;
@@ -229,10 +305,12 @@ interface Part {
  * Its own slide direction says so: a dancing couple slides to `place -
  * direction`, so the couple that has run out of line travelling toward the top
  * is the one beyond the top, and the couple travelling the other way is the one
- * beyond the bottom. (An odd-couple set puts two couples beyond the bottom, and
- * both read as `wait-bottom`, which is where they are.) It is the same signal
- * the wait frame is already turned by — reversed at the bottom, so one layout
- * serves both ends — surfaced rather than derived twice.
+ * beyond the bottom. It is the same signal the wait frame is already turned by
+ * — reversed at the bottom, so one layout serves both ends — surfaced rather
+ * than derived twice.
+ *
+ * An odd set only ever has the one waiting couple, beyond the bottom, so it only
+ * ever produces `wait-bottom`; an even set has one of each, every time through.
  */
 const waitKindOf = (couple: CoupleState): GroupKind =>
   couple.direction === 1 ? "wait-top" : "wait-bottom";
@@ -308,12 +386,13 @@ function widenedWaitStations(
 /**
  * `groupsFor("line", set)` for becket: each dancing place's own four
  * stations, widened only at a true end — only there — to fold in the one
- * waiting couple immediately beyond it. An odd becket set can have *two*
- * couples waiting beyond the bottom (`start`'s own second waiting place);
- * `"line"` widens with only the one immediately adjacent to the last dancing
- * place, leaving the further one a plain (unwidened) true end — flagged in
- * the M2 report, since no corpus dance in this milestone's scope exercises
- * that shape.
+ * waiting couple immediately beyond it.
+ *
+ * An odd set has one waiting couple, beyond the bottom, and an even set one at
+ * each end, so there is never a second waiting place for the widening to skip
+ * past. (M2 reported that shape as unexercised; S2's odd-line model removes it
+ * altogether. The catch-all loop below is kept for a hand-built set, which the
+ * partition must still be total over.)
  */
 function lineGroupsFor(set: SetState): GroupPlan[] {
   const parts = partitionBecket(set);
@@ -321,13 +400,9 @@ function lineGroupsFor(set: SetState): GroupPlan[] {
   const firstIdx = setIdx[0];
   const lastIdx = setIdx[setIdx.length - 1];
   const plans: GroupPlan[] = [];
-  // The one wait part immediately adjacent to the first/last dancing place —
-  // never a further one: an odd becket set can have a *second* waiting place
-  // beyond the bottom (`start`'s own extra waiting couple), and `"line"`
-  // widens only as far as the couple actually standing at the true end of
-  // the *dancing* line, leaving the further one its own plain true end
-  // (flagged in the M2 report; no corpus dance in this milestone's scope
-  // exercises that shape).
+  // The one wait part immediately adjacent to the first/last dancing place.
+  // A set this formation builds has at most one at each end, so this is every
+  // wait part; a hand-built set with more falls through to the catch-all below.
   const topAdjacent = firstIdx !== undefined && firstIdx > 0 ? parts[firstIdx - 1] : undefined;
   const bottomAdjacent =
     lastIdx !== undefined && lastIdx < parts.length - 1 ? parts[lastIdx + 1] : undefined;
@@ -336,7 +411,7 @@ function lineGroupsFor(set: SetState): GroupPlan[] {
     if (part.kind !== "set") return;
     const [a, b] = part.couples as [CoupleState, CoupleState];
     const dancingFrame = at(set, a.place);
-    const stations: Station[] = BECKET_STATIONS.map((s) => ({ ...s }));
+    const stations: Station[] = dancingStations(a, b);
     const members: Record<StationId, DancerId> = {
       "1L": dancerOn(a, "lark"),
       "1R": dancerOn(a, "robin"),
@@ -429,7 +504,7 @@ export const BECKET: Formation = {
           id: `${set.id}/p${a.place}`,
           kind: "set",
           frame: at(set, a.place),
-          stations: BECKET_STATIONS.map((s) => ({ ...s })),
+          stations: dancingStations(a, b),
           members: {
             "1L": dancerOn(a, "lark"),
             "1R": dancerOn(a, "robin"),
@@ -455,12 +530,38 @@ export const BECKET: Formation = {
 
   progression: {
     next(set: SetState): SetState {
+      // The ends of the set: nobody slides past them. For an even line these
+      // are the two waiting places; for an odd line the top one is the topmost
+      // *dancing* place, which is what makes the couple there cross over
+      // instead of running off into nothing. Read off the set rather than
+      // recomputed from a couple count, so a hand-built set answers for itself.
+      let top = Infinity;
+      let bottom = -Infinity;
+      for (const couple of set.couples) {
+        top = Math.min(top, couple.place);
+        bottom = Math.max(bottom, couple.place);
+      }
       const couples: CoupleState[] = [];
       for (const part of partitionBecket(set)) {
         if (part.kind === "set") {
-          // Slide to your own left: the `+1` line toward `-y`, the other back.
           for (const couple of part.couples) {
-            couples.push({ ...couple, place: couple.place - couple.direction });
+            // Slide to your own left: the `+1` line toward `-y`, the other back.
+            const to = couple.place - couple.direction;
+            if (to >= top && to <= bottom) {
+              couples.push({ ...couple, place: to, crossedOver: false });
+            } else {
+              // Nowhere left to slide and no waiting place at this end, so the
+              // couple crosses straight over to the place opposite — which the
+              // couple that was there has just slid away from. Only an odd line
+              // ever reaches this: an even one has a waiting place at both ends.
+              // `crossedOver` is how the shift that carries them there knows to
+              // bring them across rather than along.
+              couples.push({
+                ...couple,
+                direction: couple.direction === 1 ? -1 : 1,
+                crossedOver: true,
+              });
+            }
           }
         } else {
           const couple = part.couples[0]!;
@@ -468,6 +569,7 @@ export const BECKET: Formation = {
             ...couple,
             place: couple.place + couple.direction,
             direction: couple.direction === 1 ? -1 : 1,
+            crossedOver: false,
           });
         }
       }
@@ -479,7 +581,11 @@ export const BECKET: Formation = {
     if (spec.couples < 4) {
       throw new Error(`a becket set needs at least four couples, not ${spec.couples}`);
     }
-    const places = Math.floor((spec.couples - 2) / 2);
+    // `places` fours need `2 × places` couples on the floor and every couple
+    // over that stands at an end — two of them for an even hall, one for an
+    // odd one. Both parities read the same way round: as many fours as the
+    // couples will make.
+    const places = Math.floor((spec.couples - 1) / 2);
     const couples: CoupleState[] = [];
     let i = 0;
     const add = (place: number, direction: 1 | -1): void => {
@@ -491,26 +597,25 @@ export const BECKET: Formation = {
       });
       i += 1;
     };
-    add(-1, 1);
+    // The waiting place beyond the top, which only an even hall has a couple
+    // spare for. An odd hall's one spare couple waits beyond the bottom
+    // instead, because a hall takes hands four *from the top* and the couple
+    // left over is the one at the bottom.
+    if (spec.couples % 2 === 0) add(-1, 1);
     for (let place = 0; place < places; place++) {
       add(place, 1);
       add(place, -1);
     }
     add(places, -1);
-    // An odd number of couples cannot fill a becket set — two couples stand at
-    // every dancing place, one from each line — so the odd one out takes a
-    // second waiting place beyond the bottom end. The set then alternates
-    // between `places` dancing places and `places − 1`, which is what a real
-    // line of five couples does: somebody is always out, and it is never the
-    // same couple twice running.
-    if (spec.couples % 2 !== 0) add(places + 1, -1);
     return {
       id: spec.id,
       // `spec.centre` is where the *first* dancer of a line stands — that is what
       // it means for a duple improper set, and a hall hands the same point to
       // both formations. A becket set's first dancer is at place `-1`, so the
       // frame sits one waiting place plus half a couple down the hall from it,
-      // and the two formations lay their lines out from the same place.
+      // and the two formations lay their lines out from the same place. An odd
+      // line, which has nobody at `-1`, keeps the same frame and starts a couple
+      // place lower — see {@link BECKET_TOP_OFFSET_PX}.
       frame: frame(
         framePoint(frame(spec.centre, spec.axis, HOLD_SPACING_PX), [0, BECKET_TOP_OFFSET_PX]),
         spec.axis,
