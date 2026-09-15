@@ -446,17 +446,6 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     }
     landing[role] = best;
   }
-  if (process.env["HEY_DEBUG"]) {
-    console.error(
-      `HEY legs=${String(legs)} amount=${String(amount)} short=${String(short)} gathers=${String(input.gathers)} places=${String(input.places?.length)} axis=${lane.axis.toFixed(1)} centre=${JSON.stringify(lane.centre.map((n) => Number(n.toFixed(2))))} half=${lane.half.toFixed(2)} reach=${lane.reach.toFixed(2)}`,
-    );
-    for (const role of roles) {
-      console.error(
-        `  ${role} spot=${JSON.stringify(ctx.spot(role).p.map((n) => Number(n.toFixed(2))))} phase=${String(phase[role])} psiEnd=${psi(role, beats).toFixed(2)} landing=${landing[role]!}`,
-      );
-    }
-    console.error(`  places=${JSON.stringify((input.places ?? []).map((p) => p.map((n) => Number(n.toFixed(1)))))}`);
-  }
 
   /** How far each dancer's place is off the weave, at each end of the figure. */
   const offStart: Record<FigureRole, Vec2> = {};
