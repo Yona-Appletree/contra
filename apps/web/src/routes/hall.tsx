@@ -158,8 +158,8 @@ export function HallPage({
   // the date, so a seeded URL reproduces one evening exactly (T1).
   const seed = readSeed(params);
 
-  // `?chain=1|2|3|4` swaps `robins-chain`'s courtesy turn to one of PR #35's
-  // four candidates, exactly as it does on the Moves tab (`moves.tsx`):
+  // `?chain=1|2|3|4|5` swaps `robins-chain`'s courtesy turn to one of the
+  // branch's five candidates, exactly as it does on the Moves tab:
   // whichever dance calls the chain dances the chosen candidate instead of
   // the shipped default. Absent or unrecognised, nothing changes.
   const chain = params.get("chain");

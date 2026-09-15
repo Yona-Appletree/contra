@@ -74,6 +74,13 @@ export function checkGroup(): Group {
   );
 }
 
+/**
+ * A figure-id-to-defaults-override map, as `createContraRegistry`'s second
+ * argument takes it: what `?chain=` and `pnpm figure --chain` pick a candidate
+ * with. The empty map — the default everywhere — is the shipped figure.
+ */
+export type CheckOverrides = Readonly<Record<string, object>>;
+
 /** One figure sampled over its whole length, with the hands it says it joins. */
 export function figureTrack(
   id: string,
@@ -144,23 +151,28 @@ const CENTRE_PX = HOLD_SPACING_PX / 2;
  * Nothing here throws and nothing here is skipped: a figure that is wrong
  * produces a failing result with the number that says so.
  */
-export function figureChecks(): FigureChecks[] {
+export function figureChecks(overrides: CheckOverrides = {}): FigureChecks[] {
+  /** One figure's override, as the extra params its own track is built with. */
+  const of = (id: string): Record<string, unknown> => ({ ...overrides[id] });
   return [
-    heyChecks(),
-    robinsChainChecks(),
-    longLinesChecks(),
-    starChecks(),
-    circleChecks(),
-    allemandeChecks(),
-    doSiDoChecks(),
-    rightAndLeftThroughChecks(),
-    petronellaChecks(),
-    balanceChecks(),
-    swingChecks(),
-    balanceAndSwingChecks(),
+    heyChecks(of("hey")),
+    robinsChainChecks(of("robins-chain")),
+    longLinesChecks(of("long-lines")),
+    starChecks(of("star")),
+    circleChecks(of("circle")),
+    allemandeChecks(of("allemande")),
+    doSiDoChecks(of("do-si-do")),
+    rightAndLeftThroughChecks(of("right-and-left-through")),
+    petronellaChecks(of("petronella")),
+    balanceChecks(of("balance")),
+    swingChecks(of("swing")),
+    balanceAndSwingChecks(of("balance-and-swing")),
     balanceToSwingSeam(),
   ];
 }
+
+/** What one builder is handed: the extra params its figure's track is built with. */
+type CheckParams = Record<string, unknown>;
 
 const describeOf = (id: string): string | undefined =>
   ((CONTRA_FIGURES as Record<string, { describe?: string }>)[id] ?? {}).describe;
@@ -172,8 +184,8 @@ const describeOf = (id: string): string | undefined =>
  * The user: "some moves, like the hey are just totally wrong. that's a weaving
  * figure, they should be passing shoulders in the center of the set."
  */
-function heyChecks(): FigureChecks {
-  const { track } = figureTrack("hey");
+function heyChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("hey", params);
   // The four passes in the centre alternate robins, larks, robins, larks, and
   // every one of them is by the right; the passes on the *sides* are the left
   // ones. 1R and 2R are the robins of a duple improper minor set, 1L and 2L
@@ -212,8 +224,8 @@ function heyChecks(): FigureChecks {
  * The user: "robins chain is totally wrong too. robins pull by in the center,
  * then the larks scoop them and walk backwards or they twirl them."
  */
-function robinsChainChecks(): FigureChecks {
-  const { track, group } = figureTrack("robins-chain");
+function robinsChainChecks(params: CheckParams): FigureChecks {
+  const { track, group } = figureTrack("robins-chain", params);
   // The chain's own default timing: the pull by is the first half, the rigid
   // half turn is beats 4.5 to 6.5, and the couple opens out over the last 1.5.
   const turn = win(4.5, 6.5);
@@ -268,8 +280,8 @@ function robinsChainChecks(): FigureChecks {
  * The user: "the arms flair around a bit in the long lines — arms don't really
  * move in that figure, everyone's just holding hands."
  */
-function longLinesChecks(): FigureChecks {
-  const { track } = figureTrack("long-lines");
+function longLinesChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("long-lines", params);
   const results = [
     handsStill(track, "1L", win(1, 7), 1.5),
     handsStill(track, "1R", win(1, 7), 1.5),
@@ -292,14 +304,14 @@ function longLinesChecks(): FigureChecks {
  * the person in front of you... doing all in a pile in the center (that's
  * awkward)."
  */
-function starChecks(): FigureChecks {
-  const { track: wrist, beats } = figureTrack("star");
+function starChecks(params: CheckParams): FigureChecks {
+  const { track: wrist, beats } = figureTrack("star", params);
   // The figure's own take/release window: `WRIST_JOIN_WINDOW`-shaped, but read
   // straight off `star.ts`'s own constants so a change there cannot go stale
   // here.
   const held = holdWindow(beats, STAR_IN_BEATS + 0.4, STAR_OUT_BEATS);
   const wristHeld = win(held.takeTo, held.releaseFrom);
-  const { track: across } = figureTrack("star", { hold: "hands-across" });
+  const { track: across } = figureTrack("star", { ...params, hold: "hands-across" });
   const acrossHeld = joinWindow(across, "1R", "R", "2R", "R") ?? win(1, 7);
   const results = [
     // The wrist hold: a four-person star's ring alternates role at every
@@ -366,8 +378,8 @@ function wristJoined(
 }
 
 /** A circle: hands joined all the way round, all the way through. */
-function circleChecks(): FigureChecks {
-  const { track } = figureTrack("circle");
+function circleChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("circle", params);
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "R", win(1, 7)),
     joinedThroughout(track, "1R", "L", "1L", "R", win(1, 7)),
@@ -378,8 +390,8 @@ function circleChecks(): FigureChecks {
 }
 
 /** An allemande: one joined hand over one spot, never let go of. */
-function allemandeChecks(): FigureChecks {
-  const { track } = figureTrack("allemande");
+function allemandeChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("allemande", params);
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "L", win(1.5, 6.5)),
     joinedThroughout(track, "1R", "L", "2L", "L", win(1.5, 6.5)),
@@ -391,8 +403,8 @@ function allemandeChecks(): FigureChecks {
  * A do-si-do: pass right shoulders on the way out, nobody takes hands, and
  * nobody turns round — you end facing the way you started.
  */
-function doSiDoChecks(): FigureChecks {
-  const { track, group } = figureTrack("do-si-do");
+function doSiDoChecks(params: CheckParams): FigureChecks {
+  const { track, group } = figureTrack("do-si-do", params);
   const results = [
     passes(track, "1L", "2R", { within: CLOSE_PX, shoulder: "R", beatWindow: win(0.5, 3) }),
     endsOn(track, "1L", { id: "1L", p: stationAt(group, "1L") }, 0.5),
@@ -405,8 +417,8 @@ function doSiDoChecks(): FigureChecks {
  * Right and left through: pass right shoulders across, then a courtesy turn in
  * which the lark walks backward with the robin's left hand in his left.
  */
-function rightAndLeftThroughChecks(): FigureChecks {
-  const { track } = figureTrack("right-and-left-through");
+function rightAndLeftThroughChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("right-and-left-through", params);
   // Its own default timing: the pass through is 3.5 beats, the couple closes up
   // over the next one, the rigid half turn is beats 4.5 to 6.5, and the last
   // 1.5 beats open out.
@@ -760,8 +772,8 @@ const fail = (
 ): TrajectoryResult => ({ label, pass: false, note, worst: { beat, value, unit } });
 
 /** A petronella: nobody holds anybody, and everybody lands one place on. */
-function petronellaChecks(): FigureChecks {
-  const { track, group } = figureTrack("petronella");
+function petronellaChecks(params: CheckParams): FigureChecks {
+  const { track, group } = figureTrack("petronella", params);
   const results = [
     endsOn(track, "1L", { id: "1R", p: stationAt(group, "1R") }, 1),
     endsOn(track, "1R", { id: "2L", p: stationAt(group, "2L") }, 1),
@@ -778,8 +790,8 @@ function petronellaChecks(): FigureChecks {
  * close 9 px to the hold spacing before it can hold hands at all, which is a
  * deliberate deviation of M8's and not the thing being checked.
  */
-function balanceChecks(): FigureChecks {
-  const { track } = figureTrack("balance");
+function balanceChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("balance", params);
   const results = [
     handsJoined(track, "1L", "L", "2R", "R", win(1.5, 4)),
     handsJoined(track, "1L", "R", "2R", "L", win(1.5, 4)),
@@ -789,8 +801,8 @@ function balanceChecks(): FigureChecks {
 }
 
 /** A swing: the outside hands are one point, held for the whole turn. */
-function swingChecks(): FigureChecks {
-  const { track } = figureTrack("swing");
+function swingChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("swing", params);
   const results = [joinedThroughout(track, "1L", "L", "2R", "R", win(1.5, 6))];
   return { key: "swing", describe: describeOf("swing"), results };
 }
@@ -827,8 +839,8 @@ function balanceToSwingSeam(): FigureChecks {
  * `balance-and-swing`: the hold the rock takes is the hold the turn uses, and
  * it is one floor point from the moment it is taken until the pair opens out.
  */
-function balanceAndSwingChecks(): FigureChecks {
-  const { track } = figureTrack("balance-and-swing", { pairs: "neighbors", beats: 16 });
+function balanceAndSwingChecks(params: CheckParams): FigureChecks {
+  const { track } = figureTrack("balance-and-swing", { ...params, pairs: "neighbors", beats: 16 });
   const results = [
     joinedThroughout(track, "1L", "L", "2R", "R", win(1.5, 14)),
     // And the rock's own second pair of hands, which the turn does let go of:

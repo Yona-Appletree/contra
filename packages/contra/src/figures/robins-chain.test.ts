@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { dist, rightOf } from "@caller/core";
+import { angleDiff, dirOf, dist, rightOf } from "@caller/core";
 import { BECKET } from "../formation/becket.js";
 import { COURTESY_PIVOT_FROM_LARK_PX } from "./courtesyTurn.js";
-import { CHAIN_CANDIDATES, robinsChain } from "./robins-chain.js";
+import { CHAIN_CANDIDATES, CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
 import {
   figureMoves,
   figureProblems,
@@ -31,8 +31,15 @@ describe("`?chain=`'s four candidates (PR #35)", () => {
     expect(CHAIN_CANDIDATES["4"]).toEqual({ stepInPx: 8 });
   });
 
-  it("has no fifth candidate", () => {
-    expect(CHAIN_CANDIDATES["5"]).toBeUndefined();
+  it("makes candidate 5 the lark's orbit, joined a quarter of the way through", () => {
+    expect(CHAIN_CANDIDATES["5"]).toEqual({ joinBeat: CHAIN_JOIN_BEAT, passPx: CHAIN_PASS_PX });
+    expect(CHAIN_JOIN_BEAT).toBe(2);
+    // Nothing but candidate 5 asks for an orbit, so the default is no orbit.
+    expect(robinsChain.defaults.joinBeat).toBe(0);
+  });
+
+  it("has no sixth candidate", () => {
+    expect(CHAIN_CANDIDATES["6"]).toBeUndefined();
   });
 });
 
@@ -99,4 +106,60 @@ describe("robins chain", () => {
       );
     }
   });
+
+  // F10's candidate. The four facts the whole milestone rests on, pinned: the
+  // pull by is on the right shoulder and clear of AC6, the lark walks backward
+  // the whole way round, the couple faces out at the half and in at the end,
+  // and both of them land exactly on their places.
+  it("orbits the lark a whole turn backwards and pulls by on the right", () => {
+    const orbit = CHAIN_CANDIDATES["5"]!;
+    const ends = figureMoves(robinsChain, orbit, BECKET);
+    expect(spotError(ends["2R"]!, stationSpot(BECKET, "1R"))).toBeLessThan(1e-9);
+    expect(spotError(ends["1L"]!, stationSpot(BECKET, "1L"))).toBeLessThan(1e-9);
+
+    const group = probeGroup(BECKET);
+    const params = { ...robinsChain.defaults, ...orbit, beats: robinsChain.beats };
+    const at = (id: string, t: number) => robinsChain.sample(group, id, t, params);
+
+    // The pull by: how near the two robins come, and which shoulder.
+    let closest = { gap: Infinity, side: 0 };
+    for (let t = 0; t <= 4; t += 1 / 32) {
+      const a = at("1R", t);
+      const b = at("2R", t);
+      const gap = dist(a.p, b.p);
+      if (gap >= closest.gap) continue;
+      const r = rightOf(a.facing);
+      closest = { gap, side: r[0] * (b.p[0] - a.p[0]) + r[1] * (b.p[1] - a.p[1]) };
+    }
+    expect(closest.side, `shoulder at ${closest.gap.toFixed(3)} px`).toBeGreaterThan(0);
+    expect(closest.gap).toBeGreaterThan(COLLISION_FLOOR_PX);
+
+    // He walks backward for every sample of it: his facing is never within a
+    // right angle of the way his feet are going.
+    let previous = at("1L", 0).p;
+    for (let t = 1 / 32; t <= robinsChain.beats + 1e-9; t += 1 / 32) {
+      const now = at("1L", t);
+      const step: [number, number] = [now.p[0] - previous[0], now.p[1] - previous[1]];
+      const speed = Math.hypot(step[0], step[1]);
+      previous = now.p;
+      if (speed < 1e-9) continue;
+      const d = dirOf(now.facing);
+      expect((d[0] * step[0] + d[1] * step[1]) / speed, `at beat ${t.toFixed(3)}`).toBeLessThan(0);
+    }
+
+    // Out of the set at the half, back in at the end, both of them together.
+    // Read against his own starting facing rather than a number, so the probe
+    // frame's tilt cannot make this a test of the transform.
+    const facesIn = at("1L", 0).facing;
+    for (const id of ["1L", "2R"]) {
+      expect(
+        Math.abs(angleDiff(at(id, 4).facing, facesIn + 180)),
+        `${id} at the half`,
+      ).toBeLessThan(1e-9);
+      expect(Math.abs(angleDiff(at(id, 8).facing, facesIn)), `${id} at the end`).toBeLessThan(1e-9);
+    }
+  });
 });
+
+/** AC6's torso floor, as `oracle.ts` states it. */
+const COLLISION_FLOOR_PX = 8;
