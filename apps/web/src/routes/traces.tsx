@@ -2,9 +2,13 @@ import { DEMO_DANCES, danceBySlug } from "@caller/contra";
 import { ROLE_COLOURS, penColour } from "@caller/hall";
 import type { JSX } from "react";
 import { useMemo } from "react";
+import type { GalleryTile } from "../galleryTiles.js";
+import { galleryTiles, groupedTiles, tileByKey } from "../galleryTiles.js";
 import { TraceSvg } from "../traces/TraceSvg.js";
 import { danceTrace } from "../traces/danceTrace.js";
+import { figureTrace } from "../traces/figureTrace.js";
 import { facingFromQuery, traceDrawings } from "../traces/traceDrawings.js";
+import { soloHref } from "./moves.js";
 
 /**
  * `#/dances/<slug>/traces`: one dance, all four views, at full width.
@@ -85,6 +89,114 @@ export function TracesPage({
         ))}
       </nav>
     </main>
+  );
+}
+
+/**
+ * `#/moves/<figure-id>/traces`: one figure, all four views, at full width —
+ * the Moves tab's mirror of `#/dances/<slug>/traces` (T4).
+ *
+ * Only a figure has one. A seam's own row already carries the two figures on
+ * either side of it and the beats either side are what its strip already
+ * shows; the reading this page adds is for the whole shape one figure makes,
+ * which is a figure's question, not a seam's. `id` naming a seam, or nothing
+ * in the registry, falls to the "no such move" branch below.
+ *
+ * `?facing=wake` or `?facing=arrowheads` swaps the pen plot's and the march's
+ * facing style, exactly as it does on `#/dances/<slug>/traces`.
+ */
+export function MoveTracesPage({
+  id,
+  params,
+}: {
+  id: string;
+  params: URLSearchParams;
+}): JSX.Element {
+  const tiles = useMemo(() => galleryTiles(), []);
+  const tile = tileByKey(tiles, id);
+  const seams = useMemo(
+    () => groupedTiles(tiles).find((g) => g.figure.key === id)?.seams ?? [],
+    [tiles, id],
+  );
+  const facing = facingFromQuery(params.get("facing"));
+  const drawings = useMemo(
+    () =>
+      tile === undefined || tile.kind !== "figure"
+        ? null
+        : traceDrawings(figureTrace(tile), undefined, facing),
+    [tile, facing],
+  );
+
+  if (tile === undefined || tile.kind !== "figure" || drawings === null) {
+    return (
+      <main className="p-6">
+        <p data-testid="move-traces-missing">
+          No figure called <code>{id}</code>. <a href="#/moves">Back to the gallery</a>.
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main
+      className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 p-3 lg:p-4"
+      data-testid="move-traces-page"
+      data-key={tile.key}
+    >
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold">{tile.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          {tile.formation}
+          {tile.source === undefined ? " · figure defaults" : ` · from ${tile.source}`} &middot; one
+          time through the tile&rsquo;s own looping window, drawn from the simulation.{" "}
+          <a href={soloHref(tile)}>Loop it on the Moves tab</a> &middot;{" "}
+          <a href="#/moves">back to the gallery</a>.
+        </p>
+        <Legend />
+      </header>
+
+      {tile.calls.map((call) => (
+        <p key={call.figure} className="max-w-[80ch] text-sm" data-testid="move-traces-describe">
+          {call.describe ?? "No description: this figure has no `describe` yet."}
+        </p>
+      ))}
+
+      {VIEWS.map((view) => (
+        <section
+          key={view.kind}
+          className="flex flex-col gap-1"
+          data-testid={`move-traces-${view.kind}`}
+        >
+          <h2 className="text-lg font-semibold">{view.title}</h2>
+          <p className="max-w-[80ch] text-sm text-muted-foreground">{view.how}</p>
+          <TraceSvg
+            svg={drawings[view.kind]}
+            kind={view.kind}
+            label={`${tile.title}: ${view.title}`}
+          />
+        </section>
+      ))}
+
+      <SeamLinks seams={seams} />
+    </main>
+  );
+}
+
+/** The figure's own seams, each linking back to that seam's row on the Moves tab. */
+function SeamLinks({ seams }: { seams: readonly GalleryTile[] }): JSX.Element | null {
+  if (seams.length === 0) return null;
+  return (
+    <nav
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"
+      data-testid="move-traces-seams"
+    >
+      <span className="text-muted-foreground">Its seams, on the Moves tab:</span>
+      {seams.map((seam) => (
+        <a key={seam.key} href={soloHref(seam)}>
+          {seam.title}
+        </a>
+      ))}
+    </nav>
   );
 }
 

@@ -37,6 +37,27 @@ export function facingFromQuery(param: string | null): FacingStyle {
 }
 
 /**
+ * The three views a Moves row's trace panel can switch between (T4): the pen
+ * plot T2 shipped, plus the march and the seismograph the per-figure traces
+ * page also draws. The figure-strip cell is not one of the three — it stays
+ * in the row as its own thing, always shown, switch or no switch.
+ */
+export type RowTraceView = "plot" | "march" | "seismograph";
+
+/**
+ * `?view=<kind>` from the URL, or the default (`"plot"`, T2's shipped look)
+ * when the query is absent or names something that isn't one of the three.
+ *
+ * Read once, at mount, exactly like `zoom`/`speed`/`trails` on the Moves page:
+ * a deep link can open on `march` or `seismograph`, and the switch itself is
+ * plain React state afterwards rather than something that keeps rewriting the
+ * address bar.
+ */
+export function viewFromQuery(param: string | null): RowTraceView {
+  return param === "march" || param === "seismograph" ? param : "plot";
+}
+
+/**
  * All four, at reading size: the traces page, and every exported file.
  *
  * `facing` only reaches the pen plot and the march — the seismograph and the
@@ -90,6 +111,47 @@ export function rowPenPlot(
     facingPx: 3.5,
     reach,
     facing,
+  });
+}
+
+/** How wide one beat is in a Moves row's switchable march or seismograph, px. */
+export const ROW_BEAT_PX = 6;
+
+/**
+ * The march inside a Moves row's tile column, switched in for the pen plot
+ * (T4). Sized to the same footprint the pen plot uses — `side` square — so
+ * flipping the switch does not change the row's height; a figure longer than
+ * the column's width scrolls inside its own box, the same convention the
+ * traces page's beat-axis views already use.
+ */
+export function rowMarch(trace: Trace, side: number, facing?: FacingStyle): string {
+  return marchSvg(trace, {
+    height: side,
+    beatPx: ROW_BEAT_PX,
+    penWidth: 1.2,
+    spreadPx: 2,
+    facingPx: 3.5,
+    labels: false,
+    facing,
+  });
+}
+
+/**
+ * The seismograph inside a Moves row's tile column, switched in for the pen
+ * plot (T4). No facing — the seismograph never carries one (T2's ruling) —
+ * and no axis labels: there is no room for "across"/"along" in a 136 px
+ * column, and the switch itself, plus the reading guide on the per-figure
+ * traces page, say which lane is which.
+ */
+export function rowSeismograph(trace: Trace, side: number): string {
+  return seismographSvg(trace, {
+    height: side,
+    beatPx: ROW_BEAT_PX,
+    penWidth: 1.2,
+    spreadPx: 2,
+    padLeft: 4,
+    padRight: 4,
+    labels: false,
   });
 }
 
