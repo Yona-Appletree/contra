@@ -10,14 +10,13 @@ import type {
 } from "../../figures/ContraFigure.js";
 import { joinedHands, midpoint, takeAndRelease } from "../../figures/ContraFigure.js";
 import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balanceRock } from "../../pair/balance.js";
-import { otherLine, slotOfRole, slotPoint } from "../../set/shape.js";
+import { alongSet, otherLine, slotOfRole, slotPoint } from "../../set/shape.js";
 import type { SlotView } from "../../set/shape.js";
 import type { FigureRole, HoldSpec, WaveShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
-import { evalNumber, evalSide } from "../expr.js";
+import { evalNumber } from "../expr.js";
 import { joinKey, type ShapeInput } from "../interpret.js";
 import { idleHandAt } from "./holds.js";
-import { settleEnds } from "./places.js";
 
 /**
  * **The wave, and its balance** (M7, handed over from M6).
@@ -28,15 +27,25 @@ import { settleEnds } from "./places.js";
  * missing: *"a wave-hold rule inside the shape kind — the named hand to the lane
  * neighbour you are facing, the other hand to the one behind you"*.
  *
- * ## Why the rule is written on slots and not on cast order
+ * ## Why the hands are read off the floor and not off the slots (M7b)
  *
- * "N1R" means *the right hand to the neighbour one place along the way I am
- * travelling*, and the two halves of a line travel opposite ways: the dancer on
- * my left is my N1 and the dancer on my right is my N0, or the other way round,
- * depending on which of us I am. Cast order runs up the set for everybody, so it
- * cannot tell the two apart. The slot can, because a slot carries the dancer's
- * own `travel` — which is the whole reason `params.slots` exists (M7's answer to
- * M6's missing expression node).
+ * M7 wrote exactly that rule — the named hand to the slot one place along the
+ * way you travel — and it is right only while nobody has moved. Whoosh's wave
+ * comes after a grand right and left and three figures back, and the line it
+ * balances is **not** standing on its own slots: at four couples the slots read
+ * `c0/robin, c1/lark, c2/robin, c3/lark` down the line and the dancers read
+ * `c1/lark, c0/robin, c3/lark, c2/robin`. So a wave takes the dancers **beside**
+ * it — the line sorted along the set — and each dancer gives each of them
+ * whichever hand is actually pointing at them.
+ *
+ * That leaves `facesIn` as the only thing the **long** wave is told from outside,
+ * and the alternation falls out of it: a lark looking in and a robin looking out,
+ * standing beside each other, have one hand each pointing at the other. Whoosh's
+ * own `N1R` is then something the dance can be **measured** against rather than
+ * something the figure is told — and it holds, at every line length, in
+ * `library/figures/balance-wave.test.ts`. `shape.hand` is still the shape's, and
+ * still read: the wave **across** the set (M8, `planWaveAcross` below) takes its
+ * facings from it, because a row between the lines has no "in" to face.
  *
  * ## Which way "in" is
  *
@@ -64,13 +73,26 @@ export function planWave(
     );
   }
   const env = envFor(input, roles[0]!, 0);
-  const hand = evalSide(shape.hand, env);
   const rock = evalNumber(shape.rock, env);
   const closeBeats = evalNumber(shape.closeBeats, env);
   const drop = evalNumber(shape.handDrop, env);
   const facesIn = String(input.params[shape.facesIn] ?? "lark");
 
-  /** Where each dancer stands on the wave, and which way they look. */
+  /**
+   * Where each dancer stands on the wave, and which way they look.
+   *
+   * **Where they already are** (M7b), not on their own home slot. A wave is what
+   * a line of dancers is standing in, and Whoosh is what says so: its A1 leaves
+   * every dancer one dancing place along the set from the slot they started the
+   * time through on — a grand right and left out and three figures back — so
+   * putting them on their slots to balance jumped every one of them a whole
+   * place sideways in the one beat the wave closes over, and the hands went to
+   * the dancer whose *slot* was beside them rather than the dancer who was.
+   *
+   * The slot is still what the shape is read on, because "in" is a fact about
+   * the set — from my line toward the other one, which is `+x` on one line and
+   * `−x` on the other, and no angle knows which.
+   */
   const onWave: Spots = {};
   for (const role of roles) {
     const at = slotOfRole(slots, role);
@@ -78,33 +100,80 @@ export function planWave(
     const across = slotPoint(slots, { line: otherLine(at.line), position: at.position });
     const inward = angleOf(across[0] - mine[0], across[1] - mine[1]);
     const looksIn = ctx.role(role) === facesIn;
-    onWave[role] = { p: mine, facing: looksIn ? inward : inward + 180 };
+    onWave[role] = { p: ctx.spot(role).p, facing: looksIn ? inward : inward + 180 };
   }
-  const ends = settleEnds(input, onWave);
+  /**
+   * **The wave is its own arrangement** (M7b), so its ends are `onWave` and not
+   * `settleEnds(input, onWave)`.
+   *
+   * The target-shape solver lays a shape out in **the order it is given**, which
+   * for a figure resolved in the lane is the cast's — lattice order along the
+   * set. Run over a wave that is standing one place along from its own slots,
+   * that puts every dancer back on the slot they are not standing on, which is
+   * the thing this figure now exists not to do; and it takes the wave's facing
+   * from the mean of the dancers' own, which for a row facing alternately in and
+   * out is a mean of `0°` and `180°` and means nothing. Measured at four couples
+   * it asked for hands **29.75 px** out of reach.
+   *
+   * Nothing is lost by leaving it out. The set's recorded shape is read off
+   * where the figure really leaves people (`set/planCycle.ts`, `shapeFromEnds`)
+   * and not off `settleEnds`, and this figure builds a wave by construction: the
+   * line where it stands, looking alternately in and out.
+   */
+  const ends = onWave;
 
   /**
-   * Who each dancer has by which hand: the named hand to the dancer one place
-   * along the way they travel, the other hand to the one behind them.
+   * Who each dancer has by which hand: **the dancers standing beside them**, one
+   * on each side, and the hand that really points at each.
+   *
+   * M7 read both the pair and the side off the lattice — the named hand to the
+   * slot one place along the way you travel — and Whoosh is what disproves it.
+   * Its A1 is a grand right and left out and three figures back, and it does not
+   * leave the line on its own slots: at four couples the line reads
+   * `c1/lark, c0/robin, c3/lark, c2/robin` while their slots read
+   * `c0/robin, c1/lark, c2/robin, c3/lark`. Read off the lattice, `c1/lark`'s
+   * "behind" is `c2/robin`, who is standing **three dancing places away and on
+   * the same side of him as the other one**; read off the floor it is `c0/robin`
+   * beside him, which is what a wave is. The old reading put every hand of the
+   * wave 1.2 px out of the arm solver's reach — the shortfall of a hand reaching
+   * across its own body — at every line length.
+   *
+   * So a wave holds hands **along itself**: sort the line along the set, take
+   * the dancer on either side of you, and give each of them whichever of your
+   * hands is pointing at them. Which hand that is follows from which way you are
+   * looking, which is `facesIn`'s, so the alternation comes out of the shape
+   * rather than being asserted on top of it. Whoosh's own `N1R` then holds as a
+   * **measurement**: every pair of the wave who are each other's N1 takes right
+   * hands, at every line length, which is what `balance-wave.test.ts` checks.
    */
   const reach = new Map<FigureRole, Partial<Record<Side, FigureRole>>>();
-  const bySlot = new Map<string, FigureRole>();
-  for (const role of roles) {
-    const at = slotOfRole(slots, role);
-    bySlot.set(`${String(at.line)}/${String(at.position)}`, role);
-  }
-  for (const role of roles) {
-    const at = slotOfRole(slots, role);
-    const ahead = bySlot.get(`${String(at.line)}/${String(at.position + at.travel)}`);
-    const behind = bySlot.get(`${String(at.line)}/${String(at.position - at.travel)}`);
-    const mine: Partial<Record<Side, FigureRole>> = {};
-    if (ahead !== undefined) mine[hand] = ahead;
-    if (behind !== undefined) mine[hand === "L" ? "R" : "L"] = behind;
-    reach.set(role, mine);
+  /** Which of a dancer's own hands points at the dancer standing over there. */
+  const sideToward = (role: FigureRole, other: FigureRole): Side => {
+    const self = onWave[role]!;
+    const theirs = onWave[other]!;
+    const to = angleOf(theirs.p[0] - self.p[0], theirs.p[1] - self.p[1]);
+    // Right is `facing + 90` in this coordinate system: with y down, a dancer
+    // looking down the set (90°) has their right toward `−x`.
+    return Math.cos(((to - (self.facing + 90)) * Math.PI) / 180) >= 0 ? "R" : "L";
+  };
+  // The line in the order it is standing in, along the set's own direction.
+  const along = alongSet(slots);
+  const inLine = [...roles].sort((a, b) => {
+    const pa = onWave[a]!.p;
+    const pb = onWave[b]!.p;
+    return pa[0] * along[0] + pa[1] * along[1] - (pb[0] * along[0] + pb[1] * along[1]);
+  });
+  for (const role of roles) reach.set(role, {});
+  for (let i = 0; i + 1 < inLine.length; i++) {
+    const a = inLine[i]!;
+    const b = inLine[i + 1]!;
+    reach.get(a)![sideToward(a, b)] = b;
+    reach.get(b)![sideToward(b, a)] = a;
   }
 
   const placeAt = (role: FigureRole, t: Beat): Spot => {
     const start = ctx.spot(role);
-    const to = onWave[role] ?? start;
+    const to = ends[role] ?? onWave[role] ?? start;
     const k = ramp(t, 0, closeBeats);
     const place = { p: lerp(start.p, to.p, k), facing: angleLerp(start.facing, to.facing, k) };
     const f = balanceRock(t);

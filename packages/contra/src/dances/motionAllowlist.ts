@@ -55,6 +55,49 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
   },
   {
     dance: "*",
+    key: "pull-by",
+    metric: "elbowPerHand",
+    reason:
+      "A pull-by's joined hand is one shared floor point half way between two " +
+      "dancers walking straight through each other, so at the middle of the pass " +
+      "the hand is **exactly** still while both arms swing round it from ahead to " +
+      "behind. Measured in A Rare Bird at 19.44x: an elbow at 73.3 px/beat over a " +
+      "hand at STILL_HAND_PX (2 pi x 0.6 = 3.77), which is the ratio's own floor " +
+      "for a hand that is not moving at all. The elbow is well inside its own " +
+      "bound of 188.3, and nothing in the figure flails: this is the one shape " +
+      "where a still hand is the point of the figure rather than a symptom. M10's " +
+      "motion profiles are what should give the ratio a hand-is-parked case.",
+  },
+  {
+    dance: "*",
+    key: "grand-right-and-left",
+    metric: "elbowPerHand",
+    reason:
+      "Three pull-bys in a row, and the same measurement: in Whoosh, 19.44x at " +
+      "beat 1.0 — the middle of the first pass — where c1/robin's right hand sits " +
+      "on the shared point between her and c1/lark and does not move while her " +
+      "elbow swings past it at 73.3 px/beat. See the pull-by row above; M10 owns both.",
+  },
+  {
+    dance: "whoosh",
+    key: "wait-out",
+    metric: "elbowPerHand",
+    reason:
+      "The **cycle boundary**, not a figure of the dance: at beat 64.09 c1/lark " +
+      "has just finished B2's star and do-si-do looking 302 degrees — a star " +
+      "leaves its dancers tangential to the ring — and wait-out turns him 238 " +
+      "degrees to stand out, which whips a hanging hand's elbow at 76.7 px/beat " +
+      "over a hand at 5.7. Measured at 13.42x. The row is **unchanged by M7b** " +
+      "(it stood at 13.42x with an elbow of 76.7 before any of this milestone's " +
+      "work) and it is not Whoosh's alone: On the Prowl, in the programme since " +
+      "M5, sits at 9.81x on the same row against a bound of 9.89. The turn is " +
+      "`@caller/choreo`'s own WAIT_OUT, which every dance in the programme shares " +
+      "and AC7 keeps contra out of; the elbow itself is well inside its bound of " +
+      "188.3. M10 owns it, and the honest fix is a wait-out that spends more of " +
+      "its sixty-four beats turning.",
+  },
+  {
+    dance: "*",
     key: "*",
     metric: "dip",
     reason:

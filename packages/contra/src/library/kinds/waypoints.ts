@@ -1,7 +1,14 @@
 import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
 import { addScaled, angleLerp, dirOf, dist, lerp, ramp } from "@caller/core";
-import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
-import { bearing, joinedHands, midpoint } from "../../figures/ContraFigure.js";
+import type {
+  FigurePlan,
+  HandJoin,
+  HoldWindow,
+  LocalHand,
+  Spot,
+  Spots,
+} from "../../figures/ContraFigure.js";
+import { bearing, joinedHands, midpoint, takeAndRelease } from "../../figures/ContraFigure.js";
 import type {
   AngleExpr,
   FigureRole,
@@ -54,9 +61,44 @@ import { settleEnds } from "./places.js";
  * whose start of the step is your end of it and whose end is your start — which
  * is the whole of what a pull-by is, and is what lets one grand right and left
  * take three different hands with three different dancers without a definition
- * naming any of them. A step whose swap has nobody in it (the end of the line)
- * takes no hand and is simply walked, which is M6's end-of-set rule seen from
- * inside a figure.
+ * naming any of them.
+ *
+ * ### A pass with nobody in it is not danced (M7b)
+ *
+ * M6 wrote that a step whose swap has nobody in it "takes no hand and is simply
+ * walked". Whoosh says that is not enough. Its A1 opens with three pull-bys out
+ * along the line, and at the end of the line the third one — often the second —
+ * has nobody in it: the dancer walked their two places anyway and ended up off
+ * the end of the set, where the next gatherer dragged them back through
+ * everybody. Measured at four couples, `c2/lark` finished the figure at
+ * `y = 100` in a set that stops at `y = 60`, and A2's wave pulled him home
+ * across two other dancers: `reach 10.16 px short`, `collision 3.379 px`.
+ *
+ * So **a route stops at the first pass that finds nobody**: that dancer stands
+ * where the pass before left them, for that leg and every leg after it. That is
+ * M6's own end-of-set rule — *a relation that resolves to nobody leaves that
+ * dancer on hold-place* — applied per pull-by inside the sequence rather than
+ * to the call as a whole.
+ *
+ * It is found by **fixed point**, not by arithmetic on the lattice: whether
+ * somebody swaps with you on the third pass depends on whether they got as far
+ * as the third pass themselves, so the partners are re-found after every
+ * truncation until nothing more falls out. Each round only ever removes a pass,
+ * so it ends. `grand-right-and-left.test.ts` checks the answer dancer by dancer
+ * against the formation's own relation table, which is the claim that the
+ * geometry and M6's N1/N2/N3 are the same thing seen twice.
+ *
+ * ### A pass takes its hand and lets it go (M7b)
+ *
+ * The hand used to appear at the joined point on the first sample of the leg
+ * and vanish on the last, which is not a hand — Whoosh measured it at
+ * `381.9 px/beat` and a height rate of `400.0` on a bound of 68.4 and 65.2, the
+ * worst at `c1/lark`'s right hand on beat 2.031, the boundary between the first
+ * pass and the second. {@link REACH_SHARE} of the leg at each end is spent
+ * reaching the hand out and letting it go again, through
+ * {@link takeAndRelease}, exactly as every other figure in the library does it;
+ * a share rather than a count so the same pass is the same shape whatever the
+ * card gives it (D3).
  */
 
 /** One waypoint of a track. */
@@ -69,6 +111,18 @@ export interface PathStep {
   bow?: NumberExpr;
   /** Give this hand to whoever you swap places with over this step. */
   pass?: SideExpr;
+  /**
+   * **Which relation this pass names** (M7b), for the dances' end-effects table.
+   *
+   * The geometry does not need it — a pass finds its own partner, and a pass
+   * with nobody in it stops the route where it stands — but a reader does: the
+   * lab's section 3 answers "which calls leave whom out, at which end", and a
+   * figure whose pull-bys are *inside* it has no `pairs` parameter for that
+   * table to read. So a step that is one of a sequence of passes along the set
+   * says whose it is, and `dances/danceLab.ts` asks the definition for the
+   * words. A relation word as `set/relations.ts` parses it: `"N1"`, `"N2"`…
+   */
+  meets?: string;
   /** How far below shoulder height a passing hand sits, px. */
   drop?: NumberExpr;
   /**
@@ -111,7 +165,35 @@ interface Leg {
   around?: { centre: Vec2; turn: number };
   /** Turn the body this much over the leg instead of lerping its facing (M7). */
   spin?: number;
+  /**
+   * This leg is not danced: the pass it would have been had nobody in it, so the
+   * dancer stands where the pass before left them (M7b).
+   */
+  standing?: true;
 }
+
+/**
+ * The share of a pass's own leg spent reaching the hand out, and again letting
+ * it go: {@link REACH_SHARE} at each end, held through the middle.
+ *
+ * Chosen rather than derived, and the reason it is this and not less: a pull-by
+ * is two beats, so 0.3 is six tenths of a beat to put a hand out and the same
+ * to take it back, which is a reach rather than a grab. At that share the hand
+ * of Whoosh's own grand right and left moves 23.5 px/beat against a bound of
+ * 68.4 — well inside it, and the figure's height rate with it.
+ */
+const REACH_SHARE = 0.3;
+
+/** When a pass's hand goes up and comes down again, over the leg's own count. */
+const passWindow = (leg: Leg): HoldWindow => {
+  const share = (leg.end - leg.start) * REACH_SHARE;
+  return {
+    takeFrom: leg.start,
+    takeTo: leg.start + share,
+    releaseFrom: leg.end - share,
+    releaseTo: leg.end,
+  };
+};
 
 /** The environment a path's expressions are read in. */
 const envFor = (input: ShapeInput, self: FigureRole, t: Beat): ExprEnv => ({
@@ -215,6 +297,55 @@ function passPartners(
   return out;
 }
 
+/** Every dancer's route and who they pass on each leg of it. */
+interface Routes {
+  legs: Map<FigureRole, Leg[]>;
+  partners: Map<FigureRole, Array<FigureRole | undefined>>;
+}
+
+/**
+ * **The routes, with the passes nobody is in taken out of them** (M7b).
+ *
+ * The fixed point the module note describes: find the partners, stop every
+ * route at its first pass with nobody in it, and ask again, because a pass
+ * only has somebody in it if that somebody got that far themselves. Each round
+ * turns at least one pass into standing and never turns standing back into a
+ * pass, so the number of passes falls every round and the loop ends; the guard
+ * is there so a bug cannot hang the planner.
+ */
+function routesOf(shape: WaypointShape, input: ShapeInput): Routes {
+  let legs = legsOf(shape, input);
+  for (let round = 0; round <= legs.size * 8 + 1; round++) {
+    const partners = passPartners(legs);
+    const stopAt = new Map<FigureRole, number>();
+    for (const [role, mine] of legs) {
+      const mates = partners.get(role);
+      const at = mine.findIndex(
+        (leg, i) => leg.pass !== undefined && mates?.[i] === undefined && leg.standing !== true,
+      );
+      if (at >= 0) stopAt.set(role, at);
+    }
+    if (stopAt.size === 0) return { legs, partners };
+    const next = new Map<FigureRole, Leg[]>();
+    for (const [role, mine] of legs) {
+      const at = stopAt.get(role);
+      next.set(role, at === undefined ? mine : standingFrom(mine, at));
+    }
+    legs = next;
+  }
+  throw new Error("waypoints: the passes along the set never settled (M7b)");
+}
+
+/** A route that stands still from leg `at` on, where the leg before left it. */
+function standingFrom(legs: readonly Leg[], at: number): Leg[] {
+  const here = legs[at]!.from;
+  return legs.map((leg, i) => {
+    if (i < at) return leg;
+    const { pass: _pass, around: _around, ...rest } = leg;
+    return { ...rest, from: here, to: here, bow: 0, standing: true as const };
+  });
+}
+
 /** The leg a beat falls in, and how far along it. */
 function atBeat(legs: readonly Leg[], t: Beat): { leg: Leg; k: number; index: number } {
   for (let i = 0; i < legs.length; i++) {
@@ -268,8 +399,7 @@ export function planWaypoints(
       `path: a hold belongs on the waypoint that passes it, not on the definition (M6)`,
     );
   }
-  const legs = legsOf(shape, input);
-  const partners = passPartners(legs);
+  const { legs, partners } = routesOf(shape, input);
 
   const natural: Spots = {};
   for (const role of input.roles) {
@@ -295,6 +425,11 @@ export function planWaypoints(
       const other = partners.get(role)?.[found.index];
       if (side === undefined || other === undefined) continue;
       if (role > other) continue;
+      // The hands count as joined once they have met and until they part: on
+      // the way up and on the way down they are one dancer's own hand on its
+      // way somewhere, which is what every other kind in the library says too.
+      const window = passWindow(found.leg);
+      if (t < window.takeTo || t > window.releaseFrom) continue;
       out.push({ a: role, aSide: side, b: other, bSide: side });
     }
     return out;
@@ -311,9 +446,11 @@ export function planWaypoints(
       const other = partners.get(role)?.[found.index];
       if (side !== undefined && other !== undefined) {
         const hand = passingHand(input, role, other, self, spotAt(other, t), found.leg.drop);
-        hands[side] = hand;
+        hands[side] = takeAndRelease(self, side, t, hand, passWindow(found.leg));
       }
-      const moving = found.k > 0 && found.k < 1;
+      // A dancer whose route stopped at a pass with nobody in it is standing,
+      // not walking on the spot: the same thing hold-place draws.
+      const moving = found.leg.standing !== true && found.k > 0 && found.k < 1;
       return {
         p: self.p,
         facing: self.facing,
@@ -323,6 +460,25 @@ export function planWaypoints(
       };
     },
   };
+}
+
+/**
+ * **The relation words a waypoint route's own passes name** (M7b), in the order
+ * the passes happen, each once.
+ *
+ * What the end-effects table reads. A figure whose pull-bys are inside it has no
+ * `pairs` parameter for the table to ask about, so the steps say it instead; see
+ * {@link PathStep.meets}.
+ */
+export function waypointMeets(shape: WaypointShape): string[] {
+  const out: string[] = [];
+  const tracks = shape.tracks as Readonly<Record<string, readonly PathStep[]>>;
+  for (const steps of Object.values(tracks)) {
+    for (const step of steps) {
+      if (step.meets !== undefined && !out.includes(step.meets)) out.push(step.meets);
+    }
+  }
+  return out;
 }
 
 /** The one shared floor point two passing dancers put their joined hands on. */
