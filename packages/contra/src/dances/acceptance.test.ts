@@ -131,8 +131,10 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
       "diamond (M9)",
       "interrupted-square-through (M9)",
       "jersey-twirl (M9)",
-      "promenade (M8)",
-      "square-through (M8)",
+      // `promenade` landed in M8 with Fatal Attraction; `square-through` moved
+      // to M9, because the only thing in the corpus that calls one is Jeremy
+      // Corners' and The Set Monster's **interrupted** square through.
+      "square-through (M9)",
     ]);
     // Empty since M6: every relation the twelve name resolves in both contra
     // formations' tables.

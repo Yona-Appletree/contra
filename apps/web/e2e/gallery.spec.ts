@@ -196,7 +196,12 @@ test.describe("the move gallery", () => {
       await expect(strip.locator('canvas[data-ready="1"]')).toHaveCount(cells);
       const png = await strip.screenshot();
       const dir = tile.kind === "seam" ? seamDir : figureDir;
-      writeFileSync(join(dir, `${tile.key}.png`), png);
+      // A **dance-local** figure's id carries its dance's slug and a slash
+      // (`fatal-attraction/go-forward`, M8), so its strip lands in a directory
+      // of that name — which is the filing a reader wants anyway.
+      const file = join(dir, `${tile.key}.png`);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, png);
       rows.push(indexRow(tile, cells, link));
     }
 

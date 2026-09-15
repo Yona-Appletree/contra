@@ -37,6 +37,10 @@ import { swingDefinition } from "./swing.js";
 import { turnAloneDefinition } from "./turn-alone.js";
 import { turnAsCouplesDefinition } from "./turn-as-couples.js";
 import { turnContraCornersDefinition } from "./turn-contra-corners.js";
+import { castBackDefinition } from "./cast-back.js";
+import { promenadeDefinition } from "./promenade.js";
+import { balanceWaveOfFourDefinition } from "./balance-wave-of-four.js";
+import { localFigureDefinitions } from "../../dances/danceFiles.js";
 
 /**
  * **The library's figures**, as data.
@@ -134,12 +138,37 @@ export const SCHEDULE_DEFINITIONS: readonly FigureDefinition[] = [
   singleFilePromenadeDefinition,
 ];
 
-/** Every figure the library holds as data. */
+/**
+ * **M8's**: the figures the three records of the dance-record milestone needed.
+ *
+ * `cast-back` and `promenade` are ordinary library figures — 472 corpus dances
+ * promenade and 644 cast — and `balance-wave-of-four` is the wave *across* the
+ * set, which M7 stopped rather than guess the hand rule for.
+ */
+export const RECORD_DEFINITIONS: readonly FigureDefinition[] = [
+  castBackDefinition,
+  promenadeDefinition,
+  balanceWaveOfFourDefinition,
+];
+
+/**
+ * Every figure the library holds as data, the dance files' own **local**
+ * figures last (D10, M8).
+ *
+ * A local figure is a definition literal in a dance file, under the id
+ * `<slug>/<name>` — see `dances/danceFiles.ts`. It is in this list for the same
+ * reason every other definition is: so a call of one resolves, draws, has a
+ * Moves tile and is checked for its parameters like any other. Read as a
+ * function rather than spread once, because the dance files are JSON imports
+ * and the list has to be built after they are evaluated.
+ */
 export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...GATHERER_DEFINITIONS,
   ...CARRIER_DEFINITIONS,
   ...SCHEDULE_DEFINITIONS,
   ...SHAPE_DEFINITIONS,
+  ...RECORD_DEFINITIONS,
+  ...localFigureDefinitions(),
 ];
 
 /** Their ids, for the bridge to skip and for a test to check the two lists agree. */
@@ -183,6 +212,24 @@ export const dataOnlyFigures = (): AnyFigureDef[] =>
   dataOnlyDefinitions().map((def) => interpretDefinition(def) as unknown as AnyFigureDef);
 
 /**
+ * **Whether only resolution against a real set can plan this figure** (M8).
+ *
+ * One predicate for a question three places were asking separately — the
+ * hands-four template's, the Moves gallery's and the symmetry harness's — and
+ * M7's own report asked for exactly that. Two kinds of figure need the set:
+ *
+ * - one resolution mints **per pair** or **per dancer**, which a harness handed
+ *   four stations and one instance cannot cast; and
+ * - one whose shape reads the **lattice** — which line of the set a dancer is
+ *   standing on — which is not a fact four stations carry. Every wave is one.
+ *
+ * It goes away with the coded layer (M11), when everything is planned by
+ * resolution and there is no other kind of harness left.
+ */
+export const needsTheSet = (def: FigureDefinition): boolean =>
+  (def.actors !== "all" && def.actors !== "ring") || def.shape.kind === "wave";
+
+/**
  * A data-only figure the **hands-four template** can plan, or `undefined`.
  *
  * `chainCalls` threads a dance by handing each figure the four stations of a
@@ -198,6 +245,8 @@ export function templateFigureOf(id: string): AnyFigureDef | undefined {
   const def = dataOnlyDefinitions().find((each) => each.id === id);
   if (def === undefined || def.actors !== "all") return undefined;
   if (def.anchor !== "hands-four" && def.anchor !== "centroid") return undefined;
+  // **And whose shape does not name the lattice** (M8): see {@link needsTheSet}.
+  if (needsTheSet(def)) return undefined;
   return interpretDefinition(def) as unknown as AnyFigureDef;
 }
 

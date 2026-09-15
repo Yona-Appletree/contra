@@ -56,7 +56,17 @@ function carrier(
     const defaults = { ...(coded.defaults as Record<string, unknown>) };
     delete defaults["from"];
     delete defaults["carried"];
-    expect(definition.params).toEqual({ kind: "canonical", defaults });
+    // **Every coded default, with its coded value** — and a definition is
+    // allowed to have *more* of them (M8). The star's `amount` is the first: a
+    // caller says "star left 7/8" and the coded figure has no word for it, so a
+    // record that writes one is a new-engine record by construction. What M4's
+    // gate is about is that nothing the coded figure understood has moved, which
+    // is what the loop below asserts key by key.
+    const declared = definition.params.kind === "canonical" ? definition.params.defaults : {};
+    for (const [key, value] of Object.entries(defaults)) {
+      expect(declared[key], `${definition.id}.${key}`).toEqual(value);
+    }
+    expect(definition.params.kind).toBe("canonical");
   });
 
   it("carries the whole minor set in one instance and leaves it where it put it", () => {

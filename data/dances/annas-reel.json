@@ -4,7 +4,8 @@
   "author": "Rick Mohr",
   "formation": "duple-improper",
   "status": "lab",
-  "notes": "The Caller's Box 140, permission: full. Only the first pass is encoded: the record's second pass, with the roles exchanged throughout, is a multi-pass record and belongs to M8. Still owed at M7: a **wave of four across the set** — `balance-wave` is the long wave down the lattice that Whoosh's own A2 forms, and Anna's Reel's is four dancers in a row across the hall, which is a different shape with a different hand rule — and the **nine-beat half hey**, which is M5's. The seven-beat allemande once and a quarter and the same-role balance and swing are M7's and dance.",
+  "passes": 2,
+  "notes": "The Caller's Box 140, permission: full. **A two-pass record** (M8): the phrase list holds both passes in order, `A1 A2 B1 B2 2A1 2A2 2B1 2B2`, and `passes: 2` says so. The set progresses at the end of **each** pass, and the second pass exchanges the roles throughout \u2014 which is why it is written out rather than derived: the corpus writes it out. A1's wave of four runs **across** the set (`balance-wave-of-four`), which is a different shape from the long wave down it, and it dances: the row is read off the lattice, one dancer of each role on each line, the middle pair by the named hand and the ends by the other. **Still owed, measured.** Closure 20.0000 px at 2 couples (progressed 0.0000) and **37.7359 px** at 3\u20136 couples, which is exactly `sqrt(32^2 + 20^2)` \u2014 across the set *and* one dancing place along. That is the dance's own \"swap sides\": the Caller's Box calls the formation \"other; single, swap sides\", the roles change which line they stand on, and `duple-improper`'s progression does not do that. The record is written in `duple-improper` because no swap-sides formation exists. M7's own report measured the same 37.7359 px before either pass two or the wave existed, so the number has not moved and the wave is not what it is about.",
   "source": {
     "callersBoxId": 140,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=140",
@@ -26,13 +27,13 @@
           "call": "ROBINS ALLEMANDE RIGHT ONCE AND A HALF"
         },
         {
-          "figure": "balance-wave",
+          "figure": "balance-wave-of-four",
           "beats": 4,
           "params": {
-            "hand": "L",
-            "facesIn": "robin"
+            "centre": "robin",
+            "hand": "R"
           },
-          "call": "BALANCE THE WAVE OF FOUR"
+          "call": "BALANCE THE WAVE OF FOUR, ROBINS BY THE RIGHT, NEIGHBOUR BY THE LEFT"
         },
         {
           "figure": "allemande",
@@ -64,9 +65,7 @@
           "beats": 9,
           "params": {
             "amount": 0.5,
-            "passes": "LL PR RL",
-            "start": "robin",
-            "by": "left"
+            "passes": "RL PR LL N2R"
           },
           "call": "HALF A HEY"
         }
@@ -89,6 +88,93 @@
     },
     {
       "name": "B2",
+      "figures": [
+        {
+          "figure": "swing",
+          "beats": 16,
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "2A1",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": {
+            "pairs": [["1L", "2L"]],
+            "hand": "L",
+            "amount": 1.5
+          },
+          "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF"
+        },
+        {
+          "figure": "balance-wave-of-four",
+          "beats": 4,
+          "params": {
+            "centre": "lark",
+            "hand": "L"
+          },
+          "call": "BALANCE THE WAVE OF FOUR, LARKS BY THE LEFT, NUMBER TWO BY THE RIGHT"
+        },
+        {
+          "figure": "allemande",
+          "beats": 4,
+          "params": {
+            "pairs": "N2",
+            "hand": "R",
+            "amount": 0.75
+          },
+          "call": "ALLEMANDE RIGHT THREE QUARTERS WITH NUMBER TWO"
+        }
+      ]
+    },
+    {
+      "name": "2A2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 7,
+          "params": {
+            "pairs": "N3",
+            "hand": "L",
+            "amount": 1.25
+          },
+          "call": "ALLEMANDE LEFT ONCE AND A QUARTER WITH NUMBER THREE"
+        },
+        {
+          "figure": "hey",
+          "beats": 9,
+          "params": {
+            "amount": 0.5,
+            "passes": "LR PL RR N3L"
+          },
+          "call": "HALF A HEY"
+        }
+      ]
+    },
+    {
+      "name": "2B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": {
+            "pairs": [["1L", "2L"]],
+            "balanceBeats": 4,
+            "endFacing": "across"
+          },
+          "call": "LARKS BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "2B2",
       "figures": [
         {
           "figure": "swing",

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Dance, Program } from "./Dance.js";
-import { danceBeats, danceSchedule, phraseBeats, validateDance } from "./Dance.js";
+import {
+  callBeats,
+  concurrentCalls,
+  danceBeats,
+  dancePassSpans,
+  dancePasses,
+  danceSchedule,
+  passBeats,
+  phraseBeats,
+  validateDance,
+} from "./Dance.js";
 
 const dance = (): Dance => ({
   slug: "d",
@@ -104,5 +114,115 @@ describe("a dance is data", () => {
       ],
     };
     expect(JSON.parse(JSON.stringify(withParams))).toEqual(withParams);
+  });
+});
+
+describe("the record M8 grew: concurrency, zero-beat calls and passes", () => {
+  const concurrent = (): Dance => {
+    const d = dance();
+    d.phrases[3]!.figures = [
+      {
+        figure: "allemande",
+        beats: 4,
+        who: "larks",
+        while: [{ figure: "loop", who: "robins" }],
+      },
+      { figure: "swing", beats: 12 },
+    ];
+    return d;
+  };
+
+  it("measures a call by the longest of it and the calls beside it", () => {
+    expect(callBeats(concurrent().phrases[3]!.figures[0]!)).toBe(4);
+    // A branch that runs longer than its parent is what the phrase has to be
+    // measured by: four beats of allemande beside six of looping is six.
+    const longer = concurrent();
+    longer.phrases[3]!.figures[0]!.while![0]!.beats = 6;
+    expect(callBeats(longer.phrases[3]!.figures[0]!)).toBe(6);
+    expect(phraseBeats(longer.phrases[3]!)).toBe(18);
+    expect(() => validateDance(longer)).toThrow(/B2 is 18 beats, A1 is 16/);
+  });
+
+  it("keeps a concurrent call as one step of the schedule", () => {
+    const d = validateDance(concurrent());
+    expect(phraseBeats(d.phrases[3]!)).toBe(16);
+    expect(danceBeats(d)).toBe(64);
+    // One entry, not two: the card says one thing and the planner resolves the
+    // whole of it at once, because the dancers it leaves out are the dancers
+    // *neither* branch named.
+    const b2 = danceSchedule(d).filter((s) => s.phrase === "B2");
+    expect(b2.map((s) => s.call.figure)).toEqual(["allemande", "swing"]);
+    expect(b2.map((s) => s.start)).toEqual([48, 52]);
+  });
+
+  it("flattens a concurrent call parent first, with the branch's real count", () => {
+    const flat = concurrentCalls(concurrent().phrases[3]!.figures[0]!);
+    expect(flat.map((c) => [c.figure, c.beats])).toEqual([
+      ["allemande", 4],
+      ["loop", 4],
+    ]);
+    // The parent hands its own count down and keeps none of its branches, so a
+    // caller of this never has to remember either rule.
+    expect(flat[0]!.while).toBeUndefined();
+    expect(concurrentCalls({ figure: "swing", beats: 8 })).toHaveLength(1);
+  });
+
+  it("admits a call of no beats at all, and still refuses a negative one", () => {
+    const zero = dance();
+    zero.phrases[0]!.figures = [
+      { figure: "face", beats: 0 },
+      { figure: "balance", beats: 4 },
+      { figure: "swing", beats: 12 },
+    ];
+    // 44 corpus dances have one: "face your neighbour", "form a wave" — a fact
+    // about where you end up rather than something you spend the music on.
+    expect(() => validateDance(zero)).not.toThrow();
+    expect(phraseBeats(zero.phrases[0]!)).toBe(16);
+    expect(
+      danceSchedule(zero)
+        .slice(0, 3)
+        .map((s) => s.start),
+    ).toEqual([0, 0, 4]);
+
+    const negative = dance();
+    negative.phrases[0]!.figures[0]!.beats = -4;
+    expect(() => validateDance(negative)).toThrow(/no duration/);
+  });
+
+  it("counts a record's passes and says where each one starts", () => {
+    const one = validateDance(dance());
+    expect(dancePasses(one)).toBe(1);
+    expect(passBeats(one)).toBe(64);
+    expect(dancePassSpans(one)).toEqual([{ start: 0, end: 64 }]);
+
+    const two: Dance = {
+      ...dance(),
+      passes: 2,
+      phrases: [...dance().phrases, ...dance().phrases.map((p) => ({ ...p, name: `2${p.name}` }))],
+    };
+    expect(danceBeats(validateDance(two))).toBe(128);
+    expect(dancePasses(two)).toBe(2);
+    expect(passBeats(two)).toBe(64);
+    expect(dancePassSpans(two)).toEqual([
+      { start: 0, end: 64 },
+      { start: 64, end: 128 },
+    ]);
+  });
+
+  it("refuses passes that do not divide, or a progression that does not divide them", () => {
+    expect(() => validateDance({ ...dance(), passes: 3 })).toThrow(/does not divide/);
+    expect(() => validateDance({ ...dance(), passes: 0 })).toThrow(/not a count/);
+    expect(() => validateDance({ ...dance(), progressEvery: 2 })).toThrow(/does not divide/);
+  });
+
+  it("lets a phrase be called anything: a phrase name is a label", () => {
+    // 113 corpus dances have phrases beyond A1-B2, and a second pass writes
+    // `2A1 … 2B2`. Nothing in this package reads the four letters.
+    const named: Dance = {
+      ...dance(),
+      phrases: dance().phrases.map((p, i) => ({ ...p, name: `C${String(i)}` })),
+    };
+    expect(() => validateDance(named)).not.toThrow();
+    expect(danceSchedule(named)[0]!.phrase).toBe("C0");
   });
 });

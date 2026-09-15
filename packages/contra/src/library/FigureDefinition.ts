@@ -978,11 +978,29 @@ export interface UnitShape {
  */
 export interface WaveShape {
   kind: "wave";
+  /**
+   * Which way the wave **runs** (M8). Left out is `"along"`, the long wave down
+   * the set that Whoosh forms and every wave written before M8.
+   *
+   * `"across"` is the other wave the corpus writes and the one Anna's Reel
+   * forms: four dancers in a row **between** the lines, looking along the set
+   * rather than across it. They are different shapes with different hand rules
+   * and neither is the other with a sign — see `kinds/wave.ts`.
+   */
+  axis?: "along" | "across";
+  /**
+   * For `"across"`: the parameter naming the contra role that stands in the
+   * **middle** of the row, the other role taking the two ends.
+   */
+  centre?: string;
   /** Which hand goes to the dancer one place along the way you travel. */
   hand: SideExpr;
+  /** For `"across"`: how far apart the row's places sit, px. A hold when left out. */
+  spacing?: NumberExpr;
   /**
    * The parameter naming the contra role that faces **in** — toward the other
-   * line — with the other role facing out. Whoosh's "men face in".
+   * line — with the other role facing out. Whoosh's "men face in". Read only by
+   * the long wave: an across wave's facings follow from its hands.
    */
   facesIn: string;
   /** How far the body rocks forward, px. */

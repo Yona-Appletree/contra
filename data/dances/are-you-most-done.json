@@ -1,0 +1,107 @@
+{
+  "slug": "are-you-most-done",
+  "title": "Are You 'Most Done?",
+  "author": "Russell Owen",
+  "formation": "becket",
+  "status": "lab",
+  "notes": "The Caller's Box 2842, permission: full. The Caller's Box's own notes: \"Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey.\" **Still owed, measured.** The record resolves and dances; the oracles do not pass. At 4 couples: closure 60.0000 px, progressed 0.0000 px, reach 46.6301 px short. At 5 couples and above `long-lines` throws `station \"1L\" has no line mate` in the second time through, which is the same fault one cycle on: three of a minor set's four on one side of it. The one thing owed is **which four dancers a right-diagonal hey is with, and what it leaves behind**. Two readings, and no measurement here decided between them: the star left 7/8 leaves your own minor set standing on a diagonal and you hey with it (what this record writes \u2014 `axis: \"diagonal\"`, the lane at whatever angle the four really make, Q12's fixed diagonal), or the hey is with the couple across the seam (`\"group\": \"shadow-pair\"`, which becket already partitions, and which makes the hey the progression). The diagonal **lane** is built and tested either way (`hey.test.ts`). Lisa Greenleaf's alternate B2 (#4700) is in the transcript and is not encoded: it is the same concurrent call with a shoulder round and a shift.",
+  "source": {
+    "callersBoxId": 2842,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=2842",
+    "permission": "full",
+    "transcript": "A1  (8) Men allemande left 1 & 1/2  (8) Neighbor swing\nA2  (8) In long lines, go forward and back  (8) Star left 7/8\nB1  (16) On right diagonal, hey (MR;N2L;WR;PL;MR;N2L;WR;PL)\nB2  (4) Men allemande right 1 || Women loop right  (12) Partner swing\n(#4700 alternate B2: (4) Men right shoulder round 3/4 || Women shift right)\nnotes: Hey can straighten out as it proceeds. Dance begins with same neighbors as in the hey."
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": {
+            "pairs": [["1L", "2L"]],
+            "hand": "L",
+            "amount": 1.5
+          },
+          "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "neighbors",
+            "endFacing": "across"
+          },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "long-lines",
+          "beats": 8,
+          "call": "LONG LINES FORWARD AND BACK"
+        },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": {
+            "hand": "L",
+            "amount": 0.875
+          },
+          "call": "STAR LEFT SEVEN EIGHTHS"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "hey",
+          "beats": 16,
+          "params": {
+            "axis": "diagonal",
+            "passes": "LR N2L RR PL LR N2L RR PL"
+          },
+          "call": "ON THE RIGHT DIAGONAL, HEY FOR FOUR"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 4,
+          "params": {
+            "pairs": [["1L", "2L"]],
+            "hand": "R",
+            "amount": 1
+          },
+          "call": "LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT",
+          "while": [
+            {
+              "figure": "loop",
+              "who": "robins",
+              "params": {
+                "hand": "R",
+                "amount": 1
+              }
+            }
+          ]
+        },
+        {
+          "figure": "swing",
+          "beats": 12,
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
+          "call": "PARTNER SWING"
+        }
+      ]
+    }
+  ]
+}

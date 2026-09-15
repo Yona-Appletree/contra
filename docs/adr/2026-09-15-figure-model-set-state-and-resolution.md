@@ -136,6 +136,55 @@ plan's later milestones are therefore not built on the old leaves.
 stand. Its rung one — honest ends — is structural here rather than a treatment;
 its rung two, an exit hint, is replaced by ends stated as a target shape (M7).
 
+### Amendment, M8: the dance record
+
+The decision above put set state and resolution in the middle and said that the
+record would have to grow to match. This is that growth, recorded here rather
+than in an ADR of its own because it is the same decision seen from the record's
+side: what a figure _is_ stopped being sequential, so what a dance _says_ stopped
+being a flat list of one figure after another. `docs/dance-record.md` is the
+whole format; this is what changed and why.
+
+- **A call may carry other calls beside it** (`FigureCall.while`). The corpus's
+  own `||`, in 735 dances, and "while" in 189 more. Q13 is answered by the code:
+  the timeline has always admitted concurrent events over disjoint dancers, and
+  what could not say so were the record and `chainCalls`. A branch is an ordinary
+  call whose `beats` default to its parent's and which carries no branches of its
+  own; the planner checks the actors are disjoint before anything is emitted, and
+  **the hold-place complement is the complement of all the branches at once** —
+  which is the one thing that cannot be computed a branch at a time.
+- **A call may take no beats** (`beats: 0`). 44 corpus dances write one: "face
+  your neighbour", "form a wave". A zero-beat call is a statement about where you
+  end up, so it means something exactly when the figure's ends are structural
+  rather than a ramp — every `waypoints` figure is.
+- **A phrase name is a label**, not one of four letters. 113 corpus dances have
+  phrases beyond A1–B2. `PhraseName` opens to a string and nothing reads it.
+- **A record may hold more than one pass** (`passes`, `progressEvery`). The
+  phrase list stays flat — all passes in order, `2A1 … 2B2` — so nothing that
+  walks a dance's figures learns about passes, and what does change is where the
+  progression fires: at the end of **every pass**, not of the record. The
+  alternative shapes were rejected for the reason the flat list is chosen:
+  a second `phrases` list would fork every consumer, and deriving pass two from
+  pass one by a role swap would be a claim the corpus does not make (Anna's Reel
+  writes both out, and the two are not each other's mirror in every phrase).
+- **A record may carry figure definitions of its own** (`figures`, D10), under
+  the id `<slug>/<name>`, with their texts in the same literal. The alternative
+  was a library figure nothing else ever calls; the id carries the slug so that
+  promoting one is a copy of one thing.
+- **Canonical parameters may be written directly beside the shorthand.** A hey's
+  pass list, a star's `places`, a schedule. They compose rather than compete —
+  the star's new `amount` multiplies its `places`, so the eleven records that
+  write `places` are untouched — because a caller's own words are sometimes not
+  one of the shorthand's values ("star left 7/8").
+- **`from` and `carried` still never appear in a file**, and the three
+  call-level clauses that are not figure parameters — `rebind` (M6), `trade`
+  (M7, Q10) and `form` (M7, Q6) — still ride in `params` and are stripped before
+  any figure is planned, because `FigureCall` is `@caller/choreo`'s and all three
+  are contra words (AC7).
+- **Nothing contra crossed into `@caller/choreo`.** `while`, `beats: 0`, an open
+  `PhraseName` and `passes` are all form-neutral: a square could use every one of
+  them, and `src/testing/square.test.ts` is unchanged in meaning.
+
 ## Consequences
 
 - **M1 is proved by construction, not by taste.** With the seventeen coded
@@ -155,10 +204,11 @@ its rung two, an exit hint, is replaced by ends stated as a target shape (M7).
 - **`pnpm dance <slug>` becomes the inner loop**, and the motion oracle becomes
   a gate with a written allowlist rather than an advisory report (director debt
   11, R6).
-- **Amendments expected.** M8 amends this ADR for the dance record (concurrent
+- **Amendments.** M8 has amended this ADR for the dance record — concurrent
   calls, zero-beat calls, phrases beyond A1–B2, multi-pass records, dance-local
-  figures). M6's slots and M7's shapes are consequences of this decision and get
-  no ADR of their own. M11 marks the freeze reversal complete when the old
+  figures — under "Amendment, M8" above, with `docs/dance-record.md` as the
+  format itself. M6's slots and M7's shapes are consequences of this decision and
+  get no ADR of their own. M11 marks the freeze reversal complete when the old
   figure layer is deleted.
 
 ## Alternatives considered

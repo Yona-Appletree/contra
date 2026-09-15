@@ -9,7 +9,7 @@ import { PROBE_STEP } from "../figures/testing.js";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import type { FigureDefinition, ParamValue } from "./FigureDefinition.js";
-import { DATA_DEFINITIONS } from "./figures/index.js";
+import { DATA_DEFINITIONS, needsTheSet } from "./figures/index.js";
 import { interpretDefinition, paramDefaults } from "./interpret.js";
 import type { ParameterMirror } from "./symmetry.js";
 import { mirror, mirrorParams, roleSwapParams } from "./symmetry.js";
@@ -68,10 +68,11 @@ const TOLERANCE_DEG = 1e-9;
  * anchoring on the group's own centroid, so a figure turning alone would have
  * been planned here over four stations it has one part for. What the harness
  * really needs is a definition resolution hands the whole minor set to, which is
- * `"all"` and `"ring"` and nothing else.
+ * `"all"` and `"ring"` and nothing else — and, since M8, one whose shape does
+ * not read the lattice either. `needsTheSet` is the one predicate the template,
+ * the Moves gallery and this harness all ask.
  */
-const overTheSet = (def: FigureDefinition): boolean =>
-  def.actors === "all" || def.actors === "ring";
+const overTheSet = (def: FigureDefinition): boolean => !needsTheSet(def);
 
 const OVER_THE_SET = DATA_DEFINITIONS.filter(overTheSet);
 
@@ -319,14 +320,22 @@ describe("symmetry as a transform", () => {
       // a lead, a cast), a figure for **one** (`actors: "each"`), or a figure
       // for a whole line of the lattice.
       "balance-wave",
+      // M8's three. `cast-back` and the dance-local "go forward" are figures for
+      // **one** (`actors: "each"`); `promenade` is a unit, two dancers as one;
+      // and the wave of four across the set takes the whole minor set but reads
+      // the lattice, which a bare four-station harness does not carry.
+      "balance-wave-of-four",
+      "cast-back",
       "cast-off",
       "circulate",
+      "fatal-attraction/go-forward",
       "go-down-outside",
       "go-up-outside",
       "grand-right-and-left",
       "lead-down",
       "lead-up",
       "loop",
+      "promenade",
       "pull-by",
       "shoulder-round",
       "swing",

@@ -92,7 +92,9 @@ export { WALK_TO_STATION } from "./figure/walkToStation.js";
 
 // dances and programs, as data
 export type {
+  CommonPhraseName,
   CommonSelector,
+  ConcurrentCall,
   Dance,
   DancePhrase,
   FigureCall,
@@ -101,7 +103,17 @@ export type {
   ProgramItem,
   Selector,
 } from "./dance/Dance.js";
-export { danceBeats, danceSchedule, phraseBeats, validateDance } from "./dance/Dance.js";
+export {
+  callBeats,
+  concurrentCalls,
+  danceBeats,
+  dancePassSpans,
+  dancePasses,
+  danceSchedule,
+  passBeats,
+  phraseBeats,
+  validateDance,
+} from "./dance/Dance.js";
 
 // the seam
 export type { FigureEvent, Timeline, TimelineEvent, UtteranceEvent } from "./timeline/Timeline.js";

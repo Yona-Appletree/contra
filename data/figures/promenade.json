@@ -1,0 +1,11 @@
+{
+  "id": "promenade",
+  "walkthrough": {
+    "short": "Side by side, walk the two of you round the whole set rather than across your own four.",
+    "long": "Side by side with the dancer named, inside hands joined, the two of you walk as one along the line you are standing in — round the whole set, not across your own little circle of four. Counterclockwise is the way you are already travelling and clockwise is back the other way. You end further along the set than you began, which is the point of it."
+  },
+  "call": {
+    "short": "PROMENADE",
+    "long": "PROMENADE AROUND THE SET"
+  }
+}

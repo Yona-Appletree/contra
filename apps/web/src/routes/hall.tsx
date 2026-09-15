@@ -201,10 +201,23 @@ export function HallPage({
     () => layoutHall({ lines: lines.length, couplesPerLine: [...lines] }),
     [lines],
   );
-  const program = useMemo<DemoProgram>(
-    () => createDemoProgram(world, danceSlug, seed, {}, engine),
-    [world, danceSlug, seed, engine],
-  );
+  // **A lab dance may not dance at all** (M8). The Stage is where a record is
+  // watched while it is being worked out, and a record whose figures are half
+  // written throws somewhere inside the planner — which took the whole route
+  // down, so the page did not render at all and neither did the note saying
+  // why. The evening is built instead, and the reason is said in words above
+  // the hall.
+  const built = useMemo<{ program: DemoProgram; error?: string }>(() => {
+    try {
+      return { program: createDemoProgram(world, danceSlug, seed, {}, engine) };
+    } catch (error) {
+      return {
+        program: createDemoProgram(world, undefined, seed, {}, engine),
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }, [world, danceSlug, seed, engine]);
+  const program = built.program;
   const people = useMemo<Map<DancerId, Person>>(() => createHallPeople(program.hall), [program]);
   // The programme's own shuffle, read as a `Medley`: `program.tunes` is one
   // concrete tune per dance (each dance's assigned medley's next tune in
@@ -613,6 +626,12 @@ export function HallPage({
       data-testid="hall-page"
       data-engine={engine}
     >
+      {built.error === undefined ? null : (
+        <p className="px-4 pt-4 text-xs" data-testid="hall-dance-error">
+          <code>{danceSlug}</code> does not dance yet, so the Stage is showing the evening instead:{" "}
+          {built.error}
+        </p>
+      )}
       {/*
        * No title line: the tab bar above already says which page this is, and
        * a phone has no height to spare (U1). The row is the page's only

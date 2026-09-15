@@ -53,11 +53,25 @@ export interface DanceFile extends Omit<ContraDanceSpec, "formation"> {
    */
   status?: "lab";
   /**
-   * Reserved for a dance-local figures map — the move-data-layer plan's
-   * decision 3 (M4): a phrase's figure calls would be able to name one of
-   * these as well as a registry id. Not read by this loader; no demo dance
-   * sets it. The key is here so a future dance file does not have to add a
-   * field to every existing one to gain it.
+   * **Dance-local figures** (D10): definition literals this dance may call by
+   * name, as well as anything in the library.
+   *
+   * The map's key is the local name and its value is a `FigureDefinition`
+   * written out in full but for its `id`, which is supplied as
+   * `<slug>/<name>` — so a call in this dance's own phrases writes
+   * `"figure": "fatal-attraction/go-forward"` and a reader always knows where to
+   * look. Two dances cannot collide, and **promoting one is a copy**: move the
+   * literal into `library/figures/<name>.ts`, drop the slug from the calls, and
+   * nothing else changes.
+   *
+   * What it is for is the figure one dance needs and no other asks for: Fatal
+   * Attraction's two-beat "men go forward" beside the women's cast back. The
+   * alternative is a library figure nothing else ever calls, or a call the
+   * record cannot make at all.
+   *
+   * Read by {@link import('./danceFiles.js').localFigureDefinitions}, which the
+   * library folds into `DATA_DEFINITIONS`, so a local figure resolves, draws,
+   * has a Moves tile and is checked for its parameters exactly like any other.
    */
   figures?: Record<string, unknown>;
 }
@@ -102,6 +116,19 @@ function checkCall(
   formation: Formation,
   call: ContraCall,
 ): void {
+  // **A concurrent branch is an ordinary call** and is checked as one (M8): it
+  // names a real figure, only that figure's parameters, and a group the
+  // formation defines. What it may not do is carry branches of its own, which
+  // the type forbids and this says out loud for a JSON file, which has no types.
+  for (const branch of call.while ?? []) {
+    if ((branch as { while?: unknown }).while !== undefined) {
+      throw new Error(
+        `${danceSlug} ${phraseName}: "${branch.figure}" runs beside "${call.figure}" and cannot ` +
+          `carry a "while" of its own`,
+      );
+    }
+    checkCall(danceSlug, phraseName, formation, { ...branch, beats: branch.beats ?? call.beats });
+  }
   const declared = declaredParams(danceSlug, phraseName, call.figure);
   if (declared !== undefined) {
     for (const key of Object.keys(call.params ?? {})) {
@@ -157,19 +184,27 @@ function declaredParams(
   figure: string,
 ): Set<string> | undefined {
   const coded = contraFigureOf(figure);
-  if (coded) {
-    return new Set([
-      ...Object.keys(coded.defaults).filter((k) => k !== "from" && k !== "carried"),
-      ...CALL_PARAMS,
-    ]);
-  }
   // **Every** data definition, not only the gatherers (M5): M4's carriers, M5's
   // schedule and M7's shapes are in the other lists and a call of one would
-  // otherwise be checked against nothing.
+  // otherwise be checked against nothing. Since M8 the list includes the dance
+  // files' own local figures (D10).
   const definition = DATA_DEFINITIONS.find((d) => d.id === figure);
-  if (definition) return new Set([...Object.keys(paramDefaults(definition)), ...CALL_PARAMS]);
-  if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
-  throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);
+  if (coded === undefined && definition === undefined) {
+    if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
+    throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);
+  }
+  // **The union of both, where a figure is both** (M8). A migrated figure has a
+  // coded twin *and* a definition, and the definition is what the engine the
+  // Stage runs on resolves against: a parameter the definition added — the
+  // star's `amount`, "star left 7/8" — is a parameter the record may write, and
+  // checking only the coded twin's defaults refused it. A dance that writes one
+  // is a new-engine dance by construction (`threadsOnTheOldPath`), because the
+  // coded figure cannot read it.
+  return new Set([
+    ...Object.keys(coded?.defaults ?? {}).filter((k) => k !== "from" && k !== "carried"),
+    ...(definition === undefined ? [] : Object.keys(paramDefaults(definition))),
+    ...CALL_PARAMS,
+  ]);
 }
 
 /**
@@ -189,6 +224,8 @@ export function danceFromFile(file: DanceFile): Dance {
     author: file.author,
     formation,
     phrases: file.phrases,
+    ...(file.passes === undefined ? {} : { passes: file.passes }),
+    ...(file.progressEvery === undefined ? {} : { progressEvery: file.progressEvery }),
     ...(file.notes === undefined ? {} : { notes: file.notes }),
     ...(file.startPlaces === undefined ? {} : { startPlaces: file.startPlaces }),
     ...(file.waitOut === undefined ? {} : { waitOut: file.waitOut }),

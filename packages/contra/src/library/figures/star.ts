@@ -49,11 +49,31 @@ export const starDefinition: FigureDefinition = {
   anchor: "hands-four",
   params: {
     kind: "canonical",
-    defaults: { hand: "R", places: 4, holdDrop: 3, stackPx: 1.2, hold: "wrist" },
+    defaults: {
+      hand: "R",
+      /** How many of the ring's four places the star walks: four is once round. */
+      places: 4,
+      /**
+       * **How far round, as a fraction of the whole star** — the caller's own
+       * word (M8).
+       *
+       * "Star left 7/8" is Are You 'Most Done?'s A2 and is not a whole number of
+       * places; 92 corpus dances write a star as a fraction rather than as
+       * places. It multiplies `places`, so the two ways of saying it compose and
+       * the eleven records that write `places` alone are untouched: `places: 4`
+       * with no `amount` is once round exactly as it was, `places: 3` is three
+       * quarters, and `amount: 0.875` is seven eighths of whichever the record
+       * asked for.
+       */
+      amount: 1,
+      holdDrop: 3,
+      stackPx: 1.2,
+      hold: "wrist",
+    },
   },
   shape: {
     kind: "ringWalk",
-    places: { param: "places" },
+    places: { number: "mul", of: [{ param: "places" }, { param: "amount" }] },
     // A right-hand star keeps the middle on the dancer's right, which turns the
     // ring the way a circle left goes; a left-hand star turns back.
     sign: HAND_SIGN,

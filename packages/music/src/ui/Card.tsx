@@ -11,6 +11,15 @@ export interface CardPhrase {
 export interface CardFigure {
   beats: number;
   call?: string | undefined;
+  /**
+   * Calls danced **beside** this one, by other dancers, over the same beats.
+   *
+   * The card draws a concurrent call as **one row with two lines** — one figure
+   * of the phrase, which is what it is, with each line saying what one half of
+   * the hall does. The row is bold when the beat is inside it, exactly as a
+   * single-figure row is.
+   */
+  with?: readonly string[] | undefined;
 }
 
 /**
@@ -22,10 +31,21 @@ export interface CardFigure {
  * a piece of paper. The look itself lives in the app's stylesheet, not here.
  */
 export function Card({ dance, beat, children }: CardProps) {
-  const cycleBeats = BEATS_PER_PHRASE * dance.phrases.length;
+  // **The phrases say how long they are** (M8). A phrase used to be sixteen
+  // beats because every dance on the card had four of them and each was a tune's
+  // eight bars; 113 corpus dances have phrases beyond A1–B2 and a two-pass
+  // record has eight of them, so the length is read off the figures. A phrase
+  // with no figures at all still measures sixteen, which is what an empty card
+  // used to draw.
+  const lengths = dance.phrases.map((phrase) => phraseLength(phrase));
+  const cycleBeats = lengths.reduce((sum, n) => sum + n, 0) || BEATS_PER_PHRASE;
   const t = ((beat % cycleBeats) + cycleBeats) % cycleBeats;
-  const phraseIndex = Math.floor(t / BEATS_PER_PHRASE);
-  const intoPhrase = t % BEATS_PER_PHRASE;
+  let phraseIndex = 0;
+  let intoPhrase = t;
+  while (phraseIndex + 1 < lengths.length && intoPhrase >= lengths[phraseIndex]!) {
+    intoPhrase -= lengths[phraseIndex]!;
+    phraseIndex += 1;
+  }
 
   return (
     <div className="caller-music-card">
@@ -38,11 +58,8 @@ export function Card({ dance, beat, children }: CardProps) {
       <div className="caller-music-card-body">
         {dance.phrases.map((phrase, i) => {
           const isCurrent = i === phraseIndex;
-          const fill = isCurrent
-            ? (intoPhrase / BEATS_PER_PHRASE) * 100
-            : i < phraseIndex
-              ? 100
-              : 0;
+          const length = lengths[i] ?? BEATS_PER_PHRASE;
+          const fill = isCurrent ? (intoPhrase / length) * 100 : i < phraseIndex ? 100 : 0;
           const starts = figureStarts(phrase);
           return (
             <div
@@ -73,6 +90,11 @@ export function Card({ dance, beat, children }: CardProps) {
                       data-figure-on={isOn}
                     >
                       {figure.call ?? ""}
+                      {(figure.with ?? []).map((line, wi) => (
+                        <span key={wi} className="caller-music-card-figure-with">
+                          {line}
+                        </span>
+                      ))}
                     </span>
                   );
                 })}
@@ -111,7 +133,14 @@ export interface CardProps {
   children?: ReactNode;
 }
 
+/** What a phrase with no figures of its own measures: one tune's eight bars. */
 const BEATS_PER_PHRASE = 16;
+
+/** How long one phrase is: its own figures, or the ordinary sixteen. */
+function phraseLength(phrase: CardPhrase): number {
+  const beats = phrase.figures.reduce((sum, figure) => sum + figure.beats, 0);
+  return beats > 0 ? beats : BEATS_PER_PHRASE;
+}
 
 /** Cumulative start beat of each figure within its phrase. */
 function figureStarts(phrase: CardPhrase): number[] {

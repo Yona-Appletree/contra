@@ -364,9 +364,11 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   // it: `balance-wave`, `circulate` and `loop` are the shapes M6's report handed
   // over, and the nine M1 left as `unsupported … (M7)` are the definitions in
   // `library/figures/`.
-  // M8 — the dance record grows
-  "square-through": "M8",
-  promenade: "M8",
+  // M8 — the dance record grows. `promenade` landed here (Fatal Attraction's
+  // two trips round the major set); `square-through` did not, because the only
+  // thing in the corpus that calls one is Jeremy Corners' and The Set Monster's
+  // **interrupted** square through, which is M9's figure in M9's dances.
+  "square-through": "M9",
   // M9 — the Banner dances.
   //
   // **`diamond` moved from M7 to M9**, and only half of it did. The diamond

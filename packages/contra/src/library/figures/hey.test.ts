@@ -118,16 +118,18 @@ function plannedFor(
   formation: Formation,
   params: Record<string, unknown> = {},
   beats: Beat = 16,
+  /** Where the four are standing, for a case that is not the stations (M8). */
+  from: Record<string, { p: [number, number]; facing: number }> = {},
 ): { ctx: PlanContext; group: Group; plan: PlannedSchedule } {
   const group = probeGroup(formation, 4, frame([0, 0], 90));
-  const ctx = planContext(group.stations, group.roleSet, group.frame.spacing, {});
+  const ctx = planContext(group.stations, group.roleSet, group.frame.spacing, from);
   const all = {
     ...(heyDefinition.params.kind === "canonical" ? heyDefinition.params.defaults : {}),
     ...params,
     beats,
     homes: [],
     nearby: [],
-    from: {},
+    from,
   };
   const input: ShapeInput = {
     ctx,
@@ -405,15 +407,34 @@ describe("the parameters the brief names", () => {
     }
   });
 
-  it("takes the lane's axis outright, and names M8 for a diagonal", () => {
+  it("takes the lane's axis outright, and reads a diagonal off the dancers", () => {
     expect(plannedFor(DUPLE_IMPROPER, { axis: "across" }).plan.lane.axis).toBe(0);
     expect(plannedFor(DUPLE_IMPROPER, { axis: "along" }).plan.lane.axis).toBe(90);
-    // The parameter parses — a record may write it today — and the figure says
-    // what is missing rather than drawing something wrong.
-    expect(() => plannedFor(BECKET, { axis: "diagonal" })).toThrow(
-      /a hey on a diagonal, which spans two minor sets \(M8\)/,
-    );
+    // **The diagonal** (M8, Q12): the lane runs along the direction the four
+    // dancers are really most strung out on, without the snap to one of the
+    // frame's own two axes that `"spread"` makes. On a minor set standing square
+    // it is still one of them, which is the check that the principal axis is the
+    // same reading and not a different one: a becket minor set is 32 px across
+    // and 20 along, so its own principal axis is "across".
+    expect(plannedFor(BECKET, { axis: "diagonal" }).plan.lane.axis).toBeCloseTo(0, 9);
+    expect(plannedFor(DUPLE_IMPROPER, { axis: "diagonal" }).plan.lane.axis).toBeCloseTo(0, 9);
     expect(() => plannedFor(BECKET, { axis: "sideways" })).toThrow(/not one of \[spread/);
+  });
+
+  it("puts a diagonal lane at the angle four dancers on a diagonal really make", () => {
+    // Four dancers in two pairs on a diagonal — Are You 'Most Done?'s right
+    // diagonal, which in becket is a couple and the couple across the seam from
+    // it. The lane has to come out at the angle between the two pairs rather
+    // than at either of the frame's axes, which is the whole of Q12's ruling.
+    const { plan } = plannedFor(BECKET, { axis: "diagonal" }, 16, {
+      "1L": { p: [-16, -10], facing: 0 },
+      "1R": { p: [-16, 10], facing: 0 },
+      "2L": { p: [16, 30], facing: 180 },
+      "2R": { p: [16, 10], facing: 180 },
+    });
+    // The two pairs' centres are (−16, 0) and (16, 20), so the lane runs at
+    // atan2(20, 32) ≈ 32.0°.
+    expect(plan.lane.axis).toBeCloseTo((Math.atan2(20, 32) * 180) / Math.PI, 6);
   });
 
   it("makes every meeting a pull by when the call asks for hands", () => {
