@@ -368,18 +368,11 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   // two trips round the major set); `square-through` did not, because the only
   // thing in the corpus that calls one is Jeremy Corners' and The Set Monster's
   // **interrupted** square through, which is M9's figure in M9's dances.
-  "square-through": "M9",
-  // M9 — the Banner dances.
-  //
-  // **`diamond` moved from M7 to M9**, and only half of it did. The diamond
-  // *shape* landed here — it is a kind of `SetShape`, with its points and its
-  // sides as named places, and `set/shape.test.ts` covers it — but the only
-  // thing in the corpus that makes one is Jeremy Corners' own cast
-  // ("cast clockwise around one; step into center and face partner in distance;
-  // form diamonds"), which is M9's figure in M9's dance. A figure id nobody can
-  // call yet stays on the list, with the milestone that will call it.
-  diamond: "M9",
-  "interrupted-square-through": "M9",
+  // **Empty since M9**, which is the milestone's own definition of done. The
+  // four it emptied are the two Banner dances': `diamond` (the cast that forms
+  // one — the *shape* landed in M7 and nothing made one), `square-through` and
+  // `interrupted-square-through` (the named composite both dances call), and
+  // `jersey-twirl`, which had no predecessor anywhere in the library.
 };
 
 /**

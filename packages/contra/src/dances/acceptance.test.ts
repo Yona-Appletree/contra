@@ -127,14 +127,10 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
       Object.entries(UNSUPPORTED_FIGURES)
         .map(([k, v]) => `${k} (${v})`)
         .sort(),
-    ).toEqual([
-      "diamond (M9)",
-      "interrupted-square-through (M9)",
-      // `promenade` landed in M8 with Fatal Attraction; `square-through` moved
-      // to M9, because the only thing in the corpus that calls one is Jeremy
-      // Corners' and The Set Monster's **interrupted** square through.
-      "square-through (M9)",
-    ]);
+      // **Empty since M9.** The four the Banner dances owed — `diamond`,
+      // `square-through`, `interrupted-square-through` and `jersey-twirl` —
+      // are definitions in `library/figures/` with their own texts.
+    ).toEqual([]);
     // Empty since M6: every relation the twelve name resolves in both contra
     // formations' tables.
     expect(
