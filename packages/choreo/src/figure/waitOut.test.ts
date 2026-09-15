@@ -132,6 +132,49 @@ describe("wait-out", () => {
     expect(WAIT_OUT.ends(g, p)["WL"]!.facing).toBe(180);
   });
 
+  describe("a swap lands on the other station, wherever the couple came in from (M9e)", () => {
+    // `startPlaces` is where the two dancers *are* when the figure begins — a
+    // measurement a planner makes so that the step together starts from the
+    // truth. Where they *go* is a place of the formation, and reading the
+    // measurement for the landing is what put a waiting couple down on a place
+    // somebody else had just been settled on.
+    const stood = (WL: [number, number], WR: [number, number]) =>
+      params({ startPlaces: { WL: { p: WL, facing: 0 }, WR: { p: WR, facing: 180 } } });
+
+    it("lands on the stations when the couple is a place off them", () => {
+      const g = group();
+      // A place along the line from each station, which is where a time
+      // through that picks everybody up where the last one left them can
+      // leave a couple whose progression re-pairs the set.
+      const p = stood([-16, 20], [16, 20]);
+      expect(WAIT_OUT.ends(g, p)["WL"]!.p).toEqual(groupStationPose(g, "WR").p);
+      expect(WAIT_OUT.ends(g, p)["WR"]!.p).toEqual(groupStationPose(g, "WL").p);
+      expect(WAIT_OUT.sample(g, "WL", 64, p).p).toEqual(groupStationPose(g, "WR").p);
+    });
+
+    it("picks the dancers up from where they stand all the same", () => {
+      const g = group();
+      const p = stood([-16, 20], [16, 20]);
+      expect(dist(WAIT_OUT.sample(g, "WL", 0, p).p, [-16, 20])).toBeLessThan(1e-9);
+      expect(dist(WAIT_OUT.sample(g, "WR", 0, p).p, [16, 20])).toBeLessThan(1e-9);
+    });
+
+    it("lands on the stations even when the couple arrives on each other's sides", () => {
+      const g = group();
+      // The two dancers swapped across the set by the dance itself: each takes
+      // the end of the hold they are standing at, and crosses to the other.
+      const p = stood([16, 0], [-16, 0]);
+      expect(WAIT_OUT.ends(g, p)["WL"]!.p).toEqual(groupStationPose(g, "WL").p);
+      expect(WAIT_OUT.ends(g, p)["WR"]!.p).toEqual(groupStationPose(g, "WR").p);
+    });
+
+    it("changes nothing for a couple standing on its own stations", () => {
+      const g = group();
+      const p = stood([-16, 0], [16, 0]);
+      expect(WAIT_OUT.ends(g, p)).toEqual(WAIT_OUT.ends(g, params()));
+    });
+  });
+
   it("serves both ends of a line from one layout, by turning the frame", () => {
     const top = group(90);
     const bottom = createGroup(
