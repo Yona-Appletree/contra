@@ -435,6 +435,24 @@ describe("the parameters the brief names", () => {
     // The two pairs' centres are (−16, 0) and (16, 20), so the lane runs at
     // atan2(20, 32) ≈ 32.0°.
     expect(plan.lane.axis).toBeCloseTo((Math.atan2(20, 32) * 180) / Math.PI, 6);
+    // **And it is as long as the two lines are apart** (M9e), not as long as
+    // the furthest dancer: the lanes' edges are where the *lines* stand, and a
+    // line's place is the middle of the two dancers on it. Here that is
+    // √(32² + 20²) / 2 = 18.868 px; measured out to the furthest of the four it
+    // came to 22.94, so both edges overshot the couple standing on them by four
+    // pixels — which on Are You 'Most Done?'s own eight-couple geometry is nine.
+    expect(plan.lane.half).toBeCloseTo(Math.hypot(32, 20) / 2, 9);
+  });
+
+  it("keeps the diagonal lane's half-width the plain one when the four stand square", () => {
+    // The check that the M9e reading is the same reading and not a different
+    // one: on a becket minor set the two dancers of a line share the coordinate
+    // the lane is measured on, so "out to the furthest dancer" and "half way
+    // between the two lines" are the same 16 px.
+    expect(plannedFor(BECKET, { axis: "diagonal" }).plan.lane.half).toBeCloseTo(
+      plannedFor(BECKET, { axis: "across" }).plan.lane.half,
+      9,
+    );
   });
 
   it("makes every meeting a pull by when the call asks for hands", () => {

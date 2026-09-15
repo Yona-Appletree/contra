@@ -803,28 +803,36 @@ function laneOf(shape: ScheduleShape, input: ShapeInput, env: ExprEnv): Lane {
     // "across" puts the weave's own lane at 45° to the dancers standing on it.
     //
     // So the diagonal is the same reading **without** the snap: the lane runs
-    // along the direction the four are most strung out on, found by the
-    // principal axis of where they are standing, and its half-length is how far
-    // they stand from the middle along it. Everything downstream of `laneOf` is
-    // written in lane-local coordinates and does not care what angle it is at.
+    // between the two **lines** the four stand on, which on a diagonal is the
+    // line between the two couples' own middles. Everything downstream of
+    // `laneOf` is written in lane-local coordinates and does not care what angle
+    // it is at.
     //
     // **Fixed, not straightening** — Q12's ruling. The Caller's Box's own note
     // on Are You 'Most Done? says the hey "can straighten out as it proceeds",
     // which is an anchor rule that interpolates the lane's orientation over the
     // figure; the ruling is that the fixed diagonal comes first and the drift is
     // added only if the strip looks wrong.
-    const axis = diagonalAxis(
+    //
+    // **And the half-width is measured between the two lines, not out to the
+    // furthest dancer** (M9e). "The lanes' edges are where the lines stand",
+    // and for every other hey that is the same number either way, because the
+    // two dancers of one line share the coordinate the lane is measured on —
+    // `(±16, ±10)` in a minor set, measured across. On a diagonal they do not:
+    // the spread *within* each couple leans along the lane as well as across it
+    // and was being counted toward the lane's own length. It is the same
+    // mistake {@link diagonalAxis} already documents for the *angle*, left in
+    // the width. Measured on Are You 'Most Done? at eight couples, where the
+    // hey's four stand at `(16, 40)`, `(16, 60)`, `(−16, 120)`, `(−16, 140)`:
+    // the lane came out **52.3 px** half-long where the two couples' middles
+    // are `43.08 px` apart, so both edges of the weave overshot the couple
+    // standing on them by nine pixels, and a hey dancer swept `5.571 px` past
+    // `c4/lark`, who was standing through the whole figure on `(16, 80)`.
+    const lane = diagonalLane(
       roles.map((role) => ctx.spot(role).p),
       centre,
     );
-    const dir = dirOf(axis);
-    const half = Math.max(
-      ...roles.map((role) => {
-        const p = ctx.spot(role).p;
-        return Math.abs((p[0] - centre[0]) * dir[0] + (p[1] - centre[1]) * dir[1]);
-      }),
-    );
-    return { centre, axis, half, reach: half * evalNumber(shape.loopReach, env) };
+    return { centre, ...lane, reach: lane.half * evalNumber(shape.loopReach, env) };
   }
   if (word !== "spread" && word !== "across" && word !== "along") {
     throw new Error(
@@ -952,7 +960,8 @@ const wrapSigned = (a: number): number => {
 
 /**
  * **The lane of a diagonal hey**: the direction from one of its two lines to the
- * other, degrees (M8, Q12).
+ * other, and how far each line is from the middle (M8, Q12; the half-width is
+ * M9e's).
  *
  * A hey's lane runs between the two lines the four dancers stand on, which for
  * every hey in the corpus but the diagonal ones is one of the frame's own two
@@ -962,12 +971,23 @@ const wrapSigned = (a: number): number => {
  * along come out at 40.0° where the line between the pairs is 32.0°.
  *
  * So: the principal axis says which way to *split* them, the split says which
- * two are a line, and the lane is the line between the two lines' own middles.
- * On a square minor set the two agree exactly, which `hey.test.ts` asserts.
+ * two are a line, and the lane is the line between the two lines' own middles —
+ * its angle **and** its length. On a square minor set both agree with the
+ * plain reading exactly, which `hey.test.ts` asserts.
+ *
+ * Fewer or more than four dancers have no two lines to find: the principal axis
+ * and the furthest dancer are all there is, which is what a hey for three had
+ * before this and is unchanged.
  */
-function diagonalAxis(points: readonly Vec2[], centre: Vec2): Angle {
+function diagonalLane(points: readonly Vec2[], centre: Vec2): { axis: Angle; half: number } {
   const along = principalAxis(points, centre);
-  if (points.length !== 4) return along;
+  const spanOn = (axis: Angle): number => {
+    const dir = dirOf(axis);
+    return Math.max(
+      ...points.map((p) => Math.abs((p[0] - centre[0]) * dir[0] + (p[1] - centre[1]) * dir[1])),
+    );
+  };
+  if (points.length !== 4) return { axis: along, half: spanOn(along) };
   const dir = dirOf(along);
   const order = [...points].sort(
     (a, b) =>
@@ -978,7 +998,12 @@ function diagonalAxis(points: readonly Vec2[], centre: Vec2): Angle {
   const mid = (a: Vec2, b: Vec2): Vec2 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const near = mid(order[0]!, order[1]!);
   const far = mid(order[2]!, order[3]!);
-  return angleOfVec([far[0] - near[0], far[1] - near[1]]);
+  return {
+    axis: angleOfVec([far[0] - near[0], far[1] - near[1]]),
+    // Half the distance between the two lines: the lanes' edges are where the
+    // lines stand, and a line's place is the middle of the two dancers on it.
+    half: dist(near, far) / 2,
+  };
 }
 
 /**
