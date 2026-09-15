@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Motion Spike</title>
+<style>
+:root{
+  --bg:#141110; --panel:#1e1917; --panel2:#272019; --ink:#ebdfcd; --muted:#a8977f;
+  --accent:#e7b96b; --line:#3c3128; --dash:#6b5741; --floor:#c9a06a;
+  --lark:#e0a32e; --robin:#c8362f; --bad:#e07a7a; --good:#9fd08a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header,section{max-width:1400px;margin:0 auto;padding:18px 20px}
+h1{font-size:22px;margin:8px 0 6px;letter-spacing:.02em}
+h2{font-size:17px;margin:34px 0 6px;color:var(--accent);border-top:1px solid var(--line);padding-top:16px}
+p.hint{color:var(--muted);margin:4px 0 10px;max-width:96ch}
+p.hint b{color:var(--ink);font-weight:600}
+p.hint code{color:var(--accent);font:13px ui-monospace,Menlo,monospace}
+.controls{border:1px dashed var(--dash);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 12px;background:var(--panel);position:sticky;top:0;z-index:5}
+.controls.inner{position:static;border-style:solid;border-color:var(--line);padding:6px 10px;margin:8px 0}
+.controls .grp{display:flex;align-items:center;gap:6px;font:12px ui-monospace,Menlo,monospace;color:var(--muted)}
+.controls .grp span.l{color:var(--accent)}
+.controls button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 9px;font:12px ui-monospace,Menlo,monospace;cursor:pointer}
+.controls button.primary{background:#3b2f1f;border-color:var(--accent);color:var(--accent)}
+.controls button.on{background:#4a3a24;border-color:var(--accent);color:var(--accent)}
+.controls input[type=range]{width:110px;accent-color:var(--accent)}
+.controls input[type=range].wide{width:240px}
+.count{display:inline-flex;gap:3px;margin-left:4px}
+.count span{width:18px;height:18px;border-radius:3px;background:var(--panel2);border:1px solid var(--line);display:inline-grid;place-items:center;font:11px ui-monospace,Menlo,monospace;color:var(--muted)}
+.count span.on{background:var(--accent);color:#1b1410;border-color:var(--accent)}
+.count span.one{border-color:#fff0c8}
+.pix{image-rendering:pixelated;image-rendering:crisp-edges;display:block;background:var(--floor)}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;flex:0 0 auto;max-width:100%}
+.card h4{margin:0 0 6px;font-size:13px;color:var(--ink);display:flex;flex-direction:column;gap:2px}
+.card h4 .tag{color:var(--muted);font-weight:400;font:11px ui-monospace,Menlo,monospace;white-space:normal;max-width:36ch}
+.card p{margin:6px 0 0;font-size:12px;color:var(--muted);max-width:36ch;line-height:1.4}
+#concepts .card p,#concepts .card h4 .tag{max-width:100%}
+.card p b{color:var(--ink)}
+.card.pick{border-color:var(--accent)}
+.hallwrap{background:#0c0a09;border:1px solid var(--line);border-radius:6px;padding:4px;display:inline-block}
+.graph{display:block;width:100%;height:96px;margin-top:8px;border-radius:4px;background:#171310}
+.legend{font:11px ui-monospace,Menlo,monospace;color:var(--muted);margin-top:4px;display:flex;gap:12px}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.matrix{overflow-x:auto;max-width:100%}
+.matrix table{border-collapse:separate;border-spacing:3px}
+.matrix th{font:11px ui-monospace,Menlo,monospace;color:var(--muted);text-align:left;padding:2px 6px;white-space:nowrap}
+.matrix th.beat{text-align:center}
+.matrix th.beat.one{color:var(--accent)}
+.matrix td{padding:0;background:#0c0a09;border-radius:3px}
+.matrix td canvas{display:block}
+.readout{font:13px ui-monospace,Menlo,monospace;color:var(--ink);margin:6px 0}
+.small{font-size:12px;color:var(--muted)}
+.big .hallwrap{padding:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.note{border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0;color:var(--muted);font-size:13px;background:var(--panel)}
+kbd{font:11px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--line);border-radius:3px;padding:0 4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Move motion · the beat in a walk</h1>
+  <p class="hint"><b>Thesis.</b> Most walking figures in the library ease their whole travel as one curve — <code>long-lines</code> is a single cosine over eight beats, <code>walkStep</code> (pass through, right and left through, the chain's pull-by) one smoothstep over the whole walk, <code>ringWalk</code> (circle, star) one smoothstep over the turn, and petronella, roll away, the twirl and wait-out the same. The moves that already feel right — swing, allemande, do-si-do — run on a <b>constant-speed trapezoid</b> instead: up to speed in about a beat, cruise, down in about a beat. So the question is not "add bounce": contra glides, and the contract says so (feet ±2.6 px, sway 1.5°, no vertical motion). The question is <b>where the beat lives</b> when the body glides — in the speed profile, in a small per-beat pulse, in the count sheet, or in the feet — and how little of it is enough.</p>
+  <p class="hint"><b>How to read this.</b> Every panel loops the same figure on one clock. Turn the <b>click</b> on and watch whether the dancer's steps land on it. The graph under each panel is the honest view: distance along the path (gold) and speed (grey) against the beat grid; the dots are where the body is on each count. <b>Ghosts</b> stamp the torso on every whole beat so a screenshot shows beat-locking. Section 3 lays the same half-beats side by side, which is what a phone review reads.</p>
+  <div class="controls" id="ctl">
+    <div class="grp"><button class="primary" id="btnPlay">⏸ Pause</button><button id="btnRestart" title="back to beat 0">⏮</button></div>
+    <div class="grp"><span class="l">figure</span><button data-fig="long-lines" class="on">long lines · 8</button><button data-fig="pass">pass through · 4</button><button data-fig="circle">circle left ¾ · 8</button></div>
+    <div class="grp"><span class="l">tempo</span><input type="range" id="tempo" min="96" max="126" value="112"><span id="tempoV">112</span></div>
+    <div class="grp"><span class="l">beat</span><input type="range" id="scrub" class="wide" min="0" max="8" step="0.02" value="0"><span id="scrubV">0.00</span><span class="count" id="count"></span></div>
+    <div class="grp"><span class="l">pulse depth</span><input type="range" id="depth" min="0" max="100" value="35"><span id="depthV">0.35</span></div>
+    <div class="grp"><span class="l">feet</span><button data-feet="swing" class="on">body-local swing (today)</button><button data-feet="gait">planted gait</button></div>
+    <div class="grp"><span class="l">zoom</span><button data-zoom="3" class="on">3×</button><button data-zoom="4">4×</button><button data-zoom="5">5×</button></div>
+    <div class="grp"><button id="ghosts">ghosts on beats</button><button id="click">click</button></div>
+    <div class="grp"><span class="small">keys: <kbd>space</kbd> pause · <kbd>←</kbd><kbd>→</kbd> ¼ beat</span></div>
+  </div>
+</header>
+
+<section id="s1">
+  <h2>1. Where the body is on each count — five body-path models</h2>
+  <p class="hint">Same minor set, same figure, same clock, same feet. Only the function from beat to floor position differs. <b>1a</b> is what ships. <b>1b</b> is the smallest possible change: the same tween on a clock that hesitates on every beat, one line at the sampling layer, no figure rewritten. <b>1c</b> is the profile the swing already uses. <b>1d</b> is 1c on the hesitating clock. <b>1e</b> reads a count sheet — long lines is <i>three steps and a touch</i>, not four steps — and interpolates between the counts, so the dancer arrives on 3 and stands on 4. The pulse-depth slider drives 1b and 1d: 0 is no pulse at all, 1 is a dead stop on every beat, which is what <code>slide-left</code>'s <code>stepped()</code> does today.</p>
+  <div class="row" id="concepts"></div>
+</section>
+
+<section id="s2">
+  <h2>2. Where the beat lives when the body glides — two feet models</h2>
+  <p class="hint">One dancer at 8×, walking the figure's own path (default: the cruise profile of 1c, so the body is smooth and only the feet differ). <b>2a</b> is today's quiet motion: both feet oscillate ±2.6 px in the body's own frame, scaled by speed, so at walking pace both shoes slide along the boards with the body. <b>2b</b> plants: a foot lands on the beat and stays fixed to the floor while the body glides over it, then swings to its next plant in the last half of the beat. From above a planted shoe is the strongest step cue there is, and it costs the body path nothing. The sway is the same 1.5° in both.</p>
+  <div class="controls inner">
+    <div class="grp"><span class="l">body path for this section</span><span id="feetPathChips"></span></div>
+    <div class="grp"><span class="l">stride cap</span><input type="range" id="stride" min="10" max="40" value="26"><span id="strideV">2.6 px</span></div>
+  </div>
+  <div class="two" id="feet"></div>
+</section>
+
+<section id="s3">
+  <h2>3. The same half-beats, side by side</h2>
+  <p class="hint">Rows are the five body-path models of section 1, columns are half beats, at 2×. This is the app's own strip idiom (<code>?strip=1</code> on a Moves row). On whole beats 1b equals 1a and 1d equals 1c exactly — the warp keeps every count where it was — so the half-beat columns are where the pulse shows. Scroll sideways.</p>
+  <div class="controls inner">
+    <div class="grp"><span class="l">columns</span><button data-cols="half" class="on">half beats</button><button data-cols="whole">whole beats</button></div>
+    <div class="grp"><span class="l">feet</span><span id="matrixFeet" class="small"></span></div>
+  </div>
+  <div class="card matrix" id="matrix"></div>
+</section>
+
+<section id="s4">
+  <h2>4. Dial it in</h2>
+  <p class="hint">One set at 6× with every knob: body path, feet, pulse depth, ramp length for the cruise, and the click. This is where "a little beat, not much" gets a number. The readout says the peak speed as a multiple of the average, which is the one figure that separates a glide from a march: the shipped tween peaks at 1.5× (smoothstep) or 1.57× (cosine); a cruise with one-beat ramps peaks at 1.33× on a four-beat leg; a dead stop on every beat is 1.5× again but four times over.</p>
+  <div class="controls inner">
+    <div class="grp"><span class="l">body path</span><span id="dialPathChips"></span></div>
+    <div class="grp"><span class="l">feet</span><span id="dialFeetChips"></span></div>
+    <div class="grp"><span class="l">cruise ramp</span><input type="range" id="ramp" min="25" max="200" value="100"><span id="rampV">1.00 beat</span></div>
+  </div>
+  <div class="row big" id="dial"></div>
+</section>
+
+<script>
+'use strict';
+// ============================================================ maths (ported from @caller/core, names kept)
+const TAU=Math.PI*2;
+const clamp01=v=>v<0?0:v>1?1:v;
+const smooth=k=>{const c=clamp01(k);return c*c*(3-2*c);};
+const mix=(a,b,k)=>a+(b-a)*k;
+const ramp=(t,t0,t1)=>t1<=t0?(t>t0?1:0):smooth((t-t0)/(t1-t0));
+const dirOf=a=>{const r=a*Math.PI/180;return [Math.cos(r),Math.sin(r)];};
+const rightOf=a=>dirOf(a+90);
+const leftOf=a=>dirOf(a-90);
+const bodyPoint=(p,facing,fwd,right)=>{const f=dirOf(facing),r=rightOf(facing);return [p[0]+f[0]*fwd+r[0]*right,p[1]+f[1]*fwd+r[1]*right];};
+const angleOfVec=v=>Math.atan2(v[1],v[0])*180/Math.PI;
+const angleDiff=(a,b)=>((b-a+540)%360)-180;
+const angleLerp=(a,b,k)=>a+angleDiff(a,b)*k;
+const hyp=(x,y)=>Math.hypot(x,y);
+const q256=v=>Math.round(v*256)/256;
+/** The swing's own profile: still to a0, full speed by a1, cruise to b0, still at b1. Normalised distance. */
+function trapezoid(t,a0,a1,b0,b1){
+  const seg=u=>{let s=0;if(u>a0){const e=Math.min(u,a1);const k=(e-a0)/(a1-a0);s+=((a1-a0)*k*k)/2;}
+    if(u>a1)s+=Math.max(0,Math.min(u,b0)-a1);
+    if(u>b0){const e=Math.min(u,b1);const k=(e-b0)/(b1-b0);s+=(b1-b0)*(k-(k*k)/2);}return s;};
+  return seg(Math.min(Math.max(t,a0),b1))/seg(b1);
+}
+/** The hesitating clock: w(k)=k on every whole beat, slows into each count by `depth` (1 = a dead stop). */
+const warp=(t,depth)=>t-depth*Math.sin(TAU*t)/TAU;
+/** Monotone cubic (Fritsch–Carlson) through keyframes at whole beats, so a held count is a true hold. */
+function monotone(keys){
+  const n=keys.length-1;const d=[];for(let i=0;i<n;i++)d.push(keys[i+1]-keys[i]);
+  const m=new Array(n+1).fill(0);
+  for(let i=1;i<n;i++){m[i]=(d[i-1]*d[i]<=0)?0:(d[i-1]+d[i])/2;}
+  m[0]=0;m[n]=0; // from rest, to rest
+  for(let i=0;i<n;i++){if(d[i]===0){m[i]=0;m[i+1]=0;continue;}const a=m[i]/d[i],b=m[i+1]/d[i];const s=a*a+b*b;if(s>9){const tau=3/Math.sqrt(s);m[i]=tau*a*d[i];m[i+1]=tau*b*d[i];}}
+  return t=>{const x=Math.min(Math.max(t,0),n);const i=Math.min(n-1,Math.floor(x));const u=x-i;const h00=2*u*u*u-3*u*u+1,h10=u*u*u-2*u*u+u,h01=-2*u*u*u+3*u*u,h11=u*u*u-u*u;return h00*keys[i]+h10*m[i]+h01*keys[i+1]+h11*m[i+1];};
+}
+
+// ============================================================ contract numbers
+const SHOULDER_W=11, SHOULDER_FWD=0.3, UPPER=7.5, FORE=7.5, REACH=15;
+const FOOT_SWING=2.6, SWAY_DEG=1.5, FULL_AMP_SPEED=4;
+const FOOT_REST_FWD=2.5, FOOT_REST_LAT=2.0;
+const HANG_DROP=14.5, HANG_LAT=5.6, HANG_FWD=0.4, HANG_SWING=0.6;
+const HOLD=14, LINE_OFF=18; // lines 32 px apart
+const PITCH=20;             // places along the line
+
+// ============================================================ people (ported from @caller/hall appearance)
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const pick=(rng,arr)=>arr[Math.floor(rng()*arr.length)];
+function hexToRgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function shade(h,f){const [r,g,b]=hexToRgb(h);const c=v=>Math.max(0,Math.min(255,Math.round(v*f)));return '#'+[c(r),c(g),c(b)].map(v=>v.toString(16).padStart(2,'0')).join('');}
+const SKINS=['#f3cfae','#e6b48e','#d29a70','#b47a56','#8a5a3c','#5f3d28'];
+const HAIRS=['#2a1a11','#4a2e1b','#8a5a2b','#c98a3c','#e8c67e','#b8b1a6','#d94f3a','#1b1b1b','#6b4a3a'];
+const STYLES=['short','short','short','long','long','bob','bald','bun'];
+const ROLE={lark:'#e0a32e',robin:'#c8362f'};
+const OUTLINE='#1b1410', SHOE='#2b1d14', SHADOW='rgba(0,0,0,0.22)';
+function person(seed,role,rank){
+  const rng=mulberry32(seed);
+  const skin=pick(rng,SKINS), hair=pick(rng,HAIRS), style=pick(rng,STYLES);
+  const shirt=shade(ROLE[role],rank===1?0.86:1.1);
+  return {role,rank,skin,skinDark:shade(skin,0.8),hair,hairLite:shade(hair,1.28),hairDark:shade(hair,0.78),style,
+    shirt,shirtDark:shade(shirt,0.72),shirtLite:shade(shirt,1.18)};
+}
+// A minor set, duple improper, lines 32 px apart (hold 14 + 18), places 20 px along.
+const HALF_ACROSS=(HOLD+LINE_OFF)/2, HALF_ALONG=PITCH/2;
+const STATIONS=[
+  {id:'1L',role:'lark', rank:1,p:[-HALF_ACROSS,-HALF_ALONG],facing:0,  seed:11},
+  {id:'2R',role:'robin',rank:2,p:[-HALF_ACROSS, HALF_ALONG],facing:0,  seed:23},
+  {id:'1R',role:'robin',rank:1,p:[ HALF_ACROSS,-HALF_ALONG],facing:180,seed:37},
+  {id:'2L',role:'lark', rank:2,p:[ HALF_ACROSS, HALF_ALONG],facing:180,seed:41},
+];
+STATIONS.forEach(s=>{s.person=person(s.seed,s.role,s.rank);});
+
+// ============================================================ the three figures, each under five timing models
+// A model maps the figure's own beat to the figure's progress; the figure maps progress to a pose.
+const MODELS=[
+  {key:'tween', name:'1a · tween (today)',     tag:'cosine / smoothstep over the whole move', blurb:'What ships. One ease across all eight beats: the body is fastest in the middle of each leg and never quite still, never quite going. Nothing lands on a count except the ends.'},
+  {key:'warp',  name:'1b · tween + warp',      tag:'the same tween on a clock that hesitates on the beat', blurb:'The cheapest change there is: <b>w(t) = t − d·sin(2πt)/2π</b> applied to the beat before the figure samples. Every count stays exactly where it was; between counts the clock leans into the beat. One line in <code>poseAt</code>, every figure at once.'},
+  {key:'cruise',name:'1c · cruise',            tag:'trapezoid: one beat up, constant, one beat down', blurb:'The swing\'s own profile, applied to walking. Up to speed over the first step, constant speed across the middle, down over the last. No pulse at all — but the steps are even, so the feet (which run on the beat) stay in phase with the travel.'},
+  {key:'pulse', name:'1d · cruise + pulse',    tag:'the cruise on the hesitating clock', blurb:'1c through 1b\'s warp. Even steps <i>and</i> a lean into every count. The depth slider is the whole design question: how much hesitation reads as walking before it reads as marching.'},
+  {key:'counts',name:'1e · counts',            tag:'keyframes on the count sheet, monotone spline between', blurb:'Long lines is <b>1 2 3 touch · 5 6 7 touch</b>: arrive on 3, stand on 4, leave on 5, home on 7. A monotone cubic through the counts, so a held count is a true hold and nothing overshoots. Where a sheet has no held count (pass through) this is a cruise. This is what a data-language <code>counts:</code> field would carry.'},
+];
+const FIGS={
+  'long-lines':{beats:8,label:'long lines forward and back',forwardPx:9,
+    // progress = px into the set, 0..9..0
+    prog:{
+      tween:(t)=>9*(1-Math.cos(TAU*t/8))/2,
+      warp:(t,o)=>9*(1-Math.cos(TAU*warp(t,o.depth)/8))/2,
+      cruise:(t,o)=>legs(t,o.ramp),
+      pulse:(t,o)=>legs(warp(t,o.depth),o.ramp),
+      counts:monotone([0,3,6,9,9,6,3,0,0]),
+    },
+    progMax:9, progLabel:'px into the set',
+  },
+  'pass':{beats:4,label:'pass through across',
+    prog:{
+      tween:(t)=>smooth(t/4),
+      warp:(t,o)=>smooth(warp(t,o.depth)/4),
+      cruise:(t,o)=>trapezoid(t,0,o.ramp,4-o.ramp,4),
+      pulse:(t,o)=>trapezoid(warp(t,o.depth),0,o.ramp,4-o.ramp,4),
+      counts:monotone([0,.25,.5,.75,1]),
+    },
+    progMax:1, progLabel:'of the way across',
+  },
+  'circle':{beats:8,label:'circle left three places',
+    prog:{ // fraction of the 270° turn; stepping in and out is the same ramp in every model
+      tween:(t)=>ramp(t,1.5,6.5),
+      warp:(t,o)=>ramp(warp(t,o.depth),1.5,6.5),
+      cruise:(t,o)=>trapezoid(t,0.5,0.5+o.ramp,7.5-o.ramp,7.5),
+      pulse:(t,o)=>trapezoid(warp(t,o.depth),0.5,0.5+o.ramp,7.5-o.ramp,7.5),
+      counts:monotone([0,1/8,2/8,3/8,4/8,5/8,6/8,7/8,1].map(v=>v)), // eight even steps; the sheet holds nothing
+    },
+    progMax:1, progLabel:'of the turn',
+  },
+};
+function legs(t,rampB){const r=Math.min(rampB,2);return t<4?9*trapezoid(t,0,r,4-r,4):9*(1-trapezoid(t-4,0,r,4-r,4));}
+
+// ---- the figures' geometry: progress -> pose per station. Hands as the library places them.
+function poseLongLines(st,t,prog,opts){
+  const centreX=0;const facing=st.facing;
+  const fwd=prog;
+  const p=bodyPoint(st.p,facing,fwd,0);
+  // hands: inside hand joined with the line mate at the midpoint of the two shoulders; outside hand half a pitch beyond
+  const mate=STATIONS.find(o=>o!==st&&Math.sign(o.p[0])===Math.sign(st.p[0]));
+  const mp=bodyPoint(mate.p,mate.facing,fwd,0);
+  const toMate=[mp[0]-p[0],mp[1]-p[1]];const l=leftOf(facing);
+  const inside=(l[0]*toMate[0]+l[1]*toMate[1])>0?'L':'R';const outside=inside==='L'?'R':'L';
+  const shMine=shouldersAt(p,facing)[inside], shMate=shouldersAt(mp,mate.facing)[inside==='L'?'R':'L'];
+  const insidePt=[(shMine[0]+shMate[0])/2,(shMine[1]+shMate[1])/2];
+  const away=[-toMate[0],-toMate[1]];const al=hyp(away[0],away[1]);
+  const outsidePt=[p[0]+away[0]/al*PITCH/2,p[1]+away[1]/al*PITCH/2];
+  const take=ramp(t,0,1), rel=ramp(t,7,8);
+  const stackPx=st.role==='robin'?-1:0;
+  const hands={};
+  hands[inside]=takeRel(p,facing,inside,t,{p:insidePt,drop:8+stackPx},take,rel);
+  hands[outside]=takeRel(p,facing,outside,t,{p:outsidePt,drop:8+stackPx},take,rel);
+  return {p,facing,look:facing,hands,amp:1,lean:0};
+}
+function posePass(st,t,prog,opts){
+  const across=STATIONS.find(o=>o!==st&&Math.sign(o.p[0])!==Math.sign(st.p[0])&&o.p[1]===st.p[1]);
+  const from=st.p,to=across.p;const d=[to[0]-from[0],to[1]-from[1]];const k=prog;
+  const travel=angleOfVec(d);const bow=-5*Math.sin(Math.PI*k);const side=rightOf(travel);
+  const p=[from[0]+d[0]*k+side[0]*bow,from[1]+d[1]*k+side[1]*bow];
+  const facing=st.facing; // already facing across; walkStep's turn-in and turn-out are the identity here
+  return {p,facing,look:facing,hands:{L:'down',R:'down'},amp:prog>0&&prog<1?1:0,lean:0};
+}
+const RING_R=HOLD/(2*Math.sin(Math.PI/4));
+const RING_ORDER=['1L','1R','2L','2R']; // clockwise on screen (y down) = circle left seen from above: everyone travels to their own left
+function poseCircle(st,t,prog,opts){
+  const kIn=ramp(t,0,1.5), kOut=ramp(t,6.5,8);
+  const turn=270*prog;
+  const endId=RING_ORDER[(RING_ORDER.indexOf(st.id)+3)%4];const endSt=STATIONS.find(s=>s.id===endId);
+  const endAngle=angleOfVec(endSt.p);
+  const startAngle=angleOfVec(st.p);
+  // on the ring: at `base`; turning by `turn`; step out to the end place
+  const angle=startAngle+turn+angleDiff(startAngle+turn,endAngle)*kOut;
+  const radius=mix(mix(hyp(st.p[0],st.p[1]),RING_R,kIn),hyp(endSt.p[0],endSt.p[1]),kOut);
+  const p=[Math.cos(angle*Math.PI/180)*radius,Math.sin(angle*Math.PI/180)*radius];
+  const faceIn=angle+180;
+  const facing=angleLerp(angleLerp(st.facing,faceIn,kIn),angleOfVec([-endSt.p[0],-endSt.p[1]]),kOut);
+  // joined hands round the ring: left hand in the next dancer's right
+  const me=RING_ORDER.indexOf(st.id);
+  const nb=(k)=>RING_ORDER[(me+k+4)%4];
+  const other=(id)=>{const o=STATIONS.find(s=>s.id===id);return poseCircleBody(o,t,prog);};
+  const self={p,facing};
+  const nextP=other(nb(1)), prevP=other(nb(-1));
+  const lPt=midShoulders(self,'L',nextP,'R'), rPt=midShoulders(self,'R',prevP,'L');
+  const take=ramp(t,0,1.9), rel=ramp(t,6.5,8);const stackPx=st.role==='robin'?-1:0;
+  return {p,facing,look:angleOfVec([-p[0],-p[1]]),hands:{
+    L:takeRel(p,facing,'L',t,{p:lPt,drop:6+stackPx},take,rel),
+    R:takeRel(p,facing,'R',t,{p:rPt,drop:6+stackPx},take,rel)},amp:1,lean:0};
+}
+function poseCircleBody(st,t,prog){
+  const kIn=ramp(t,0,1.5), kOut=ramp(t,6.5,8);const turn=270*prog;
+  const endId=RING_ORDER[(RING_ORDER.indexOf(st.id)+3)%4];const endSt=STATIONS.find(s=>s.id===endId);
+  const endAngle=angleOfVec(endSt.p), startAngle=angleOfVec(st.p);
+  const angle=startAngle+turn+angleDiff(startAngle+turn,endAngle)*kOut;
+  const radius=mix(mix(hyp(st.p[0],st.p[1]),RING_R,kIn),hyp(endSt.p[0],endSt.p[1]),kOut);
+  const p=[Math.cos(angle*Math.PI/180)*radius,Math.sin(angle*Math.PI/180)*radius];
+  const facing=angleLerp(angleLerp(st.facing,angle+180,kIn),angleOfVec([-endSt.p[0],-endSt.p[1]]),kOut);
+  return {p,facing};
+}
+function midShoulders(a,aSide,b,bSide){const sa=shouldersAt(a.p,a.facing)[aSide],sb=shouldersAt(b.p,b.facing)[bSide];return [(sa[0]+sb[0])/2,(sa[1]+sb[1])/2];}
+function shouldersAt(p,facing){return {L:bodyPoint(p,facing,SHOULDER_FWD,-SHOULDER_W/2),R:bodyPoint(p,facing,SHOULDER_FWD,SHOULDER_W/2)};}
+function hangingHand(p,facing,side,beat,amp){const s=side==='L'?-1:1;return {p:bodyPoint(p,facing,HANG_FWD+s*HANG_SWING*amp*Math.sin(TAU*beat),s*HANG_LAT),drop:HANG_DROP};}
+function lerpHand(a,b,k){return k<=0?a:k>=1?b:{p:[mix(a.p[0],b.p[0],k),mix(a.p[1],b.p[1],k)],drop:mix(a.drop,b.drop,k)};}
+function takeRel(p,facing,side,t,joined,take,rel){const down=hangingHand(p,facing,side,t,0);return lerpHand(lerpHand(down,joined,take),down,rel);}
+
+const POSERS={'long-lines':poseLongLines,'pass':posePass,'circle':poseCircle};
+/** One station's pose under one model at one beat, with a finite-difference velocity. */
+function sample(figKey,modelKey,st,t,opts){
+  const fig=FIGS[figKey];const prog=fig.prog[modelKey];
+  const at=(tt)=>{const c=Math.min(Math.max(tt,0),fig.beats);return POSERS[figKey](st,c,prog(c,opts),opts);};
+  const pose=at(t);
+  const h=1/64;const a=at(t-h),b=at(t+h);
+  pose.velocity=[(b.p[0]-a.p[0])/(2*h),(b.p[1]-a.p[1])/(2*h)];
+  pose.bodyAt=(tt)=>at(tt);
+  return pose;
+}
+function progressAndSpeed(figKey,modelKey,t,opts){const fig=FIGS[figKey];const f=fig.prog[modelKey];const h=1/128;const s=f(t,opts);const v=(f(Math.min(t+h,fig.beats),opts)-f(Math.max(t-h,0),opts))/(Math.min(t+h,fig.beats)-Math.max(t-h,0));return {s,v:Math.abs(v)};}
+
+// ============================================================ feet
+function feetSwing(pose,beat,style){
+  const speed=hyp(pose.velocity[0],pose.velocity[1]);const moving=speed>1e-3;
+  const f=dirOf(pose.facing),r=rightOf(pose.facing);
+  const vu=moving?(pose.velocity[0]*f[0]+pose.velocity[1]*f[1])/speed:1;
+  const vw=moving?(pose.velocity[0]*r[0]+pose.velocity[1]*r[1])/speed:0;
+  const amplitude=Math.min(1,speed/FULL_AMP_SPEED)*clamp01(pose.amp);
+  const sn=Math.sin(TAU*beat);const swing=FOOT_SWING*sn*amplitude;
+  const L=bodyPoint(pose.p,pose.facing+SWAY_DEG*sn*amplitude,FOOT_REST_FWD+swing*vu,-FOOT_REST_LAT+swing*vw);
+  const R=bodyPoint(pose.p,pose.facing+SWAY_DEG*sn*amplitude,FOOT_REST_FWD-swing*vu,FOOT_REST_LAT-swing*vw);
+  return {L:{p:L,air:0},R:{p:R,air:0},sway:SWAY_DEG*sn*amplitude};
+}
+/** Planted gait: a foot lands on its beat and stays on the floor while the body glides over it. */
+function feetGait(pose,beat,style,beats){
+  const strideCap=style.strideCap;
+  const plant=(k)=>{ // where the foot that lands at whole beat k is put down
+    const kk=((k%beats)+beats)%beats;const b=pose.bodyAt(kk);const h=1/32;
+    const b0=pose.bodyAt(Math.max(kk-h,0)),b1=pose.bodyAt(Math.min(kk+h,beats));
+    const v=[(b1.p[0]-b0.p[0])/(2*h),(b1.p[1]-b0.p[1])/(2*h)];const speed=hyp(v[0],v[1]);
+    const lead=Math.min(strideCap,0.75*speed);
+    const dir=speed>1e-3?[v[0]/speed,v[1]/speed]:dirOf(b.facing);
+    const side=(k%2===0)?-1:1; // even beats: left foot; odd: right
+    const rest=bodyPoint(b.p,b.facing,FOOT_REST_FWD,side*FOOT_REST_LAT);
+    return {p:[rest[0]+dir[0]*lead,rest[1]+dir[1]*lead],facing:b.facing};
+  };
+  const foot=(parity)=>{
+    let k0=Math.floor(beat);if(((k0%2)+2)%2!==parity)k0-=1; // last plant beat of this foot
+    const u=beat-k0; // 0..2
+    if(u<1.5){return {p:plant(k0).p,air:0};}
+    const a=plant(k0).p,b=plant(k0+2).p;const w=smooth((u-1.5)/0.5);
+    return {p:[mix(a[0],b[0],w),mix(a[1],b[1],w)],air:Math.sin(Math.PI*w)};
+  };
+  const speed=hyp(pose.velocity[0],pose.velocity[1]);const amplitude=Math.min(1,speed/FULL_AMP_SPEED)*clamp01(pose.amp);
+  return {L:foot(0),R:foot(1),sway:SWAY_DEG*Math.sin(TAU*beat)*amplitude};
+}
+
+// ============================================================ arms (two 7.5 px bones in 3D, elbow pole down and out, tucked when hanging)
+/** drawnArms' cap: the part of the pole pointing the way the arm points may cancel at most half the elbow's bow, so a hand along the line never leaves the elbow's direction undefined. */
+function capAlongArm(px,py,dx,dy,planar,drop){
+  if(planar<1e-9||drop<=0)return [px*0.55,py*0.55];
+  const ux=dx/planar,uy=dy/planar;const along=px*ux+py*uy;const limit=(0.5*planar)/(drop*0.55);
+  if(along<=limit)return [px*0.55,py*0.55];
+  const shave=(along-limit)*smooth(planar/2);return [(px-shave*ux)*0.55,(py-shave*uy)*0.55];
+}
+function solveArm(shoulder,hand,side,facing){
+  const outward=side==='L'?leftOf(facing):rightOf(facing);
+  const dx=hand.p[0]-shoulder[0],dy=hand.p[1]-shoulder[1];const planar=hyp(dx,dy);
+  const tuck=(1-smooth(planar/4))*smooth(hand.drop/6);
+  let px=outward[0],py=outward[1];
+  if(tuck>0){const back=dirOf(facing+180+(side==='L'?15:-15));px=mix(outward[0],back[0],tuck);py=mix(outward[1],back[1],tuck);}
+  const xy=capAlongArm(px,py,dx,dy,planar,hand.drop);
+  const pole=[xy[0],xy[1],-1];
+  let vx=dx,vy=dy,vz=-Math.max(0,hand.drop);let d=hyp(vx,hyp(vy,vz));let short=0;let hx=hand.p[0],hy=hand.p[1];
+  if(d>REACH){const k=REACH/d;vx*=k;vy*=k;vz*=k;short=d-REACH;d=REACH;hx=shoulder[0]+vx;hy=shoulder[1]+vy;}
+  if(d<1e-6){return {shoulder,elbow:shoulder,hand:[hx,hy],elbowZ:-UPPER,handZ:vz,short};}
+  const ux=vx/d,uy=vy/d,uz=vz/d;
+  const along=d/2;const perp=Math.sqrt(Math.max(0,UPPER*UPPER-along*along));
+  const dotp=pole[0]*ux+pole[1]*uy+pole[2]*uz;
+  let nx=pole[0]-dotp*ux,ny=pole[1]-dotp*uy,nz=pole[2]-dotp*uz;let nl=hyp(nx,hyp(ny,nz));
+  if(nl<1e-6){nx=outward[0];ny=outward[1];nz=0;nl=1;}
+  nx/=nl;ny/=nl;nz/=nl;
+  const ex=shoulder[0]+ux*along+nx*perp,ey=shoulder[1]+uy*along+ny*perp,ez=uz*along+nz*perp;
+  return {shoulder,elbow:[ex,ey],hand:[hx,hy],elbowZ:ez,handZ:vz,short};
+}
+
+// ============================================================ drawing (ported from @caller/hall drawPerson, contract order)
+function ell(g,x,y,rx,ry,rot,fill,outline){g.beginPath();g.ellipse(x,y,rx,ry,rot,0,TAU);if(outline){g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();}g.fillStyle=fill;g.fill();}
+function circ(g,x,y,r,fill,outline){ell(g,x,y,r,r,0,fill,outline);}
+function seg(g,a,b,w,c){g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineWidth=w;g.strokeStyle=c;g.lineCap='round';g.stroke();}
+function layout(st,pose,beat,feetModel,style,beats){
+  const p=[q256(pose.p[0]),q256(pose.p[1])];
+  const feet=feetModel==='gait'?feetGait(pose,beat,style,beats):feetSwing(pose,beat,style);
+  const torsoAngle=pose.facing+feet.sway;
+  const sh=shouldersAt(p,torsoAngle);
+  const hand=(side)=>pose.hands[side]==='down'?hangingHand(p,pose.facing,side,beat,pose.amp):pose.hands[side];
+  const hL=hand('L'),hR=hand('R');
+  return {st,pose,p,torsoAngle,feet,arms:[solveArm(sh.L,hL,'L',torsoAngle),solveArm(sh.R,hR,'R',torsoAngle)],joined:{L:pose.hands.L!=='down',R:pose.hands.R!=='down'}};
+}
+function drawBody(g,L){
+  const a=L.st.person;const p=L.p;const angle=L.torsoAngle;const rad=angle*Math.PI/180;
+  const q=bodyPoint(p,angle,-0.2,0);ell(g,q[0]+1,q[1]+1.3,4.6,6.2,rad,SHADOW,false);
+  for(const side of ['L','R']){const f=L.feet[side];ell(g,f.p[0],f.p[1],1.8+0.35*f.air,1.1+0.25*f.air,rad,SHOE,true);}
+  const lean=L.pose.lean||0;const t=bodyPoint(p,angle,lean*0.5,0);
+  ell(g,t[0],t[1],3.6,5.6,rad,a.shirtDark,true);ell(g,t[0],t[1],2.5,4.3,rad,a.shirt,false);
+  const hl=bodyPoint(p,angle,lean*0.5+0.6,-1.2);ell(g,hl[0],hl[1],1.2,2.0,rad,a.shirtLite,false);
+}
+function drawArms(g,L){
+  const a=L.st.person;
+  [['L',L.arms[0]],['R',L.arms[1]]].forEach(([side,arm])=>{
+    const s=arm.shoulder,e=arm.elbow,h=arm.hand;
+    const stack=L.joined[side]?(L.st.role==='robin'?-0.15:0.45):0;
+    const radius=1.25+0.35*(1+Math.max(-15,arm.handZ)/15)+stack;
+    const upperFraction=Math.min(1,hyp(e[0]-s[0],e[1]-s[1])/UPPER);
+    seg(g,s,e,3.7,OUTLINE);seg(g,e,h,3.2,OUTLINE);circ(g,h[0],h[1],radius+0.7,OUTLINE,false);
+    const sleeve=()=>{seg(g,s,e,2.4,a.shirt);if(upperFraction<0.9){g.globalAlpha=(1-upperFraction)*0.4;seg(g,s,e,2.4,OUTLINE);g.globalAlpha=1;}};
+    const fore=()=>{seg(g,e,h,1.9,a.skin);circ(g,h[0],h[1],radius,a.skin,false);};
+    if(arm.handZ>arm.elbowZ){sleeve();fore();}else{fore();sleeve();}
+  });
+}
+function drawHead(g,L){
+  const a=L.st.person;const p=L.p;const lean=L.pose.lean||0;
+  const c=bodyPoint(p,L.pose.facing,0.9+lean*0.5,0);const look=L.pose.look;const lr=look*Math.PI/180;
+  const r=a.style==='bob'?3.2:2.9;const crown=a.style==='bald'?a.skin:a.hair;
+  if(a.style==='long'){const q=bodyPoint(c,look,-2.8,0);ell(g,q[0],q[1],2.6,2.1,lr,a.hairDark,true);}
+  if(a.style==='bun'){const q=bodyPoint(c,look,-2.9,0);circ(g,q[0],q[1],1.4,a.hairDark,true);}
+  circ(g,c[0],c[1],r,crown,true);
+  g.save();g.beginPath();g.arc(c[0],c[1],r,0,TAU);g.clip();
+  if(a.style==='bald'){const q=bodyPoint(c,look,-1.3,0);circ(g,q[0],q[1],r,a.hair,false);const q2=bodyPoint(c,look,0.3,0);circ(g,q2[0],q2[1],r-0.7,a.skin,false);}
+  const q=bodyPoint(c,look,a.style==='bald'?2.1:1.5,0);circ(g,q[0],q[1],r,a.skin,false);
+  if(a.style!=='bald'){const q3=bodyPoint(c,look,-0.2,-0.7);ell(g,q3[0],q3[1],1.3,0.9,lr,a.hairLite,false);}
+  g.restore();
+  const nose=bodyPoint(c,look,r+0.3,0);circ(g,nose[0],nose[1],0.7,a.skin,true);
+}
+/** The set drawn in the contract's scene order: bodies, then arms larks first and robins last, then heads. */
+function drawSet(g,layouts,ghosts,figKey,modelKey,opts){
+  if(ghosts){const beats=FIGS[figKey].beats;g.save();g.globalAlpha=0.28;
+    for(let k=0;k<beats;k++){for(const st of STATIONS){const ps=sample(figKey,modelKey,st,k,opts);const rad=ps.facing*Math.PI/180;g.beginPath();g.ellipse(ps.p[0],ps.p[1],3.6,5.6,rad,0,TAU);g.lineWidth=1;g.strokeStyle='#1b1410';g.stroke();g.fillStyle=st.person.shirt;g.fill();}}
+    g.restore();}
+  layouts.forEach(L=>drawBody(g,L));
+  layouts.filter(L=>L.st.role==='lark').forEach(L=>drawArms(g,L));
+  layouts.filter(L=>L.st.role==='robin').forEach(L=>drawArms(g,L));
+  layouts.forEach(L=>drawHead(g,L));
+}
+function floor(g,w,h){g.fillStyle='#c9a06a';g.fillRect(0,0,w,h);g.fillStyle='#c2985f';for(let y=0;y<h;y+=5){if(((y/5)|0)%2)g.fillRect(0,y,w,5);}g.fillStyle='#a77f4e';for(let x=7;x<w;x+=37)g.fillRect(x,0,1,h);}
+
+// ============================================================ world/canvas
+const WORLD={w:2*HALF_ACROSS+2*18+2,h:2*HALF_ALONG+2*18+2};
+function mkCanvas(el,zoom,w=WORLD.w,h=WORLD.h){el.width=w;el.height=h;el.style.width=(w*zoom)+'px';el.style.height=(h*zoom)+'px';const g=el.getContext('2d');return g;}
+function renderSet(g,figKey,modelKey,beat,opts,feetModel,ghosts,w=WORLD.w,h=WORLD.h){
+  floor(g,w,h);g.save();g.translate(w/2,h/2);
+  const beats=FIGS[figKey].beats;
+  const layouts=STATIONS.map(st=>layout(st,sample(figKey,modelKey,st,beat,opts),beat,feetModel,opts,beats));
+  drawSet(g,layouts,ghosts,figKey,modelKey,opts);g.restore();
+}
+
+// ============================================================ graphs
+function drawGraph(cv,figKey,modelKey,beat,opts,vmax){
+  const dpr=window.devicePixelRatio||1;const W=cv.clientWidth||272,H=96;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle='#171310';g.fillRect(0,0,W,H);
+  const beats=FIGS[figKey].beats;const x=(t)=>8+(W-16)*t/beats;const yS=(s)=>H-10-(H-22)*s;
+  for(let k=0;k<=beats;k++){g.fillStyle=k%4===0?'#5a4a36':'#2c2419';g.fillRect(Math.round(x(k)),6,1,H-12);}
+  const fig=FIGS[figKey];const N=Math.round(beats*32);
+  // speed, filled
+  g.beginPath();g.moveTo(x(0),yS(0));for(let i=0;i<=N;i++){const t=beats*i/N;const {v}=progressAndSpeed(figKey,modelKey,t,opts);g.lineTo(x(t),yS(Math.min(1,v/vmax)));}g.lineTo(x(beats),yS(0));g.closePath();g.fillStyle='rgba(168,151,127,0.28)';g.fill();
+  // progress
+  g.beginPath();for(let i=0;i<=N;i++){const t=beats*i/N;const {s}=progressAndSpeed(figKey,modelKey,t,opts);const y=yS(s/fig.progMax);if(i===0)g.moveTo(x(t),y);else g.lineTo(x(t),y);}g.lineWidth=2;g.strokeStyle='#e7b96b';g.stroke();
+  for(let k=0;k<=beats;k++){const {s}=progressAndSpeed(figKey,modelKey,k,opts);g.beginPath();g.arc(x(k),yS(s/fig.progMax),2.6,0,TAU);g.fillStyle='#fff0c8';g.fill();}
+  g.fillStyle='#e7b96b';g.fillRect(Math.round(x(beat)),4,1,H-8);
+  g.fillStyle='#a8977f';g.font='10px ui-monospace,Menlo,monospace';for(let k=0;k<beats;k++)g.fillText(String(k+1),x(k)+3,H-1);
+}
+function peakOverAverage(figKey,modelKey,opts){const beats=FIGS[figKey].beats;const N=beats*64;let vmax=0,sum=0;for(let i=0;i<=N;i++){const {v}=progressAndSpeed(figKey,modelKey,beats*i/N,opts);vmax=Math.max(vmax,v);sum+=v;}const avg=sum/(N+1);return {vmax,ratio:vmax/avg};}
+
+// ============================================================ state
+const S={fig:'long-lines',beat:0,playing:true,tempo:112,depth:0.35,ramp:1,strideCap:2.6,feet:'swing',zoom:3,ghosts:false,click:false,cols:'half',feetPath:'cruise',dialPath:'pulse',dialFeet:'gait'};
+const opts=()=>({depth:S.depth,ramp:S.ramp,strideCap:S.strideCap});
+let lastTs=null;let lastWhole=-1;
+let audio=null;
+function tick(){if(!S.click)return;if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),gn=audio.createGain();const one=Math.floor(S.beat)%4===0;o.frequency.value=one?1320:880;gn.gain.setValueAtTime(0.16,audio.currentTime);gn.gain.exponentialRampToValueAtTime(0.001,audio.currentTime+0.06);o.connect(gn).connect(audio.destination);o.start();o.stop(audio.currentTime+0.07);}
+
+// ============================================================ build the page
+const conceptEls=[];const feetEls=[];let dialEl=null;const matrixCells=[];
+function build(){
+  const row=document.getElementById('concepts');row.innerHTML='';conceptEls.length=0;
+  MODELS.forEach(m=>{
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<h4><span>${m.name}</span><span class="tag">${m.tag}</span></h4><div class="hallwrap"><canvas class="pix"></canvas></div><canvas class="graph"></canvas><div class="legend"><span><i style="background:#e7b96b"></i>distance</span><span><i style="background:#a8977f;opacity:.6"></i>speed</span><span class="peak"></span></div><p>${m.blurb}</p>`;
+    row.appendChild(card);
+    conceptEls.push({m,card,cv:card.querySelector('canvas.pix'),graph:card.querySelector('canvas.graph'),peak:card.querySelector('.peak')});
+  });
+  const feet=document.getElementById('feet');feet.innerHTML='';feetEls.length=0;
+  [{key:'swing',name:'2a · body-local swing (today)',blurb:'Both feet slide ±2.6 px fore and aft in the body\'s frame, phase on the beat, amplitude by speed. The shoes travel with the body the whole time: nothing is ever on the floor.'},
+   {key:'gait',name:'2b · planted gait',blurb:'Left foot lands on the even counts, right on the odd; each stays put on the floor for a beat and a half while the body glides over it, then swings ahead in the last half beat (drawn a touch larger while in the air). At a hold the next plant is the rest position, so the foot <b>touches</b> instead of sliding.'}].forEach(f=>{
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<h4><span>${f.name}</span><span class="tag">8× · one dancer</span></h4><div class="hallwrap"><canvas class="pix"></canvas></div><p>${f.blurb}</p>`;
+    feet.appendChild(card);feetEls.push({f,card,cv:card.querySelector('canvas.pix')});
+  });
+  const chips=(host,keys,cur,on)=>{host.innerHTML='';keys.forEach(k=>{const b=document.createElement('button');b.textContent=k.label;b.className=k.key===cur?'on':'';b.onclick=()=>{on(k.key);};host.appendChild(b);});};
+  const pathKeys=MODELS.map(m=>({key:m.key,label:m.name.slice(0,2)+' '+m.key}));
+  chips(document.getElementById('feetPathChips'),pathKeys,S.feetPath,k=>{S.feetPath=k;build();});
+  chips(document.getElementById('dialPathChips'),pathKeys,S.dialPath,k=>{S.dialPath=k;build();});
+  chips(document.getElementById('dialFeetChips'),[{key:'swing',label:'body-local swing'},{key:'gait',label:'planted gait'}],S.dialFeet,k=>{S.dialFeet=k;build();});
+  const dial=document.getElementById('dial');dial.innerHTML='';
+  const card=document.createElement('div');card.className='card pick';
+  card.innerHTML=`<h4><span id="dialName"></span><span class="tag">6×</span></h4><div class="hallwrap"><canvas class="pix"></canvas></div><canvas class="graph"></canvas><div class="readout" id="dialRead"></div>`;
+  dial.appendChild(card);dialEl={cv:card.querySelector('canvas.pix'),graph:card.querySelector('canvas.graph'),read:card.querySelector('#dialRead'),name:card.querySelector('#dialName')};
+  buildMatrix();
+  const cnt=document.getElementById('count');cnt.innerHTML='';for(let k=0;k<FIGS[S.fig].beats;k++){const s=document.createElement('span');s.textContent=k+1;if(k%4===0)s.className='one';cnt.appendChild(s);}
+  document.getElementById('scrub').max=FIGS[S.fig].beats;
+}
+function buildMatrix(){
+  const host=document.getElementById('matrix');host.innerHTML='';matrixCells.length=0;
+  const beats=FIGS[S.fig].beats;const step=S.cols==='half'?0.5:1;const cols=[];for(let b=0;b<=beats;b+=step)cols.push(b);
+  const table=document.createElement('table');
+  const head=document.createElement('tr');head.innerHTML='<th></th>'+cols.map(b=>`<th class="beat ${b%4===0?'one':''}">${b}</th>`).join('');table.appendChild(head);
+  MODELS.forEach(m=>{const tr=document.createElement('tr');const th=document.createElement('th');th.textContent=m.name;tr.appendChild(th);
+    cols.forEach(b=>{const td=document.createElement('td');const cv=document.createElement('canvas');cv.className='pix';td.appendChild(cv);tr.appendChild(td);matrixCells.push({m,b,cv});});
+    table.appendChild(tr);});
+  host.appendChild(table);
+  document.getElementById('matrixFeet').textContent=S.feet==='gait'?'planted gait (from the strip above)':'body-local swing (from the strip above)';
+  drawMatrix();
+}
+function drawMatrix(){matrixCells.forEach(c=>{const g=mkCanvas(c.cv,2);renderSet(g,S.fig,c.m.key,Math.min(c.b,FIGS[S.fig].beats-1e-6),opts(),S.feet,false);});}
+
+// ============================================================ frame loop
+function frame(ts){
+  if(lastTs===null)lastTs=ts;const dt=(ts-lastTs)/1000;lastTs=ts;
+  const beats=FIGS[S.fig].beats;
+  if(S.playing){S.beat=(S.beat+dt*S.tempo/60)%beats;}
+  const whole=Math.floor(S.beat);if(whole!==lastWhole){lastWhole=whole;tick();}
+  document.getElementById('scrub').value=S.beat;document.getElementById('scrubV').textContent=S.beat.toFixed(2);
+  document.querySelectorAll('#count span').forEach((s,i)=>s.classList.toggle('on',i===whole));
+  const o=opts();
+  let vmax=0;MODELS.forEach(m=>{vmax=Math.max(vmax,peakOverAverage(S.fig,m.key,o).vmax);});
+  conceptEls.forEach(c=>{c.card.style.width=(WORLD.w*S.zoom+8+2+26)+'px';const g=mkCanvas(c.cv,S.zoom);renderSet(g,S.fig,c.m.key,S.beat,o,S.feet,S.ghosts);drawGraph(c.graph,S.fig,c.m.key,S.beat,o,vmax);const pk=peakOverAverage(S.fig,c.m.key,o);c.peak.textContent=`peak ${pk.ratio.toFixed(2)}× avg`;});
+  // feet close-ups: the 1L dancer alone, following the section's chosen path, in a world that fits the path
+  feetEls.forEach(f=>{const st=STATIONS[0];const w=44,h=44;const g=mkCanvas(f.cv,8,w,h);
+    const pose=sample(S.fig,S.feetPath,st,S.beat,o);
+    // camera follows the body; the boards are drawn in world space, so a planted foot visibly stays on its board while the body glides
+    g.save();g.translate(w/2-pose.p[0],h/2-pose.p[1]);
+    floorWorld(g,pose.p,w,h);
+    const L=layout(st,pose,S.beat,f.f.key,o,FIGS[S.fig].beats);
+    drawBody(g,L);drawArms(g,L);drawHead(g,L);g.restore();});
+  if(dialEl){const g=mkCanvas(dialEl.cv,6);renderSet(g,S.fig,S.dialPath,S.beat,o,S.dialFeet,S.ghosts);drawGraph(dialEl.graph,S.fig,S.dialPath,S.beat,o,vmax);const pk=peakOverAverage(S.fig,S.dialPath,o);
+    const m=MODELS.find(x=>x.key===S.dialPath);dialEl.name.textContent=`${m.name} · ${S.dialFeet==='gait'?'planted gait':'body-local swing'}`;
+    dialEl.read.textContent=`${FIGS[S.fig].label} · peak ${pk.vmax.toFixed(2)} ${S.fig==='long-lines'?'px/beat':'/beat'} = ${pk.ratio.toFixed(2)}× average · pulse depth ${S.depth.toFixed(2)} · cruise ramp ${S.ramp.toFixed(2)} beat · stride cap ${S.strideCap.toFixed(1)} px`;}
+  requestAnimationFrame(frame);
+}
+/** Floor boards in world coordinates, so a planted foot visibly stays on its board while the body moves. */
+function floorWorld(g,centre,w,h){const x0=Math.floor(centre[0]-w),y0=Math.floor(centre[1]-h);g.fillStyle='#c9a06a';g.fillRect(x0,y0,2*w,2*h);g.fillStyle='#c2985f';for(let y=Math.floor(y0/5)*5;y<y0+2*h;y+=5){if(((y/5)|0)%2)g.fillRect(x0,y,2*w,5);}g.fillStyle='#a77f4e';for(let x=Math.floor(x0/37)*37+7;x<x0+2*w;x+=37)g.fillRect(x,y0,1,2*h);}
+
+// ============================================================ controls
+const $=(id)=>document.getElementById(id);
+$('btnPlay').onclick=()=>{S.playing=!S.playing;$('btnPlay').textContent=S.playing?'⏸ Pause':'▶ Play';};
+$('btnRestart').onclick=()=>{S.beat=0;};
+$('tempo').oninput=e=>{S.tempo=+e.target.value;$('tempoV').textContent=S.tempo;};
+$('scrub').oninput=e=>{S.beat=+e.target.value;S.playing=false;$('btnPlay').textContent='▶ Play';};
+$('depth').oninput=e=>{S.depth=e.target.value/100;$('depthV').textContent=S.depth.toFixed(2);drawMatrix();};
+$('ramp').oninput=e=>{S.ramp=e.target.value/100;$('rampV').textContent=S.ramp.toFixed(2)+' beat';drawMatrix();};
+$('stride').oninput=e=>{S.strideCap=e.target.value/10;$('strideV').textContent=S.strideCap.toFixed(1)+' px';};
+$('ghosts').onclick=()=>{S.ghosts=!S.ghosts;$('ghosts').classList.toggle('on',S.ghosts);};
+$('click').onclick=()=>{S.click=!S.click;$('click').classList.toggle('on',S.click);if(S.click&&!audio){audio=new (window.AudioContext||window.webkitAudioContext)();}};
+document.querySelectorAll('[data-fig]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-fig]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.fig=b.dataset.fig;S.beat=0;build();});
+document.querySelectorAll('[data-feet]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-feet]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.feet=b.dataset.feet;buildMatrix();});
+document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-zoom]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.zoom=+b.dataset.zoom;});
+document.querySelectorAll('[data-cols]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-cols]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.cols=b.dataset.cols;buildMatrix();});
+window.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();$('btnPlay').click();}
+  if(e.key==='ArrowRight'){S.playing=false;S.beat=(S.beat+0.25)%FIGS[S.fig].beats;$('btnPlay').textContent='▶ Play';}
+  if(e.key==='ArrowLeft'){S.playing=false;S.beat=(S.beat-0.25+FIGS[S.fig].beats)%FIGS[S.fig].beats;$('btnPlay').textContent='▶ Play';}});
+const params=new URLSearchParams(location.search);
+if(params.get('beat')!==null){S.beat=+params.get('beat');S.playing=false;$('btnPlay').textContent='▶ Play';}
+if(params.get('fig')){S.fig=params.get('fig');document.querySelectorAll('[data-fig]').forEach(x=>x.classList.toggle('on',x.dataset.fig===S.fig));}
+if(params.get('feet')){S.feet=params.get('feet');document.querySelectorAll('[data-feet]').forEach(x=>x.classList.toggle('on',x.dataset.feet===S.feet));}
+if(params.get('ghosts')){S.ghosts=true;$('ghosts').classList.add('on');}
+if(params.get('depth')){S.depth=+params.get('depth');$('depth').value=S.depth*100;$('depthV').textContent=S.depth.toFixed(2);}
+build();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
