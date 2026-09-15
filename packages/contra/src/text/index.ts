@@ -76,3 +76,5 @@ export {
   classifyCall,
   headingTokens,
 } from "./callScript.js";
+
+export { passListFor, scheduleSentences, scheduleTeach } from "./scheduleTeach.js";

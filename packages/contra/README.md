@@ -1008,6 +1008,11 @@ figures inside one phrase are said in one breath; two figures danced at once are
 joined by `WHILE`. A dance file's own `call` is a **flourish** and joins the list
 as the longest form there is.
 
+**A schedule figure's teach is generated** (`src/text/scheduleTeach.ts`): the
+hey's is its own pass list read aloud in the user's shape, because there are
+more heys a caller can ask for than anybody will write teach texts for. The file
+keeps the opening sentence and `resolveFigureText` appends the rest.
+
 **`danceWalkthrough(dance)`** (`src/text/walkthrough.ts`) is the whole card: the
 formation's own opening, one entry per call of the record with its heading, its
 lines and its hint, and the progression sentence at the wrap. See

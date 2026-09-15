@@ -273,6 +273,38 @@ by name — a `{slot}` showing on the page is worse than a page that refused to
 build. The slots W1 wrote and this milestone retired — `{where}`, `{pairs}`,
 `{couples}` — fail at load too, with the name of what replaced them.
 
+### A schedule figure's teach is generated
+
+The hey is a **list**, and a caller teaching one reads the dancer's own meetings
+out in order. There are more heys a caller can ask for — half a hey, by the
+left, a ricochet on one pass, a hey for three, a diagonal hey, a hey that ends
+short — than anybody will ever write teach texts for, so the hey's teach is not
+written. `data/figures/hey.json` keeps the **opening sentence** ("Note where you
+are standing. You will return here after walking across the set.") and
+`packages/contra/src/text/scheduleTeach.ts` reads the rest off the pass list,
+which is the schedule written down.
+
+One clause per meeting, in the dancer's own order:
+
+| the meeting                            | the clause                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| the first, for the role that steps off | "Robins start by passing right shoulders in the middle"                     |
+| the first, for the other role          | "Larks, you start by looping at the end"                                    |
+| with your own role                     | "the other robin by the right in the middle"                                |
+| with a relation                        | "neighbor by the left on the outside", "partner by the left on the outside" |
+| one you are round the end for          | "loop around"                                                               |
+| a ricochet                             | "bounce back off neighbor on the outside"                                   |
+| the end of a whole weave               | "face your partner on your side"                                            |
+| the end of a part of one               | "and stop when everybody has crossed the set"                               |
+| a list that ends short (`~`)           | "and stop beside your neighbor, facing them"                                |
+
+Whether a meeting is **in the middle** or **on the outside** is read off _who_ it
+is with — your own role is a centre pass and a relation is at the lanes' edges —
+rather than off its place in the list. One sentence per role, the starting role's
+first; a hey for three adds the sentence for the dancer standing out. Where the
+two role sentences will not fit the teach budget between them, the second is
+dropped from the walkthrough and kept for the figure's own page.
+
 ### Where you end is not written
 
 `{where}` is gone. The written language stops at **how far** (§3); where the
