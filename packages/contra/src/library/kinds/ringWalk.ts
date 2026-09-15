@@ -61,6 +61,7 @@ export function planRingWalk(
   const inBeats = evalNumber(shape.inBeats, env);
   const outBeats = evalNumber(shape.outBeats, env);
   const step = 360 / ring.order.length;
+  if (process.env.RW_DEBUG) console.error("RW", JSON.stringify({ ids: ctx.ids, roles, order: ring.order, centre: ring.centre, radius: ring.radius, angle: ring.angle, places, sign, step, beats }));
 
   const ends: Spots = {};
   for (const role of ctx.ids) {
