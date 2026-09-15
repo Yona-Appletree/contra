@@ -72,6 +72,12 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t6-wrap-butter-after-march.png`       | T6: Butter's march, wrapped (the march was never stretched; unaffected)      |
 | `t6-wrap-butter-after-strip.png`       | T6: Butter's figure strip, wrapped — the `slide` cell breaks the same way    |
 | `t6-wrap-airpants-unchanged-pen.png`   | T6: Airpants' pen plot, `?wrap=1` — byte-identical to `?wrap=0` (asserted)   |
+| `u3-stage-390-silent.png`              | U3: the Stage at 390 × 844, no diagrams, the speaker icon silent             |
+| `u3-stage-390-playing.png`             | U3: the same page after tapping the speaker, the icon's playing state        |
+| `u3-dance-page-top-390.png`            | U3: `#/dances/airpants` at 390 × 844, the top of the page                    |
+| `u3-dance-page-bottom-390.png`         | U3: the same page scrolled to the bottom                                     |
+| `u3-dance-page-butter-390-march.png`   | U3: `#/dances/butter`, a becket dance, the shapes switched to march          |
+| `u3-dances-390.png`                    | U3: the Dances tab at 390 × 844, no diagrams, each card linking its page     |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -202,3 +208,24 @@ picture, not just eyeballed.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
+
+The six U3 pictures are the look gate for "the diagrams leave the front page":
+the user, on a phone, found T2's `DanceTraces` "odd and random" under a live
+simulation. `u3-stage-390-silent.png`/`-playing.png` are the Stage before and
+after tapping the new speaker icon — the note card carries no shapes any more,
+just the title, the phrases and the tune, with a small link under the card to
+the dance's own page — and the icon itself, an 8-bit speaker at the canvas's
+bottom-left corner (the snack table and its sitters, `layoutHall`'s `table`,
+own the bottom-right of every hall), switches from a muted × to two gold wave
+bars. `u3-dance-page-top-390.png`/`-bottom-390.png` are `#/dances/airpants`
+top to bottom: "Play … on the Stage" at the top, the head, the static calling
+card, the shapes with T4's plot/march/seismo switch and a link to the full
+traces page, then the walkthrough — one card per figure, the long teach ending
+on the generated landmark — and "Play … on the Stage" again at the bottom.
+`u3-dance-page-butter-390-march.png` is the becket dance's own page with the
+switch on `march`, which is also where "becket, progresses left" is read.
+`u3-dances-390.png` is the Dances tab with the inline diagrams gone from every
+card and a "card and shapes →" link to each dance's own page in their place.
+
+Taken from a scratch spec, `e2e/u3-dance-page-shots.spec.ts`, deleted
+afterwards per this file's own documented convention.

@@ -36,6 +36,58 @@
 }
 
 /*
+ * U3: the canvas's own box, so the speaker button can sit at a corner of it
+ * rather than of the strip — the strip runs edge to edge on a phone (U1) and
+ * is wider than the canvas at every zoom but 1×, where the two agree.
+ */
+.caller-stage-canvas-wrap {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+
+/*
+ * The speaker button (U3): the play/pause control, redrawn as an 8-bit icon
+ * overlaid on the stage's bottom-left corner rather than a labelled button in
+ * the control row. Bottom-left, not bottom-right — the snack table and its two
+ * sitters (`layoutHall`'s `table`) sit in the bottom-right of every hall, and
+ * the bottom-left has only the sparser chair line behind it.
+ *
+ * A thumb-sized hit area (44 px, above the 40 px the brief asks) on a chip
+ * dark enough to read the ink-coloured icon against whatever the floor is
+ * doing underneath it, on any theme.
+ */
+.speaker-button {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent);
+  border-radius: 2px;
+  background: color-mix(in oklab, black 55%, transparent);
+  cursor: pointer;
+}
+
+.speaker-button svg {
+  width: 22px;
+  height: auto;
+  shape-rendering: crispEdges;
+}
+
+.speaker-body,
+.speaker-mute {
+  fill: var(--foreground);
+}
+
+.speaker-waves {
+  fill: var(--primary);
+}
+
+/*
  * The dance card: a white index card.
  *
  * Off-white paper, a soft shadow, a few px of corner, and a faint warm header
@@ -493,10 +545,76 @@
   font-weight: 600;
 }
 
-/* On a dance card: the strip, then the plot, both the card's own width. */
+/*
+ * U3's "the shapes": the switch, the selected view, then the strip, on the
+ * dance page. (Not on a card any more — the user found the diagrams "odd and
+ * random" under a live simulation, so this is the one place left that draws
+ * them: T2's original home, the Stage's and the Dances tab's own cards, no
+ * longer does.)
+ */
 .dance-traces {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-top: 0.375rem;
+  max-width: 420px;
+}
+
+/*
+ * U3: the dance page, a quiet phone-first reference sheet for one dance —
+ * head, the calling card (static), the shapes, the walkthrough, "play on the
+ * Stage" top and bottom.
+ */
+.dance-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+
+.dance-page-head h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.dance-page-head p {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+/* The small line under the Stage card that points at this same page (U3). */
+.hall-dance-link {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.hall-dance-link a {
+  color: inherit;
+}
+
+/* One walkthrough step: the phrase and figure, the call, then the teach. */
+.dance-page-walkthrough {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dance-page-step {
+  border-left: 2px solid var(--border);
+  padding-left: 0.625rem;
+}
+
+.dance-page-step-head {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.dance-page-step p {
+  margin-top: 0.1875rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }

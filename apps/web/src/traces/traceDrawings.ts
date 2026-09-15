@@ -206,6 +206,43 @@ export function cardPenPlot(trace: Trace, width = 300, height = 170): string {
   });
 }
 
+/** How wide one beat is in the dance page's switchable march or seismograph, px. */
+export const DANCE_BEAT_PX = 8;
+
+/**
+ * The march on the dance page's shapes section (U3), switched in for the pen
+ * plot exactly as T4's row switch does — same footprint, a card's height, so
+ * flipping the switch does not change the section's height. A dance longer
+ * than the page's width scrolls inside its own box, same convention as
+ * everywhere else a beat axis is drawn.
+ */
+export function cardMarch(trace: Trace, height = 170): string {
+  return marchSvg(trace, {
+    height,
+    beatPx: DANCE_BEAT_PX,
+    penWidth: 1,
+    spreadPx: 1.6,
+    facingPx: 3,
+    labels: false,
+  });
+}
+
+/**
+ * The seismograph on the dance page's shapes section (U3), switched in for the
+ * pen plot. No facing — the seismograph never carries one (T2's ruling).
+ */
+export function cardSeismograph(trace: Trace, height = 170): string {
+  return seismographSvg(trace, {
+    height,
+    beatPx: DANCE_BEAT_PX,
+    penWidth: 1,
+    spreadPx: 1.6,
+    padLeft: 24,
+    padRight: 8,
+    labels: false,
+  });
+}
+
 /**
  * The figure strip on a dance card: sixty-four beats in a card's width, so the
  * captions are dropped and the cells are read by colour and by shape.
