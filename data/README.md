@@ -116,6 +116,13 @@ engine's own end places and shown beside the text. A `variants` block, keyed
 `"<param>=<value>"`, gives one parameter value its own prose where a slot is
 not enough.
 
+A dance file may also carry a **`teach`** block — a caller's own edits to that
+dance's walkthrough, keyed `<phrase>/<figure>` with `before`, `after` and
+`replace` — and **`callBudgets`**, how many beats of words each time through
+gets. Those two and a figure call's `call` (a flourish, and only ever that) are
+the whole of what a record says about **words**; everything else the app says is
+computed and never stored. See `docs/dance-record.md`.
+
 They are plain JSON on purpose: the user is a caller and will edit them,
 and editing them must not need a build. `docs/move-texts.md` is the voice
 they are written in and the whole slot vocabulary;

@@ -84,6 +84,14 @@ export type { AcceptanceDance } from "./acceptance.js";
 export { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./acceptance.js";
 export type { DanceFile, DanceFileSource } from "./loadDances.js";
 export { danceFromFile } from "./loadDances.js";
+/**
+ * Every dance file as written, before `danceFromFile` threads it.
+ *
+ * Exported for the one thing that needs a record rather than a `Dance`: writing
+ * a `teach` overlay over one and loading the result, which is what a caller's
+ * edits are and what the card's own tests read.
+ */
+export { DANCE_FILES } from "./danceFiles.js";
 export { CONTRA_FORMATIONS, formationById } from "./formations.js";
 export type { DanceOracles, DanceRunOptions } from "./oracle.js";
 export {

@@ -1025,6 +1025,15 @@
   margin-top: 0.125rem;
 }
 
+/**
+ * A caller's own paragraph round an entry (the `teach` overlay): ordinary ink,
+ * not the hint's italic, because the caller is talking here and the hint is the
+ * app.
+ */
+.walkthrough-said-own {
+  margin-top: 0.125rem;
+}
+
 /*
  * **Where this call leaves you**: the app talking, not the caller. Italic and
  * muted, and with no rule bar down its left — the user, on the spike: "lets do

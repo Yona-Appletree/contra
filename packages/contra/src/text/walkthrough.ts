@@ -19,6 +19,7 @@ import type { WhoWord } from "./relationWords.js";
 import { relationWords } from "./relationWords.js";
 import type { Hint } from "./seam.js";
 import { seamHint, toOf } from "./seam.js";
+import { applyTeach } from "./teach.js";
 
 /**
  * **A whole dance's walkthrough**: the opening, one entry per call with its
@@ -65,6 +66,10 @@ export interface WalkthroughEntry {
   hint?: Hint;
   /** Said before this entry where a pass of a multi-pass record ends. */
   passBreak?: string;
+  /** A caller's own paragraph before this entry; see `teach.ts`. */
+  before?: string;
+  /** A caller's own paragraph after it. */
+  after?: string;
 }
 
 /** Everything a walkthrough card renders. */
@@ -111,11 +116,17 @@ export function danceWalkthrough(dance: Dance, formation?: Formation): Walkthrou
     });
   }
 
-  return {
-    opening: openingOf(where, dance),
-    entries,
-    wrap: wrapOf(dance, shift, where),
-  };
+  // **A caller's own edits last** (vision §4): everything above is computed, and
+  // the overlay is the only thing on disk that a human wrote about *this*
+  // dance's walkthrough.
+  return applyTeach(
+    {
+      opening: openingOf(where, dance),
+      entries,
+      wrap: wrapOf(dance, shift, where),
+    },
+    dance.teach,
+  );
 }
 
 /** How a caller counts the passes of a record that has more than one. */

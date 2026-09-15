@@ -103,6 +103,16 @@ function Entry({
         <span className="walkthrough-label">{phrase ?? ""}</span>
         <span className="walkthrough-beats">{entry.beats === 0 ? "—" : entry.beats}</span>
         <div className="walkthrough-said">
+          {/*
+           * **A caller's own paragraphs** (vision §4): before the heading and
+           * after the hint, in the ordinary text style rather than the hint's,
+           * because they are the caller talking and the hint is the app.
+           */}
+          {entry.before === undefined ? null : (
+            <p className="walkthrough-said-own" data-testid="walkthrough-before">
+              {entry.before}
+            </p>
+          )}
           <p className="walkthrough-heading">
             <CallTokens tokens={headingTokens(entry.heading)} text={entry.heading} />
           </p>
@@ -134,6 +144,11 @@ function Entry({
               <HintText hint={entry.hint} />
             </>
           ) : null}
+          {entry.after === undefined ? null : (
+            <p className="walkthrough-said-own" data-testid="walkthrough-after">
+              {entry.after}
+            </p>
+          )}
         </div>
       </div>
     </>
