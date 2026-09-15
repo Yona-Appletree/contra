@@ -12,6 +12,7 @@ import type { SlotView, TargetShape } from "../set/shape.js";
 import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
 import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
+import { recordClaim, takenIn } from "./kinds/places.js";
 
 /**
  * **The interpreter**: a {@link FigureDefinition} as the `ContraFigure` a coded
@@ -96,6 +97,15 @@ export interface ShapeInput {
   places?: readonly Vec2[];
   /** The centres of the sibling instances, frame-local. */
   nearby: readonly Vec2[];
+  /**
+   * The places of `places` another instance of this very call has already
+   * settled on, or that somebody is standing through the call on (M9d).
+   *
+   * Frame-local px, and a **ranking** rather than a prohibition: a search that
+   * cannot avoid one still takes it. See `kinds/places.ts`'s `PlaceLedger`.
+   * Absent for a figure planned outside a resolution.
+   */
+  taken?: readonly Vec2[];
   /** Whether the figure gathers on to `homes`. */
   gathers: boolean;
   /** The shape the figure forms, when its `ends` names one (Q6, M7). */
@@ -187,6 +197,7 @@ export function planDefinition(
 ): FigurePlan {
   const roles = ctx.ids;
   const places = params.homes.length > 0 ? params.homes : undefined;
+  const taken = takenIn(params);
   // **The anchor is read over the dancers in scope**, not over the whole cast:
   // a sequence part planned for two of a hands-four anchors on those two. For
   // the figure itself `inner` is `ctx` and `inner.ids` is `roles`, so nothing a
@@ -204,6 +215,7 @@ export function planDefinition(
     anchorOf: anchorIn,
     ...(places === undefined ? {} : { places }),
     nearby: params.nearby,
+    ...(taken.length === 0 ? {} : { taken }),
     // A figure that forms a shape may also settle it on to the formation's own
     // places, and says so in the target: `"home"` is not the only way to be a
     // gatherer since M7, but forming a shape does not make you one.
@@ -213,7 +225,16 @@ export function planDefinition(
     joinedIn: carriedJoins(params, "in"),
     joinedOut: carriedJoins(params, "out"),
   };
-  return planShape(def.shape, def.holds, input);
+  const plan = planShape(def.shape, def.holds, input);
+  // **The one place an instance's claim is written** (M9d), and it is written
+  // from the plan's own ends rather than from the search inside it: what an
+  // instance takes off the pool is where its dancers really finish, which keeps
+  // every shape kind honest without any of them knowing the ledger exists. It
+  // is a no-op for a figure planned outside a resolution, and idempotent — the
+  // plan is a pure function of the earlier instances' claims, so re-planning
+  // this one writes the same answer back.
+  recordClaim(params, input.gathers ? (places ?? []) : [], plan.ends);
+  return plan;
 }
 
 /**

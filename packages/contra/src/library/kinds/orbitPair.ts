@@ -251,6 +251,9 @@ function settle(
 ): Settled {
   const { ctx, roles } = input;
   const places = input.gathers ? (input.places ?? stationPoints(input)) : stationPoints(input);
+  // The ledger ranks the **formation's** places, so it says nothing about the
+  // fallback: a figure planned from its own stations has no pool to share.
+  const taken = input.gathers && input.places ? (input.taken ?? []) : [];
   const psi0 = bearing(centre, ctx.spot(shape.axisRole ?? b).p);
   const separation = dist(ctx.spot(a).p, ctx.spot(b).p) / 2;
 
@@ -264,7 +267,7 @@ function settle(
     // stations the two passes agree, because the places *are* where the pair is
     // standing; from anywhere else the second is the honest one.
     const rough = endFacingOf(word, ctx.spot(a).p, ctx.spot(b).p, centre, ctx.spot(a).facing);
-    const pair = placePairFor(places, centre, rough, separation);
+    const pair = placePairFor(places, centre, rough, separation, taken);
     // The two ends of that pair of places, **in the order the call named the
     // dancers** — nearest to the first of them first. `endFacingOf` breaks the
     // tie a pair standing square across the set leaves ("both ways square to
@@ -302,7 +305,13 @@ function settle(
   // `"turned"`: each dancer ends on their own orbit angle, facing the centre,
   // as far out as the formation's own places are — which is the whole of what
   // `endHalf` was ever written by hand to say.
-  const pair = placePairFor(places, centre, bearing(ctx.spot(a).p, ctx.spot(b).p) + 90, separation);
+  const pair = placePairFor(
+    places,
+    centre,
+    bearing(ctx.spot(a).p, ctx.spot(b).p) + 90,
+    separation,
+    taken,
+  );
   const ends: Spots = {};
   const half: Record<FigureRole, number> = {};
   for (const role of roles) {

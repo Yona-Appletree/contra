@@ -285,7 +285,7 @@ function endsOf(input: ShapeInput, natural: Spots): Spots {
     const spot = natural[role];
     if (spot) points[role] = spot.p;
   }
-  const settled = settleOnPlaces(input.roles, points, input.places);
+  const settled = settleOnPlaces(input.roles, points, input.places, input.taken ?? []);
   const out: Spots = { ...natural };
   for (const role of input.roles) {
     const spot = natural[role];
