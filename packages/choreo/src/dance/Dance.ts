@@ -71,10 +71,58 @@ export interface FigureCall {
    * an abbreviation, a name).
    */
   spokenBeats?: Beat;
+  /**
+   * Other calls danced **at the same time as this one**, by other dancers.
+   *
+   * The corpus's own `||` and its own word: *"(2) Women cast back || Men go
+   * forward"*, *"(4) Men allemande right 1 || Women loop right"*, *"go forward
+   * and back while partner roll away"*. 735 corpus dances write `||` and 189
+   * write "while", so a call list that can only run one figure at a time cannot
+   * hold the corpus (M8; `vision.md` §"Resolution").
+   *
+   * A branch is an ordinary call in every respect but two: its `beats` may be
+   * left out, in which case it takes this call's, and it may not carry a `while`
+   * of its own — two levels of nesting would be a different thing from "these
+   * calls run together" and no transcript writes one.
+   *
+   * **The actors must be disjoint.** This call and each of its branches are
+   * resolved against the same dancers at the same beats, and a dancer cannot be
+   * in two figures at once ({@link import('../timeline/Timeline.js').Timeline}
+   * enforces exactly that, per dancer); the planner checks it before anything is
+   * emitted. A dancer named by none of them is on hold-place for the whole
+   * length, exactly as they are for an ordinary call.
+   *
+   * How long the whole call takes is the **longest** of the branches and this
+   * one ({@link callBeats}) — a two-beat cast back beside a two-beat walk
+   * forward is two beats, and a four-beat allemande beside a four-beat loop is
+   * four.
+   */
+  while?: ConcurrentCall[];
 }
 
-/** The four phrases of a contra tune, in order. */
-export type PhraseName = "A1" | "A2" | "B1" | "B2";
+/**
+ * One branch of a {@link FigureCall.while}: a call that runs beside another.
+ *
+ * `beats` left out is the parent call's, which is what a transcript means by
+ * `(4) Men allemande right 1 || Women loop right` — one count for the pair of
+ * them. `while` is not nested: a branch names no branches of its own.
+ */
+export type ConcurrentCall = Omit<FigureCall, "beats" | "while"> & { beats?: Beat };
+
+/**
+ * The name of a phrase of a dance.
+ *
+ * `"A1" | "A2" | "B1" | "B2"` is the ordinary contra tune and is what every
+ * dance written before M8 has, but it is **not** the whole vocabulary and this
+ * package never reads it: 113 corpus dances have phrases beyond A1–B2, and a
+ * record with two passes writes its second pass's phrases as `2A1 … 2B2`
+ * (`docs/dance-record.md`). A phrase name is a label, and the beat arithmetic
+ * comes from the figures.
+ */
+export type PhraseName = CommonPhraseName | (string & Record<never, never>);
+
+/** The four phrases of an ordinary contra tune, named for editor completion. */
+export type CommonPhraseName = "A1" | "A2" | "B1" | "B2";
 
 /** One phrase of a dance. */
 export interface DancePhrase {
@@ -89,7 +137,40 @@ export interface Dance {
   author: string;
   /** A formation id. */
   formation: string;
+  /**
+   * Every phrase of the record, in order — **all of its passes**, one after
+   * another (M8).
+   *
+   * A two-pass dance writes eight phrases (`A1 A2 B1 B2 2A1 2A2 2B1 2B2`) and
+   * says `passes: 2`; one time through the record is then both passes, which is
+   * what a caller means by "it's a two-tune dance". See {@link passes}.
+   */
   phrases: DancePhrase[];
+  /**
+   * How many equal **passes** {@link phrases} holds. Left out is one, which is
+   * every dance written before M8.
+   *
+   * A pass is one time through the tune; a record with two of them dances a
+   * different pass each time and the two differ (Anna's Reel exchanges the
+   * roles throughout). The phrase list is flat, so nothing that walks a dance's
+   * figures has to know about passes at all; what does change is **where the
+   * progression fires** — at the end of every pass, not at the end of the
+   * record — which is {@link progressEvery}.
+   *
+   * `phrases.length` must be a whole multiple of it, and every pass must be the
+   * same number of beats long ({@link validateDance}).
+   */
+  passes?: number;
+  /**
+   * How many passes go by between progressions. Left out is one: the set
+   * progresses at the end of **every** pass, which is what a two-pass dance
+   * ordinarily means.
+   *
+   * `2` is the other answer the corpus writes — a record whose two passes are
+   * one progression between them, so a couple dances the whole record with the
+   * same neighbours. Must divide {@link passes}.
+   */
+  progressEvery?: number;
   notes?: string;
   /**
    * Where each station's dancer stands at beat 0 of **every** time through, in
@@ -139,9 +220,48 @@ export interface Program {
   items: ProgramItem[];
 }
 
+/**
+ * How long one call takes: its own beats, or its longest concurrent branch's
+ * when a branch runs past it (M8).
+ *
+ * A branch with no `beats` of its own takes the parent's, so the ordinary
+ * `(4) A || B` is four beats however it is written.
+ */
+export const callBeats = (call: FigureCall): Beat =>
+  (call.while ?? []).reduce(
+    (longest, branch) => Math.max(longest, branch.beats ?? call.beats),
+    call.beats,
+  );
+
 /** How many beats a phrase's figures add up to. */
 export const phraseBeats = (phrase: DancePhrase): Beat =>
-  phrase.figures.reduce((sum, f) => sum + f.beats, 0);
+  phrase.figures.reduce((sum, f) => sum + callBeats(f), 0);
+
+/** How many passes a record holds (M8): its own, or one. */
+export const dancePasses = (dance: Dance): number => dance.passes ?? 1;
+
+/** How many beats one pass of a record is: one time through the tune. */
+export const passBeats = (dance: Dance): Beat => danceBeats(dance) / dancePasses(dance);
+
+/**
+ * Which pass each phrase belongs to, and the beat that pass starts on — what a
+ * planner needs to know where the progression falls.
+ *
+ * Phrases are handed out to passes in order, `phrases.length / passes` of them
+ * each, which {@link validateDance} has already checked divides evenly.
+ */
+export function dancePassSpans(dance: Dance): Array<{ start: Beat; end: Beat }> {
+  const passes = dancePasses(dance);
+  const perPass = dance.phrases.length / passes;
+  const spans: Array<{ start: Beat; end: Beat }> = [];
+  let beat: Beat = 0;
+  for (let p = 0; p < passes; p++) {
+    const start = beat;
+    for (let i = 0; i < perPass; i++) beat += phraseBeats(dance.phrases[p * perPass + i]!);
+    spans.push({ start, end: beat });
+  }
+  return spans;
+}
 
 /**
  * How long one time through is: the sum of every phrase.
@@ -158,6 +278,18 @@ export const danceBeats = (dance: Dance): Beat =>
  * Every phrase must be the same length and every figure must end on a figure
  * boundary inside it (vision D11: figure ends are fixed to phrase boundaries,
  * which is what lets the decider switch dances mid-tune without a feature).
+ *
+ * Three things M8 added, each with its own reason:
+ *
+ * - **A phrase's length is the sum over its calls of {@link callBeats}**, which
+ *   is the max over a call and its concurrent branches. A branch that is longer
+ *   than the call it runs beside would otherwise run past the phrase.
+ * - **A call may take no beats at all.** 44 corpus dances have one: "face your
+ *   neighbour", "form a wave" — a fact about where you end up rather than
+ *   something you spend the music on. What is refused is a *negative* count and
+ *   a call whose beats are not a number.
+ * - **Passes.** `phrases.length` divides by `passes`, every pass is the same
+ *   length, and `progressEvery` divides `passes`.
  */
 export function validateDance(dance: Dance): Dance {
   if (dance.phrases.length === 0) throw new Error(`dance "${dance.slug}" has no phrases`);
@@ -173,15 +305,50 @@ export function validateDance(dance: Dance): Dance {
       );
     }
     for (const call of phrase.figures) {
-      if (!(call.beats > 0)) {
-        throw new Error(`dance "${dance.slug}" ${phrase.name}: "${call.figure}" has no duration`);
+      checkBeats(dance, phrase, call.figure, call.beats);
+      for (const branch of call.while ?? []) {
+        checkBeats(dance, phrase, branch.figure, branch.beats ?? call.beats);
       }
     }
+  }
+  const passes = dancePasses(dance);
+  if (!Number.isInteger(passes) || passes < 1) {
+    throw new Error(`dance "${dance.slug}" has ${String(passes)} passes, which is not a count`);
+  }
+  if (dance.phrases.length % passes !== 0) {
+    throw new Error(
+      `dance "${dance.slug}" has ${String(dance.phrases.length)} phrases in ${String(passes)} passes, ` +
+        `which does not divide`,
+    );
+  }
+  const every = dance.progressEvery ?? 1;
+  if (!Number.isInteger(every) || every < 1 || passes % every !== 0) {
+    throw new Error(
+      `dance "${dance.slug}" progresses every ${String(every)} of ${String(passes)} passes, ` +
+        `which does not divide`,
+    );
   }
   return dance;
 }
 
-/** Every figure call of a dance in order, with the beat it starts on. */
+/** One call's own duration, checked: a count, and never negative. */
+function checkBeats(dance: Dance, phrase: DancePhrase, figure: string, beats: Beat): void {
+  if (typeof beats !== "number" || !Number.isFinite(beats) || beats < 0) {
+    throw new Error(
+      `dance "${dance.slug}" ${phrase.name}: "${figure}" has no duration (${String(beats)})`,
+    );
+  }
+}
+
+/**
+ * Every figure call of a dance in order, with the beat it starts on.
+ *
+ * **One entry per written call**, concurrent branches included in their parent's
+ * entry rather than as entries of their own (`call.while`): a `while` is one
+ * call of the card that several people dance at once, and everything that reads
+ * a schedule — the planner, the walkthrough, the seam pairs — has to see the
+ * whole of it at once to know who is left over.
+ */
 export function danceSchedule(
   dance: Dance,
 ): Array<{ call: FigureCall; start: Beat; phrase: PhraseName }> {
@@ -190,8 +357,22 @@ export function danceSchedule(
   for (const phrase of dance.phrases) {
     for (const call of phrase.figures) {
       out.push({ call, start: beat, phrase: phrase.name });
-      beat += call.beats;
+      beat += callBeats(call);
     }
   }
   return out;
+}
+
+/**
+ * One call and every branch that runs beside it, flattened — the parent first.
+ *
+ * Each branch carries the beats it really dances, so a caller of this need not
+ * remember that a branch with no count of its own takes its parent's.
+ */
+export function concurrentCalls(call: FigureCall): FigureCall[] {
+  const branches = call.while ?? [];
+  if (branches.length === 0) return [call];
+  const parent: FigureCall = { ...call };
+  delete parent.while;
+  return [parent, ...branches.map((branch) => ({ ...branch, beats: branch.beats ?? call.beats }))];
 }
