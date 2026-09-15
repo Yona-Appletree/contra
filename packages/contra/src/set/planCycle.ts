@@ -264,6 +264,70 @@ function planContraCycle(
       },
       gap.beats,
     );
+
+  /**
+   * **The outs write back** (M9c).
+   *
+   * A couple that has been standing out for a run of beats and is about to
+   * dance has been moved by its `wait-out` — it stepped together, walked to the
+   * waiting place, and crossed the set if the run ended there — and that
+   * `wait-out` is planned in the fill, which runs after every call of every
+   * pass. So the model still had the couple where the time through began, and
+   * the first call that swept it in started it from a place it had left. The
+   * seam was the whole width of the crossing:
+   *
+   * - Fatal Attraction, `walk-to-station -> allemande` at beat 40, 37.7359 px
+   *   at every checked length — a run ended by a call that carries the
+   *   progression;
+   * - Jeremy Corners at the odd lengths, `wait-out -> diamond` at beat 192,
+   *   32.0000 px, exactly the width of the set — a run ended by a **pass**
+   *   boundary. At two and four couples nobody ever waits, which is the whole
+   *   of why only the odd lengths showed it.
+   *
+   * The fill is what moves them and the fill is what is asked, so the two
+   * cannot disagree: {@link waitParams} is the one place the parameters are
+   * written. `standingAt` is the right map to ask with, because such a gap
+   * begins at the couple's own beat 0 and nothing has moved them yet — which is
+   * also why the fill's own sort puts it first.
+   */
+  const writeOutsBack = (
+    model: SetModel,
+    state: SetState,
+    claimedSoFar: Map<DancerId, Span[]>,
+    runFrom: Beat,
+    runTo: Beat,
+  ): void => {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, state)) {
+      if (plan.kind === "set") continue;
+      const members = Object.values(plan.members);
+      // Only a couple that stood out for the **whole** of this run: one with no
+      // gap was dancing, and one with a partial gap is already accounted for by
+      // the call that claimed the rest of it.
+      const whole = gapsIn({ start: runFrom, end: runTo }, members, claimedSoFar).find(
+        ([a, b]) => a === runFrom && b === runTo,
+      );
+      if (whole === undefined) continue;
+      const group = mintGroup(plan);
+      const def = registry.get(WAIT_OUT.id);
+      const ends = def.ends(
+        group,
+        waitParams(def, group, standingAt, {
+          join: true,
+          cross: true,
+          beats: whole[1] - whole[0],
+        }),
+      );
+      for (const [station, dancer] of Object.entries(group.members)) {
+        const end = ends[station];
+        const dancerState = model.dancers[dancer];
+        if (end === undefined || dancerState === undefined) continue;
+        dancerState.spot = { p: end.p, facing: end.facing };
+        // The memo is frame-local to a frame this pose was not computed in;
+        // dropping it makes the next reader convert honestly.
+        local.delete(dancer);
+      }
+    }
+  };
   for (const set of hall.sets) {
     const first = firstPlaces(formation, dance, set);
     // `"standing"` takes each dancer's real place where the decider has one and
@@ -503,52 +567,7 @@ function planContraCycle(
         // {@link PROGRESSES_PARAM}.
         if (carries) {
           progressedInPass = true;
-          // **The outs write back** (M9c). A couple that has been standing out
-          // for the run of beats this call ends is about to dance, and its
-          // `wait-out` — which is planned in the fill, after every call — has
-          // walked it somewhere: to the waiting place, and across the set if the
-          // run ends there. The model still had it where the time through began,
-          // so the first call that swept it in started it from a place it had
-          // left, and the seam was the whole width of the crossing. Fatal
-          // Attraction, `walk-to-station -> allemande` at beat 40, 37.7359 px.
-          //
-          // The fill is what moves them and the fill is what is asked, so the
-          // two cannot disagree: `waitParams` is the one place the parameters
-          // are written. `standingAt` is the right map to ask with because a
-          // leading gap begins at the couple's own beat 0 and nothing has moved
-          // them yet — which is also why the fill's own sort puts such a gap
-          // first.
-          const until = offset + callBeats(call);
-          for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, states.get(set.id)!)) {
-            if (plan.kind === "set") continue;
-            const members = Object.values(plan.members);
-            const gaps = gapsIn({ start: seatedFrom, end: until }, members, claimed);
-            // Only a couple that stood out for the *whole* of this run and is
-            // about to be swept in: a couple with no gap was dancing, and a
-            // couple with a partial gap is already accounted for by the call
-            // that claimed the rest of it.
-            const whole = gaps.find(([a, b]) => a === seatedFrom && b === until);
-            if (whole === undefined) continue;
-            const group = mintGroup(plan);
-            const def = registry.get(WAIT_OUT.id);
-            const ends = def.ends(
-              group,
-              waitParams(def, group, standingAt, {
-                join: true,
-                cross: true,
-                beats: whole[1] - whole[0],
-              }),
-            );
-            for (const [station, dancer] of Object.entries(group.members)) {
-              const end = ends[station];
-              const state = model.dancers[dancer];
-              if (end === undefined || state === undefined) continue;
-              state.spot = { p: end.p, facing: end.facing };
-              // The memo is frame-local to a frame this pose was not computed
-              // in; dropping it makes the next reader convert honestly.
-              local.delete(dancer);
-            }
-          }
+          writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, offset + callBeats(call));
           states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
           models.set(set.id, progressModel(model, shift));
         }
@@ -572,9 +591,17 @@ function planContraCycle(
     // **Unless a call of this pass has already done it** (M9b): a set
     // progresses once per pass however the record writes it, so a pass whose
     // own figure carried the progression has nothing left to do here.
-    if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
-      for (const set of hall.sets) {
-        const model = models.get(set.id)!;
+    //
+    // The outs write back here too, and only while there is another pass of
+    // this record to read the model: after the last one the cycle ends and the
+    // decider's own `standingAt` is what the next time through picks up. See
+    // {@link writeOutsBack} — Jeremy Corners' `wait-out -> diamond` seam.
+    for (const set of hall.sets) {
+      const model = models.get(set.id)!;
+      if (passIndex + 1 < spans.length) {
+        writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, span.end);
+      }
+      if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
         states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
         if (passIndex + 1 < spans.length) models.set(set.id, progressModel(model, shift));
       }

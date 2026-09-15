@@ -242,7 +242,7 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
         figure: call.figure,
         params: gathersOnPlaces(def) || def.shape.kind !== "legacy" ? extra : params,
         cast,
-        group: plan,
+        group: castGroup(plan, cast, call.figure, stations),
         frame: plan.frame,
         start: at,
         beats: call.beats,
@@ -905,6 +905,47 @@ function pairStations(
     out.push([id, otherStation]);
   }
   return out;
+}
+
+/**
+ * **A figure is planned over the dancers it has** — M9c.
+ *
+ * `actors: "all"` keeps the formation's own group, which is what makes the
+ * legacy path reproduce today's geometry exactly, and that is right for every
+ * call that takes the whole minor set. It is wrong for one that does not: the
+ * dancers a call *named* and the dancers a figure is *planned over* are allowed
+ * to differ only here — `dataInstance` builds its stations from the cast for
+ * every other `actors` — and every geometry read off `ctx.ids` then describes a
+ * group with somebody in it who is standing still.
+ *
+ * Jeremy Corners is where that was measured. B2's single-file promenade is
+ * written for three of the four (`"who": ["1L","2L","2R"]`); the ring came out
+ * a ring of **four**, so `{ number: "dancers" }` answered 4, a third of the ring
+ * snapped to a quarter turn, and `2L` finished on `(−16, 20)` — where `1R` had
+ * been standing on `walk-to-station` for the whole call. `collision 0.000 px`,
+ * `c0/robin ~ c1/robin` at beat 56, at every checked length. The travel turn was
+ * already the honest third (120°) while the end was the snapped quarter, so the
+ * figure disagreed with itself.
+ *
+ * The narrowing is the identity when the call takes every station, which is
+ * every other call in the corpus: measured, eight calls carry a `who` on an
+ * `actors: "all"`/`"ring"` figure and Jeremy Corners' two promenades are the
+ * only ones whose selection is a proper subset of the four.
+ */
+function castGroup(
+  plan: GroupPlan,
+  cast: Record<StationId, DancerId>,
+  figure: string,
+  stations: readonly StationId[],
+): GroupPlan {
+  const inCast = plan.stations.filter((s) => cast[s.id] !== undefined);
+  if (inCast.length === plan.stations.length) return plan;
+  return {
+    ...plan,
+    id: `${plan.id}/${figure}/${stations.join("-")}`,
+    stations: inCast,
+    members: cast,
+  };
 }
 
 /**
