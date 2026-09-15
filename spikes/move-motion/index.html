@@ -64,6 +64,7 @@ kbd{font:11px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px s
 <header>
   <h1>Move motion · the beat in a walk</h1>
   <p class="hint"><b>Thesis.</b> Most walking figures in the library ease their whole travel as one curve — <code>long-lines</code> is a single cosine over eight beats, <code>walkStep</code> (pass through, right and left through, the chain's pull-by) one smoothstep over the whole walk, <code>ringWalk</code> (circle, star) one smoothstep over the turn, and petronella, roll away, the twirl and wait-out the same. The moves that already feel right — swing, allemande, do-si-do — run on a <b>constant-speed trapezoid</b> instead: up to speed in about a beat, cruise, down in about a beat. So the question is not "add bounce": contra glides, and the contract says so (feet ±2.6 px, sway 1.5°, no vertical motion). The question is <b>where the beat lives</b> when the body glides — in the speed profile, in a small per-beat pulse, in the count sheet, or in the feet — and how little of it is enough.</p>
+  <p class="hint"><b>Rulings at the gate (2026-09-14):</b> the body walks on the <b>cruise</b> (1c). The pulse of 1b/1d is barely visible and contra tries to be smooth, so it is not needed; the slider stays for comparison. The feet are the <b>planted gait</b> (2b), and the <b>right foot goes first, on count 1</b> — a balance is "1 right forward, 2 left forward, 3 right back, 4 left back". The spikes are served with the app at <code>/spikes/</code> and linked from the Stage page, so this one can be shared.</p>
   <p class="hint"><b>How to read this.</b> Every panel loops the same figure on one clock. Turn the <b>click</b> on and watch whether the dancer's steps land on it. The graph under each panel is the honest view: distance along the path (gold) and speed (grey) against the beat grid; the dots are where the body is on each count. <b>Ghosts</b> stamp the torso on every whole beat so a screenshot shows beat-locking. Section 3 lays the same half-beats side by side, which is what a phone review reads.</p>
   <div class="controls" id="ctl">
     <div class="grp"><button class="primary" id="btnPlay">⏸ Pause</button><button id="btnRestart" title="back to beat 0">⏮</button></div>
@@ -71,7 +72,7 @@ kbd{font:11px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px s
     <div class="grp"><span class="l">tempo</span><input type="range" id="tempo" min="96" max="126" value="112"><span id="tempoV">112</span></div>
     <div class="grp"><span class="l">beat</span><input type="range" id="scrub" class="wide" min="0" max="8" step="0.02" value="0"><span id="scrubV">0.00</span><span class="count" id="count"></span></div>
     <div class="grp"><span class="l">pulse depth</span><input type="range" id="depth" min="0" max="100" value="35"><span id="depthV">0.35</span></div>
-    <div class="grp"><span class="l">feet</span><button data-feet="swing" class="on">body-local swing (today)</button><button data-feet="gait">planted gait</button></div>
+    <div class="grp"><span class="l">feet</span><button data-feet="swing">body-local swing (today)</button><button data-feet="gait" class="on">planted gait</button></div>
     <div class="grp"><span class="l">zoom</span><button data-zoom="3" class="on">3×</button><button data-zoom="4">4×</button><button data-zoom="5">5×</button></div>
     <div class="grp"><button id="ghosts">ghosts on beats</button><button id="click">click</button></div>
     <div class="grp"><span class="small">keys: <kbd>space</kbd> pause · <kbd>←</kbd><kbd>→</kbd> ¼ beat</span></div>
@@ -193,7 +194,7 @@ STATIONS.forEach(s=>{s.person=person(s.seed,s.role,s.rank);});
 const MODELS=[
   {key:'tween', name:'1a · tween (today)',     tag:'cosine / smoothstep over the whole move', blurb:'What ships. One ease across all eight beats: the body is fastest in the middle of each leg and never quite still, never quite going. Nothing lands on a count except the ends.'},
   {key:'warp',  name:'1b · tween + warp',      tag:'the same tween on a clock that hesitates on the beat', blurb:'The cheapest change there is: <b>w(t) = t − d·sin(2πt)/2π</b> applied to the beat before the figure samples. Every count stays exactly where it was; between counts the clock leans into the beat. One line in <code>poseAt</code>, every figure at once.'},
-  {key:'cruise',name:'1c · cruise',            tag:'trapezoid: one beat up, constant, one beat down', blurb:'The swing\'s own profile, applied to walking. Up to speed over the first step, constant speed across the middle, down over the last. No pulse at all — but the steps are even, so the feet (which run on the beat) stay in phase with the travel.'},
+  {key:'cruise',name:'1c · cruise ✓ picked', tag:'trapezoid: one beat up, constant, one beat down', blurb:'The swing\'s own profile, applied to walking. Up to speed over the first step, constant speed across the middle, down over the last. No pulse at all — but the steps are even, so the feet (which run on the beat) stay in phase with the travel.'},
   {key:'pulse', name:'1d · cruise + pulse',    tag:'the cruise on the hesitating clock', blurb:'1c through 1b\'s warp. Even steps <i>and</i> a lean into every count. The depth slider is the whole design question: how much hesitation reads as walking before it reads as marching.'},
   {key:'counts',name:'1e · counts',            tag:'keyframes on the count sheet, monotone spline between', blurb:'Long lines is <b>1 2 3 touch · 5 6 7 touch</b>: arrive on 3, stand on 4, leave on 5, home on 7. A monotone cubic through the counts, so a held count is a true hold and nothing overshoots. Where a sheet has no held count (pass through) this is a cruise. This is what a data-language <code>counts:</code> field would carry.'},
 ];
@@ -333,11 +334,14 @@ function feetGait(pose,beat,style,beats){
   const strideCap=style.strideCap;
   const plant=(k)=>{ // where the foot that lands at whole beat k is put down
     const kk=((k%beats)+beats)%beats;const b=pose.bodyAt(kk);const h=1/32;
-    const b0=pose.bodyAt(Math.max(kk-h,0)),b1=pose.bodyAt(Math.min(kk+h,beats));
+    // The foot lands ahead of where the body is *about to* go: the velocity half a beat after the plant, so a
+    // step out of rest still reads as "1, right foot forward" and the first step back lands behind.
+    const kv=Math.min(kk+0.5,beats);
+    const b0=pose.bodyAt(Math.max(kv-h,0)),b1=pose.bodyAt(Math.min(kv+h,beats));
     const v=[(b1.p[0]-b0.p[0])/(2*h),(b1.p[1]-b0.p[1])/(2*h)];const speed=hyp(v[0],v[1]);
     const lead=Math.min(strideCap,0.75*speed);
     const dir=speed>1e-3?[v[0]/speed,v[1]/speed]:dirOf(b.facing);
-    const side=(k%2===0)?-1:1; // even beats: left foot; odd: right
+    const side=(k%2===0)?1:-1; // count 1 (beat 0) is the right foot, count 2 the left: the gate ruling
     const rest=bodyPoint(b.p,b.facing,FOOT_REST_FWD,side*FOOT_REST_LAT);
     return {p:[rest[0]+dir[0]*lead,rest[1]+dir[1]*lead],facing:b.facing};
   };
@@ -349,7 +353,7 @@ function feetGait(pose,beat,style,beats){
     return {p:[mix(a[0],b[0],w),mix(a[1],b[1],w)],air:Math.sin(Math.PI*w)};
   };
   const speed=hyp(pose.velocity[0],pose.velocity[1]);const amplitude=Math.min(1,speed/FULL_AMP_SPEED)*clamp01(pose.amp);
-  return {L:foot(0),R:foot(1),sway:SWAY_DEG*Math.sin(TAU*beat)*amplitude};
+  return {L:foot(1),R:foot(0),sway:SWAY_DEG*Math.sin(TAU*beat)*amplitude};
 }
 
 // ============================================================ arms (two 7.5 px bones in 3D, elbow pole down and out, tucked when hanging)
@@ -473,7 +477,7 @@ function drawGraph(cv,figKey,modelKey,beat,opts,vmax){
 function peakOverAverage(figKey,modelKey,opts){const beats=FIGS[figKey].beats;const N=beats*64;let vmax=0,sum=0;for(let i=0;i<=N;i++){const {v}=progressAndSpeed(figKey,modelKey,beats*i/N,opts);vmax=Math.max(vmax,v);sum+=v;}const avg=sum/(N+1);return {vmax,ratio:vmax/avg};}
 
 // ============================================================ state
-const S={xray:false,fig:'long-lines',beat:0,playing:true,tempo:112,depth:0.35,ramp:1,strideCap:2.6,feet:'swing',zoom:3,ghosts:false,click:false,cols:'half',feetPath:'cruise',dialPath:'pulse',dialFeet:'gait'};
+const S={xray:false,fig:'long-lines',beat:0,playing:true,tempo:112,depth:0.35,ramp:1,strideCap:2.6,feet:'gait',zoom:3,ghosts:false,click:false,cols:'half',feetPath:'cruise',dialPath:'cruise',dialFeet:'gait'};
 const opts=()=>({depth:S.depth,ramp:S.ramp,strideCap:S.strideCap});
 let lastTs=null;let lastWhole=-1;
 let audio=null;
@@ -484,15 +488,15 @@ const conceptEls=[];const feetEls=[];let dialEl=null;const matrixCells=[];
 function build(){
   const row=document.getElementById('concepts');row.innerHTML='';conceptEls.length=0;
   MODELS.forEach(m=>{
-    const card=document.createElement('div');card.className='card';
+    const card=document.createElement('div');card.className=m.key==='cruise'?'card pick':'card';
     card.innerHTML=`<h4><span>${m.name}</span><span class="tag">${m.tag}</span></h4><div class="hallwrap"><canvas class="pix"></canvas></div><canvas class="graph"></canvas><div class="legend"><span><i style="background:#e7b96b"></i>distance</span><span><i style="background:#a8977f;opacity:.6"></i>speed</span><span class="peak"></span></div><p>${m.blurb}</p>`;
     row.appendChild(card);
     conceptEls.push({m,card,cv:card.querySelector('canvas.pix'),graph:card.querySelector('canvas.graph'),peak:card.querySelector('.peak')});
   });
   const feet=document.getElementById('feet');feet.innerHTML='';feetEls.length=0;
   [{key:'swing',name:'2a · body-local swing (today)',blurb:'Both feet slide ±2.6 px fore and aft in the body\'s frame, phase on the beat, amplitude by speed. The shoes travel with the body the whole time: nothing is ever on the floor.'},
-   {key:'gait',name:'2b · planted gait',blurb:'Left foot lands on the even counts, right on the odd; each stays put on the floor for a beat and a half while the body glides over it, then swings ahead in the last half beat (drawn a touch larger while in the air). At a hold the next plant is the rest position, so the foot <b>touches</b> instead of sliding.'}].forEach(f=>{
-    const card=document.createElement('div');card.className='card';
+   {key:'gait',name:'2b · planted gait ✓ picked',blurb:'Right foot lands on count 1 and every odd count, left on the even ones; each stays put on the floor for a beat and a half while the body glides over it, then swings ahead in the last half beat (drawn a touch larger while in the air). At a hold the next plant is the rest position, so the foot <b>touches</b> instead of sliding.'}].forEach(f=>{
+    const card=document.createElement('div');card.className=f.key==='gait'?'card pick':'card';
     card.innerHTML=`<h4><span>${f.name}</span><span class="tag">8× · one dancer</span></h4><div class="hallwrap"><canvas class="pix"></canvas></div><p>${f.blurb}</p>`;
     feet.appendChild(card);feetEls.push({f,card,cv:card.querySelector('canvas.pix')});
   });

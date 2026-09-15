@@ -847,6 +847,9 @@ function SiteFooter(): JSX.Element {
       <a className="underline" href={`${base}spikes/two-dancers/`}>
         Two-dancers spike
       </a>
+      <a className="underline" href={`${base}spikes/move-motion/`}>
+        Move-motion spike
+      </a>
       <a className="underline" href="#/pair">
         The pair
       </a>
