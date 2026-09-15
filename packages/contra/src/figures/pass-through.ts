@@ -99,6 +99,7 @@ export function aheadPairs(ctx: PlanContext): Record<StationId, StationId> {
 export function facingPairs(
   ctx: PlanContext,
   direction: "across" | "along",
+  partial = false,
 ): Record<StationId, StationId> {
   const centre = centreOf(ctx.ids.map((id) => ctx.spot(id)));
   const axis = direction === "across" ? 0 : 1;
@@ -119,7 +120,19 @@ export function facingPairs(
         best = candidate;
       }
     }
-    if (best === undefined) throw new Error(`pass-through: nobody opposite "${id}"`);
+    // **A pairing may leave somebody out** (`kinds/pairing.ts`'s own promise,
+    // and M8b's ruling on the line mates): two dancers a call names who are not
+    // on opposite sides of the set are not a pass, and standing them still is a
+    // measurement the collision and coverage oracles can report where a stack
+    // trace is not. Jeremy Corners' second pass is where it was measured — the
+    // neighbour swing that ends its first pass leaves the twos side by side on
+    // one line at four couples and up, so "twos pass through across" names a
+    // pair with nobody across. The **coded** figure keeps the throw, because it
+    // is handed the whole hands-four and a hands-four always has an opposite.
+    if (best === undefined) {
+      if (partial) continue;
+      throw new Error(`pass-through: nobody opposite "${id}"`);
+    }
     out[id] = best;
   }
   return out;

@@ -76,6 +76,99 @@ export interface SetShape {
 export const LINES_SHAPE: SetShape = { kind: "lines", groups: [] };
 
 /**
+ * **How far a minor set turns to become a diamond: an eighth of a turn**
+ * (DD41).
+ *
+ * The user's own account, and the whole of what a diamond is: *"its not a move.
+ * its a place setup. it means that the whole minor set is rotated 1/8 turn
+ * basically. many normal moves can happen from it, but people are arranged
+ * differently."* An eighth of a turn is half a dancing place round the set's
+ * middle, which is the other half of the same sentence — *"usually a diamond is
+ * formed by rotating 1/8th (1/2 place)"*.
+ */
+export const DIAMOND_TURN: Angle = 45;
+
+/** A point turned `by` degrees about `centre`. */
+export function turnAbout(p: Vec2, centre: Vec2, by: Angle): Vec2 {
+  const r = (by * Math.PI) / 180;
+  const c = Math.cos(r);
+  const s = Math.sin(r);
+  const dx = p[0] - centre[0];
+  const dy = p[1] - centre[1];
+  return [centre[0] + dx * c - dy * s, centre[1] + dx * s + dy * c];
+}
+
+/**
+ * **A diamond's four places: a hands-four's own four, turned an eighth of a
+ * turn about the minor set's centre** (DD41).
+ *
+ * Not a square and not a ring: the four places of a hands-four are the corners
+ * of a rectangle — two lines 32 px apart, two dancing places 20 px apart — and
+ * a rigid eighth of a turn leaves them a rectangle. What it changes is where
+ * they sit against the hall: the two corners that were nearly across the set
+ * come round to lie nearly **along** it (the diamond's *points*, one of them up
+ * the set and one down), and the other two come round to lie nearly across it
+ * (its *sides*). That is what a dancer sees from the floor — two people in the
+ * middle of the set a long way apart, two people out on the lines — and it is
+ * why the shape is a place setup rather than a move.
+ *
+ * Which dancer takes which place is nobody's business here, exactly as it is
+ * not for any other shape: see {@link solveShape}.
+ */
+export const diamondPlaces = (places: readonly Vec2[]): Vec2[] => {
+  const centre = centroid(places);
+  return places.map((p) => turnAbout(p, centre, DIAMOND_TURN));
+};
+
+/**
+ * A diamond's places sorted into its two **points** (the pair lying along the
+ * set) and its two **sides** (the pair lying across it).
+ *
+ * `places` is the hands-four's **unturned** places, because that is what says
+ * which way the set runs: the closest two places of a hands-four are the two on
+ * one line, a dancing place apart, and a dancing place is shorter than the width
+ * of the set. Everything else follows from turning them.
+ */
+export function diamondNamed(places: readonly Vec2[]): { point: Vec2[]; side: Vec2[] } {
+  const turned = diamondPlaces(places);
+  const centre = centroid(places);
+  const along = dirOf(alongOf(places));
+  const point: Vec2[] = [];
+  const side: Vec2[] = [];
+  for (const p of turned) {
+    const dx = p[0] - centre[0];
+    const dy = p[1] - centre[1];
+    const onAlong = Math.abs(dx * along[0] + dy * along[1]);
+    const across = Math.hypot(dx, dy) ** 2 - onAlong ** 2;
+    (onAlong * onAlong >= across ? point : side).push(p);
+  }
+  return { point, side };
+}
+
+/**
+ * Which way the set runs, read off a hands-four's own places: the bearing
+ * between the **closest** two of them.
+ *
+ * A dancing place (20 px) is shorter than the set is wide (32 px), so the
+ * nearest pair of a hands-four is always two dancers of one line and the line is
+ * always along the set.
+ */
+function alongOf(places: readonly Vec2[]): Angle {
+  let best = Infinity;
+  let angle: Angle = 0;
+  for (let i = 0; i < places.length; i++) {
+    for (let j = i + 1; j < places.length; j++) {
+      const gap = dist(places[i]!, places[j]!);
+      if (gap < best && gap > 1e-9) {
+        best = gap;
+        angle = angleOf(places[j]![0] - places[i]![0], places[j]![1] - places[i]![1]);
+      }
+    }
+  }
+  return angle;
+}
+
+/**
  * Where a shape's own places sit, in the order the group names them.
  *
  * A line of four and a wave are the same arithmetic — `n` places in a row along
@@ -93,8 +186,14 @@ export function placesOf(kind: SetShapeKind, group: ShapeGroup): Vec2[] {
     );
   }
   if (kind === "diamond") {
-    // Point, side, point, side, round the diamond: so `diamond.point` is every
-    // other place and the two lists come out of the one order.
+    // **The regular case of {@link diamondPlaces}**: a hands-four whose four
+    // places happen to be equally spaced is a square, and a square turned an
+    // eighth of a turn has two places on the set's own axis and two across it.
+    // Point, side, point, side round the diamond, so `diamond.point` is every
+    // other place and the two lists come out of the one order. The general case
+    // — a hands-four that is wider than it is long, which is every real one —
+    // is not a function of a centre and a spacing at all, and is solved from the
+    // set's own places instead (see {@link diamondPlaces}).
     return group.order.map((_, i) =>
       addScaled(group.centre, dirOf(group.axis + 90 * i), group.spacing),
     );
@@ -170,6 +269,18 @@ export interface TargetShape {
   /** For a wave: which of the two alternating facings the **first** place takes. */
   lead?: 1 | -1;
   /**
+   * **Which named place of the shape this call's own dancers take** (DD41).
+   *
+   * A diamond is a place setup for the whole minor set and a call very often
+   * moves only half of it: Jeremy Corners' ones come into the middle of the set
+   * and the twos stand where they are, so the ones take the diamond's two
+   * **points** and the twos its two **sides**. Which is a caller's sentence —
+   * "the ones end in the middle" — and not something the geometry can read off
+   * where anybody happened to stop. Left out, the dancers take whichever places
+   * of the shape they are nearest.
+   */
+  at?: string;
+  /**
    * Whether the shape then settles on to the **formation's** own places.
    *
    * A figure may form a shape and be a gatherer at the same time, and "bend the
@@ -213,6 +324,12 @@ export interface ShapeSolution {
  * `from` is in the order the shape wants, which is the order parameter a
  * transcript writes out (`M1-W2-M2-W1`). Nothing here reorders anybody: which
  * dancer takes which place is the call's business and not the geometry's.
+ *
+ * **A diamond is the one shape that is not an arrangement** (DD41): it is the
+ * whole minor set turned an eighth of a turn, so solved from the dancers alone
+ * it is a rigid turn of exactly what it was given, bodies and all. Solved from
+ * the set's own places — which is what a call that forms one really wants — it
+ * is {@link diamondPlaces}, and `library/kinds/places.ts` is where the two meet.
  */
 export function solveShape(
   target: TargetShape,
@@ -221,6 +338,19 @@ export function solveShape(
 ): ShapeSolution {
   const kind = target.shape;
   const centre = centroid(from.map((s) => s.p));
+  if (kind === "diamond") {
+    return {
+      kind,
+      spots: from.map((s) => ({
+        p: turnAbout(s.p, centre, DIAMOND_TURN),
+        facing: s.facing + DIAMOND_TURN,
+      })),
+      centre,
+      axis: (target.axis ?? defaultAxis(kind, from, centre)) + DIAMOND_TURN,
+      facing: target.facing ?? defaultFacing(from) + DIAMOND_TURN,
+      spacing: target.spacing ?? gapOf(from) ?? spacing,
+    };
+  }
   // **How far apart is how far apart they already are.** The same rule as the
   // axis and the facing: a target shape imposes an *arrangement* and moves the
   // group nowhere, so a wave of four standing a dancing place apart down the set
@@ -244,7 +374,7 @@ export function solveShape(
       : places.map((p, i) => ({
           p,
           facing:
-            kind === "ring" || kind === "diamond"
+            kind === "ring"
               ? angleOf(centre[0] - p[0], centre[1] - p[1])
               : kind === "wave"
                 ? facing + (i % 2 === 0 ? 0 : 180) * lead

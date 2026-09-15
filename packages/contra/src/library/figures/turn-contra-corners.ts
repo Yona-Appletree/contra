@@ -7,42 +7,76 @@ import type {
   HoldSpec,
   NumberExpr,
   OrbitPairShape,
-  ParamGuard,
   SequencePart,
 } from "../FigureDefinition.js";
-import { MINOR_SET_ROLES } from "./carriers.js";
 
 /**
- * **Turn contra corners** (M7): sixteen beats, five turns, four dancers, and
- * nobody idle for long.
+ * **Turn contra corners** (M7, rebuilt over six dancers in FR-B1, DD45):
+ * sixteen beats, four turns, and it cannot be shown with four people.
  *
- * Chorus Jig's B1. The actives turn each other by the right, each turns their
- * **first corner** by the left, back to each other, each turns their **second
- * corner**, and back to each other again to finish in the middle. It is the
- * acceptance case for two things at once:
+ * The user's own account, relayed 2026-09-15:
  *
- * - **Corners by relation.** A corner is a row of the formation's own table, not
- *   a station: your first corner is the dancer of the other couple diagonally
- *   across the set and your second is the one straight along your own line. In a
- *   proper set that makes your first corner your neighbour and your second the
- *   other dancer of your own role, which is what Chorus Jig dances. **(unsure)**
- *   — nothing else in the acceptance set pins the two apart, and the two corner
- *   turns are the same figure with the pair swapped, so a set that has them the
- *   other way round dances the same sixteen beats in the other order.
- * - **Who idles inside a figure.** All four are in the figure for all sixteen
- *   beats and two of them are standing still for three of the five parts, which
- *   is M4's own open question answered: a sequence part names its **casts**, and
- *   a role no cast names holds the pose the part before left them in
- *   (`kinds/sequence.ts`). The two corner turns are the other half of the same
- *   mechanism — two pairs turning at once, inside one figure.
+ * > "can only be shown correctly with 6 dancers (its only ever done by the 1s or
+ * > 2s at a time; actives and inactives). **Start:** The active couple allemande
+ * > right in the center of the set. **First Corner:** Each active dancer drops
+ * > their right hand and allemande left with their first corner (located on the
+ * > right diagonal). **Return:** The active couple meets again in the center,
+ * > typically allemande right once more. **Second Corner:** The active dancers
+ * > then allemande left with their second corner (located on the left diagonal).
+ * > **Finish:** The active couple usually concludes with a balance and swing in
+ * > the center, facing down the set toward the new couple."
  *
- * ## The schedule **(unsure)**
+ * ## Six dancers, because the corners are in the couples above and below
  *
- * `2 + 4 + 2 + 4 + 4`: a half turn by the right with each other, a whole turn by
- * the left with the first corner, a half by the right, a whole by the left with
- * the second corner, and once round by the right to finish in the middle. That is
- * the breakdown most callers teach and it is the one that sums to sixteen; the
- * corpus transcript says only "(16) Ones turn contra corners".
+ * M7 wrote the figure for a hands-four and picked the corners out of the *other
+ * couple of the minor set* — your neighbour and the dancer diagonally across —
+ * with an `axis` parameter to say which of the two came first. That is four
+ * dancers and two corners each *shared between the two actives*, and it is not
+ * the figure: an active has **two** corners of their own, the other active has
+ * **two more**, and all four are different people. Four corners plus two actives
+ * is six, and six is three couples — the actives with a couple above and a
+ * couple below.
+ *
+ * So the figure declares the dancers it needs ({@link FigureDefinition.cast}) and
+ * a card goes on saying what a card says: *"the ones turn contra corners"*. The
+ * two diagonals are `C1` and `C0` in both contra formations' relation tables,
+ * pinned by this ruling (`formation/dupleImproper.ts`, `formation/proper.ts`):
+ * across the set and one dancing place along it, `C1` to your right and `C0` to
+ * your left — and "your right" is your own, because the two actives look at each
+ * other across the set and so have the couple above the set on one dancer's
+ * right and on the other dancer's left.
+ *
+ * That is what lets both actives turn a corner over the same four beats without
+ * meeting: a couple's two first corners are the two ends of one diagonal through
+ * the middle of the set, and its two second corners the two ends of the other,
+ * so the two turns of a part happen a whole dancing place apart. It is also why
+ * the other active's first corner is `"C0.partner"` from this one and not
+ * `"C1.partner"`: they reach the other way.
+ *
+ * A cast entry may be a **chain** for exactly that reason — the other active's
+ * corners are the partners of dancers two steps from this one, and no table has
+ * a row for that.
+ *
+ * ## The schedule is the user's, and the finish is the dance's
+ *
+ * `4 + 4 + 4 + 4`: allemande right with the other active in the centre, left
+ * once round with your first corner, right with the other active again, left
+ * once round with your second corner. The fifth turn M7 wrote is gone: the
+ * user's *"Finish: … a balance and swing in the center"* is the **dance's own
+ * next call** — Chorus Jig's B2, Jeremy Corners' B1 — and not sixteen beats'
+ * business.
+ *
+ * `axis` is gone with it. It existed to say which of two readings of "corner"
+ * came first, and the user has said which: the right diagonal, then the left.
+ *
+ * ## Who idles inside a figure
+ *
+ * All six are in the figure for all sixteen beats and four of them are standing
+ * still for three of the four parts. That is `SequencePart.casts`: a role no
+ * cast of a part names holds the pose the part before it left them in — an
+ * honest end, not an empty one — and takes no hands (`kinds/sequence.ts`). The
+ * two corner turns are the other half of the same mechanism: two pairs turning
+ * at once inside one figure.
  */
 
 /** A fraction of this turn's own count, as a number the calculus can read. */
@@ -65,9 +99,7 @@ function orbit(turns: number, hand: Side): OrbitPairShape {
     // **Every window is a fraction of this turn's own length.** An allemande's
     // numbers are absolute — it steps in over 1.3 beats and opens out over 1.1 —
     // which is right for the eight-beat figure they were measured on and wrong
-    // for a two-beat one: 1.3 and 1.1 do not fit in two beats at all, so the
-    // dancers spend the whole turn stepping in and back out and never turn, at
-    // 92 px a beat of hand. As fractions the same turn is the same shape at any
+    // for a shorter one: as fractions the same turn is the same shape at any
     // count, which is what D3 asks of every figure.
     profile: {
       a0: part(0.2),
@@ -89,15 +121,8 @@ function orbit(turns: number, hand: Side): OrbitPairShape {
   };
 }
 
-/**
- * One joined hand of one turn: the pair, the hand, and when it is taken.
- *
- * `when` is what lets a part whose casts the `axis` parameter chooses carry the
- * holds for **both** answers: the two that are not being danced are guarded out
- * before anything is sampled, so no hold ever names a role this part's own cast
- * does not hold.
- */
-function cornerHold(a: FigureRole, b: FigureRole, hand: Side, when?: ParamGuard): HoldSpec {
+/** One joined hand of one turn: the pair, the hand, and when it is taken. */
+function cornerHold(a: FigureRole, b: FigureRole, hand: Side): HoldSpec {
   return {
     kind: "pair",
     a,
@@ -108,13 +133,8 @@ function cornerHold(a: FigureRole, b: FigureRole, hand: Side, when?: ParamGuard)
     drop: { param: "holdDrop" },
     stackPx: 0,
     // **The windows are fractions of the part**, not the allemande's own
-    // absolute beats. Contra corners turns five times in sixteen beats and two
-    // of those turns are two beats long; an allemande's hand is fully up at
-    // beat 1.3 and starts coming down at 1.1 from the end, which on a two-beat
-    // turn overlap — so the hand never reaches the hip between corners and
-    // slides from one turning centre to the next at 92 px a beat, which is the
-    // library's own bound and a half. Written as fractions, every turn takes
-    // and gives back its hand at the same point in its own length.
+    // absolute beats: every turn takes and gives back its hand at the same point
+    // in its own length, whatever count the card gives the figure.
     window: {
       kind: "ramps",
       takeFrom: { number: "mul", of: [{ number: "beats" }, 0.1] },
@@ -122,7 +142,6 @@ function cornerHold(a: FigureRole, b: FigureRole, hand: Side, when?: ParamGuard)
       releaseFrom: { number: "mul", of: [{ number: "beats" }, 0.6] },
       releaseTo: { number: "mul", of: [{ number: "beats" }, 0.95] },
     },
-    ...(when === undefined ? {} : { when }),
   };
 }
 
@@ -141,84 +160,60 @@ function turn(
   };
 }
 
-/** The two actives, by the hands-four station they stand on. */
-const ACTIVES = ["1L", "1R"] as const;
-/** Diagonally across the set from each active. */
-const DIAGONAL: readonly (readonly [FigureRole, FigureRole])[] = [
-  ["1L", "2R"],
-  ["1R", "2L"],
-];
-/** Straight along each active's own line. */
-const ALONG: readonly (readonly [FigureRole, FigureRole])[] = [
-  ["1L", "2L"],
-  ["1R", "2R"],
-];
-
 /**
- * **Which corner is your first**, by the axis the figure is called along (M9).
+ * The six the figure needs, as relations from the active dancer the call named.
  *
- * `axis: "across"` is Chorus Jig's and the one every caller teaches from a
- * proper set: your first corner is the dancer diagonally across the set and
- * your second the one straight along your own line. `axis: "along"` is the
- * other way round, which is what Jeremy Corners writes — *"(16) Ones turn
- * contra corners (along the set)"* — where the actives are standing in the
- * middle of the set facing each other along it and the corners are reached
- * along the set rather than across it. **(unsure)**: the parenthetical is the
- * whole of what the transcript says, and the two readings dance the same
- * sixteen beats with the two corner turns in the other order.
- *
- * The two answers are two written lists and the parameter chooses between them,
- * which is `{ number: "select" }`'s idea one level up — see
- * {@link SequencePart.casts}.
+ * In the order {@link turnContraCornersDefinition.roles} lists them, because
+ * that is how resolution assigns the parts (`set/resolve.ts`'s `castRings` and
+ * `castRoles`).
  */
-function cornerTurn(
-  which: "first" | "second",
-  hand: Side,
-  turns: number,
-  beats: number,
-): SequencePart {
-  const cases =
-    which === "first" ? { across: DIAGONAL, along: ALONG } : { across: ALONG, along: DIAGONAL };
-  const danced = which === "first" ? ["across"] : ["along"];
-  const other = which === "first" ? ["along"] : ["across"];
-  return {
-    beats,
-    casts: { select: "axis", cases },
-    shape: orbit(turns, hand),
-    holds: [
-      ...DIAGONAL.map(([a, b]) => cornerHold(a, b, hand, { param: "axis", is: danced })),
-      ...ALONG.map(([a, b]) => cornerHold(a, b, hand, { param: "axis", is: other })),
-    ],
-  };
-}
+const CAST = ["self", "partner", "C1", "C0.partner", "C0", "C1.partner"] as const;
+
+/** The two actives, meeting in the middle. */
+const ACTIVES: readonly (readonly [FigureRole, FigureRole])[] = [["active", "mate"]];
+/** Each active with their **first** corner: the right diagonal. */
+const FIRST: readonly (readonly [FigureRole, FigureRole])[] = [
+  ["active", "activeFirst"],
+  ["mate", "mateFirst"],
+];
+/** Each active with their **second** corner: the left diagonal. */
+const SECOND: readonly (readonly [FigureRole, FigureRole])[] = [
+  ["active", "activeSecond"],
+  ["mate", "mateSecond"],
+];
 
 /** Turn contra corners, as a figure definition. */
 export const turnContraCornersDefinition: FigureDefinition = {
   id: "turn-contra-corners",
   call: "TURN CONTRA CORNERS",
   describe:
-    "Give your right hand to the other active and turn half way, then give your left to your first corner and turn all the way round. Right hand to the active again, half way, left hand to your second corner all the way round, and right hand to the active once more to finish in the middle of the set. The corners stand and wait between their turns: they are in the figure, they are just not moving yet.",
+    "The two actives give right hands in the middle of the set and turn half way. Drop that hand, give your left to your first corner — the dancer on your right diagonal, in the couple one place along the way you are travelling — and turn all the way round. Right hand to the other active in the middle again, half way, and then your left to your second corner on the left diagonal, all the way round. Six dancers: the two of you and the two couples either side of you, and your corners stand and wait between their turns.",
   lead: 4,
   nominalBeats: 16,
-  roles: MINOR_SET_ROLES,
+  roles: ["active", "mate", "activeFirst", "mateFirst", "activeSecond", "mateSecond"],
+  cast: CAST,
   actors: "all",
-  anchor: "hands-four",
-  params: { kind: "canonical", defaults: { holdDrop: 2, axis: "across" } },
+  // **The middle of whoever is dancing this part**, which is the only anchor a
+  // figure spread over three couples has: there is no hands-four under it, and
+  // `"meet"` is a rule about *two* dancers and refuses six by name. Each part of
+  // the sequence re-anchors on its own cast (`kinds/sequence.ts`), so every turn
+  // still turns about the point between the two dancing it.
+  anchor: "centroid",
+  params: { kind: "canonical", defaults: { holdDrop: 2 } },
   shape: {
     kind: "sequence",
     parts: [
-      turn([ACTIVES], "R", 0.5, 2),
-      cornerTurn("first", "L", 1, 4),
-      turn([ACTIVES], "R", 0.5, 2),
-      cornerTurn("second", "L", 1, 4),
-      turn([ACTIVES], "R", 1, 4),
+      turn(ACTIVES, "R", 0.5, 4),
+      turn(FIRST, "L", 1, 4),
+      turn(ACTIVES, "R", 0.5, 4),
+      turn(SECOND, "L", 1, 4),
     ],
   },
   holds: [],
   symmetry: {
     mirror: {
       kind: "handed",
-      why: "right hands to the other active and left hands to the corners is the figure and not a parameter of it; the mirror of contra corners is sixteen beats nobody dances",
+      why: "right hands to the other active and left hands to the corners is the figure and not a parameter of it, and the first corner is the right diagonal; the mirror of contra corners is sixteen beats nobody dances",
     },
   },
   ends: "relative",

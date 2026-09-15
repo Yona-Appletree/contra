@@ -41,7 +41,6 @@ import { castBackDefinition } from "./cast-back.js";
 import { promenadeDefinition } from "./promenade.js";
 import { balanceWaveOfFourDefinition } from "./balance-wave-of-four.js";
 import { jerseyTwirlDefinition } from "./jersey-twirl.js";
-import { diamondDefinition } from "./diamond.js";
 import { squareThroughDefinition } from "./square-through.js";
 import { interruptedSquareThroughDefinition } from "./interrupted-square-through.js";
 import { localFigureDefinitions } from "../../dances/danceFiles.js";
@@ -159,13 +158,17 @@ export const RECORD_DEFINITIONS: readonly FigureDefinition[] = [
  * **M9's**: the figures the two Banner dances needed.
  *
  * A list of its own for the same reason M8's is: what they share is the
- * milestone rather than the gate. `diamond` is the cast that forms one —
- * the shape has been in `set/shape.ts` since M7 and nothing made one —
- * `square-through` and `interrupted-square-through` are the pull-bys the two
- * dances do inside it, and `jersey-twirl` has no predecessor anywhere.
+ * milestone rather than the gate. `square-through` and
+ * `interrupted-square-through` are the pull-bys the two dances do inside a
+ * diamond, and `jersey-twirl` has no predecessor anywhere.
+ *
+ * **There is no `diamond` figure** (DD41). M9 wrote one — the cast that made
+ * the shape — and the user's review struck it out: *"its not a move. its a
+ * place setup."* A diamond is a `SetShapeKind` and nothing else, ordinary
+ * figures dance into it, and the call that lands in one says so with a `form`
+ * clause. See `set/shape.ts`'s `diamondPlaces` and Jeremy Corners' A1.
  */
 export const BANNER_DEFINITIONS: readonly FigureDefinition[] = [
-  diamondDefinition,
   squareThroughDefinition,
   interruptedSquareThroughDefinition,
   jerseyTwirlDefinition,
@@ -248,16 +251,22 @@ export const dataOnlyFigures = (): AnyFigureDef[] =>
  * resolution and there is no other kind of harness left.
  */
 export const needsTheSet = (def: FigureDefinition): boolean =>
-  (def.actors !== "all" && def.actors !== "ring") || readsTheLattice(def.shape);
+  (def.actors !== "all" && def.actors !== "ring") ||
+  // **A figure that declares its own cast** (FR-B1): turn contra corners needs
+  // the couples above and below the actives, which a bare hands-four harness
+  // has not got at all.
+  def.cast !== undefined ||
+  readsTheLattice(def.shape);
 
 /**
  * **Whether this shape names a place on the set's own lattice.**
  *
  * The second half of {@link needsTheSet}, asked of the shape rather than
  * guessed from its kind. M8 wrote it as `kind === "wave"`, which was every
- * figure that read the lattice at the time; M9's `diamond` is a `sequence` of
- * `path`s whose ends are `{ point: "slot" }`, and the harnesses planned it
- * without a set and got the expression calculus's own refusal by name.
+ * figure that read the lattice at the time; M9's retired `diamond` cast was a
+ * `sequence` of `path`s whose ends were `{ point: "slot" }`, and the harnesses
+ * planned it without a set and got the expression calculus's own refusal by
+ * name.
  *
  * A definition is plain data — `figures/*.test.ts` asserts it survives
  * `JSON.parse(JSON.stringify(def))` — so looking for the node is honest and
@@ -360,6 +369,5 @@ export { balanceWaveDefinition } from "./balance-wave.js";
 export { circulateDefinition } from "./circulate.js";
 export { loopDefinition } from "./loop.js";
 export { jerseyTwirlDefinition } from "./jersey-twirl.js";
-export { diamondDefinition } from "./diamond.js";
 export { squareThroughDefinition, squareThroughPass } from "./square-through.js";
 export { interruptedSquareThroughDefinition } from "./interrupted-square-through.js";

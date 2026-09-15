@@ -12,7 +12,7 @@ import type { SlotView, TargetShape } from "../set/shape.js";
 import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
 import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
-import { recordClaim, takenIn } from "./kinds/places.js";
+import { claimPoolOf, recordClaim, takenIn } from "./kinds/places.js";
 
 /**
  * **The interpreter**: a {@link FigureDefinition} as the `ContraFigure` a coded
@@ -220,8 +220,7 @@ export function planDefinition(
   // figure without parts does changes.
   const anchorIn = (inner: PlanContext): ResolvedAnchor =>
     anchorOf(def.anchor, inner, inner.ids, params);
-  const target =
-    typeof def.ends === "object" && "target" in def.ends ? targetOf(def, params) : undefined;
+  const target = targetOf(def, params);
   const input: ShapeInput = {
     ctx,
     params,
@@ -249,7 +248,7 @@ export function planDefinition(
   // is a no-op for a figure planned outside a resolution, and idempotent — the
   // plan is a pure function of the earlier instances' claims, so re-planning
   // this one writes the same answer back.
-  recordClaim(params, input.gathers ? (places ?? []) : [], plan.ends);
+  recordClaim(params, claimPoolOf(input, places), plan.ends);
   return plan;
 }
 
@@ -262,15 +261,31 @@ export function planDefinition(
  * "allemande" — so a call may carry a `form` parameter and it wins field by
  * field over the definition's. A definition with a target and a call with none
  * is the ordinary case and costs nothing.
+ *
+ * **A call may name a shape a definition has none of** (DD41). That is the same
+ * sentence taken at its word: the shape a call leaves the set in is the caller's
+ * clause, not the figure's, and the figure that lands in it is an ordinary one.
+ * Jeremy Corners' ones step into the middle of the set with a plain figure and
+ * the card says *"form diamonds"*, which is a `form` on that call and not a
+ * figure called `diamond` — the whole of the user's ruling in one line. A `form`
+ * on a figure with no target of its own has to name the shape, because there is
+ * nothing underneath it to inherit one from.
  */
-function targetOf(def: FigureDefinition, params: InterpretedParams): TargetShape {
-  const own = (def.ends as { target: TargetShape }).target;
+function targetOf(def: FigureDefinition, params: InterpretedParams): TargetShape | undefined {
+  const own =
+    typeof def.ends === "object" && "target" in def.ends
+      ? (def.ends as { target: TargetShape }).target
+      : undefined;
   const said = params["form"];
   if (said === null || said === undefined) return own;
   if (typeof said !== "object") {
     throw new Error(`"form" is the shape a call forms, not ${JSON.stringify(said)}`);
   }
-  return { ...own, ...(said as Partial<TargetShape>) };
+  const written = said as Partial<TargetShape>;
+  if (own === undefined && typeof written.shape !== "string") {
+    throw new Error(`"form" has to name a shape: ${JSON.stringify(said)}`);
+  }
+  return { ...(own ?? ({} as TargetShape)), ...written };
 }
 
 /**

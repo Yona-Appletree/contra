@@ -207,9 +207,27 @@ const envFor = (input: ShapeInput, self: FigureRole, t: Beat): ExprEnv => ({
   ...(input.slots === undefined ? {} : { slots: input.slots }),
 });
 
-/** Which track a role dances: its own name, its contra role, or the wildcard. */
+/**
+ * Which track a role dances: the one a parameter picks out, its own name, its
+ * contra role, or the wildcard.
+ *
+ * {@link WaypointShape.by} comes first because it is the only one that is a
+ * fact about the **call** rather than about the definition — the box
+ * circulate's "the ones facing in walk across", where which role faces in is
+ * the wave's own clause.
+ */
 function trackFor(shape: WaypointShape, input: ShapeInput, role: FigureRole): readonly PathStep[] {
   const tracks = shape.tracks as Readonly<Record<string, readonly PathStep[]>>;
+  if (shape.by !== undefined) {
+    const said = input.params[shape.by.param];
+    const named = input.ctx.role(role) === said ? shape.by.then : shape.by.else;
+    const chosen = tracks[named];
+    if (chosen) return chosen;
+    throw new Error(
+      `waypoints: "${shape.by.param}" chose the track "${named}", which this figure has not ` +
+        `got (have: ${Object.keys(tracks).join(", ")})`,
+    );
+  }
   const byName = tracks[role];
   if (byName) return byName;
   const byRole = tracks[input.ctx.role(role)];

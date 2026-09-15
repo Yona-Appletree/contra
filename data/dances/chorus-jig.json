@@ -74,6 +74,7 @@
         {
           "figure": "turn-contra-corners",
           "beats": 16,
+          "who": "ones",
           "call": "ONES TURN CONTRA CORNERS"
         }
       ]

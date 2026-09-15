@@ -1,7 +1,7 @@
 import type { Angle, Vec2 } from "@caller/core";
 import { dirOf, dist } from "@caller/core";
 import type { Spots } from "../../figures/ContraFigure.js";
-import { solveShape } from "../../set/shape.js";
+import { diamondNamed, diamondPlaces, solveShape } from "../../set/shape.js";
 import type { FigureRole } from "../FigureDefinition.js";
 import type { ShapeInput } from "../interpret.js";
 
@@ -420,9 +420,78 @@ export function settleEnds(
   return out;
 }
 
+/**
+ * **A diamond is the set's own places, turned an eighth of a turn** (DD41), and
+ * this is where a figure that forms one lands on them.
+ *
+ * The user: *"its not a move. its a place setup. it means that the whole minor
+ * set is rotated 1/8 turn basically."* So the pool a diamond settles on is not
+ * the formation's four places but those four places **turned** — and a call that
+ * moves only half the set (Jeremy Corners' ones come into the middle while the
+ * twos stand) says which half of the diamond its own dancers take, with the
+ * target's `at`.
+ *
+ * With no places handed in — a figure planned in the lab, or a tile with no set
+ * under it — there is nothing to turn but the dancers themselves, and
+ * `solveShape` turns them where they stand.
+ */
+function diamondEnds(input: ShapeInput, natural: Spots, order: readonly FigureRole[]): Spots {
+  const here = order.filter((role) => natural[role] !== undefined);
+  const places = input.places;
+  // **Four places, and no more.** A diamond is one minor set's own arrangement;
+  // handed the whole lane's places it would turn the entire hall an eighth of a
+  // turn about the middle of the line, which is not a shape anybody dances.
+  if (here.length === 0 || places?.length !== 4) return natural;
+  const pool = diamondPool(input.target?.at, places);
+  if (pool.length === 0) return natural;
+  const points: Record<FigureRole, Vec2> = {};
+  for (const role of here) points[role] = natural[role]!.p;
+  // **Two instances of one call do not take one place** (M9d's ledger): a
+  // figure minted per dancer — a turn alone, a step in — lands its two dancers
+  // on the diamond's two points one instance at a time, and each has to see
+  // what the one before it took.
+  const settled = settleOnPlaces(here, points, pool, input.spokenFor ?? NOTHING_SPOKEN_FOR);
+  const out: Spots = { ...natural };
+  for (const role of here) {
+    const place = settled[role];
+    // **The facing is the figure's own.** A diamond arranges *places*; where a
+    // dancer looks from one of them is what the call that brought them there
+    // said — "step into center and face partner in distance".
+    if (place) out[role] = { p: place, facing: natural[role]!.facing };
+  }
+  return out;
+}
+
+/**
+ * The diamond's places a call may land on: all four, or just its points, or
+ * just its sides.
+ */
+export function diamondPool(at: string | undefined, places: readonly Vec2[]): Vec2[] {
+  if (places.length !== 4) return [];
+  if (at === undefined) return diamondPlaces(places);
+  const named = diamondNamed(places);
+  return at === "point" ? named.point : at === "side" ? named.side : diamondPlaces(places);
+}
+
+/**
+ * **What this instance takes off the frame's pool of places** (M9d), which is
+ * the formation's own for a gatherer and the **diamond's** for a call that
+ * forms one.
+ *
+ * A diamond is not a gatherer — it never lands on a plain home — but its four
+ * places are just as shared: two dancers stepping into the middle of the set
+ * one instance at a time have to end on the two different points.
+ */
+export function claimPoolOf(input: ShapeInput, places: readonly Vec2[] | undefined): Vec2[] {
+  if (input.gathers) return [...(places ?? [])];
+  if (input.target?.shape !== "diamond" || places === undefined) return [];
+  return diamondPool(input.target.at, places);
+}
+
 /** The natural ends, rearranged into the shape the figure says it forms. */
 function formed(input: ShapeInput, natural: Spots, order: readonly FigureRole[]): Spots {
   const target = input.target!;
+  if (target.shape === "diamond") return diamondEnds(input, natural, order);
   const here = order.filter((role) => natural[role] !== undefined);
   if (here.length === 0) return natural;
   const solved = solveShape(

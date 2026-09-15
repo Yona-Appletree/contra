@@ -541,12 +541,14 @@ export const DUPLE_IMPROPER_LATTICE: SetLattice = {
  *   with a **new partner** — which is true exactly when the shadow is the
  *   dancer this row names and false for the dancer two places the other way.
  * - **Trail buddy k** is the same-role dancer `k` couple places ahead of you in
- *   your own direction of travel, and **corner k** is one of the two dancers of
- *   the couple you are dancing with. Both are **(unsure)**: nothing calls them
- *   yet, no dance in the acceptance set pins their sign, and M7 (contra
- *   corners, Chorus Jig) and M9 own the figures that will. They are here so the
- *   table has a row rather than a throw, and they are directional, so
- *   `isSymmetricRelation` keeps them out of every pairing.
+ *   your own direction of travel, and is **(unsure)**: nothing calls it yet.
+ * - **Corner k** is **pinned** (FR-B1, DD45) by the user's own account of turn
+ *   contra corners: your first corner (`C1`) is on your **right diagonal** and
+ *   your second (`C0`) on your **left**, which on the lattice is across the set
+ *   and one dancing place along it — one place the way you travel and one the
+ *   way you came. Both are outside your own minor set, which is why the figure
+ *   is danced by six. `C2` and up keep M6's row, the dancer straight along your
+ *   own line, which is what a cast off pairs on. **(unsure)** for `C2` only.
  */
 export const DUPLE_IMPROPER_RELATIONS: RelationTable = {
   id: "duple-improper",
@@ -565,11 +567,35 @@ export const DUPLE_IMPROPER_RELATIONS: RelationTable = {
       case "trail-buddy":
         return { line, position: position + 2 * rel.k * t };
       case "corner":
-        // The two dancers of the couple you are dancing with: the one along the
-        // line from you (your neighbour) and the one diagonally across. (unsure)
+        // **The two diagonals, in the couples above and below** (FR-B1, DD45).
+        // The user, on turn contra corners: the first corner is "located on the
+        // right diagonal" and the second "on the left diagonal" — so both are
+        // across the set and one dancing place along it, `C1` to your right and
+        // `C0` to your left. That is a couple *outside* your own minor set on
+        // each side, which is why the figure that turns them is danced by six.
+        // `C0` for the second corner rather than `C2` follows this table's own
+        // `N0`/`N1`: nought is the one behind you.
+        //
+        // **`partnerSide` is what makes "your right" your own**, and it is the
+        // whole of why the figure works: the two actives are a couple and they
+        // look at each other **across** the set, so one of them has the couple
+        // up the hall on their right and the other has the couple down the hall.
+        // Written with `t` alone both of them would reach for the same couple
+        // and turn about one point — measured, at Chorus Jig's beat 45.25, as
+        // two dancers 0.000 px apart. With it, a couple's two first corners are
+        // the two ends of one diagonal through the middle of the set and its two
+        // second corners the two ends of the other: four different people, two
+        // in each of the couples beside you, which is the figure a caller
+        // teaches.
+        //
+        // `C2` and up keep M6's own row — the dancer of the other couple
+        // straight along your own line — because that is the relation a cast
+        // off pairs on and it is not a corner of anything.
         return rel.k === 1
-          ? { line: other, position: position + t }
-          : { line, position: position + t };
+          ? { line: other, position: position + partnerSide(from.role) * t }
+          : rel.k === 0
+            ? { line: other, position: position - partnerSide(from.role) * t }
+            : { line, position: position + t };
       case "self":
         return from.slot;
     }

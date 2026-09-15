@@ -285,8 +285,7 @@ export const ACCEPTANCE_SET: readonly AcceptanceDance[] = [
     figures: [
       "pass-through",
       "turn-alone",
-      "cast-off",
-      "diamond",
+      "cast-back",
       "interrupted-square-through",
       "balance",
       "square-through",
@@ -369,8 +368,9 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   // thing in the corpus that calls one is Jeremy Corners' and The Set Monster's
   // **interrupted** square through, which is M9's figure in M9's dances.
   // **Empty since M9**, which is the milestone's own definition of done. The
-  // four it emptied are the two Banner dances': `diamond` (the cast that forms
-  // one — the *shape* landed in M7 and nothing made one), `square-through` and
+  // four it emptied are the two Banner dances': `diamond` (retired again by
+  // DD41 — a diamond is a *shape*, not a figure, and Jeremy Corners' A1 dances
+  // into it with ordinary figures), `square-through` and
   // `interrupted-square-through` (the named composite both dances call), and
   // `jersey-twirl`, which had no predecessor anywhere in the library.
 };
