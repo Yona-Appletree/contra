@@ -172,3 +172,61 @@ describe("the pianist's hands", () => {
     expect(peakBeat("L")).not.toBe(peakBeat("R"));
   });
 });
+
+/**
+ * B3's R1.2, in the user's words: "band shouldn't be playing when no dancing is
+ * happening." Sound is `@caller/music`'s side of that; this is the drawn side —
+ * a band that goes on bowing and nodding through a silent interval is a band
+ * miming. Every beat-driven term in this layer holds at its rest value while
+ * `playing` is false, and the people themselves do not otherwise move.
+ */
+describe("the band at rest, between two dances", () => {
+  const everyone = [...DEMO_HALL.band, DEMO_HALL.callerPerson, ...DEMO_HALL.sideLines];
+
+  it("puts every hand, foot and lean exactly where beat 0 puts it, at every beat", () => {
+    for (const who of everyone) {
+      const rest = posture(who, 0, false);
+      for (const beat of BEATS) {
+        const still = posture(who, beat, false);
+        expect(still, `${String(who.instrument)} at beat ${String(beat)}`).toEqual(rest);
+      }
+    }
+  });
+
+  it("holds the pianist's hands on the keys and the fiddler's bow arm in one place", () => {
+    const pianist = DEMO_HALL.band.find((who) => who.instrument === "piano");
+    const fiddler = DEMO_HALL.band.find((who) => who.instrument === "fiddle");
+    if (pianist === undefined || fiddler === undefined) {
+      throw new Error("expected a pianist and a fiddler in the demo band");
+    }
+    for (const who of [pianist, fiddler]) {
+      for (const side of ["L", "R"] as const) {
+        const hand = posture(who, 0, false).hands[side];
+        if (hand === "down") throw new Error(`expected ${String(who.instrument)} ${side} placed`);
+        for (const beat of BEATS) {
+          const later = posture(who, beat, false).hands[side];
+          if (later === "down") throw new Error("a placed hand went down");
+          expect(later.p, `${String(who.instrument)} ${side} at ${String(beat)}`).toEqual(hand.p);
+        }
+      }
+    }
+  });
+
+  it("still moves when a tune is playing, which is what makes the stillness mean something", () => {
+    const pianist = DEMO_HALL.band.find((who) => who.instrument === "piano");
+    if (pianist === undefined) throw new Error("expected a pianist in the demo band");
+    const moved = BEATS.some((beat) => {
+      const a = posture(pianist, beat, true).hands.L;
+      const b = posture(pianist, 0, false).hands.L;
+      return a !== "down" && b !== "down" && (a.p[0] !== b.p[0] || a.p[1] !== b.p[1]);
+    });
+    expect(moved).toBe(true);
+  });
+
+  it("leaves a sitter's tapping foot still too", () => {
+    const tapper = DEMO_HALL.sideLines.find((who) => who.taps === true);
+    if (tapper === undefined) throw new Error("expected a sitter tapping the beat");
+    const rest = posture(tapper, 0, false).feet;
+    for (const beat of BEATS) expect(posture(tapper, beat, false).feet).toEqual(rest);
+  });
+});

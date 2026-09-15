@@ -30,6 +30,18 @@ export interface FurnitureOptions {
    * so the renderer's own `skirts` option cannot reach them.
    */
   skirts?: boolean;
+  /**
+   * Whether a tune is sounding. Default true.
+   *
+   * Everything in this layer that moves moves **on the beat** — the fiddler's
+   * bow, the guitarist's strumming hand, the bass player's rock, the pianist's
+   * hands on the keys, a sitter's tapping foot — and a band that goes on bowing
+   * through a silent interval is a band miming (B3's ruling: "the band does not
+   * move when it is not playing"). `false` holds every one of those at its rest
+   * value; the people, their instruments and their positions are unchanged, so
+   * the only difference on the canvas is that nothing twitches.
+   */
+  playing?: boolean;
 }
 
 /** How far below shoulder height an instrument is held. */
@@ -104,16 +116,17 @@ export function drawFurniture(
   const people: HallPerson[] = [...hall.band, hall.callerPerson, ...hall.sideLines];
   const layer = superLayer(hall);
   const draw: DrawOptions = { skirts: opts.skirts ?? false };
+  const playing = opts.playing ?? true;
 
   if (layer === null) {
-    withWorldOrigin(g, hall, 1, () => paintPeople(g, people, beat, draw));
+    withWorldOrigin(g, hall, 1, () => paintPeople(g, people, beat, draw, playing));
     return;
   }
 
   const { canvas, ctx } = layer;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  withWorldOrigin(ctx, hall, SUPERSAMPLE, () => paintPeople(ctx, people, beat, draw));
+  withWorldOrigin(ctx, hall, SUPERSAMPLE, () => paintPeople(ctx, people, beat, draw, playing));
 
   g.save();
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -150,24 +163,35 @@ function withWorldOrigin(g: Ctx2D, hall: HallWorld, scale: number, paint: () => 
   g.restore();
 }
 
-function paintPeople(g: Ctx2D, people: readonly HallPerson[], beat: Beat, draw: DrawOptions): void {
+function paintPeople(
+  g: Ctx2D,
+  people: readonly HallPerson[],
+  beat: Beat,
+  draw: DrawOptions,
+  playing: boolean,
+): void {
   const sorted = [...people].sort((a, b) => a.p[1] - b.p[1]);
   for (const who of sorted) {
-    const pose = posture(who, beat);
+    const pose = posture(who, beat, playing);
     const layout = layoutDancer({ person: who.person, pose }, beat);
     drawBody(g, layout, draw);
     drawArms(g, layout, draw);
     drawHead(g, layout, draw);
-    if (who.prop !== undefined) drawProp(g, who.prop, who.p, who.facing, beat);
+    if (who.prop !== undefined) drawProp(g, who.prop, who.p, who.facing, beat, playing);
   }
 }
 
 /**
  * What one non-dancer is doing at this beat: where their hands are, and the
  * bow, strum, nod, lean or keyboard slide that says they are playing.
+ *
+ * `playing` false — the between-dances interval, when no tune is sounding —
+ * holds every beat-driven term at zero. The hands stay on their instrument and
+ * the pianist's stay on the keys; what stops is the motion, which is the whole
+ * of what says anybody is playing.
  */
-export function posture(who: HallPerson, beat: Beat): PoseSample {
-  const sn = Math.sin(TAU * beat);
+export function posture(who: HallPerson, beat: Beat, playing = true): PoseSample {
+  const sn = playing ? Math.sin(TAU * beat) : 0;
   const bow = BAND_MOTION_PX * sn;
   const seated = who.seated === true;
 
@@ -204,7 +228,7 @@ export function posture(who: HallPerson, beat: Beat): PoseSample {
     case "piano": {
       // Both hands rest on the keys and slide a couple of px along them, a
       // quarter beat apart, so they alternate rather than moving as one.
-      const csn = Math.sin(TAU * beat + Math.PI / 2);
+      const csn = playing ? Math.sin(TAU * beat + Math.PI / 2) : 0;
       hands = {
         L: held(
           PIANO_HAND_FORWARD_PX,
@@ -248,7 +272,7 @@ export function posture(who: HallPerson, beat: Beat): PoseSample {
     flare: 0,
     // Nobody here is dancing, so nothing swings but what this function says.
     amp: 0,
-    ...(seated ? { feet: tuckedFeet(who.taps === true ? sn : 0) } : {}),
+    ...(seated ? { feet: tuckedFeet(who.taps === true && playing ? sn : 0) } : {}),
   };
 }
 
@@ -265,11 +289,21 @@ function tuckedFeet(tap: number): { L: Vec2; R: Vec2 } {
  *
  * The hall spike drew its props for the front view that gate 2 rejected, so
  * these are the same four objects redrawn as they look from the ceiling.
+ *
+ * `playing` false stills the one part of a prop that moves — the fiddle bow —
+ * for the same reason {@link posture} stills the hands that hold it.
  */
-export function drawProp(g: Ctx2D, kind: PropKind, p: Vec2, facing: number, beat: Beat): void {
+export function drawProp(
+  g: Ctx2D,
+  kind: PropKind,
+  p: Vec2,
+  facing: number,
+  beat: Beat,
+  playing = true,
+): void {
   const forward = dirOf(facing);
   const left = leftOf(facing);
-  const sn = Math.sin(TAU * beat);
+  const sn = playing ? Math.sin(TAU * beat) : 0;
 
   switch (kind) {
     case "fiddle": {
