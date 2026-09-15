@@ -1,4 +1,19 @@
-export type { Medley, Tune } from "./Tune.js";
+export {
+  BAND,
+  barsOf,
+  chordPair,
+  defineTune,
+  halvesOf,
+  writeAbc,
+  type Arrangement,
+  type BarChords,
+  type Chord,
+  type ChordChart,
+  type Medley,
+  type Tune,
+  type TuneSource,
+  type Voice,
+} from "./Tune.js";
 export { arkansasTraveler } from "./arkansasTraveler.js";
 export { fishersHornpipe } from "./fishersHornpipe.js";
 export { goldenSlippers } from "./goldenSlippers.js";

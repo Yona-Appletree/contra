@@ -1,33 +1,32 @@
-import type { Tune } from "./Tune.js";
+import { defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
- * not copied from any transcription site. Moderate-to-high confidence — one
- * of the most famous American fiddle tunes, played at nearly every old-time
- * jam and contra dance; the call-and-response shape (a repeated low phrase
- * answered by a running eighth-note figure) is canonical, though the
- * note-for-note detail below is my own hand transcription.
+ * not copied from any transcription site. Moderate confidence — the B part
+ * (the high F sharp run and the descending A–G–F sharp–E) is the standard
+ * setting; the A part as typed leans on the fifth more than some versions.
+ * The chart (2026-09-15) follows the typed melody, which sits on A7 through
+ * the A part's first bars and cadences D–A7; moderate confidence.
  *
- * Written out in full (AABB, 32 bars), four source lines of 8 bars each —
- * see the note in `soldiersJoy.ts` and `packages/music/README.md`.
+ * Written out in full (AABB, 32 bars) with no repeat signs; four source
+ * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
-export const arkansasTraveler: Tune = {
+export const arkansasTraveler = defineTune({
   slug: "arkansas-traveler",
   title: "Arkansas Traveler",
   type: "reel",
-  meter: { beatsPerBar: 2, barsPerPhrase: 8 },
-  beatsPerCycle: 64,
-  defaultBpm: 116,
-  source: "traditional, transcribed by hand",
-  abc: `X:1
-T:Arkansas Traveler
-R:reel
-M:2/2
-L:1/8
-K:D
-A2AB cded|cAA2 ABA2|A2AB cded|cAA2 A2A2|d2fa gfed|cded cAA2|d2fa gfed|cded cAA2|
-A2AB cded|cAA2 ABA2|A2AB cded|cAA2 A2A2|d2fa gfed|cded cAA2|d2fa gfed|cded cAA2|
-f2fa gfed|cded cAA2|f2fa gfed|cded cAA2|agfe dcAG|FGAB cded|agfe dcAG|FGAB cAd2|
-f2fa gfed|cded cAA2|f2fa gfed|cded cAA2|agfe dcAG|FGAB cded|agfe dcAG|FGAB cAd2|
-`,
-};
+  key: "D",
+  defaultBpm: 112,
+  lines: [
+    "A2AB cded|cAA2 ABA2|A2AB cded|cAA2 A2A2|d2fa gfed|cded cAA2|d2fa gfed|cded cAA2|",
+    "A2AB cded|cAA2 ABA2|A2AB cded|cAA2 A2A2|d2fa gfed|cded cAA2|d2fa gfed|cded cAA2|",
+    "f2fa gfed|cded cAA2|f2fa gfed|cded cAA2|agfe dcAG|FGAB cded|agfe dcAG|FGAB cAd2|",
+    "f2fa gfed|cded cAA2|f2fa gfed|cded cAA2|agfe dcAG|FGAB cded|agfe dcAG|FGAB cAd2|",
+  ],
+  chords: [
+    ["A7", ["A7", "D"], "A7", ["A7", "D"], "D", "A7", "D", "A7"],
+    ["A7", ["A7", "D"], "A7", ["A7", "D"], "D", "A7", "D", "A7"],
+    ["D", "A7", "D", "A7", "D", "D", "D", "D"],
+    ["D", "A7", "D", "A7", "D", "D", "D", "D"],
+  ],
+});

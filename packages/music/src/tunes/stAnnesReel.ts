@@ -1,34 +1,32 @@
-import type { Tune } from "./Tune.js";
+import { defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
- * not copied from any transcription site. Moderate confidence on the exact
- * notes — this is my own hand transcription of the tune's driving,
- * repeated-note character (a Quebecois/Canadian standard); note-for-note
- * detail is mine and may differ from other printed settings of the same
- * tune, which is normal for an orally-transmitted fiddle reel. High
- * confidence that this is genuinely a traditional, public-domain reel.
+ * not copied from any transcription site. Moderate confidence — the shape
+ * (the A part circling D–A, the B part opening on the high F sharp) is the
+ * standard Québécois/New England setting; some passing notes may differ from
+ * any one printed version. The chart (2026-09-15) follows the typed melody:
+ * D with A7 on the half-bars whose notes outline it; moderate confidence.
  *
- * Written out in full (AABB, 32 bars), four source lines of 8 bars each —
- * see the note in `soldiersJoy.ts` and `packages/music/README.md`.
+ * Written out in full (AABB, 32 bars) with no repeat signs; four source
+ * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
-export const stAnnesReel: Tune = {
+export const stAnnesReel = defineTune({
   slug: "st-annes-reel",
   title: "St. Anne's Reel",
   type: "reel",
-  meter: { beatsPerBar: 2, barsPerPhrase: 8 },
-  beatsPerCycle: 64,
-  defaultBpm: 116,
-  source: "traditional, transcribed by hand",
-  abc: `X:1
-T:St. Anne's Reel
-R:reel
-M:2/2
-L:1/8
-K:D
-A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|
-A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|
-f2fa gfed|cdec dcAF|f2fa gfed|cdec d4|f2fa gfed|cdec dcAF|fdec dcAF|D4D4|
-f2fa gfed|cdec dcAF|f2fa gfed|cdec d4|f2fa gfed|cdec dcAF|fdec dcAF|D4D4|
-`,
-};
+  key: "D",
+  defaultBpm: 112,
+  lines: [
+    "A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|",
+    "A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|",
+    "f2fa gfed|cdec dcAF|f2fa gfed|cdec d4|f2fa gfed|cdec dcAF|fdec dcAF|D4 D4|",
+    "f2fa gfed|cdec dcAF|f2fa gfed|cdec d4|f2fa gfed|cdec dcAF|fdec dcAF|D4 D4|",
+  ],
+  chords: [
+    ["D", "D", ["D", "A7"], ["D", "A7"], "D", "D", ["D", "A7"], "D"],
+    ["D", "D", ["D", "A7"], ["D", "A7"], "D", "D", ["D", "A7"], "D"],
+    ["D", ["A7", "D"], "D", ["A7", "D"], "D", ["A7", "D"], "D", "D"],
+    ["D", ["A7", "D"], "D", ["A7", "D"], "D", ["A7", "D"], "D", "D"],
+  ],
+});

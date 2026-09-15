@@ -115,24 +115,28 @@ export function playPotatoes(
 /**
  * The potatoes for one tune, at one tempo: the chord in **its** key.
  *
- * Read off the tune's own ABC rather than out of a table keyed by slug, so a
+ * Read off the tune's own key rather than out of a table keyed by slug, so a
  * tune added tomorrow gets potatoes in its own key with nothing else written.
  */
-export const potatoesFor = (tune: Tune, bpm: number): Partial<PotatoOptions> => {
+export const potatoesFor = (tune: Pick<Tune, "key">, bpm: number): Partial<PotatoOptions> => {
   const key = keyOf(tune);
   return { bpm, rootHz: key.rootHz, mode: key.mode };
 };
 
 /**
- * A tune's key, from the `K:` field of its ABC.
+ * A tune's key, read off its own `key` field — the same text its ABC's `K:`
+ * is written from.
  *
- * ABC keys in this package look like `K:D`, `K:G`, `K:Em`, `K:AMix` — a tonic
- * letter, an optional accidental, and an optional mode. Anything this does not
- * recognise falls back to D major, which is what nine of the thirteen tunes
- * are; a tune with no `K:` at all is a tune `abcjs` would not render either.
+ * Keys in this package look like `D`, `G`, `Em`, `AMix` — a tonic letter, an
+ * optional accidental, and an optional mode. Anything this does not recognise
+ * falls back to D major, which is what nine of the thirteen tunes are.
  */
-export function keyOf(tune: Tune): { rootHz: number; mode: "major" | "minor"; name: string } {
-  const found = /^K:[ \t]*([A-G])([#b]?)([A-Za-z]*)/m.exec(tune.abc);
+export function keyOf(tune: Pick<Tune, "key">): {
+  rootHz: number;
+  mode: "major" | "minor";
+  name: string;
+} {
+  const found = /^\s*([A-G])([#b]?)([A-Za-z]*)/.exec(tune.key);
   if (found === null) return { rootHz: POTATO_DEFAULTS.rootHz, mode: "major", name: "D" };
   const [, letter = "D", accidental = "", modeWord = ""] = found;
   const semitone =

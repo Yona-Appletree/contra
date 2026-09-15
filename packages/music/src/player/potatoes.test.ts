@@ -135,7 +135,7 @@ describe("the potatoes are four chords, a beat apart, ending a beat before bar 1
 });
 
 describe("the chord is in the tune's own key", () => {
-  it("reads the key off the ABC rather than a table of slugs", () => {
+  it("reads the key off the tune rather than a table of slugs", () => {
     expect(keyOf(soldiersJoy).name).toBe("D");
     expect(keyOf(soldiersJoy).mode).toBe("major");
     // D below middle C.

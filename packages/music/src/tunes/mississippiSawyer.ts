@@ -1,32 +1,32 @@
-import type { Tune } from "./Tune.js";
+import { defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
- * not copied from any transcription site. Moderate confidence on the
- * exact notes — the tune's characteristic low-register "sawing" repeated
- * figure in the A part is recalled clearly, but the detail below is my
- * own hand transcription and may differ from other printed settings.
+ * not copied from any transcription site. Moderate confidence — the A part
+ * on the A–F sharp–D figure and the B part's high D are the standard
+ * old-time setting; some passing notes may differ from any one version. The
+ * chart (2026-09-15) follows the typed melody: D with the G where it walks
+ * down through G, and A7 at the B part's cadences; moderate confidence.
  *
- * Written out in full (AABB, 32 bars), four source lines of 8 bars each —
- * see the note in `soldiersJoy.ts` and `packages/music/README.md`.
+ * Written out in full (AABB, 32 bars) with no repeat signs; four source
+ * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
-export const mississippiSawyer: Tune = {
+export const mississippiSawyer = defineTune({
   slug: "mississippi-sawyer",
   title: "Mississippi Sawyer",
   type: "reel",
-  meter: { beatsPerBar: 2, barsPerPhrase: 8 },
-  beatsPerCycle: 64,
-  defaultBpm: 120,
-  source: "traditional, transcribed by hand",
-  abc: `X:1
-T:Mississippi Sawyer
-R:reel
-M:2/2
-L:1/8
-K:D
-A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|
-A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|
-d2df edcA|BAFA GFD2|d2df edcA|BAFA GFD2|f2fe dcAF|GABc dAFD|f2fe dcAF|GABc dAD2|
-d2df edcA|BAFA GFD2|d2df edcA|BAFA GFD2|f2fe dcAF|GABc dAFD|f2fe dcAF|GABc dAD2|
-`,
-};
+  key: "D",
+  defaultBpm: 112,
+  lines: [
+    "A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|",
+    "A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|",
+    "d2df edcA|BAFA GFD2|d2df edcA|BAFA GFD2|f2fe dcAF|GABc dAFD|f2fe dcAF|GABc dAD2|",
+    "d2df edcA|BAFA GFD2|d2df edcA|BAFA GFD2|f2fe dcAF|GABc dAFD|f2fe dcAF|GABc dAD2|",
+  ],
+  chords: [
+    ["D", "D", "D", "D", ["D", "G"], "D", ["D", "G"], "D"],
+    ["D", "D", "D", "D", ["D", "G"], "D", ["D", "G"], "D"],
+    [["D", "A7"], "D", ["D", "A7"], "D", "D", ["A7", "D"], "D", ["A7", "D"]],
+    [["D", "A7"], "D", ["D", "A7"], "D", "D", ["A7", "D"], "D", ["A7", "D"]],
+  ],
+});
