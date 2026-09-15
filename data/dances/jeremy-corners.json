@@ -66,10 +66,8 @@
         {
           "figure": "turn-contra-corners",
           "beats": 16,
-          "params": {
-            "axis": "along"
-          },
-          "call": "ONES TURN CONTRA CORNERS ALONG THE SET"
+          "who": "ones",
+          "call": "ONES TURN CONTRA CORNERS"
         }
       ]
     },
@@ -170,10 +168,8 @@
         {
           "figure": "turn-contra-corners",
           "beats": 16,
-          "params": {
-            "axis": "along"
-          },
-          "call": "TWOS TURN CONTRA CORNERS ALONG THE SET"
+          "who": "twos",
+          "call": "TWOS TURN CONTRA CORNERS"
         }
       ]
     },

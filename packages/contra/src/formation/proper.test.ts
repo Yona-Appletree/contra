@@ -164,16 +164,33 @@ describe("the relation table", () => {
     }
   });
 
-  it("a first corner is the diagonal and a second corner is straight along the line", () => {
+  /**
+   * **The corners are the two diagonals** (FR-B1, DD45): your first is across
+   * the set to your right and your second across it to your left, both in a
+   * couple outside your own minor set. `C2` and up keep M6's own row — the
+   * dancer straight along your own line — because that is what a cast off pairs
+   * on and it is not a corner of anything.
+   */
+  it("makes a first corner the right diagonal and a second corner the left", () => {
     for (const me of every) {
       const first = relate(model, table, me.id, { kind: "corner", k: 1 });
-      const second = relate(model, table, me.id, { kind: "corner", k: 2 });
-      if (first !== undefined) {
-        // In a proper set your first corner really is your neighbour.
-        expect(first).toBe(relate(model, table, me.id, { kind: "neighbor", k: 1 }));
+      const second = relate(model, table, me.id, { kind: "corner", k: 0 });
+      for (const corner of [first, second]) {
+        if (corner === undefined) continue;
+        const them = model.dancers[corner]!;
+        // Across the set, one dancing place along it.
+        expect(them.slot.line).not.toBe(me.slot.line);
+        expect(Math.abs(them.slot.position - me.slot.position)).toBe(1);
       }
-      if (second !== undefined) {
-        const them = model.dancers[second]!;
+      // …and the two of them are on opposite sides of you along the set.
+      if (first !== undefined && second !== undefined) {
+        const a = model.dancers[first]!.slot.position - me.slot.position;
+        const b = model.dancers[second]!.slot.position - me.slot.position;
+        expect(a * b).toBe(-1);
+      }
+      const along = relate(model, table, me.id, { kind: "corner", k: 2 });
+      if (along !== undefined) {
+        const them = model.dancers[along]!;
         expect(them.slot.line).toBe(me.slot.line);
         expect(them.role).toBe(me.role);
       }

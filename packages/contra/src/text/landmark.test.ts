@@ -123,7 +123,11 @@ describe("every figure the demo dances call has a landmark", () => {
    */
   const asked = [...seen.keys()].filter((id) => {
     const def = dataOnlyDefinitions().find((each) => each.id === id);
-    return def === undefined || def.actors === "all" || def.actors === "ring";
+    if (def === undefined) return true;
+    // **A figure that declares its own cast** cannot answer either (FR-B1):
+    // turn contra corners is danced by six and a hands-four has four.
+    if (def.cast !== undefined) return false;
+    return def.actors === "all" || def.actors === "ring";
   });
 
   it("asks every figure the demo calls but the ones minted per pair, per dancer or per line", () => {
@@ -140,6 +144,10 @@ describe("every figure the demo dances call has a landmark", () => {
       "shoulder-round",
       "turn-alone",
       "turn-as-couples",
+      // Six dancers, not four: the corners are in the couples above and below
+      // (FR-B1, DD45), so a hands-four group cannot plan it and the figure's own
+      // texts end on a sentence of their own.
+      "turn-contra-corners",
     ]);
   });
 

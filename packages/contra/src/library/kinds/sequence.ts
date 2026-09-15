@@ -1,7 +1,7 @@
 import type { Beat, Hand } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type { FigurePlan, HandJoin, PlanContext, Spots } from "../../figures/ContraFigure.js";
-import { planContext } from "../../figures/ContraFigure.js";
+import { centreOf, planContext } from "../../figures/ContraFigure.js";
 import type { Pairing } from "../../figures/pairing.js";
 import { pairsOf } from "../../figures/pairing.js";
 import type {
@@ -180,8 +180,19 @@ function run(
         );
       }
     }
+    // **Two casts of one part have to clear each other** (FR-B1), exactly as two
+    // instances of one call do. Turn contra corners is what measured it: its two
+    // corner turns run over the same four beats about the *same* point — the two
+    // diagonals of a square cross in the middle — and at full radius the two
+    // pairs finish on one floor point (Chorus Jig, beat 45.25, `c1/lark ~
+    // c2/robin`, 0.000 px at four couples and up). Which pairs are beside you is
+    // a fact about the part and not about the shape, so the part hands it over
+    // the same way resolution hands an instance `params.nearby`.
+    const centres = casts.map((roles) =>
+      centreOf(roles.map((role) => standing[role] ?? input.ctx.spot(role))),
+    );
     const planned: PlannedCast[] = [];
-    for (const roles of casts) {
+    for (const [at, roles] of casts.entries()) {
       // A part that names its own casts is planned over **only** those
       // stations, so its shape casts the right number of dancers — an orbit for
       // two really is an orbit for two, even when the figure round it has four.
@@ -207,6 +218,7 @@ function run(
         beats,
         roles,
         anchor: input.anchorOf(ctx),
+        nearby: [...input.nearby, ...centres.filter((_, i) => i !== at)],
         // Only the last part settles the figure: the rock in the middle of a
         // balance and swing ends where it rocked, and the turn is what gathers.
         gathers: isLast && input.gathers,

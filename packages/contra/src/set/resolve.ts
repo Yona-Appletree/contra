@@ -1,4 +1,5 @@
 import type { Beat, Vec2 } from "@caller/core";
+import { dist } from "@caller/core";
 import type {
   DancerId,
   FigureCall,
@@ -27,9 +28,9 @@ import type { FigureDefinition, FigureRole } from "../library/FigureDefinition.j
 import type { Library } from "../library/Library.js";
 import { paramDefaults } from "../library/interpret.js";
 import { CLAIMS_PARAM, type PlaceLedger } from "../library/kinds/places.js";
-import { homeOf, type SetModel } from "./SetModel.js";
+import { homeOf, type DancerState, type SetModel } from "./SetModel.js";
 import type { SlotView } from "./shape.js";
-import { lanePlaces, relatedPairs, relationLeavesTheFour } from "./lattice.js";
+import { lanePlaces, latticeSpan, relatedPairs, relationLeavesTheFour } from "./lattice.js";
 import type { Relation } from "./relations.js";
 import {
   isRelationWord,
@@ -290,8 +291,14 @@ export function resolveCall(
     // places is shared and the choosing is per instance, so the choices have to
     // be told about each other; see `kinds/places.ts`'s `PlaceLedger`.
     const ledger = ledgerFor(ledgers, plan.frame);
-    for (const instance of instances) {
-      if (instance.group !== plan) instance.params["nearby"] = centres;
+    for (const [at, instance] of instances.entries()) {
+      // **The centres of the *other* instances**, never this one's own. A figure
+      // for two has its own centre where its pair stands, so the self entry was
+      // a gap of zero and `orbitRadius` skipped it; a figure whose parts turn
+      // about points of their own — turn contra corners, over six dancers —
+      // reads its own instance centre as a pair standing beside it and squeezes
+      // its orbit to nothing (measured at Chorus Jig beat 45.25, 0.000 px).
+      if (instance.group !== plan) instance.params["nearby"] = without(centres, at);
       seatAtLedger(instance, ledger);
       out.push(instance);
     }
@@ -542,6 +549,10 @@ function laneFor(
   const plan = (): GroupPlan => lanePlan(ctx, order);
 
   if (def.actors === "line") return { among, plan: plan() };
+  // **A figure that declares the dancers it needs** (FR-B1) is always resolved
+  // in the lane: turn contra corners reaches a couple above and a couple below,
+  // which is three couples and no partition of the set into fours holds them.
+  if (def.cast !== undefined) return { among, plan: plan() };
 
   // **A written relation list reaches** when any one of its relations does
   // (M9b): "self, my partner, my neighbour and the lark after them" is four
@@ -668,19 +679,32 @@ function resolveInLane(
         )
       : undefined;
   const ringStations = rings?.map((four) => four.map((id) => slotOfDancer(ctx, id)));
+  // **The dancers the figure itself says it needs** (FR-B1), cut out of the lane
+  // from each dancer the call named — which for turn contra corners is "the
+  // ones" and their two corner couples. Before every other rule, because it is
+  // the only one that reads the *definition*: a figure that declares its cast
+  // is not asking to be partitioned at all.
+  const declared =
+    def.cast === undefined
+      ? undefined
+      : castRings(def.cast, ctx, lane.among, selectedInFours(call, ctx)).map((ids) =>
+          ids.map((id) => slotOfDancer(ctx, id)),
+        );
   const dancing: StationId[][] =
-    def.actors === "line"
-      ? byLine(ctx, plan)
-      : ringStations !== undefined
-        ? ringStations
-        : def.actors === "ring"
-          ? [plan.stations.map((s) => s.id)]
-          : def.actors === "each"
-            ? plan.stations.map((s) => [s.id])
-            : tradeOrder(
-                params,
-                (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]),
-              );
+    declared !== undefined
+      ? declared
+      : def.actors === "line"
+        ? byLine(ctx, plan)
+        : ringStations !== undefined
+          ? ringStations
+          : def.actors === "ring"
+            ? [plan.stations.map((s) => s.id)]
+            : def.actors === "each"
+              ? plan.stations.map((s) => [s.id])
+              : tradeOrder(
+                  params,
+                  (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]),
+                );
 
   // `homes`, not `places`: see `dataInstance`. A figure may have a parameter of
   // its own called `places`.
@@ -694,8 +718,8 @@ function resolveInLane(
   const centres = instances.map((instance) => instanceCentre(instance));
   const seat = ledgerFor(ledgers, plan.frame);
   const out: FigureInstance[] = [];
-  for (const instance of instances) {
-    instance.params["nearby"] = centres;
+  for (const [at, instance] of instances.entries()) {
+    instance.params["nearby"] = without(centres, at);
     seatAtLedger(instance, seat);
     out.push(instance);
   }
@@ -822,6 +846,145 @@ function writtenRings(
     rings.push(four);
   }
   return rings;
+}
+
+/**
+ * **The casts a definition's own `cast` list names** (FR-B1): from each dancer
+ * the call selected, the dancers the figure says it needs, in the order it
+ * listed them.
+ *
+ * `writtenRings` above is the same idea written by a **record** — Jeremy
+ * Corners' `"who": "self+partner+N1+N2"` — and this is the same idea written by
+ * a **figure**. The difference is which question it answers: a record's list
+ * says who is dancing, and a figure's says who a dancer dancing it reaches. Turn
+ * contra corners needs both at once — *"the ones turn contra corners"* is the
+ * card, and the six dancers that reaches is the figure's own fact — so the seed
+ * is the call's `who` and the shape of the cast is the definition's.
+ *
+ * The same three rules as the rings: distinct dancers or it is not a cast,
+ * nobody is in two of them, and a dancer any relation leaves out — at the top or
+ * the bottom of the line, where there is no couple above or below — is in none
+ * and dances hold-place. M6's end-of-set rule, unchanged.
+ */
+function castRings(
+  cast: readonly string[],
+  ctx: ResolveContext,
+  among: ReadonlySet<DancerId>,
+  seed: readonly DancerId[],
+): DancerId[][] {
+  const table = setRulesOf(ctx.formation.id).relations;
+  const model = standingModel(ctx);
+  const used = new Set<DancerId>();
+  const out: DancerId[][] = [];
+  for (const me of seed) {
+    if (used.has(me)) continue;
+    const found = cast.map((path) => followRelations(model, table, me, path));
+    if (found.some((id) => id === undefined || !among.has(id) || used.has(id))) continue;
+    const ids = found as DancerId[];
+    if (new Set(ids).size !== cast.length) continue;
+    for (const id of ids) used.add(id);
+    out.push(ids);
+  }
+  return out;
+}
+
+/**
+ * Who a **chain** of relations names: `"C1.partner"` is the partner of my first
+ * corner, followed left to right.
+ *
+ * The one thing a single relation cannot say, and turn contra corners needs it
+ * exactly once: the other active's corners are the partners of mine, and no
+ * table has a row for "the partner of the dancer two steps that way". Chaining
+ * is honest here because each step is a real relation a dancer really has.
+ */
+function followRelations(
+  model: SetModel,
+  table: Parameters<typeof relate>[1],
+  from: DancerId,
+  path: string,
+): DancerId | undefined {
+  let at: DancerId | undefined = from;
+  for (const word of path.split(".")) {
+    if (at === undefined) return undefined;
+    if (word === "self") continue;
+    at = relate(model, table, at, parseRelation(word));
+  }
+  return at;
+}
+
+/**
+ * **The set as the dancers are standing in it**: every dancer re-seated on the
+ * lattice place they are actually nearest.
+ *
+ * A slot is where a dancer *lives* this time through, and it moves at the
+ * progression; a body moves whenever a figure moves it. Almost nothing cares,
+ * because almost every figure names its dancers inside a hands-four and the four
+ * is where they stand. A figure that names **a couple beside you** does care, and
+ * Chorus Jig is the proof: its cast off is the time through's progression and it
+ * happens at beat 28, so from beat 32 the ones are standing in second place with
+ * their slots still saying first. Contra corners read off those slots reaches
+ * three dancing places up the hall — measured, at four couples, as a corner
+ * turning about a point the couple above was standing on.
+ *
+ * So a declared cast is cut out of *this* reading of the set. It is a
+ * measurement and not a guess — the nearest lattice place to where you are — and
+ * it is the identity whenever nobody has been moved off their place, which is
+ * every figure boundary but the ones this exists for.
+ */
+function standingModel(ctx: ResolveContext): SetModel {
+  const { lattice } = setRulesOf(ctx.formation.id);
+  const span = latticeSpan(ctx.model);
+  const dancers: Record<DancerId, DancerState> = {};
+  for (const dancer of Object.values(ctx.model.dancers)) {
+    let best = dancer.slot;
+    let gap = Infinity;
+    for (const line of [0, 1] as const) {
+      const reach = span.line[line];
+      if (reach === undefined) continue;
+      for (let position = reach.lowest; position <= reach.highest; position++) {
+        const home = framePoint(
+          ctx.model.frame,
+          lattice.homeAt({ line, position }, dancer.travel).p,
+        );
+        const here = dist(home, dancer.spot.p);
+        if (here < gap) {
+          gap = here;
+          best = { line, position };
+        }
+      }
+    }
+    dancers[dancer.id] = { ...dancer, slot: best };
+  }
+  return { ...ctx.model, dancers };
+}
+
+/**
+ * The dancers this call's `who` names, read group by group through the
+ * formation's own partition, in order along the set.
+ *
+ * A lane has no `1L`, so a tag like `"ones"` cannot be resolved against it; it
+ * is the hands-four partition that knows which couple is active. So the seed for
+ * {@link castRings} is read where the tag means something and then carried into
+ * the lane.
+ */
+function selectedInFours(call: FigureCall, ctx: ResolveContext): DancerId[] {
+  const selector: GroupSelector = call.group ?? HANDS_FOUR_GROUP;
+  const out: DancerId[] = [];
+  for (const plan of ctx.groups) {
+    if (plan.kind !== "set") continue;
+    const denied = excludedByEnds(ctx.formation, selector, call.ends, plan.stations);
+    for (const id of resolveActors(call.who, ctx, selector, plan)) {
+      if (denied.has(id)) continue;
+      const dancer = plan.members[id];
+      if (dancer === undefined || ctx.model.dancers[dancer] === undefined) continue;
+      out.push(dancer);
+    }
+  }
+  return out.sort((a, b) => {
+    const x = ctx.model.dancers[a]!.slot;
+    const y = ctx.model.dancers[b]!.slot;
+    return x.position - y.position || x.line - y.line;
+  });
 }
 
 /** The lane's stations, cut into its two lines, each in order along the set. */
@@ -1145,6 +1308,9 @@ function slotViewFor(
     at,
   };
 }
+
+/** A list with one entry left out: the centres of everybody **but** me. */
+const without = <T>(all: readonly T[], at: number): T[] => all.filter((_, i) => i !== at);
 
 /** Where an instance's dancers meet, in the frame's own px. */
 function instanceCentre(instance: FigureInstance): Vec2 {

@@ -347,6 +347,10 @@ describe("symmetry as a transform", () => {
       "swing",
       "turn-alone",
       "turn-as-couples",
+      // FR-B1's. Turn contra corners declares the six dancers it needs — the
+      // actives and the two couples beside them — so only a resolution against a
+      // real set can cast it (DD45).
+      "turn-contra-corners",
     ]);
   });
 

@@ -275,11 +275,13 @@ export const PROPER_LATTICE: SetLattice = {
  * - **Trail buddy k** is the same-role dancer `k` couple places ahead of you,
  *   which in proper is your own line. **(unsure)**
  * - **Corner k** is the geometric rule, and it is the *same sentence* in both
- *   contra formations: your **first** corner is the dancer of the other couple
- *   diagonally across the set, and your **second** is the one straight along
- *   your own line. In proper that makes your first corner your neighbour and
- *   your second the same-role dancer of the other couple, which is what Chorus
- *   Jig's contra corners dances (M7).
+ *   contra formations, **pinned by the user in FR-B1 (DD45)**: your **first**
+ *   corner (`C1`) is on your right diagonal and your **second** (`C0`) on your
+ *   left — across the set and one dancing place along it, one the way you travel
+ *   and one the way you came. Both are in couples outside your own minor set,
+ *   which is why turn contra corners is a figure for six. `C2` and up keep M6's
+ *   own row, the dancer straight along your own line, which is what a cast off
+ *   pairs on. **(unsure)** for `C2` only.
  */
 export const PROPER_RELATIONS: RelationTable = {
   id: "proper",
@@ -298,9 +300,22 @@ export const PROPER_RELATIONS: RelationTable = {
       case "trail-buddy":
         return { line, position: position + 2 * rel.k * t };
       case "corner":
+        // **The two diagonals, in the couples above and below** (FR-B1, DD45) —
+        // the same sentence duple improper's table now writes, and the same
+        // arithmetic: across the set and one dancing place along it, `C1` to
+        // your right and `C0` to your left, the sign being `partnerSide` because
+        // the two dancers of a couple look at each other across the set and so
+        // have the couple above on one dancer's right and on the other's left.
+        // In a proper set that makes one active's first corner their neighbour
+        // and the other's the dancer who was their neighbour last time through,
+        // which is what a caller teaching Chorus Jig points at. `C2` and up keep M6's own row, the dancer of the
+        // other couple straight along your own line, which is what a cast off
+        // pairs on.
         return rel.k === 1
-          ? { line: other, position: position + t }
-          : { line, position: position + t };
+          ? { line: other, position: position + partnerSide(from.role) * t }
+          : rel.k === 0
+            ? { line: other, position: position - partnerSide(from.role) * t }
+            : { line, position: position + t };
       case "self":
         return from.slot;
     }

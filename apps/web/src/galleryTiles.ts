@@ -27,6 +27,7 @@ import {
   frame,
   frameAngle,
   framePoint,
+  localPoint,
   motionReport,
   poseAt,
   withDefaults,
@@ -609,9 +610,12 @@ export function figureTile(
 ): GalleryTile {
   const engine = tileEngine([id], asked);
   const def = registry.get(id);
+  // **How long a line this figure needs** (FR-B1): one minor set for every
+  // figure but the ones that declare a cast reaching past it.
+  const couples = tileCouples(id);
   const found =
     variant === undefined
-      ? danceableCallOf(id, registry, overrides, engine)
+      ? danceableCallOf(id, registry, overrides, engine, couples)
       : variantCallOf(id, variant);
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
   const beats = variant?.beats ?? found?.call.beats ?? def.beats;
@@ -643,7 +647,13 @@ export function figureTile(
   // of the figure before it and its last beat releases into the figure after
   // it. The planner is what carries each instance's start, its holds and its
   // ends into the next.
-  let run = planTile({ formation, cycles: [{ calls: [one, one, one] }], overrides, engine });
+  let run = planTile({
+    formation,
+    cycles: [{ calls: [one, one, one] }],
+    overrides,
+    engine,
+    couples,
+  });
   let start: Beat = beats;
   if (!closes(run, beats)) {
     // A figure that progresses walks away from itself: three of them in a row
@@ -656,6 +666,7 @@ export function figureTile(
       cycles: [{ calls: [one] }],
       overrides,
       engine,
+      couples,
       bracket: BRACKET_BEATS,
     });
     start = BRACKET_BEATS;
@@ -723,6 +734,7 @@ function danceableCallOf(
   registry: FigureRegistry,
   overrides: FigureDefaultsOverride,
   engine: EngineChoice,
+  couples?: number | undefined,
 ): { dance: Dance; call: FigureCall } | undefined {
   const calls = callsOf(id, DEMO_DANCES);
   if (calls.length === 0 || !DATA_IDS.includes(id)) return calls[0];
@@ -738,6 +750,7 @@ function danceableCallOf(
       cycles: [{ calls: [one, one, one] }],
       overrides,
       engine,
+      couples,
     });
     if (dancesHere(run, id)) return found;
   }
@@ -1028,6 +1041,13 @@ interface TileCycle {
 interface TileSpec {
   formation: Formation;
   /**
+   * How many couples the line is, and whether the tile draws the whole of it.
+   *
+   * Left out, the one minor set every tile has always been drawn over. Given, a
+   * figure that reaches past the four (FR-B1) — see {@link tileCouples}.
+   */
+  couples?: number | undefined;
+  /**
    * The times through, back to back.
    *
    * Almost always one. **A wrap tile is two**: a dance's last figure into its
@@ -1067,7 +1087,8 @@ interface TileSpec {
 function planTile(spec: TileSpec): TileRun {
   const { formation, cycles, overrides, engine } = spec;
   const bracket = spec.bracket ?? 0;
-  const { hall, plan } = tileHall(formation);
+  const { hall, plan } = tileHall(formation, spec.couples);
+  const drawn = spec.couples === undefined ? plan : wholeLine(formation, hall, plan.frame);
 
   const { registry, library } = engineHalves(engine, overrides);
   const timeline = createTimeline(registry);
@@ -1081,7 +1102,7 @@ function planTile(spec: TileSpec): TileRun {
   // carry the standing bracket's events whether or not the planner happens to
   // mint this plan for itself. A data figure's instances are groups of two
   // whose stations are figure-roles, so it very often does not.
-  const group = mintGroup(plan);
+  const group = mintGroup(drawn);
 
   // Stand, figure, stand, for a figure that does not close — with the standing
   // places taken from where the figure starts and from where it leaves
@@ -1256,8 +1277,8 @@ function only(ends: ReadonlyMap<DancerId, EndPose>, group: Group): Record<Statio
  * The count is found by asking rather than by naming formations, so a third
  * contra formation (M7's proper) needs nothing here.
  */
-function tileHall(formation: Formation): { hall: HallState; plan: GroupPlan } {
-  const couples = minCouples(formation);
+function tileHall(formation: Formation, want?: number): { hall: HallState; plan: GroupPlan } {
+  const couples = want ?? minCouples(formation);
   const at = (centre: [number, number]): { hall: HallState; plan: GroupPlan } => {
     const hall = createHall(formation, [{ id: "set0", couples, centre, axis: AXIS }]);
     const plan = formation.groupsFor(HANDS_FOUR_GROUP, hall.sets[0]!).find((p) => p.kind === "set");
@@ -1266,10 +1287,77 @@ function tileHall(formation: Formation): { hall: HallState; plan: GroupPlan } {
     }
     return { hall, plan };
   };
+  // A **wide** figure is drawn over the whole line rather than over one minor
+  // set of it (FR-B1), so the line is stood about the origin and not about its
+  // first four: turn contra corners reaches a couple above the actives and a
+  // couple below, and a tile centred on the top hands-four would put half of it
+  // off the bottom of the picture.
+  if (want !== undefined) return at([0, 0]);
   // `groupsFor`'s frames are a rigid translation of the set's own, so the
   // offset measured from the origin is exactly the offset to stand back by.
   const centred = at([0, 0]).plan.frame.centre;
   return at([-centred[0]!, -centred[1]!]);
+}
+
+/**
+ * **How many couples this figure's tile needs** (FR-B1), or `undefined` for the
+ * one minor set every other tile is drawn over.
+ *
+ * The user, on turn contra corners: *"can only be shown correctly with 6 dancers
+ * (its only ever done by the 1s or 2s at a time; actives and inactives)."* A
+ * figure that declares its own cast says how far it reaches
+ * (`FigureDefinition.cast`), and the tile has to be a line long enough to hold
+ * it — which for the corners is the actives with a couple above and a couple
+ * below.
+ *
+ * Measured rather than counted: the smallest line the figure actually dances on.
+ * It comes out at **four** couples in both contra formations rather than the
+ * three the six dancers make, because a three-couple line leaves a couple
+ * waiting out at the end and a couple standing out is not in the lane a figure
+ * is resolved in.
+ */
+export function tileCouples(id: string): number | undefined {
+  const def = definitionOf(id);
+  if (def?.cast === undefined) return undefined;
+  return WIDE_TILE_COUPLES;
+}
+
+/** The line a figure that declares its own cast is drawn over. */
+const WIDE_TILE_COUPLES = 4;
+
+/**
+ * Every dancer of the tile's own line, as one group: what a **wide** tile draws.
+ *
+ * A tile's group is one minor set, because that is what a figure for four is
+ * danced by. A figure for six is not, and the two couples its corners are in are
+ * in the minor sets either side — so the tile's group is the whole line, station
+ * ids taken from the plans it is merged out of.
+ */
+function wholeLine(formation: Formation, hall: HallState, frame: GroupPlan["frame"]): GroupPlan {
+  const stations: Station[] = [];
+  const members: Record<StationId, DancerId> = {};
+  const couples: string[] = [];
+  for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, hall.sets[0]!)) {
+    couples.push(...plan.couples);
+    for (const station of plan.stations) {
+      const dancer = plan.members[station.id];
+      if (dancer === undefined || members[dancer] !== undefined) continue;
+      const id = `${plan.id}/${station.id}`;
+      if (members[id] !== undefined) continue;
+      stations.push({ ...station, id, p: framePoint(plan.frame, station.p) });
+      members[id] = dancer;
+    }
+  }
+  // The stations are gathered in world px above and put back into the tile's own
+  // frame here, so one group can hold plans that were minted in several.
+  return {
+    id: `${hall.sets[0]!.id}/line`,
+    kind: "set",
+    frame,
+    stations: stations.map((s) => ({ ...s, p: localPoint(frame, s.p) })),
+    members,
+    couples: [...new Set(couples)],
+  };
 }
 
 /** The smallest number of couples this formation will make a minor set out of. */

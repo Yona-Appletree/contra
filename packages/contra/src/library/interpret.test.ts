@@ -192,7 +192,9 @@ describe("resolution of a data figure", () => {
     const dancing = resolve("swing", { pairs: "neighbors" }).filter((i) => !i.holdPlace);
     for (const instance of dancing) {
       expect((instance.params["homes"] as unknown[]).length).toBe(4);
-      expect((instance.params["nearby"] as unknown[]).length).toBe(2);
+      // **The other pair's, and not its own** (FR-B1): a figure reads `nearby`
+      // as "who is turning beside me", and its own centre is not somebody else.
+      expect((instance.params["nearby"] as unknown[]).length).toBe(1);
     }
   });
 

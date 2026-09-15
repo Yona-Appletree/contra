@@ -1449,6 +1449,38 @@ export interface FigureDefinition {
   /** The figure's own natural count; a call's own count overrides it (D3). */
   nominalBeats: Beat;
   roles: readonly FigureRole[];
+  /**
+   * **The dancers this figure needs, as relations from the one the call named**
+   * (FR-B1, DD45) — one entry per {@link FigureDefinition.roles} entry, in the
+   * same order.
+   *
+   * Turn contra corners is why, and the user's account is the whole of the
+   * reason: *"can only be shown correctly with 6 dancers (its only ever done by
+   * the 1s or 2s at a time; actives and inactives) … each active dancer drops
+   * their right hand and allemande left with their first corner (located on the
+   * right diagonal) … the second corner (located on the left diagonal)."* The
+   * corners are in the couples **above and below**, so the figure's cast is
+   * three couples and no group selector names them: a hands-four is four
+   * dancers and the figure wants six.
+   *
+   * A record can already write a foursome out one relation at a time
+   * (`"who": "self+partner+N1+N2"`, M9b) — but that says *who is active* as well
+   * as *who the figure needs*, and only the first of those is the caller's
+   * business. "The ones turn contra corners" is what a card says; which four
+   * other dancers that reaches is a fact about the **figure**. So the figure
+   * declares it, the call keeps saying `"who": "ones"`, and resolution cuts the
+   * six out of the lane (`set/resolve.ts`).
+   *
+   * An entry is a relation word, or a **chain** of them joined by `.`, followed
+   * left to right: `"C1.partner"` is "the partner of my first corner", which is
+   * the other active's first corner and is the one dancer of the six that no
+   * single relation from the active names. `"self"` is the active.
+   *
+   * A dancer any entry leaves out — at the end of a line, where there is no
+   * couple above — is in no cast and dances hold-place, which is M6's own
+   * end-of-set rule unchanged.
+   */
+  cast?: readonly string[];
   actors: ActorRule;
   anchor: AnchorRule;
   params: ParamSpec;

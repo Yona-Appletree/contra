@@ -251,7 +251,12 @@ export const dataOnlyFigures = (): AnyFigureDef[] =>
  * resolution and there is no other kind of harness left.
  */
 export const needsTheSet = (def: FigureDefinition): boolean =>
-  (def.actors !== "all" && def.actors !== "ring") || readsTheLattice(def.shape);
+  (def.actors !== "all" && def.actors !== "ring") ||
+  // **A figure that declares its own cast** (FR-B1): turn contra corners needs
+  // the couples above and below the actives, which a bare hands-four harness
+  // has not got at all.
+  def.cast !== undefined ||
+  readsTheLattice(def.shape);
 
 /**
  * **Whether this shape names a place on the set's own lattice.**
