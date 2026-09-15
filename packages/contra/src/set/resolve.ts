@@ -13,6 +13,8 @@ import type {
 import {
   HANDS_FOUR_GROUP,
   excludedByEnds,
+  frameAngle,
+  framePoint,
   localAngle,
   localPoint,
   resolveSelector,
@@ -23,6 +25,7 @@ import type { FigureDefinition, FigureRole } from "../library/FigureDefinition.j
 import type { Library } from "../library/Library.js";
 import { paramDefaults } from "../library/interpret.js";
 import { homeOf, type SetModel } from "./SetModel.js";
+import type { SlotView } from "./shape.js";
 import { lanePlaces, relatedPairs, relationLeavesTheFour } from "./lattice.js";
 import { isRelationWord, isSymmetricRelation, parseRelation, relate } from "./relations.js";
 import { setRulesOf } from "./SetRules.js";
@@ -113,6 +116,21 @@ export interface ResolveContext {
 export const HOLD_PLACE_FIGURE = "walk-to-station";
 
 /**
+ * Whether this figure wants the formation's own places handed to it.
+ *
+ * `ends: "home"` is the obvious one and was the only one until M7. A figure
+ * whose `ends` name a **target shape** with `settle` is the other: "bend the
+ * line" puts four dancers into a ring *and* puts that ring on the four places
+ * the set already had, and without the places it forms a ring in mid air a few
+ * pixels off them — which is a pixel of drift every time through, and was
+ * measured as one at 7 px before this said so.
+ */
+export function gathersOnPlaces(def: FigureDefinition): boolean {
+  if (def.ends === "home") return true;
+  return typeof def.ends === "object" && "target" in def.ends && def.ends.target.settle === true;
+}
+
+/**
  * A definition whose `roles` is exactly this has **one part per dancer**, named
  * by the slot they stand on.
  *
@@ -136,22 +154,10 @@ export const LANE_ROLES = "*";
  */
 export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): FigureInstance[] {
   const def = ctx.library.get(call.figure);
-  if (
-    def.actors !== "all" &&
-    def.actors !== "pairs" &&
-    def.actors !== "ring" &&
-    def.actors !== "line"
-  ) {
-    throw new Error(`unsupported: actors "${def.actors}" on "${def.id}" (M7)`);
-  }
-  if (
-    def.anchor !== "hands-four" &&
-    def.anchor !== "meet" &&
-    def.anchor !== "centroid" &&
-    def.anchor !== "lane"
-  ) {
-    throw new Error(`unsupported: anchor "${JSON.stringify(def.anchor)}" on "${def.id}" (M7)`);
-  }
+  // Since M7 every `ActorRule` and every `AnchorRule` the design names is built,
+  // so there is nothing left here to refuse: `"each"` is one instance per
+  // dancer (turn alone, a loop, the ones going down the outside), and the
+  // `{ pivot }` and `{ other }` anchors are `interpret.ts`'s.
 
   const selector: GroupSelector = call.group ?? HANDS_FOUR_GROUP;
   // **The definition's own declared defaults, under whatever the call wrote.**
@@ -186,40 +192,53 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     const selected = named.filter((id) => !denied.has(id));
 
     const dancing =
-      def.actors === "all"
+      def.actors === "all" || def.actors === "ring"
         ? [selected]
-        : def.actors === "ring"
-          ? [selected]
-          : pairStations(params["pairs"], selected, plan, ctx);
+        : def.actors === "each"
+          ? // **One instance per dancer** (M7): a figure nobody dances *with*.
+            // Turning alone, looping, going down the outside — everybody the
+            // call selected does their own, and there is no pairing to leave
+            // anybody out of.
+            selected.map((id) => [id])
+          : tradeOrder(params, pairStations(params["pairs"], selected, plan, ctx));
     const taken = new Set(dancing.flat());
     const resting = active.map((s) => s.id).filter((id) => !taken.has(id));
 
     const instances: FigureInstance[] = [];
     for (const stations of dancing) {
       if (stations.length === 0) continue;
-      instances.push(
-        def.actors === "all"
-          ? {
-              figure: call.figure,
-              params: {
-                ...params,
-                // **A gatherer is handed the formation's places whatever its
-                // actors rule is** (M5). `dataInstance` below has always done
-                // this; the whole-minor-set branch never had to, because every
-                // figure that took it was `ends: "relative"` until the hey
-                // arrived — and a hey that ends short settles on the two places
-                // it stopped between, which it cannot do without them.
-                ...(def.ends === "home" ? { homes: homesOf(plan, ctx) } : {}),
-              },
-              cast: castOf(plan, stations),
-              group: plan,
-              frame: plan.frame,
-              start: at,
-              beats: call.beats,
-              holdPlace: false,
-            }
-          : dataInstance(call, def, stations, plan, ctx, at, params),
-      );
+      if (def.actors !== "all") {
+        instances.push(dataInstance(call, def, stations, plan, ctx, at, params));
+        continue;
+      }
+      // **A figure for the whole minor set keeps the formation's own group**,
+      // which is what makes the legacy path reproduce today's geometry exactly.
+      // What it is handed on top is the two things a figure cannot work out for
+      // itself, and only where they are wanted:
+      //
+      // - a figure that **gathers** gets the formation's places. M5 opened this
+      //   for a hey that ends short and has to settle on the two places it
+      //   stopped between; M7 asks the wider question (`gathersOnPlaces`), which
+      //   is that one plus a figure whose target shape settles — "bend the line"
+      //   puts its ring on the four places the set already had.
+      // - a figure that is **data** gets the lattice, because a definition may
+      //   name a slot (M7).
+      //
+      // A bridged coded figure gets neither and is byte-identical to M1's.
+      const cast = castOf(plan, stations);
+      const extra: Record<string, unknown> = { ...params };
+      if (gathersOnPlaces(def)) extra["homes"] = homesOf(ctx, plan);
+      if (def.shape.kind !== "legacy") extra["slots"] = slotViewFor(ctx, plan.frame, cast);
+      instances.push({
+        figure: call.figure,
+        params: gathersOnPlaces(def) || def.shape.kind !== "legacy" ? extra : params,
+        cast,
+        group: plan,
+        frame: plan.frame,
+        start: at,
+        beats: call.beats,
+        holdPlace: false,
+      });
     }
     // The centres of the *other* instances of this call, which is what a pair
     // turning beside another pair has to clear. A fact about the resolution,
@@ -413,18 +432,21 @@ function resolveInLane(
       ? byLine(ctx, plan)
       : def.actors === "ring"
         ? [plan.stations.map((s) => s.id)]
-        : (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]);
+        : def.actors === "each"
+          ? plan.stations.map((s) => [s.id])
+          : tradeOrder(
+              params,
+              (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]),
+            );
 
   // `homes`, not `places`: see `dataInstance`. A figure may have a parameter of
   // its own called `places`.
-  const homes = def.ends === "home" ? lanePlaces(ctx.model, plan.frame) : [];
+  const homes = gathersOnPlaces(def) ? lanePlaces(ctx.model, plan.frame) : [];
   const instances: FigureInstance[] = [];
   for (const stations of dancing) {
     if (stations.length === 0) continue;
-    instances.push({
-      ...dataInstance(call, def, stations, plan, ctx, at, params),
-      params: { ...params, homes, nearby: [] },
-    });
+    const made = dataInstance(call, def, stations, plan, ctx, at, params);
+    instances.push({ ...made, params: { ...made.params, homes, nearby: [] } });
   }
   const centres = instances.map((instance) => instanceCentre(instance));
   const out: FigureInstance[] = [];
@@ -497,11 +519,11 @@ function dataInstance(
   // **`homes`, not `places`** (M4): a figure may have a parameter of its own
   // called `places` — a circle's is how many quarters of the ring it walks —
   // and the two would share one name in one object.
-  const homes: Vec2[] = def.ends === "home" ? homesOf(plan, ctx) : [];
+  const homes: Vec2[] = gathersOnPlaces(def) ? homesOf(ctx, plan) : [];
 
   return {
     figure: call.figure,
-    params: { ...params, homes, nearby: [] },
+    params: { ...params, homes, nearby: [], slots: slotViewFor(ctx, plan.frame, cast) },
     cast,
     group: {
       id: `${plan.id}/${def.id}/${stations.join("-")}`,
@@ -561,17 +583,52 @@ function castRoles(
     });
     return cast;
   }
+  const roles = dancers.map((dancer) => ctx.model.dancers[dancer]!.role);
+  if (new Set(roles).size < roles.length) {
+    // **Q10: a same-role figure takes its figure-roles by position.**
+    //
+    // "Women balance and swing" is 33 dances in the corpus and two phrases of
+    // Anna's Reel. A swing's two parts really are asymmetric — the robin's part
+    // ends on the right with her hand on top — so two robins swinging is not a
+    // figure without parts, it is a figure whose parts somebody has to take.
+    // Which is what a hall does: one of them dances the lark's part.
+    //
+    // Who, is the **order the pairing named them in**, which for a relation is
+    // the order the lattice runs; the call may swap it with `trade` (handled in
+    // `resolveCall`, before this is reached, so it applies to a lane pairing
+    // and a four's alike). Nothing here guesses at height or handedness.
+    dancers.forEach((dancer, i) => {
+      cast[def.roles[i]!] = dancer;
+    });
+    return cast;
+  }
   for (const dancer of dancers) {
-    const role = ctx.model.dancers[dancer]!.role;
-    if (cast[role] !== undefined) {
-      throw new Error(
-        `figure "${def.id}" wants a lark and a robin, and the call paired two ${role}s (M7)`,
-      );
-    }
-    cast[role] = dancer;
+    cast[ctx.model.dancers[dancer]!.role] = dancer;
   }
   return cast;
 }
+
+/**
+ * The pairs, with each pair's two dancers swapped when the call says `trade`.
+ *
+ * Q10's other half: when both dancers of a pair share a role the figure-roles go
+ * by position, and `trade` is how a caller says *the other way round*. It is a
+ * call-level instruction to **resolution** rather than a figure parameter — no
+ * figure reads it and none should, exactly as `rebind` is — so it rides in
+ * `params` and is stripped before the figure is planned (`planCycle.ts`).
+ */
+function tradeOrder(params: Record<string, unknown>, pairs: StationId[][]): StationId[][] {
+  if (params[TRADE_PARAM] !== true) return pairs;
+  return pairs.map((pair) => [...pair].reverse());
+}
+
+/**
+ * The call-level parameter that swaps which of a same-role pair takes which
+ * figure-role (Q10).
+ *
+ * Written in a dance record as `"params": { "trade": true }`.
+ */
+export const TRADE_PARAM = "trade";
 
 /**
  * The pairs a `pairs` parameter names, as station ids of this group.
@@ -629,20 +686,71 @@ function pairStations(
 }
 
 /**
- * The formation's own home places, frame-local, for **every** dancer of the
- * group a call resolved in — not just the ones an instance cast.
+ * The formation's own places, for **every** dancer of the group a call resolved
+ * in — not just the ones this instance cast.
  *
- * A swing settles on to the nearest two places that suit it, whoever's they are,
- * which is what makes "balance and swing your neighbour" the progression; see
- * `library/kinds/places.ts`.
+ * A swing settles on to the nearest two places that suit it, whoever's they
+ * are, which is what makes "balance and swing your neighbour" the progression;
+ * see `library/kinds/places.ts`.
  */
-function homesOf(plan: GroupPlan, ctx: ResolveContext): Vec2[] {
+const homesOf = (ctx: ResolveContext, plan: GroupPlan): Vec2[] => {
   const homes: Vec2[] = [];
   for (const dancer of Object.values(plan.members)) {
     if (ctx.model.dancers[dancer] === undefined) continue;
     homes.push(localPoint(plan.frame, homeOf(ctx.model, dancer).p));
   }
   return homes;
+};
+
+/**
+ * **The set's own lattice, in one instance's frame** (M7): what lets a
+ * definition name a place on the set rather than a place in its own shape.
+ *
+ * The node M6 asked for and could not write — see `set/shape.ts`'s `SlotView`
+ * and `library/expr.ts`'s `{ point: "slot" }`. Two origins and a step are the
+ * whole of it, because every contra formation's `homeAt` is affine in the
+ * position; the four facings are the home facing on each line for each travel,
+ * which is what tells a wave which way "in" is.
+ *
+ * Built per instance because it is frame-local, and cheap enough to: six points
+ * and four angles, once per instance, against a figure that samples hundreds of
+ * times.
+ */
+function slotViewFor(
+  ctx: ResolveContext,
+  frame: Frame,
+  cast: Record<FigureRole, DancerId>,
+): SlotView {
+  const { lattice } = setRulesOf(ctx.formation.id);
+  const local = (slot: { line: 0 | 1; position: number }, travel: 1 | -1): Vec2 =>
+    localPoint(frame, framePoint(ctx.model.frame, lattice.homeAt(slot, travel).p));
+  const facingAt = (line: 0 | 1, travel: 1 | -1): number =>
+    localAngle(
+      frame,
+      frameAngle(ctx.model.frame, lattice.homeAt({ line, position: 0 }, travel).facing),
+    );
+  const zero: [Vec2, Vec2] = [
+    local({ line: 0, position: 0 }, 1),
+    local({ line: 1, position: 0 }, 1),
+  ];
+  const one = local({ line: 0, position: 1 }, 1);
+  const at: Record<string, { line: 0 | 1; position: number; travel: 1 | -1 }> = {};
+  for (const [role, dancer] of Object.entries(cast)) {
+    const state = ctx.model.dancers[dancer];
+    if (!state) continue;
+    at[role] = { line: state.slot.line, position: state.slot.position, travel: state.travel };
+  }
+  return {
+    origin: zero,
+    step: [one[0] - zero[0][0], one[1] - zero[0][1]],
+    facing: {
+      "0/1": facingAt(0, 1),
+      "0/-1": facingAt(0, -1),
+      "1/1": facingAt(1, 1),
+      "1/-1": facingAt(1, -1),
+    },
+    at,
+  };
 }
 
 /** Where an instance's dancers meet, in the frame's own px. */

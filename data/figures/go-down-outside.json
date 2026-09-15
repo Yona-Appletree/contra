@@ -1,0 +1,11 @@
+{
+  "id": "go-down-outside",
+  "walkthrough": {
+    "short": "Step out of your line and walk down the outside of the set on your own.",
+    "long": "Step out of the line, away from the middle of the set, and walk down the outside of it past the couple below you. Your partner is doing the same on the other side. You end outside the line, a place further down the hall than you began."
+  },
+  "call": {
+    "short": "DOWN THE OUTSIDE",
+    "long": "GO DOWN THE OUTSIDE"
+  }
+}

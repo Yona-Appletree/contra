@@ -11,6 +11,7 @@ import type { FigureDefaultsOverride } from "@caller/contra";
 import {
   ALL_DANCES,
   BECKET,
+  PROPER,
   DEMO_DANCES,
   DUPLE_IMPROPER,
   contraDataEngine,
@@ -578,7 +579,10 @@ export function createDemoProgram(
     program,
     engineHalves.registry,
     hall,
-    createLibrary(dances, [DUPLE_IMPROPER, BECKET]),
+    // **Three formations since M7.** Chorus Jig is proper — larks in one line
+    // and robins in the other, all the way through — and a library that does
+    // not hold it refuses the dance by name at load.
+    createLibrary(dances, [DUPLE_IMPROPER, BECKET, PROPER]),
     engineHalves.library === undefined
       ? {}
       : { cycle: createContraCyclePlanner({ library: engineHalves.library }) },

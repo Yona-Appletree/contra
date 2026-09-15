@@ -1,0 +1,11 @@
+{
+  "id": "circulate",
+  "walkthrough": {
+    "short": "Everybody moves one place along the box at the same time.",
+    "long": "The larks walk straight across the set, passing right shoulders, and land one place along. The robins loop out of their own line and back into it, one place along, going round to the {hand}. Everybody moves at once and everybody ends in the wave they started in, with different dancers beside them."
+  },
+  "call": {
+    "short": "CIRCULATE",
+    "long": "CIRCULATE ONE PLACE ALONG"
+  }
+}

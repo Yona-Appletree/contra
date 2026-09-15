@@ -1,5 +1,13 @@
-import type { Beat, Dance, FigureEvent, Timeline, Trace } from "@caller/choreo";
-import { danceBeats, sampleTrace } from "@caller/choreo";
+import type {
+  Beat,
+  Dance,
+  DancerId,
+  FigureEvent,
+  StationId,
+  Timeline,
+  Trace,
+} from "@caller/choreo";
+import { HANDS_FOUR_GROUP, createHall, danceBeats, sampleTrace, stationRank } from "@caller/choreo";
 import {
   BECKET,
   LAB_RUN,
@@ -64,14 +72,26 @@ export function danceTrace(dance: Dance, options: DanceTraceOptions = {}): Trace
     couplesFor(dance),
     beats + LOOKAHEAD_BEATS,
     {},
+    // On the engine that can dance it (M5): every dance written before On the
+    // Prowl still draws on the decider's own planner, which is what every
+    // committed plate was drawn on, and the ones whose figures have no coded
+    // twin — On the Prowl, and M7's two — draw on the engine the Stage runs on.
     threadsOnTheOldPath(dance) ? {} : LAB_RUN,
   ).timeline();
   const opening = openingFigure(timeline);
   const pitch = wrap ? formationFor(dance).hallPitch : undefined;
+  const seating = seatingOf(dance);
   const trace = sampleTrace(timeline, {
     to: beats,
-    dancers: Object.values(opening.bindings),
+    dancers: minorSetAt(timeline, opening),
     frame: timeline.group(opening.group).frame,
+    // **The rank is the place in the set, not the station a pen opened on.** A
+    // figure resolved per pair opens on its own part (`lark`), whose leading
+    // digits are none, and every pen would come out rank 0 — the ones and the
+    // twos drawn in one shade. The formation's own seating is what says which
+    // couple a dancer is in, and it is the same seating `danceAlone` sits them
+    // down in.
+    rankOf: (_station, dancer) => stationRank(seating.get(dancer) ?? ""),
     wrap: pitch === undefined ? undefined : { y: pitch },
   });
   CACHE.set(cacheKey, trace);
@@ -107,6 +127,56 @@ const CACHE = new Map<string, Trace>();
  * The minor set whose four dancers get the pens: the first group to dance,
  * taken by group id so the same dance always draws the same four.
  */
+/**
+ * The four dancers of the minor set the opening figure runs in.
+ *
+ * **Not the opening figure's own bindings** (M7). Since M2 a data figure is
+ * resolved one instance **per pair**, so a dance whose first call is a balance
+ * and swing opens with a two-dancer group and a plate drawn off its bindings has
+ * two pens where it should have four. The minor set is the first two segments of
+ * a group id either way — `set0/p0#3` and `set0/p0/swing/1L-2R#4` are the same
+ * four dancers partitioned two ways — so every event of that minor set at beat
+ * zero, pooled, is the four.
+ */
+function minorSetAt(timeline: Timeline, opening: FigureEvent): string[] {
+  // **The opening figure's own dancers first**, in its own binding order, and
+  // then whoever else of the minor set is dancing at beat zero. A dance whose
+  // first call takes the whole four gets exactly the list it always got —
+  // pen for pen, in the same order — so not one plate drawn before this moves.
+  const dancers = new Set(Object.values(opening.bindings));
+  const mine = minorSetOf(opening.group);
+  for (const event of timeline.figures()) {
+    if (event.start !== 0 || minorSetOf(event.group) !== mine) continue;
+    for (const dancer of Object.values(event.bindings)) dancers.add(dancer);
+  }
+  return [...dancers];
+}
+
+/**
+ * Which of the formation's own stations each dancer starts the dance on.
+ *
+ * Built from the same hall `danceAlone` builds — the formation's `start`, then
+ * its own hands-four partition — so it is the seating the timeline was danced
+ * in rather than a second opinion about it.
+ */
+function seatingOf(dance: Dance): Map<DancerId, StationId> {
+  const formation = formationFor(dance);
+  const hall = createHall(formation, [
+    { id: "set0", couples: couplesFor(dance), centre: [0, 0], axis: 90 },
+  ]);
+  const seating = new Map<DancerId, StationId>();
+  for (const set of hall.sets) {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+      for (const [station, dancer] of Object.entries(plan.members)) seating.set(dancer, station);
+    }
+  }
+  return seating;
+}
+
+/** The minor set a group instance belongs to: the first two segments of its id. */
+const minorSetOf = (group: string): string =>
+  group.split("/").slice(0, 2).join("/").replace(/#\d+$/, "");
+
 function openingFigure(timeline: Timeline): FigureEvent {
   const opening = timeline
     .figures()

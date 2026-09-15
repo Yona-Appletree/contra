@@ -128,22 +128,11 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
         .map(([k, v]) => `${k} (${v})`)
         .sort(),
     ).toEqual([
-      "balance-wave (M6)",
-      "bend-the-line (M7)",
-      "cast-off (M7)",
-      "circulate (M6)",
-      "contra-corners (M7)",
-      "diamond (M7)",
-      "down-the-hall (M7)",
-      "down-the-outside (M7)",
+      "diamond (M9)",
       "interrupted-square-through (M9)",
       "jersey-twirl (M9)",
-      "lead-along (M7)",
-      "loop (M6)",
       "promenade (M8)",
       "square-through (M8)",
-      "turn-alone (M7)",
-      "turn-as-couples (M7)",
     ]);
     // Empty since M6: every relation the twelve name resolves in both contra
     // formations' tables.

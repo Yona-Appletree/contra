@@ -436,30 +436,40 @@ export function seamTiles(
 }
 
 /**
- * **Which engine a tile can actually be drawn on** (M5).
+ * **Which engine a tile can actually be drawn on** (M5, widened by M7).
  *
  * The old planner hands a figure the four dancers of a hands-four and asks it
- * where it leaves them; a figure resolution mints **per pair** refuses four
- * roles by name. Until M5 every such figure had a coded twin to answer for it,
- * and the shoulder round is the first that does not — so a tile of one is drawn
- * on the contra planner whichever engine the page asked for, and says so. The
+ * where it leaves them. Two kinds of figure cannot answer, and both are drawn on
+ * the contra planner whichever engine the page asked for:
+ *
+ * - one resolution mints **per pair** or **per dancer**, which refuses four
+ *   roles by name — M5's shoulder round was the first with no coded twin to
+ *   answer for it, and M7's cast off, leads, turn alone and the two going down
+ *   the outside are seven more;
+ * - one whose definition names a **slot on the lattice** (M7), which only
+ *   resolution can supply — a circulate crosses the set and a long wave's hands
+ *   go to the dancer one place along, and neither is a fact a hands-four group
+ *   carries.
+ *
+ * Both are the same question asked of `actors`: a figure resolution hands the
+ * whole four is `"all"` or `"ring"`, and everything else needs the set. The
  * choice goes away with the coded layer (M11).
  */
 function tileEngine(ids: readonly string[], engine: EngineChoice): EngineChoice {
   if (engine === "new") return "new";
-  const perPair = ids.some((id) =>
+  const needsTheSet = ids.some((id) =>
     dataOnlyDefinitions().some(
-      (def) => def.id === id && def.anchor !== "hands-four" && def.anchor !== "centroid",
+      (def) => def.id === id && def.actors !== "all" && def.actors !== "ring",
     ),
   );
-  return perPair ? "new" : "old";
+  return needsTheSet ? "new" : "old";
 }
 
 /** The note a tile forced on to the other engine carries, so the page says so. */
 const FORCED_ENGINE_NOTE =
   "Drawn on the new engine whichever the page asked for: this figure is minted " +
-  "one instance per pair, and the old planner asks a figure where it leaves the " +
-  "four dancers of a hands-four.";
+  "one instance per pair or per dancer, and the old planner asks a figure where " +
+  "it leaves the four dancers of a hands-four.";
 
 /** One figure, run three times over so its take and its release both have a seam. */
 function figureTile(

@@ -12,7 +12,9 @@ import { danceFromFile } from "./loadDances.js";
 import aRareBirdFile from "../../../../data/dances/a-rare-bird.json" with { type: "json" };
 import afterTheSolsticeFile from "../../../../data/dances/after-the-solstice.json" with { type: "json" };
 import airpantsFile from "../../../../data/dances/airpants.json" with { type: "json" };
+import annasReelFile from "../../../../data/dances/annas-reel.json" with { type: "json" };
 import butterFile from "../../../../data/dances/butter.json" with { type: "json" };
+import chorusJigFile from "../../../../data/dances/chorus-jig.json" with { type: "json" };
 import contraCockaigneFile from "../../../../data/dances/contra-cockaigne.json" with { type: "json" };
 import contrablendFile from "../../../../data/dances/contrablend.json" with { type: "json" };
 import jubilationFile from "../../../../data/dances/jubilation.json" with { type: "json" };
@@ -23,6 +25,7 @@ import programmeFile from "../../../../data/dances/programme.json" with { type: 
 import thanksToTheGeneFile from "../../../../data/dances/thanks-to-the-gene.json" with { type: "json" };
 import theBabyRoseFile from "../../../../data/dances/the-baby-rose.json" with { type: "json" };
 import theCarouselFile from "../../../../data/dances/the-carousel.json" with { type: "json" };
+import theNiceCombinationFile from "../../../../data/dances/the-nice-combination.json" with { type: "json" };
 import whooshFile from "../../../../data/dances/whoosh.json" with { type: "json" };
 
 /** Every dance file this package bundles, by its own slug. */
@@ -32,7 +35,9 @@ const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
       aRareBirdFile,
       afterTheSolsticeFile,
       airpantsFile,
+      annasReelFile,
       butterFile,
+      chorusJigFile,
       contraCockaigneFile,
       contrablendFile,
       jubilationFile,
@@ -42,6 +47,7 @@ const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
       thanksToTheGeneFile,
       theBabyRoseFile,
       theCarouselFile,
+      theNiceCombinationFile,
       whooshFile,
     ] as DanceFile[]
   ).map((file) => [file.slug, file]),

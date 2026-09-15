@@ -1,6 +1,9 @@
 import type { Angle, Vec2 } from "@caller/core";
 import { dirOf, dist } from "@caller/core";
+import type { Spots } from "../../figures/ContraFigure.js";
+import { solveShape } from "../../set/shape.js";
 import type { FigureRole } from "../FigureDefinition.js";
+import type { ShapeInput } from "../interpret.js";
 
 /**
  * **The formation's own places**, and how a gatherer finds the ones it wants.
@@ -143,6 +146,62 @@ function choices(n: number, k: number): number[][] {
       out.push([...rest, i]);
     }
   }
+  return out;
+}
+
+/**
+ * **Where a figure really leaves people**: its own natural ends, put into the
+ * shape it says it forms, and then settled on to the formation's places.
+ *
+ * The one function every shape kind ends with, so that Q6's target and M2's
+ * honest ends are applied in the same order everywhere and exactly once. The
+ * order matters and is the honest one: the **arrangement** first (four dancers
+ * in a ring rather than in a row), the **places** second (that ring on the
+ * formation's own four places rather than a pixel off them). Doing it the other
+ * way round would settle people on to places and then move them off again.
+ *
+ * `order` is the order the *shape* stands in, which is not the cast order: a
+ * line of four's is the call's own `M1-W2-M2-W1`. Left out, the cast order.
+ */
+export function settleEnds(
+  input: ShapeInput,
+  natural: Spots,
+  order: readonly FigureRole[] = input.roles,
+): Spots {
+  const shaped = input.target === undefined ? natural : formed(input, natural, order);
+  if (!input.gathers || !input.places) return shaped;
+  const points: Record<FigureRole, Vec2> = {};
+  for (const role of input.roles) {
+    const spot = shaped[role];
+    if (spot) points[role] = spot.p;
+  }
+  const settled = settleOnPlaces(input.roles, points, input.places);
+  const out: Spots = { ...shaped };
+  for (const role of input.roles) {
+    const spot = shaped[role];
+    const place = settled[role];
+    // The **facings are the shape's own**, kept exactly: a ring ends facing its
+    // middle, which is not the facing any home slot carries.
+    if (spot && place) out[role] = { p: place, facing: spot.facing };
+  }
+  return out;
+}
+
+/** The natural ends, rearranged into the shape the figure says it forms. */
+function formed(input: ShapeInput, natural: Spots, order: readonly FigureRole[]): Spots {
+  const target = input.target!;
+  const here = order.filter((role) => natural[role] !== undefined);
+  if (here.length === 0) return natural;
+  const solved = solveShape(
+    target,
+    here.map((role) => natural[role]!),
+    input.ctx.spacing,
+  );
+  const out: Spots = { ...natural };
+  here.forEach((role, i) => {
+    const spot = solved.spots[i];
+    if (spot) out[role] = { p: spot.p, facing: spot.facing };
+  });
   return out;
 }
 

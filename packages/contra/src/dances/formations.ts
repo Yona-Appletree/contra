@@ -1,6 +1,7 @@
 import type { Formation } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { PROPER } from "../formation/proper.js";
 
 /**
  * Every contra formation a dance file may name, by id.
@@ -13,6 +14,7 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 export const CONTRA_FORMATIONS: Record<string, Formation> = {
   [DUPLE_IMPROPER.id]: DUPLE_IMPROPER,
   [BECKET.id]: BECKET,
+  [PROPER.id]: PROPER,
 };
 
 /** The formation a dance's `formation` id names. */

@@ -33,6 +33,20 @@ import starText from "../../../../data/figures/star.json" with { type: "json" };
 import swingText from "../../../../data/figures/swing.json" with { type: "json" };
 import waitOutText from "../../../../data/figures/wait-out.json" with { type: "json" };
 import walkToStationText from "../../../../data/figures/walk-to-station.json" with { type: "json" };
+import balanceWaveText from "../../../../data/figures/balance-wave.json" with { type: "json" };
+import bendTheLineText from "../../../../data/figures/bend-the-line.json" with { type: "json" };
+import castOffText from "../../../../data/figures/cast-off.json" with { type: "json" };
+import circulateText from "../../../../data/figures/circulate.json" with { type: "json" };
+import downTheHallText from "../../../../data/figures/down-the-hall.json" with { type: "json" };
+import goDownOutsideText from "../../../../data/figures/go-down-outside.json" with { type: "json" };
+import goUpOutsideText from "../../../../data/figures/go-up-outside.json" with { type: "json" };
+import leadDownText from "../../../../data/figures/lead-down.json" with { type: "json" };
+import leadUpText from "../../../../data/figures/lead-up.json" with { type: "json" };
+import loopText from "../../../../data/figures/loop.json" with { type: "json" };
+import turnAloneText from "../../../../data/figures/turn-alone.json" with { type: "json" };
+import turnAsCouplesText from "../../../../data/figures/turn-as-couples.json" with { type: "json" };
+import turnContraCornersText from "../../../../data/figures/turn-contra-corners.json" with { type: "json" };
+import upTheHallText from "../../../../data/figures/up-the-hall.json" with { type: "json" };
 
 /**
  * The four texts a move is written in, as data: what a caller says and what a
@@ -140,6 +154,20 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       swingText,
       waitOutText,
       walkToStationText,
+      balanceWaveText,
+      bendTheLineText,
+      castOffText,
+      circulateText,
+      downTheHallText,
+      goDownOutsideText,
+      goUpOutsideText,
+      leadDownText,
+      leadUpText,
+      loopText,
+      turnAloneText,
+      turnAsCouplesText,
+      turnContraCornersText,
+      upTheHallText,
     ] as FigureTextFile[]
   ).map((file) => [file.id, file]),
 );

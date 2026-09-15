@@ -84,6 +84,30 @@ failure**: a dance that reaches to N3 or N4 has busier ends in a short line by
 construction, and this is how the lab says how long a line the dance is asking
 for.
 
+### 3b. Shapes
+
+**Which calls say they form a shape, and whether they formed one** (M7, Q6). A
+figure's `ends` may name a **target shape** — a line of four, a ring, a wave, a
+diamond — and a call may name one too, in its own `form` parameter, which is how
+a transcript's exit clause is written down (`; form wave of four (men in
+center)`). Either way the claim is checkable: the shape is solved from where the
+figure _really_ left its dancers, and the row says how far the worst of them is
+from the place it gives them.
+
+A call that states **both** a turn and a shape is stating one thing twice, and
+the row prints the turn the shape asks for beside the turn the call gave.
+
+It is a **warning, never a failure**, and deliberately: a shape clause describes
+where a figure leaves you, and a caller wants to be told when the description
+and the dancing part company rather than have the dance refuse to load. The
+caller's word wins on the amount, for the same reason.
+
+One standing warning is worth knowing about: **a bent line is not a _regular_
+ring**. `bend-the-line` settles its four dancers on the formation's own places,
+which are 32 px across the set and 20 along it — four dancers who can all take
+hands, and not a circle — so The Nice Combination's row reads 8.742 px off one.
+The row says so in as many words.
+
 ### 4. Motion
 
 The motion oracle's rows for the dance's own figures and its own seams, against

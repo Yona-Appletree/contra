@@ -1,3 +1,4 @@
+import { DEMO_DANCES } from "@caller/contra";
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -68,9 +69,10 @@ test.describe("the move gallery", () => {
 
     await page.getByTestId("tab-dances").click();
     await expect(page.getByTestId("tab-dances")).toHaveAttribute("aria-current", "page");
-    // Eleven encoded dances since M5 put On the Prowl in the programme, each
-    // card a link on to the stage.
-    await expect(page.getByTestId("dance-card")).toHaveCount(11);
+    // One card per programme dance, each a link on to the stage: read off
+    // the programme rather than written down, so the next dance to land is
+    // not a test edit.
+    await expect(page.getByTestId("dance-card")).toHaveCount(DEMO_DANCES.length);
     await expect(page.getByTestId("dance-card").first()).toHaveAttribute("href", /^#\/dance\//);
   });
 

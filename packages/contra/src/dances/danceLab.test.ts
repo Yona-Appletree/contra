@@ -1,7 +1,14 @@
 import { danceSchedule, validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import type { DanceLabReport } from "./danceLab.js";
-import { danceLabReport, danceResolution, endEffects, labCouples } from "./danceLab.js";
+import {
+  SHAPE_SLOP_PX,
+  danceLabReport,
+  danceResolution,
+  danceShapes,
+  endEffects,
+  labCouples,
+} from "./danceLab.js";
 import { ALL_DANCES, DEMO_DANCES, danceBySlug } from "./index.js";
 import { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
@@ -123,12 +130,16 @@ describe("the dance lab", () => {
         }
       }
     }
-    // **No demo dance carries a hand across a call boundary today** — the only
-    // carrying the programme does is *inside* `balance-and-swing`, which is one
-    // call. `chainCalls`' `carryHolds` produces the same empty answer for all
-    // ten (checked against the loaded dances), so the equality above is real
-    // but weak, and the synthetic pair below is what exercises the machinery.
-    expect(carried).toBe(0);
+    // **The programme carries hands across a call boundary since M7.** Until
+    // then the only carrying it did was *inside* `balance-and-swing`, which is
+    // one call, and this read `toBe(0)` — a real equality but a weak one. The
+    // Nice Combination's line of four is the first figure in the programme that
+    // hands a hold on: the line goes down the hall, turns as couples and comes
+    // back up without letting go, so the hands `up-the-hall` takes over are the
+    // ones `turn-as-couples` was still holding, and `bend-the-line` takes those
+    // over in turn. The loop above is what checks the two sides agree; this is
+    // what checks there is something to agree about.
+    expect(carried).toBeGreaterThan(0);
 
     // `balance` into `swing` with the same pairs is the case `carryHolds` was
     // written for: the balance ends holding both hands and the swing still has
@@ -182,6 +193,71 @@ describe("the dance lab", () => {
       expect(report.ok, report.text).toBe(true);
     });
   }
+});
+
+describe("the shapes a dance says it forms (Q6)", () => {
+  const NICE = danceBySlug("the-nice-combination")!;
+
+  it("reports one row per instance of every call that names a shape", () => {
+    const rows = danceShapes(NICE, labCouples(NICE));
+    // Three calls of A2 name one: two lines of four and the ring the bend makes.
+    expect(rows.map((r) => `${r.figure}:${r.shape}`)).toEqual([
+      "down-the-hall:line-of-four",
+      "up-the-hall:line-of-four",
+      "bend-the-line:ring",
+    ]);
+  });
+
+  it("measures a line of four as exactly the line it says it forms", () => {
+    const rows = danceShapes(NICE, labCouples(NICE));
+    for (const row of rows.filter((r) => r.shape === "line-of-four")) {
+      expect(row.missPx, row.figure).toBeLessThan(1e-9);
+      expect(row.settled).toBe(false);
+    }
+  });
+
+  it("warns that a bent line is not a *regular* ring, because the set is not square", () => {
+    // The honest reading, and the warning is doing its job rather than failing:
+    // bend the line settles its four dancers on the formation's own places,
+    // which are 32 px across the set and 20 along it. They can all take hands;
+    // it is not a circle. Nothing about this stops the dance being green.
+    const ring = danceShapes(NICE, labCouples(NICE)).find((r) => r.shape === "ring")!;
+    expect(ring.settled).toBe(true);
+    expect(ring.missPx).toBeGreaterThan(SHAPE_SLOP_PX);
+    expect(danceLabReport("the-nice-combination").ok).toBe(true);
+  });
+
+  it("solves the amount from the shape when a call states both", () => {
+    // Q6's other half, on a dance written for it: a half turn that says it
+    // forms a line of four is stating the same thing twice, and the lab says
+    // whether the two agree. Written here rather than found in the corpus,
+    // because no dance in the acceptance set states both.
+    const both = validateDance({
+      slug: "form-fixture",
+      title: "Form Fixture",
+      author: "M7",
+      formation: DUPLE_IMPROPER.id,
+      phrases: (["A1", "A2", "B1", "B2"] as const).map((name) => ({
+        name,
+        figures: [
+          {
+            figure: "allemande",
+            beats: 8,
+            params: { pairs: "neighbors", hand: "R", amount: 0.5, form: { shape: "lines" } },
+          },
+          { figure: "swing", beats: 8, params: { pairs: "neighbors" } },
+        ],
+      })),
+    });
+    const rows = danceShapes(both, 4);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.said).toBe(0.5);
+      // The solved amount is a real number of turns on the caller's own grid.
+      expect(row.solved).toBeDefined();
+      expect(Math.abs(row.solved! * 4 - Math.round(row.solved! * 4))).toBeLessThan(1e-9);
+    }
+  });
 });
 
 describe("the motion allowlist", () => {

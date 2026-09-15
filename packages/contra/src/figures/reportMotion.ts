@@ -119,7 +119,7 @@ function dancesSection(): string[] {
   const out: string[] = ["## Over the demo dances", ""];
   out.push(
     `Each dance run alone by the script decider for two times through (beats 0–${REPORT_BEATS}), ` +
-      "duple improper at 4 couples and becket at 6, sampled every 1/32 beat.",
+      "duple improper and proper at 4 couples and becket at 6, sampled every 1/32 beat.",
     "",
   );
 

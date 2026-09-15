@@ -1,0 +1,106 @@
+{
+  "slug": "the-nice-combination",
+  "title": "The Nice Combination",
+  "author": "Gene Hubert",
+  "formation": "duple-improper",
+  "notes": "The Caller's Box 1, permission: full. M7's own dance: a line of four with an order that the caller reads out twice, because turning as couples changes it, and a bend the line into a ring that the circle and the swing after it both start from.",
+  "source": {
+    "callersBoxId": 1,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1",
+    "permission": "full",
+    "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (6) In a line of four, go down the hall (M1-W2-M2-W1)  (2) Neighbor turn as couples  (6) In a line of four, go up the hall (W2-M1-W1-M2)  (2) Bend the line\nB1  (6) Circle left 3/4  (10) Partner swing\nB2  (8) Ladies chain to neighbor  (8) Star left 1"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": {
+            "pairs": "neighbors",
+            "balanceBeats": 4,
+            "endFacing": "across"
+          },
+          "call": "NEIGHBOUR BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "down-the-hall",
+          "beats": 6,
+          "params": {
+            "order": ["1L", "2R", "2L", "1R"]
+          },
+          "call": "DOWN THE HALL FOUR IN LINE"
+        },
+        {
+          "figure": "turn-as-couples",
+          "beats": 2,
+          "params": {
+            "pairs": "neighbors"
+          },
+          "call": "TURN AS COUPLES WITH YOUR NEIGHBOUR"
+        },
+        {
+          "figure": "up-the-hall",
+          "beats": 6,
+          "params": {
+            "order": ["2R", "1L", "1R", "2L"]
+          },
+          "call": "UP THE HALL FOUR IN LINE"
+        },
+        {
+          "figure": "bend-the-line",
+          "beats": 2,
+          "call": "BEND THE LINE"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "circle",
+          "beats": 6,
+          "params": {
+            "direction": "left",
+            "places": 3
+          },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "swing",
+          "beats": 10,
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "robins-chain",
+          "beats": 8,
+          "call": "ROBINS CHAIN TO YOUR NEIGHBOUR"
+        },
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": {
+            "hand": "L",
+            "places": 4
+          },
+          "call": "STAR LEFT ALL THE WAY"
+        }
+      ]
+    }
+  ]
+}

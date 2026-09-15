@@ -1,6 +1,8 @@
 import { createHall } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
+import { planContext } from "../figures/ContraFigure.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
+import { CONTRA_ROLES } from "../roles.js";
 import { createContraRegistry } from "../figures/registry.js";
 import { modelFromSet } from "../set/SetModel.js";
 import { resolveCall } from "../set/resolve.js";
@@ -8,7 +10,7 @@ import type { FigureDefinition } from "./FigureDefinition.js";
 import { createLibrary } from "./Library.js";
 import { contraDataEngine } from "./engine.js";
 import { DATA_DEFINITIONS, DATA_IDS, contraLibrary } from "./figures/index.js";
-import { figureFor, interpretDefinition } from "./interpret.js";
+import { anchorOf, figureFor, interpretDefinition } from "./interpret.js";
 import { balanceRingDefinition } from "./figures/balance-ring.js";
 import { swingDefinition } from "./figures/swing.js";
 
@@ -88,28 +90,61 @@ describe("the interpreter refuses what it cannot draw", () => {
     expect(() => interpretDefinition(bridged)).toThrow(/use `figureFor` with a registry/);
   });
 
-  it("names the milestone that owns an actor rule or an anchor it has not got", () => {
-    // `"line"` and `"lane"` are M6's and resolve now — a long wave is the whole
-    // set — so what is still owed here is `"each"` and the two parameterised
-    // anchors.
-    const later: FigureDefinition = { ...swingDefinition, id: "later-actors", actors: "each" };
-    expect(() => resolve("later-actors", {}, createLibrary([later]))).toThrow(
-      /unsupported: actors "each" on "later-actors" \(M7\)/,
-    );
-    const anchored: FigureDefinition = {
-      ...swingDefinition,
-      id: "later-anchor",
-      anchor: { pivot: "lark" },
-    };
-    expect(() => resolve("later-anchor", {}, createLibrary([anchored]))).toThrow(
-      /unsupported: anchor .*pivot.* on "later-anchor" \(M7\)/,
-    );
+  // **Nothing is owed here any more.** M2 refused `"each"` and the two
+  // parameterised anchors by name with `(M7)` in the message; M7 built all
+  // three, so what were refusals are claims. The contract that an unbuilt kind
+  // is a named error rather than a silent gap is held by `kinds/index.ts`'s
+  // exhaustive `switch`, which fails the build rather than a test.
+
+  it('makes one instance per dancer for `actors: "each"` (M7)', () => {
+    const alone: FigureDefinition = { ...swingDefinition, id: "alone", actors: "each" };
+    const instances = resolve("alone", {}, createLibrary([alone])).filter((i) => !i.holdPlace);
+    // Four dancers of a minor set, four instances, one part each, nobody twice.
+    expect(instances).toHaveLength(4);
+    expect(new Set(instances.flatMap((i) => Object.values(i.cast))).size).toBe(4);
+    for (const instance of instances) expect(Object.keys(instance.cast)).toHaveLength(1);
   });
 
-  it("says so when a swing is asked of two dancers of the same role (M7)", () => {
-    expect(() => resolve("swing", { pairs: [["1L", "2L"]] })).toThrow(
-      /wants a lark and a robin, and the call paired two larks \(M7\)/,
+  it("anchors on a named pivot dancer, who is standing still (M7)", () => {
+    const anchored: FigureDefinition = {
+      ...swingDefinition,
+      id: "pivoted",
+      anchor: { pivot: "lark" },
+    };
+    const instances = resolve("pivoted", { pairs: "neighbors" }, createLibrary([anchored])).filter(
+      (i) => !i.holdPlace,
     );
+    expect(instances.length).toBeGreaterThan(0);
+    const ctx = planContext(
+      [
+        { id: "lark", role: "lark", p: [-16, -10], facing: 90 },
+        { id: "robin", role: "robin", p: [16, -10], facing: 90 },
+      ],
+      CONTRA_ROLES,
+      14,
+      {},
+    );
+    // The anchor *is* the pivot: not the midpoint, not the centroid. And the
+    // axis runs from the pivot toward whoever is casting round them, which is
+    // the radius the caster rides.
+    expect(anchorOf({ pivot: "lark" }, ctx, ["lark", "robin"]).centre).toEqual([-16, -10]);
+    expect(anchorOf({ pivot: "lark" }, ctx, ["lark", "robin"]).axis).toBeCloseTo(0, 9);
+    expect(anchorOf({ pivot: "robin" }, ctx, ["lark", "robin"]).centre).toEqual([16, -10]);
+  });
+
+  it("casts a same-role pair by position, and `trade` swaps it (Q10, M7)", () => {
+    const [one] = resolve("swing", { pairs: [["1L", "2L"]] }).filter((i) => !i.holdPlace);
+    expect(one, "two larks now dance a swing rather than throwing").toBeDefined();
+    const cast = one!.cast;
+    expect(Object.keys(cast).sort()).toEqual(["lark", "robin"]);
+    // Both dancers really are larks; one of them is dancing the robin's part.
+    for (const dancer of Object.values(cast)) expect(dancer).toMatch(/lark$/);
+
+    const [traded] = resolve("swing", { pairs: [["1L", "2L"]], trade: true }).filter(
+      (i) => !i.holdPlace,
+    );
+    expect(traded!.cast["lark"]).toBe(cast["robin"]);
+    expect(traded!.cast["robin"]).toBe(cast["lark"]);
   });
 });
 

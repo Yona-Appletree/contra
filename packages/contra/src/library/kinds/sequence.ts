@@ -43,12 +43,33 @@ export type PlanPart = (
   input: ShapeInput,
 ) => FigurePlan;
 
+/** One cast of one part: the dancers, and the plan they dance. */
+interface PlannedCast {
+  roles: readonly FigureRole[];
+  plan: FigurePlan;
+}
+
 /** One part of a sequence, planned, and where it sits in the figure. */
 interface PlannedPart {
-  plan: FigurePlan;
+  /** One per cast: contra corners' corner turns are two pairs at once (M7). */
+  casts: readonly PlannedCast[];
   start: Beat;
   beats: Beat;
+  /** Where everybody no cast of this part named is standing while it runs (M7). */
+  idle: Spots;
 }
+
+/** The cast of a part this role dances in, or `undefined` when they are idle. */
+const castOf = (part: PlannedPart, role: FigureRole): PlannedCast | undefined =>
+  part.casts.find((cast) => cast.roles.includes(role));
+
+/** Every end a part's casts produced, merged. */
+const endsOfPart = (part: PlannedPart): Spots =>
+  part.casts.reduce<Spots>((all, cast) => ({ ...all, ...cast.plan.ends }), {});
+
+/** Every hand a part's casts are holding at `t`. */
+const joinsOfPart = (part: PlannedPart, t: Beat): HandJoin[] =>
+  part.casts.flatMap((cast) => cast.plan.joinsAt(t));
 
 /** One sequence, planned. */
 export function planSequence(
@@ -70,8 +91,8 @@ export function planSequence(
   );
   const across: Array<Set<string>> = shape.parts.map(() => new Set<string>());
   for (let i = 1; i < shape.parts.length; i++) {
-    const held = keysOf(dry[i - 1]!.plan.joinsAt(dry[i - 1]!.beats));
-    const wanted = keysOf(dry[i]!.plan.joinsAt(dry[i]!.beats / 2));
+    const held = keysOf(joinsOfPart(dry[i - 1]!, dry[i - 1]!.beats));
+    const wanted = keysOf(joinsOfPart(dry[i]!, dry[i]!.beats / 2));
     across[i] = new Set([...held].filter((key) => wanted.has(key)));
   }
 
@@ -96,14 +117,30 @@ export function planSequence(
   };
 
   return {
-    ends: last.plan.ends,
+    // A part that leaves somebody out still has to say where they are: the
+    // figure's ends are the last part's, over everybody it danced, and the
+    // standing pose for everybody it did not.
+    ends: { ...last.idle, ...endsOfPart(last) },
     joinsAt: (t) => {
       const part = partAt(t);
-      return part.plan.joinsAt(t - part.start);
+      return joinsOfPart(part, t - part.start);
     },
     at: (role, t) => {
       const part = partAt(t);
-      return part.plan.at(role, t - part.start);
+      const cast = castOf(part, role);
+      if (cast) return cast.plan.at(role, t - part.start);
+      const here = part.idle[role] ?? input.ctx.spot(role);
+      // **Idle inside the figure** (M7): standing where the part before left
+      // you, hands down, nothing moving. Not a hold-place instance — you are in
+      // this figure and about to be turned by it — and not an event of your own,
+      // so the timeline's shape is unchanged.
+      return {
+        p: here.p,
+        facing: here.facing,
+        hands: { L: "down", R: "down" },
+        stepRate: 0,
+        amp: 0,
+      };
     },
   };
 }
@@ -118,37 +155,65 @@ function run(
   joinedOut: (index: number) => Set<string>,
 ): PlannedPart[] {
   const parts: PlannedPart[] = [];
-  let from: Spots | undefined;
+  /** Where **everybody** is standing as this part begins, danced or not. */
+  let standing: Spots = { ...input.ctx.start };
   let start: Beat = 0;
   for (let i = 0; i < shape.parts.length; i++) {
     const part = shape.parts[i]!;
     const beats = shares[i]!;
     const before = parts[i - 1];
-    const ctx: PlanContext =
-      from === undefined
-        ? input.ctx
-        : planContext(input.ctx.stations, input.ctx.roleSet, input.ctx.spacing, from);
-    const handsIn =
-      before === undefined
-        ? input.handsIn
-        : (role: FigureRole, side: Side): Hand | undefined => {
-            const hand = before.plan.at(role, before.beats).hands[side];
-            return hand === "down" ? undefined : hand;
-          };
-    const partInput: ShapeInput = {
-      ...input,
-      ctx,
-      beats,
-      anchor: input.anchorOf(ctx),
-      // Only the last part settles the figure: the rock in the middle of a
-      // balance and swing ends where it rocked, and the turn is what gathers.
-      gathers: i === shape.parts.length - 1 && input.gathers,
-      joinedIn: joinedIn(i),
-      joinedOut: joinedOut(i),
-      ...(handsIn === undefined ? {} : { handsIn }),
-    };
-    parts.push({ plan: planPart(part.shape, part.holds, partInput), start, beats });
-    from = parts[i]!.plan.ends;
+    const casts = part.casts ?? [input.roles];
+    const named = new Set(casts.flat());
+    for (const role of named) {
+      if (!input.roles.includes(role)) {
+        throw new Error(
+          `a sequence part names "${role}", who is not in this figure ` +
+            `(cast: ${input.roles.join(", ")})`,
+        );
+      }
+    }
+    const planned: PlannedCast[] = [];
+    for (const roles of casts) {
+      // A part that names its own casts is planned over **only** those
+      // stations, so its shape casts the right number of dancers — an orbit for
+      // two really is an orbit for two, even when the figure round it has four.
+      const stations = input.ctx.stations.filter((s) => roles.includes(s.id));
+      const whole = stations.length === input.ctx.stations.length;
+      const ctx: PlanContext =
+        before === undefined && whole
+          ? input.ctx
+          : planContext(stations, input.ctx.roleSet, input.ctx.spacing, standing);
+      const handsIn =
+        before === undefined
+          ? input.handsIn
+          : (role: FigureRole, side: Side): Hand | undefined => {
+              const was = castOf(before, role);
+              if (!was) return undefined;
+              const hand = was.plan.at(role, before.beats).hands[side];
+              return hand === "down" ? undefined : hand;
+            };
+      const partInput: ShapeInput = {
+        ...input,
+        ctx,
+        beats,
+        roles,
+        anchor: input.anchorOf(ctx),
+        // Only the last part settles the figure: the rock in the middle of a
+        // balance and swing ends where it rocked, and the turn is what gathers.
+        gathers: i === shape.parts.length - 1 && input.gathers,
+        joinedIn: joinedIn(i),
+        joinedOut: joinedOut(i),
+        ...(handsIn === undefined ? {} : { handsIn }),
+      };
+      planned.push({ roles, plan: planPart(part.shape, part.holds, partInput) });
+    }
+    const idle: Spots = {};
+    for (const role of input.roles) {
+      if (!named.has(role)) idle[role] = standing[role] ?? input.ctx.spot(role);
+    }
+    const here: PlannedPart = { casts: planned, start, beats, idle };
+    parts.push(here);
+    standing = { ...standing, ...endsOfPart(here) };
     start += beats;
   }
   return parts;

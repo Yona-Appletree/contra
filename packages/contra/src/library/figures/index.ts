@@ -8,13 +8,21 @@ import { allemandeDefinition } from "./allemande.js";
 import { balanceDefinition } from "./balance.js";
 import { balanceRingDefinition } from "./balance-ring.js";
 import { balanceAndSwingDefinition } from "./balance-and-swing.js";
+import { balanceWaveDefinition } from "./balance-wave.js";
+import { bendTheLineDefinition } from "./bend-the-line.js";
 import { californiaTwirlDefinition } from "./california-twirl.js";
 import { circleDefinition } from "./circle.js";
+import { circulateDefinition } from "./circulate.js";
 import { doSiDoDefinition } from "./do-si-do.js";
+import { downTheHallDefinition, upTheHallDefinition } from "./down-the-hall.js";
+import { castOffDefinition } from "./cast-off.js";
+import { goDownOutsideDefinition, goUpOutsideDefinition } from "./go-down-outside.js";
 import { grandRightAndLeftDefinition } from "./grand-right-and-left.js";
 import { heyDefinition } from "./hey.js";
 import { madRobinDefinition } from "./mad-robin.js";
+import { leadDownDefinition, leadUpDefinition } from "./lead-down.js";
 import { longLinesDefinition } from "./long-lines.js";
+import { loopDefinition } from "./loop.js";
 import { passThroughDefinition } from "./pass-through.js";
 import { petronellaDefinition } from "./petronella.js";
 import { pullByDefinition } from "./pull-by.js";
@@ -26,6 +34,9 @@ import { singleFilePromenadeDefinition } from "./single-file-promenade.js";
 import { slideLeftDefinition } from "./slide-left.js";
 import { starDefinition } from "./star.js";
 import { swingDefinition } from "./swing.js";
+import { turnAloneDefinition } from "./turn-alone.js";
+import { turnAsCouplesDefinition } from "./turn-as-couples.js";
+import { turnContraCornersDefinition } from "./turn-contra-corners.js";
 
 /**
  * **The library's figures**, as data.
@@ -65,6 +76,34 @@ export const GATHERER_DEFINITIONS: readonly FigureDefinition[] = [
   grandRightAndLeftDefinition,
 ];
 
+/**
+ * **M7's shapes**: the figures that need the set to be in a shape, or to know
+ * where a place on the lattice is.
+ *
+ * A third list beside the gatherers and the carriers, and the split is the same
+ * real distinction: none of these replaced a coded figure, so every one of them
+ * is data with no twin (`DATA_ONLY_FIGURE_IDS`), and what they share is that a
+ * definition of one cannot be written without either a shape with named places
+ * or a slot on the lattice. `balance-wave`, `circulate` and `loop` are M6's
+ * three, handed over in M6's own report for exactly that reason.
+ */
+export const SHAPE_DEFINITIONS: readonly FigureDefinition[] = [
+  downTheHallDefinition,
+  upTheHallDefinition,
+  turnAsCouplesDefinition,
+  bendTheLineDefinition,
+  leadDownDefinition,
+  leadUpDefinition,
+  turnAloneDefinition,
+  goDownOutsideDefinition,
+  goUpOutsideDefinition,
+  castOffDefinition,
+  turnContraCornersDefinition,
+  balanceWaveDefinition,
+  circulateDefinition,
+  loopDefinition,
+];
+
 /** The carriers M4 migrated, in the README's own order. */
 export const CARRIER_DEFINITIONS: readonly FigureDefinition[] = [
   circleDefinition,
@@ -100,6 +139,7 @@ export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...GATHERER_DEFINITIONS,
   ...CARRIER_DEFINITIONS,
   ...SCHEDULE_DEFINITIONS,
+  ...SHAPE_DEFINITIONS,
 ];
 
 /** Their ids, for the bridge to skip and for a test to check the two lists agree. */
@@ -217,3 +257,14 @@ export { heyDefinition } from "./hey.js";
 export { madRobinDefinition } from "./mad-robin.js";
 export { shoulderRoundDefinition } from "./shoulder-round.js";
 export { singleFilePromenadeDefinition } from "./single-file-promenade.js";
+export { DOWN_THE_HALL_PX, downTheHallDefinition, upTheHallDefinition } from "./down-the-hall.js";
+export { turnAsCouplesDefinition } from "./turn-as-couples.js";
+export { bendTheLineDefinition } from "./bend-the-line.js";
+export { LEAD_PX, leadDownDefinition, leadUpDefinition } from "./lead-down.js";
+export { turnAloneDefinition } from "./turn-alone.js";
+export { goDownOutsideDefinition, goUpOutsideDefinition } from "./go-down-outside.js";
+export { castOffDefinition } from "./cast-off.js";
+export { turnContraCornersDefinition } from "./turn-contra-corners.js";
+export { balanceWaveDefinition } from "./balance-wave.js";
+export { circulateDefinition } from "./circulate.js";
+export { loopDefinition } from "./loop.js";

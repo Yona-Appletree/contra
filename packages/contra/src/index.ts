@@ -29,10 +29,44 @@ export {
   partitionBecket,
 } from "./formation/becket.js";
 
+export {
+  PROPER,
+  PROPER_LATTICE,
+  PROPER_LINE_UP_CALLS,
+  PROPER_RELATIONS,
+  PROPER_STATIONS,
+  PROPER_WAIT_STATIONS,
+} from "./formation/proper.js";
+
 // The hub: set state and resolution (`src/set/`), and the figure library
 // (`src/library/`). See the package README.
 export type { DancerState, Hold, SetLattice, SetModel, SetShape, Slot } from "./set/SetModel.js";
 export { dancerOnSlot, homeOf, modelFromSet, mustDancer, sameSlot } from "./set/SetModel.js";
+export type {
+  SetShapeKind,
+  ShapeGroup,
+  ShapeSolution,
+  ShapeSpot,
+  SlotView,
+  TargetShape,
+} from "./set/shape.js";
+export {
+  LINES_SHAPE,
+  alongSet,
+  centroid,
+  otherLine,
+  placesOf,
+  ringRadius,
+  sameShape,
+  shapeGroupOf,
+  shapeMiss,
+  shapePlaces,
+  slotFacing,
+  slotOfRole,
+  slotPoint,
+  solveShape,
+  turnsToTarget,
+} from "./set/shape.js";
 export type { Relation, RelationTable } from "./set/relations.js";
 export {
   isRelationWord,

@@ -45,7 +45,9 @@ import { legacyLibrary } from "../library/legacy.js";
 import { progressionOf, progressSet } from "./lattice.js";
 import { parseRelation, relate } from "./relations.js";
 import type { FigureInstance } from "./resolve.js";
-import { resolveCall } from "./resolve.js";
+import { gathersOnPlaces, resolveCall, TRADE_PARAM } from "./resolve.js";
+import type { SetShapeKind, ShapeGroup, TargetShape } from "./shape.js";
+import { LINES_SHAPE, shapeFromEnds } from "./shape.js";
 import { setRulesOf } from "./SetRules.js";
 import type { SetModel } from "./SetModel.js";
 import { modelFromSet } from "./SetModel.js";
@@ -269,6 +271,9 @@ function planContraCycle(
         start + offset,
       );
       const minted = new Map<GroupId, Group>();
+      /** The shape this call formed, one group per instance that formed one (M7). */
+      const formed: ShapeGroup[] = [];
+      let formedKind: SetShapeKind | undefined;
       for (const instance of instances) {
         let group = minted.get(instance.group.id);
         if (group === undefined) {
@@ -358,7 +363,35 @@ function planContraCycle(
 
         advance(fig, chainParams, group, model, local, instance, planned, lastInstance);
         rebind(instance, model);
+        // **The set's shape, recorded** (M7). A figure whose `ends` name a
+        // target shape has just put its dancers into one, and the next call —
+        // and `pnpm dance`'s own table — may ask what shape the set is in. It is
+        // read off where the figure really left them rather than off its claim,
+        // so the model's shape is a measurement like everything else in the hub.
+        const target = targetOf(definition);
+        if (target !== undefined) {
+          formedKind = target.shape;
+          formed.push(
+            shapeFromEnds(
+              target.shape,
+              Object.values(instance.cast).map((dancer) => ({
+                dancer,
+                p: model.dancers[dancer]!.spot.p,
+                facing: model.dancers[dancer]!.spot.facing,
+              })),
+            ),
+          );
+        }
         claim(Object.values(instance.cast), offset, offset + instance.beats);
+      }
+      if (formedKind !== undefined) {
+        model.shape = { kind: formedKind, groups: formed };
+      } else if (instances.some((i) => !i.holdPlace && gathersOnPlaces(library.get(i.figure)))) {
+        // A **gatherer** puts the set back into its own two lines: settling
+        // everybody on the formation's places is what un-forms a ring or a line
+        // of four, and is why "bend the line, circle, swing" leaves a set in
+        // lines again without anything having to say so.
+        model.shape = LINES_SHAPE;
       }
       // A call `ends` kept away from a widened group's true end claims those
       // beats for nobody, exactly as `defaultCyclePlanner` leaves them: the fill
@@ -437,9 +470,19 @@ function callParams(instance: FigureInstance): Record<string, unknown> {
   delete rest["carried"];
   // `rebind` is a fact about the *set*, not about the figure: it says who you
   // are bound to when the figure lets go. No figure reads it and none should.
+  // `trade` is the same kind of thing (Q10): which of a same-role pair takes
+  // which figure-role is a fact about the **casting**, and resolution has
+  // already applied it by the time a figure is planned.
   delete rest[REBIND_PARAM];
+  delete rest[TRADE_PARAM];
   return rest;
 }
+
+/** The shape a definition says it forms, or `undefined` (M7). */
+const targetOf = (def: { ends: unknown }): TargetShape | undefined =>
+  typeof def.ends === "object" && def.ends !== null && "target" in def.ends
+    ? (def.ends as { target: TargetShape }).target
+    : undefined;
 
 /**
  * The call-level parameter that says a figure's ends **rebind** somebody (Q14).

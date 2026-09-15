@@ -4,7 +4,7 @@
   "author": "Becky Hill",
   "formation": "duple-improper",
   "status": "lab",
-  "notes": "The Caller's Box 10875, permission: full. M6's own dance: the grand right and left runs three neighbours out along the line and the allemandes bring you back, so every call names the dancer it wants by a relation rather than by a place in a minor set.",
+  "notes": "The Caller's Box 10875, permission: full. M6's own dance: the grand right and left runs three neighbours out along the line and the allemandes bring you back, so every call names the dancer it wants by a relation rather than by a place in a minor set. M7's `balance-wave` and `circulate` landed and the dance resolves at every line length and closes at 0.0000 px; what still stops it is `grand-right-and-left`, which reaches N3 along a line that has nobody that far out and moves a hand 381.9 px a beat doing it. That is M6's figure and M6's dance.",
   "source": {
     "callersBoxId": 10875,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10875",
@@ -15,23 +15,38 @@
     {
       "name": "A1",
       "figures": [
-        { "figure": "grand-right-and-left", "beats": 6, "call": "GRAND RIGHT AND LEFT" },
+        {
+          "figure": "grand-right-and-left",
+          "beats": 6,
+          "call": "GRAND RIGHT AND LEFT"
+        },
         {
           "figure": "allemande",
           "beats": 6,
-          "params": { "pairs": "N4", "hand": "L", "amount": 1 },
+          "params": {
+            "pairs": "N4",
+            "hand": "L",
+            "amount": 1
+          },
           "call": "ALLEMANDE LEFT ONCE WITH NUMBER FOUR"
         },
         {
           "figure": "pull-by",
           "beats": 2,
-          "params": { "pairs": "N3", "hand": "R" },
+          "params": {
+            "pairs": "N3",
+            "hand": "R"
+          },
           "call": "PULL BY THE RIGHT"
         },
         {
           "figure": "allemande",
           "beats": 2,
-          "params": { "pairs": "N2", "hand": "L", "amount": 0.5 },
+          "params": {
+            "pairs": "N2",
+            "hand": "L",
+            "amount": 0.5
+          },
           "call": "ALLEMANDE LEFT A HALF"
         }
       ]
@@ -42,19 +57,27 @@
         {
           "figure": "balance-wave",
           "beats": 4,
-          "params": { "pairs": "neighbors", "hand": "R" },
-          "call": "BALANCE THE LONG WAVE"
+          "params": {
+            "hand": "R",
+            "facesIn": "lark"
+          },
+          "call": "BALANCE THE LONG WAVE, RIGHT HAND TO YOUR NEIGHBOUR"
         },
         {
           "figure": "circulate",
           "beats": 4,
-          "params": { "pairs": "N2" },
+          "params": {
+            "hand": "R"
+          },
           "call": "CIRCULATE: LARKS CROSS, ROBINS LOOP RIGHT"
         },
         {
           "figure": "swing",
           "beats": 8,
-          "params": { "pairs": "partners", "endFacing": "across" },
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
           "call": "PARTNER SWING"
         }
       ]
@@ -65,10 +88,16 @@
         {
           "figure": "right-and-left-through",
           "beats": 8,
-          "params": { "couples": "partners" },
+          "params": {
+            "couples": "partners"
+          },
           "call": "RIGHT AND LEFT THROUGH WITH YOUR PARTNER"
         },
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR NEIGHBOUR" }
+        {
+          "figure": "robins-chain",
+          "beats": 8,
+          "call": "ROBINS CHAIN TO YOUR NEIGHBOUR"
+        }
       ]
     },
     {
@@ -77,13 +106,18 @@
         {
           "figure": "star",
           "beats": 8,
-          "params": { "hand": "L", "places": 4 },
+          "params": {
+            "hand": "L",
+            "places": 4
+          },
           "call": "STAR LEFT ALL THE WAY"
         },
         {
           "figure": "do-si-do",
           "beats": 8,
-          "params": { "pairs": "N2" },
+          "params": {
+            "pairs": "N2"
+          },
           "call": "DO-SI-DO NUMBER TWO"
         }
       ]

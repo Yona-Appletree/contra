@@ -52,6 +52,24 @@ one place down the line and the twos one place up. A waiting couple stays
 where it is and changes direction; `wait-out` swaps its two stations, which
 puts its lark back on the line the next time through expects.
 
+### `proper` (M7)
+
+Larks in one line and robins in the other, all the way down the hall and all
+the way through the dance. Chorus Jig is the one encoded in it. The seating and
+the progression are duple improper's — hands four from the top, a minor set's
+two couples trading places every time through — and three things are not:
+
+- **Which line you are on is your role**, not your role and your direction of
+  travel together, so `SetLattice.slotOf` is two-to-one on (slot, role) and
+  `placeOf` gained a `travel` argument to invert it.
+- **Your neighbour is diagonal.** The other-role dancer of the couple you are
+  dancing with is across the set _and_ along it, where in duple improper they
+  are along your own line. The same trap becket has, in a third formation.
+- **A waiting couple does not cross.** Improper's end effect is "turn round and
+  come back on the other line"; proper's is "turn round", because coming back on
+  the other line would put a lark in the robins'. A proper dance writes
+  `"waitOut": { "cross": false }` and the wait group's frame is never reversed.
+
 ### `becket`
 
 Partners side by side facing the couple across the set, progressing by
@@ -192,14 +210,14 @@ which is exactly why relations cannot be `@caller/choreo` meanings.
 transcripts name resolves in both contra formations, and
 `dances/acceptance.test.ts`'s list of owed relations is empty.
 
-| word                    | duple improper                                                   | becket                                                    |
-| ----------------------- | ---------------------------------------------------------------- | --------------------------------------------------------- |
-| `partner`               | the **binding**, seeded from the other line at the same position | the binding, seeded from the same line one position along |
-| `opposite`              | straight across the set — which here is your partner             | straight across — which here is your neighbour            |
-| `N0` … `Nk`             | same line, `(2k − 1) × travel` positions along                   | the other line, `−(k − 1) × 4 × travel` positions along   |
-| `shadow` k, `S0` … `Sk` | the other line, `−partnerSide × 2k × travel`                     | your own line, `−partnerSide × (2k − 1) × travel`         |
-| `trail-buddy`, `T1` …   | same line, `2k × travel` — **(unsure)**, nothing calls it        | same                                                      |
-| `corner`, `C1`, `C2`    | the two dancers of the four you are dancing with — **(unsure)**  | the couple across from you — **(unsure)**                 |
+| word                    | duple improper                                                                                        | becket                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `partner`               | the **binding**, seeded from the other line at the same position                                      | the binding, seeded from the same line one position along |
+| `opposite`              | straight across the set — which here is your partner                                                  | straight across — which here is your neighbour            |
+| `N0` … `Nk`             | same line, `(2k − 1) × travel` positions along                                                        | the other line, `−(k − 1) × 4 × travel` positions along   |
+| `shadow` k, `S0` … `Sk` | the other line, `−partnerSide × 2k × travel`                                                          | your own line, `−partnerSide × (2k − 1) × travel`         |
+| `trail-buddy`, `T1` …   | same line, `2k × travel` — **(unsure)**, nothing calls it                                             | same                                                      |
+| `corner`, `C1`, `C2`    | `C1` the dancer of the other couple diagonally across, `C2` the one straight along your own line (M7) | the same two offsets                                      |
 
 Three things make the table what it is rather than a set of guesses.
 
@@ -309,13 +327,19 @@ bridge when it is rewritten as data; by M11 the bridge is empty and
 **The shape kinds** are implemented once each in `src/library/kinds/`, and no
 figure has code of its own:
 
-| kind        | what it is                                       | figures                   |
-| ----------- | ------------------------------------------------ | ------------------------- |
-| `rock`      | a pair or a ring closes up, rocks and rocks back | `balance`, `balance-ring` |
-| `orbitPair` | two dancers turning about a shared centre        | `swing`, `allemande`      |
-| `sequence`  | several shapes in a row, ends and hands threaded | `balance-and-swing`       |
-| `ringWalk`  | so many places round the instance's own ring     | M4                        |
-| `path`      | a dancer's own written path, per role            | M4                        |
+| kind           | what it is                                                         | figures                                                                                                              |
+| -------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `rock`         | a pair or a ring closes up, rocks and rocks back                   | `balance`, `balance-ring`                                                                                            |
+| `orbitPair`    | two dancers turning about a shared centre                          | `swing`, `allemande`                                                                                                 |
+| `sequence`     | several shapes in a row, ends and hands threaded                   | `balance-and-swing`                                                                                                  |
+| `ringWalk`     | so many places round the instance's own ring                       | `circle`, `star`, `petronella`                                                                                       |
+| `path`         | a dancer's own written path along a named curve                    | `pass-through`, `long-lines`, `do-si-do`, `slide-left`, `roll-away`, `california-twirl`                              |
+| `waypoints`    | a written route, waypoint by waypoint, with the passes marked      | `pull-by`, `grand-right-and-left`, `cast-off`, `circulate`, `loop`, `turn-alone`, `go-down-outside`, `go-up-outside` |
+| `courtesyTurn` | a couple turning as one rigid body, solved backwards from its ends | `right-and-left-through`, `robins-chain`                                                                             |
+| `schedule`     | who you meet, when, and by which shoulder, laid along a lane       | `hey`                                                                                                                |
+| `lineWalk`     | a line with an **order**, forming and travelling                   | `down-the-hall`, `up-the-hall`, `lead-down`, `lead-up`, `bend-the-line`                                              |
+| `unit`         | two dancers as one actor with its own orientation                  | `turn-as-couples`                                                                                                    |
+| `wave`         | a line of joined hands facing alternately in and out, rocking      | `balance-wave`                                                                                                       |
 
 `src/library/expr.ts` is the expression calculus a definition's numbers, angles
 and points are written in — the data layer's own, with its leaves re-targeted on
@@ -386,6 +410,20 @@ where the dancers already stand (below); the defaults given are the rest.
 | `mad-robin`              | 8     | `MAD ROBIN`                    | `pairs` `"neighbors"`, `amount` 0.5, `direction` `"clockwise"` — **data**, no coded twin                                                                                                                                                          |
 | `shoulder-round`         | 8     | `RIGHT SHOULDER ROUND`         | `pairs` `"neighbors"`, `hand` `"R"`, `amount` 1 — **data**, no coded twin                                                                                                                                                                         |
 | `single-file-promenade`  | 8     | `SINGLE FILE PROMENADE`        | `direction` `"clockwise"`, `amount` 0.25 (of the ring) — **data**, no coded twin                                                                                                                                                                  |
+| `down-the-hall`          | 6     | `DOWN THE HALL FOUR IN LINE`   | `order` `null` (else the roles across the line), `travelPx` 13.5, `spacing` 14, `settleBeats` 1.5, `holdDrop` 8 — **data**, no coded twin                                                                                                         |
+| `up-the-hall`            | 6     | `UP THE HALL FOUR IN LINE`     | the same — **data**, no coded twin                                                                                                                                                                                                                |
+| `turn-as-couples`        | 2     | `TURN AS COUPLES`              | `pairs` `"neighbors"`, `turn` 180°, `spacing` 14, `holdDrop` 8 — **data**, no coded twin                                                                                                                                                          |
+| `bend-the-line`          | 2     | `BEND THE LINE`                | `order` `null`, `spacing` 14, `settleBeats` 1, `releaseBeats` 1, `holdDrop` 8 — **data**, no coded twin, ends in a **ring**                                                                                                                       |
+| `lead-down`              | 4     | `LEAD DOWN THE CENTRE`         | `pairs` `"partners"`, `travelPx` 9, `spacing` 14, `settleBeats` 1, `releaseBeats` 0, `holdDrop` 8 — **data**, no coded twin                                                                                                                       |
+| `lead-up`                | 4     | `LEAD UP THE CENTRE`           | the same, with `releaseBeats` 3 — **data**, no coded twin                                                                                                                                                                                         |
+| `turn-alone`             | 4     | `TURN ALONE`                   | `amount` 0.5 turns, `direction` 1 — **data**, no coded twin, `actors: "each"`                                                                                                                                                                     |
+| `go-down-outside`        | 8     | `DOWN THE OUTSIDE`             | `outPx` 10, `places` 1, `stepBeats` 2 — **data**, no coded twin, `actors: "each"`                                                                                                                                                                 |
+| `go-up-outside`          | 8     | `UP THE OUTSIDE`               | the same — **data**, no coded twin, `actors: "each"`                                                                                                                                                                                              |
+| `cast-off`               | 4     | `CAST OFF`                     | `pairs` `"C2"`, `outPx` 10 — **data**, no coded twin, `anchor: { pivot }`                                                                                                                                                                         |
+| `turn-contra-corners`    | 16    | `TURN CONTRA CORNERS`          | `holdDrop` 2; five turns, 2 + 4 + 2 + 4 + 4 — **data**, no coded twin                                                                                                                                                                             |
+| `balance-wave`           | 4     | `BALANCE THE WAVE`             | `hand` `"R"`, `facesIn` `"lark"`, `rock` 4 px, `closeBeats` 1, `holdDrop` 2 — **data**, no coded twin, `actors: "line"`                                                                                                                           |
+| `circulate`              | 4     | `CIRCULATE`                    | `hand` `"R"`, `radius` 6 — **data**, no coded twin, `actors: "line"`                                                                                                                                                                              |
+| `loop`                   | 4     | `LOOP`                         | `hand` `"R"`, `amount` 1, `radius` 5 — **data**, no coded twin, `actors: "each"`                                                                                                                                                                  |
 | `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                                                                                                                                          |
 
 A figure marked **data** is a `FigureDefinition` in `src/library/figures/`; its

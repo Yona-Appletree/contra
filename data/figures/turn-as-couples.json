@@ -1,0 +1,11 @@
+{
+  "id": "turn-as-couples",
+  "walkthrough": {
+    "short": "Keep hold of the dancer beside you and turn the two of you round together.",
+    "long": "Do not let go and do not walk round each other. The two of you turn as one body about the point between you, so you stay side by side the whole way and end facing back where you came from. Whoever was on your left is still on your left."
+  },
+  "call": {
+    "short": "TURN AS COUPLES",
+    "long": "TURN AS COUPLES"
+  }
+}

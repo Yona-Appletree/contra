@@ -5,6 +5,7 @@ import { contraFigureOf } from "../figures/registry.js";
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { paramDefaults } from "../library/interpret.js";
 import { REBIND_PARAM } from "../set/planCycle.js";
+import { TRADE_PARAM } from "../set/resolve.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { formationById } from "./formations.js";
 
@@ -60,6 +61,23 @@ export interface DanceFile extends Omit<ContraDanceSpec, "formation"> {
    */
   figures?: Record<string, unknown>;
 }
+
+/**
+ * The parameters **every** call may carry, whatever figure it names.
+ *
+ * None of them is a figure parameter: each is a call-level instruction to the
+ * layer above the figure, read there and stripped before the figure is planned.
+ *
+ * - `rebind` (M6) tells the **set** who you are bound to when the figure lets
+ *   go — Contrablend's "(new partner)".
+ * - `trade` (M7, Q10) tells **resolution** which of a same-role pair takes which
+ *   figure-role — Anna's Reel's "women swing".
+ * - `form` (M7, Q6) tells the **interpreter** the shape this call forms, over
+ *   whatever the definition's own `ends` said. A caller's shape clause ("; form
+ *   wave of four (men in center)") belongs to the call and not to the word
+ *   "allemande", which is why it is here and not in a definition.
+ */
+const CALL_PARAMS: readonly string[] = [REBIND_PARAM, TRADE_PARAM, "form"];
 
 /**
  * Check one call names a real figure, only the parameters that figure
@@ -142,11 +160,14 @@ function declaredParams(
   if (coded) {
     return new Set([
       ...Object.keys(coded.defaults).filter((k) => k !== "from" && k !== "carried"),
-      REBIND_PARAM,
+      ...CALL_PARAMS,
     ]);
   }
+  // **Every** data definition, not only the gatherers (M5): M4's carriers, M5's
+  // schedule and M7's shapes are in the other lists and a call of one would
+  // otherwise be checked against nothing.
   const definition = DATA_DEFINITIONS.find((d) => d.id === figure);
-  if (definition) return new Set([...Object.keys(paramDefaults(definition)), REBIND_PARAM]);
+  if (definition) return new Set([...Object.keys(paramDefaults(definition)), ...CALL_PARAMS]);
   if (UNSUPPORTED_FIGURES[figure] !== undefined) return undefined;
   throw new Error(`${danceSlug} ${phraseName}: "${figure}" is not a known contra figure`);
 }

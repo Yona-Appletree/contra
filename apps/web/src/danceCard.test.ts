@@ -1,4 +1,4 @@
-import { createContraRegistry, DEMO_DANCES } from "@caller/contra";
+import { contraDataFigures, createContraRegistry, DEMO_DANCES } from "@caller/contra";
 import { withDefaults } from "@caller/choreo";
 import { resolveFigureCall } from "@caller/contra";
 import { describe, expect, it } from "vitest";
@@ -12,7 +12,7 @@ import { cardDance } from "./danceCard.js";
 describe("the dance card's figure lines", () => {
   it.each(DEMO_DANCES.map((d) => d.slug))("%s says what the caller says", (slug) => {
     const dance = DEMO_DANCES.find((d) => d.slug === slug)!;
-    const registry = createContraRegistry();
+    const registry = createContraRegistry(contraDataFigures());
     const card = cardDance(dance);
     expect(card.title).toBe(dance.title);
     expect(card.phrases.map((p) => p.name)).toEqual(dance.phrases.map((p) => p.name));
@@ -44,7 +44,7 @@ describe("the dance card's figure lines", () => {
       })),
     };
     const card = cardDance(bare);
-    const registry = createContraRegistry();
+    const registry = createContraRegistry(contraDataFigures());
     for (const [i, phrase] of dance.phrases.entries()) {
       for (const [j, call] of phrase.figures.entries()) {
         const def = registry.get(call.figure);

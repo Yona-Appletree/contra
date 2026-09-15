@@ -1,0 +1,105 @@
+{
+  "slug": "annas-reel",
+  "title": "Anna's Reel",
+  "author": "Rick Mohr",
+  "formation": "duple-improper",
+  "status": "lab",
+  "notes": "The Caller's Box 140, permission: full. Only the first pass is encoded: the record's second pass, with the roles exchanged throughout, is a multi-pass record and belongs to M8. Still owed at M7: a **wave of four across the set** — `balance-wave` is the long wave down the lattice that Whoosh's own A2 forms, and Anna's Reel's is four dancers in a row across the hall, which is a different shape with a different hand rule — and the **nine-beat half hey**, which is M5's. The seven-beat allemande once and a quarter and the same-role balance and swing are M7's and dance.",
+  "source": {
+    "callersBoxId": 140,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=140",
+    "permission": "full",
+    "transcript": "A1  (8) Women allemande right 1 & 1/2  (4) Balance wave of four (NL,WR)  (4) Neighbor allemande left 3/4\nA2  (7) N2 neighbor allemande right 1 & 1/4  (9) Hey 1/2 (WL;PR;ML;N2R)\nB1  (4) Women balance  (12) Women swing\nB2  (16) Partner swing\n2A1  (8) Men allemande left 1 & 1/2  (4) Balance wave of four (N2R,ML)  (4) N2 neighbor allemande right 3/4\n2A2  (7) N3 neighbor allemande left 1 & 1/4  (9) Hey 1/2 (MR;PL;WR;N3L)\n2B1  (4) Men balance  (12) Men swing\n2B2  (16) Partner swing"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 8,
+          "params": {
+            "pairs": [["1R", "2R"]],
+            "hand": "R",
+            "amount": 1.5
+          },
+          "call": "ROBINS ALLEMANDE RIGHT ONCE AND A HALF"
+        },
+        {
+          "figure": "balance-wave",
+          "beats": 4,
+          "params": {
+            "hand": "L",
+            "facesIn": "robin"
+          },
+          "call": "BALANCE THE WAVE OF FOUR"
+        },
+        {
+          "figure": "allemande",
+          "beats": 4,
+          "params": {
+            "pairs": "neighbors",
+            "hand": "L",
+            "amount": 0.75
+          },
+          "call": "NEIGHBOUR ALLEMANDE LEFT THREE QUARTERS"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "allemande",
+          "beats": 7,
+          "params": {
+            "pairs": "N2",
+            "hand": "R",
+            "amount": 1.25
+          },
+          "call": "ALLEMANDE RIGHT ONCE AND A QUARTER WITH NUMBER TWO"
+        },
+        {
+          "figure": "hey",
+          "beats": 9,
+          "params": {
+            "amount": 0.5,
+            "passes": "LL PR RL",
+            "start": "robin",
+            "by": "left"
+          },
+          "call": "HALF A HEY"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "balance-and-swing",
+          "beats": 16,
+          "params": {
+            "pairs": [["1R", "2R"]],
+            "balanceBeats": 4,
+            "endFacing": "across"
+          },
+          "call": "ROBINS BALANCE AND SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "swing",
+          "beats": 16,
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
+          "call": "PARTNER SWING"
+        }
+      ]
+    }
+  ]
+}

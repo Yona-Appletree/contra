@@ -6,6 +6,7 @@ import {
   DUPLE_IMPROPER_LATTICE,
   DUPLE_IMPROPER_RELATIONS,
 } from "../formation/dupleImproper.js";
+import { PROPER, PROPER_LATTICE, PROPER_RELATIONS } from "../formation/proper.js";
 import type { RelationTable } from "./relations.js";
 import type { SetLattice } from "./SetModel.js";
 
@@ -36,6 +37,9 @@ export const CONTRA_SET_RULES: Readonly<Record<string, SetRules>> = {
     relations: DUPLE_IMPROPER_RELATIONS,
   },
   [BECKET.id]: { id: BECKET.id, lattice: BECKET_LATTICE, relations: BECKET_RELATIONS },
+  // M7: larks in one line and robins in the other, all the way through — which
+  // is a different lattice and a different neighbour, not a flag on improper.
+  [PROPER.id]: { id: PROPER.id, lattice: PROPER_LATTICE, relations: PROPER_RELATIONS },
   // A right-progressing becket is a becket in every way but which way its lines
   // slide, so it stands on the same lattice and relates by the same offsets.
   [BECKET_RIGHT.id]: {

@@ -1,6 +1,8 @@
 import type { Angle, Beat, Side, Vec2 } from "@caller/core";
 import type { PlanContext, Spot, Spots } from "../figures/ContraFigure.js";
 import { bearing, joinPoint, midpoint, polar } from "../figures/ContraFigure.js";
+import type { SlotView } from "../set/shape.js";
+import { otherLine, slotOfRole, slotPoint } from "../set/shape.js";
 import type { FigureRole } from "./FigureDefinition.js";
 
 /**
@@ -178,7 +180,27 @@ export type PointExpr =
   | { point: "compose"; x: PointExpr; y: PointExpr }
   | { point: "polar"; centre: PointExpr; angle: AngleExpr; radius: NumberExpr }
   | { point: "offset"; from: PointExpr; along: AngleExpr; distance: NumberExpr }
-  | { point: "joinPoint"; a: RoleExpr; aSide: Side; b: RoleExpr; bSide: Side };
+  | { point: "joinPoint"; a: RoleExpr; aSide: Side; b: RoleExpr; bSide: Side }
+  /**
+   * **A place on the set's own lattice**, read from a dancer's own slot: the
+   * same line or the other one, so many positions along the way they travel.
+   *
+   * The node M6 could not write and said so: *"the lark ends across the set and
+   * one place along, the robin one place along her own line… every way of faking
+   * it is wrong for one of the two lines, because 'across the set' is `+x` for
+   * one line and `−x` for the other and no expression can see which."* This can
+   * see which, because it is written in slots rather than in pixels —
+   * `{ point: "slot", line: "other", along: 1 }` is one sentence that comes out
+   * right on both lines and in all three formations.
+   *
+   * `along` counts **positions the way the dancer travels**, so a figure never
+   * has to know which end of the hall it is standing at. `of` names whose slot
+   * to start from; the dancer the expression is being evaluated for by default.
+   *
+   * Only available to a figure resolved against a set — the lattice arrives as
+   * `params.slots` — so a figure run alone in `pnpm figure` refuses it by name.
+   */
+  | { point: "slot"; line?: "same" | "other"; along?: NumberExpr; of?: RoleExpr };
 
 /** A pose written as expressions: where a dancer stands and which way they face. */
 export interface PoseExpr {
@@ -208,6 +230,15 @@ export interface ExprEnv {
   order: readonly FigureRole[];
   /** Where the shape is anchored, in frame-local px. */
   anchor: Vec2;
+  /**
+   * The set's own lattice, in this instance's frame — `params.slots`, threaded
+   * by resolution (M7).
+   *
+   * Unset for a figure danced outside a set, which is what `pnpm figure` and the
+   * symmetry property test do; reading a slot then is an error naming the reason
+   * rather than a silent `[0, 0]`.
+   */
+  slots?: SlotView;
   /** Who each role is dancing this with; unset for a shape that pairs nobody. */
   mate?: (role: FigureRole) => FigureRole | undefined;
   /** Where the figure leaves everybody; unset until the ends pass has run. */
@@ -390,5 +421,21 @@ export function evalPoint(expr: PointExpr, env: ExprEnv): Vec2 {
         evalSpot("live", evalRole(expr.b, env), env),
         expr.bSide,
       );
+    case "slot": {
+      const view = env.slots;
+      if (!view) {
+        throw new Error(
+          `"${env.self}" cannot name a slot: this figure was not resolved against a set, ` +
+            `so there is no lattice under it`,
+        );
+      }
+      const of = expr.of === undefined ? env.self : evalRole(expr.of, env);
+      const at = slotOfRole(view, of);
+      const along = expr.along === undefined ? 0 : evalNumber(expr.along, env);
+      return slotPoint(view, {
+        line: expr.line === "other" ? otherLine(at.line) : at.line,
+        position: at.position + along * at.travel,
+      });
+    }
   }
 }
