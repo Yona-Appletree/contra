@@ -4,6 +4,7 @@ import {
   box,
   dot,
   facingMarks,
+  facingReach,
   inkOf,
   inkRuns,
   label,
@@ -36,10 +37,10 @@ export function penPlotSvg(trace: TraceView, options: PenPlotOptions = {}): stri
   const pad = options.pad ?? PEN_PLOT_PAD;
   const marks = options.marks ?? true;
 
-  // A facing mark is drawn out of the path — a tick's tip, a wake's outer
-  // edge or an arrowhead's point, whichever `draw.facing` asks for, all the
-  // same `facingPx` reach — so the margin has to hold one.
-  const plot = penPlotMap(trace, width, height, pad + draw.facingPx, options.reach);
+  // A facing mark is drawn out of the path — a tick's tip, a wake's far edge
+  // or an arrowhead's point, whichever `draw.facing` asks for — so the margin
+  // has to hold one. `facingReach` is which of the two reaches that style uses.
+  const plot = penPlotMap(trace, width, height, pad + facingReach(draw), options.reach);
   const parts: string[] = [];
 
   if (marks) parts.push(setMarks(trace, plot, draw.palette.grid, draw.palette.mark));
@@ -47,10 +48,16 @@ export function penPlotSvg(trace: TraceView, options: PenPlotOptions = {}): stri
   trace.pens.forEach((pen, index) => {
     const ink = inkOf(pen);
     const map = plot.penMap(pen, index, draw, trace.pens.length);
+    // A wake goes under the ink that cast it — it is the same colour, and
+    // over the top it would haze the line it is meant to be coming off. A
+    // tick and an arrowhead are marks, and marks go on top.
+    const marksBelow = draw.facing === "wake";
+    const facing = facingMarks(pen, index, map, draw, ink);
+    if (marksBelow) parts.push(facing);
     for (const run of inkRuns(pen, map, window === undefined ? {} : { window })) {
       parts.push(polyline(run, ink, draw.penWidth));
     }
-    parts.push(facingMarks(pen, index, map, draw, ink));
+    if (!marksBelow) parts.push(facing);
     const first = pen.samples[0];
     if (first !== undefined) parts.push(dot(map(first), draw.penWidth + 0.8, ink));
   });
