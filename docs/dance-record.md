@@ -142,16 +142,44 @@ the shorthand cannot say it** — Are You 'Most Done?'s "star left 7/8" and Anna
 Reel's `passes: "RL PR LL N2R"` are both cases where the caller's own words are
 not one of the shorthand's values.
 
-Three parameters are **not** figure parameters at all. They ride in `params`
-because `FigureCall` is `@caller/choreo`'s and all three are contra words, and
+Four parameters are **not** figure parameters at all. They ride in `params`
+because `FigureCall` is `@caller/choreo`'s and all four are contra words, and
 the layer above the figure reads them and strips them out before any figure is
 planned:
 
-| parameter | read by             | what it says                                                                                                                    |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `rebind`  | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
-| `trade`   | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
-| `form`    | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
+| parameter    | read by             | what it says                                                                                                                    |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
+| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
+| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
+| `progresses` | the **set**         | `true` — the progression happens at the end of _this_ call, not at the end of the time through (M9b)                            |
+
+### `progresses`: the progression in the middle of the dance
+
+The engine has always shifted the set's slots at the **cycle boundary**, because
+that is where a contra dance usually progresses: the last figure leaves you one
+place along and the boundary is where the set admits it. Some dances progress in
+the middle instead, and the corpus writes several — Fatal Attraction's A1 is
+_"neighbor promenade counterclockwise around the major set"_ and its A2 casts
+back, so by A2 the dancers really are one place along and every call after that
+names its neighbours from **there**. Left at the boundary, each of those calls
+resolves against seating the dance has already left behind, and the dancer `N2`
+names is a couple standing out.
+
+`"params": { "progresses": true }` on that call says so. The shift is the
+dance's own (the `progression` field, or the formation's), applied exactly as
+the boundary applies it, so a role-asymmetric progression and a line swap mean
+the same thing here as there. After it:
+
+- **relations resolve against the shifted slots for the rest of the time
+  through**, so the transcript's "N2" is written as `neighbors` from that call
+  on — the record says what the engine resolves, and the caller's own word is
+  kept in the call text and in `notes`;
+- **the cycle boundary's own shift is dropped for that pass**, because a set
+  progresses once per pass however the record writes it;
+- **nobody moves.** What moves is the seating, exactly as at a boundary — which
+  also means the couples standing out change there, so the pass is filled with
+  `wait-out` one run of beats per seating rather than one per pass.
 
 ## Concurrent calls (`while`)
 

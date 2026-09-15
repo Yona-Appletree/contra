@@ -4,7 +4,7 @@ import { contraDance } from "../figures/chain.js";
 import { contraFigureOf } from "../figures/registry.js";
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { paramDefaults } from "../library/interpret.js";
-import { REBIND_PARAM } from "../set/planCycle.js";
+import { PROGRESSES_PARAM, REBIND_PARAM } from "../set/planCycle.js";
 import { TRADE_PARAM } from "../set/resolve.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { formationById } from "./formations.js";
@@ -90,8 +90,11 @@ export interface DanceFile extends Omit<ContraDanceSpec, "formation"> {
  *   whatever the definition's own `ends` said. A caller's shape clause ("; form
  *   wave of four (men in center)") belongs to the call and not to the word
  *   "allemande", which is why it is here and not in a definition.
+ * - `progresses` (M9b) tells the **set** that the progression happens at the end
+ *   of this call rather than at the end of the time through — Fatal Attraction's
+ *   promenade round the major set, which *is* the progression.
  */
-const CALL_PARAMS: readonly string[] = [REBIND_PARAM, TRADE_PARAM, "form"];
+const CALL_PARAMS: readonly string[] = [REBIND_PARAM, TRADE_PARAM, "form", PROGRESSES_PARAM];
 
 /**
  * Check one call names a real figure, only the parameters that figure
