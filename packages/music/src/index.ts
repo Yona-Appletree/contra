@@ -1,4 +1,21 @@
-export { createPlayer, type PlayOptions, type Player } from "./player/Player.js";
+export {
+  PLAUSIBILITY_MARGIN,
+  candidates,
+  harmonise,
+  inKey,
+  notesOf,
+  parseKey,
+  plausibility,
+  type Candidate,
+  type ChordReport,
+  type ParsedKey,
+} from "./chords/harmonise.js";
+export {
+  createPlayer,
+  type PlayOptions,
+  type Player,
+  type PlayerOptions,
+} from "./player/Player.js";
 export {
   POTATO_DEFAULTS,
   keyOf,
@@ -8,8 +25,13 @@ export {
   type PotatoOptions,
 } from "./player/potatoes.js";
 export {
+  BAND,
   arkansasSet,
   arkansasTraveler,
+  barsOf,
+  chordPair,
+  defineTune,
+  halvesOf,
   fishersHornpipe,
   goldenSlippers,
   hasteToTheWedding,
@@ -29,8 +51,15 @@ export {
   swallowtailSet,
   tunes,
   whiskeyBeforeBreakfast,
+  writeAbc,
+  type Arrangement,
+  type BarChords,
+  type Chord,
+  type ChordChart,
   type Medley,
   type Tune,
+  type TuneSource,
+  type Voice,
 } from "./tunes/index.js";
 export {
   Card,

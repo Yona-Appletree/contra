@@ -1,35 +1,32 @@
-import type { Tune } from "./Tune.js";
+import { defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
- * not copied from any transcription site. Moderate confidence on the exact
- * notes — the tune's bright, arpeggiated character is recalled clearly,
- * but the detail is my own hand transcription. Written in even eighth
- * notes (2/2, straight time) rather than the dotted "hornpipe swing"
- * sometimes printed, matching how this package's other reels are
- * notated and how a hornpipe is commonly played straight at a contra
- * dance.
+ * not copied from any transcription site. Moderate-to-high confidence —
+ * played as a reel in D (the common contra setting, not the F hornpipe);
+ * the arpeggiated A part and the high-A B part are standard. The chart
+ * (2026-09-15) follows the typed melody: D and A7, with the G where the
+ * melody walks down through it; moderate confidence.
  *
- * Written out in full (AABB, 32 bars), four source lines of 8 bars each —
- * see the note in `soldiersJoy.ts` and `packages/music/README.md`.
+ * Written out in full (AABB, 32 bars) with no repeat signs; four source
+ * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
-export const fishersHornpipe: Tune = {
+export const fishersHornpipe = defineTune({
   slug: "fishers-hornpipe",
   title: "Fisher's Hornpipe",
   type: "reel",
-  meter: { beatsPerBar: 2, barsPerPhrase: 8 },
-  beatsPerCycle: 64,
-  defaultBpm: 118,
-  source: "traditional, transcribed by hand",
-  abc: `X:1
-T:Fisher's Hornpipe
-R:reel
-M:2/2
-L:1/8
-K:D
-d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|
-d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|
-a2fa gfed|cAFA d2d2|a2fa gfed|cAFA d4|a2ag fedc|dcAG FGAB|a2ag fedc|dcAG FAd2|
-a2fa gfed|cAFA d2d2|a2fa gfed|cAFA d4|a2ag fedc|dcAG FGAB|a2ag fedc|dcAG FAd2|
-`,
-};
+  key: "D",
+  defaultBpm: 112,
+  lines: [
+    "d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|",
+    "d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|",
+    "a2fa gfed|cAFA d2d2|a2fa gfed|cAFA d4|a2ag fedc|dcAG FGAB|a2ag fedc|dcAG FAd2|",
+    "a2fa gfed|cAFA d2d2|a2fa gfed|cAFA d4|a2ag fedc|dcAG FGAB|a2ag fedc|dcAG FAd2|",
+  ],
+  chords: [
+    ["D", "A7", "D", "A7", "D", ["D", "G"], "D", ["D", "G"]],
+    ["D", "A7", "D", "A7", "D", ["D", "G"], "D", ["D", "G"]],
+    ["D", ["A7", "D"], "D", ["A7", "D"], "D", "D", "D", ["A7", "D"]],
+    ["D", ["A7", "D"], "D", ["A7", "D"], "D", "D", "D", ["A7", "D"]],
+  ],
+});

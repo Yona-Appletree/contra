@@ -18,6 +18,8 @@ start with
 | A move's four texts as **data**, loaded by `packages/contra/src/text/`             | `data/figures/`                       | `<figure-id>.json`                       |
 | The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
 | Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts` |
+| A tune as **data**: key, melody lines, hand chord chart, arrangement               | `packages/music/src/tunes/`           | `<tuneName>.ts` via `defineTune`         |
+| The harmoniser: draft charts, chord plausibility                                   | `packages/music/src/chords/`          | `harmonise.ts`, co-located test          |
 | Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`             | `theme.css`                              |
 | Primitive component (no app knowledge)                                             | `packages/ui-base/src/components/ui/` | `<name>.tsx` (shadcn layout)             |
 | App screens, layout, routing, composition root                                     | `apps/web/src/`                       | `<Name>.tsx`                             |

@@ -1,5 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { POTATO_DEFAULTS, keyOf, potatoesFor, renderPotatoes } from "./potatoes.js";
+import {
+  POTATO_DEFAULTS,
+  keyOf,
+  loudestVoice,
+  potatoesFor,
+  renderPotatoes,
+  voiceOf,
+  type PotatoVoice,
+} from "./potatoes.js";
+import { BAND } from "../tunes/Tune.js";
 import { soldiersJoy } from "../tunes/soldiersJoy.js";
 import { morrisonsJig } from "../tunes/morrisonsJig.js";
 import { tunes } from "../tunes/index.js";
@@ -135,7 +144,7 @@ describe("the potatoes are four chords, a beat apart, ending a beat before bar 1
 });
 
 describe("the chord is in the tune's own key", () => {
-  it("reads the key off the ABC rather than a table of slugs", () => {
+  it("reads the key off the tune rather than a table of slugs", () => {
     expect(keyOf(soldiersJoy).name).toBe("D");
     expect(keyOf(soldiersJoy).mode).toBe("major");
     // D below middle C.
@@ -159,4 +168,72 @@ describe("the chord is in the tune's own key", () => {
   it("puts a different root under a tune in a different key", () => {
     expect(potatoesFor(soldiersJoy, BPM).rootHz).not.toBe(potatoesFor(morrisonsJig, BPM).rootHz);
   });
+});
+
+describe("the loudest instrument plays them", () => {
+  it("picks the loudest voice of the arrangement, the melody winning a tie", () => {
+    expect(loudestVoice(BAND)).toBe(BAND.melody);
+    const pianoBand = { ...BAND, chords: { program: 0, volume: 120 } };
+    expect(loudestVoice(pianoBand)).toBe(pianoBand.chords);
+    const tie = { ...BAND, bass: { program: 32, volume: BAND.melody.volume } };
+    expect(loudestVoice(tie)).toBe(tie.melody);
+  });
+
+  it("plays a potato in the instrument's family: strings bow it, pianos strike it, the rest pluck it", () => {
+    expect(voiceOf(40)).toBe("bowed"); // violin
+    expect(voiceOf(41)).toBe("bowed"); // viola
+    expect(voiceOf(0)).toBe("struck"); // acoustic grand piano
+    expect(voiceOf(32)).toBe("plucked"); // acoustic bass
+    expect(voiceOf(25)).toBe("plucked"); // steel guitar
+    expect(POTATO_DEFAULTS.voice).toBe("struck");
+  });
+
+  it("reads the voice off the tune's own arrangement: the default band's fiddle bows them", () => {
+    for (const tune of tunes) expect(potatoesFor(tune, BPM).voice, tune.slug).toBe("bowed");
+    const pianoLed = {
+      ...soldiersJoy,
+      arrangement: { ...BAND, chords: { program: 0, volume: 127 } },
+    };
+    expect(potatoesFor(pianoLed, BPM).voice).toBe("struck");
+    const bassLed = {
+      ...soldiersJoy,
+      arrangement: { ...BAND, bass: { program: 32, volume: 127 } },
+    };
+    expect(potatoesFor(bassLed, BPM).voice).toBe("plucked");
+  });
+
+  /** Seconds from the buffer's start to its loudest sample within the first beat. */
+  const timeToPeak = (voice: PotatoVoice): number => {
+    const buffer = renderPotatoes(RATE, { bpm: BPM, voice });
+    const beat = Math.round((60 / BPM) * RATE);
+    let at = 0;
+    let loudest = 0;
+    for (let i = 0; i < beat; i++) {
+      if (Math.abs(buffer[i]!) > loudest) {
+        loudest = Math.abs(buffer[i]!);
+        at = i;
+      }
+    }
+    return at / RATE;
+  };
+
+  it("a bowed chord swells in where a struck one is there at once", () => {
+    expect(timeToPeak("struck")).toBeLessThan(0.01);
+    expect(timeToPeak("plucked")).toBeLessThan(0.01);
+    expect(timeToPeak("bowed")).toBeGreaterThan(0.02);
+  });
+
+  it.each(["bowed", "struck", "plucked"] as const)(
+    "%s potatoes are still four, a beat apart, exactly four beats long, at the peak asked for",
+    (voice) => {
+      const buffer = renderPotatoes(RATE, { bpm: BPM, voice });
+      expect(buffer.length).toBe(Math.round(4 * (60 / BPM) * RATE));
+      const onsets = onsetsIn(buffer);
+      expect(onsets).toHaveLength(4);
+      for (const [k, onset] of onsets.entries()) {
+        expect(onset).toBeCloseTo((k * 60) / BPM, 1);
+      }
+      expect(peakOver(buffer, 0, 4 * (60 / BPM))).toBeCloseTo(POTATO_DEFAULTS.peak, 3);
+    },
+  );
 });

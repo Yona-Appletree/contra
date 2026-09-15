@@ -542,7 +542,9 @@ export function HallPage({
       const AudioCtor = window.AudioContext ?? window.webkitAudioContext;
       const ctx = AudioCtor === undefined ? undefined : new AudioCtor();
       ctxRef.current = ctx ?? null;
-      player = createPlayer(ctx);
+      // The band's samples ship with the app (public/soundfont/), so nothing
+      // streams from abcjs' default host at run time.
+      player = createPlayer(ctx, { soundFontUrl: `${import.meta.env.BASE_URL}soundfont/` });
       playerRef.current = player;
     }
     await ctxRef.current?.resume();
@@ -692,7 +694,13 @@ export function HallPage({
                 <span className="caller-music-card-caption" data-testid="hall-tune">
                   {tune.title}
                 </span>
-                <Notation tune={tune} beat={beat} showTitle={false} />
+                {/* The music beat, not the evening's: the notation takes its
+                    beat modulo the cycle, and the evening's beat counts the
+                    interval too, which put the cursor bars off after the first
+                    dance and kept it walking through the silence. During the
+                    interval this is the next tune's beat 0, so the cursor waits
+                    on bar 1 for the potatoes. */}
+                <Notation tune={tune} beat={shownMusicBeat(beat)} showTitle={false} />
               </div>
             </Card>
           </div>

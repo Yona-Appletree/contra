@@ -157,6 +157,14 @@ their own and are reached by URL or by a link on the page above them.
   `thanks`: half the stretch turned to the partner, half to the neighbour
   across, each with a small nod, arms at their sides.
 
+- `public/soundfont/` — the FluidR3 per-note mp3s abcjs' synth loads, 32 of
+  them, exactly the notes the bundled tunes need, so nothing streams from
+  paulrosen.github.io at run time. Built by `pnpm --filter @caller/web
+soundfont` (`scripts/build-soundfont.mjs`), which writes `manifest.json`
+  with a digest of the tunes; `src/soundfont.test.mjs` recomputes it, so a
+  tune edited without a rebuild fails CI naming the command. The hall passes
+  `` `${import.meta.env.BASE_URL}soundfont/` `` to `createPlayer`. Licence
+  and source in `public/soundfont-README.md`.
 - `src/hall.css` — the rules for `@caller/music`'s card and notation, which
   shipped with class names and no stylesheet because nothing had put them on
   a page yet.

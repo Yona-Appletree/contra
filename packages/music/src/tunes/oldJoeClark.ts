@@ -1,35 +1,32 @@
-import type { Tune } from "./Tune.js";
+import { defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
- * not copied from any transcription site. Moderate confidence — the modal
- * (mixolydian, flatted seventh) character and the driving repeated-note
- * hook that opens the A part are recalled clearly and are a well-known
- * fingerprint of this tune, but the note-for-note detail is my own
- * reconstruction and may differ from other printed settings, which is
- * normal for an orally-transmitted old-time tune. High confidence this is
- * genuinely the traditional, public-domain "Old Joe Clark".
+ * not copied from any transcription site. Moderate-to-high confidence — the
+ * A mixolydian setting with the G naturals in the B part is the standard
+ * old-time one; the A part as typed is a plain version of it. The chart
+ * (2026-09-15) is the two-chord mixolydian A–G a band plays it with, the G
+ * landing where the melody's G naturals do; moderate confidence.
  *
- * Written out in full (AABB, 32 bars), four source lines of 8 bars each —
- * see the note in `soldiersJoy.ts` and `packages/music/README.md`.
+ * Written out in full (AABB, 32 bars) with no repeat signs; four source
+ * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
-export const oldJoeClark: Tune = {
+export const oldJoeClark = defineTune({
   slug: "old-joe-clark",
   title: "Old Joe Clark",
   type: "reel",
-  meter: { beatsPerBar: 2, barsPerPhrase: 8 },
-  beatsPerCycle: 64,
-  defaultBpm: 120,
-  source: "traditional, transcribed by hand",
-  abc: `X:1
-T:Old Joe Clark
-R:reel
-M:2/2
-L:1/8
-K:AMix
-A2AA cAA2|BcdB A2A2|A2AA cAA2|BcdB cAA2|e2ed cAA2|dcAG A2A2|e2ed cAA2|dcAG A2A2|
-A2AA cAA2|BcdB A2A2|A2AA cAA2|BcdB cAA2|e2ed cAA2|dcAG A2A2|e2ed cAA2|dcAG A2A2|
-a2ag ecAc|BcdB A2A2|a2ag ecAc|BcdB cAA2|c2cB A2A2|BAGE A2A2|c2cB A2A2|A4A4|
-a2ag ecAc|BcdB A2A2|a2ag ecAc|BcdB cAA2|c2cB A2A2|BAGE A2A2|c2cB A2A2|A4A4|
-`,
-};
+  key: "AMix",
+  defaultBpm: 112,
+  lines: [
+    "A2AA cAA2|BcdB A2A2|A2AA cAA2|BcdB cAA2|e2ed cAA2|dcAG A2A2|e2ed cAA2|dcAG A2A2|",
+    "A2AA cAA2|BcdB A2A2|A2AA cAA2|BcdB cAA2|e2ed cAA2|dcAG A2A2|e2ed cAA2|dcAG A2A2|",
+    "a2ag ecAc|BcdB A2A2|a2ag ecAc|BcdB cAA2|c2cB A2A2|BAGE A2A2|c2cB A2A2|A4 A4|",
+    "a2ag ecAc|BcdB A2A2|a2ag ecAc|BcdB cAA2|c2cB A2A2|BAGE A2A2|c2cB A2A2|A4 A4|",
+  ],
+  chords: [
+    ["A", "A", "A", "A", "A", ["G", "A"], "A", ["G", "A"]],
+    ["A", "A", "A", "A", "A", ["G", "A"], "A", ["G", "A"]],
+    ["A", "A", "A", "A", "A", ["G", "A"], "A", "A"],
+    ["A", "A", "A", "A", "A", ["G", "A"], "A", "A"],
+  ],
+});
