@@ -123,8 +123,8 @@ sentence with one word changed. For that, a variant:
 
 ```json
 "variants": {
-  "start=larks-left": { "walkthrough": { "short": "…", "long": "…" } },
-  "half=true": { "call": { "short": "HALF A HEY" } }
+  "start=lark": { "walkthrough": { "short": "…", "long": "…" } },
+  "amount=0.5": { "call": { "short": "HALF A HEY" } }
 }
 ```
 

@@ -68,8 +68,9 @@ test.describe("the move gallery", () => {
 
     await page.getByTestId("tab-dances").click();
     await expect(page.getByTestId("tab-dances")).toHaveAttribute("aria-current", "page");
-    // Ten encoded dances, each card a link on to the stage.
-    await expect(page.getByTestId("dance-card")).toHaveCount(10);
+    // Eleven encoded dances since M5 put On the Prowl in the programme, each
+    // card a link on to the stage.
+    await expect(page.getByTestId("dance-card")).toHaveCount(11);
     await expect(page.getByTestId("dance-card").first()).toHaveAttribute("href", /^#\/dance\//);
   });
 

@@ -38,7 +38,8 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
     metric: "elbowPerHand",
     reason:
       "The swing's elbow swings hard under a nearly still hand at the take " +
-      "(docs/motion-report.md: 11.94× against a bound of 8.06). M1 expected M2 to " +
+      "(docs/motion-report.md: 11.94× run alone and 12.04× inside a dance, " +
+      "against a bound of 8.06). M1 expected M2 to " +
       "take this row away with the rewrite; it did not, and could not: DD21 " +
       "protects the swing's *geometry*, so the data swing reproduces the coded " +
       "one to 0.01 px from the stations and reproduces this take with it. It is a " +

@@ -16,7 +16,15 @@ import { createContraRegistry } from "./registry.js";
 import type { FigureDefinition, HoldSpec, SideRule } from "../library/FigureDefinition.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { DEMO_DANCES } from "../dances/index.js";
-import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "../dances/oracle.js";
+import {
+  CLOSURE_PX,
+  COLLISION_PX,
+  danceAlone,
+  linesFor,
+  oraclesFor,
+  threadsOnTheOldPath,
+} from "../dances/oracle.js";
+import { LAB_RUN } from "../dances/danceLab.js";
 import type { DanceOracles } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
 
@@ -129,7 +137,11 @@ export function figureSeamRows(
   for (const dance of dances) {
     const couples = danceCouples(dance);
     const until = danceBeats(dance) + WRAP_BUFFER;
-    const decider = danceAlone(dance, couples, until, overrides);
+    // On the engine that can dance it; see `threadsOnTheOldPath`. Every dance
+    // written before M5 threads on the decider's own planner and is measured
+    // there, as every number in this lab always has been.
+    const run = threadsOnTheOldPath(dance) ? {} : LAB_RUN;
+    const decider = danceAlone(dance, couples, until, overrides, run);
     const report = motionReport(decider.timeline(), until, { bounds: CONTRA_MOTION_BOUNDS });
     for (const row of report.seams) {
       if (!isSeamKeyFor(row.key, id)) continue;
@@ -208,7 +220,13 @@ export function figureOracles(
       dance: dance.slug,
       couples,
       until,
-      oracles: oraclesFor(dance, couples, until, overrides),
+      oracles: oraclesFor(
+        dance,
+        couples,
+        until,
+        overrides,
+        threadsOnTheOldPath(dance) ? {} : LAB_RUN,
+      ),
     };
   });
 }
