@@ -230,6 +230,104 @@ function planContraCycle(
   /** The frame-local number each dancer's spot was last computed as; see {@link LocalSpot}. */
   const local = new Map<DancerId, LocalSpot>();
   const from = options.start ?? "standing";
+  /** {@link from}, under a name the fill's own `[from, to]` cannot shadow. */
+  const picksUpWhereItLeftOff = from === "standing";
+
+  /**
+   * One waiting couple's `wait-out` parameters, in one place.
+   *
+   * Shared by the fill below and by the **write-back** at a mid-cycle shift,
+   * which has to know where this very figure will leave the couple; the two
+   * would drift apart written twice.
+   */
+  const waitParams = (
+    def: AnyFigureDef,
+    group: Group,
+    standing: ReadonlyMap<DancerId, EndPose>,
+    gap: { join: boolean; cross: boolean; beats: Beat },
+  ): object & { beats: Beat } =>
+    withDefaults(
+      def,
+      {
+        startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
+        join: gap.join,
+        cross: gap.cross,
+        // **The becket end-of-set crossing lands one couple place short**
+        // (M9c), because a time through that picks everybody up where the last
+        // one left them leaves every body one couple place behind the place the
+        // boundary's shift has just named theirs — and the waiting couple is a
+        // body like any other. See `ContraWaitOutParams.crossShort`; a planner
+        // that restarts from the first places instead teleports everybody on to
+        // the new places and the crossing must land on its own.
+        crossShort: picksUpWhereItLeftOff,
+        ...(dance.waitOut ?? {}),
+      },
+      gap.beats,
+    );
+
+  /**
+   * **The outs write back** (M9c).
+   *
+   * A couple that has been standing out for a run of beats and is about to
+   * dance has been moved by its `wait-out` — it stepped together, walked to the
+   * waiting place, and crossed the set if the run ended there — and that
+   * `wait-out` is planned in the fill, which runs after every call of every
+   * pass. So the model still had the couple where the time through began, and
+   * the first call that swept it in started it from a place it had left. The
+   * seam was the whole width of the crossing:
+   *
+   * - Fatal Attraction, `walk-to-station -> allemande` at beat 40, 37.7359 px
+   *   at every checked length — a run ended by a call that carries the
+   *   progression;
+   * - Jeremy Corners at the odd lengths, `wait-out -> diamond` at beat 192,
+   *   32.0000 px, exactly the width of the set — a run ended by a **pass**
+   *   boundary. At two and four couples nobody ever waits, which is the whole
+   *   of why only the odd lengths showed it.
+   *
+   * The fill is what moves them and the fill is what is asked, so the two
+   * cannot disagree: {@link waitParams} is the one place the parameters are
+   * written. `standingAt` is the right map to ask with, because such a gap
+   * begins at the couple's own beat 0 and nothing has moved them yet — which is
+   * also why the fill's own sort puts it first.
+   */
+  const writeOutsBack = (
+    model: SetModel,
+    state: SetState,
+    claimedSoFar: Map<DancerId, Span[]>,
+    runFrom: Beat,
+    runTo: Beat,
+  ): void => {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, state)) {
+      if (plan.kind === "set") continue;
+      const members = Object.values(plan.members);
+      // Only a couple that stood out for the **whole** of this run: one with no
+      // gap was dancing, and one with a partial gap is already accounted for by
+      // the call that claimed the rest of it.
+      const whole = gapsIn({ start: runFrom, end: runTo }, members, claimedSoFar).find(
+        ([a, b]) => a === runFrom && b === runTo,
+      );
+      if (whole === undefined) continue;
+      const group = mintGroup(plan);
+      const def = registry.get(WAIT_OUT.id);
+      const ends = def.ends(
+        group,
+        waitParams(def, group, standingAt, {
+          join: true,
+          cross: true,
+          beats: whole[1] - whole[0],
+        }),
+      );
+      for (const [station, dancer] of Object.entries(group.members)) {
+        const end = ends[station];
+        const dancerState = model.dancers[dancer];
+        if (end === undefined || dancerState === undefined) continue;
+        dancerState.spot = { p: end.p, facing: end.facing };
+        // The memo is frame-local to a frame this pose was not computed in;
+        // dropping it makes the next reader convert honestly.
+        local.delete(dancer);
+      }
+    }
+  };
   for (const set of hall.sets) {
     const first = firstPlaces(formation, dance, set);
     // `"standing"` takes each dancer's real place where the decider has one and
@@ -469,6 +567,7 @@ function planContraCycle(
         // {@link PROGRESSES_PARAM}.
         if (carries) {
           progressedInPass = true;
+          writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, offset + callBeats(call));
           states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
           models.set(set.id, progressModel(model, shift));
         }
@@ -492,9 +591,17 @@ function planContraCycle(
     // **Unless a call of this pass has already done it** (M9b): a set
     // progresses once per pass however the record writes it, so a pass whose
     // own figure carried the progression has nothing left to do here.
-    if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
-      for (const set of hall.sets) {
-        const model = models.get(set.id)!;
+    //
+    // The outs write back here too, and only while there is another pass of
+    // this record to read the model: after the last one the cycle ends and the
+    // decider's own `standingAt` is what the next time through picks up. See
+    // {@link writeOutsBack} — Jeremy Corners' `wait-out -> diamond` seam.
+    for (const set of hall.sets) {
+      const model = models.get(set.id)!;
+      if (passIndex + 1 < spans.length) {
+        writeOutsBack(model, states.get(set.id)!, claimed, seatedFrom, span.end);
+      }
+      if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
         states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
         if (passIndex + 1 < spans.length) models.set(set.id, progressModel(model, shift));
       }
@@ -530,16 +637,11 @@ function planContraCycle(
               {
                 group,
                 def,
-                params: withDefaults(
-                  def,
-                  {
-                    startPlaces: dance.startPlaces ?? waitingFrom(group, standing, local),
-                    join,
-                    cross: to === fill.span.end,
-                    ...(dance.waitOut ?? {}),
-                  },
-                  to - from,
-                ),
+                params: waitParams(def, group, standing, {
+                  join,
+                  cross: to === fill.span.end,
+                  beats: to - from,
+                }),
                 stations: Object.keys(group.members),
                 start: start + from,
               },

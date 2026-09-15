@@ -8,13 +8,52 @@ import type {
   StationId,
   WaitOutParams,
 } from "@caller/choreo";
-import { WAIT_OUT, groupStationPose, standing, waitOutStart } from "@caller/choreo";
+import {
+  WAIT_OUT,
+  frameAngle,
+  framePoint,
+  groupStation,
+  groupStationPose,
+  standing,
+  waitOutStart,
+} from "@caller/choreo";
+import { COUPLE_PITCH_PX } from "../formation/becket.js";
 
 /**
  * {@link waitOut}'s parameters: the engine's, less `crossTo`, which is read off
- * the waiting couple's own stations instead.
+ * the waiting couple's own stations instead, plus {@link crossShort}.
  */
-export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo">;
+export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
+  /**
+   * Whether a mirror crossing lands **one couple place short** of the place the
+   * couple comes in on — M9c. Defaults `false`, which is the engine's own
+   * landing, station for station.
+   *
+   * This is the whole of the becket end-of-set fix and it belongs to the
+   * *planner*, not to the formation, because it is a claim about what a cycle
+   * boundary does to the bodies:
+   *
+   * - A time through that begins **where the last one left everybody**
+   *   (`contraCyclePlanner`'s `"standing"`, which is the figure model's whole
+   *   point) leaves every dancer one couple place behind the place their new
+   *   slot names, and the first figure walks them in. `progressed 40.0000 px`
+   *   is that distance, printed for every becket dance since M6. A waiting
+   *   couple whose crossing finished *on* the progressed place was therefore
+   *   the one body the boundary moved — and it landed on the couple that had
+   *   just danced there, which had not moved yet. That is the `collision
+   *   0.000 px` at beat 64 that M9b measured on Are You 'Most Done? and The
+   *   Set Monster at every checked length.
+   * - A time through that restarts from the formation's **first places**
+   *   (`legacyCyclePlanner`, and `defaultCyclePlanner` — today's shipped path
+   *   and AC1's baseline) teleports every dancer on to their new place at the
+   *   boundary, so the waiting couple has to be on its own or the seam is
+   *   40 px wide. `sequence.test.ts`'s becket closure is what says so.
+   *
+   * So the planner that knows which of the two it is sets this, and a dance
+   * never writes it.
+   */
+  crossShort: boolean;
+};
 
 /**
  * `wait-out`, with the crossing chosen from the formation instead of from a
@@ -52,13 +91,71 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
     if (engine.crossTo !== "mirror" || !params.cross || t < crossStart) {
       return WAIT_OUT.sample(group, station, t, engine);
     }
-    return crossTogether(group, station, t - crossStart, crossBeats, engine);
+    return crossTogether(group, station, t - crossStart, crossBeats, engine, params.crossShort);
   },
 
   ends(group: Group, params: ContraWaitOutParams): Record<StationId, EndPose> {
-    return WAIT_OUT.ends(group, resolve(group, params));
+    const engine = resolve(group, params);
+    if (engine.crossTo !== "mirror" || !params.cross || !params.crossShort) {
+      return WAIT_OUT.ends(group, engine);
+    }
+    const centre = group.frame.centre;
+    const out: Record<StationId, EndPose> = {};
+    for (const s of group.stations) {
+      const from = crossFrom(group, s.id);
+      out[s.id] = {
+        p: [2 * centre[0] - from.p[0], 2 * centre[1] - from.p[1]],
+        facing: from.facing + 180,
+      };
+    }
+    return out;
   },
 };
+
+/**
+ * Where a becket couple's crossing is reckoned from: its own waiting place,
+ * **one couple place back along its own line** — M9c.
+ *
+ * `@caller/choreo`'s mirror reckons the crossing from where the couple *started*
+ * the figure (`WaitOutParams.startPlaces`, which is the waiting place unless a
+ * dance says otherwise), and reflecting the waiting place through the wait
+ * frame's centre lands the couple exactly on the dancing place it comes in on.
+ * That is one couple place too far, and the collision it causes is a rule of
+ * the formation rather than a fault in any dance:
+ *
+ * **A becket cycle boundary moves the slots and leaves every body where it
+ * stands.** Every dancer therefore ends a time through one couple place *behind*
+ * the place their next time through calls theirs, and the first figure of that
+ * time through walks them the rest of the way — that is what `progressed
+ * 40.0000 px` has always been reporting. The waiting couple was the one body
+ * the boundary did move, because its crossing is planned to finish on the
+ * progressed place; so it arrived on a place the couple that had just danced
+ * there was still standing on, and the two shared a point at exactly beat 64
+ * (Are You 'Most Done? and The Set Monster, every checked length; M9b measured
+ * it). Reckoned from one couple place back, the waiting couple is behind its
+ * new place by exactly what everybody else is behind theirs, and the dance
+ * gathers all of them together.
+ *
+ * **Butter does not move by a pixel**, and that is the check on this rule
+ * rather than a coincidence. A becket dance that slides in its own first figure
+ * writes `Dance.startPlaces` — `BECKET_BEFORE_SLIDE`, whose two wait stations
+ * are this very point — so the landing this computes is the landing Butter has
+ * always had. The difference is that it is now the formation's rule for every
+ * becket dance instead of one record's special case.
+ *
+ * Only the mirror crossing is reckoned this way: a duple improper couple swaps
+ * across its own waiting row, which no dancing place is on.
+ */
+function crossFrom(group: Group, station: StationId): EndPose {
+  const s = groupStation(group, station);
+  return {
+    // Local `+y` runs along the frame's axis, and a wait frame is turned end
+    // for end at the bottom of the set, so `+y` is "one place back along my own
+    // line" at both ends — the same sign `BECKET_BEFORE_SLIDE` uses.
+    p: framePoint(group.frame, [s.p[0], s.p[1] + COUPLE_PITCH_PX]),
+    facing: frameAngle(group.frame, s.facing),
+  };
+}
 
 /**
  * The engine's parameters, with the crossing filled in.
@@ -73,7 +170,7 @@ function resolve(group: Group, params: ContraWaitOutParams): WaitOutParams {
 
 /** The engine's defaults, less the crossing this figure works out for itself. */
 function stripCrossing(defaults: Omit<WaitOutParams, "beats">): Omit<ContraWaitOutParams, "beats"> {
-  const rest: Record<string, unknown> = { ...defaults };
+  const rest: Record<string, unknown> = { ...defaults, crossShort: false };
   delete rest["crossTo"];
   return rest as Omit<ContraWaitOutParams, "beats">;
 }
@@ -99,6 +196,7 @@ function crossTogether(
   t: Beat,
   beats: Beat,
   params: WaitOutParams,
+  crossShort: boolean,
 ): PoseSample {
   const home = groupStationPose(group, station);
   const other = group.stations.find((s) => s.id !== station);
@@ -107,12 +205,16 @@ function crossTogether(
   const centre = group.frame.centre;
   const mid: Vec2 = [(home.p[0] + mate.p[0]) / 2, (home.p[1] + mate.p[1]) / 2];
   const offset: Vec2 = [home.p[0] - mid[0], home.p[1] - mid[1]];
-  // The couple lands opposite where it *started* the figure, which is the
-  // waiting place unless the dance progressed in its own first figure and the
-  // couple slid into the waiting place from one place back. `wait-out`'s own
-  // `ends` say the same thing, and the two have to agree to 0.01 px.
-  const from = waitOutStart(group, params, station);
-  const fromMate = waitOutStart(group, params, other.id);
+  // Where the crossing is reckoned from: one couple place back along the
+  // couple's own line when the planner asked for the short landing
+  // ({@link crossFrom}), and otherwise where the couple started the figure —
+  // the waiting place unless the dance progressed in its own first figure and
+  // the couple slid into the waiting place from one place back. `ends` says the
+  // same thing either way, and the two have to agree to 0.01 px.
+  const at = (id: StationId): EndPose =>
+    crossShort ? crossFrom(group, id) : waitOutStart(group, params, id);
+  const from = at(station);
+  const fromMate = at(other.id);
   const midFrom: Vec2 = [(from.p[0] + fromMate.p[0]) / 2, (from.p[1] + fromMate.p[1]) / 2];
 
   const k = smooth(t / beats);
