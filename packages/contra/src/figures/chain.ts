@@ -68,6 +68,32 @@ export interface ContraDanceSpec {
   startPlaces?: Spots;
   /** Parameters for the waiting couple's `wait-out`; see `Dance.waitOut`. */
   waitOut?: object;
+  /**
+   * How far each role progresses in one time through, in dancing places.
+   *
+   * Left out is `{ lark: 1, robin: 1 }` — the single progression every dance in
+   * the demo programme dances, and what the formation's own `Progression.next`
+   * answers. A dance that progresses both roles the same whole number of places
+   * (M9's triple-progression Set Monster) writes that number for both; a dance
+   * that progresses them **differently** — Cary Ravitz's Contrablend, "M1, W3"
+   * — writes both, and the set re-partners at the boundary because a lark and
+   * the robin they started beside no longer end on one place. See
+   * `set/lattice.ts`, which is what reads it.
+   */
+  progression?: Readonly<Record<string, number>>;
+}
+
+/**
+ * A contra dance, with the one contra fact a `Dance` does not carry.
+ *
+ * `Dance` is `@caller/choreo`'s and stays form-neutral (AC7): it knows nothing
+ * about larks, robins or progressions. A contra dance's own per-role
+ * progression rides along on the object, where only `@caller/contra` reads it
+ * (`set/lattice.ts`'s `progressionOf`), so the record can say "M1, W3" without
+ * the engine learning what a robin is.
+ */
+export interface ContraDance extends Dance {
+  progression?: Readonly<Record<string, number>>;
 }
 
 /**
@@ -102,10 +128,36 @@ export function chainCalls(
   const middle: HandJoin[][] = [];
   for (const call of calls) {
     const def = contraFigureOf(call.figure);
-    if (!def) {
-      throw new Error(
-        `chainCalls: "${call.figure}" is not a contra figure; the engine's own figures cannot be chained`,
-      );
+    if (!def || reachesPastTheFour(call)) {
+      // **A call the hands-four template cannot answer threads nothing.**
+      //
+      // Two of them since M6. One is a figure with no coded twin: a
+      // `FigureDefinition` such as `pull-by`, or a figure a later milestone
+      // still owes such as `shoulder-round`. The other is a call that reaches
+      // **past the minor set** — "allemande N4", "roll away your shadow" — which
+      // a four-station template has no dancer for at all, and which the coded
+      // figure's own pairing would throw on at *load* time, taking the whole
+      // package's import down with it.
+      //
+      // The chain is dead weight on the new path either way: `planCycle` strips
+      // `from` and `carried` back out and derives both from set state. So the
+      // honest answer is to carry the places through unchanged and let
+      // resolution do the work; the old path cannot dance such a dance at all,
+      // and says so where it tries. The ten demo dances name nothing of the
+      // kind, and AC1's golden — which compares the new path against this
+      // threading — is what proves they still thread exactly as they did.
+      out.push({
+        figure: call.figure,
+        beats: call.beats,
+        params: { ...(call.params ?? {}), from: places },
+        ...(call.who === undefined ? {} : { who: call.who }),
+        ...(call.group === undefined ? {} : { group: call.group }),
+        ...(call.call === undefined ? {} : { call: call.call }),
+        ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
+      });
+      ending.push([]);
+      middle.push([]);
+      continue;
     }
     const from = places;
     const params = withDefaults<ContraParams>(def, { ...(call.params ?? {}), from }, call.beats);
@@ -131,6 +183,30 @@ export function chainCalls(
   }
   carryHolds(out, ending, middle);
   return { calls: out, ends: places };
+}
+
+/**
+ * Whether a call names somebody a four-station template has no dancer for.
+ *
+ * Every relation word but `partner` and `neighbor` reaches outside the minor
+ * set on both contra lattices — N0 and N2 upward are other fours by
+ * construction, and a shadow is two places along — so a call that names one
+ * cannot be threaded against the template, and `chainCalls` carries the places
+ * through instead. Written as a word test here rather than read off the
+ * relation table, because the table lives in `set/` and this module is the
+ * *load*-time half that `set/` is built to replace.
+ */
+function reachesPastTheFour(call: ContraCall): boolean {
+  const params = call.params as Record<string, unknown> | undefined;
+  for (const value of [call.who, params?.["pairs"]]) {
+    if (typeof value !== "string") continue;
+    if (
+      /^(n0|n[2-9]|s\d+|shadows?|t\d+|trail-buddy|c\d+|corners?|opposites?)$/i.test(value.trim())
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -187,7 +263,7 @@ function addCarried(call: FigureCall, way: "in" | "out", joins: readonly HandJoi
  * A dance from its phrases, with every call's places threaded through it and
  * the whole thing checked by the engine's own `validateDance`.
  */
-export function contraDance(spec: ContraDanceSpec): Dance {
+export function contraDance(spec: ContraDanceSpec): ContraDance {
   const stations = spec.formation.group(4);
   const places = danceStart(spec, stations);
   // Threaded as one run and cut back into phrases afterwards, so a hold carries
@@ -207,7 +283,7 @@ export function contraDance(spec: ContraDanceSpec): Dance {
     });
     at += phrase.figures.length;
   }
-  return validateDance({
+  const dance: ContraDance = {
     slug: spec.slug,
     title: spec.title,
     author: spec.author,
@@ -216,7 +292,10 @@ export function contraDance(spec: ContraDanceSpec): Dance {
     ...(spec.notes === undefined ? {} : { notes: spec.notes }),
     ...(spec.startPlaces === undefined ? {} : { startPlaces: { ...spec.startPlaces } }),
     ...(spec.waitOut === undefined ? {} : { waitOut: { ...spec.waitOut } }),
-  });
+    ...(spec.progression === undefined ? {} : { progression: { ...spec.progression } }),
+  };
+  validateDance(dance);
+  return dance;
 }
 
 /** The dancing group's own first places, or `undefined` for the stations. */

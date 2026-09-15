@@ -23,7 +23,8 @@ import type { FigureDefinition, FigureRole } from "../library/FigureDefinition.j
 import type { Library } from "../library/Library.js";
 import { paramDefaults } from "../library/interpret.js";
 import { homeOf, type SetModel } from "./SetModel.js";
-import { isRelationWord, parseRelation, relate } from "./relations.js";
+import { lanePlaces, relatedPairs, relationLeavesTheFour } from "./lattice.js";
+import { isRelationWord, isSymmetricRelation, parseRelation, relate } from "./relations.js";
 import { setRulesOf } from "./SetRules.js";
 
 /**
@@ -112,6 +113,16 @@ export interface ResolveContext {
 export const HOLD_PLACE_FIGURE = "walk-to-station";
 
 /**
+ * A definition whose `roles` is exactly this has **one part per dancer**, named
+ * by the slot they stand on.
+ *
+ * What a figure danced by a whole line needs: how many parts a long wave has is
+ * how long the hall is, so a definition cannot name them. Its shape reads the
+ * wildcard track instead (`kinds/pathM6.ts`).
+ */
+export const LANE_ROLES = "*";
+
+/**
  * One call, resolved: the instances it dances, in partition order, each
  * followed by the hold-place instance for whoever that group left out.
  *
@@ -125,10 +136,20 @@ export const HOLD_PLACE_FIGURE = "walk-to-station";
  */
 export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): FigureInstance[] {
   const def = ctx.library.get(call.figure);
-  if (def.actors !== "all" && def.actors !== "pairs" && def.actors !== "ring") {
+  if (
+    def.actors !== "all" &&
+    def.actors !== "pairs" &&
+    def.actors !== "ring" &&
+    def.actors !== "line"
+  ) {
     throw new Error(`unsupported: actors "${def.actors}" on "${def.id}" (M7)`);
   }
-  if (def.anchor !== "hands-four" && def.anchor !== "meet" && def.anchor !== "centroid") {
+  if (
+    def.anchor !== "hands-four" &&
+    def.anchor !== "meet" &&
+    def.anchor !== "centroid" &&
+    def.anchor !== "lane"
+  ) {
     throw new Error(`unsupported: anchor "${JSON.stringify(def.anchor)}" on "${def.id}" (M4)`);
   }
 
@@ -149,6 +170,8 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
     ...paramDefaults(def),
     ...(call.params as Record<string, unknown> | undefined),
   };
+  const lane = laneFor(call, def, ctx, selector, params);
+  if (lane !== undefined) return resolveInLane(call, def, ctx, at, params, lane);
   const out: FigureInstance[] = [];
   for (const plan of ctx.groups) {
     // A group this call's partition left standing out dances nothing here: its
@@ -213,6 +236,226 @@ export function resolveCall(call: FigureCall, ctx: ResolveContext, at: Beat): Fi
   }
   return out;
 }
+
+/**
+ * **The lane**: the whole set as one pool, when a call reaches past the four
+ * (Q15, Q16).
+ *
+ * Every cross-set call the corpus writes — Whoosh's grand right and left out to
+ * N3 and back, its long wave down the whole set, A Rare Bird's hey along the
+ * sides, a balance of the ring with the shadow — names its actors by a
+ * **relation** rather than by a group. So resolution stops asking the formation
+ * to cut the set up and asks the lattice who is who: `groupsFor` is left doing
+ * the two things it is actually the authority on, the hall's **seating** and
+ * **the outs**, and everything else is an offset.
+ *
+ * The pool is every dancer in a `kind: "set"` group — that is, everybody the
+ * hands-four partition has dancing this time through. The couples standing out
+ * at the two ends are not in it and still get their own `wait-out`, which is the
+ * cross-set plan's own ruling kept: the outs are the formation's business.
+ *
+ * ### The frame is the set's, built once for the call
+ *
+ * Q16: "one frame per call for the whole set, in which slots are points". A
+ * lane instance's frame is `model.frame`, so a pull-by that runs between two
+ * minor sets has one frame rather than two, and a long wave has one for the
+ * whole line. A call that *doesn't* leave the four keeps the minor-set frame it
+ * has always had — see {@link laneFor} for why that distinction is drawn by
+ * measurement rather than by taste.
+ */
+export interface LanePool {
+  /** Everybody dancing this call, by dancer id. */
+  among: ReadonlySet<DancerId>;
+  /** The stations of the whole lane, one per dancer, in lattice order. */
+  plan: GroupPlan;
+  /** How the actors are cut up: pairs by a relation, or the whole line at once. */
+  pairs?: Array<[DancerId, DancerId]>;
+}
+
+/**
+ * Whether this call has to be resolved in the lane, and the pool if it does.
+ *
+ * **Measured, not declared.** A call whose `actors` is `"line"` always is — a
+ * long wave is the whole set by definition. Otherwise the pairing is worked out
+ * over the whole set first, and the lane is used only if some pair it produces
+ * spans two minor sets. Every call written before this milestone pairs partners
+ * or neighbours, which are inside the four by construction, so every one of them
+ * takes the old path with the old frame and the old group ids, and the ten demo
+ * dances are untouched. `undefined` means "the four is enough".
+ */
+function laneFor(
+  call: FigureCall,
+  def: FigureDefinition,
+  ctx: ResolveContext,
+  selector: GroupSelector,
+  params: Record<string, unknown>,
+): LanePool | undefined {
+  const among = new Set<DancerId>();
+  const order: DancerId[] = [];
+  for (const plan of ctx.groups) {
+    if (plan.kind !== "set") continue;
+    const denied = excludedByEnds(ctx.formation, selector, call.ends, plan.stations);
+    for (const station of plan.stations) {
+      const dancer = plan.members[station.id];
+      if (dancer === undefined || denied.has(station.id)) continue;
+      if (ctx.model.dancers[dancer] === undefined || among.has(dancer)) continue;
+      among.add(dancer);
+      order.push(dancer);
+    }
+  }
+  if (among.size === 0) return undefined;
+  const plan = (): GroupPlan => lanePlan(ctx, order);
+
+  if (def.actors === "line") return { among, plan: plan() };
+
+  const reaches =
+    typeof call.who === "string" &&
+    !ctx.formation.tags(selector)[call.who] &&
+    isRelationWord(call.who) &&
+    relationLeavesTheFour(parseRelation(call.who));
+  if (def.actors !== "pairs") return reaches ? { among, plan: plan() } : undefined;
+
+  const word = params["pairs"];
+  if (typeof word !== "string" || !isRelationWord(word))
+    return reaches ? { among, plan: plan() } : undefined;
+  const rel = parseRelation(word);
+  if (!isSymmetricRelation(rel)) {
+    throw new Error(`"${word}" is directional and cannot pair a set up; it selects actors`);
+  }
+  const pairs = relatedPairs(ctx.model, rel, among);
+  const inFours = pairs.every(([a, b]) => sameFour(ctx, a, b));
+  if (inFours && !reaches) return undefined;
+  return { among, plan: plan(), pairs };
+}
+
+/** Whether these two dancers are in the same `kind: "set"` group of this partition. */
+function sameFour(ctx: ResolveContext, a: DancerId, b: DancerId): boolean {
+  for (const plan of ctx.groups) {
+    if (plan.kind !== "set") continue;
+    const here = Object.values(plan.members);
+    if (here.includes(a)) return here.includes(b);
+  }
+  return false;
+}
+
+/**
+ * The whole lane as one `GroupPlan`: a station per dancer, in the set's own
+ * frame, named by the slot they are standing on.
+ *
+ * A station id is `L<line>@<position>` rather than a hands-four station name,
+ * because a lane has no `1L`: the whole point is that the four has stopped being
+ * the unit. It is stable within a time through and readable in a resolution
+ * table, which is what `pnpm dance`'s end-effects rows print.
+ */
+function lanePlan(ctx: ResolveContext, order: readonly DancerId[]): GroupPlan {
+  const stations: Station[] = [];
+  const members: Record<StationId, DancerId> = {};
+  const along = [...order].sort((a, b) => {
+    const x = ctx.model.dancers[a]!.slot;
+    const y = ctx.model.dancers[b]!.slot;
+    return x.position - y.position || x.line - y.line;
+  });
+  for (const dancer of along) {
+    const state = ctx.model.dancers[dancer]!;
+    const id = slotStation(state.slot);
+    const spot = localSpot(ctx, dancer, ctx.model.frame);
+    stations.push({ id, role: state.role, p: spot.p, facing: spot.facing });
+    members[id] = dancer;
+  }
+  return {
+    id: `${ctx.model.id}/lane`,
+    kind: "set",
+    frame: ctx.model.frame,
+    stations,
+    members,
+    couples: [...new Set(ctx.groups.flatMap((p) => p.couples))],
+  };
+}
+
+/** A slot, as a station id of the lane: `L1@3` is line 1, position 3. */
+export const slotStation = (slot: { line: number; position: number }): StationId =>
+  `L${String(slot.line)}@${String(slot.position)}`;
+
+/**
+ * One call, resolved in the lane.
+ *
+ * The same three answers the four gives — the instances, the sibling centres
+ * each one has to clear, and a hold-place instance for whoever is left — read
+ * off the whole set instead of off one minor set. **Whoever a relation leaves
+ * out is left out**, which is M6's whole end-of-set rule: a dancer at the end of
+ * the line whose N3 is off the end dances hold-place for that call, and
+ * `pnpm dance` prints an end-effects table saying who and where.
+ */
+function resolveInLane(
+  call: FigureCall,
+  def: FigureDefinition,
+  ctx: ResolveContext,
+  at: Beat,
+  params: Record<string, unknown>,
+  lane: LanePool,
+): FigureInstance[] {
+  const plan = lane.plan;
+  // **`actors: "line"` is one instance per line of the lattice**, not one for
+  // the whole set. That is what a long wave is — the dancers of one line, joined
+  // along it — and what a grand right and left is: two of them, one down each
+  // line, passing nobody across the set. `"ring"` in the lane is the whole pool.
+  const dancing: StationId[][] =
+    def.actors === "line"
+      ? byLine(ctx, plan)
+      : def.actors === "ring"
+        ? [plan.stations.map((s) => s.id)]
+        : (lane.pairs ?? []).map(([a, b]) => [slotOfDancer(ctx, a), slotOfDancer(ctx, b)]);
+
+  const places = def.ends === "home" ? lanePlaces(ctx.model, plan.frame) : [];
+  const instances: FigureInstance[] = [];
+  for (const stations of dancing) {
+    if (stations.length === 0) continue;
+    instances.push({
+      ...dataInstance(call, def, stations, plan, ctx, at, params),
+      params: { ...params, places, nearby: [] },
+    });
+  }
+  const centres = instances.map((instance) => instanceCentre(instance));
+  const out: FigureInstance[] = [];
+  for (const instance of instances) {
+    instance.params["nearby"] = centres;
+    out.push(instance);
+  }
+
+  const taken = new Set(dancing.flat());
+  const resting = plan.stations.map((s) => s.id).filter((id) => !taken.has(id));
+  if (resting.length > 0) {
+    out.push({
+      figure: HOLD_PLACE_FIGURE,
+      params: {},
+      cast: castOf(plan, resting),
+      group: plan,
+      frame: plan.frame,
+      start: at,
+      beats: call.beats,
+      holdPlace: true,
+    });
+  }
+  return out;
+}
+
+/** The lane's stations, cut into its two lines, each in order along the set. */
+function byLine(ctx: ResolveContext, plan: GroupPlan): StationId[][] {
+  const lines = new Map<number, StationId[]>();
+  for (const station of plan.stations) {
+    const dancer = plan.members[station.id];
+    if (dancer === undefined) continue;
+    const { line } = ctx.model.dancers[dancer]!.slot;
+    const seen = lines.get(line);
+    if (seen) seen.push(station.id);
+    else lines.set(line, [station.id]);
+  }
+  return [...lines.keys()].sort((a, b) => a - b).map((line) => lines.get(line)!);
+}
+
+/** The lane station one dancer is standing on. */
+const slotOfDancer = (ctx: ResolveContext, dancer: DancerId): StationId =>
+  slotStation(ctx.model.dancers[dancer]!.slot);
 
 /** One instance of a data figure: a group whose stations are its figure-roles. */
 function dataInstance(
@@ -284,6 +527,12 @@ function castRoles(
   plan: GroupPlan,
   ctx: ResolveContext,
 ): Record<FigureRole, DancerId> {
+  // **A lane figure's parts are its dancers' own slots.** A long wave or a
+  // grand right and left has one part per dancer of a line and no definition
+  // can write their names down, because how many there are is how long the
+  // hall is. `roles: ["*"]` says so, and the wildcard track in `kinds/pathM6.ts`
+  // is what a definition writes instead of a part per name.
+  if (def.roles.length === 1 && def.roles[0] === LANE_ROLES) return castOf(plan, stations);
   if (stations.length > def.roles.length) {
     throw new Error(
       `figure "${def.id}" has ${String(def.roles.length)} roles ` +

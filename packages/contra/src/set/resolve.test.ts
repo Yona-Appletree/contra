@@ -71,10 +71,12 @@ describe("resolving one call against the set", () => {
     expect(Object.keys(byRelation[0]!.cast).sort()).toEqual(["1L", "1R", "2L", "2R"]);
   });
 
-  it("refuses a relation the formation has not built, by name", () => {
-    expect(() => resolveCall({ ...swing, who: "N2" }, context(4), 0)).toThrow(
-      "unsupported: N2 (M6)",
-    );
+  it("no longer refuses a relation that reaches past the minor set (M6)", () => {
+    // M1 threw `unsupported: N2 (M6)` here. The tables answer every relation
+    // now, so a `who` that names one resolves; whether anybody it names is
+    // *reachable* is the pool's question, not the table's, and the hands-four
+    // pool answers nobody — see `lane.test.ts` for the pool that answers.
+    expect(() => resolveCall({ ...swing, who: "N2" }, context(4), 0)).not.toThrow();
   });
 
   it("names the start beat it was resolved at", () => {

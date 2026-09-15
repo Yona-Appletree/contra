@@ -42,8 +42,11 @@ import type { Library } from "../library/Library.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { figureFor } from "../library/interpret.js";
 import { legacyLibrary } from "../library/legacy.js";
+import { progressionOf, progressSet } from "./lattice.js";
+import { parseRelation, relate } from "./relations.js";
 import type { FigureInstance } from "./resolve.js";
 import { resolveCall } from "./resolve.js";
+import { setRulesOf } from "./SetRules.js";
 import type { SetModel } from "./SetModel.js";
 import { modelFromSet } from "./SetModel.js";
 
@@ -354,6 +357,7 @@ function planContraCycle(
         });
 
         advance(fig, chainParams, group, model, local, instance, planned, lastInstance);
+        rebind(instance, model);
         claim(Object.values(instance.cast), offset, offset + instance.beats);
       }
       // A call `ends` kept away from a widened group's true end claims those
@@ -409,21 +413,74 @@ function planContraCycle(
     }
   }
 
+  // **The cycle boundary, on the slots** (M6, Q14). Every dancer's slot moves by
+  // their own role's share of the dance's progression and the hall's seating is
+  // read back off where that leaves them. For the single progression every
+  // dance in the programme dances, that is the formation's own
+  // `Progression.next`, unchanged — see `lattice.ts` for the two paths and why.
+  const shift = progressionOf(dance);
   return {
     emissions,
-    next: { sets: hall.sets.map((set) => formation.progression.next(set)) },
+    next: {
+      sets: hall.sets.map((set) => progressSet(formation, models.get(set.id)!, set, shift)),
+    },
   };
 }
 
 /** Nothing carried either way; `contraFigure`'s own default, spelled out. */
 const NO_CARRIED: Carried = { in: {}, out: {} };
 
-/** A call's own parameters, with the two the chain derives stripped back out. */
+/** A call's own parameters, with the three resolution derives stripped back out. */
 function callParams(instance: FigureInstance): Record<string, unknown> {
   const rest = { ...instance.params };
   delete rest["from"];
   delete rest["carried"];
+  // `rebind` is a fact about the *set*, not about the figure: it says who you
+  // are bound to when the figure lets go. No figure reads it and none should.
+  delete rest[REBIND_PARAM];
   return rest;
+}
+
+/**
+ * The call-level parameter that says a figure's ends **rebind** somebody (Q14).
+ *
+ * Written in a dance record as `"params": { "rebind": { "partner": "shadow" } }`,
+ * which reads "when this figure lets go, whoever was your shadow is your
+ * partner". Contrablend's second roll-away is the one call in the acceptance
+ * set that needs it — the transcript's own "(new partner)" — and the binding it
+ * writes is what every "partner" call after it means.
+ *
+ * It rides in `params` rather than on `FigureCall` because `FigureCall` is
+ * `@caller/choreo`'s and "partner" is a contra word (AC7), and it is stripped
+ * back out before the figure is planned so no figure can read it.
+ */
+export const REBIND_PARAM = "rebind";
+
+/** What a `rebind` parameter says: a binding, and the relation it is rebound to. */
+interface RebindSpec {
+  partner?: string;
+}
+
+/**
+ * Apply a call's rebinding to the dancers it cast.
+ *
+ * Every new binding is worked out **before** any of them is written, so a
+ * roll-away that rebinds a whole set does not read a binding it has just
+ * changed. A relation that names nobody leaves the binding alone, which is the
+ * end-of-set rule again: a dancer at the end of the line has no shadow to be
+ * rebound to and keeps the partner they had.
+ */
+function rebind(instance: FigureInstance, model: SetModel): void {
+  const spec = instance.params[REBIND_PARAM] as RebindSpec | undefined;
+  if (spec?.partner === undefined) return;
+  const rel = parseRelation(spec.partner);
+  const table = setRulesOf(model.formation).relations;
+  const bound = new Map<DancerId, DancerId>();
+  for (const dancer of Object.values(instance.cast)) {
+    const other = relate(model, table, dancer, rel);
+    if (other !== undefined) bound.set(dancer, other);
+  }
+  for (const [dancer, other] of bound) model.dancers[dancer]!.partner = other;
 }
 
 /**

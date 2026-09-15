@@ -1,7 +1,7 @@
 import { danceSchedule, validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import type { DanceLabReport } from "./danceLab.js";
-import { danceLabReport, danceResolution, labCouples } from "./danceLab.js";
+import { danceLabReport, danceResolution, endEffects, labCouples } from "./danceLab.js";
 import { ALL_DANCES, DEMO_DANCES, danceBySlug } from "./index.js";
 import { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
@@ -148,12 +148,25 @@ describe("the dance lab", () => {
     expect(swing.carriedIn).toContain("c0/lark.L↔c0/robin.R");
   });
 
-  it("prints the four sections `pnpm dance` promises", () => {
+  it("prints the sections `pnpm dance` promises", () => {
     const report = REPORTS.get("butter")!;
     expect(report.text).toContain("## 1. Resolution");
     expect(report.text).toContain("## 2. Oracles");
-    expect(report.text).toContain("## 3. Motion");
+    expect(report.text).toContain("## 3. End effects");
+    expect(report.text).toContain("## 4. Motion");
     expect(report.text).toContain("resolution, oracles and motion: green");
+  });
+
+  it("says which calls a relation leaves whom out of, at which end (M6)", () => {
+    // Airpants at three couples: one couple waits every time through, so the
+    // two calls that name `neighbors` answer nobody for them.
+    const rows = endEffects(AIRPANTS, 3);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(new Set(rows.map((r) => r.figure))).toEqual(new Set(["balance-and-swing", "do-si-do"]));
+    expect(new Set(rows.map((r) => r.end))).toEqual(new Set(["bottom"]));
+    expect(new Set(rows.map((r) => r.dancer))).toEqual(new Set(["set0/c2/lark", "set0/c2/robin"]));
+    // An even line has a couple out at each end and nobody's neighbour missing.
+    expect(endEffects(AIRPANTS, 4)).toEqual([]);
   });
 
   for (const dance of DEMO_DANCES) {

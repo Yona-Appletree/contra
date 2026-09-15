@@ -26,7 +26,6 @@ import {
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 import type { RelationTable } from "../set/relations.js";
-import { unsupportedRelation } from "../set/relations.js";
 import type { SetLattice } from "../set/SetModel.js";
 import type { ShadowPart } from "./shadowSeam.js";
 import { partitionShadowSeams } from "./shadowSeam.js";
@@ -476,9 +475,17 @@ export const DUPLE_IMPROPER: Formation = {
 export const DUPLE_IMPROPER_LATTICE: SetLattice = {
   id: "duple-improper",
   pitch: PLACE_PITCH_PX,
+  // A duple improper couple trades places with the one it is dancing with,
+  // which is one place the way it travels: one position per unit of travel.
+  progressionStep: 1,
   slotOf(couple: CoupleState, role: RoleName) {
     const onPlus = (role === "lark") === (couple.direction === 1);
     return { line: onPlus ? 1 : 0, position: couple.place };
+  },
+  placeOf(slot, role: RoleName) {
+    // `slotOf` puts a dancer on the `+x` line exactly when their role and their
+    // couple's direction agree, so the line says the direction back.
+    return { place: slot.position, direction: (role === "lark") === (slot.line === 1) ? 1 : -1 };
   },
   homeAt(slot, travel) {
     return {
@@ -489,28 +496,86 @@ export const DUPLE_IMPROPER_LATTICE: SetLattice = {
 };
 
 /**
- * Duple improper's relations, as offsets on the lattice (Q1).
+ * Duple improper's relations, as offsets on the lattice (Q1) — **complete**
+ * since M6.
+ *
+ * One position per couple place, two lines. Every row below is a signed offset
+ * in `(line, position)` read from where the asking dancer stands, their own
+ * `travel`, and — for the two rows that need a side — their role, through
+ * `side` below.
  *
  * - **Partner** is the other line at the same position: you stand across the
- *   set from your partner, which is what improper means.
- * - **Neighbour k** is the same line at `position + (2k − 1) × travel`: the
- *   couple you are dancing this time through with is one place along the way
- *   you are travelling, the next one two places further, and so on. M1 builds
- *   `k = 1`; M6 opens the rest, together with shadow, opposite and the
- *   end-of-set policy for a slot nobody stands on.
+ *   set from your partner, which is what improper means. **Opposite** is the
+ *   same offset by a different name: "opposite" is the geometric word for the
+ *   dancer straight across the set, and in an improper set that is your
+ *   partner. (In becket it is your neighbour — which is the whole reason this
+ *   table is the formation's.)
+ * - **Neighbour k** is the same line at `position + (2k − 1) × travel`. The
+ *   couple you are dancing with is one place along the way you are travelling
+ *   (k = 1); after the next progression you will be one place along and your
+ *   new neighbour one place beyond that, so the neighbour you have *next* is
+ *   three places along (k = 2), the one after that five (k = 3), and so on.
+ *   `N0` is the one you had last time through, one place **behind** you. Each
+ *   is its own inverse, because the dancer it names travels the other way.
+ * - **Shadow k** is the opposite-role dancer who progresses the way *you* do —
+ *   so you never dance with them and never lose them — `2k` places along the
+ *   set on the other line, on the opposite side of you from your partner. The
+ *   side is {@link partnerSide}, which makes the row its own inverse: a lark's
+ *   shadow is `2k` places **behind** and a robin's `2k` places **ahead**.
+ *   `data/dances/contrablend.json` is the evidence for the sign rather than a
+ *   convention: Contrablend's two roll-aways progress the larks one place and
+ *   the robins three, and the transcript says the shadow roll-away leaves you
+ *   with a **new partner** — which is true exactly when the shadow is the
+ *   dancer this row names and false for the dancer two places the other way.
+ * - **Trail buddy k** is the same-role dancer `k` couple places ahead of you in
+ *   your own direction of travel, and **corner k** is one of the two dancers of
+ *   the couple you are dancing with. Both are **(unsure)**: nothing calls them
+ *   yet, no dance in the acceptance set pins their sign, and M7 (contra
+ *   corners, Chorus Jig) and M9 own the figures that will. They are here so the
+ *   table has a row rather than a throw, and they are directional, so
+ *   `isSymmetricRelation` keeps them out of every pairing.
  */
 export const DUPLE_IMPROPER_RELATIONS: RelationTable = {
   id: "duple-improper",
   slotFor(rel, from) {
-    if (rel.kind === "partner") {
-      return { line: from.slot.line === 1 ? 0 : 1, position: from.slot.position };
+    const { line, position } = from.slot;
+    const other = line === 1 ? 0 : 1;
+    const t = from.travel;
+    switch (rel.kind) {
+      case "partner":
+      case "opposite":
+        return { line: other, position };
+      case "neighbor":
+        return { line, position: position + (2 * rel.k - 1) * t };
+      case "shadow":
+        return { line: other, position: position - partnerSide(from.role) * 2 * rel.k * t };
+      case "trail-buddy":
+        return { line, position: position + 2 * rel.k * t };
+      case "corner":
+        // The two dancers of the couple you are dancing with: the one along the
+        // line from you (your neighbour) and the one diagonally across. (unsure)
+        return rel.k === 1
+          ? { line: other, position: position + t }
+          : { line, position: position + t };
+      case "self":
+        return from.slot;
     }
-    if (rel.kind === "neighbor" && rel.k === 1) {
-      return { line: from.slot.line, position: from.slot.position + from.travel };
-    }
-    throw unsupportedRelation(rel, "M6");
   },
 };
+
+/**
+ * Which way along the set a dancer's own partner side runs, `+1` or `−1`.
+ *
+ * The one number that makes `shadow` its own inverse. A relation that steps
+ * *along* the set toward a dancer of the other role cannot be symmetric with a
+ * single sign — step once more and you land two places further on, not back
+ * where you came from — so the sign has to be something the two dancers
+ * disagree about, and the only such thing they both know is which role they
+ * take. Becket's table reads the same number for the same reason, and uses it
+ * for `partner` as well, because in becket the robin really does stand on the
+ * lark's right **along** the line.
+ */
+export const partnerSide = (role: RoleName): 1 | -1 => (role === "lark" ? 1 : -1);
 
 /** The group selectors duple improper defines beyond `"hands-four"`. */
 export const SHADOW_PAIR_GROUP: GroupSelector = "shadow-pair";

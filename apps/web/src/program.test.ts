@@ -1,6 +1,6 @@
 import type { Dance } from "@caller/choreo";
 import { poseAt } from "@caller/choreo";
-import { DEMO_DANCES } from "@caller/contra";
+import { ALL_DANCES, DEMO_DANCES, DUPLE_IMPROPER, danceOwes } from "@caller/contra";
 import { layoutHall } from "@caller/hall";
 import { medleys } from "@caller/music";
 import { describe, expect, it } from "vitest";
@@ -243,19 +243,52 @@ describe("danceOrder and the two engines (M3)", () => {
   });
 
   /*
-   * No lab dance exists yet (`LAB_DANCES` is empty), and adding one to make a
-   * test pass would put a half-encoded dance in the repository. So the rule is
-   * tested against fixtures: a dance the programme does not hold but the
-   * package does leads the evening, one item longer than the programme.
+   * A dance the programme does not hold but the package does leads the evening,
+   * one item longer than the programme — tested against a fixture so the rule
+   * is about the rule rather than about whichever lab dance exists this week.
    */
+  const labDance = (slug: string, figure: string): Dance => ({
+    slug,
+    title: slug,
+    author: "fixture",
+    formation: DUPLE_IMPROPER.id,
+    phrases: (["A1", "A2", "B1", "B2"] as const).map((name) => ({
+      name,
+      figures: [{ figure, beats: 16, params: {} }],
+    })),
+  });
+
   it("puts a lab dance in front of the programme rather than rotating within it", () => {
-    const lab = { slug: "lab-one" } as Dance;
+    const lab = labDance("lab-one", "long-lines");
     const all = [...DEMO_DANCES, lab];
     const order = danceOrder("lab-one", DEMO_DANCES, all);
     expect(order[0]).toBe(lab);
     expect(order).toHaveLength(DEMO_DANCES.length + 1);
     expect(order.slice(1)).toEqual([...DEMO_DANCES]);
     expect(isLabDance("lab-one", DEMO_DANCES, all)).toBe(true);
+  });
+
+  /*
+   * M6 brings the first lab dances that name a figure a later milestone owns.
+   * Such a dance cannot be planned at all — resolution throws on the first call
+   * it reaches — so the evening leaves it out rather than taking the Stage down
+   * with it. Its own page still holds the record and says what it owes.
+   */
+  it("leaves out a lab dance that owes a figure the rebuild has not written", () => {
+    const lab = labDance("lab-owed", "shoulder-round");
+    const all = [...DEMO_DANCES, lab];
+    expect(danceOwes(lab)).toEqual(["shoulder-round"]);
+    expect(danceOrder("lab-owed", DEMO_DANCES, all)).toEqual([...DEMO_DANCES]);
+    // It is still a lab dance, and the Dances tab still lists it.
+    expect(isLabDance("lab-owed", DEMO_DANCES, all)).toBe(true);
+  });
+
+  it("holds the three dances M6 encoded, each as a lab dance", () => {
+    for (const slug of ["whoosh", "contrablend", "a-rare-bird"]) {
+      const dance = ALL_DANCES.find((d) => d.slug === slug);
+      expect(dance, slug).toBeDefined();
+      expect(isLabDance(slug), slug).toBe(true);
+    }
   });
 
   it("builds a programme that dances on either engine", () => {

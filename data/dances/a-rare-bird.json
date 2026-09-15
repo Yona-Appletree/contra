@@ -1,0 +1,103 @@
+{
+  "slug": "a-rare-bird",
+  "title": "A Rare Bird",
+  "author": "Bob Isaacs",
+  "formation": "duple-improper",
+  "status": "lab",
+  "notes": "The Caller's Box 10247, permission: full. Its A1 is a hey along the sides written out as what it is — passes and shoulder rounds with N1, N2 and N3 — so it needs no hey-specific figure at all, only the relations.",
+  "source": {
+    "callersBoxId": 10247,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10247",
+    "permission": "full",
+    "transcript": "A1  (16) Hey along sides: (2) Pass through along (NR)  (2) Pass through along (N2L)  (6) N3 neighbor right shoulder round 1  (2) Pass through along (N2L)  (4) N1 neighbor right shoulder round 1/2\nA2  (4) Single file promenade clockwise 1/2 (facing neighbor N1)  (12) N1 neighbor swing\nB1  (6) Circle left 3/4  (10) Partner swing\nB2  (8) In long lines, go forward and back  (6) Star left 3/4  (2) N1 neighbor pull by left"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": { "pairs": "neighbors", "hand": "R" },
+          "call": "PASS ALONG THE LINE BY THE RIGHT"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": { "pairs": "N2", "hand": "L" },
+          "call": "PASS THE NEXT BY THE LEFT"
+        },
+        {
+          "figure": "shoulder-round",
+          "beats": 6,
+          "params": { "pairs": "N3", "hand": "R", "amount": 1 },
+          "call": "RIGHT SHOULDER ROUND NUMBER THREE"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": { "pairs": "N2", "hand": "L" },
+          "call": "PASS BACK BY THE LEFT"
+        },
+        {
+          "figure": "shoulder-round",
+          "beats": 4,
+          "params": { "pairs": "neighbors", "hand": "R", "amount": 0.5 },
+          "call": "HALF A RIGHT SHOULDER ROUND WITH YOUR NEIGHBOUR"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "single-file-promenade",
+          "beats": 4,
+          "params": { "amount": 0.5, "direction": "clockwise" },
+          "call": "SINGLE FILE PROMENADE HALF WAY ROUND"
+        },
+        {
+          "figure": "swing",
+          "beats": 12,
+          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "circle",
+          "beats": 6,
+          "params": { "direction": "left", "places": 3 },
+          "call": "CIRCLE LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "swing",
+          "beats": 10,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        {
+          "figure": "star",
+          "beats": 6,
+          "params": { "hand": "L", "places": 3 },
+          "call": "STAR LEFT THREE QUARTERS"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": { "pairs": "neighbors", "hand": "L" },
+          "call": "PULL BY THE LEFT"
+        }
+      ]
+    }
+  ]
+}

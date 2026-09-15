@@ -14,10 +14,15 @@ import type { DancerState, SetModel, Slot } from "./SetModel.js";
  * the same slot, which is Q1's trap — so the offsets live in a
  * {@link RelationTable} each formation supplies and this module only reads.
  *
- * **M1 builds `partner` and `neighbor` (N1) and nothing else.** Every other
- * relation the corpus uses *parses* here, so a dance record or a transcript can
- * name it and the failure is a clear, milestone-named one rather than a typo;
- * {@link relate} throws `unsupported: <word> (M6)` until M6 fills the table in.
+ * **M1 built `partner` and `neighbor` (N1); M6 fills the table in.** Every
+ * relation the corpus uses now resolves in both contra formations — N0…Nk,
+ * shadow k, opposite — with trail buddy and the corners written as rows nothing
+ * calls yet (see each formation's own table for how far each row is evidenced).
+ *
+ * A relation is still allowed to answer **nobody**: at the end of a line the
+ * slot an offset points at is off the end of the set, and M6's end-of-set rule
+ * is the simplest one there is — the dancer that happens to leaves that call on
+ * hold-place, and `pnpm dance` prints an end-effects table saying so.
  */
 
 /** One relation, parsed. */
@@ -26,6 +31,8 @@ export type Relation =
   | { kind: "neighbor"; k: number }
   | { kind: "shadow"; k: number }
   | { kind: "opposite" }
+  | { kind: "trail-buddy"; k: number }
+  | { kind: "corner"; k: number }
   | { kind: "self" };
 
 /**
@@ -48,8 +55,9 @@ export interface RelationTable {
  *
  * The words are the corpus's own: `partner`, `neighbor` (or `neighbour`), `N0`
  * … `N9` with N1 the current neighbour and N0 the previous one, `shadow`, `S0`
- * … `S9`, `opposite`, and `self` for a figure that names nobody. Plural forms
- * are accepted because `Selector` already uses them (`who: "partners"`).
+ * … `S9`, `opposite`, `trail-buddy` (`T1`…`T9`), `corner` (`C1`…`C9`), and
+ * `self` for a figure that names nobody. Plural forms are accepted because
+ * `Selector` already uses them (`who: "partners"`).
  */
 export function parseRelation(word: string): Relation {
   const w = word.trim().toLowerCase();
@@ -59,11 +67,18 @@ export function parseRelation(word: string): Relation {
   }
   if (w === "shadow" || w === "shadows") return { kind: "shadow", k: 1 };
   if (w === "opposite" || w === "opposites") return { kind: "opposite" };
+  if (w === "trail-buddy" || w === "trail buddy" || w === "trail-buddies") {
+    return { kind: "trail-buddy", k: 1 };
+  }
+  if (w === "corner" || w === "corners") return { kind: "corner", k: 1 };
   if (w === "self") return { kind: "self" };
-  const indexed = /^([ns])(\d+)$/.exec(w);
+  const indexed = /^([nstc])(\d+)$/.exec(w);
   if (indexed) {
     const k = Number(indexed[2]);
-    return indexed[1] === "n" ? { kind: "neighbor", k } : { kind: "shadow", k };
+    if (indexed[1] === "n") return { kind: "neighbor", k };
+    if (indexed[1] === "s") return { kind: "shadow", k };
+    if (indexed[1] === "t") return { kind: "trail-buddy", k };
+    return { kind: "corner", k };
   }
   throw new Error(`not a relation: "${word}"`);
 }
@@ -89,19 +104,46 @@ export function relationWord(rel: Relation): string {
       return rel.k === 1 ? "shadow" : `S${String(rel.k)}`;
     case "opposite":
       return "opposite";
+    case "trail-buddy":
+      return rel.k === 1 ? "trail-buddy" : `T${String(rel.k)}`;
+    case "corner":
+      return rel.k === 1 ? "corner" : `C${String(rel.k)}`;
     case "self":
       return "self";
   }
 }
 
 /**
+ * Whether this relation is **its own inverse**: if it names you somebody, it
+ * names them you.
+ *
+ * Only a symmetric relation can pair a set up (`actors: "pairs"`), because a
+ * pairing has to agree from both ends. `partner`, `neighbor k`, `shadow k` and
+ * `opposite` are symmetric in both contra formations — the tables are written
+ * so that they are, and `relations.test.ts` checks it dancer by dancer over a
+ * six-couple set at every round. `trail-buddy` and `corner` are **directional**
+ * (the buddy you follow is not the buddy who follows you), so they select
+ * actors and never pair them.
+ */
+export const isSymmetricRelation = (rel: Relation): boolean =>
+  rel.kind !== "trail-buddy" && rel.kind !== "corner";
+
+/**
  * Who this relation names, or `undefined` when nobody stands there.
  *
  * `undefined` is an ordinary answer, not a failure: at the end of a line the
- * slot a neighbour offset points at is off the end of the set, and the
- * end-effects policy (M6) is what decides what to do about it. A relation the
- * formation's table has not built throws instead, naming the milestone that
- * owns it.
+ * slot a neighbour offset points at is off the end of the set, and M6's
+ * end-of-set rule is simply that the dancer it leaves out dances hold-place for
+ * that call. A relation the formation's table has not built throws instead,
+ * naming the milestone that owns it.
+ *
+ * **`partner` is the one relation that is not an offset.** It is a *binding* on
+ * the dancer (`DancerState.partner`), which a figure's ends may rebind —
+ * Contrablend's shadow roll-away leaves you with a new partner half way through
+ * the dance, and every "partner" call after it has to mean the new one. The
+ * binding is seeded from the lattice offset when a model is built and re-seeded
+ * from it at every progression, so the two agree everywhere nothing has rebound
+ * anything, which is every dance but Contrablend.
  */
 export function relate(
   model: SetModel,
@@ -112,6 +154,7 @@ export function relate(
   const from = model.dancers[me];
   if (!from) throw new Error(`set "${model.id}" has no dancer "${me}"`);
   if (rel.kind === "self") return me;
+  if (rel.kind === "partner") return from.partner === me ? undefined : from.partner;
   const slot = table.slotFor(rel, from);
   for (const dancer of Object.values(model.dancers)) {
     if (dancer.slot.line === slot.line && dancer.slot.position === slot.position) return dancer.id;

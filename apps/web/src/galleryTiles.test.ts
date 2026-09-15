@@ -1,6 +1,11 @@
 import { dist } from "@caller/core";
 import { poseAt } from "@caller/choreo";
-import { DEMO_DANCES, createContraRegistry } from "@caller/contra";
+import {
+  DATA_ONLY_FIGURE_IDS,
+  DEMO_DANCES,
+  contraDataFigures,
+  createContraRegistry,
+} from "@caller/contra";
 import { describe, expect, test } from "vitest";
 import type { GalleryTile } from "./galleryTiles.js";
 import {
@@ -23,8 +28,15 @@ const figures = figureTiles();
 const seams = seamTiles();
 
 describe("the figure tiles", () => {
-  test("cover every figure the registry holds", () => {
-    expect(figures.map((t) => t.key).sort()).toEqual(createContraRegistry().ids());
+  test("cover every figure the library holds", () => {
+    // The coded figures, plus the ones that are **only** data (M6's `pull-by`
+    // and `grand-right-and-left` have no coded twin at all), plus the engine's
+    // `wait-out` and `walk-to-station`.
+    expect(figures.map((t) => t.key).sort()).toEqual(
+      createContraRegistry(
+        contraDataFigures().filter((def) => DATA_ONLY_FIGURE_IDS.includes(def.id)),
+      ).ids(),
+    );
   });
 
   test.each(figures)(

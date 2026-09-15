@@ -10,7 +10,7 @@ import type {
   Side,
 } from "@caller/choreo";
 import { frameAngle, framePoint } from "@caller/choreo";
-import { relate } from "./relations.js";
+import type { RelationTable } from "./relations.js";
 import { setRulesOf } from "./SetRules.js";
 
 /**
@@ -115,8 +115,32 @@ export interface SetLattice {
   id: string;
   /** Px between adjacent `Slot.position`s along the set. */
   pitch: number;
+  /**
+   * How many lattice positions **one** single progression moves a dancer whose
+   * `travel` is `+1`, signed.
+   *
+   * `+1` for duple improper, where a couple trades places with the one it is
+   * dancing with; `-2` for becket, where a couple slides one couple place — two
+   * positions — to its own *left*, which is the other way round from its own
+   * `direction`. It is what turns "progress three places" (Contrablend's
+   * robins) into an offset on the lattice, and it is the `step` in the relation
+   * tables' own general rule `N_k = N_1 + (k - 1) * 2 * step * travel`.
+   */
+  progressionStep: number;
   /** Which slot the dancer of `couple` taking `role` calls home. */
   slotOf(couple: CoupleState, role: RoleName): Slot;
+  /**
+   * {@link slotOf}'s inverse: which dancing place and direction of travel a
+   * dancer standing on this slot in this role belongs to.
+   *
+   * What makes the lattice the truth rather than a reading of it (M6, Q14): a
+   * progression moves slots, and the hall's seating — `CoupleState.place` and
+   * `.direction`, which `groupsFor`, the two outs and `lineUpShiftOf` all read —
+   * is derived back through this (`lattice.ts`'s `setFromModel`). A formation
+   * that can answer `slotOf` can always answer this, because `slotOf` is
+   * injective on (place, direction, role) by construction.
+   */
+  placeOf(slot: Slot, role: RoleName): { place: number; direction: 1 | -1 };
   /**
    * Where a slot's home is, in the **set frame's** own local px, and which way
    * its dancer faces there.
@@ -178,9 +202,28 @@ export function modelFromSet(
   };
 
   for (const dancer of Object.values(dancers)) {
-    dancer.partner = relate(model, relations, dancer.id, { kind: "partner" }) ?? dancer.id;
+    dancer.partner = latticePartner(model, relations, dancer.id) ?? dancer.id;
   }
   return model;
+}
+
+/**
+ * Who stands across the set from this dancer **on the lattice**, ignoring the
+ * binding.
+ *
+ * `relate(…, { kind: "partner" })` answers the *binding*, which a figure's ends
+ * may have rebound (Contrablend); this is the geometric answer the binding is
+ * seeded from here and re-seeded from at every progression
+ * (`lattice.ts`'s `progressModel`). Keeping the two apart is what stops the
+ * seeding being circular.
+ */
+export function latticePartner(
+  model: SetModel,
+  table: RelationTable,
+  me: DancerId,
+): DancerId | undefined {
+  const from = mustDancer(model, me);
+  return dancerOnSlot(model, table.slotFor({ kind: "partner" }, from));
 }
 
 /** Where this dancer's slot puts them, in world px: their home this time through. */

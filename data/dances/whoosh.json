@@ -1,0 +1,92 @@
+{
+  "slug": "whoosh",
+  "title": "Whoosh",
+  "author": "Becky Hill",
+  "formation": "duple-improper",
+  "status": "lab",
+  "notes": "The Caller's Box 10875, permission: full. M6's own dance: the grand right and left runs three neighbours out along the line and the allemandes bring you back, so every call names the dancer it wants by a relation rather than by a place in a minor set.",
+  "source": {
+    "callersBoxId": 10875,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10875",
+    "permission": "full",
+    "transcript": "A1  (6) Grand right and left (N1R;N2L;N3R)  (6) N4 neighbor allemande left 1  (2) N3 neighbor pull by right  (2) N2 neighbor allemande left 1/2\nA2  (4) Balance long wave (N1R, men face in)  (4) Circulate: Men cross, women loop right [with N2]  (8) Partner swing\nB1  (8) Right and left through with partner  (8) Ladies chain to neighbor N1\nB2  (8) Star left 1  (8) N2 neighbor do-si-do"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        { "figure": "grand-right-and-left", "beats": 6, "call": "GRAND RIGHT AND LEFT" },
+        {
+          "figure": "allemande",
+          "beats": 6,
+          "params": { "pairs": "N4", "hand": "L", "amount": 1 },
+          "call": "ALLEMANDE LEFT ONCE WITH NUMBER FOUR"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": { "pairs": "N3", "hand": "R" },
+          "call": "PULL BY THE RIGHT"
+        },
+        {
+          "figure": "allemande",
+          "beats": 2,
+          "params": { "pairs": "N2", "hand": "L", "amount": 0.5 },
+          "call": "ALLEMANDE LEFT A HALF"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "balance-wave",
+          "beats": 4,
+          "params": { "pairs": "neighbors", "hand": "R" },
+          "call": "BALANCE THE LONG WAVE"
+        },
+        {
+          "figure": "circulate",
+          "beats": 4,
+          "params": { "pairs": "N2" },
+          "call": "CIRCULATE: LARKS CROSS, ROBINS LOOP RIGHT"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": { "pairs": "partners", "endFacing": "across" },
+          "call": "PARTNER SWING"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "right-and-left-through",
+          "beats": 8,
+          "params": { "couples": "partners" },
+          "call": "RIGHT AND LEFT THROUGH WITH YOUR PARTNER"
+        },
+        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR NEIGHBOUR" }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "star",
+          "beats": 8,
+          "params": { "hand": "L", "places": 4 },
+          "call": "STAR LEFT ALL THE WAY"
+        },
+        {
+          "figure": "do-si-do",
+          "beats": 8,
+          "params": { "pairs": "N2" },
+          "call": "DO-SI-DO NUMBER TWO"
+        }
+      ]
+    }
+  ]
+}

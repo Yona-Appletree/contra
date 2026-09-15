@@ -2,7 +2,7 @@ import { createHall } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { createContraRegistry } from "../figures/registry.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
-import { legacyLibrary } from "../library/legacy.js";
+import { contraLibrary } from "../library/figures/index.js";
 import { parseRelation, relate } from "../set/relations.js";
 import { modelFromSet } from "../set/SetModel.js";
 import { setRulesFor } from "../set/SetRules.js";
@@ -19,7 +19,10 @@ import { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./ac
  * stale as M4, M5, M6, M7, M8 and M9 land.
  */
 
-const LIBRARY = legacyLibrary(createContraRegistry());
+// The library the planner really resolves against: every coded figure
+// bridged, with the definitions that have replaced their bridges — and M6's
+// two, which have no coded twin at all.
+const LIBRARY = contraLibrary(createContraRegistry());
 
 const MODEL = modelFromSet(
   DUPLE_IMPROPER,
@@ -133,24 +136,24 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
       "diamond (M7)",
       "down-the-hall (M7)",
       "down-the-outside (M7)",
-      "grand-right-and-left (M6)",
       "interrupted-square-through (M9)",
       "jersey-twirl (M9)",
       "lead-along (M7)",
       "loop (M6)",
       "mad-robin (M5)",
       "promenade (M8)",
-      "pull-by (M6)",
       "shoulder-round (M5)",
       "single-file-promenade (M5)",
       "square-through (M8)",
       "turn-alone (M7)",
       "turn-as-couples (M7)",
     ]);
+    // Empty since M6: every relation the twelve name resolves in both contra
+    // formations' tables.
     expect(
       Object.entries(UNSUPPORTED_RELATIONS)
         .map(([k, v]) => `${k} (${v})`)
         .sort(),
-    ).toEqual(["N2 (M6)", "N3 (M6)", "N4 (M6)", "shadow (M6)"]);
+    ).toEqual([]);
   });
 });

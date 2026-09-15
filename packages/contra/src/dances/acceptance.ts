@@ -355,9 +355,9 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
   "mad-robin": "M5",
   "shoulder-round": "M5",
   "single-file-promenade": "M5",
-  // M6 — slots and offsets authoritative
-  "grand-right-and-left": "M6",
-  "pull-by": "M6",
+  // M6 — slots and offsets authoritative. `pull-by` and `grand-right-and-left`
+  // landed; the three shapes below did not — see M6's report for what stopped
+  // each of them and what the next milestone needs.
   "balance-wave": "M6",
   circulate: "M6",
   loop: "M6",
@@ -380,13 +380,13 @@ export const UNSUPPORTED_FIGURES: Readonly<Record<string, string>> = {
 };
 
 /**
- * Every relation the twelve name that M1's tables do not answer, and the
- * milestone that owns it: all of them M6's, which is where N0…Nk, shadow k and
- * opposite land together with the end-of-set policy.
+ * Every relation the twelve name that the formation tables do not answer, and
+ * the milestone that owns it.
+ *
+ * **Empty since M6**, which is the milestone's own definition of done: N0…Nk,
+ * shadow k and opposite are rows of both contra formations' tables now, with
+ * the end-of-set rule being simply that a slot nobody stands on answers nobody
+ * (`relations.ts`) and `pnpm dance`'s end-effects table saying who that leaves
+ * out of which call.
  */
-export const UNSUPPORTED_RELATIONS: Readonly<Record<string, string>> = {
-  N2: "M6",
-  N3: "M6",
-  N4: "M6",
-  shadow: "M6",
-};
+export const UNSUPPORTED_RELATIONS: Readonly<Record<string, string>> = {};

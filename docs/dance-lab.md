@@ -32,6 +32,15 @@ wrote actually dances.
 Prints four sections and exits non-zero if anything in the first three failed,
 or if the slug names no dance.
 
+### 0. Still owed
+
+Only for a dance that calls a figure a later milestone owns. A lab dance is
+encoded from its transcript whether or not every figure in it exists yet — the
+record is complete and the test says exactly what is missing — and such a dance
+cannot resolve at all, so this section names the figures and their milestones
+and the report stops there. `@caller/web`'s own `danceOrder` asks the same
+question (`danceOwes`) and keeps the dance out of the evening.
+
 ### 1. Resolution
 
 Every call of the dance, in schedule order, as the **new layer** actually
@@ -61,7 +70,21 @@ first places, which is AC5 read the other way.
 A dance that closes at four couples and not at five is a dance that does not
 close, which is why the lab sweeps rather than sampling.
 
-### 3. Motion
+### 3. End effects
+
+**Which calls leave whom out, at which end** (M6). The end-of-set rule is the
+simplest one there is — a relation that resolves to nobody leaves that dancer on
+hold-place for the call — and this section reads it out loud: for every call
+that names a relation, every dancer that relation answers nobody for, at
+whichever end of the line they are standing, at every checked line length.
+
+It is computed from the lattice rather than from the timeline, so it says _why_
+somebody stood still rather than only that they did. It is **evidence, not
+failure**: a dance that reaches to N3 or N4 has busier ends in a short line by
+construction, and this is how the lab says how long a line the dance is asking
+for.
+
+### 4. Motion
 
 The motion oracle's rows for the dance's own figures and its own seams, against
 the library's derived bounds (`figures/motionBounds.ts`). **A value over its
@@ -74,7 +97,7 @@ gate with a written list of known defects, so a _new_ one is a failure and an
 old one is a debt with a name. Nothing in the allowlist is a tolerance being
 raised: the bounds are derived and do not move.
 
-### 4. Traces
+### 5. Traces
 
 The dance's four trace SVGs — the pen plot, the march, the seismograph and the
 figure strip — written to `--out` (default `data/local/dance-lab/<slug>/traces/`,

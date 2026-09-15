@@ -95,13 +95,20 @@ describe("the interpreter refuses what it cannot draw", () => {
   });
 
   it("names the milestone that owns an actor rule or an anchor it has not got", () => {
-    const later: FigureDefinition = { ...swingDefinition, id: "later-actors", actors: "line" };
+    // `"line"` and `"lane"` are M6's and resolve now — a long wave is the whole
+    // set — so what is still owed here is `"each"` and the two parameterised
+    // anchors.
+    const later: FigureDefinition = { ...swingDefinition, id: "later-actors", actors: "each" };
     expect(() => resolve("later-actors", {}, createLibrary([later]))).toThrow(
-      /unsupported: actors "line" on "later-actors" \(M7\)/,
+      /unsupported: actors "each" on "later-actors" \(M7\)/,
     );
-    const anchored: FigureDefinition = { ...swingDefinition, id: "later-anchor", anchor: "lane" };
+    const anchored: FigureDefinition = {
+      ...swingDefinition,
+      id: "later-anchor",
+      anchor: { pivot: "lark" },
+    };
     expect(() => resolve("later-anchor", {}, createLibrary([anchored]))).toThrow(
-      /unsupported: anchor .*lane.* on "later-anchor" \(M4\)/,
+      /unsupported: anchor .*pivot.* on "later-anchor" \(M4\)/,
     );
   });
 

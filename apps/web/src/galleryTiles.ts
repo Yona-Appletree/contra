@@ -38,6 +38,8 @@ import type {
 } from "@caller/contra";
 import {
   CONTRA_FIGURE_IDS,
+  DATA_ONLY_FIGURE_IDS,
+  contraDataFigures,
   CONTRA_MOTION_BOUNDS,
   DEMO_DANCES,
   DUPLE_IMPROPER,
@@ -394,8 +396,12 @@ export function figureTiles(
   overrides: FigureDefaultsOverride = {},
   engine: EngineChoice = DEFAULT_ENGINE,
 ): GalleryTile[] {
-  const registry = createContraRegistry([], overrides);
-  const ids = [...CONTRA_FIGURE_IDS, "wait-out", "walk-to-station"];
+  // The registry is built with the interpreted definitions in it, because since
+  // M6 a figure can be **data with no coded twin** (`pull-by`,
+  // `grand-right-and-left`) and `registry.get(id)` is what a tile reads its
+  // beats and its call text off.
+  const registry = createContraRegistry(contraDataFigures(), overrides);
+  const ids = [...CONTRA_FIGURE_IDS, ...DATA_ONLY_FIGURE_IDS, "wait-out", "walk-to-station"];
   return ids.map((id) => figureTile(id, registry, overrides, engine));
 }
 
@@ -435,7 +441,7 @@ function figureTile(
   const notes: string[] = [];
   const contra = contraFigureOf(id);
 
-  if (contra === undefined) {
+  if (contra === undefined && !DATA_ONLY_FIGURE_IDS.includes(id)) {
     // `wait-out` and `walk-to-station` are `@caller/choreo`'s own figures, and
     // **the library does not hold them**: `legacyLibrary` bridges what answers
     // `joins`, which these two do not. A planner cannot resolve a call of a
@@ -1095,10 +1101,22 @@ function textsFor(call: FigureCall, group: Group): FigureTexts | undefined {
   return resolveFigureText(call.figure, withDefaults(def, call.params, call.beats), group);
 }
 
-/** One registry for every text this module resolves; building one is not free. */
+/**
+ * One registry for every text this module resolves; building one is not free.
+ *
+ * The **coded** figures, plus only those definitions that have no coded twin
+ * (M6's `pull-by`), which have no other way to say how many beats they take or
+ * what a caller says for them. Deliberately not the whole data library: the
+ * `{where}` landmark asks a figure where it leaves the four dancers of a
+ * hands-four group, and a data gatherer's `anchor: "meet"` refuses anything but
+ * a pair. The migrated five keep answering that question through their coded
+ * twins, exactly as they did before M6.
+ */
 let textRegistryCache: FigureRegistry | undefined;
 function textRegistry(): FigureRegistry {
-  textRegistryCache ??= createContraRegistry();
+  textRegistryCache ??= createContraRegistry(
+    contraDataFigures().filter((def) => DATA_ONLY_FIGURE_IDS.includes(def.id)),
+  );
   return textRegistryCache;
 }
 
