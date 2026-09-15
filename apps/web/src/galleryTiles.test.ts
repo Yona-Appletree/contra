@@ -19,7 +19,6 @@ import {
   tileDancers,
   tileMetrics,
 } from "./galleryTiles.js";
-import { chainOverridesFromQuery } from "./state/chainQuery.js";
 
 /** Fine enough to catch a frame the renderer would have clipped. */
 const STEP = 0.125;
@@ -172,37 +171,36 @@ describe("what a row reads off a tile (U2)", () => {
   });
 });
 
-describe("`?chain=`'s registry override (F9)", () => {
-  // F13 makes the orbit (`joinBeat` > 0) `robins-chain`'s own default, so a
-  // step-in override has to turn it off explicitly to reach the step-in path
-  // at all — the same shape `CHAIN_CANDIDATES["4"]` uses.
-  const overrides = { "robins-chain": { stepInPx: 8, joinBeat: 0 } };
+describe("the registry's figure-defaults override", () => {
+  // A figure named in the override map dances at those defaults instead of its
+  // own shipped ones, wherever it appears — the registry's own seam, and the
+  // way to compare one tuning of a figure against another without a rebuild.
+  // The hey's `weavePx` is a harmless thing to move: it is how far each dancer
+  // swings off the middle of the weave, so it changes the path the tile draws
+  // and nothing else. It also has to be a figure the **registry** still owns —
+  // the eleven carriers and five gatherers are interpreted definitions now, and
+  // those come into the registry as `extra` past the override merge, so the hey
+  // is the one figure left whose coded defaults an override still reaches.
+  const overrides = { hey: { weavePx: 4 } };
 
   test("changes nothing when no figure is named", () => {
     expect(figureTiles({}).map((t) => t.key)).toEqual(figureTiles().map((t) => t.key));
   });
 
   test("reaches the figure's own tile", () => {
-    const plain = tileByKey(figureTiles(), "robins-chain")!;
-    const overridden = tileByKey(figureTiles(overrides), "robins-chain")!;
+    const plain = tileByKey(figureTiles(), "hey")!;
+    const overridden = tileByKey(figureTiles(overrides), "hey")!;
     expect(moved(plain, overridden)).toBe(true);
   });
 
-  // F10/F13: the same route, driven by the query parser the three routes
-  // share rather than a hand-written override, so `?chain=` reaching the
-  // tiles is the thing under test and not a map somebody typed here. `1` is
-  // the rigid turn F9 shipped — since F13 the one that moves the tile, now
-  // that `5`, the lark's orbit, restates the figure's own default.
-  test("carries `?chain=1`, the rigid turn, the whole way from the URL", () => {
-    const plain = tileByKey(figureTiles(), "robins-chain")!;
-    const rigid = tileByKey(figureTiles(chainOverridesFromQuery("1")), "robins-chain")!;
-    expect(moved(plain, rigid)).toBe(true);
-  });
-
-  test("`?chain=5` restates the figure's own default (F13)", () => {
-    const plain = tileByKey(figureTiles(), "robins-chain")!;
-    const orbit = tileByKey(figureTiles(chainOverridesFromQuery("5")), "robins-chain")!;
-    expect(moved(plain, orbit)).toBe(false);
+  // An override that restates what the figure already ships has to come out
+  // identical, not merely close: that is what says the numbers themselves are
+  // what reach the tile, rather than the act of passing a map rebuilding it
+  // down some other path.
+  test("restating the figure's own default moves nothing", () => {
+    const plain = tileByKey(figureTiles(), "hey")!;
+    const same = tileByKey(figureTiles({ hey: { weavePx: 6.5 } }), "hey")!;
+    expect(moved(plain, same)).toBe(false);
   });
 
   test("reaches every seam the figure is under, and leaves the others alone", () => {
@@ -210,8 +208,8 @@ describe("`?chain=`'s registry override (F9)", () => {
     const overriddenSeams = seamTiles(overrides);
     for (const plain of plainSeams) {
       const overridden = tileByKey(overriddenSeams, plain.key)!;
-      const involvesChain = plain.calls.some((c) => c.figure === "robins-chain");
-      expect(moved(plain, overridden), plain.key).toBe(involvesChain);
+      const involvesFigure = plain.calls.some((c) => c.figure === "hey");
+      expect(moved(plain, overridden), plain.key).toBe(involvesFigure);
     }
   });
 });

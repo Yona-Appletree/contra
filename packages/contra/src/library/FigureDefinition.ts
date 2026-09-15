@@ -1,5 +1,14 @@
 import type { Beat, Side } from "@caller/choreo";
-import type { AngleExpr, BoolExpr, Moment, NumberExpr, SideExpr } from "./expr.js";
+import type {
+  AngleExpr,
+  BoolExpr,
+  Moment,
+  NumberExpr,
+  PoseExpr,
+  RoleExpr,
+  SideExpr,
+} from "./expr.js";
+import type { Symmetry } from "./symmetry.js";
 
 /**
  * A figure, as **data**: actors, figure-roles, a frame with an anchor rule, a
@@ -336,29 +345,423 @@ export interface RockShape {
 }
 
 /**
- * Walk the instance's own regular ring so many places round. **M4.**
+ * Walk the instance's own regular ring so many places round: the circle, the
+ * star and the petronella.
  *
- * Admitted here, and dispatched by `kinds/index.ts`, so that M4 writes the
- * evaluator and touches no union and no `switch` exhaustiveness. Until then
- * the interpreter throws by name.
+ * **The ring is regular whatever the stations are.** Four dancers standing on
+ * the corners of a rectangle who take hands in a ring have to stand the same
+ * distance from each neighbour or the arms cannot all reach, so the ring is a
+ * circle of `n` evenly spaced places whose phase is the circular mean of where
+ * everybody already stands (`@caller/choreo`'s `ringOf`). That is what makes
+ * "one place round the ring" a place and not an angle, and it is the same ring
+ * `balance-ring` rocks on.
+ *
+ * Where a dancer **ends** is therefore a place arithmetic — whoever's place is
+ * `sign × places` along the ring — and not a point the shape computes. How they
+ * get there is {@link RingWalkShape.travel}: round the ring itself, holding on
+ * (a circle, a star), or along the chord between the two places with a body
+ * spin and nothing held (a petronella).
  */
 export interface RingWalkShape {
   kind: "ringWalk";
+  /** How many places round, in places of the ring. */
   places: NumberExpr;
+  /**
+   * Which way round `places` counts: `+1` is the way {@link Ring.order} runs,
+   * which is the way a **circle left** travels.
+   *
+   * A right-hand star keeps the middle on the dancer's right and so turns the
+   * same way a circle left does; a left-hand star turns back. A petronella
+   * travels to the dancer's own **right**, which is one place *back* round the
+   * ring, so its sign is `-1`.
+   */
+  sign: NumberExpr;
+  /** Where the body points relative to the ring angle mid-travel: 180 faces in. */
   faceOffset: AngleExpr;
+  /** Beats spent stepping in to the ring. */
   inBeats: NumberExpr;
+  /** Beats spent stepping out of it on to the end place. */
   outBeats: NumberExpr;
+  /** Which way the figure leaves the body pointing. */
+  endFacing: RingFacing;
+  /** How the dancers get from their place to the one they end on. */
+  travel: RingTravel;
+  /** What a hand no hold covers is doing. */
+  idleHands: IdleHands;
 }
 
-/** A dancer's own written path, per figure-role. **M4.** */
+/** Which way a {@link RingWalkShape} leaves a dancer facing. */
+export type RingFacing =
+  /** Straight at the middle of the ring: a circle's, and a petronella's. */
+  | { kind: "inward" }
+  /** Along the ring, `offset` off the outward radius: a star's. */
+  | { kind: "tangent"; offset: AngleExpr };
+
+/** How a {@link RingWalkShape}'s dancers travel between their two places. */
+export type RingTravel =
+  /**
+   * Round the ring itself: step in to it, turn it, step out. The circle's and
+   * the star's, and `@caller/choreo`'s own `ringWalk` — both ends exact and
+   * both eased to a stop, so a seam matches to the bit.
+   */
+  | { kind: "ring" }
+  /**
+   * Along the chord between the two places, bowed a little away from the
+   * middle, with the body spinning as it goes and nobody holding on: the
+   * petronella's.
+   *
+   * The chord and not the arc, because riding the circle through both places
+   * bulges `R(1 − cos(arc / 2))` beyond the set — most of the gap to the next
+   * minor set — which is `petronella.ts`'s own `bowPx` note.
+   */
+  | { kind: "chord"; bow: NumberExpr; spins: NumberExpr; flare: NumberExpr };
+
+/**
+ * A dancer's own written path: a walk to a computed point, along a named curve,
+ * carrying the body a named way.
+ *
+ * Six figures are this shape — pass through, long lines, slide left, roll away,
+ * the california twirl and the do-si-do — and what they share is the frame: who
+ * am I dancing this with ({@link PathShape.pairing}), where does it leave me
+ * ({@link PathTrack.ends}), what curve do I walk to get there
+ * ({@link PathTrack.curve}), and what is the body doing on the way
+ * ({@link PathTrack.facing}). What they do not share is the curve itself, so
+ * {@link PathCurve} is a small vocabulary rather than one rule: a plain walk, a
+ * bowed walk, an arc about a point and an ellipse about one are genuinely four
+ * different things a dancer's feet do.
+ */
 export interface PathShape {
   kind: "path";
+  /** Who each dancer is dancing this with. */
+  pairing: PairingRule;
+  /** What everybody does. One track, read per role. */
+  track: PathTrack;
+  /** What a dancer the pairing left out of the figure does. */
+  idle?: IdleTrack;
+  /**
+   * What a dancer the **formation** marked as crossing over does instead: S2's
+   * odd-becket-line end effect, which a slide left is what carries.
+   *
+   * An odd becket line has only one waiting place, so at the end that has none
+   * the couple that runs out of line crosses straight over — no time out — and
+   * they cross **as a couple**: the pair turns half way round about its own
+   * centre while that centre walks straight across the set, so they stay side
+   * by side a place apart the whole way and arrive on the far line's own two
+   * stations rather than on each other's. Everybody else in their minor set
+   * slides pose for pose exactly as they always did.
+   */
+  crossing?: CrossingTrack;
+}
+
+/**
+ * **A dancer's own written route, waypoint by waypoint, with the passes
+ * marked**: M6's figures, and a different idea from {@link PathShape}'s.
+ *
+ * The two were written at the same time against the same admitted union member
+ * and they answer different questions, so they ship as two kinds rather than as
+ * one with a mode. A **path** names a *curve* and a *pairing* — "walk to the
+ * place opposite along `@caller/choreo`'s own bowed walk, paired with whoever is
+ * across the set" — which is what the eleven figures whose geometry was already
+ * settled needed. A **waypoint route** names *where you are, when*, and lets the
+ * passes find their own partners geometrically, which is what a pull-by and a
+ * grand right and left need: one figure takes three hands with three different
+ * dancers and no definition names any of them.
+ *
+ * Reconciling them into one kind would mean either writing each of M4's six
+ * curves out as control points or giving M6's routes a curve vocabulary they do
+ * not want. Both are real shapes; see `kinds/waypoints.ts` for this one and
+ * `kinds/path.ts` for the other.
+ */
+export interface WaypointShape {
+  kind: "waypoints";
+  /**
+   * One route per role.
+   *
+   * A key of `"*"` is every dancer's; a key that is one of the **contra** roles
+   * is every dancer of that role; anything else is a figure-role by name. The
+   * wildcard exists because a figure resolved in the lane has one part per
+   * dancer, named for the slot they stand on, which no definition can write
+   * down. Typed loosely, as M2 admitted it, because `kinds/waypoints.ts` owns
+   * the waypoint's own shape.
+   */
   tracks: Readonly<Record<string, readonly unknown[]>>;
 }
 
+/** What a dancer the formation marked `crossedOver` does; see {@link PathShape.crossing}. */
+export interface CrossingTrack {
+  /** How far the couple turns as it crosses, degrees. */
+  turn: AngleExpr;
+  /** How long one walking step of the crossing lasts, beats. */
+  stepBeats: NumberExpr;
+  idleHands: IdleHands;
+  stepRate?: NumberExpr;
+  amp?: NumberExpr;
+}
+
+/**
+ * How a {@link PathShape} pairs its dancers up.
+ *
+ * A figure for the whole minor set still pairs people: a pass through pairs you
+ * with the dancer opposite, long lines with the one beside you in the line, a
+ * roll away with whoever `params.pairs` names. The pairing is a fact about
+ * **where people are standing**, which is why it is resolved from the instance
+ * rather than written into the call — the same figure passes a becket line
+ * across and a duple improper line along without either being written down.
+ */
+export type PairingRule =
+  /** Nobody: every dancer's path is their own. Slide left's. */
+  | { kind: "none" }
+  /**
+   * The dancer on the other side of the group's centre, `axis` deciding which
+   * way "other side" is measured and the nearest on the other axis winning.
+   * A pass through's.
+   */
+  | { kind: "opposite"; axis: "across" | "along" | { param: string } }
+  /** The dancer straight in front of you: right and left through's. */
+  | { kind: "ahead" }
+  /** The other dancer on your own side of the set: long lines'. */
+  | { kind: "lineMate" }
+  /** Whoever the named parameter's pairing says: a roll away's, a twirl's. */
+  | { kind: "param"; param: string };
+
+/** One dancer's path, read for every role the pairing put in the figure. */
+export interface PathTrack {
+  /**
+   * Where the figure leaves this dancer.
+   *
+   * Left out only by a curve that works its own ends out — the `ellipse`, whose
+   * end places fall out of the clearance it had to solve for anyway.
+   */
+  ends?: PoseExpr;
+  /** The curve from where they stand to there. */
+  curve: PathCurve;
+  /** What the body does on the way. */
+  facing: PathFacing;
+  /** What a hand no hold covers is doing. */
+  idleHands: IdleHands;
+  /** Where the head looks; the facing by default. */
+  look?: PathLook;
+  stepRate?: NumberExpr | { when: "moving" };
+  amp?: NumberExpr | { when: "moving" };
+  /** Extra skirt radius, `flare × sin(πt/beats)`. */
+  flare?: NumberExpr;
+}
+
+/** Where a walking dancer's head looks. */
+export type PathLook =
+  /**
+   * The facing, swung `amount × sin(πt/beats)` and back.
+   *
+   * A slide left's glance along the line it is travelling: the head leads and
+   * comes back, so the glance starts and ends on the plain facing and no seam
+   * has to blend a turned head.
+   */
+  | { look: "glance"; amount: AngleExpr }
+  /**
+   * At the dancer opposite you through the centre of your own pair — which for
+   * a do-si-do is exactly where your partner is at every instant, because the
+   * two of you ride the same ellipse a half turn apart.
+   */
+  | { look: "opposite" }
+  /** A written angle. */
+  | { look: "angle"; angle: AngleExpr };
+
+/** What a dancer the pairing left out does: stand where they are. */
+export interface IdleTrack {
+  idleHands: IdleHands;
+  amp?: NumberExpr;
+}
+
+/** What a hand no hold covers is doing. */
+export type IdleHands =
+  /** Nothing at all: the renderer hangs it. A pass through's, a slide's. */
+  | { kind: "down" }
+  /**
+   * Hanging at the dancer's own side and swinging with the step. A petronella's
+   * (with no swing at all) and a do-si-do's (swung, faded in and out so a seam
+   * never jumps).
+   */
+  | { kind: "hanging"; swing: NumberExpr; fadeIn?: NumberExpr; fadeOut?: NumberExpr };
+
+/** The curve a {@link PathTrack} walks. */
+export type PathCurve =
+  /**
+   * `@caller/choreo`'s own walk: eased, bowed to the dancer's own left so two
+   * dancers swapping places pass **right shoulders**, and turning to face the
+   * way it is going and then on to the end facing. A pass through's.
+   */
+  | { kind: "walkStep"; bow: NumberExpr }
+  /**
+   * A straight line, eased, bowed `sign × bow × sin(πk)` along the dancer's own
+   * facing where they started.
+   *
+   * A roll away's: one of the couple passes in front and the other behind, so
+   * they never share a point, and `sign` is which.
+   */
+  | { kind: "bowed"; bow: NumberExpr; sign: NumberExpr }
+  /** A straight line covered in `steps` equal eased steps. A slide left's. */
+  | { kind: "stepped"; stepBeats: NumberExpr }
+  /**
+   * Out `distance` px along `along` and back again, on `(1 − cos(2πt/beats))/2`
+   * — still at both ends, furthest out in the middle. Long lines forward and
+   * back, which ends where it started and so has no walk to write.
+   */
+  | { kind: "oscillate"; along: AngleExpr; distance: NumberExpr }
+  /** Half a turn about the point between the pair: a california twirl's. */
+  | { kind: "arc"; sweep: AngleExpr }
+  /**
+   * An ellipse about the point between the pair, its long radius the pair's own
+   * half separation and its short one a bow: a do-si-do's pass.
+   */
+  | {
+      kind: "ellipse";
+      /** How far round, signed degrees. */
+      turn: AngleExpr;
+      /** The short radius: how far off the line between them they step, px. */
+      pass: NumberExpr;
+      /** How much room to leave anybody standing still inside the ellipse, px. */
+      clearance: NumberExpr;
+      /**
+       * How far from the centre each dancer ends, px — or `null` to read it off
+       * the formation's own places, which is what every dance wants.
+       */
+      endHalf: NumberExpr | null;
+    };
+
+/** What a {@link PathTrack}'s body does on the way. */
+export type PathFacing =
+  /** Whatever the curve itself decided: `walkStep`'s two-stage turn. */
+  | { kind: "curve" }
+  /** Held where it started, with an optional whole-turn spin on top. */
+  | { kind: "held"; spin?: PathSpin }
+  /** Turned on to the end facing over the first `beats` of the figure. */
+  | { kind: "settle"; beats: NumberExpr }
+  /** Carried round with an `arc` curve, by the same sweep. */
+  | { kind: "withArc" };
+
+/**
+ * A whole-turn spin laid over a held facing, eased over whatever is left of the
+ * figure after {@link PathSpin.from}.
+ *
+ * A roll away's robin turns once round as she crosses in front while the lark
+ * simply slides behind, so a spin is **whose** as well as how far.
+ */
+export interface PathSpin {
+  /** Whole turns, signed. */
+  turns: NumberExpr;
+  /** Only the dancers whose contra role the named parameter names. */
+  who?: { role: string };
+  /** The beat the spin starts; `0` by default. */
+  from?: NumberExpr;
+}
+
+/**
+ * **The courtesy turn**: a couple closes up and turns as one rigid body, ending
+ * facing back the way it came with the robin still on the lark's right.
+ *
+ * Two figures are this shape and they turn two different ways, which is why
+ * {@link CourtesyTurnShape.regime} is data and not a second kind:
+ *
+ * - **`"rigid"`** — right and left through's, and the textbook one. The couple
+ *   walks over, closes up short of the far line, and the whole of it (both
+ *   bodies *and* the line between them) pivots a half about a point near the
+ *   lark. The turn is solved **backwards from its ends**: a rigid half turn is
+ *   its own inverse, so where the hands close is the pair of end places
+ *   reflected through the pivot, and the figure walks its dancers there.
+ * - **`"orbit"`** — the chain's, F13's candidate 5 and the user's own account
+ *   of the figure: the lark is walking backward from beat one round a small
+ *   circle, the robin pulls by the other robin in the middle and joins that
+ *   circle a quarter of the way through, and the two of them finish it
+ *   together.
+ *
+ * **Only these two ship** (A6). The three tunings of the rigid turn that F9
+ * kept behind `?chain=` — the pivot at the lark, and the two couple-spins — are
+ * gone with `CHAIN_CANDIDATES`, `?chain=` and `pnpm figure --chain`.
+ */
+export interface CourtesyTurnShape {
+  kind: "courtesyTurn";
+  regime: "rigid" | "orbit";
+  /** How the couple that turns is found. */
+  pairing: CourtesyPairing;
+  /** Where the figure leaves the pair, and whoever it did not cast. */
+  ends: CourtesyEnds;
+  /**
+   * How long the dancers spend getting to the turn: the pass through, or the
+   * pull by. For an orbit it is also the beat the robin joins the circle on.
+   */
+  approachBeats: NumberExpr;
+  /** How far each dancer bows to their own left on the way over, px. */
+  bow: NumberExpr;
+  /** How far from the lark the rigid turn pivots, px. Unread by an orbit. */
+  pivotFromLark: NumberExpr;
+  /** How far to her own left of the set's centre a robin pulls by, px. */
+  passPx: NumberExpr;
+  /** Beats spent opening out on to the two places, at the end. */
+  openBeats: NumberExpr;
+  /** Beats spent closing up on to the hold, after a pass through. Rigid only. */
+  closeBeats: NumberExpr;
+  /** How long before the hands close the lark is standing on his take, beats. */
+  larkLead: NumberExpr;
+  /** Whether the couple's two right hands go to the robin's back. */
+  backHands: BoolExpr;
+  /**
+   * The couple's own joined hands, and the pull by's.
+   *
+   * Declared on the **shape** rather than in the definition's `holds`, as the
+   * swing's ballroom hold is the orbit's own: a courtesy turn's four hands are
+   * constitutive of it — "left hand in her left, her own right hand behind her
+   * back and his right hand on it" is the figure, not a dressing of it — and
+   * their windows are the turn's own take and release rather than beats a
+   * definition could write down, because the turn's phases are solved from its
+   * ends.
+   */
+  hands: CourtesyHands;
+}
+
+/** A courtesy turn's joined hands, and their heights. */
+export interface CourtesyHands {
+  /** How far below shoulder height the couple's joined left hands sit, px. */
+  drop: NumberExpr;
+  /** How much higher the role set's top role's hand sits, px. */
+  stackPx: NumberExpr;
+  /**
+   * The pull by's own two right hands, for a chain: how far below shoulder
+   * height they meet. `null` where the figure has no pull by.
+   */
+  pullDrop: NumberExpr | null;
+}
+
+/** How a {@link CourtesyTurnShape} finds the couple that turns. */
+export type CourtesyPairing =
+  /**
+   * The couple walks over together and turns: right and left through's. The
+   * pairing is `params.couples`, and who passes whom is who is *ahead*.
+   */
+  | { kind: "couples"; param: string; passing: "ahead" }
+  /**
+   * One role chains across and turns with the lark of the couple whose place
+   * she lands on: the chain's. Which lark is hers is decided by the facing her
+   * landing place carries, not by who is nearest.
+   */
+  | { kind: "chain"; param: string };
+
+/** Where a {@link CourtesyTurnShape} leaves everybody. */
+export type CourtesyEnds =
+  /** On the place opposite, facing back: right and left through's. */
+  | { kind: "throughAndTurn" }
+  /** The two chaining dancers trade places; the larks stay: the chain's. */
+  | { kind: "trade" };
+
 /** What the figure actually draws. */
 export type FigureShape =
-  LegacyShape | SequenceShape | OrbitPairShape | RockShape | RingWalkShape | PathShape;
+  | LegacyShape
+  | SequenceShape
+  | OrbitPairShape
+  | RockShape
+  | RingWalkShape
+  | PathShape
+  | WaypointShape
+  | CourtesyTurnShape;
 
 /**
  * Only when this parameter has one of these values.
@@ -403,6 +806,107 @@ export interface RingHold {
   when?: ParamGuard;
 }
 
+/**
+ * Which of a dancer's hands a hold uses.
+ *
+ * A figure written for a whole minor set cannot name a hand outright when the
+ * answer depends on which way round the dancers are standing: "inside hands"
+ * means the lark's right and the robin's left on one side of the set and the
+ * other way round on the other, and a becket line and a duple improper line
+ * disagree about both. So the two geometric rules are data — the hand nearest
+ * the other dancer, and the hand away from them — and which **facing** they are
+ * read against is part of the rule, because long lines takes hands along a line
+ * everybody has turned to face along while a roll away takes them where the
+ * couple already stands.
+ */
+export type SideRule =
+  | SideExpr
+  | { nearest: RoleExpr; facing: "start" | "end" }
+  | { furthest: RoleExpr; facing: "start" | "end" };
+
+/**
+ * **One hand joined to whoever the shape's pairing put you with.**
+ *
+ * {@link PairHold} names both ends outright, which a figure for two can do and
+ * a figure for a whole minor set cannot: a pass through's four dancers take
+ * hands in two different pairs and which pair you are in comes out of where you
+ * are standing. So a mate hold is written once, per dancer, and both ends
+ * evaluate the same rule — each for themselves — which is what keeps the two
+ * hands one shared floor point rather than two that agree.
+ */
+export interface MateHold {
+  kind: "mate";
+  /** Which hand, evaluated by each dancer for themselves. */
+  side: SideRule;
+  /** Where the one shared floor point sits. */
+  point: HoldPoint;
+  drop: NumberExpr;
+  /** How much higher the role set's top role's hand sits, px. */
+  stackPx?: NumberExpr;
+  window: HoldWindowSpec;
+  when?: ParamGuard;
+}
+
+/**
+ * **One hand a dancer places that nobody else is holding.**
+ *
+ * The library takes hands three ways and this is the third: a hand that is on
+ * something rather than in somebody's. The star's giving hand is on the wrist
+ * of the dancer ahead — only she has a hand there, his is busy on the next
+ * wrist round — and long lines' outward hand is on a point half the line's own
+ * pitch beyond her, which is where the *next minor set's* dancer puts theirs by
+ * the same rule, without either group knowing the other exists. That is the
+ * three-pass rule doing its work: the point is read from where the other dancer
+ * is **at this same beat**, so both hands land on one floor point without
+ * anybody negotiating.
+ *
+ * {@link SoloHold.joins} is for the one case where the two really do meet: a
+ * hands-across star, whose two diagonals each put one hand at the middle. The
+ * hold is still written per dancer — each has their own drop — and the join is
+ * what the figure *reports*, so `carryHolds` and the reach oracle see it.
+ */
+export interface SoloHold {
+  kind: "solo";
+  /** Whose hand it is; `"each"` is every role of the instance. */
+  role: RoleExpr | "each";
+  side: SideRule;
+  point: SoloPoint;
+  /** How far below shoulder height it sits, px. */
+  drop: NumberExpr;
+  /**
+   * How much higher the role set's **top** role's hand sits than the other's,
+   * px: the top role's is `stackPx / 2` above {@link SoloHold.drop} and the
+   * other's the same below.
+   *
+   * By the dancer's own role and not by the pair, which is what lets a
+   * four-person star stack "robins above larks" all the way round while two
+   * robins who meet at the middle of a hands-across star are trivially at one
+   * height and still read above the two larks beside them.
+   */
+  stackPx?: NumberExpr;
+  /** The dancer this hand is really joined to, when it is. */
+  joins?: { with: RoleExpr; side: SideExpr };
+  window: HoldWindowSpec;
+  when?: ParamGuard;
+}
+
+/** Where a {@link SoloHold}'s hand goes. */
+export type SoloPoint =
+  /** The shape's own origin: a hands-across star's middle. */
+  | { kind: "anchor" }
+  /**
+   * One forearm out from the anchor, in the direction of the dancer ahead of
+   * you round the ring — the spot your own reaching arm would occupy in a palm
+   * star, a forearm short of actually getting there. The wrist star's.
+   */
+  | { kind: "wristOf"; of: RoleExpr; radius: NumberExpr }
+  /**
+   * Half your own distance from `of`, straight on past you away from them:
+   * where the next minor set's dancer puts their own hand by the same rule.
+   * Long lines' outward hand.
+   */
+  | { kind: "beyond"; of: RoleExpr };
+
 /** Where a joined hand's one shared floor point sits. */
 export type HoldPoint =
   /**
@@ -419,8 +923,15 @@ export type HoldPoint =
       /** How much higher they sit at full back rock, px. */
       riseGain: NumberExpr;
     }
-  /** Half way between the two bodies: a one-hand balance. */
+  /** Half way between the two bodies: a one-hand balance, and a roll away. */
   | { kind: "midpoint" }
+  /**
+   * Half way between the two **shoulders** the hold names: where two
+   * outstretched hands actually meet, and the point every figure that simply
+   * takes a hand uses — long lines along the line, a california twirl's arch,
+   * a courtesy turn's joined lefts, a chain's pull by.
+   */
+  | { kind: "joinPoint" }
   /** The anchor itself, held high: an allemande. */
   | { kind: "anchor" }
   /** In from the midpoint of the two joined shoulders: a swing's outer hands. */
@@ -453,7 +964,7 @@ export type HoldWindowSpec =
   | { kind: "orbit" };
 
 /** One hold a figure takes, as data. */
-export type HoldSpec = PairHold | RingHold;
+export type HoldSpec = PairHold | RingHold | SoloHold | MateHold;
 
 /**
  * Where the figure leaves people.
@@ -506,7 +1017,18 @@ export interface FigureDefinition {
   holds: readonly HoldSpec[];
   ends: EndsRule;
   timing: TimingProfile;
+  /**
+   * The figure's own symmetries, as data: which of its parameters are handed,
+   * which name a contra role, and whether it turns into itself.
+   *
+   * A definition without one is simply not claimed to be symmetric, which is
+   * different from being claimed asymmetric — `symmetry.ts`'s two transforms
+   * return it unchanged rather than guessing. See {@link Symmetry}.
+   */
+  symmetry?: Symmetry;
 }
+
+export type { Symmetry } from "./symmetry.js";
 
 /** Re-exported so a definition file needs one import, not two. */
 export type { Moment, NumberExpr, AngleExpr, BoolExpr, SideExpr } from "./expr.js";

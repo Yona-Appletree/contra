@@ -57,4 +57,10 @@ export const balanceAndSwingDefinition: FigureDefinition = {
   holds: [...twoHandRock("lark", "robin"), SWING_HOLD],
   ends: "home",
   timing: { stretch: "pace", profile: "trapezoid" },
+  symmetry: {
+    mirror: {
+      kind: "handed",
+      why: "it ends in a swing, and a swing's ballroom hold is handed.",
+    },
+  },
 };

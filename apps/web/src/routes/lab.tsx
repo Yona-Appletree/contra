@@ -6,7 +6,6 @@ import type { GalleryTile, TileMetric } from "../galleryTiles.js";
 import { tileMetrics } from "../galleryTiles.js";
 import type { LabReach, LabTreatment } from "../labTiles.js";
 import { LAB_BEFORE, LAB_SEAMS, LAB_TREATMENTS, labSection } from "../labTiles.js";
-import { chainOverridesFromQuery } from "../state/chainQuery.js";
 import { Metrics, StripCell, TileCanvas, beatText, peopleOf } from "./moves.js";
 
 /**
@@ -117,15 +116,14 @@ function SeamLab({ seamKey, params }: { seamKey: string; params: URLSearchParams
   const [trails, setTrails] = useState(params.get("trails") === "1");
   const frozen = params.get("beat");
   const [paused, setPaused] = useState(frozen !== null);
-  const chain = params.get("chain");
 
   const section = useMemo(() => {
     try {
-      return labSection(seamKey, reach, chainOverridesFromQuery(chain));
+      return labSection(seamKey, reach, {});
     } catch {
       return null;
     }
-  }, [seamKey, reach, chain]);
+  }, [seamKey, reach]);
 
   const window = section?.beats ?? 1;
   const [beat, setBeat] = useState(() => (frozen === null ? 0 : Number(frozen) + LAB_BEFORE));

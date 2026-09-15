@@ -40,7 +40,6 @@ import {
   programBeatOf,
   shownMusicBeat,
 } from "../program.js";
-import { chainOverridesFromQuery } from "../state/chainQuery.js";
 import { engineFromQuery, otherEngine } from "../state/engineQuery.js";
 import { engineHash, readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
 
@@ -161,12 +160,6 @@ export function HallPage({
   // the date, so a seeded URL reproduces one evening exactly (T1).
   const seed = readSeed(params);
 
-  // `?chain=1|2|3|4|5` swaps `robins-chain`'s courtesy turn to one of the
-  // branch's five candidates, exactly as it does on the Moves tab:
-  // whichever dance calls the chain dances the chosen candidate instead of
-  // the shipped default. Absent or unrecognised, nothing changes.
-  const chain = params.get("chain");
-
   // `?engine=new|old` (M3): which of the two engines the hall dances on. `new`
   // — the default since M3 — is the contra cycle planner resolving every call
   // against live set state, with the five migrated gatherers read as data;
@@ -209,8 +202,8 @@ export function HallPage({
     [lines],
   );
   const program = useMemo<DemoProgram>(
-    () => createDemoProgram(world, danceSlug, seed, chainOverridesFromQuery(chain), engine),
-    [world, danceSlug, seed, chain, engine],
+    () => createDemoProgram(world, danceSlug, seed, {}, engine),
+    [world, danceSlug, seed, engine],
   );
   const people = useMemo<Map<DancerId, Person>>(() => createHallPeople(program.hall), [program]);
   // The programme's own shuffle, read as a `Medley`: `program.tunes` is one

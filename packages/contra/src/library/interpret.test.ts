@@ -7,7 +7,7 @@ import { resolveCall } from "../set/resolve.js";
 import type { FigureDefinition } from "./FigureDefinition.js";
 import { createLibrary } from "./Library.js";
 import { contraDataEngine } from "./engine.js";
-import { GATHERER_DEFINITIONS, GATHERER_IDS, contraLibrary } from "./figures/index.js";
+import { DATA_DEFINITIONS, DATA_IDS, contraLibrary } from "./figures/index.js";
 import { figureFor, interpretDefinition } from "./interpret.js";
 import { balanceRingDefinition } from "./figures/balance-ring.js";
 import { swingDefinition } from "./figures/swing.js";
@@ -32,29 +32,29 @@ const resolve = (figure: string, params: object, library = contraLibrary(createC
   );
 
 describe("the library", () => {
-  it("holds a definition for every coded figure, and the five as data", () => {
+  it("holds a definition for every coded figure, and the sixteen as data", () => {
     const library = contraLibrary(createContraRegistry());
     for (const id of createContraRegistry().ids()) {
       if (id === "wait-out" || id === "walk-to-station") continue;
       expect(library.has(id), id).toBe(true);
     }
-    for (const id of GATHERER_IDS) {
+    for (const id of DATA_IDS) {
       expect(library.get(id).shape.kind, id).not.toBe("legacy");
     }
   });
 
-  it("no longer bridges the five", () => {
+  it("no longer bridges the sixteen", () => {
     // The milestone's own definition of "migrated": the legacy bridge does not
-    // wrap these five any more, so deleting the coded figure would not change
+    // wrap these any more, so deleting the coded figure would not change
     // what the planner resolves against.
     const library = contraLibrary(createContraRegistry());
-    for (const def of GATHERER_DEFINITIONS) {
+    for (const def of DATA_DEFINITIONS) {
       expect(library.get(def.id), def.id).toBe(def);
     }
   });
 
   it("every definition is plain data", () => {
-    for (const def of GATHERER_DEFINITIONS) {
+    for (const def of DATA_DEFINITIONS) {
       expect(JSON.parse(JSON.stringify(def)), def.id).toEqual(def);
     }
   });
@@ -63,27 +63,21 @@ describe("the library", () => {
     expect(interpretDefinition(swingDefinition)).toBe(interpretDefinition(swingDefinition));
   });
 
-  it("builds a registry and a library that agree about the five", () => {
+  it("builds a registry and a library that agree about all of them", () => {
     const { registry, library } = contraDataEngine();
-    for (const id of GATHERER_IDS) {
+    for (const id of DATA_IDS) {
       expect(registry.get(id), id).toBe(figureFor(library.get(id), registry));
     }
   });
 });
 
 describe("the interpreter refuses what it cannot draw", () => {
-  it("names the milestone that owns a shape kind it has not got", () => {
-    const later: FigureDefinition = {
-      ...swingDefinition,
-      id: "later",
-      anchor: "centroid",
-      shape: { kind: "ringWalk", places: 1, faceOffset: 180, inBeats: 1, outBeats: 1 },
-    };
-    const fig = interpretDefinition(later);
-    expect(() => fig.moves({ ...fig.defaults, beats: 8 } as never, GROUPS[0]!.stations)).toThrow(
-      /unsupported: shape kind "ringWalk" \(M4\)/,
-    );
-  });
+  // M2's "names the milestone that owns a shape kind it has not got" ran on
+  // `ringWalk`, which M4 implements; there is no unimplemented kind left in the
+  // union for it to name until M5 adds `schedule`. The contract itself — a kind
+  // arriving without an arm is a named error rather than a silently missing
+  // case — is held by `kinds/index.ts`'s exhaustive `switch`, which fails the
+  // build instead of a test, and by the actors and anchor rules below.
 
   it("will not interpret a legacy shape, which is the coded figure itself", () => {
     const bridged: FigureDefinition = {
@@ -108,7 +102,7 @@ describe("the interpreter refuses what it cannot draw", () => {
       anchor: { pivot: "lark" },
     };
     expect(() => resolve("later-anchor", {}, createLibrary([anchored]))).toThrow(
-      /unsupported: anchor .*pivot.* on "later-anchor" \(M4\)/,
+      /unsupported: anchor .*pivot.* on "later-anchor" \(M7\)/,
     );
   });
 
@@ -162,7 +156,7 @@ describe("resolution of a data figure", () => {
   it("hands a gatherer the formation's places and the other pair's centre", () => {
     const dancing = resolve("swing", { pairs: "neighbors" }).filter((i) => !i.holdPlace);
     for (const instance of dancing) {
-      expect((instance.params["places"] as unknown[]).length).toBe(4);
+      expect((instance.params["homes"] as unknown[]).length).toBe(4);
       expect((instance.params["nearby"] as unknown[]).length).toBe(2);
     }
   });
@@ -170,7 +164,7 @@ describe("resolution of a data figure", () => {
   it("hands a figure that does not gather no places at all", () => {
     const dancing = resolve("balance", { pairs: "neighbors" }).filter((i) => !i.holdPlace);
     for (const instance of dancing) {
-      expect(instance.params["places"]).toEqual([]);
+      expect(instance.params["homes"]).toEqual([]);
     }
   });
 

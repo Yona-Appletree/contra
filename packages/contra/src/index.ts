@@ -58,6 +58,11 @@ export type {
   BodyStage,
   BodyTarget,
   ContactHand,
+  CourtesyEnds,
+  CourtesyHands,
+  CourtesyPairing,
+  CourtesyTurnShape,
+  CrossingTrack,
   EndsRule,
   FigureDefinition,
   FigureRole,
@@ -65,24 +70,40 @@ export type {
   HoldPoint,
   HoldSpec,
   HoldWindowSpec,
+  IdleHands,
+  IdleTrack,
   LegacyShape,
+  MateHold,
   OrbitEnds,
   OrbitMotion,
   OrbitPairShape,
   PairHold,
+  PairingRule,
   ParamGuard,
   ParamSpec,
   ParamValue,
+  PathCurve,
+  PathFacing,
+  PathLook,
   PathShape,
+  PathSpin,
+  PathTrack,
+  RingFacing,
   RingHold,
+  RingTravel,
   RingWalkShape,
   RockShape,
   SequencePart,
   SequenceShape,
+  SideRule,
+  SoloHold,
+  SoloPoint,
   SpeedWindow,
   TimingProfile,
   TurnSpec,
 } from "./library/FigureDefinition.js";
+export type { HandedMirror, MirrorRule, ParameterMirror, Symmetry } from "./library/symmetry.js";
+export { mirror, mirrorParams, mirrors, roleSwap, roleSwapParams } from "./library/symmetry.js";
 export type { Library } from "./library/Library.js";
 export { createLibrary } from "./library/Library.js";
 export type {
@@ -116,9 +137,27 @@ export {
   paramDefaults,
   planDefinition,
 } from "./library/interpret.js";
-export { planShape } from "./library/kinds/index.js";
-export type { ActiveHold, ActivePairHold, ActiveRingHold } from "./library/kinds/holds.js";
-export { activeHolds, endsOfHold, joinsHeldAt } from "./library/kinds/holds.js";
+export { planCourtesyTurn, planPath, planRingWalk, planShape } from "./library/kinds/index.js";
+export type {
+  ActiveHold,
+  ActiveMateHold,
+  ActivePairHold,
+  ActiveRingHold,
+  ActiveSoloHold,
+} from "./library/kinds/holds.js";
+export {
+  activeHolds,
+  endsOfHold,
+  idleHandAt,
+  joinsHeldAt,
+  mateHandAt,
+  mateJoinsAt,
+  resolveSide,
+  soloHandAt,
+  soloIsFor,
+  soloJoinsAt,
+} from "./library/kinds/holds.js";
+export { pairUp } from "./library/kinds/pairing.js";
 export type { PlacePair } from "./library/kinds/places.js";
 export { nearestPlaces, placePairFor, settleOnPlaces } from "./library/kinds/places.js";
 export type {
@@ -130,10 +169,16 @@ export type {
 } from "./library/compareFigures.js";
 export { DD21_TOLERANCE, compareFigures } from "./library/compareFigures.js";
 export { contraDataEngine, contraDataRegistry } from "./library/engine.js";
+export type { CarrierGolden } from "./library/figures/index.js";
 export {
+  CARRIER_DEFINITIONS,
+  CARRIER_FORMATIONS,
+  DATA_DEFINITIONS,
+  DATA_IDS,
   GATHERER_DEFINITIONS,
   GATHERER_IDS,
   DATA_ONLY_FIGURE_IDS,
+  MINOR_SET_ROLES,
   PAIR_ROCK,
   SWING_HOLD,
   SWING_ORBIT,
@@ -141,10 +186,26 @@ export {
   balanceAndSwingDefinition,
   balanceDefinition,
   balanceRingDefinition,
+  bothWays,
+  californiaTwirlDefinition,
+  carrierGolden,
+  circleDefinition,
   contraDataFigures,
   contraLibrary,
+  doSiDoDefinition,
+  longLinesDefinition,
+  passThroughDefinition,
+  petronellaDefinition,
+  rightAndLeftThroughDefinition,
+  robinsChainDefinition,
+  grandRightAndLeftDefinition,
+  pullByDefinition,
+  rollAwayDefinition,
+  slideLeftDefinition,
+  starDefinition,
   swingDefinition,
   twoHandRock,
+  worstOf,
 } from "./library/figures/index.js";
 export {
   LEGACY_ROLES,

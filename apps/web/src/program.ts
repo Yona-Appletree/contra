@@ -526,9 +526,11 @@ const DOWN_THE_HALL = 90;
  * `dances` (which `first` may have rotated), so that choosing a dance to
  * start from does not change which medley any dance is shuffled onto.
  *
- * `figureOverrides` is `?chain=`'s route into the Stage: forwarded straight to
- * `createContraRegistry`, so a dance that calls the overridden figure dances
- * the chosen candidate instead of the figure's own shipped default.
+ * `figureOverrides` is a figure-defaults override's route into the Stage:
+ * forwarded straight to `createContraRegistry`, so a dance that calls an
+ * overridden figure dances it at those defaults rather than at its own shipped
+ * ones. Nothing in the app drives it today — it is the registry's own seam, for
+ * a caller comparing one figure's tuning against another's.
  *
  * `engine` is `?engine=new|old`'s route in, and it is **two halves, both of
  * which have to agree**. The new engine is the contra `CyclePlanner` *and* a

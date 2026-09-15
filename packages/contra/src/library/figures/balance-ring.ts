@@ -68,4 +68,11 @@ export const balanceRingDefinition: FigureDefinition = {
   // measures itself from.
   ends: "home",
   timing: { stretch: "pace", profile: "smooth" },
+  symmetry: {
+    // A ring rocks along its own radius: there is no hand in it.
+    mirror: { kind: "parameters" },
+    // Four dancers doing the same thing a quarter turn apart, like the
+    // petronella that so often follows.
+    rotates: 1,
+  },
 };

@@ -75,7 +75,7 @@ their own and are reached by URL or by a link on the page above them.
   is right, and says under the strips which look decisions are still open.
   `#/lab` lists the shortlist; any seam key the Moves page files a tile under
   opens. Other query parameters: `beat=<n>` freezes on that count from the
-  boundary, `zoom=<2|3|4|6>`, `trails=1`, `chain=<1..5>`. Filed under the
+  boundary, `zoom=<2|3|4|6>`, `trails=1`. Filed under the
   Moves tab, on a route of its own.
 - **Dances** (`#/dances`, D1). One card per encoded dance — the same
   `@caller/music` `Card` the Stage tab puts beside the hall, read at beat
