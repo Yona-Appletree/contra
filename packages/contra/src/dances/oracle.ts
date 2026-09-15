@@ -14,7 +14,10 @@ import {
   createHall,
   createLibrary,
   createScriptDecider,
+  concurrentCalls,
+  danceBeats,
   danceSchedule,
+  dancePasses,
   dist,
   poseAt,
   reachReport,
@@ -77,14 +80,31 @@ export function formationFor(dance: Dance): Formation {
  * places that compare the engines ask it rather than filtering by slug. The
  * demo itself runs on the new engine (`DEFAULT_ENGINE` since M3) and is
  * unaffected.
+ *
+ * **Three more answers since M8**, and each of them is a shape of record rather
+ * than a figure. The old path threads a dance by running one running set of
+ * places through a flat list of calls, so it cannot dance:
+ *
+ * - a **concurrent call** — two figures over one set of places at one beat is
+ *   exactly what a single running `from` cannot say (Q13);
+ * - a **zero-beat call** — the chain would hand the next figure the same places
+ *   the last one left, which is right, but `defaultCyclePlanner` emits an event
+ *   of no length for it and the old path has no rule for one;
+ * - a **multi-pass record** — the progression fires inside the cycle, and the
+ *   old path progresses only at its boundary.
  */
 export function threadsOnTheOldPath(dance: Dance): boolean {
-  return danceSchedule(dance).every(
-    ({ call }) =>
-      call.figure === HOLD_PLACE_FIGURE ||
-      contraFigureOf(call.figure) !== undefined ||
-      templateFigureOf(call.figure) !== undefined,
-  );
+  if (dancePasses(dance) > 1) return false;
+  return danceSchedule(dance).every(({ call }) => {
+    if ((call.while ?? []).length > 0) return false;
+    return concurrentCalls(call).every(
+      (each) =>
+        each.beats > 0 &&
+        (each.figure === HOLD_PLACE_FIGURE ||
+          contraFigureOf(each.figure) !== undefined ||
+          templateFigureOf(each.figure) !== undefined),
+    );
+  });
 }
 
 /** The line lengths this dance's formation is checked at. */

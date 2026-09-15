@@ -82,8 +82,9 @@ export const castBackDefinition: FigureDefinition = {
   },
   shape: { kind: "waypoints", tracks: { "*": [track[0]!, track[1]!] } },
   holds: [],
-  // A cast back lands on a place the set already has, so it settles on one: the
-  // alternative is a dancing place of drift every time through.
-  ends: "home",
+  // **`ends: "relative"`**, for `promenade`'s reason: a cast back after a
+  // promenade round the major set is nowhere near the four places its own minor
+  // set has, and settling on them takes the promenade's travel away again.
+  ends: "relative",
   timing: { stretch: "distance", profile: "smooth" },
 };

@@ -93,8 +93,13 @@ export const promenadeDefinition: FigureDefinition = {
     idleHands: { kind: "down" },
   },
   holds: [],
-  // A promenade around the set lands you on a place the set has — it is how the
-  // dance gets you to the next couple — so it settles on the formation's own.
-  ends: "home",
+  // **`ends: "relative"`, and the reason is measured.** A promenade around the
+  // major set travels *past* the minor set it started in, and a gatherer is
+  // handed the four places of its **own** group — so settling pulled the couple
+  // straight back to where it began and the dance closed 68 px out, which is the
+  // whole travel. A promenade is a carrier: it leaves you where it put you, and
+  // the figure after it gathers. (What a gatherer would need is the lane's own
+  // places, which resolution supplies only to a call that reaches past the four.)
+  ends: "relative",
   timing: { stretch: "distance", profile: "smooth" },
 };
