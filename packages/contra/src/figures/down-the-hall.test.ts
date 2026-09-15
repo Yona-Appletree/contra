@@ -70,16 +70,14 @@ describe("down the hall", () => {
  * report, rather than guessed at.
  */
 describe('down the hall and the "line" selector (M2 dependency)', () => {
-  it("groupsFor(\"line\", set) is the plain four-station group in the interior", () => {
+  it('groupsFor("line", set) is the plain four-station group in the interior', () => {
     const state = BECKET.start({ id: "b", couples: 8, centre: [0, 0], axis: 90 });
     const line = BECKET.groupsFor(LINE_GROUP, state);
     const interior = line.find((p) => p.stations.length === 4)!;
     expect(interior).toBeDefined();
     const group = createGroup(interior, BECKET.roleSet);
     const params = withDefaults(downTheHall, {}, downTheHall.beats);
-    expect(
-      figureProblems(probeFigure(downTheHall, params, { group })),
-    ).toEqual([]);
+    expect(figureProblems(probeFigure(downTheHall, params, { group }))).toEqual([]);
   });
 
   it("widens to six stations at a true end (M2's own mechanism, confirmed here)", () => {

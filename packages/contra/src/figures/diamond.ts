@@ -9,7 +9,14 @@ import type {
   Spot,
   Spots,
 } from "./ContraFigure.js";
-import { bearing, contraFigure, holdWindow, isHeld, polar, takeAndRelease } from "./ContraFigure.js";
+import {
+  bearing,
+  contraFigure,
+  holdWindow,
+  isHeld,
+  polar,
+  takeAndRelease,
+} from "./ContraFigure.js";
 import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balanceRock } from "../pair/balance.js";
 import { ringFor, ringHands, ringShift } from "./ring.js";
 
@@ -160,7 +167,8 @@ export const diamond = contraFigure<DiamondParams>({
             p: self.p,
             facing: self.facing,
             hands: { L: "down", R: "down" },
-            flare: 2.6 * Math.sin((Math.PI * Math.max(0, t - balanceBeats)) / Math.max(1, reformBeats)),
+            flare:
+              2.6 * Math.sin((Math.PI * Math.max(0, t - balanceBeats)) / Math.max(1, reformBeats)),
           };
         }
         const hands = joinedAt(t).hands[station];

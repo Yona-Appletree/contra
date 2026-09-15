@@ -326,7 +326,11 @@ export const downTheHall = contraFigure<DownTheHallParams>({
       aSide: "L" | "R";
       bSide: "L" | "R";
     }
-    const sidesAt = (a: StationId, b: StationId, t: Beat): { aSide: "L" | "R"; bSide: "L" | "R" } => {
+    const sidesAt = (
+      a: StationId,
+      b: StationId,
+      t: Beat,
+    ): { aSide: "L" | "R"; bSide: "L" | "R" } => {
       const spotA = placeAt(a, t);
       const spotB = placeAt(b, t);
       return { aSide: sideToward(spotA, spotB), bSide: sideToward(spotB, spotA) };
@@ -466,7 +470,8 @@ function couplePivot(
   const radiusEnd = len(relEnd);
   let turn = angleDiff(angleStart, angleOfVec(relEnd));
   if (otherAt && Math.abs(Math.abs(turn) - 180) < 1e-6) {
-    turn = bestFlipSign(pivotStart, pivotEnd, angleStart, radiusStart, radiusEnd, stages, otherAt) * 180;
+    turn =
+      bestFlipSign(pivotStart, pivotEnd, angleStart, radiusStart, radiusEnd, stages, otherAt) * 180;
   }
   const { pivot, radius, angle } = stagedPose(
     pivotStart,
