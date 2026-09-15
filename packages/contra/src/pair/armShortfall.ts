@@ -1,36 +1,16 @@
-import type { Beat, PoseSample, Side, Style, Vec2 } from "@caller/core";
-import { NEUTRAL_STYLE, drawnArms, q256Vec2, quietMotion } from "@caller/core";
+import type { Beat, Side } from "@caller/core";
+import { armShortfall } from "@caller/core";
 import type { PairFrame, PairRole } from "./PairFrame.js";
 import { PAIR_ROLES } from "./PairFrame.js";
 import type { FigureDef } from "./FigureDef.js";
 import { resolveParams, sampleVelocity } from "./FigureDef.js";
 
-/** How far each arm falls short of its hand, in px. Zero is the AC1 invariant. */
-export interface ReachCheck {
-  L: number;
-  R: number;
-}
-
-/**
- * The planar shortfall of both arms for one pose, solved exactly the way
- * `@caller/hall` solves it: the body position quantised, the shoulders hung off
- * the **swayed** torso, and a `'down'` hand resolved to where it hangs.
- *
- * Plan AC1 is `short === 0` for every dancer at every eighth of a beat, so
- * every figure's test runs this over its whole length. A non-zero result means
- * a hand has been put where the arm cannot reach it, which is the one thing
- * the model is not allowed to do.
- */
-export function armShortfall(
-  pose: PoseSample,
-  beat: Beat,
-  velocity: Vec2,
-  style: Style = NEUTRAL_STYLE,
-): ReachCheck {
-  const motion = quietMotion(pose, beat, velocity, style);
-  const drawn = drawnArms(pose, beat, q256Vec2(pose.p), pose.facing + motion.sway);
-  return { L: drawn.arms[0].short, R: drawn.arms[1].short };
-}
+// The one-pose probe is `@caller/core`'s: it needs nothing but a pose, and the
+// library figures in `../figures/` check themselves with the same numbers. It
+// is re-exported here, with its `ReachCheck`, under the names every figure test
+// already imports.
+export type { ReachCheck } from "@caller/core";
+export { armShortfall };
 
 /** The worst shortfall a figure produces, and where. */
 export interface FigureProbe {

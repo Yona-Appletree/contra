@@ -6,7 +6,6 @@ import {
   angleOf,
   bodyPoint,
   dirOf,
-  hangingHand,
   leftOf,
 } from "@caller/core";
 
@@ -84,22 +83,11 @@ export const pairLinePlace = (frame: PairFrame, role: PairRole): PairPlace =>
 export const lookAtPartner = (self: Vec2, partner: Vec2): Angle =>
   norm360(angleOf(partner[0] - self[0], partner[1] - self[1]));
 
-/**
- * A hand that is not placed by the figure: out to the side and down, swinging
- * with the step.
- *
- * This is `@caller/core`'s {@link hangingHand} under the name the pair figures
- * have always called it. A figure needs it because every take and every release
- * is animated and the animation has to start where the renderer would have
- * drawn the hand; F3a moved the model down into `core` so there is exactly one
- * copy of those numbers — see `packages/core/src/kinematics/drawnArms.ts`.
- *
- * `beat` is the figure's **own** beat, not the absolute one: a figure's step
- * phase is measured from its own start. Because every figure starts on a whole
- * beat and the phase has period 1 (or 1/2 for a buzz), that is the same number
- * the renderer's quiet motion uses.
- */
-export const handDown = hangingHand;
+// `handDown` — the hand a figure does not place, hanging at the dancer's side —
+// is `@caller/core`'s, and is re-exported here under the name the pair figures
+// have always imported it by. The resting-arm model it aliases lives in
+// `packages/core/src/kinematics/handDown.ts`.
+export { handDown } from "@caller/core";
 
 /** Where a two-hand hold puts the joined hands, sideways from the centre. */
 export const HOLD_LATERAL_PX = 4.5;

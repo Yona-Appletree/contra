@@ -561,7 +561,11 @@ Where a number was settled at gate 3 the library **imports it from here**
 rather than restating it: the swing's radius, lateral offset, body turn, hand
 drop, back and shoulder hands, lean, flare and buzz feet; the balance's rock
 profile, back ratio and lean cap; the allemande's turn radius; the trapezoid
-speed profile. The hanging hand is `@caller/core`'s.
+speed profile. Four of those are now `@caller/core`'s own and are re-exported
+from here under the names both layers already import — the hanging hand
+(`handDown`), the trapezoid profile, the swing's buzz feet (`swingFeet`) and the
+`armShortfall` probe; nothing about them is contra, and a second copy is the
+only way the two swings could ever put a foot in a different place.
 
 The package exports these six under `pair`-prefixed names — `pairBalance`,
 `pairSwing`, `pairAllemande`, `pairDoSiDo`, `pairWalkIn`, `pairFallBack` —
