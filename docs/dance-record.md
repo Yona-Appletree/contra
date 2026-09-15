@@ -1,0 +1,304 @@
+# The dance record
+
+What a `data/dances/<slug>.json` file holds, what each field means, and how to
+turn a Caller's Box page into one. Written in M8 of the figure-model plan, which
+is the milestone that widened the record far enough to hold the corpus.
+
+A record is **JSON and nothing else**. It survives
+`JSON.parse(JSON.stringify(dance))` unchanged, it never writes `from` or
+`carried` (both are derived at load, and a file that writes one is refused), and
+everything in it is either a fact about the dance or a parameter of a figure.
+
+---
+
+## The file
+
+```jsonc
+{
+  "slug": "butter",
+  "title": "Butter",
+  "author": "Gene Hubert",
+  "formation": "becket", // a formation id: duple-improper | becket | proper
+  "status": "lab", // left out for a shipped dance; see "Lab status"
+  "notes": "The Caller's Box 10320, permission: full.",
+  "source": {
+    "callersBoxId": 10320,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10320",
+    "permission": "full",
+    "transcript": "A1  (2) Shift left  (6) Circle left 3/4  …", // verbatim
+  },
+  "passes": 2, // how many passes `phrases` holds; left out is one
+  "progressEvery": 1, // passes between progressions; left out is one
+  "progression": { "lark": 1, "robin": 3 }, // per-role, in dancing places
+  "startPlaces": { "1L": { "p": [-16, 30], "facing": 0 } },
+  "waitOut": { "joinBeats": 2 },
+  "figures": { "go-forward": {} }, // dance-local figures; see below
+  "phrases": [{ "name": "A1", "figures": [] }],
+}
+```
+
+- **`source` is not decoration.** Every dance in this repository is a real,
+  published contra whose figures come from that dance's own Caller's Box page,
+  and the page's own `Permission:` field is quoted in `permission`. Nothing is
+  reconstructed from memory
+  (`docs/adr/2026-09-13-corpus-and-permission.md`). The `transcript` is the
+  page's A1/A2/B1/B2 lines **exactly as they print**, including the counts and
+  the notation, so that a reader can check the record against its source without
+  leaving the file.
+- **`notes`** is this repository's own commentary — what is encoded, what is
+  owed, which reading was taken. `pnpm dance <slug>` prints it.
+- **`progression`** is per role, in dancing places, and lives on the record
+  rather than in `@caller/choreo` because "lark" is a contra word (AC7). Left
+  out is `{ lark: 1, robin: 1 }`, the single progression.
+- **`startPlaces`** says where the dance picks everybody up at beat 0 of every
+  time through, in the group frame's own axes. Only a dance that starts
+  somewhere other than the formation's stations needs it — a becket dance whose
+  first two beats are the shift.
+
+## A phrase, and a call
+
+```jsonc
+{
+  "name": "A1",
+  "figures": [
+    {
+      "figure": "allemande", // a figure id, or "<slug>/<name>" for a local one
+      "beats": 8, // may be 0; see "Zero-beat calls"
+      "who": "larks", // which dancers, within the group
+      "group": "shadow-pair", // which partition of the set the call runs in
+      "ends": "bottom", // which true end a widened group may reach
+      "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
+      "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF",
+      "spokenBeats": 3, // override the rhythm estimate for this line
+      "while": [], // calls danced beside this one; see "Concurrent calls"
+    },
+  ],
+}
+```
+
+**Every phrase is the same length**, and a call may end anywhere inside one.
+A phrase's length is the sum over its calls of "the longest of this call and the
+calls beside it".
+
+**`name` is a label.** `A1 A2 B1 B2` is the ordinary contra tune and is what
+most records write, but 113 corpus dances have phrases beyond it and a two-pass
+record writes its second pass as `2A1 … 2B2`. Nothing reads the four letters.
+
+## Shorthand and canonical parameters
+
+A figure's parameters are its **canonical** ones — the `params.defaults` block of
+its `FigureDefinition` — and a record may write any of them directly. Several
+figures also take a **shorthand** that expands into one:
+
+| figure   | shorthand              | canonical                                         |
+| -------- | ---------------------- | ------------------------------------------------- |
+| `hey`    | `amount: 0.5`          | `passes: "RR NL LR"` — the pass list, written out |
+| `hey`    | `ricochet: "robins@2"` | the same list with `L!` on that pass              |
+| `star`   | `amount: 0.875`        | `places: 3.5` — quarters of the ring              |
+| `circle` | `direction: "left"`    | `places`, with its own sign                       |
+
+The two compose rather than compete: `star`'s `amount` multiplies its `places`,
+so `{ "places": 4 }` is once round exactly as it always was and
+`{ "amount": 0.875 }` is seven eighths of it. **Write the canonical form when
+the shorthand cannot say it** — Are You 'Most Done?'s "star left 7/8" and Anna's
+Reel's `passes: "RL PR LL N2R"` are both cases where the caller's own words are
+not one of the shorthand's values.
+
+Three parameters are **not** figure parameters at all. They ride in `params`
+because `FigureCall` is `@caller/choreo`'s and all three are contra words, and
+the layer above the figure reads them and strips them out before any figure is
+planned:
+
+| parameter | read by             | what it says                                                                                                                    |
+| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `rebind`  | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
+| `trade`   | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
+| `form`    | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
+
+## Concurrent calls (`while`)
+
+The corpus writes `||`, and 735 dances use it; 189 more write "while".
+
+```jsonc
+{
+  "figure": "allemande",
+  "beats": 4,
+  "params": { "pairs": [["1L", "2L"]], "hand": "R", "amount": 1 },
+  "call": "LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT",
+  "while": [{ "figure": "loop", "who": "robins", "params": { "hand": "R" } }],
+}
+```
+
+- A branch is an **ordinary call** in every respect but two: its `beats` may be
+  left out (it takes the parent's), and it may not carry a `while` of its own.
+- **The actors must be disjoint.** The planner checks it by name before anything
+  is emitted, because the timeline enforces exactly that per dancer (Q13).
+- **A dancer in neither is on hold-place** for the whole length. This is the
+  reason the branches cannot be resolved one at a time: the robins looping are
+  not standing through the larks' allemande, and a per-branch complement would
+  put every one of them in a figure _and_ on hold-place at the same beat.
+- The **card** draws it as one row with two lines; the **walkthrough** teaches
+  each half as its own step; a **seam** is every figure of one step into every
+  figure of the next.
+
+## Zero-beat calls
+
+`"beats": 0` is a call that takes no music: "face your neighbour", "form a wave".
+44 corpus dances have one. It is a fact about where you end up rather than
+something the dance spends beats on, so the phrase's arithmetic is unchanged and
+the figure's **ends** are what it is for. A negative count is still refused.
+
+A figure only means something at no beats if its ends are **structural** — read
+off the shape rather than off how far through the count it is. Every `waypoints`
+figure is (its ends are the last leg's own pose), which is `turn-alone`, `loop`,
+`cast-back` and the two `go-*-outside` figures. A figure whose ends are a ramp
+would answer "exactly where it started".
+
+## Passes
+
+A record may hold more than one **pass** — one time through the tune — and write
+them out, because the corpus writes them out: Anna's Reel's second pass
+exchanges the roles throughout and is not derivable from the first.
+
+```jsonc
+{
+  "passes": 2,
+  "phrases": [
+    { "name": "A1" },
+    { "name": "A2" },
+    { "name": "B1" },
+    { "name": "B2" },
+    { "name": "2A1" },
+    { "name": "2A2" },
+    { "name": "2B1" },
+    { "name": "2B2" },
+  ],
+}
+```
+
+- **The phrase list is flat**, all passes in order, so nothing that walks a
+  dance's figures has to know about passes at all. `phrases.length` must divide
+  by `passes` and every pass must be the same number of beats.
+- **The progression fires at the end of every pass**, not at the end of the
+  record — which is what a single-progression two-pass dance means. A record
+  whose two passes share one progression says `"progressEvery": 2`.
+- One time through **the record** is both passes; `danceBeats` is 128 for a
+  two-pass dance, and the card draws eight rows.
+
+## Dance-local figures
+
+D10: a dance may carry figure definitions of its own, for the figure no other
+dance in the corpus asks for.
+
+```jsonc
+"figures": {
+  "go-forward": {
+    "call": "GO FORWARD",
+    "describe": "…",
+    "lead": 2,
+    "nominalBeats": 2,
+    "roles": ["one"],
+    "actors": "each",
+    "anchor": "centroid",
+    "params": { "kind": "canonical", "defaults": {} },
+    "shape": { "kind": "waypoints", "tracks": {} },
+    "holds": [],
+    "ends": "home",
+    "timing": { "stretch": "distance", "profile": "smooth" },
+    "texts": { "walkthrough": {}, "call": {} }
+  }
+}
+```
+
+- The value is a `FigureDefinition` written out in full **but for its `id`**,
+  which is supplied as `<slug>/<name>`; a call names it that way
+  (`"figure": "fatal-attraction/go-forward"`), so a reader always knows where to
+  look and two dances cannot collide.
+- Its four **texts** go in the same literal, under `texts`, in exactly the shape
+  `data/figures/<id>.json` has — so that the whole figure is one thing in one
+  place.
+- **Promoting one is a copy**: move the literal into
+  `packages/contra/src/library/figures/<name>.ts`, its texts into
+  `data/figures/<name>.json`, drop the slug from the calls that name it, add a
+  row to `packages/contra/README.md`. Nothing else changes.
+
+## Lab status
+
+`"status": "lab"` is a dance that is being worked on. It loads like any other, is
+reachable by `pnpm dance <slug>`, by `#/dances/<slug>` and by `#/dance/<slug>`,
+and is **excluded** from the programme — so the demo never shows a dance that
+does not dance. The record's `notes` say what is still owed. It moves out of the
+lab and into `data/dances/programme.json` when it is green at every checked line
+length.
+
+---
+
+## The Caller's Box notation, and what it maps to
+
+The corpus writes its figures in a compact notation. This is the whole of it, and
+what each part becomes in a record.
+
+| Caller's Box                 | means                                               | in a record                                |
+| ---------------------------- | --------------------------------------------------- | ------------------------------------------ |
+| `W`                          | the women — this repository's **robins**            | `R` in a pass list; `pairs: [["1R","2R"]]` |
+| `M`                          | the men — this repository's **larks**               | `L` in a pass list; `pairs: [["1L","2L"]]` |
+| `(8)` before a figure        | its count in beats                                  | `"beats": 8`                               |
+| `A1` / `2A1`                 | the phrase, and the pass it is in                   | `phrases[].name`, with `passes`            |
+| `N2`, `N3`, `S2`, `C1`       | an indexed relation                                 | `pairs: "N2"`, or `who: "N2"`              |
+| `[with N2]`, `[with shadow]` | a **group selection** — which four the call runs in | `"group": …` where the formation has one   |
+| `\|\|`                       | concurrent: two calls at once                       | `"while": [ … ]`                           |
+| `while`                      | the same word, spelled out                          | `"while": [ … ]`                           |
+| `~` on a hey's last pass     | the hey **ends short** there                        | `NL~` in the pass list                     |
+| `(t1;t2;…)` after a hey      | the pass list, one token per meeting                | `params.passes`, `;` → a space             |
+| `X pull by R`                | that pass is a pull by, that hand                   | `mode: "pull-by"` in the schedule          |
+| `M ricochet`                 | that centre pass is a bounce                        | `L!` in the pass list                      |
+| `(W2-M1-W1-M2)`              | a line's **order**, read from one fixed side        | `params.order`                             |
+| `; form wave of four`        | an exit clause: the shape you end in                | `params.form`, or a zero-beat call         |
+| `; face N2`                  | an exit clause: who you end facing                  | a zero-beat call                           |
+| `(new partner)`              | a rebinding                                         | `params.rebind`                            |
+
+A pass list's own tokens are **who then shoulder**: `WR;NL;MR;PL` is "the robins
+by the right, your neighbour by the left, the larks by the right, your partner by
+the left", and it normalises into this repository's spelling as
+`RR NL LR PL`. Odd positions are the centre pair and even ones the side pass, so
+a role word is a pass for two and a relation word is a pass for four. The plain
+pass list covers about 85% of the corpus's hey lines verbatim; the rest are a
+per-role **schedule** of `{ meet, shoulder, mode, at, short }` items, which the
+pass list expands into.
+
+---
+
+## A translator's checklist
+
+Turning one Caller's Box page into a record, in order. Every step is something
+that has gone wrong at least once.
+
+1. **Copy the transcript verbatim** into `source.transcript`, counts, notation
+   and all, and record `callersBoxId`, `url` and the page's own `permission`.
+   If the permission is not `full`, stop: the figures may not be stored.
+2. **Name the formation.** `duple-improper`, `becket`, `proper` — and read what
+   the page says beside it ("improper", "becket", "single, swap sides").
+3. **Write the phrases with their counts first, figures second.** Check each
+   phrase sums to the same number. A phrase that does not is a transcription
+   error nine times in ten.
+4. **Translate `W`→robins and `M`→larks**, everywhere, including inside pass
+   lists. This is the single most common mistake.
+5. **Each call names a figure id.** If there is no figure for it, either it is a
+   figure a later milestone owns (leave the call, add the id to
+   `UNSUPPORTED_FIGURES` with that milestone, and the dance stays `lab`) or it is
+   a **dance-local figure**.
+6. **Write the pairing as a relation word** (`"partners"`, `"neighbors"`,
+   `"N2"`) rather than as stations wherever the transcript names one. Stations
+   (`[["1L","2L"]]`) are for "the larks", which is a role and not a relation.
+7. **`||` becomes `while`**, with the branches' actors disjoint.
+8. **An exit clause is its own call** — a zero-beat one — or a `form` parameter.
+9. **A second pass is more phrases plus `passes`**, named `2A1 …`.
+10. **Write a `call` for every line**, in the caller's own words. The dance's own
+    words win over the generated ones, on the card and in the bubble alike.
+11. **`status: "lab"`**, always, to begin with.
+12. **`pnpm dance <slug>`.** Read it from the top: section 0 says what figures
+    are still owed, 1 is who dances what, 2 is the oracles at every line length,
+    3 is who the ends leave out, 3b is how far off a stated shape anybody is, and
+    4 is the motion. Green at every length is what earns a place in
+    `data/dances/programme.json`; anything else stays in the lab with its own
+    `notes` naming the one thing, measured.
