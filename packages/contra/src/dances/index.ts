@@ -63,28 +63,58 @@ export const DEMO_DANCES: readonly Dance[] = PROGRAMME.slugs.map((slug) => {
       `data/dances/programme.json names "${slug}", which has no data/dances/${slug}.json`,
     );
   }
+  if (file.status === "lab") {
+    throw new Error(
+      `data/dances/programme.json names "${slug}", which is \`status: "lab"\`; ` +
+        `a lab dance is not shippable, so take it out of the programme or out of the lab`,
+    );
+  }
   return danceFromFile(file);
 });
 
-if (DEMO_DANCES.length !== Object.keys(DANCE_FILES).length) {
+/**
+ * The dances that load but are not shipped: `DanceFile.status === "lab"`.
+ *
+ * Reachable by `pnpm dance <slug>` and by {@link danceBySlug}, and by nothing
+ * the demo shows. No lab dance exists yet; the acceptance set's twelve arrive
+ * this way from M5 onwards.
+ */
+export const LAB_DANCES: readonly Dance[] = Object.values(DANCE_FILES)
+  .filter((file) => file.status === "lab")
+  .map((file) => danceFromFile(file));
+
+const SHIPPED_FILES = Object.keys(DANCE_FILES).filter(
+  (slug) => DANCE_FILES[slug]!.status !== "lab",
+);
+if (DEMO_DANCES.length !== SHIPPED_FILES.length) {
   throw new Error(
-    `data/dances/ holds ${Object.keys(DANCE_FILES).length} dance files but ` +
-      `programme.json names ${DEMO_DANCES.length}; every file must be in the programme`,
+    `data/dances/ holds ${SHIPPED_FILES.length} shippable dance files but ` +
+      `programme.json names ${DEMO_DANCES.length}; every file that is not ` +
+      `\`status: "lab"\` must be in the programme`,
   );
 }
 
 /** Every demo dance's slug, in programme order. */
 export const DEMO_DANCE_SLUGS: readonly string[] = DEMO_DANCES.map((d) => d.slug);
 
-/** The demo dance with this slug, or `undefined`. */
+/** Every dance this package loads, shipped and lab alike. */
+export const ALL_DANCES: readonly Dance[] = [...DEMO_DANCES, ...LAB_DANCES];
+
+/** The dance with this slug — a demo dance or a lab one — or `undefined`. */
 export const danceBySlug = (slug: string): Dance | undefined =>
-  DEMO_DANCES.find((d) => d.slug === slug);
+  ALL_DANCES.find((d) => d.slug === slug);
 
 export { LARKS, ROBINS } from "./pairs.js";
+export type { MotionAllowance, MotionMetric } from "./motionAllowlist.js";
+export { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";
+export type { DanceLabReport, ResolutionRow } from "./danceLab.js";
+export { danceLabReport, danceResolution, labCouples } from "./danceLab.js";
+export type { AcceptanceDance } from "./acceptance.js";
+export { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./acceptance.js";
 export type { DanceFile, DanceFileSource } from "./loadDances.js";
 export { danceFromFile } from "./loadDances.js";
 export { CONTRA_FORMATIONS, formationById } from "./formations.js";
-export type { DanceOracles } from "./oracle.js";
+export type { DanceOracles, DanceRunOptions } from "./oracle.js";
 export {
   BECKET_LINES,
   CLOSURE_PX,
