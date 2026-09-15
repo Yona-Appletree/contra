@@ -1,4 +1,4 @@
-import { danceSchedule, validateDance } from "@caller/choreo";
+import { validateDance } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import type { DanceLabReport } from "./danceLab.js";
 import {

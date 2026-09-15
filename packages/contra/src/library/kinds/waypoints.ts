@@ -341,8 +341,17 @@ function standingFrom(legs: readonly Leg[], at: number): Leg[] {
   const here = legs[at]!.from;
   return legs.map((leg, i) => {
     if (i < at) return leg;
-    const { pass: _pass, around: _around, ...rest } = leg;
-    return { ...rest, from: here, to: here, bow: 0, standing: true as const };
+    // No pass, no arc, no bow: the dancer is not dancing this leg at all.
+    const stood: Leg = {
+      from: here,
+      to: here,
+      start: leg.start,
+      end: leg.end,
+      bow: 0,
+      drop: leg.drop,
+      standing: true,
+    };
+    return leg.spin === undefined ? stood : { ...stood, spin: leg.spin };
   });
 }
 
