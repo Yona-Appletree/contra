@@ -161,6 +161,9 @@ export function planPath(
             const placed = mateHandAt(hold, role, mate, env, envFor(mate, t, ends), (id) =>
               placeAt(id, t),
             );
+            // `undefined` is two dancers with no inside hands to give each
+            // other; the hand stays where it was hanging. See `holds.ts`.
+            if (placed === undefined) continue;
             hands[placed.side] = takeAndRelease(step, placed.side, t, placed.hand, hold.window);
             continue;
           }

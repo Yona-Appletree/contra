@@ -321,17 +321,10 @@ export function mateHandAt(
   env: ExprEnv,
   mateEnv: ExprEnv,
   live: (role: string) => Spot,
-): { side: Side; hand: Hand } {
+): { side: Side; hand: Hand } | undefined {
+  if (noInsideHands(hold, env, mateEnv)) return undefined;
   const mySide = resolveSide(hold.spec.side, env);
   const theirSide = resolveSide(hold.spec.side, mateEnv);
-  // Two dancers facing *each other* have no inside hands — both would give the
-  // same one — and a figure for a couple side by side cannot be danced by them.
-  // Saying so is better than a hand placed where an arm cannot reach it.
-  if (mySide === theirSide && typeof hold.spec.side === "object" && !("param" in hold.spec.side)) {
-    throw new Error(
-      `"${role}" and "${mate}" are not standing side by side, so they have no inside hands`,
-    );
-  }
   const self = live(role);
   const other = live(mate);
   const point =
@@ -343,6 +336,36 @@ export function mateHandAt(
   const mine = joined[role];
   if (!mine) throw new Error(`no joined hand for "${role}"`);
   return { side: mySide, hand: mine };
+}
+
+/**
+ * Whether these two have no inside hands to give each other, because both ends
+ * of an `"inside"`-shaped rule resolve to the same side.
+ *
+ * Two dancers facing *each other* have no inside hands — both would give the
+ * same one — and neither has a figure for a couple side by side. Until M8b this
+ * **threw**, on the principle that saying so is better than a hand placed where
+ * an arm cannot reach it; **it now leaves the hand alone** (M8b), on the
+ * stronger principle the rest of this layer already follows: a dancer standing
+ * somewhere a figure did not expect is a *measurement*, not an exception.
+ *
+ * The case that forced it is Are You 'Most Done?, whose A1 allemande carries
+ * the two larks across the set and whose time through does not put them back:
+ * by the second time through two dancers of a couple are on one floor point, so
+ * long lines' own line mate is a dancer standing exactly where you are. That is
+ * a real fault of the dance and one the oracles are built to report —
+ * `collision 0.000 px`, `closure 60.0000 px` — where a throw reported nothing at
+ * all and stopped the lab measuring the dance at eight of its nine line
+ * lengths. No hand is invented: the two of them simply do not take that hand,
+ * and `mateJoinsAt` stops reporting the join so nothing downstream believes in
+ * a hold that was never made.
+ *
+ * `california-twirl.ts` keeps its own throw, and should: a twirl is *called* for
+ * a named couple, so a pair who cannot twirl is a fault in the call.
+ */
+function noInsideHands(hold: ActiveMateHold, env: ExprEnv, mateEnv: ExprEnv): boolean {
+  if (typeof hold.spec.side !== "object" || "param" in hold.spec.side) return false;
+  return resolveSide(hold.spec.side, env) === resolveSide(hold.spec.side, mateEnv);
 }
 
 /** The joins a figure's {@link MateHold}s report as shared, each once. */
@@ -361,6 +384,8 @@ export function mateJoinsAt(
     for (const role of input.roles) {
       const mate = mateOf(role);
       if (mate === undefined) continue;
+      // A hand that {@link noInsideHands} stops being placed is not a join.
+      if (noInsideHands(hold, envFor(role, t), envFor(mate, t))) continue;
       const side = resolveSide(hold.spec.side, envFor(role, t));
       const theirSide = resolveSide(hold.spec.side, envFor(mate, t));
       const key = joinKey(role, side, mate, theirSide);
