@@ -165,7 +165,8 @@ function shapeOf(group: Group, params: TakeHandsParams): Shape {
     const walk = (station: StationId, t: Beat): EndPose => {
       const from = starts[station] ?? groupStationPose(group, station);
       const to = endOf(group, station, params, from);
-      const step = walkStep(from, to, t, params.beats, 0);
+      // M10: the engine's own walks cruise, like the library's.
+      const step = walkStep(from, to, t, params.beats, 0, "cruise");
       return { p: step.p, facing: step.facing };
     };
     return { ring: null, at: walk, moving, handsAt: () => ({}) };
@@ -186,6 +187,9 @@ function shapeOf(group: Group, params: TakeHandsParams): Shape {
       turn,
       faceOffset: FACE_THE_CENTRE,
       turnTo: turnEnd,
+      // M10: the turn window cruises; the step in and the step out keep their
+      // own ramps, which is what the spike's circle model did.
+      profile: "cruise",
     });
 
   const handsAt = (t: Beat): Record<StationId, { L: Hand; R: Hand }> =>

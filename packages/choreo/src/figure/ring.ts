@@ -1,4 +1,4 @@
-import type { Angle, Beat, Hand, Side, Vec2 } from "@caller/core";
+import type { Angle, Beat, Hand, MotionProfile, Side, Vec2 } from "@caller/core";
 import {
   ARM_REACH_PX,
   angleDiff,
@@ -6,6 +6,7 @@ import {
   angleOfVec,
   dist,
   mix,
+  profileProgress,
   ramp,
   shouldersAt,
   sub,
@@ -210,6 +211,16 @@ export interface RingWalk {
    * only shape this one number adds.
    */
   turnTo?: Beat;
+  /**
+   * How the **turn** spends its beats (M10); default `"smooth"`, so a caller
+   * who says nothing is byte-identical.
+   *
+   * Only the turn. The step in and the step out keep their own ramps whatever
+   * this says: they are a beat and a half of closing up on to a ring and
+   * opening out of it, not travel, and the spike's own circle model cruised
+   * the turn window alone.
+   */
+  profile?: MotionProfile;
 }
 
 /**
@@ -233,7 +244,11 @@ export function ringWalk(
   if (on === undefined) throw new Error(`station "${station}" is not on this ring`);
 
   const kIn = ramp(t, 0, Math.min(walk.inBeats, beats));
-  const kTurn = ramp(t, walk.inBeats, walk.turnTo ?? beats - walk.outBeats);
+  const turnEnd = walk.turnTo ?? beats - walk.outBeats;
+  const kTurn =
+    walk.profile === undefined || walk.profile === "smooth"
+      ? ramp(t, walk.inBeats, turnEnd)
+      : profileProgress(walk.profile, t - walk.inBeats, turnEnd - walk.inBeats);
   const kOut = ramp(t, beats - walk.outBeats, beats);
 
   const from = bearing(ring.centre, start.p);
