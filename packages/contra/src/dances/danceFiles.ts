@@ -18,6 +18,7 @@ import chorusJigFile from "../../../../data/dances/chorus-jig.json" with { type:
 import contraCockaigneFile from "../../../../data/dances/contra-cockaigne.json" with { type: "json" };
 import contrablendFile from "../../../../data/dances/contrablend.json" with { type: "json" };
 import fatalAttractionFile from "../../../../data/dances/fatal-attraction.json" with { type: "json" };
+import jeremyCornersFile from "../../../../data/dances/jeremy-corners.json" with { type: "json" };
 import jubilationFile from "../../../../data/dances/jubilation.json" with { type: "json" };
 import kitchenStompFile from "../../../../data/dances/kitchen-stomp.json" with { type: "json" };
 import neighborNeighborOnTheWallFile from "../../../../data/dances/neighbor-neighbor-on-the-wall.json" with { type: "json" };
@@ -26,6 +27,7 @@ import thanksToTheGeneFile from "../../../../data/dances/thanks-to-the-gene.json
 import theBabyRoseFile from "../../../../data/dances/the-baby-rose.json" with { type: "json" };
 import theCarouselFile from "../../../../data/dances/the-carousel.json" with { type: "json" };
 import theNiceCombinationFile from "../../../../data/dances/the-nice-combination.json" with { type: "json" };
+import theSetMonsterFile from "../../../../data/dances/the-set-monster.json" with { type: "json" };
 import whooshFile from "../../../../data/dances/whoosh.json" with { type: "json" };
 
 /**
@@ -49,6 +51,7 @@ export const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
       contraCockaigneFile,
       contrablendFile,
       fatalAttractionFile,
+      jeremyCornersFile,
       jubilationFile,
       kitchenStompFile,
       neighborNeighborOnTheWallFile,
@@ -57,6 +60,7 @@ export const DANCE_FILES: Record<string, DanceFile> = Object.fromEntries(
       theBabyRoseFile,
       theCarouselFile,
       theNiceCombinationFile,
+      theSetMonsterFile,
       whooshFile,
     ] as DanceFile[]
   ).map((file) => [file.slug, file]),

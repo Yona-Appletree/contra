@@ -1,0 +1,145 @@
+{
+  "slug": "the-set-monster",
+  "title": "The Set Monster",
+  "author": "Isaac Banner",
+  "formation": "becket",
+  "status": "lab",
+  "progression": {
+    "lark": 3,
+    "robin": 3
+  },
+  "notes": "The Caller's Box 18307, permission: full. A becket dance with a **triple progression**: every dancer moves three dancing places, which is `progression: { lark: 3, robin: 3 }` and goes through `progressSet`'s uniform path with nothing else changed - no refusal, no special case. What the dance reaches for is the other end of the set: N2 in A2, N3 in B1 and N4 twice, in B1 and B2. **Still owed, one thing, measured, and it is not this record's.** In becket `N_k` is `(k - 1) x 4` lattice positions along the other line, which is two couple places a step, so N3 is four couple places away and N4 is six. At every line length the oracle checks (4 to 12 couples) **N2, N3 and N4 all name nobody for every dancer**: A2's second pull-by, B1's whole interrupted square through, B1's Jersey twirl and B2's balance of the ring are **wholly hold-place**, which the end-effects table lists dancer by dancer. That leaves A1, A2's chain and robins' pull-by and B2's petronella and partner swing as the only things anybody dances, and the closure is what is left of the dance rather than what it does: 51.2250 px at 4-5 couples, 60.0000 at 6, 68.0000 at 7 and 40.0000 at 8-10. At 12 couples `long-lines` throws `station \"1L\" has no line mate`. The becket `N_k` table is M8b's to settle; this record encodes what the transcript says and waits for it. **Two readings recorded rather than measured.** B1's \"(4) In long lines, go forward (facing out)\" is written as a four-beat `long-lines`, which goes forward and back in four rather than forward only, because the figure has no parameter for half of itself or for which way the line faces. The interrupted square through's `(N3R;PL)` is written as its two pairings out of the N3 ring's own four stations, so that \"N3 by the right\" is the pair across the ring and \"partner by the left\" is the pair beside each other.",
+  "source": {
+    "callersBoxId": 18307,
+    "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=18307",
+    "permission": "full",
+    "transcript": "A1  (4) Balance ring  (4) Petronella turn  (8) Neighbor swing\nA2  (8) Ladies chain to partner  (4) Women balance (RH)  (2) Women pull by right  (2) N2 neighbor pull by left\nB1  (8) Interrupted square through 2 [with N3]: (4) N3 neighbor balance (RH)  (4) Square through 2 (N3R;PL)  (4) In long lines, go forward (facing out)  (4) N4 neighbor Jersey twirl\nB2  (4) Balance ring [with N4]  (4) Petronella turn  (8) Partner swing"
+  },
+  "phrases": [
+    {
+      "name": "A1",
+      "figures": [
+        {
+          "figure": "balance-ring",
+          "beats": 4,
+          "call": "BALANCE THE RING"
+        },
+        {
+          "figure": "petronella",
+          "beats": 4,
+          "call": "PETRONELLA TURN TO THE RIGHT"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "neighbors"
+          },
+          "call": "NEIGHBOUR SWING"
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "figures": [
+        {
+          "figure": "robins-chain",
+          "beats": 8,
+          "params": {
+            "chains": "robin"
+          },
+          "call": "ROBINS CHAIN TO YOUR PARTNER"
+        },
+        {
+          "figure": "balance",
+          "beats": 4,
+          "params": {
+            "pairs": [["1R", "2R"]],
+            "hold": "one",
+            "hand": "R"
+          },
+          "call": "ROBINS BALANCE BY THE RIGHT"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": {
+            "pairs": [["1R", "2R"]],
+            "hand": "R"
+          },
+          "call": "ROBINS PULL BY THE RIGHT"
+        },
+        {
+          "figure": "pull-by",
+          "beats": 2,
+          "params": {
+            "pairs": "N2",
+            "hand": "L"
+          },
+          "call": "NUMBER TWO PULL BY THE LEFT"
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "figures": [
+        {
+          "figure": "interrupted-square-through",
+          "beats": 8,
+          "who": "N3",
+          "params": {
+            "balanceWith": [
+              ["1L", "2L"],
+              ["1R", "2R"]
+            ],
+            "firstPass": [
+              ["1L", "2L"],
+              ["1R", "2R"]
+            ],
+            "firstHand": "R",
+            "secondPass": "partners",
+            "secondHand": "L"
+          },
+          "call": "WITH NUMBER THREE, BALANCE THE RIGHT AND SQUARE THROUGH TWO"
+        },
+        {
+          "figure": "long-lines",
+          "beats": 4,
+          "call": "LONG LINES GO FORWARD"
+        },
+        {
+          "figure": "jersey-twirl",
+          "beats": 4,
+          "params": {
+            "pairs": "N4"
+          },
+          "call": "NUMBER FOUR JERSEY TWIRL"
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "figures": [
+        {
+          "figure": "balance-ring",
+          "beats": 4,
+          "who": "N4",
+          "call": "BALANCE THE RING WITH NUMBER FOUR"
+        },
+        {
+          "figure": "petronella",
+          "beats": 4,
+          "call": "PETRONELLA TURN TO THE RIGHT"
+        },
+        {
+          "figure": "swing",
+          "beats": 8,
+          "params": {
+            "pairs": "partners"
+          },
+          "call": "PARTNER SWING"
+        }
+      ]
+    }
+  ]
+}
