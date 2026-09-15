@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { BuildInfoBadge } from "./buildInfo/BuildInfoBadge.js";
-import { DancesPage } from "./routes/dances.js";
+import { DancePage, DancesPage } from "./routes/dances.js";
 import { FramePage } from "./routes/frame.js";
 import { HallPage } from "./routes/hall.js";
 import { hashRoute } from "./routes/hashRoute.js";
@@ -78,6 +78,16 @@ export function App() {
     return bare ? page : <Tabbed tab="dances">{page}</Tabbed>;
   }
 
+  // `#/dances/<slug>`: one dance's own quiet reference page — plural, the
+  // slug alone, distinct from both `#/dance/<slug>` (singular, the Stage) and
+  // `#/dances/<slug>/traces` (three segments, checked above this one).
+  // Mirrors `/moves/<id>` the same way `moveTracesId` mirrors `tracesSlug`.
+  const dance = danceSlug(route.path);
+  if (dance !== undefined) {
+    const page = <DancePage key={dance} slug={dance} params={route.params} />;
+    return bare ? page : <Tabbed tab="dances">{page}</Tabbed>;
+  }
+
   if (route.path === "/dances") {
     return (
       <Tabbed tab="dances">
@@ -100,7 +110,7 @@ export function App() {
 }
 
 /** The slug of `#/dances/<slug>/traces`, or `undefined` for any other path. */
-function tracesSlug(path: string): string | undefined {
+export function tracesSlug(path: string): string | undefined {
   const parts = path.split("/").filter((part) => part.length > 0);
   return parts.length === 3 && parts[0] === "dances" && parts[2] === "traces"
     ? parts[1]
@@ -108,9 +118,20 @@ function tracesSlug(path: string): string | undefined {
 }
 
 /** The figure id of `#/moves/<figure-id>/traces`, or `undefined` otherwise. */
-function moveTracesId(path: string): string | undefined {
+export function moveTracesId(path: string): string | undefined {
   const parts = path.split("/").filter((part) => part.length > 0);
   return parts.length === 3 && parts[0] === "moves" && parts[2] === "traces" ? parts[1] : undefined;
+}
+
+/**
+ * The slug of `#/dances/<slug>` (plural, the slug alone — the dance page,
+ * U3), or `undefined` for any other path: `/dances` itself (no second
+ * segment), `/dances/<slug>/traces` (three segments, {@link tracesSlug}'s),
+ * and everything under `/moves` or `/dance/<slug>` (singular, the Stage).
+ */
+export function danceSlug(path: string): string | undefined {
+  const parts = path.split("/").filter((part) => part.length > 0);
+  return parts.length === 2 && parts[0] === "dances" ? parts[1] : undefined;
 }
 
 /** Which tabs there are, in order, and where each one goes. */

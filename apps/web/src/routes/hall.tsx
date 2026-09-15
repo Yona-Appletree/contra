@@ -16,16 +16,10 @@ import {
 } from "@caller/hall";
 import type { Medley, Player, Tune } from "@caller/music";
 import { Card, Notation, createPlayer, medleys, playApplause, tunes } from "@caller/music";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@caller/ui-base";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@caller/ui-base";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SpeakerButton } from "../SpeakerButton.js";
 import { cardDance } from "../danceCard.js";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
@@ -46,7 +40,6 @@ import {
   shownMusicBeat,
 } from "../program.js";
 import { readLines, readSeed, setHallUrl } from "../state/hallUrl.js";
-import { DanceTraces } from "../traces/DanceTraces.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -601,7 +594,17 @@ export function HallPage({
             className="caller-stage-strip lg:w-fit lg:rounded"
             style={{ "--stage-backdrop": HALL_THEMES[THEME].wallTop } as CSSProperties}
           >
-            <canvas ref={canvasRef} data-testid="hall-canvas" />
+            <div className="caller-stage-canvas-wrap">
+              <canvas ref={canvasRef} data-testid="hall-canvas" />
+              {/*
+               * U3: the play control, an 8-bit speaker overlaid on the stage
+               * itself rather than a labelled button in the row below — "the
+               * 'play' button is not at all obvious … like a shorts video."
+               * Same click handler as the old button, so the user gesture the
+               * browser's autoplay policy needs is unchanged.
+               */}
+              <SpeakerButton playing={playing} onToggle={() => void (playing ? pause() : play())} />
+            </div>
           </div>
           <ControlBar
             dance={position.dance.slug}
@@ -620,8 +623,6 @@ export function HallPage({
             }}
             tempo={tempo}
             onTempo={setTempo}
-            playing={playing}
-            onPlay={() => void (playing ? pause() : play())}
             zoom={zoomChoice}
             onZoom={setZoomChoice}
             trails={trails}
@@ -631,7 +632,9 @@ export function HallPage({
 
         <aside className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-1 lg:px-0">
           <div data-testid="hall-card">
-            {/* The tune lives on the card now, under the phrases (U1). */}
+            {/* The tune lives on the card now, under the phrases (U1). T2's
+                shapes moved off this card in U3 — "odd and random" on a live
+                simulation — onto the dance's own page instead. */}
             <Card dance={cardDance(position.dance)} beat={position.danceBeat ?? 0}>
               <div className="min-w-0" data-testid="hall-notation">
                 <span className="caller-music-card-caption" data-testid="hall-tune">
@@ -639,10 +642,16 @@ export function HallPage({
                 </span>
                 <Notation tune={tune} beat={beat} showTitle={false} />
               </div>
-              {/* T2: the shape this dance makes, drawn from the same engine. */}
-              <DanceTraces dance={position.dance} />
             </Card>
           </div>
+          {/*
+           * U3: one discoverable link off the note card to this dance's own
+           * page — the shapes, the walkthrough, "play on the Stage" — beside
+           * the status line rather than a button competing with play.
+           */}
+          <p className="hall-dance-link" data-testid="hall-dance-page-link">
+            <a href={`#/dances/${position.dance.slug}`}>{position.dance.title}: the dance page</a>
+          </p>
           {/*
            * Which part of the evening this is: the time through while the hall
            * is dancing, and which stretch of the between-dances interval
@@ -663,11 +672,15 @@ export function HallPage({
 /**
  * The control bar: everything the page lets anybody change, and nothing else.
  *
- * One row, never two. Play, dance, tune, tempo, zoom and trails come to about
- * 500 px at their smallest, which is more than a 390 px phone has, so the row
+ * One row, never two. Dance, tune, tempo, zoom and trails come to about
+ * 450 px at their smallest, which is more than a 390 px phone has, so the row
  * scrolls sideways there rather than wrapping under itself and pushing the
  * card off the screen (U1). On a laptop the hall's own column is wide enough
  * that nothing scrolls.
+ *
+ * Play moved out of this row in U3, onto the stage itself as the speaker icon
+ * — the row lost the one control that most needed a thumb's reach on a phone,
+ * which only helps the ones still here.
  */
 function ControlBar(props: {
   dance: string;
@@ -676,8 +689,6 @@ function ControlBar(props: {
   onMedley: (slug: string) => void;
   tempo: number;
   onTempo: (bpm: number) => void;
-  playing: boolean;
-  onPlay: () => void;
   zoom: "auto" | number;
   onZoom: (zoom: "auto" | number) => void;
   trails: boolean;
@@ -688,15 +699,6 @@ function ControlBar(props: {
       className="flex w-full items-center gap-1.5 overflow-x-auto px-2 text-xs whitespace-nowrap lg:px-0"
       data-testid="hall-controls"
     >
-      <Button
-        onClick={props.onPlay}
-        data-testid="hall-play"
-        size="sm"
-        className="h-7 shrink-0 px-3"
-      >
-        {props.playing ? "Pause" : "Play"}
-      </Button>
-
       <Select value={props.dance} onValueChange={props.onDance}>
         <SelectTrigger className="h-7 w-[9.5rem] shrink-0 text-xs" data-testid="hall-dance-select">
           <SelectValue />

@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { useMemo } from "react";
 import type { GalleryTile } from "../galleryTiles.js";
 import { TraceSvg } from "./TraceSvg.js";
+import { ViewSwitch } from "./ViewSwitch.js";
 import { figureTrace } from "./figureTrace.js";
 import type { RowTraceView } from "./traceDrawings.js";
 import { rowMarch, rowPenPlot, rowSeismograph, rowStrip } from "./traceDrawings.js";
@@ -83,49 +84,3 @@ const VIEW_LABEL: Record<RowTraceView, string> = {
   march: "the same path marching across the beats, the set sliding right as they pass",
   seismograph: "each dancer's place across the set, then along it, against time",
 };
-
-/** The three options the switch offers, and the short label each button shows. */
-const VIEW_OPTIONS: ReadonlyArray<{ key: RowTraceView; label: string; name: string }> = [
-  { key: "plot", label: "plot", name: "pen plot" },
-  { key: "march", label: "march", name: "march" },
-  { key: "seismograph", label: "seismo", name: "seismograph" },
-];
-
-/**
- * The small plot · march · seismo switch (T4).
- *
- * Three short labels, not the full word "seismograph" — a 136 px column at
- * 390 px has no room for it — but every button's `aria-label` and `title`
- * still say the whole name.
- */
-function ViewSwitch({
-  view,
-  onChange,
-}: {
-  view: RowTraceView;
-  onChange: (view: RowTraceView) => void;
-}): JSX.Element {
-  return (
-    <div
-      className="moves-view-switch"
-      role="group"
-      aria-label="Trace view"
-      data-testid="moves-view-switch"
-    >
-      {VIEW_OPTIONS.map((opt) => (
-        <button
-          key={opt.key}
-          type="button"
-          onClick={() => onChange(opt.key)}
-          aria-pressed={view === opt.key}
-          aria-label={`${opt.name} view`}
-          title={opt.name}
-          data-testid={`moves-view-${opt.key}`}
-          className={view === opt.key ? "moves-view-active" : undefined}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}

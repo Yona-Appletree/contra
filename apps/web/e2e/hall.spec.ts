@@ -89,7 +89,9 @@ test("play primes the tune and starts the audio clock (AC4, DD12)", async ({ pag
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
 
   await page.getByTestId("hall-play").click();
-  await expect(page.getByTestId("hall-play")).toHaveText("Pause");
+  // U3: the play control is the 8-bit speaker icon now, named by its
+  // accessible name rather than by text content.
+  await expect(page.getByTestId("hall-play")).toHaveAttribute("aria-label", "Pause music");
 
   // Audio cannot be heard in a headless browser. What can be checked is that
   // the context really is running and that the synth really primed a buffer,
