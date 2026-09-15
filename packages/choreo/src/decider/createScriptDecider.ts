@@ -28,6 +28,7 @@ import { createTimeline } from "../timeline/Timeline.js";
 import type { ChoreoLibrary, Decider, ScriptDeciderOptions, ScriptPosition } from "./Decider.js";
 import { SCRIPT_DECIDER_DEFAULTS, danceOf, formationOf } from "./Decider.js";
 import { complementOf, resolveSelector } from "./resolveSelector.js";
+import { spokenBeats } from "./spokenBeats.js";
 
 /**
  * The script decider: it dances the program as written.
@@ -357,11 +358,32 @@ export function createScriptDecider(
     // and then 'balance and swing'"). Every later call, and every later time
     // through, keeps the lead its figure asks for — pacing the calls is the
     // calls-in-rhythm milestone's job, not this one's.
+    //
+    // How long the call itself lasts is C3's own arithmetic: it runs from
+    // `lead` beats early for however long the words take to say
+    // (`call.spokenBeats`, then `def.spokenBeats`, then the rhythm estimate,
+    // in that order — the dance's own number wins, then the figure's, then a
+    // guess from the text) plus a short tail, not a fixed two beats regardless
+    // of the words. "The calls stay around too long... they should stay
+    // around either how many beats they are, or maybe 1 or 2 beats past. but
+    // not until the next call" (the user, 2026-09-14).
+    //
+    // The spoken length is measured from where the utterance actually starts
+    // being heard, `Math.max(opts.startBeat, leadStart)` — not the raw,
+    // possibly-negative `leadStart` a short first call at the very start of
+    // the programme can have. A programme that opens on a dance whose first
+    // call is short enough that `spokenBeats + tail ≤ lead` (Butter's own
+    // "SHIFT LEFT", said with the two-beat `firstCallLeadBeats`) would
+    // otherwise end the utterance at or before beat 0 — a zero- or
+    // negative-length window nobody ever hears, on the very first call of the
+    // evening.
     for (const { call, start: offset } of schedule) {
       const def = registry.get(call.figure);
       const text = call.call ?? def.call;
       const lead = first && offset === 0 ? opts.firstCallLeadBeats : def.lead;
-      say(into, text, start + offset - lead, start + offset + opts.utteranceTailBeats);
+      const uttStart = Math.max(opts.startBeat, start + offset - lead);
+      const spoken = call.spokenBeats ?? def.spokenBeats ?? spokenBeats(text);
+      say(into, text, uttStart, uttStart + spoken + opts.utteranceTailBeats);
     }
 
     at.beat = start + cycle;

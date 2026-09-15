@@ -117,7 +117,17 @@ export interface ScriptDeciderOptions {
    * on the right, larks on the left" for eighteen beats.
    */
   readyCall: string;
-  /** Beats a call keeps being said after its figure starts. */
+  /**
+   * Beats a figure's own call keeps being said past its spoken length.
+   *
+   * C3: a call used to run a fixed two beats into its figure regardless of the
+   * words; now it lasts however long it takes to say ({@link
+   * import('./spokenBeats.js').spokenBeats}) plus this short tail, so the
+   * bubble does not vanish on the word's last syllable. The user asked for
+   * "maybe 1 or 2"; this is the low end of that. Only a figure's own call uses
+   * it — the applause, announcement and line-up bubbles keep the explicit
+   * windows B1 and B3 gave them.
+   */
   utteranceTailBeats: Beat;
   /**
    * Beats before a dance's **first** figure that its call is said.
@@ -171,7 +181,7 @@ export const SCRIPT_DECIDER_DEFAULTS: ScriptDeciderOptions = {
   applauseCalls: APPLAUSE_CALLS,
   lineUpCalls: HANDS_FOUR_CALLS,
   readyCall: HERE_WE_GO,
-  utteranceTailBeats: 2,
+  utteranceTailBeats: 1,
   firstCallLeadBeats: 2,
   startBeat: 0,
 };

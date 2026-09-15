@@ -49,6 +49,17 @@ export interface FigureDef<P extends FigureParams = FigureParams> {
   lead: Beat;
   /** The figure's natural duration, used when a call does not give one. */
   beats: Beat;
+  /**
+   * Overrides the rhythm estimate ({@link import('../decider/spokenBeats.js').spokenBeats})
+   * of how long this figure's call takes to say, in beats, for every call of
+   * it that does not say its own.
+   *
+   * Left out — every figure so far — is the estimate from the call text.
+   * A figure whose call is unusual to say (spelled-out numbers, a name) can
+   * set this once rather than every dance that calls it setting
+   * `FigureCall.spokenBeats` itself.
+   */
+  spokenBeats?: Beat;
   /** Tuning defaults; `beats` is filled in from the call. */
   defaults: Omit<P, "beats">;
   /** One dancer's pose, `t` beats into the figure. Pure. */

@@ -98,7 +98,19 @@ const THEME = "grange";
  */
 const SHUFFLE_MEDLEY = "shuffle";
 
-/** What the caller says while nobody is dancing, so the bubble is never blank. */
+/**
+ * What the bubble shows when nobody is being said anything: nothing.
+ *
+ * C3: a call used to keep the bubble showing "the last thing the caller said"
+ * for the whole figure it led into, so a two-beat call sat on the bubble for a
+ * six- or sixteen-beat figure — "the calls stay around too long... but not
+ * until the next call" (the user, 2026-09-14). Now a call's utterance lasts
+ * however long it takes to say (`spokenBeats`) plus a short tail, and once it
+ * has run out the bubble is this — empty — until the next call leads in. The
+ * page never draws a bubble for it (`draw`'s `if (call !== "")`); the only
+ * place this name still means anything is the page before the first click on
+ * play, when the decider has produced nothing yet to say.
+ */
 const IDLE_CALL = "";
 
 /**
@@ -809,31 +821,26 @@ const zoomClass = (on: boolean): string =>
   `h-7 rounded border px-1.5 ${on ? "border-current font-semibold" : "opacity-60"}`;
 
 /**
- * What the bubble says on this beat.
+ * What the bubble says on this beat, or nothing (C3: "silence is silence").
  *
  * The utterance covering the beat when there is one — each call starts its
- * figure's `lead` beats early and runs two beats past it (AC9) — and
- * otherwise the last thing the caller said, so the bubble does not blink out
- * between calls. A caller who has just said "balance" is still the reason the
- * hall is balancing.
+ * figure's `lead` beats early and lasts however long it takes to say, plus a
+ * short tail (AC9, `spokenBeats`) — and otherwise **nothing**: no more
+ * falling back to the last thing the caller said. The user: "the calls stay
+ * around too long. they should stay around either how many beats they are, or
+ * maybe 1 or 2 beats past. but not until the next call." A caller who said
+ * "balance and swing" two beats ago and is not due to say anything else for a
+ * while is not still talking; the hall is just dancing.
  */
 function callAt(program: DemoProgram, beat: Beat): string {
   const now = program.timeline.utterancesAt(beat);
-  // Calls overlap: each one is said four beats before its own figure and runs
-  // two beats into it, so at the moment a figure starts the caller is already
-  // leading the next one. The bubble shows the call that started first, which
-  // is the figure the hall is dancing right now; it gives way to the next as
-  // soon as it has run out.
-  if (now.length > 0) return now.reduce((a, b) => (a.start <= b.start ? a : b)).text;
-  // Backwards from the end: the decider runs a cycle ahead of the play head,
-  // so the most recent call is a handful of entries back however long the
-  // evening has been going.
-  const said = program.timeline.utterances();
-  for (let i = said.length - 1; i >= 0; i--) {
-    const u = said[i]!;
-    if (u.start <= beat) return u.text;
-  }
-  return IDLE_CALL;
+  if (now.length === 0) return IDLE_CALL;
+  // Calls overlap: a call is said its figure's lead beats before it and runs
+  // into it, so at the moment a figure starts the caller is already leading
+  // the next one. The bubble shows the call that started first, which is the
+  // figure the hall is dancing right now; it gives way to the next as soon as
+  // it has run out.
+  return now.reduce((a, b) => (a.start <= b.start ? a : b)).text;
 }
 
 const medleyOf = (slug: string): Medley => medleys.find((m) => m.slug === slug) ?? medleys[0]!;
