@@ -67,6 +67,16 @@ export interface CompareCase {
   from?: "stations" | "displaced";
   /** What this case is allowed to differ in, and why. Stated per case. */
   allowed?: readonly AllowedDifference[];
+  /**
+   * The formations this case is run in; the option's own list by default.
+   *
+   * Some parameter values only mean something in one formation. "Open out
+   * facing down the hall" is a real thing to ask a duple improper pair, whose
+   * own two places lie across the hall; asking it of a becket pair, whose
+   * places lie along it, names no pair of places at all and the coded figure
+   * answers with an end spacing no swing ever has.
+   */
+  formations?: readonly Formation[];
 }
 
 /** What `compareFigures` is run over. */
@@ -121,6 +131,7 @@ export function compareFigures(
   const out: CompareResult[] = [];
   for (const formation of options.formations) {
     for (const test of options.cases) {
+      if (test.formations && !test.formations.includes(formation)) continue;
       out.push(compareOne(coded, definition, formation, test, tolerance, options));
     }
   }

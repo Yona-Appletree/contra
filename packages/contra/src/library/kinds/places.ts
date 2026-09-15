@@ -29,9 +29,27 @@ import type { FigureRole } from "../FigureDefinition.js";
  * hand-written answer to exactly this search.
  */
 
+/**
+ * How far off square a pair of places may be and still count: 30°, as a cosine.
+ *
+ * `placeHalf`, the coded figures' own version of this search, uses **0.99** —
+ * about eight degrees — and that is the second half of why Butter carried
+ * `endHalf: 10`. A pair the hey leaves a few degrees off square opens out a few
+ * degrees off square, and at ten degrees `0.99` rejects the two places the pair
+ * is standing between, falls back to "however far apart we happen to be", and
+ * the swing ends wherever it was rather than on the set's places. A gatherer has
+ * to recognise the places it is walking toward even when it is not lined up with
+ * them yet, so the slop is the width of a figure's honest wobble rather than of
+ * floating-point noise. Anything further off square than this is a different
+ * pair of places, and the fallback is the right answer.
+ */
+const SQUARE_SLOP = Math.cos((30 * Math.PI) / 180);
+
 /** A pair of the formation's places, and where they sit. */
 export interface PlacePair {
-  /** Half way between the two, frame-local px. */
+  /** The two places themselves, frame-local px, in no particular order. */
+  ends: readonly [Vec2, Vec2];
+  /** Half way between the two. */
   centre: Vec2;
   /** Half the distance between them, px. */
   half: number;
@@ -54,7 +72,15 @@ export function placePairFor(
   fallbackHalf: number,
 ): PlacePair {
   const axis = dirOf(facing + 90);
-  let best: PlacePair = { centre, half: fallbackHalf };
+  const left = dirOf(facing - 90);
+  let best: PlacePair = {
+    ends: [
+      [centre[0] + left[0] * fallbackHalf, centre[1] + left[1] * fallbackHalf],
+      [centre[0] - left[0] * fallbackHalf, centre[1] - left[1] * fallbackHalf],
+    ],
+    centre,
+    half: fallbackHalf,
+  };
   let bestGap = Infinity;
   for (let i = 0; i < places.length; i++) {
     for (let j = i + 1; j < places.length; j++) {
@@ -63,13 +89,13 @@ export function placePairFor(
       const span = dist(a, b);
       if (span < 1e-9) continue;
       const unit: Vec2 = [(b[0] - a[0]) / span, (b[1] - a[1]) / span];
-      // Square across the way the pair will face, to within a degree or so.
-      if (Math.abs(unit[0] * axis[0] + unit[1] * axis[1]) < 0.99) continue;
+      // Square across the way the pair will face, to within {@link SQUARE_SLOP}.
+      if (Math.abs(unit[0] * axis[0] + unit[1] * axis[1]) < SQUARE_SLOP) continue;
       const mid: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
       const gap = dist(mid, centre);
       if (gap < bestGap) {
         bestGap = gap;
-        best = { centre: mid, half: span / 2 };
+        best = { ends: [a, b], centre: mid, half: span / 2 };
       }
     }
   }

@@ -6,17 +6,9 @@ import type {
   FigurePlan,
   PlanContext,
   Spot,
-  Spots,
 } from "../figures/ContraFigure.js";
 import { bearing, centreOf, contraFigure, midpoint } from "../figures/ContraFigure.js";
-import type {
-  AnchorRule,
-  FigureDefinition,
-  FigureRole,
-  FigureShape,
-  HoldSpec,
-  ParamValue,
-} from "./FigureDefinition.js";
+import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
 import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
 

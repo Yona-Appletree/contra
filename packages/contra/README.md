@@ -201,6 +201,20 @@ array, a tag the formation defines — and now also a **relation word**
 (`who: "N2"`). An instance is a `Group` whose stations are figure-roles, which
 is what leaves `FigureEvent`, `poseAt`, the oracles and the renderer untouched.
 
+Three actor rules so far. `"all"` is the legacy bridge's: one instance per minor
+set over everybody the call selected. `"pairs"` makes an instance per pair, the
+pairs named by `params.pairs` — a relation word resolved against the live set,
+or the station pairs a dance record writes today (`[["1L","2L"]]`, "larks
+allemande left") — and everybody the pairing leaves out dances hold-place, which
+is what the two robins really do. `"ring"` takes everybody in one instance.
+
+The **anchor** is where a shape's own origin sits _inside_ the instance's frame,
+not a frame of its own: `"meet"` is the pair's midpoint where they stand when the
+call starts, `"centroid"` the centre of the cast. The instance's frame stays the
+set's, because a frame per pair would mean converting every spot out of the set
+frame and back — and `localPoint(f, framePoint(f, x))` is `x` plus 2 × 10⁻¹⁵ px,
+which is harmless as a position and turns a facing of exactly 180° into −180°.
+
 ### The cycle planner — `src/set/planCycle.ts`
 
 `contraCyclePlanner` is a `@caller/choreo` `CyclePlanner`: one time through,
@@ -217,11 +231,55 @@ The app still runs the decider's own `defaultCyclePlanner`; M3 is what flips it.
 
 `FigureDefinition` is a figure as data: figure-roles, an actor rule, an anchor
 rule, a parameter spec, a shape, holds, an ends rule, a timing profile and a
-nominal count. M1's only shape kind is `{ kind: "legacy", figure }` — the
-**legacy bridge**, which wraps a coded `ContraFigure` as a definition whose
-figure-roles are the hands-four station ids and whose anchor is the formation's
-own minor-set frame. A figure leaves the bridge when it is rewritten as data
-(M2, M4, M5); by M11 the bridge is empty and `src/library/legacy.ts` is deleted.
+nominal count. Every definition survives `JSON.parse(JSON.stringify(def))`.
+
+`{ kind: "legacy", figure }` is the **legacy bridge**, which wraps a coded
+`ContraFigure` as a definition whose figure-roles are the hands-four station ids
+and whose anchor is the formation's own minor-set frame. A figure leaves the
+bridge when it is rewritten as data; by M11 the bridge is empty and
+`src/library/legacy.ts` is deleted.
+
+**The shape kinds** are implemented once each in `src/library/kinds/`, and no
+figure has code of its own:
+
+| kind        | what it is                                       | figures                   |
+| ----------- | ------------------------------------------------ | ------------------------- |
+| `rock`      | a pair or a ring closes up, rocks and rocks back | `balance`, `balance-ring` |
+| `orbitPair` | two dancers turning about a shared centre        | `swing`, `allemande`      |
+| `sequence`  | several shapes in a row, ends and hands threaded | `balance-and-swing`       |
+| `ringWalk`  | so many places round the instance's own ring     | M4                        |
+| `path`      | a dancer's own written path, per role            | M4                        |
+
+`src/library/expr.ts` is the expression calculus a definition's numbers, angles
+and points are written in — the data layer's own, with its leaves re-targeted on
+to figure-roles (`{ station }` became `{ role }`, `ringShift` became a role shift
+within the instance, `ringCentre` became the shape's `anchor`). It runs in three
+passes — ends, then every role's place at `t`, then the hands against those
+places — because a joined hand is the shared floor point of two _moving_ bodies
+and cannot be substituted from a template.
+
+**Holds are data** (`src/library/kinds/holds.ts`): a take-and-release window, the
+one shared floor point, the role stacking, and a `when` guard so a balance
+declares its two-hand hold, its one-hand hold and neither in the same list and
+the call's own `hold` parameter picks.
+
+**Honest ends.** `ends: "relative"` is "wherever the shape put them"; a
+**gatherer** says `ends: "home"` and reads its end places off the formation's own
+lattice instead of guessing them. Resolution hands it `params.places`, the home
+points of every dancer in the group; a swing settles on the two of them square
+across the way it opens out, a ring takes one each. That is what removed Butter's
+hand-written `endHalf: 10` (AC2) — and note it is _the nearest places_, not each
+dancer's own slot: a becket neighbour's slot is 32 px across the set, and a swing
+that went there would leave the pair on opposite sides of it.
+
+**`pnpm figure <id>`** prints the definition of any figure the library has, and
+runs on a figure that has no coded predecessor at all.
+
+**Two registries, one pair.** `@caller/choreo`'s registry holds what a figure
+_draws_ and the library holds what a figure _is_; `poseAt` resolves a figure by
+**id in the registry**, so a migrated figure must be in both. `contraDataEngine()`
+(`src/library/engine.ts`) builds the consistent pair, and `planCycle` refuses a
+mismatch by name rather than planning one figure and drawing another.
 
 ## The figure library — `src/figures/`
 
@@ -237,26 +295,32 @@ the figure's natural duration — a dance may say otherwise, and the figure is
 told what it actually got. Every parameter list starts with `from`, which is
 where the dancers already stand (below); the defaults given are the rest.
 
-| id                       | beats | call                           | parameters (defaults)                                                                                                        |
-| ------------------------ | ----- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1         |
-| `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6                                                                              |
-| `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees), `endHalf` `null` |
-| `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters                                                          |
-| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2, `endHalf` `null`                                |
-| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null`                                                              |
-| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                     |
-| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                       |
-| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2                                                             |
-| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                         |
-| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                           |
-| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                |
-| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 3.5, `holdDrop` 6, `stackPx` 1, plus the five candidates' knobs                 |
-| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                               |
-| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                               |
-| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                 |
-| `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `weavePx` 6.5, `joinBeats` 2                                       |
-| `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                     |
+| id                       | beats | call                           | parameters (defaults)                                                                                                           |
+| ------------------------ | ----- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `balance`                | 4     | `BALANCE`                      | `rock` 1.0 px, `hold` `"two"` (or `"one"`, `"none"`), `hand` `"R"`, `pairs` `"neighbors"`, `holdDrop` 5, `stackPx` 1 — **data** |
+| `balance-ring`           | 4     | `BALANCE THE RING`             | the same, with `hold` `"ring"` and `holdDrop` 6 — **data**                                                                      |
+| `swing`                  | 8     | `SWING`                        | `pairs` `"neighbors"`, `turns` 2, `handOffset` 5 px, `endFacing` `"across"` (or `"up"`, `"down"`, degrees) — **data**           |
+| `balance-and-swing`      | 16    | `BALANCE AND SWING`            | `balanceBeats` 4, then the balance's and the swing's own parameters — **data**                                                  |
+| `allemande`              | 8     | `ALLEMANDE`                    | `pairs` `"neighbors"`, `hand` `"L"`, `amount` 1, `inward` 45°, `holdDrop` 2 — **data**                                          |
+| `do-si-do`               | 8     | `DO-SI-DO`                     | `pairs` `"neighbors"`, `amount` 1, `passPx` 5, `endHalf` `null`                                                                 |
+| `long-lines`             | 8     | `LONG LINES FORWARD AND BACK`  | `forwardPx` 9, `holdDrop` 8, `stackPx` 1                                                                                        |
+| `circle`                 | 8     | `CIRCLE LEFT`                  | `direction` `"left"`, `places` 3 (quarters), `holdDrop` 6, `stackPx` 1                                                          |
+| `star`                   | 8     | `STAR RIGHT`                   | `hand` `"R"`, `places` 4 (quarters), `holdDrop` 3, `stackPx` 1.2                                                                |
+| `petronella`             | 4     | `PETRONELLA TURN`              | `places` 1 (to the right), `spins` 1                                                                                            |
+| `california-twirl`       | 4     | `CALIFORNIA TWIRL`             | `pairs` `"partners"`, `holdDrop` 0                                                                                              |
+| `right-and-left-through` | 8     | `RIGHT AND LEFT THROUGH`       | `couples` `"partners"`, `passBeats` 3.5, `bowPx` 5, `holdDrop` 6, `stackPx` 1                                                   |
+| `robins-chain`           | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `pullBeats` 4.5, `bowPx` 3.5, `holdDrop` 6, `stackPx` 1, plus the five candidates' knobs                    |
+| `pass-through`           | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5                                                                                  |
+| `roll-away`              | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1, `holdDrop` 6                                                  |
+| `slide-left`             | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1                                                                                    |
+| `hey`                    | 16    | `HEY FOR FOUR`                 | `start` `"robins-right"` or `"larks-left"`, `half` false, `weavePx` 6.5, `joinBeats` 2                                          |
+| `wait-out`               | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                        |
+
+A figure marked **data** is a `FigureDefinition` in `src/library/figures/`; its
+row above is the coded figure it replaced, which stays in this directory until
+M11 deletes it and is what the per-figure golden holds it to. `endHalf` is gone
+from the two that had it: a gatherer reads its end spacing off the formation
+rather than guessing it.
 
 A `pairs` (or `couples`) parameter names who dances with whom: `"partners"` is
 `1L`–`1R` and `2L`–`2R`, `"neighbors"` is `1L`–`2R` and `1R`–`2L`, and a dance

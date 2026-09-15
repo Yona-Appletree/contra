@@ -46,21 +46,105 @@ export { CONTRA_SET_RULES, setRulesFor, setRulesOf } from "./set/SetRules.js";
 export type { FigureInstance, ResolveContext } from "./set/resolve.js";
 export { HOLD_PLACE_FIGURE, resolveActors, resolveCall } from "./set/resolve.js";
 export type { ContraCyclePlannerOptions } from "./set/planCycle.js";
-export { contraCyclePlanner, createContraCyclePlanner } from "./set/planCycle.js";
+export {
+  contraCyclePlanner,
+  createContraCyclePlanner,
+  legacyCyclePlanner,
+} from "./set/planCycle.js";
 
 export type {
   ActorRule,
   AnchorRule,
+  BodyStage,
+  BodyTarget,
+  ContactHand,
   EndsRule,
   FigureDefinition,
   FigureRole,
   FigureShape,
+  HoldPoint,
   HoldSpec,
+  HoldWindowSpec,
+  LegacyShape,
+  OrbitEnds,
+  OrbitMotion,
+  OrbitPairShape,
+  PairHold,
+  ParamGuard,
   ParamSpec,
+  ParamValue,
+  PathShape,
+  RingHold,
+  RingWalkShape,
+  RockShape,
+  SequencePart,
+  SequenceShape,
+  SpeedWindow,
   TimingProfile,
+  TurnSpec,
 } from "./library/FigureDefinition.js";
 export type { Library } from "./library/Library.js";
 export { createLibrary } from "./library/Library.js";
+export type {
+  AngleExpr,
+  BoolExpr,
+  ExprEnv,
+  Moment,
+  NumberExpr,
+  PointExpr,
+  PoseExpr,
+  RoleExpr,
+  SideExpr,
+} from "./library/expr.js";
+export {
+  evalAngle,
+  evalBool,
+  evalMoment,
+  evalNumber,
+  evalPoint,
+  evalRole,
+  evalSide,
+  evalSpot,
+  roleShift,
+} from "./library/expr.js";
+export type { InterpretedParams, ResolvedAnchor, ShapeInput } from "./library/interpret.js";
+export {
+  anchorOf,
+  figureFor,
+  interpretDefinition,
+  joinKey,
+  paramDefaults,
+  planDefinition,
+} from "./library/interpret.js";
+export { planShape } from "./library/kinds/index.js";
+export type { ActiveHold, ActivePairHold, ActiveRingHold } from "./library/kinds/holds.js";
+export { activeHolds, endsOfHold, joinsHeldAt } from "./library/kinds/holds.js";
+export type { PlacePair } from "./library/kinds/places.js";
+export { nearestPlaces, placePairFor, settleOnPlaces } from "./library/kinds/places.js";
+export type {
+  AllowedDifference,
+  CompareCase,
+  CompareOptions,
+  CompareResult,
+  CompareTolerance,
+} from "./library/compareFigures.js";
+export { DD21_TOLERANCE, compareFigures } from "./library/compareFigures.js";
+export { contraDataEngine, contraDataRegistry } from "./library/engine.js";
+export {
+  GATHERER_DEFINITIONS,
+  GATHERER_IDS,
+  PAIR_ROCK,
+  SWING_HOLD,
+  SWING_ORBIT,
+  allemandeDefinition,
+  balanceAndSwingDefinition,
+  balanceDefinition,
+  balanceRingDefinition,
+  contraDataFigures,
+  contraLibrary,
+  swingDefinition,
+  twoHandRock,
+} from "./library/figures/index.js";
 export {
   LEGACY_ROLES,
   isContraFigure,

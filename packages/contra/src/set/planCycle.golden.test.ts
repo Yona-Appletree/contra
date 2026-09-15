@@ -10,9 +10,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor } from "../dances/oracle.js";
-import { createContraCyclePlanner } from "./planCycle.js";
-import { createContraRegistry } from "../figures/registry.js";
-import { legacyLibrary } from "../library/legacy.js";
+import { legacyCyclePlanner } from "./planCycle.js";
 
 /**
  * **AC1**: the ten demo dances, danced through the contra cycle planner with
@@ -49,9 +47,7 @@ import { legacyLibrary } from "../library/legacy.js";
  * test names the all-bridged library explicitly, and keeps meaning exactly what
  * it meant in M1 for as long as any coded figure is left.
  */
-const BRIDGED = createContraCyclePlanner({
-  library: legacyLibrary(createContraRegistry()),
-});
+const BRIDGED = legacyCyclePlanner;
 
 /** The director's own number for AC1: 1e-9 px, 1e-9°, hands identical. */
 const TOLERANCE = 1e-9;

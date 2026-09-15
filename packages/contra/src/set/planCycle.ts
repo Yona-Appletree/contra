@@ -41,6 +41,7 @@ import type {
 import type { Library } from "../library/Library.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { figureFor } from "../library/interpret.js";
+import { legacyLibrary } from "../library/legacy.js";
 import type { FigureInstance } from "./resolve.js";
 import { resolveCall } from "./resolve.js";
 import type { SetModel } from "./SetModel.js";
@@ -96,8 +97,28 @@ export function createContraCyclePlanner(options: ContraCyclePlannerOptions = {}
   return (input: CycleInput) => planContraCycle(input, options);
 }
 
-/** The contra planner with the legacy bridge: what M1 proves and M3 switches on. */
+/**
+ * The contra planner over the **whole** library: the five migrated definitions
+ * and the bridge for everything else. What `pnpm dance` runs and M3 switches
+ * the Stage on to.
+ *
+ * A caller that uses this has to hand the decider a registry holding the five
+ * interpreted figures as well — `contraDataEngine()` builds the pair — because
+ * `poseAt` resolves a figure by id in the registry rather than in the emission.
+ * Planning against one and drawing the other is refused by name below.
+ */
 export const contraCyclePlanner: CyclePlanner = createContraCyclePlanner();
+
+/**
+ * The contra planner with **every** figure bridged, which is what AC1 is about.
+ *
+ * AC1 is the hub's golden, not the gatherers': it asks whether resolving
+ * against set state reproduces `chainCalls` when the figures are the same
+ * figures. Every test of the hub itself names this one, and it keeps meaning
+ * exactly what it meant in M1 for as long as any coded figure is left.
+ */
+export const legacyCyclePlanner: CyclePlanner = (input) =>
+  planContraCycle(input, { library: legacyLibrary(input.registry) });
 
 /** A half-open run of beats, measured from the start of a time through. */
 type Span = readonly [Beat, Beat];

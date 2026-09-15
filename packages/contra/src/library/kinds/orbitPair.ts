@@ -12,7 +12,6 @@ import {
   lerpHand,
   mix,
   ramp,
-  rightOf,
   swingFeet,
   trapezoid,
   trapezoidSpeed,
@@ -27,7 +26,7 @@ import {
   polar,
   takeAndRelease,
 } from "../../figures/ContraFigure.js";
-import { endFacingOf, placeHalf } from "../../figures/swing.js";
+import { endFacingOf } from "../../figures/swing.js";
 import type {
   BodyStage,
   FigureRole,
@@ -272,8 +271,7 @@ function settle(
     // your line point up or down the hall") with the way the *first* dancer is
     // already looking, so handing it the two points the other way round turns
     // the answer through half a turn.
-    const one = addScaled(pair.centre, leftOf(rough), pair.half);
-    const two = addScaled(pair.centre, rightOf(rough), pair.half);
+    const [one, two] = pair.ends;
     const mine = dist(one, ctx.spot(a).p) <= dist(two, ctx.spot(a).p);
     const facing = endFacingOf(
       word,
@@ -284,13 +282,16 @@ function settle(
     );
     // A swing opens out with the lark on the left of the way it faces and the
     // robin on its right; which of the pair is which is the dancers' own roles,
-    // not the order the call named them in.
+    // not the order the call named them in. The two ends are the **places
+    // themselves**, so the pair really does finish standing on them.
     const lark = ctx.role(a) === ctx.roleSet.top ? b : a;
     const robin = lark === a ? b : a;
+    const left = dirOf(facing - 90);
+    const onLeft = (one[0] - pair.centre[0]) * left[0] + (one[1] - pair.centre[1]) * left[1] > 0;
     return {
       ends: {
-        [lark]: { p: addScaled(pair.centre, leftOf(facing), pair.half), facing },
-        [robin]: { p: addScaled(pair.centre, rightOf(facing), pair.half), facing },
+        [lark]: { p: onLeft ? one : two, facing },
+        [robin]: { p: onLeft ? two : one, facing },
       },
       psi0,
       facing,
