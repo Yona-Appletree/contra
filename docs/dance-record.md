@@ -103,6 +103,25 @@ shadow — and the lane is used for it only when the ring really does span two,
 which is measured rather than declared. A relation that names nobody leaves that
 dancer out of the ring and on hold-place, as everywhere else.
 
+**`who` may be a written list of relations** (M9b, DD31), for the four a
+transcript names **one dancer at a time**. The spelling is a `+`-joined string —
+`"who": "self+partner+N1+N2"` — and it is a string rather than a JSON array
+because an array `who` already means _a list of stations of one group_ and the
+two would be indistinguishable. Every item is a relation word, `self` included,
+and there have to be at least two of them; a `who` with no `+` in it is not a
+list and resolves exactly as it always has.
+
+The list is followed **from each active dancer, in the order it is written**, and
+the four it finds are cast into the figure's parts in that order — so the record
+says which of the four dances which part. It is the general case of the ring
+above, which is `self + partner + <the relation> + <their partner>` with the
+last two written for you. Jeremy Corners' A1 is the dance that needed it:
+_"Interrupted square through 2 [with twos, W1, and N2 M1]"_ names four dancers
+out of two minor sets and no group selector, tag or single relation says that.
+The ordinary rules still hold: four distinct dancers or it is not a foursome,
+nobody is in two of them, and a dancer any one of the relations leaves out —
+the ends of the line — is left out of the call and dances hold-place.
+
 ## Shorthand and canonical parameters
 
 A figure's parameters are its **canonical** ones — the `params.defaults` block of
@@ -123,16 +142,44 @@ the shorthand cannot say it** — Are You 'Most Done?'s "star left 7/8" and Anna
 Reel's `passes: "RL PR LL N2R"` are both cases where the caller's own words are
 not one of the shorthand's values.
 
-Three parameters are **not** figure parameters at all. They ride in `params`
-because `FigureCall` is `@caller/choreo`'s and all three are contra words, and
+Four parameters are **not** figure parameters at all. They ride in `params`
+because `FigureCall` is `@caller/choreo`'s and all four are contra words, and
 the layer above the figure reads them and strips them out before any figure is
 planned:
 
-| parameter | read by             | what it says                                                                                                                    |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `rebind`  | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
-| `trade`   | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
-| `form`    | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
+| parameter    | read by             | what it says                                                                                                                    |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `rebind`     | the **set**         | `{ "partner": "shadow" }` — "when this figure lets go, whoever was your shadow is your partner" (Contrablend's "(new partner)") |
+| `trade`      | **resolution**      | `true` — which of a same-role pair takes which figure-role (Q10)                                                                |
+| `form`       | the **interpreter** | the shape this call forms, over the definition's own `ends` (Q6)                                                                |
+| `progresses` | the **set**         | `true` — the progression happens at the end of _this_ call, not at the end of the time through (M9b)                            |
+
+### `progresses`: the progression in the middle of the dance
+
+The engine has always shifted the set's slots at the **cycle boundary**, because
+that is where a contra dance usually progresses: the last figure leaves you one
+place along and the boundary is where the set admits it. Some dances progress in
+the middle instead, and the corpus writes several — Fatal Attraction's A1 is
+_"neighbor promenade counterclockwise around the major set"_ and its A2 casts
+back, so by A2 the dancers really are one place along and every call after that
+names its neighbours from **there**. Left at the boundary, each of those calls
+resolves against seating the dance has already left behind, and the dancer `N2`
+names is a couple standing out.
+
+`"params": { "progresses": true }` on that call says so. The shift is the
+dance's own (the `progression` field, or the formation's), applied exactly as
+the boundary applies it, so a role-asymmetric progression and a line swap mean
+the same thing here as there. After it:
+
+- **relations resolve against the shifted slots for the rest of the time
+  through**, so the transcript's "N2" is written as `neighbors` from that call
+  on — the record says what the engine resolves, and the caller's own word is
+  kept in the call text and in `notes`;
+- **the cycle boundary's own shift is dropped for that pass**, because a set
+  progresses once per pass however the record writes it;
+- **nobody moves.** What moves is the seating, exactly as at a boundary — which
+  also means the couples standing out change there, so the pass is filled with
+  `wait-out` one run of beats per seating rather than one per pass.
 
 ## Concurrent calls (`while`)
 
@@ -318,9 +365,9 @@ that has gone wrong at least once.
 12. **A selection the library cannot say is a reading, and it goes in `notes`**
     (M9). Three of them turned up in the two Banner dances and none is a bug:
     a group selection that names four dancers out of two minor sets one by one
-    (_"[with twos, W1, and N2 M1]"_ — `who` takes a tag, a list of stations of
-    **one** group, or a relation ring of you, your partner, the dancer the
-    relation names and their partner, and none of those is that four); a
+    (_"[with twos, W1, and N2 M1]"_ — **answered in M9b** by the written
+    relation list above, `"who": "self+partner+N1+N2"`, which is the one of the
+    three that turned out to be a missing notation rather than a reading); a
     transcript token that cannot be read at all (_"Square through 2
     (NR;SRNL)"_); and a figure called for **half of itself** (_"(4) In long
     lines, go forward (facing out)"_, where `long-lines` goes forward and back

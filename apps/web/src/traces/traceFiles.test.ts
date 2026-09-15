@@ -1,4 +1,5 @@
-import { DEMO_DANCES, danceBySlug } from "@caller/contra";
+import { danceBeats } from "@caller/choreo";
+import { ALL_DANCES, DEMO_DANCE_SLUGS, danceBySlug } from "@caller/contra";
 import { describe, expect, it } from "vitest";
 import { figureTiles } from "../galleryTiles.js";
 import { danceTrace } from "./danceTrace.js";
@@ -13,7 +14,9 @@ import { traceDrawings } from "./traceDrawings.js";
  */
 
 const FIGURES = figureTiles().map((tile) => ({ key: tile.key, tile }));
-const DANCES = DEMO_DANCES.map((dance) => ({ slug: dance.slug }));
+// **Every encoded dance, not only the Stage's** (M9b): a lab dance is drawn
+// too, so a review gate has a strip for every acceptance dance to look at.
+const DANCES = ALL_DANCES.map((dance) => ({ slug: dance.slug }));
 
 describe.each(FIGURES)("the figure $key", ({ tile }) => {
   it("traces its looping window, in the group of four the tile dances", () => {
@@ -39,7 +42,10 @@ describe.each(DANCES)("the dance $slug", ({ slug }) => {
     const dance = danceBySlug(slug)!;
     const trace = danceTrace(dance);
     expect(trace.from).toBe(0);
-    expect(trace.to).toBe(64);
+    // **The whole record**, which is 64 beats for a one-pass dance and 128 for
+    // a two-pass one (Anna's Reel, Jeremy Corners). It was written as a literal
+    // 64 while every dance drawn was one of the Stage's.
+    expect(trace.to).toBe(danceBeats(dance));
     expect(trace.pens).toHaveLength(4);
     expect(trace.pens.map((p) => p.role).sort()).toEqual(["lark", "lark", "robin", "robin"]);
     expect(trace.pens.map((p) => p.rank).sort()).toEqual([1, 1, 2, 2]);
@@ -49,8 +55,32 @@ describe.each(DANCES)("the dance $slug", ({ slug }) => {
     const dance = danceBySlug(slug)!;
     const trace = danceTrace(dance);
     const called = dance.phrases.flatMap((phrase) => phrase.figures);
-    expect(trace.cells).toHaveLength(called.length);
-    expect(trace.cells.map((cell) => cell.to - cell.from)).toEqual(called.map((f) => f.beats));
+    // **The strict count is the Stage's** (M9b). A strip cell is a figure the
+    // *traced four* really danced, which is one per written call exactly when
+    // every call reaches all four of them. That is true of every dance on the
+    // Stage and is what this has always asserted. It is not true of a lab
+    // dance, and the ways it fails are the dance's own diagnosis rather than
+    // the strip's: a concurrent call draws one cell per branch (Fatal
+    // Attraction's "(2) Women cast back || Men go forward"), and a call the
+    // traced four are all standing out of draws one hold-place cell where the
+    // record wrote two (Are You 'Most Done?'s diagonal hey at six couples).
+    // What has to hold for every dance is that the cells run in order, each
+    // covers real beats, and together they span the window end to end — which
+    // is what makes the picture a strip of the dance rather than of part of it.
+    if (DEMO_DANCE_SLUGS.includes(slug)) {
+      expect(trace.cells).toHaveLength(called.length);
+      expect(trace.cells.map((cell) => cell.to - cell.from)).toEqual(called.map((f) => f.beats));
+    }
+    expect(trace.cells.length).toBeGreaterThan(0);
+    let at = trace.from;
+    for (const cell of trace.cells) {
+      expect(cell.from).toBeGreaterThanOrEqual(trace.from);
+      expect(cell.to).toBeGreaterThan(cell.from);
+      expect(cell.to).toBeLessThanOrEqual(trace.to);
+      at = Math.max(at, cell.to);
+    }
+    expect(trace.cells[0]!.from).toBe(trace.from);
+    expect(at).toBe(trace.to);
   });
 
   it("tags every sample with a figure the timeline actually ran", () => {

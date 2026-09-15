@@ -24,6 +24,7 @@ import {
   WAIT_OUT,
   WALK_TO_STATION,
   callBeats,
+  concurrentCalls,
   danceBeats,
   dancePassSpans,
   frameAngle,
@@ -287,7 +288,17 @@ function planContraCycle(
 
   /** How the hall is seated for the pass being planned; the last is what `next` is. */
   const states = new Map<SetId, SetState>(hall.sets.map((set) => [set.id, set]));
-  /** One per pass: its beats, what it claimed, and the seating it ran in. */
+  /**
+   * One per **seating**: a run of beats, what it claimed, and how the hall was
+   * seated for it.
+   *
+   * One per pass until M9b, because the seating only ever changed at a pass
+   * boundary. A call that carries the progression itself changes it in the
+   * middle, and which couples are standing out changes with it — so a pass with
+   * such a call is two runs, each filled against its own seating. Without that
+   * the couple that was out before the progression is given no `wait-out` at
+   * all and the timeline refuses the dance by name ("has no figure at beat 0").
+   */
   const fills: Array<{
     span: { start: Beat; end: Beat };
     claimed: Map<DancerId, Span[]>;
@@ -298,9 +309,18 @@ function planContraCycle(
 
   for (const [passIndex, span] of spans.entries()) {
     claimed = new Map<DancerId, Span[]>();
+    /** Whether a call of this pass carried the progression itself (M9b). */
+    let progressedInPass = false;
+    /** Where the seating this pass is running in started, in the pass's own beats. */
+    let seatedFrom: Beat = span.start;
     for (const { call, start: offset, pass } of schedule) {
       if (pass !== passIndex) continue;
       const selector = call.group ?? HANDS_FOUR_GROUP;
+      // **A call that carries the progression** (M9b) ends one seating and
+      // starts another; the seating it ran in is what its own run of beats has
+      // to be filled against, so it is snapshotted before any set is shifted.
+      const carries = progressesHere(call);
+      const seatedIn = carries ? new Map(states) : undefined;
       for (const set of hall.sets) {
         const model = models.get(set.id)!;
         const groups = formation.groupsFor(selector, states.get(set.id)!);
@@ -439,18 +459,40 @@ function planContraCycle(
         // A call `ends` kept away from a widened group's true end claims those
         // beats for nobody, exactly as `defaultCyclePlanner` leaves them: the fill
         // below gives that couple its own whole-pass `wait-out`.
+
+        // **The progression, where the record says it happens** (M9b). A call
+        // that carries the progression shifts the slots at *its* end, so every
+        // relation the rest of the time through names is read from where the
+        // dance has actually got to. Nobody moves — the dancers stay exactly
+        // where the figure left them, which is what a boundary shift does too —
+        // and the boundary's own shift is dropped for this pass below. See
+        // {@link PROGRESSES_PARAM}.
+        if (carries) {
+          progressedInPass = true;
+          states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
+          models.set(set.id, progressModel(model, shift));
+        }
+      }
+      if (seatedIn !== undefined) {
+        const until = offset + callBeats(call);
+        fills.push({ span: { start: seatedFrom, end: until }, claimed, states: seatedIn });
+        seatedFrom = until;
       }
     }
 
     // What this pass's schedule did not claim is filled in **after every pass
     // has been planned** — see the fill loop below, and `everClaimed` for why.
-    fills.push({ span, claimed, states: new Map(states) });
+    fills.push({ span: { start: seatedFrom, end: span.end }, claimed, states: new Map(states) });
 
     // **The pass boundary** (M8). The set progresses at the end of every pass
     // unless the record says otherwise, and the dancers stay exactly where the
     // last figure left them: what moves is the **slots**, which is what makes the
     // second pass's "N2" a different dancer from the first pass's.
-    if ((passIndex + 1) % progressEvery === 0) {
+    //
+    // **Unless a call of this pass has already done it** (M9b): a set
+    // progresses once per pass however the record writes it, so a pass whose
+    // own figure carried the progression has nothing left to do here.
+    if (!progressedInPass && (passIndex + 1) % progressEvery === 0) {
       for (const set of hall.sets) {
         const model = models.get(set.id)!;
         states.set(set.id, progressSet(formation, model, states.get(set.id)!, shift));
@@ -580,7 +622,23 @@ function callParams(instance: FigureInstance): Record<string, unknown> {
   // already applied it by the time a figure is planned.
   delete rest[REBIND_PARAM];
   delete rest[TRADE_PARAM];
+  // `progresses` (M9b) is a fact about the **set**: where the seating moves on.
+  // No figure reads it either.
+  delete rest[PROGRESSES_PARAM];
   return rest;
+}
+
+/**
+ * Whether this call carries the progression itself (M9b).
+ *
+ * Read off the written call rather than off an instance, because it is true of
+ * the call as a whole: a concurrent call's branches are one call and the shift
+ * happens once at its end, whichever branch wrote the clause.
+ */
+function progressesHere(call: FigureCall): boolean {
+  return concurrentCalls(call).some(
+    (each) => (each.params as Record<string, unknown> | undefined)?.[PROGRESSES_PARAM] === true,
+  );
 }
 
 /** The shape a definition says it forms, or `undefined` (M7). */
@@ -603,6 +661,45 @@ const targetOf = (def: { ends: unknown }): TargetShape | undefined =>
  * back out before the figure is planned so no figure can read it.
  */
 export const REBIND_PARAM = "rebind";
+
+/**
+ * **The call-level parameter that says the progression happens here** (M9b),
+ * at the end of this call rather than at the end of the time through.
+ *
+ * Written in a dance record as `"params": { "progresses": true }`.
+ *
+ * The engine has always shifted the slots at the cycle boundary, because that
+ * is where a contra dance usually progresses: the last figure leaves you one
+ * place along and the boundary is where the set admits it. A dance whose
+ * progression is carried by a figure **in the middle** of the time through has
+ * no way to say so, and the corpus writes several: Fatal Attraction's A1
+ * promenade goes round the major set and its A2 casts back, so by A2 the
+ * dancers really are one place along and the calls that follow name their
+ * neighbours from *there*. Left at the boundary, every one of those calls
+ * resolves against the seating the dance has already left behind — measured, the
+ * dancer `N2` named was, at every checked length, a couple standing out.
+ *
+ * So the shift is a thing a call may claim. The rules are the smallest set that
+ * keeps everything else true:
+ *
+ * - the shift is the dance's own (`progressionOf`), applied exactly as the
+ *   boundary applies it — same `progressSet`, same `progressModel`, so a
+ *   role-asymmetric progression and a line swap mean the same thing here;
+ * - **the boundary's own shift is then zero for that pass**, because a set
+ *   progresses once per pass however it is written. A record that claims it
+ *   twice in one pass progresses twice, which is what "`progressEvery`" already
+ *   means for a two-pass record;
+ * - relations after the call resolve against the shifted slots, which is the
+ *   whole point, and the dancers do not move: what moves is the seating, exactly
+ *   as at a boundary. M5's On the Prowl (the hey that ends short *is* the
+ *   progression) and M8's diagonal hey are the two precedents for the *bodies*
+ *   being carried by a figure; this is the seating catching up with them.
+ *
+ * It rides in `params` for the same reason `rebind` and `trade` do: `FigureCall`
+ * is `@caller/choreo`'s, and where a contra set progresses is a contra fact
+ * (AC7). It is stripped before the figure is planned, so no figure reads it.
+ */
+export const PROGRESSES_PARAM = "progresses";
 
 /** What a `rebind` parameter says: a binding, and the relation it is rebound to. */
 interface RebindSpec {
@@ -860,8 +957,21 @@ function gapsIn(
   dancers: readonly DancerId[],
   claimed: Map<DancerId, Span[]>,
 ): Span[] {
+  // **Clipped to this run of beats** (M9b). Until a call could carry the
+  // progression there was one fill per pass and every claim was inside it, so
+  // the clip was free. Now a pass is one run per seating, and a couple that is
+  // out for the first run and dancing for the second has claims *after* this
+  // run's end: unclipped they opened a second gap beyond it and the timeline
+  // refused the dance ("would dance wait-out at 18 while still in
+  // walk-to-station until 24").
   const spans: Span[] = [];
-  for (const dancer of dancers) spans.push(...(claimed.get(dancer) ?? []));
+  for (const dancer of dancers) {
+    for (const [from, to] of claimed.get(dancer) ?? []) {
+      const start = Math.max(from, pass.start);
+      const end = Math.min(to, pass.end);
+      if (end > start) spans.push([start, end]);
+    }
+  }
   if (spans.length === 0) return [[pass.start, pass.end]];
 
   const gaps: Span[] = [];

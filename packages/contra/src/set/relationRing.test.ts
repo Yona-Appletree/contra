@@ -5,7 +5,7 @@ import { danceAlone } from "../dances/oracle.js";
 import { contraDataFigures } from "../library/figures/index.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraCyclePlanner } from "./planCycle.js";
-import { relate } from "./relations.js";
+import { parseRelationList, relate } from "./relations.js";
 import { modelFromSet } from "./SetModel.js";
 import { setRulesFor } from "./SetRules.js";
 
@@ -110,5 +110,72 @@ describe("a ring the relation names", () => {
     const { casts } = castsOf("contrablend", 2, B2, "circle");
     expect(casts.length).toBe(1);
     expect(casts[0]!.length).toBe(4);
+  });
+});
+
+/**
+ * **A foursome a written relation list names** (M9b, DD31).
+ *
+ * The ring above is made from **one** relation. Jeremy Corners' A1 names its
+ * four dancers one at a time and out of two minor sets — *"Interrupted square
+ * through 2 [with twos, W1, and N2 M1]"* — and `who: "self+partner+N1+N2"` is
+ * the notation for that. What is asserted here is the three things the rule
+ * claims: the list is followed in the order it is written, the four are four
+ * distinct dancers, and a dancer any one of the relations leaves out is left
+ * out of the call altogether (M6's end-of-set rule, unchanged).
+ */
+describe("a foursome a written relation list names", () => {
+  /** The beat Jeremy Corners' interrupted square through starts on. */
+  const A1_SQUARE = 8;
+
+  it("follows the list in the order it is written, from each active dancer", () => {
+    const { casts } = castsOf("jeremy-corners", 6, A1_SQUARE, "interrupted-square-through");
+    const model = modelAt(6);
+    const table = setRulesFor(DUPLE_IMPROPER).relations;
+    expect(casts.length).toBeGreaterThan(0);
+    for (const four of casts) {
+      const [me, ...rest] = four as [string, ...string[]];
+      expect(rest).toEqual([
+        relate(model, table, me, { kind: "partner" }),
+        relate(model, table, me, { kind: "neighbor", k: 1 }),
+        relate(model, table, me, { kind: "neighbor", k: 2 }),
+      ]);
+    }
+  });
+
+  it("casts four distinct dancers, and nobody twice over the whole call", () => {
+    const { casts } = castsOf("jeremy-corners", 6, A1_SQUARE, "interrupted-square-through");
+    const everybody = casts.flat();
+    expect(new Set(everybody).size).toBe(everybody.length);
+    for (const four of casts) expect(new Set(four).size).toBe(4);
+  });
+
+  it("leaves out a dancer the list's longest reach cannot find", () => {
+    // Two couples: nobody has an N2 at all, so the list names nobody and the
+    // whole call is hold-place — which is the end-effects table, not a failure.
+    const { casts } = castsOf("jeremy-corners", 2, A1_SQUARE, "interrupted-square-through");
+    expect(casts).toEqual([]);
+  });
+});
+
+/**
+ * The notation itself, read as data: what `parseRelationList` accepts and what
+ * it refuses. A `who` with no `+` in it is not a list and must keep resolving
+ * exactly as it always has.
+ */
+describe("the relation-list notation", () => {
+  it("reads a list, in order, with `self` for the dancer asking", () => {
+    expect(parseRelationList("self+partner+N1+N2")).toEqual([
+      { kind: "self" },
+      { kind: "partner" },
+      { kind: "neighbor", k: 1 },
+      { kind: "neighbor", k: 2 },
+    ]);
+  });
+
+  it("is not a list when there is no separator, or when an item is not a relation", () => {
+    expect(parseRelationList("N2")).toBeUndefined();
+    expect(parseRelationList("ones")).toBeUndefined();
+    expect(parseRelationList("self+ones")).toBeUndefined();
   });
 });

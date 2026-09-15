@@ -29,7 +29,14 @@ import { paramDefaults } from "../library/interpret.js";
 import { homeOf, type SetModel } from "./SetModel.js";
 import type { SlotView } from "./shape.js";
 import { lanePlaces, relatedPairs, relationLeavesTheFour } from "./lattice.js";
-import { isRelationWord, isSymmetricRelation, parseRelation, relate } from "./relations.js";
+import type { Relation } from "./relations.js";
+import {
+  isRelationWord,
+  isSymmetricRelation,
+  parseRelation,
+  parseRelationList,
+  relate,
+} from "./relations.js";
 import { setRulesOf } from "./SetRules.js";
 
 /**
@@ -410,11 +417,18 @@ function laneFor(
 
   if (def.actors === "line") return { among, plan: plan() };
 
+  // **A written relation list reaches** when any one of its relations does
+  // (M9b): "self, my partner, my neighbour and the lark after them" is four
+  // dancers out of two minor sets, so the call is resolved in the lane exactly
+  // as a single reaching relation is.
+  const written = typeof call.who === "string" ? parseRelationList(call.who) : undefined;
   const reaches =
-    typeof call.who === "string" &&
-    !ctx.formation.tags(selector)[call.who] &&
-    isRelationWord(call.who) &&
-    relationLeavesTheFour(parseRelation(call.who));
+    written !== undefined
+      ? written.some((rel) => relationLeavesTheFour(rel))
+      : typeof call.who === "string" &&
+        !ctx.formation.tags(selector)[call.who] &&
+        isRelationWord(call.who) &&
+        relationLeavesTheFour(parseRelation(call.who));
   if (def.actors === "ring" || def.actors === "all") {
     if (reaches) return { among, plan: plan() };
     // **Measured, like the pairing below.** A figure for four whose `who` names
@@ -608,7 +622,10 @@ function relationRings(
   order: readonly DancerId[],
 ): DancerId[][] | undefined {
   const who = call.who;
-  if (typeof who !== "string" || !isRelationWord(who)) return undefined;
+  if (typeof who !== "string") return undefined;
+  const written = parseRelationList(who);
+  if (written !== undefined) return writtenRings(written, ctx, among, order);
+  if (!isRelationWord(who)) return undefined;
   if (ctx.formation.tags(HANDS_FOUR_GROUP)[who]) return undefined;
   const rel = parseRelation(who);
   const table = setRulesOf(ctx.formation.id).relations;
@@ -625,6 +642,52 @@ function relationRings(
       relate(ctx.model, table, other, { kind: "partner" }),
     ].filter((id): id is DancerId => id !== undefined && among.has(id) && !used.has(id));
     if (new Set(four).size !== 4) continue;
+    for (const id of four) used.add(id);
+    rings.push(four);
+  }
+  return rings;
+}
+
+/**
+ * **The foursomes a written relation list names** (M9b, DD31): *you, and these
+ * dancers, one relation at a time*.
+ *
+ * `relationRings` above makes a ring out of **one** relation — you, your
+ * partner, the dancer the relation names and their partner — which is every
+ * cross-set figure for four the corpus wrote until Jeremy Corners. Its A1 names
+ * its four dancers individually and out of two minor sets: *"Interrupted square
+ * through 2 [with twos, W1, and N2 M1]"*. No group selector says that, and no
+ * single relation does either: a `who` is a role, a number, a relation word or
+ * a station list, and none of the four can name "the twos, the ones' robin and
+ * the lark of the couple after".
+ *
+ * The ruling is that a `who` may be a **list of relations from the active
+ * dancer**, written `"self+partner+N1+N2"`, and this resolves it: walk the set
+ * in lattice order and for each dancer nobody has used yet, follow every
+ * relation in the list. The cast comes out **in the order the list wrote it**,
+ * which is what lets a record say which of the four dances which part of the
+ * figure — `relationRings`' own four is `{self, partner, who, their partner}`
+ * and is a special case of this one.
+ *
+ * The same rules as the ring: distinct dancers or it is not a foursome, nobody
+ * is in two of them, and a dancer any relation leaves out (the ends of the
+ * line) is in none and dances hold-place. M6's end-of-set rule, unchanged.
+ */
+function writtenRings(
+  written: readonly Relation[],
+  ctx: ResolveContext,
+  among: ReadonlySet<DancerId>,
+  order: readonly DancerId[],
+): DancerId[][] {
+  const table = setRulesOf(ctx.formation.id).relations;
+  const used = new Set<DancerId>();
+  const rings: DancerId[][] = [];
+  for (const me of order) {
+    if (used.has(me)) continue;
+    const four = written
+      .map((rel) => (rel.kind === "self" ? me : relate(ctx.model, table, me, rel)))
+      .filter((id): id is DancerId => id !== undefined && among.has(id) && !used.has(id));
+    if (new Set(four).size !== written.length) continue;
     for (const id of four) used.add(id);
     rings.push(four);
   }
@@ -955,6 +1018,25 @@ export function resolveActors(
 ): StationId[] {
   if (who === undefined || who === "all" || Array.isArray(who)) {
     return resolveSelector(who, ctx.formation, selector, plan.stations);
+  }
+  // **A written relation list** (M9b) selects everybody who can follow every
+  // relation in it inside this group — the foursome itself is cut out by
+  // `writtenRings`, which is where the order the list wrote matters.
+  const written = parseRelationList(who);
+  if (written !== undefined) {
+    const table = setRulesOf(ctx.formation.id).relations;
+    const here = new Set(Object.values(plan.members));
+    return plan.stations
+      .filter((s: Station) => {
+        const dancer = plan.members[s.id];
+        if (dancer === undefined) return false;
+        return written.every((rel) => {
+          if (rel.kind === "self") return true;
+          const other = relate(ctx.model, table, dancer, rel);
+          return other !== undefined && here.has(other);
+        });
+      })
+      .map((s) => s.id);
   }
   // A tag the formation defines wins: `"partners"` and `"neighbors"` are both
   // relation words and tags, and the tag is what every dance written so far
