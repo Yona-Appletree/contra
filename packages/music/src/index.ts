@@ -1,10 +1,18 @@
-export { createPlayer, type Player } from "./player/Player.js";
+export { createPlayer, type PlayOptions, type Player } from "./player/Player.js";
 export {
   APPLAUSE_DEFAULTS,
   playApplause,
   renderApplause,
   type ApplauseOptions,
 } from "./player/applause.js";
+export {
+  POTATO_DEFAULTS,
+  keyOf,
+  playPotatoes,
+  potatoesFor,
+  renderPotatoes,
+  type PotatoOptions,
+} from "./player/potatoes.js";
 export {
   arkansasSet,
   arkansasTraveler,

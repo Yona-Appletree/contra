@@ -165,11 +165,25 @@ test("the between-dances interval is silent, claps, and the next tune starts at 
   // page notices the next dance for itself from there.
   await page.evaluate(() => window.hallDemo?.seek(166));
   expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(false);
+  // Nothing has counted in yet: the potatoes are the last four beats, 168-172.
+  expect(await page.evaluate(() => window.hallDemo?.potatoes())).toBe(0);
+
+  // The band counts the dance in — four chords, one a beat, the fourth a beat
+  // before bar 1 — while the silent clock is still the one being read, so the
+  // hall goes on standing in its rings rather than jumping to beat 0.
+  // Nothing headless can hear them (DD12); that they were scheduled exactly
+  // once, before the tune, is as far as this can go.
+  // `packages/music/src/player/potatoes.test.ts` measures the buffer.
+  await page.waitForFunction(() => (window.hallDemo?.potatoes() ?? 0) > 0, undefined, {
+    timeout: 20_000,
+  });
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(false);
 
   // And the tune comes back in with the next dance.
   await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
     timeout: 20_000,
   });
+  expect(await page.evaluate(() => window.hallDemo?.potatoes())).toBe(1);
   const after = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
   // The second dance starts at 172 and the tune comes back with it, never
   // before it and never in the dance after. How far into it the frame loop
@@ -271,6 +285,7 @@ declare global {
       beat: () => number;
       musicOn: () => boolean;
       applause: () => number;
+      potatoes: () => number;
       seek: (to: number) => void;
       call: (at?: number) => string;
       bench: (frames: number) => number[];

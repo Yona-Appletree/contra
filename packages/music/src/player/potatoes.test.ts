@@ -1,0 +1,162 @@
+import { beforeAll, describe, expect, it } from "vitest";
+import { POTATO_DEFAULTS, keyOf, potatoesFor, renderPotatoes } from "./potatoes.js";
+import { soldiersJoy } from "../tunes/soldiersJoy.js";
+import { morrisonsJig } from "../tunes/morrisonsJig.js";
+import { tunes } from "../tunes/index.js";
+
+/**
+ * The potatoes, measured rather than heard.
+ *
+ * The user: "four chords or strong notes played by the loudest instrument that
+ * denote the beginning of the dance. its basically '5 6 7 8' before the '1 2 3
+ * 4 …' of the dance." Nothing here can tell you they sound like a band counting
+ * a hall in — no test can, and this worktree has no speakers — but it can say
+ * that there are exactly four of them, that they are a beat apart, that the
+ * fourth is one beat before the buffer ends (which is where the tune's bar 1
+ * begins), that they never clip, and that the chord is in the tune's own key.
+ */
+
+const RATE = 48000;
+const BPM = 112;
+
+/** The loudest sample in `[from, to)` seconds. */
+const peakOver = (buffer: Float32Array, from: number, to: number): number => {
+  let loudest = 0;
+  for (let i = Math.round(from * RATE); i < Math.min(buffer.length, Math.round(to * RATE)); i++) {
+    loudest = Math.max(loudest, Math.abs(buffer[i]!));
+  }
+  return loudest;
+};
+
+/**
+ * Where the buffer's energy jumps: the start of each chord.
+ *
+ * A root-mean-square envelope over a 20 ms window, stepped a millisecond at a
+ * time, and an onset is a millisecond where the envelope is both loud in
+ * absolute terms and well above where it was 20 ms earlier — which is how a
+ * struck chord differs from the tail of the one before. A shorter window is not
+ * enough: this chord's partials are all harmonics of half its root, so the
+ * waveform only repeats every 13.6 ms and a 10 ms window's peak wobbles from
+ * one window to the next whether or not anything was struck.
+ */
+const ENVELOPE_WINDOW_SECONDS = 0.02;
+const HOP_SECONDS = 0.001;
+const RISE = 2;
+/** Two onsets closer together than this are the same strike. */
+const ONSET_GAP_SECONDS = 0.2;
+
+function onsetsIn(buffer: Float32Array): number[] {
+  const window = Math.round(ENVELOPE_WINDOW_SECONDS * RATE);
+  const hop = Math.round(HOP_SECONDS * RATE);
+  const env: number[] = [];
+  for (let i = 0; i + window <= buffer.length; i += hop) {
+    let sum = 0;
+    for (let j = i; j < i + window; j++) sum += buffer[j]! * buffer[j]!;
+    env.push(Math.sqrt(sum / window));
+  }
+  const loudest = Math.max(...env);
+  const back = Math.round(ENVELOPE_WINDOW_SECONDS / HOP_SECONDS);
+  const gap = Math.round(ONSET_GAP_SECONDS / HOP_SECONDS);
+  const out: number[] = [];
+  let last = -gap;
+  for (let k = 0; k < env.length; k++) {
+    if (env[k]! < 0.25 * loudest) continue;
+    if (k >= back && env[k]! < RISE * env[k - back]!) continue;
+    if (k - last < gap) continue;
+    last = k;
+    out.push(k * HOP_SECONDS);
+  }
+  return out;
+}
+
+describe("the potatoes are four chords, a beat apart, ending a beat before bar 1", () => {
+  let potatoes: Float32Array;
+  beforeAll(() => {
+    potatoes = renderPotatoes(RATE, { bpm: BPM });
+  });
+
+  it("lasts exactly four beats, which is where the tune's own bar 1 starts", () => {
+    const beatSeconds = 60 / BPM;
+    expect(potatoes.length).toBe(Math.round(RATE * 4 * beatSeconds));
+    // 2.142857… seconds at 112 bpm.
+    expect(potatoes.length / RATE).toBeCloseTo(4 * beatSeconds, 4);
+  });
+
+  it("has exactly four onsets, one on each beat", () => {
+    const beatSeconds = 60 / BPM;
+    const onsets = onsetsIn(potatoes);
+    expect(onsets).toHaveLength(4);
+    // A 20 ms root-mean-square window sees a strike up to a window early, so
+    // each onset is read within one window of where it really is — never
+    // further, and never in the wrong order.
+    const SLACK = ENVELOPE_WINDOW_SECONDS;
+    onsets.forEach((at, k) => {
+      expect(
+        Math.abs(at - k * beatSeconds),
+        `potato ${String(k + 1)} at ${String(at)}`,
+      ).toBeLessThan(SLACK);
+    });
+    // Evenly spaced, to within the measuring window.
+    for (let k = 1; k < onsets.length; k++) {
+      expect(Math.abs(onsets[k]! - onsets[k - 1]! - beatSeconds)).toBeLessThan(SLACK);
+    }
+    // The fourth is one beat before the end, which is one beat before bar 1.
+    expect(Math.abs(potatoes.length / RATE - onsets[3]! - beatSeconds)).toBeLessThan(SLACK);
+  });
+
+  it("never clips: the loudest sample is exactly the peak asked for", () => {
+    expect(peakOver(potatoes, 0, potatoes.length / RATE)).toBeCloseTo(POTATO_DEFAULTS.peak, 6);
+  });
+
+  it("strikes and decays rather than droning: each chord is loudest at its onset", () => {
+    const beatSeconds = 60 / BPM;
+    for (let k = 0; k < 4; k++) {
+      const strike = peakOver(potatoes, k * beatSeconds, k * beatSeconds + 0.02);
+      const before = peakOver(potatoes, (k + 1) * beatSeconds - 0.05, (k + 1) * beatSeconds);
+      expect(strike, `potato ${String(k + 1)}`).toBeGreaterThan(before * 1.5);
+    }
+  });
+
+  it("renders the same buffer twice, and a different one in another key", () => {
+    expect(Array.from(renderPotatoes(RATE, { bpm: BPM }))).toEqual(Array.from(potatoes));
+    const g = renderPotatoes(RATE, { bpm: BPM, rootHz: 196 });
+    expect(Array.from(g)).not.toEqual(Array.from(potatoes));
+  });
+
+  it("works at any sample rate a browser might hand it, and for any count", () => {
+    for (const rate of [22050, 44100, 48000]) {
+      expect(renderPotatoes(rate, { bpm: BPM }).length).toBe(Math.round(rate * 4 * (60 / BPM)));
+    }
+    expect(renderPotatoes(RATE, { bpm: BPM, beats: 2 }).length).toBe(
+      Math.round(RATE * 2 * (60 / BPM)),
+    );
+    expect(renderPotatoes(RATE, { bpm: BPM, beats: 0 }).length).toBe(1);
+  });
+});
+
+describe("the chord is in the tune's own key", () => {
+  it("reads the key off the ABC rather than a table of slugs", () => {
+    expect(keyOf(soldiersJoy).name).toBe("D");
+    expect(keyOf(soldiersJoy).mode).toBe("major");
+    // D below middle C.
+    expect(keyOf(soldiersJoy).rootHz).toBeCloseTo(146.832, 2);
+    expect(keyOf(morrisonsJig).name).toBe("Em");
+    expect(keyOf(morrisonsJig).mode).toBe("minor");
+    // E below middle C.
+    expect(keyOf(morrisonsJig).rootHz).toBeCloseTo(164.814, 2);
+  });
+
+  it("has a key for every tune this package ships, and none of them is silent", () => {
+    for (const tune of tunes) {
+      const key = keyOf(tune);
+      expect(key.rootHz, tune.slug).toBeGreaterThan(100);
+      expect(key.rootHz, tune.slug).toBeLessThan(300);
+      expect(potatoesFor(tune, tune.defaultBpm).rootHz, tune.slug).toBe(key.rootHz);
+      expect(potatoesFor(tune, tune.defaultBpm).bpm, tune.slug).toBe(tune.defaultBpm);
+    }
+  });
+
+  it("puts a different root under a tune in a different key", () => {
+    expect(potatoesFor(soldiersJoy, BPM).rootHz).not.toBe(potatoesFor(morrisonsJig, BPM).rootHz);
+  });
+});
