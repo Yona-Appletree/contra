@@ -1,0 +1,11 @@
+{
+  "id": "balance-ring",
+  "walkthrough": {
+    "short": "All four take hands in a ring. Rock in toward the middle for two beats, back out for two.",
+    "long": "All four take hands in a ring, hands about waist height. Step in toward the middle on to one foot and touch the other beside it, then step back out and touch again. Two beats in, two beats out. Let the ring open back out to the places it started from. {where}"
+  },
+  "call": {
+    "short": "BALANCE",
+    "long": "BALANCE THE RING"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "slide-left",
+  "walkthrough": {
+    "short": "The whole line steps sideways one couple's width to its {direction}, on to a new couple.",
+    "long": "The whole line slides one couple's width along to its own {direction}, so you find yourselves facing a new couple. It is a sidestep, not a walk round: stay square to the couple across the set and to the dancer beside you, take two steps sideways along the line, and glance the way you are going. {where}"
+  },
+  "call": {
+    "short": "SLIDE {direction}",
+    "long": "SLIDE {direction} ALONG THE SET"
+  }
+}

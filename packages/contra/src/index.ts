@@ -48,6 +48,8 @@ export {
   type DanceOracles,
 } from "./dances/index.js";
 
+export * from "./text/index.js";
+
 export { normaliseTitle, titleKey } from "./corpus/normaliseTitle.js";
 
 /** Package identity, kept from the M1 scaffold smoke test. */

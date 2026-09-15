@@ -1,0 +1,11 @@
+{
+  "id": "circle",
+  "walkthrough": {
+    "short": "Take hands in a ring. Circle {places} to your {direction}.",
+    "long": "All four take hands in a ring, hands about waist height, and walk forward round to your {direction}, {places}. Keep the ring the same size the whole way and keep the hands joined. {where}"
+  },
+  "call": {
+    "short": "CIRCLE {direction}",
+    "long": "CIRCLE {direction} {places}"
+  }
+}

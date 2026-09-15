@@ -1,0 +1,11 @@
+{
+  "id": "robins-chain",
+  "walkthrough": {
+    "short": "{chains} take right hands in the middle, pull by, and courtesy turn with the lark across the set.",
+    "long": "{chains} take right hands in the middle, pull by, and carry on across the set. The lark you come to turns about and steps off his place to meet you: your left hand in his left, his right hand on your back. He walks backward, you walk forward, half round, and the couple opens out facing in. {where}"
+  },
+  "call": {
+    "short": "CHAIN",
+    "long": "{chains} CHAIN"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "hey",
+  "walkthrough": {
+    "short": "Nobody takes hands. Weave the figure of eight across the set, passing alternate shoulders, and come back here.",
+    "long": "Note where you are standing: you come back here after walking across the set and back. Robins start, passing right shoulders in the middle. Larks loop at the ends and follow them in. Every pass after that is by the other shoulder — right in the center, left at the sides — and nobody ever takes hands. Sixteen beats. {where}"
+  },
+  "call": {
+    "short": "HEY",
+    "long": "HEY FOR FOUR"
+  },
+  "variants": {
+    "start=larks-left": {
+      "walkthrough": {
+        "short": "Nobody takes hands. Weave the figure of eight across the set, the larks starting by the left, and come back here.",
+        "long": "Note where you are standing: you come back here after walking across the set and back. Larks start, passing left shoulders in the middle. Robins loop at the ends and follow them in. Every pass after that is by the other shoulder — left in the center, right at the sides — and nobody ever takes hands. Sixteen beats. {where}"
+      }
+    },
+    "half=true": {
+      "walkthrough": {
+        "short": "Weave the figure of eight across the set until everybody has changed sides. Nobody takes hands.",
+        "long": "The same weave as a full hey, stopped half way. Step off into the middle, pass by the shoulder the hey starts on, and keep weaving: every pass after that is by the other shoulder from the one before, and nobody takes hands. Eight beats, and you stop when everybody has crossed the set. {where}"
+      },
+      "call": {
+        "short": "HALF A HEY",
+        "long": "HALF A HEY FOR FOUR"
+      }
+    }
+  }
+}

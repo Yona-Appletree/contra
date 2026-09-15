@@ -1,0 +1,11 @@
+{
+  "id": "walk-to-station",
+  "walkthrough": {
+    "short": "Walk to the place the next figure wants you on and stand there.",
+    "long": "Nothing is called here. Walk to the place the next figure wants you on, bowing a little to one side so two dancers swapping places pass shoulder to shoulder, and stand still once you are there. Told to go nowhere, you stay where you are."
+  },
+  "call": {
+    "short": "TAKE YOUR PLACES",
+    "long": "WALK TO YOUR PLACE"
+  }
+}

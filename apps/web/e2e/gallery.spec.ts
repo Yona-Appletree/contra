@@ -118,6 +118,37 @@ test.describe("the move gallery", () => {
     await expect(page.getByTestId("moves-missing")).toBeVisible();
   });
 
+  test("a row says the move's own walkthrough, and its teach behind a disclosure", async ({
+    page,
+  }) => {
+    // W1: the AI paragraph is gone. One row, one deep link: enough to prove the
+    // texts reach the built page with their slots filled, without a case per
+    // tile (fifty-odd page loads for one assertion each).
+    //
+    // 0.3 s on a laptop, and CI is some fifteen times slower, so the budget is
+    // explicit rather than left to the 30 s default to catch by accident.
+    test.setTimeout(30 * 1000);
+    await page.goto("#/moves/circle?beat=6");
+    const short = page.getByTestId("moves-walkthrough-short");
+    // The user's own sentence for this figure, resolved from `{places}` and
+    // `{direction}`: "take hands in a ring. circle three places to your left".
+    await expect(short).toHaveText("Take hands in a ring. Circle three places to your left.");
+
+    // The teach starts closed, which is the point of the row.
+    const long = page.getByTestId("moves-walkthrough-long");
+    await expect(long).toBeHidden();
+    await page.getByText("teach", { exact: true }).click();
+    await expect(long).toBeVisible();
+    // It ends on the generated landmark, whatever this dance's places make it.
+    await expect(long).toContainText(/You (are back where you started|should be)/);
+    await expect(long).not.toContainText("{");
+
+    // Both calls, the caller's two registers, in the bubble's capitals.
+    await expect(page.getByTestId("moves-calls")).toHaveText(
+      "CIRCLE LEFT · CIRCLE LEFT THREE QUARTERS",
+    );
+  });
+
   test("the bare route draws one canvas and nothing else", async ({ page }) => {
     await page.goto("#/moves/swing?bare=1&beat=6&zoom=4");
     await expect(page.getByTestId("moves-canvas")).toHaveAttribute("data-ready", "1");

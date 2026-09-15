@@ -92,6 +92,29 @@ public content from a `.ts` file to a `.json` file changes nothing about
 its clearance. A dance's figures reach `data/dances/` only after that gate,
 never before it — see "Permission note" below, which is about `corpus/`.
 
+## `figures/<figure-id>.json`
+
+What it is: the four texts every move is written in — a short and a long
+walkthrough, a short and a long call — one file per figure in the contra
+registry, loaded by `packages/contra/src/text/`. These are **the project's
+own words**, written for this repository, so they carry no `source` block
+and need none: nothing here is quoted from The Caller's Box or from any
+other publication, and the permission note below is about `corpus/`, not
+about these.
+
+Each text is a template over that figure's own parameters — `{pairs}`,
+`{hand}`, `{amount}` and a short list of others — because the words depend
+on who is where: the same do-si-do is "your neighbor" in one dance and
+"your partner" in the next. `{where}` is the one slot nobody writes; the
+engine fills it from the figure's own end places. A `variants` block gives
+one parameter value its own prose where a slot is not enough.
+
+They are plain JSON on purpose: the user is a caller and will edit them,
+and editing them must not need a build. `docs/move-texts.md` is the voice
+they are written in and the whole slot vocabulary;
+`packages/contra/src/text/figureText.test.ts` enforces as much of it as a
+machine can.
+
 ## `local/corpus-raw/callers-box/` (never committed)
 
 `scripts/corpus/crawl-callers-box.mjs` (see `docs/corpus-crawl.md`) walks

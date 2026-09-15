@@ -1,0 +1,19 @@
+{
+  "id": "star",
+  "walkthrough": {
+    "short": "Put your {hand} hand on the wrist of the dancer ahead of you and walk forward, {places}.",
+    "long": "All four put the {hand} hand on the wrist of the dancer ahead of you round the star, not in a pile in the middle. Keep your arm a little bent and walk forward round the center: {places}. {where}"
+  },
+  "call": {
+    "short": "STAR {hand}",
+    "long": "STAR {hand} {places}"
+  },
+  "variants": {
+    "hold=hands-across": {
+      "walkthrough": {
+        "short": "Take {hand} hands with the dancer diagonally opposite, one hand each, and walk forward, {places}.",
+        "long": "Reach across the star and take {hand} hands with the dancer diagonally opposite you, one hand each, the robins' pair held a little above the larks'. Walk forward round the center: {places}. {where}"
+      }
+    }
+  }
+}

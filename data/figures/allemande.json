@@ -1,0 +1,25 @@
+{
+  "id": "allemande",
+  "walkthrough": {
+    "short": "Join {hand} hands with {pairs}, forearms up, and walk round each other, {amount}.",
+    "long": "Join {hand} hands with {pairs} — forearms up, palms together, elbows bent — and walk forward round each other, keeping the joined hands over the one spot between you, {amount}. Look at each other the whole way; the free hand hangs at your side. {where}"
+  },
+  "call": {
+    "short": "ALLEMANDE",
+    "long": "{pairs} ALLEMANDE {hand} {amount}"
+  },
+  "variants": {
+    "pairs=robins": {
+      "walkthrough": {
+        "short": "Robins only. Join {hand} hands in the middle and walk round each other, {amount}; larks stand.",
+        "long": "Robins only. Join {hand} hands in the middle — forearms up, palms together, elbows bent — and walk forward round each other, {amount}, keeping the joined hands over the one spot between you. The larks stand on their places and wait for you. {where}"
+      }
+    },
+    "pairs=larks": {
+      "walkthrough": {
+        "short": "Larks only. Join {hand} hands in the middle and walk round each other, {amount}; robins stand.",
+        "long": "Larks only. Join {hand} hands in the middle — forearms up, palms together, elbows bent — and walk forward round each other, {amount}, keeping the joined hands over the one spot between you. The robins stand on their places and wait for you. {where}"
+      }
+    }
+  }
+}

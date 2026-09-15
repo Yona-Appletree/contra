@@ -60,6 +60,11 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `t5-wake-moves-390.png`                | T5: the top of `#/moves?beat=6` at 390 × 844, rows of wakes                  |
 | `t5-wake-dances-390.png`               | T5: `#/dances` at 390 × 844, the cards' own pen plots                        |
 | `t5-wake-traces-390.png`               | T5: `#/dances/airpants/traces` at 390 × 844, all four views                  |
+| `w1-move-text-circle-390.png`          | W1: `#/moves/circle?beat=6&zoom=2` at 390 × 844, the teach closed            |
+| `w1-move-text-circle-390-teach.png`    | W1: the same row with "teach" open — the long walkthrough and its landmark   |
+| `w1-moves-390.png`                     | W1: the top of `#/moves?beat=6` at 390 × 844, the AI paragraphs gone         |
+| `w1-moves-1280.png`                    | W1: the same page at 1280 × 800                                              |
+| `w1-move-traces-hey-390.png`           | W1: `#/moves/hey/traces` at 390 × 844, opening on the long walkthrough       |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -157,6 +162,16 @@ now being the default, `#/moves/hey` is the wake and `?facing=ticks` is the
 way back to T2's look. `t5-wake-hey-390-march.png` is the same row on T4's
 `march` view, where the wake is drawn at the march's own narrower reach. `t5-wake-moves-390.png` is the viewport rather than
 `fullPage`, for the same reason the U2 Moves pictures are.
+
+The five W1 pictures are what replaced the AI paragraph on every Moves row: the
+row now opens on one sentence of walkthrough, resolved against that tile's own
+parameters, with the full teach behind a disclosure and the caller's two
+registers under it. `w1-move-text-circle-390.png` and its `-teach` twin are the
+same row closed and open, which is the whole change in two pictures;
+`w1-moves-390.png` and `w1-moves-1280.png` are the viewport rather than
+`fullPage`, for the same reason the U2 and T5 Moves pictures are.
+`w1-move-traces-hey-390.png` is the per-move page, which opens on the long
+walkthrough instead.
 
 The SVGs themselves — every figure and every dance, four ways — are in
 `../traces/`, written by `pnpm traces:export`.
