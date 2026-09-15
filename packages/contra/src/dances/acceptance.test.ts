@@ -147,10 +147,12 @@ describe("what the rebuild still owes, as a list that cannot go stale", () => {
       "turn-alone (M7)",
       "turn-as-couples (M7)",
     ]);
+    // Empty since M6: every relation the twelve name resolves in both contra
+    // formations' tables.
     expect(
       Object.entries(UNSUPPORTED_RELATIONS)
         .map(([k, v]) => `${k} (${v})`)
         .sort(),
-    ).toEqual(["N2 (M6)", "N3 (M6)", "N4 (M6)", "shadow (M6)"]);
+    ).toEqual([]);
   });
 });

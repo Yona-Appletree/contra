@@ -27,9 +27,8 @@ import {
 } from "@caller/choreo";
 import { CONTRA_ROLES } from "../roles.js";
 import type { RelationTable } from "../set/relations.js";
-import { unsupportedRelation } from "../set/relations.js";
 import type { SetLattice } from "../set/SetModel.js";
-import { ACROSS_PX, PLACE_PITCH_PX } from "./dupleImproper.js";
+import { ACROSS_PX, PLACE_PITCH_PX, partnerSide } from "./dupleImproper.js";
 import type { ShadowPart } from "./shadowSeam.js";
 import { partitionShadowSeams } from "./shadowSeam.js";
 
@@ -716,30 +715,67 @@ export const BECKET_LATTICE: SetLattice = {
 
 /**
  * Becket's relations, as offsets on the lattice (Q1) — and the trap the
- * relation table exists for.
+ * relation table exists for. **Complete** since M6.
+ *
+ * Two positions per couple place, two lines, and a couple place is therefore
+ * `2` positions while duple improper's is `1`. Everything below is read from
+ * that.
  *
  * - **Partner** is the *same* line, one position along: in becket your partner
  *   is beside you, not across from you. Which way along is
- *   `(lark ? +1 : −1) × travel`, because the robin stands on the lark's right
- *   and the two lines face opposite ways.
- * - **Neighbour 1** is straight *across* the set at the same position: the
- *   couple you are facing. This is the exact reverse of duple improper's
- *   answer for both words, from the same lattice — which is why "across"
- *   cannot be a `@caller/choreo` meaning (AC7).
+ *   {@link partnerSide} × `travel`, because the robin stands on the lark's
+ *   right and the two lines face opposite ways.
+ * - **Neighbour k** is straight *across* the set: `k = 1` is the couple you are
+ *   facing, at the same position. One progression slides your line one couple
+ *   place one way and the line opposite one couple place the other, so the two
+ *   lines move **two** couple places — four positions — relative to each other:
+ *   neighbour k is `(k − 1) × 4 × travel` positions along the other line, and
+ *   `N0` is four positions back. This is the exact reverse of duple improper's
+ *   answer for both `partner` and `neighbor`, from the same lattice — which is
+ *   why "across" cannot be a `@caller/choreo` meaning (AC7).
+ * - **Opposite** is the dancer straight across the set, which in becket is
+ *   neighbour 1. (In an improper set it is your partner.)
+ * - **Shadow k** is, as in duple improper, the opposite-role dancer who
+ *   progresses the way you do, on the opposite side of you from your partner —
+ *   which in becket is *along your own line*, since your own line is what
+ *   travels with you: `position − partnerSide × (2k − 1) × travel`. Its own
+ *   inverse, by the same argument the improper row gives.
+ * - **Trail buddy k** (same role, `k` couple places along your own line, so
+ *   `2k × travel` positions) and **corner k** are **(unsure)**: nothing calls
+ *   them, and M7/M9 own the figures that will pin them down.
  *
- * M6 opens N0/N2…, shadow, opposite, and the end-of-set policy.
+ * `"shadow-pair"`'s seam group pairs a dancer with the one *across* the set one
+ * couple place along (`groupsFor`, from the cross-set plan). That is **not**
+ * this row, and this row is the one M6 trusts: the seam group is a partition
+ * built to reach a neighbouring minor set, and Q15 replaces it with `who:` plus
+ * a relation. Recorded rather than reconciled — nothing dances either yet.
  */
 export const BECKET_RELATIONS: RelationTable = {
   id: "becket",
   slotFor(rel, from) {
-    if (rel.kind === "partner") {
-      const along = (from.role === "lark" ? 1 : -1) * from.travel;
-      return { line: from.slot.line, position: from.slot.position + along };
+    const { line, position } = from.slot;
+    const other = line === 1 ? 0 : 1;
+    const t = from.travel;
+    switch (rel.kind) {
+      case "partner":
+        return { line, position: position + partnerSide(from.role) * t };
+      case "neighbor":
+        return { line: other, position: position + (rel.k - 1) * 4 * t };
+      case "opposite":
+        return { line: other, position };
+      case "shadow":
+        return { line, position: position - partnerSide(from.role) * (2 * rel.k - 1) * t };
+      case "trail-buddy":
+        return { line, position: position + 2 * rel.k * t };
+      case "corner":
+        // The two dancers of the couple across from you: your neighbour, and
+        // their partner. (unsure)
+        return rel.k === 1
+          ? { line: other, position }
+          : { line: other, position: position + partnerSide(from.role) * t };
+      case "self":
+        return from.slot;
     }
-    if (rel.kind === "neighbor" && rel.k === 1) {
-      return { line: from.slot.line === 1 ? 0 : 1, position: from.slot.position };
-    }
-    throw unsupportedRelation(rel, "M6");
   },
 };
 
