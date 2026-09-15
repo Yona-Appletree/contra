@@ -45,11 +45,16 @@ export interface WaitOutParams extends FigureParams {
    *
    * A dance whose first figure is the progression starts everybody one place
    * off the stations, the waiting couple included: it slides off the end of the
-   * line with everybody else. The crossing is then reckoned from where the
-   * couple *started*, not from the waiting place, which is what puts it down on
-   * the place the next time through begins from. With the default it is the
-   * waiting place either way, so nothing moves for a dance that progresses at
-   * the end.
+   * line with everybody else. A **mirror** crossing is then reckoned from where
+   * the couple *started*, not from the waiting place, which is what puts it
+   * down on the place the next time through begins from. With the default it is
+   * the waiting place either way, so nothing moves for a dance that progresses
+   * at the end.
+   *
+   * A **swap** does not read it for the landing at all — see `target` below.
+   * Where the couple came in from is where it *starts*; where it goes is the
+   * other station, which is a place of the formation rather than a body's
+   * position.
    */
   startPlaces: Record<StationId, EndPose>;
   /**
@@ -335,11 +340,30 @@ function geometry(group: Group, params: WaitOutParams) {
      * a station, not a hand hold, which is what a call that sweeps the couple
      * in next needs to start from.
      *
-     * Otherwise it is reckoned from where the couple *started*, not from the
-     * waiting place. The two are the same unless the dance progresses in its
-     * own first figure, in which case the waiting couple slid into the
-     * waiting place with everybody else and has to land one place short of
-     * it, ready to slide again.
+     * A **mirror** is otherwise reckoned from where the couple *started*, not
+     * from the waiting place. The two are the same unless the dance progresses
+     * in its own first figure, in which case the waiting couple slid into the
+     * waiting place with everybody else and has to land one place short of it,
+     * ready to slide again.
+     *
+     * **A swap lands on the other station, wherever the couple came in from.**
+     * The two stations face each other across the group's own axis, so trading
+     * them is the whole of what "cross over" means here, and the place the next
+     * time through wants this dancer on is a *place* — the one the other end of
+     * the hold is standing at — not wherever the other dancer's body happened to
+     * be when the figure began.
+     *
+     * Reading `start` here instead is the fault M9e was opened for. A caller
+     * that hands this figure the couple's real positions — which is what a
+     * planner does when a time through picks everybody up where the last one
+     * left them, so that the step together starts from the truth — was thereby
+     * also moving the **landing** to wherever the dance had left the other
+     * dancer. Measured on `@caller/contra`'s Contrablend at four couples: the
+     * couple's two bodies were a place apart when the wait began, so the
+     * crossing put one of them down on `(16, 20)`, which the minor set below
+     * had just settled somebody else on — `collision 0.000 px` at the cycle
+     * boundary, at four of its five line lengths, and the same at every length
+     * of Jeremy Corners. The entry is a measurement; the landing is a place.
      */
     target(id: StationId): EndPose {
       if (!params.cross) {
@@ -356,7 +380,7 @@ function geometry(group: Group, params: WaitOutParams) {
       // A swap leaves both dancers facing along the frame's own axis, which is
       // turned end for end for the couple waiting at the other end of the set,
       // so one figure serves both ends.
-      return { p: side(otherId(id)).start.p, facing: group.frame.axis };
+      return { p: side(otherId(id)).home.p, facing: group.frame.axis };
     },
   };
 }
