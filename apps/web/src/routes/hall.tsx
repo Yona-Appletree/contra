@@ -41,7 +41,8 @@ import {
   shownMusicBeat,
 } from "../program.js";
 import { chainOverridesFromQuery } from "../state/chainQuery.js";
-import { readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
+import { engineFromQuery, otherEngine } from "../state/engineQuery.js";
+import { engineHash, readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -166,6 +167,14 @@ export function HallPage({
   // the shipped default. Absent or unrecognised, nothing changes.
   const chain = params.get("chain");
 
+  // `?engine=new|old` (M3): which of the two engines the hall dances on. `new`
+  // — the default since M3 — is the contra cycle planner resolving every call
+  // against live set state, with the five migrated gatherers read as data;
+  // `old` is the path every golden before M3 was taken against and stays
+  // reachable until M11. It is deliberately not a control in the bar: it is a
+  // reviewer's switch for a gate, not something a dancer chooses.
+  const engine = engineFromQuery(params.get("engine"));
+
   const [danceSlug, setDanceSlug] = useState<string | undefined>(routeDance);
   // "Shuffle" is the default and, since U4, the only choice ("the music
   // probably just random for now, I don't like the selector" — the control
@@ -200,8 +209,8 @@ export function HallPage({
     [lines],
   );
   const program = useMemo<DemoProgram>(
-    () => createDemoProgram(world, danceSlug, seed, chainOverridesFromQuery(chain)),
-    [world, danceSlug, seed, chain],
+    () => createDemoProgram(world, danceSlug, seed, chainOverridesFromQuery(chain), engine),
+    [world, danceSlug, seed, chain, engine],
   );
   const people = useMemo<Map<DancerId, Person>>(() => createHallPeople(program.hall), [program]);
   // The programme's own shuffle, read as a `Medley`: `program.tunes` is one
@@ -604,7 +613,11 @@ export function HallPage({
   }, [draw, program, beatNow, goMusic, goSilent]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-3">
+    <main
+      className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-3"
+      data-testid="hall-page"
+      data-engine={engine}
+    >
       {/*
        * No title line: the tab bar above already says which page this is, and
        * a phone has no height to spare (U1). The row is the page's only
@@ -654,7 +667,7 @@ export function HallPage({
           <ControlBar
             dance={position.dance.slug}
             onDance={(slug) => {
-              pendingStartBeatRef.current = lineUpStartBeat(DEMO_DANCES.length);
+              pendingStartBeatRef.current = lineUpStartBeat(program.dances.length);
               setDanceSlug(slug);
               setBeat(pendingStartBeatRef.current);
               setPlaying(false);
@@ -699,6 +712,21 @@ export function HallPage({
            */}
           <p className="text-xs text-muted-foreground" data-testid="hall-status">
             {betweenDancesStatus(position)}
+          </p>
+          {/*
+           * Which engine this hall is dancing on, and the link to the other
+           * one (M3, gate G1). Small and quiet: it is a reviewer's switch,
+           * not a dancer's, and the whole point of the default being `new` is
+           * that nobody has to ask for it.
+           */}
+          <p className="text-xs text-muted-foreground" data-testid="hall-engine">
+            {engine === "new" ? "the new engine" : "the old engine"}{" "}
+            <a
+              href={engineHash(danceSlug, params, otherEngine(engine))}
+              data-testid="hall-engine-swap"
+            >
+              ({otherEngine(engine)} engine)
+            </a>
           </p>
         </aside>
       </div>

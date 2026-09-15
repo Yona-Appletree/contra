@@ -8,10 +8,20 @@ import {
   createScriptDecider,
 } from "@caller/choreo";
 import type { FigureDefaultsOverride } from "@caller/contra";
-import { BECKET, DEMO_DANCES, DUPLE_IMPROPER, createContraRegistry } from "@caller/contra";
+import {
+  ALL_DANCES,
+  BECKET,
+  DEMO_DANCES,
+  DUPLE_IMPROPER,
+  contraDataEngine,
+  createContraCyclePlanner,
+  createContraRegistry,
+} from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
 import type { Medley, Tune } from "@caller/music";
 import { medleys as musicMedleys } from "@caller/music";
+import type { EngineChoice } from "./state/engineQuery.js";
+import { DEFAULT_ENGINE } from "./state/engineQuery.js";
 
 /**
  * The evening: every encoded dance, each two times through, looping for as
@@ -396,12 +406,47 @@ export function betweenDancesStatus(position: ProgramPosition): string {
  * Choosing a dance on the page jumps the programme to it, which is this
  * rotation plus a rebuilt decider; everything after it keeps the caller's
  * order, so the evening still runs through every dance.
+ *
+ * A **lab dance** (`DanceFile.status: "lab"`, M1) is not in the programme at
+ * all — that is what the status means, and why it has no card on the Dances
+ * tab — but `#/dance/<slug>` still has to dance it, because a milestone
+ * encoding a hard dance wants to watch it in the hall before it ships. So a
+ * `first` the programme does not hold, but the package does, is **put in front
+ * of** the programme rather than rotated within it: the evening opens on the
+ * lab dance and then runs the shipped ten as usual. Everything downstream —
+ * `lineUpStartBeat(dances.length)`, `ITEM_BEATS`, `positionAt` — is written
+ * over `dances.length` rather than over `DEMO_DANCES`, so a programme one
+ * item longer needs nothing else to change.
+ *
+ * `dances` and `all` are arguments so the behaviour can be tested with
+ * fixtures: no lab dance exists yet (`LAB_DANCES` is empty), and adding one to
+ * make a test pass would put a half-encoded dance in the repository.
  */
-export function danceOrder(first?: string): Dance[] {
-  const at = first === undefined ? -1 : DEMO_DANCES.findIndex((d) => d.slug === first);
-  if (at <= 0) return [...DEMO_DANCES];
-  return [...DEMO_DANCES.slice(at), ...DEMO_DANCES.slice(0, at)];
+export function danceOrder(
+  first?: string,
+  dances: readonly Dance[] = DEMO_DANCES,
+  all: readonly Dance[] = ALL_DANCES,
+): Dance[] {
+  if (first === undefined) return [...dances];
+  const at = dances.findIndex((d) => d.slug === first);
+  if (at > 0) return [...dances.slice(at), ...dances.slice(0, at)];
+  if (at === 0) return [...dances];
+  const lab = all.find((d) => d.slug === first);
+  return lab === undefined ? [...dances] : [lab, ...dances];
 }
+
+/**
+ * Whether this slug names a dance the programme does not hold but the package
+ * does: a lab dance, which {@link danceOrder} puts in front of the evening.
+ *
+ * The Dances tab links one (`#/dance/<slug>`) without giving it a programme
+ * card, and the dance page says which it is looking at.
+ */
+export const isLabDance = (
+  slug: string,
+  dances: readonly Dance[] = DEMO_DANCES,
+  all: readonly Dance[] = ALL_DANCES,
+): boolean => !dances.some((d) => d.slug === slug) && all.some((d) => d.slug === slug);
 
 /**
  * The hall the demo ships: two lines, **eight couples and seven**.
@@ -475,12 +520,24 @@ const DOWN_THE_HALL = 90;
  * `figureOverrides` is `?chain=`'s route into the Stage: forwarded straight to
  * `createContraRegistry`, so a dance that calls the overridden figure dances
  * the chosen candidate instead of the figure's own shipped default.
+ *
+ * `engine` is `?engine=new|old`'s route in, and it is **two halves, both of
+ * which have to agree**. The new engine is the contra `CyclePlanner` *and* a
+ * registry holding the five migrated figures as interpreted definitions:
+ * `poseAt` resolves a figure by id in the **registry**, not in the planner's
+ * emission, so planning against the data swing while the timeline sampled the
+ * coded one would silently draw the wrong figure. `contraDataEngine()` builds
+ * the consistent pair and `createContraCyclePlanner({ library })` is given that
+ * pair's own library, so the planner is not rebuilding it at the top of every
+ * time through. `old` is the plain coded registry with no planner at all, which
+ * is `defaultCyclePlanner` — the path every golden before M3 was taken against.
  */
 export function createDemoProgram(
   world: HallWorld,
   first?: string,
   seed = DEFAULT_SEED,
   figureOverrides: FigureDefaultsOverride = {},
+  engine: EngineChoice = DEFAULT_ENGINE,
 ): DemoProgram {
   const dances = danceOrder(first);
   const { medleyOf, tuneOf } = shuffleProgramme(
@@ -502,11 +559,18 @@ export function createDemoProgram(
     world,
     world.sets.map((s) => s.couples),
   );
+  const engineHalves =
+    engine === "new"
+      ? contraDataEngine([], figureOverrides)
+      : { registry: createContraRegistry([], figureOverrides), library: undefined };
   const decider = createScriptDecider(
     program,
-    createContraRegistry([], figureOverrides),
+    engineHalves.registry,
     hall,
     createLibrary(dances, [DUPLE_IMPROPER, BECKET]),
+    engineHalves.library === undefined
+      ? {}
+      : { cycle: createContraCyclePlanner({ library: engineHalves.library }) },
   );
   decider.advance(LOOKAHEAD_BEATS);
   return {
