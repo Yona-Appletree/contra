@@ -141,6 +141,7 @@ their own and are reached by URL or by a link on the page above them.
   (`walkthrough-hint`) under "more". Both cards are computed — nothing about
   either is stored — from the same `callScript` and `danceWalkthrough` the
   Stage's own bubble and note card read.
+
 - `#/pair` — **the pair page (M5, gate G1).** Hidden from the tab bar since
   M9 moved it off the front page; still linkable. The two-dancers spike's
   64-beat sequence at 112 bpm, played from `@caller/contra`'s figure
