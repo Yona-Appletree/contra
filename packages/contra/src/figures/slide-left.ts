@@ -74,6 +74,14 @@ interface CrossPath {
  * couple in front of you. So the body never turns, unlike every other
  * travelling figure here, which turns toward its travel. What it does instead
  * is step, twice, and glance along the line it is travelling down.
+ *
+ * **One couple in an odd line does something else** (S2), and it is an end
+ * effect rather than a second reading of the figure: an odd becket line has
+ * only one waiting place, so at the end that has none the couple that runs out
+ * of line crosses straight over — no time out — and this figure is what carries
+ * them. They are marked with {@link Station.crossedOver}; everybody else in
+ * their minor set slides pose for pose exactly as they always did. See
+ * `becket.ts`'s header for the loop that makes an odd line work that way.
  */
 export const slideLeft = contraFigure<SlideLeftParams>({
   id: "slide-left",
@@ -158,8 +166,14 @@ export const slideLeft = contraFigure<SlideLeftParams>({
           const facing = home.facing + turn;
           return {
             p: [
-              cross.at0[0] + (cross.to[0] - cross.at0[0]) * k + cross.offset[0] * c - cross.offset[1] * s,
-              cross.at0[1] + (cross.to[1] - cross.at0[1]) * k + cross.offset[0] * s + cross.offset[1] * c,
+              cross.at0[0] +
+                (cross.to[0] - cross.at0[0]) * k +
+                cross.offset[0] * c -
+                cross.offset[1] * s,
+              cross.at0[1] +
+                (cross.to[1] - cross.at0[1]) * k +
+                cross.offset[0] * s +
+                cross.offset[1] * c,
             ],
             facing,
             look: facing,
