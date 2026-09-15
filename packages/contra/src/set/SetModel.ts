@@ -84,7 +84,7 @@ export interface DancerState {
  * What shape the set is in. `"lines"` is the only one M1 builds; M7 adds a line
  * of four with an order, a ring, a wave and a diamond.
  */
-export type Shape = "lines";
+export type SetShape = "lines";
 
 /** One whole set, at one figure boundary. */
 export interface SetModel {
@@ -98,7 +98,7 @@ export interface SetModel {
   /** How many positions the lattice spans, lowest occupied to highest. */
   positions: number;
   dancers: Record<DancerId, DancerState>;
-  shape: Shape;
+  shape: SetShape;
 }
 
 /**
