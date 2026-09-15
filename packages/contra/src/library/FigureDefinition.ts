@@ -1035,7 +1035,18 @@ export interface WaveShape {
    * the long wave: an across wave's facings follow from its hands.
    */
   facesIn: string;
-  /** How far the body rocks forward, px. */
+  /**
+   * The parameter naming **which way the wave balances** (FR-A2): one of
+   * `forward`, `left`, `right`, `left-and-back`, `right-and-back`. Left out —
+   * or named but not given — is `forward`, forwards and back, which is what a
+   * card that says nothing means. See `kinds/wave.ts`'s `WaveDirection`.
+   */
+  direction?: string;
+  /**
+   * How far the body rocks off the line of the wave, px. Bounded by
+   * `kinds/wave.ts`'s `WAVE_ROCK_CAP_PX`, so no call can shear the wave past
+   * the width of a dancer.
+   */
   rock: NumberExpr;
   /** Beats spent closing up on to the wave. */
   closeBeats: NumberExpr;

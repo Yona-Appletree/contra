@@ -35,7 +35,7 @@ export const balanceWaveDefinition: FigureDefinition = {
   id: "balance-wave",
   call: "BALANCE THE WAVE",
   describe:
-    "You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Rock forward together on to the first beat and back on the third. Nobody goes anywhere.",
+    "You are in a wave: take the named hand of the dancer one place along the set from you, and your other hand to the one behind you, so the whole line is joined up and everybody is looking the opposite way to the dancers beside them. Step forward on to the first beat and back to the line on the third. It is a small step and it never carries you through the line, because the dancers either side of you are stepping the other way and your arms are joined down it. Nobody goes anywhere.",
   lead: 4,
   nominalBeats: 4,
   roles: [LANE_ROLES],
@@ -60,8 +60,19 @@ export const balanceWaveDefinition: FigureDefinition = {
       hand: "R",
       /** Which contra role looks in, toward the other line. */
       facesIn: "lark",
-      /** How far the body rocks forward, px — a balance's own number. */
-      rock: 4,
+      /**
+       * How far the body rocks off the line of the wave, px.
+       *
+       * **One px, like every other balance in the library** (FR-A2), where it
+       * used to be four. The user, looking at the wave the Moves page drew:
+       * *"people don't move past each other when balancing, that would break
+       * their arms. the move towards and then back, but not past."* A wave's
+       * dancers look opposite ways, so a rock shears the line by twice this
+       * number; at four the two bodies offset by most of a shoulder width and
+       * read as sliding past one another. `kinds/wave.ts` bounds it as well as
+       * defaulting it, so a dance cannot ask for the old look back.
+       */
+      rock: 1,
       closeBeats: 1,
       holdDrop: 2,
     },
