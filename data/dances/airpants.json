@@ -17,20 +17,18 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR BALANCE AND SWING"
+          "params": { "pairs": "neighbors", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        { "figure": "long-lines", "beats": 8 },
         {
           "figure": "allemande",
           "beats": 8,
-          "params": { "pairs": [["1R", "2R"]], "hand": "R", "amount": 1.5 },
-          "call": "ROBINS ALLEMANDE RIGHT ONE AND A HALF"
+          "params": { "pairs": [["1R", "2R"]], "hand": "R", "amount": 1.5 }
         }
       ]
     },
@@ -40,26 +38,15 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "B2",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": { "direction": "left", "places": 3 },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "do-si-do",
-          "beats": 10,
-          "params": { "pairs": "neighbors", "amount": 1.5 },
-          "call": "NEIGHBOR DO-SI-DO ONE AND A HALF"
-        }
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
+        { "figure": "do-si-do", "beats": 10, "params": { "pairs": "neighbors", "amount": 1.5 } }
       ]
     }
   ]

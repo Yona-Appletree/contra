@@ -4,6 +4,8 @@
 
 export type {
   CallForm,
+  CallToken,
+  CallTokenKind,
   FigureTextFile,
   FigureTexts,
   FigureWalkthrough,
@@ -61,3 +63,16 @@ export {
 
 export type { WalkthroughCard, WalkthroughEntry, WalkthroughLine } from "./walkthrough.js";
 export { danceWalkthrough } from "./walkthrough.js";
+
+export type { CallPolicy, CallingCardCell, CallingCardRow, SpokenCall } from "./callScript.js";
+export {
+  DEFAULT_CALL_POLICY,
+  LEAD_BEATS,
+  WHILE,
+  budgetFor,
+  callScript,
+  callTexts,
+  callingCard,
+  classifyCall,
+  headingTokens,
+} from "./callScript.js";

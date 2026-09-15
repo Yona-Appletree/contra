@@ -998,6 +998,16 @@ vocabulary (`src/text/seam.ts`, and nothing else in the app has a second):
 - **`landmark(def, params, group)`** — the same sentence about a **figure**, over
   one figure's own boundary pair, which is the question the Moves page can ask.
 
+**`callScript(dance, timeThrough)` and `callingCard(dance)`**
+(`src/text/callScript.ts`) are one function read two ways: along a time through,
+which is what the caller's bubble says (through `@caller/choreo`'s `callsFor`
+hook, wired in `apps/web/src/program.ts`), and down the record, which is what the
+calling card prints. A call is said at the longest form that fits the **window**
+the call before it leaves and the **budget** this time through is in; two short
+figures inside one phrase are said in one breath; two figures danced at once are
+joined by `WHILE`. A dance file's own `call` is a **flourish** and joins the list
+as the longest form there is.
+
 **`danceWalkthrough(dance)`** (`src/text/walkthrough.ts`) is the whole card: the
 formation's own opening, one entry per call of the record with its heading, its
 lines and its hint, and the progression sentence at the wrap. See

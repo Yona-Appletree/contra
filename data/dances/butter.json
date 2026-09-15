@@ -24,37 +24,20 @@
       "name": "A1",
       "figures": [
         { "figure": "slide-left", "beats": 2, "call": "SHIFT LEFT" },
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": { "direction": "left", "places": 3 },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR SWING"
-        }
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors", "endFacing": "across" } }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR PARTNER" }
+        { "figure": "long-lines", "beats": 8 },
+        { "figure": "robins-chain", "beats": 8 }
       ]
     },
     {
       "name": "B1",
-      "figures": [
-        {
-          "figure": "hey",
-          "beats": 16,
-          "params": { "start": "robin", "by": "right" },
-          "call": "HEY FOR FOUR"
-        }
-      ]
+      "figures": [{ "figure": "hey", "beats": 16, "params": { "start": "robin", "by": "right" } }]
     },
     {
       "name": "B2",
@@ -62,8 +45,7 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "endFacing": "across" }
         }
       ]
     }

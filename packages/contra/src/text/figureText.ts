@@ -129,10 +129,30 @@ export interface PartialFigureText {
   call?: Record<string, string>;
 }
 
-/** One form of a call: the words, and how many beats they take to say. */
+/**
+ * **Which part of a call a word is** (D26): who is dancing it, what the figure
+ * is, which way it goes, and how far.
+ *
+ * The user, on the old contra card program: "lets add color coding to the words
+ * in the main call … Robins - who, allemande - what, right - which way, once and
+ * a half - how far. something like that, not too bold." The kinds are read off
+ * the **template**, not guessed from the words, which is what makes them right
+ * for every figure without a word list per figure.
+ */
+export type CallTokenKind = "who" | "what" | "way" | "far";
+
+/** One run of words of one kind. */
+export interface CallToken {
+  kind: CallTokenKind;
+  text: string;
+}
+
+/** One form of a call: the words, how many beats they take to say, and their parts. */
 export interface CallForm {
   beats: Beat;
   text: string;
+  /** The words split by which part of the call they are; adjacent kinds merged. */
+  tokens: readonly CallToken[];
 }
 
 /** One figure's texts, resolved against a call's own parameters. */
@@ -316,12 +336,116 @@ function formsOf(
   slots: TextSlots,
 ): readonly CallForm[] {
   return Object.entries(call)
-    .map(([key, text]) => ({
-      beats: Number(key),
-      text: fill(id, text, params, slots, "call").trim().toUpperCase(),
-    }))
+    .map(([key, template]) => {
+      const tokens = tokensOf(id, template, params, slots);
+      return {
+        beats: Number(key),
+        text: tokens
+          .map((token) => token.text)
+          .join(" ")
+          .trim(),
+        tokens,
+      };
+    })
     .sort((a, b) => b.beats - a.beats);
 }
+
+/**
+ * One call form, split into the parts a card colours (D26).
+ *
+ * Read off the **template**: a literal word is what the figure is, a `{slot}`
+ * is whichever part of the call its name names, and the joining words — WITH,
+ * YOUR, TO, AND, A — take the kind of the slot beside them, because "WITH YOUR
+ * PARTNER" is one thing said about one person rather than three words of three
+ * kinds. Adjacent runs of one kind are merged, so a card draws one span per part
+ * rather than one per word.
+ */
+function tokensOf(
+  id: string,
+  template: string,
+  params: Record<string, unknown>,
+  slots: TextSlots,
+): CallToken[] {
+  /** Each word, with the kind it came out of and whether it is a joiner. */
+  const words: Array<{ text: string; kind: CallTokenKind; slot: boolean }> = [];
+  let at = 0;
+  for (const match of template.matchAll(SLOT)) {
+    pushWords(words, template.slice(at, match.index), "what", false);
+    const filled = slotText(match[1]!, params, slots, "call");
+    if (filled === undefined) {
+      throw new Error(
+        `${id}: nothing to put in "{${match[1]!}}" — ` +
+          `the call has no such parameter, or its value has no words`,
+      );
+    }
+    pushWords(words, filled, SLOT_KINDS[match[1]!] ?? "what", true);
+    at = match.index + match[0].length;
+  }
+  pushWords(words, template.slice(at), "what", false);
+
+  // The joiners, resolved **one run at a time**: a run of them takes the kind of
+  // the slot word it runs into, next or previous. "WITH YOUR {who}" is three
+  // words about one person; the AND of "BALANCE AND SWING" touches no slot at
+  // all and stays what the figure is.
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]!;
+    if (word.slot || !JOINERS.has(word.text)) continue;
+    let end = i;
+    while (end + 1 < words.length && !words[end + 1]!.slot && JOINERS.has(words[end + 1]!.text)) {
+      end++;
+    }
+    const after = words[end + 1];
+    const before = words[i - 1];
+    const kind = after?.slot === true ? after.kind : before?.slot === true ? before.kind : "what";
+    for (let j = i; j <= end; j++) words[j]!.kind = kind;
+    i = end;
+  }
+
+  const out: CallToken[] = [];
+  for (const word of words) {
+    const last = out[out.length - 1];
+    if (last !== undefined && last.kind === word.kind) last.text = `${last.text} ${word.text}`;
+    else out.push({ kind: word.kind, text: word.text });
+  }
+  return out;
+}
+
+/** Split a run of text into words, in the bubble's own capitals. */
+function pushWords(
+  into: Array<{ text: string; kind: CallTokenKind; slot: boolean }>,
+  text: string,
+  kind: CallTokenKind,
+  slot: boolean,
+): void {
+  for (const word of text.trim().split(/\s+/).filter(Boolean)) {
+    into.push({ text: word.toUpperCase(), kind, slot });
+  }
+}
+
+/** The words that join a call's parts and belong to whichever part they join. */
+const JOINERS: ReadonlySet<string> = new Set(["WITH", "YOUR", "TO", "AND", "A"]);
+
+/** Which part of a call each slot name is. */
+const SLOT_KINDS: Readonly<Record<string, CallTokenKind>> = {
+  who: "who",
+  to: "who",
+  firstPass: "who",
+  secondPass: "who",
+  balanceWith: "who",
+  chains: "who",
+  start: "who",
+  centre: "who",
+  facesIn: "who",
+  roller: "who",
+  leadRole: "who",
+  hand: "way",
+  by: "way",
+  firstHand: "way",
+  secondHand: "way",
+  direction: "way",
+  amount: "far",
+  places: "far",
+};
 
 /**
  * A walkthrough's first letter, capitalised.

@@ -20,31 +20,16 @@
       "roles": ["one"],
       "actors": "each",
       "anchor": "centroid",
-      "params": {
-        "kind": "canonical",
-        "defaults": {}
-      },
+      "params": { "kind": "canonical", "defaults": {} },
       "shape": {
         "kind": "waypoints",
         "tracks": {
           "*": [
             {
-              "at": {
-                "fromEnd": 0
-              },
+              "at": { "fromEnd": 0 },
               "pose": {
-                "p": {
-                  "point": "slot",
-                  "line": "same",
-                  "along": 1
-                },
-                "facing": {
-                  "angle": "facingOf",
-                  "role": {
-                    "role": "self"
-                  },
-                  "at": "start"
-                }
+                "p": { "point": "slot", "line": "same", "along": 1 },
+                "facing": { "angle": "facingOf", "role": { "role": "self" }, "at": "start" }
               }
             }
           ]
@@ -52,10 +37,7 @@
       },
       "holds": [],
       "ends": "home",
-      "timing": {
-        "stretch": "distance",
-        "profile": "smooth"
-      },
+      "timing": { "stretch": "distance", "profile": "smooth" },
       "texts": {
         "description": "One dancer walks forward one place along their own line.",
         "defaultLevel": "line",
@@ -63,11 +45,7 @@
           "line": "Walk forward one place along your own line, looking the way you were looking.",
           "teach": "On your own, walk forward one place along the line you are standing in, still looking the way you were looking, while the dancer beside you casts back into the place behind them. Your hands stay at your sides: the two of you are dancing different figures in the same two beats."
         },
-        "call": {
-          "1": "GO FORWARD",
-          "2": "{who} GO FORWARD",
-          "4": "{who} GO FORWARD ONE PLACE"
-        }
+        "call": { "1": "GO FORWARD", "2": "{who} GO FORWARD", "4": "{who} GO FORWARD ONE PLACE" }
       }
     }
   },
@@ -75,19 +53,11 @@
     {
       "name": "A1",
       "figures": [
-        {
-          "figure": "robins-chain",
-          "beats": 8,
-          "call": "ROBINS CHAIN TO YOUR NEIGHBOUR"
-        },
+        { "figure": "robins-chain", "beats": 8 },
         {
           "figure": "promenade",
           "beats": 8,
-          "params": {
-            "pairs": "neighbors",
-            "direction": "counterclockwise",
-            "places": 2
-          },
+          "params": { "pairs": "neighbors", "direction": "counterclockwise", "places": 2 },
           "call": "NEIGHBOUR PROMENADE COUNTERCLOCKWISE AROUND THE SET"
         }
       ]
@@ -99,34 +69,20 @@
           "figure": "cast-back",
           "beats": 2,
           "who": "robins",
-          "params": {
-            "progresses": true
-          },
+          "params": { "progresses": true },
           "call": "ROBINS CAST BACK, LARKS GO FORWARD",
-          "while": [
-            {
-              "figure": "fatal-attraction/go-forward",
-              "who": "larks"
-            }
-          ]
+          "while": [{ "figure": "fatal-attraction/go-forward", "who": "larks" }]
         },
         {
           "figure": "shoulder-round",
           "beats": 6,
-          "params": {
-            "pairs": "neighbors",
-            "hand": "R",
-            "amount": 1
-          },
+          "params": { "pairs": "neighbors", "hand": "R", "amount": 1 },
           "call": "RIGHT SHOULDER ROUND WITH NUMBER TWO"
         },
         {
           "figure": "swing",
           "beats": 8,
-          "params": {
-            "pairs": "neighbors",
-            "endFacing": "across"
-          },
+          "params": { "pairs": "neighbors", "endFacing": "across" },
           "call": "SWING NUMBER TWO"
         }
       ]
@@ -137,22 +93,13 @@
         {
           "figure": "promenade",
           "beats": 8,
-          "params": {
-            "pairs": "neighbors",
-            "direction": "clockwise",
-            "places": 2
-          },
+          "params": { "pairs": "neighbors", "direction": "clockwise", "places": 2 },
           "call": "PROMENADE NUMBER TWO CLOCKWISE AROUND THE SET"
         },
         {
           "figure": "allemande",
           "beats": 8,
-          "params": {
-            "pairs": [["1R", "2R"]],
-            "hand": "R",
-            "amount": 1.5
-          },
-          "call": "ROBINS ALLEMANDE RIGHT ONCE AND A HALF"
+          "params": { "pairs": [["1R", "2R"]], "hand": "R", "amount": 1.5 }
         }
       ]
     },
@@ -162,12 +109,7 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": {
-            "pairs": "partners",
-            "balanceBeats": 4,
-            "endFacing": "across"
-          },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "balanceBeats": 4, "endFacing": "across" }
         }
       ]
     }

@@ -28,8 +28,11 @@ describe("overlapping calls: the earliest-started utterance is the one the bubbl
     );
     decider.advance(8);
     const said = decider.timeline().utterances();
+    // Butter's slide keeps its own words — "SHIFT LEFT" is a flourish no
+    // figure's forms can say — and its circle does not, so on the **bare**
+    // decider (no `callsFor`) the circle says the figure contract's own line.
     const shift = said.find((u) => u.text === "SHIFT LEFT")!;
-    const circle = said.find((u) => u.text === "CIRCLE LEFT THREE QUARTERS")!;
+    const circle = said.find((u) => u.text === "CIRCLE LEFT")!;
 
     // A genuine overlap, not just adjacency: each one's window covers a beat
     // the other's does too.

@@ -128,6 +128,17 @@ a move are limited by the move before it: a two-beat slide leaves room for
 two beats of words, so short moves get called together ("SHIFT LEFT, CIRCLE
 LEFT THREE PLACES").
 
+Written down, that is three rules and `packages/contra/src/text/callScript.ts`
+is all three. The **window** is how many beats of silence the call before this
+one leaves — at most the four a caller speaks ahead by. The **budget** is how
+many beats of words a time through still gets: four, then two, then two, then
+one, unless the dance says otherwise (`callBudgets`). The form said is the
+longest that fits in both; where the window is shorter than a whole sentence and
+the budget is not, the call is said in the same breath as the one before it,
+inside its own phrase. Two figures danced **at once** are one call, their forms
+of the same length joined by `WHILE` — "ALLEMANDE RIGHT WHILE ROBINS LOOP" — and
+as long to say as both of them.
+
 ## 7. The levels
 
 A move in a dance walkthrough is shown at one of two levels:

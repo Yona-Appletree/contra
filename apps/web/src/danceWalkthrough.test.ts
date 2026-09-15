@@ -23,10 +23,12 @@ describe("danceWalkthrough", () => {
     }
   });
 
-  it("prefers the dance's own written call over the resolved one", () => {
+  it("names each figure by the caller's own 4-beat form", () => {
+    // M13: a dance file's own `call` is a **flourish** now and Airpants writes
+    // none, so the heading is what a caller would say for the figure.
     const airpants = danceBySlug("airpants")!;
     const first = danceWalkthrough(airpants)[0]!;
-    expect(first.call).toBe("NEIGHBOR BALANCE AND SWING");
+    expect(first.call).toBe("WITH YOUR NEIGHBOR BALANCE AND SWING");
   });
 
   it("stops the written teach at how far, and leaves where you end to the hint", () => {
