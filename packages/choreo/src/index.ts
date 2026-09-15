@@ -111,6 +111,9 @@ export { bindingOf, poseAt, sampleEvent } from "./timeline/poseAt.js";
 // the decider
 export type {
   ChoreoLibrary,
+  CycleEmission,
+  CycleInput,
+  CyclePlanner,
   Decider,
   ScriptDeciderOptions,
   ScriptPosition,
@@ -126,7 +129,11 @@ export {
   danceOf,
   formationOf,
 } from "./decider/Decider.js";
-export { createScriptDecider, nextDanceCall } from "./decider/createScriptDecider.js";
+export {
+  createScriptDecider,
+  defaultCyclePlanner,
+  nextDanceCall,
+} from "./decider/createScriptDecider.js";
 export { complementOf, resolveSelector } from "./decider/resolveSelector.js";
 export { spokenBeats } from "./decider/spokenBeats.js";
 

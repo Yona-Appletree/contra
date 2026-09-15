@@ -27,7 +27,15 @@ import type { Group } from "../group/Group.js";
 import { createGroup, groupStationPose, stationOf } from "../group/Group.js";
 import type { Timeline, TimelineEvent } from "../timeline/Timeline.js";
 import { createTimeline } from "../timeline/Timeline.js";
-import type { ChoreoLibrary, Decider, ScriptDeciderOptions, ScriptPosition } from "./Decider.js";
+import type {
+  ChoreoLibrary,
+  CycleEmission,
+  CycleInput,
+  CyclePlanner,
+  Decider,
+  ScriptDeciderOptions,
+  ScriptPosition,
+} from "./Decider.js";
 import { SCRIPT_DECIDER_DEFAULTS, danceOf, formationOf } from "./Decider.js";
 import { complementOf, resolveSelector } from "./resolveSelector.js";
 import { spokenBeats } from "./spokenBeats.js";
@@ -219,139 +227,25 @@ export function createScriptDecider(
     const cycle = danceBeats(dance);
     const start = at.beat;
     const schedule = danceSchedule(dance);
-    /** Which beats of this cycle each dancer has already been given a figure for. */
-    const claimed = new Map<DancerId, Span[]>();
-    const claim = (dancers: Iterable<DancerId>, from: Beat, to: Beat): void => {
-      for (const dancer of dancers) {
-        const spans = claimed.get(dancer) ?? [];
-        spans.push([from, to]);
-        claimed.set(dancer, spans);
-      }
-    };
 
-    // Every figure this cycle produces — a call's own dancers, a call's
-    // resting complement, and (once every call is known) a waiting couple's
-    // gap fill — is recorded here rather than emitted straight away, and run
-    // in beat order once the whole cycle is known. `Timeline.add()` requires
-    // each dancer's own events to arrive in non-decreasing start order; a
-    // waiting couple's *leading* gap (beat 0) is only discoverable after
-    // every call has been walked (M2's sweep may claim its later beats), by
-    // which point an ordinary run-as-you-go loop would already have added
-    // that later call's event — arriving before the gap that precedes it.
-    // Sorting the whole cycle's emissions by their own start beat, stably (so
-    // same-beat calls keep the schedule's own order), is what keeps every
-    // dancer's own sequence chronological regardless of which pass found it.
-    const pending: Array<{ at: Beat; run: () => void }> = [];
-
-    for (const { call, start: offset } of schedule) {
-      const selector = call.group ?? HANDS_FOUR_GROUP;
-      for (const set of state.sets) {
-        for (const plan of formation.groupsFor(selector, set)) {
-          // A group this call's partition left standing out: nobody dances the
-          // call here, and the beats go to the fill below.
-          if (plan.kind !== "set") continue;
-          const group = mintGroup(plan);
-          const def = registry.get(call.figure);
-          const params = withDefaults(def, call.params, call.beats);
-          const named = resolveSelector(call.who, formation, selector, group.stations);
-          const denied = excludedByEnds(formation, selector, call.ends, group.stations);
-          // A station `ends` denies is not merely left out of `who` — it is
-          // not part of this call *at all*: a `down-the-hall`-shaped call
-          // (`ends: "bottom"`) must leave a `wait-top` couple in the widened
-          // group's own partition untouched by this call's beats entirely, not
-          // standing through them, so the fill below still sees their whole
-          // cycle unclaimed and gives them one ordinary wait-out — exactly as
-          // if `groupsFor` had never widened toward that end for this call.
-          const active = group.stations.filter((s) => !denied.has(s.id));
-          const selected = named.filter((id) => !denied.has(id));
-          const resting = complementOf(active, selected);
-          pending.push({
-            at: offset,
-            run: () => {
-              emitFigure(into, group, def, params, selected, start + offset);
-              if (resting.length > 0) {
-                const origins: Record<StationId, EndPose> = {};
-                for (const id of resting) {
-                  const here = standingAt.get(group.members[id]!);
-                  if (here) origins[id] = here;
-                }
-                const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
-                emitFigure(into, group, WALK_TO_STATION, stand, resting, start + offset);
-              }
-            },
-          });
-          claim(
-            active.map((s) => group.members[s.id]!),
-            offset,
-            offset + call.beats,
-          );
-        }
-      }
+    // The figures of one time through, through the seam: the planner decides
+    // *what dances*, the decider emits it, says the calls, and keeps everything
+    // between two dances. `opts.cycle` left out is `defaultCyclePlanner`, which
+    // is this half of `emitCycle` as it always was.
+    const planner: CyclePlanner = opts.cycle ?? defaultCyclePlanner;
+    const planned = planner({
+      dance,
+      formation,
+      registry,
+      hall: state,
+      start,
+      first,
+      standingAt,
+      mintGroup,
+    });
+    for (const e of planned.emissions) {
+      emitFigure(into, e.group, e.def, e.params, e.stations, e.start);
     }
-
-    // Whatever the schedule did not claim: the outs wait it out, in their own
-    // resting group. `Timeline.add()` will not have a dancer in two figures at
-    // once, so what is left has to be the *gaps* — never the whole cycle laid
-    // over a call that swept them in.
-    for (const set of state.sets) {
-      for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
-        if (plan.kind === "set") continue;
-        const group = mintGroup(plan);
-        // The registry's `wait-out`, not the built-in: a form may register its
-        // own under the same id (contra does, to choose the crossing from the
-        // formation), and taking the definition from the import would sample
-        // one figure and record the other's `ends` — which the eight-beat
-        // line-up between two dances then walks to, 51 px out.
-        const def = registry.get(WAIT_OUT.id);
-        // Untouched by any call this cycle (every dance before M2, and every
-        // waiting couple no `"line"` call swept in): keep the fill sorting
-        // *after* every ordinary call, exactly as it always has, rather than
-        // at its own `at: 0` — nothing here depends on the order between two
-        // gap fills of *different* dancers, but `timeline.dancers()`'s
-        // insertion order does, and the motion report breaks ties by it
-        // (M1's own finding). Only a genuinely swept couple — where the sort
-        // key actually has to seam a gap in beside the call that produced it
-        // for `Timeline.add()`'s sake — sorts by its own beat.
-        const swept = Object.values(group.members).some((d) => claimed.has(d));
-        for (const [from, to] of gapsIn(cycle, Object.values(group.members), claimed)) {
-          // `startPlaces` matters only for a dance that progresses in its own
-          // first figure: the waiting couple slides off the end of the line with
-          // everybody else, so its crossing has to be reckoned from the place it
-          // slid out of. Empty — every other dance — is the waiting place, which
-          // is what `wait-out` did before there was a parameter at all.
-          //
-          // A `"line"`-selector call may have swept this couple in for part of
-          // the cycle (M2), leaving the gaps here as leading and/or trailing
-          // remainders rather than the whole cycle: `join` only makes sense for
-          // a gap that opens at the couple's own beat 0 (nothing claimed them
-          // before it) and `cross` only for one that runs to the cycle's own
-          // end (nothing claims them after it) — a gap in the middle, between
-          // two sweeps, does neither. With only `"hands-four"` ever resolved
-          // here (M1), every waiting couple's only gap is still `[0, cycle)`
-          // and both stay `true`, which is today's only behaviour, unchanged.
-          const params = withDefaults(
-            def,
-            {
-              startPlaces: dance.startPlaces ?? {},
-              join: from === 0,
-              cross: to === cycle,
-              ...(dance.waitOut ?? {}),
-            },
-            to - from,
-          );
-          pending.push({
-            at: swept ? from : Number.POSITIVE_INFINITY,
-            run: () =>
-              emitFigure(into, group, def, params, Object.keys(group.members), start + from),
-          });
-        }
-      }
-    }
-
-    // Stable: `Array.prototype.sort` preserves the relative order of equal
-    // keys, so every same-beat tie keeps the order the two passes above
-    // already found it in.
-    for (const p of [...pending].sort((a, b) => a.at - b.at)) p.run();
 
     // The caller says each call once for the whole hall, not once per group.
     //
@@ -390,7 +284,7 @@ export function createScriptDecider(
     }
 
     at.beat = start + cycle;
-    state = { sets: state.sets.map((set) => formation.progression.next(set)) };
+    state = planned.next;
     return cycle;
   };
 
@@ -616,6 +510,202 @@ export function createScriptDecider(
       return produced;
     },
   };
+}
+
+/**
+ * The script decider's own {@link CyclePlanner}: one time through, exactly as
+ * the decider used to plan it inline.
+ *
+ * Nothing here is new. It is `emitCycle`'s figure half, lifted out whole so
+ * that `@caller/contra` can put its own layer of set state and resolution in
+ * the same place without `@caller/choreo` learning a word of contra — every
+ * call resolves its own groups against the whole set, the dancers a `who`
+ * leaves out stand where they are, and whatever beats nothing claimed go to the
+ * waiting couples' `wait-out`.
+ *
+ * The one mechanical difference from running inside the decider is that the
+ * emissions are **returned** rather than added as they are found, so the
+ * planner keeps its own copy of `standingAt` and moves it on figure by figure
+ * in the order it is handing back — which is what a resting complement's
+ * `origins` reads, and it has to read what the figures already emitted this
+ * cycle left behind, not what stood at the top of it.
+ */
+export const defaultCyclePlanner: CyclePlanner = (
+  input: CycleInput,
+): { emissions: CycleEmission[]; next: HallState } => {
+  const { dance, formation, registry, hall, start, standingAt, mintGroup } = input;
+  const cycle = danceBeats(dance);
+  const schedule = danceSchedule(dance);
+  /** Which beats of this cycle each dancer has already been given a figure for. */
+  const claimed = new Map<DancerId, Span[]>();
+  const claim = (dancers: Iterable<DancerId>, from: Beat, to: Beat): void => {
+    for (const dancer of dancers) {
+      const spans = claimed.get(dancer) ?? [];
+      spans.push([from, to]);
+      claimed.set(dancer, spans);
+    }
+  };
+
+  // Every figure this cycle produces — a call's own dancers, a call's
+  // resting complement, and (once every call is known) a waiting couple's
+  // gap fill — is recorded here rather than produced straight away, and run
+  // in beat order once the whole cycle is known. `Timeline.add()` requires
+  // each dancer's own events to arrive in non-decreasing start order; a
+  // waiting couple's *leading* gap (beat 0) is only discoverable after
+  // every call has been walked (M2's sweep may claim its later beats), by
+  // which point an ordinary run-as-you-go loop would already have added
+  // that later call's event — arriving before the gap that precedes it.
+  // Sorting the whole cycle's emissions by their own start beat, stably (so
+  // same-beat calls keep the schedule's own order), is what keeps every
+  // dancer's own sequence chronological regardless of which pass found it.
+  const pending: Array<{ at: Beat; make: (at: Map<DancerId, EndPose>) => CycleEmission[] }> = [];
+
+  for (const { call, start: offset } of schedule) {
+    const selector = call.group ?? HANDS_FOUR_GROUP;
+    for (const set of hall.sets) {
+      for (const plan of formation.groupsFor(selector, set)) {
+        // A group this call's partition left standing out: nobody dances the
+        // call here, and the beats go to the fill below.
+        if (plan.kind !== "set") continue;
+        const group = mintGroup(plan);
+        const def = registry.get(call.figure);
+        const params = withDefaults(def, call.params, call.beats);
+        const named = resolveSelector(call.who, formation, selector, group.stations);
+        const denied = excludedByEnds(formation, selector, call.ends, group.stations);
+        // A station `ends` denies is not merely left out of `who` — it is
+        // not part of this call *at all*: a `down-the-hall`-shaped call
+        // (`ends: "bottom"`) must leave a `wait-top` couple in the widened
+        // group's own partition untouched by this call's beats entirely, not
+        // standing through them, so the fill below still sees their whole
+        // cycle unclaimed and gives them one ordinary wait-out — exactly as
+        // if `groupsFor` had never widened toward that end for this call.
+        const active = group.stations.filter((s) => !denied.has(s.id));
+        const selected = named.filter((id) => !denied.has(id));
+        const resting = complementOf(active, selected);
+        pending.push({
+          at: offset,
+          make: (standing) => {
+            const out: CycleEmission[] = [
+              { group, def, params, stations: selected, start: start + offset },
+            ];
+            if (resting.length > 0) {
+              const origins: Record<StationId, EndPose> = {};
+              for (const id of resting) {
+                const here = standing.get(group.members[id]!);
+                if (here) origins[id] = here;
+              }
+              const stand = withDefaults(WALK_TO_STATION, { origins }, call.beats);
+              out.push({
+                group,
+                def: WALK_TO_STATION as AnyFigureDef,
+                params: stand,
+                stations: resting,
+                start: start + offset,
+              });
+            }
+            return out;
+          },
+        });
+        claim(
+          active.map((s) => group.members[s.id]!),
+          offset,
+          offset + call.beats,
+        );
+      }
+    }
+  }
+
+  // Whatever the schedule did not claim: the outs wait it out, in their own
+  // resting group. `Timeline.add()` will not have a dancer in two figures at
+  // once, so what is left has to be the *gaps* — never the whole cycle laid
+  // over a call that swept them in.
+  for (const set of hall.sets) {
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, set)) {
+      if (plan.kind === "set") continue;
+      const group = mintGroup(plan);
+      // The registry's `wait-out`, not the built-in: a form may register its
+      // own under the same id (contra does, to choose the crossing from the
+      // formation), and taking the definition from the import would sample
+      // one figure and record the other's `ends` — which the eight-beat
+      // line-up between two dances then walks to, 51 px out.
+      const def = registry.get(WAIT_OUT.id);
+      // Untouched by any call this cycle (every dance before M2, and every
+      // waiting couple no `"line"` call swept in): keep the fill sorting
+      // *after* every ordinary call, exactly as it always has, rather than
+      // at its own `at: 0` — nothing here depends on the order between two
+      // gap fills of *different* dancers, but `timeline.dancers()`'s
+      // insertion order does, and the motion report breaks ties by it
+      // (M1's own finding). Only a genuinely swept couple — where the sort
+      // key actually has to seam a gap in beside the call that produced it
+      // for `Timeline.add()`'s sake — sorts by its own beat.
+      const swept = Object.values(group.members).some((d) => claimed.has(d));
+      for (const [from, to] of gapsIn(cycle, Object.values(group.members), claimed)) {
+        // `startPlaces` matters only for a dance that progresses in its own
+        // first figure: the waiting couple slides off the end of the line with
+        // everybody else, so its crossing has to be reckoned from the place it
+        // slid out of. Empty — every other dance — is the waiting place, which
+        // is what `wait-out` did before there was a parameter at all.
+        //
+        // A `"line"`-selector call may have swept this couple in for part of
+        // the cycle (M2), leaving the gaps here as leading and/or trailing
+        // remainders rather than the whole cycle: `join` only makes sense for
+        // a gap that opens at the couple's own beat 0 (nothing claimed them
+        // before it) and `cross` only for one that runs to the cycle's own
+        // end (nothing claims them after it) — a gap in the middle, between
+        // two sweeps, does neither. With only `"hands-four"` ever resolved
+        // here (M1), every waiting couple's only gap is still `[0, cycle)`
+        // and both stay `true`, which is today's only behaviour, unchanged.
+        const params = withDefaults(
+          def,
+          {
+            startPlaces: dance.startPlaces ?? {},
+            join: from === 0,
+            cross: to === cycle,
+            ...(dance.waitOut ?? {}),
+          },
+          to - from,
+        );
+        pending.push({
+          at: swept ? from : Number.POSITIVE_INFINITY,
+          make: () => [
+            { group, def, params, stations: Object.keys(group.members), start: start + from },
+          ],
+        });
+      }
+    }
+  }
+
+  // Stable: `Array.prototype.sort` preserves the relative order of equal
+  // keys, so every same-beat tie keeps the order the two passes above
+  // already found it in.
+  const standing = new Map(standingAt);
+  const emissions: CycleEmission[] = [];
+  for (const p of [...pending].sort((a, b) => a.at - b.at)) {
+    for (const emission of p.make(standing)) {
+      emissions.push(emission);
+      advanceStanding(standing, emission);
+    }
+  }
+
+  return {
+    emissions,
+    next: { sets: hall.sets.map((set) => formation.progression.next(set)) },
+  };
+};
+
+/**
+ * Move a planner's own copy of `standingAt` on by one emission, the same way
+ * the decider's `emitFigure` moves the real one: the figure's `ends`, for the
+ * stations this emission actually binds.
+ */
+function advanceStanding(standing: Map<DancerId, EndPose>, emission: CycleEmission): void {
+  if (emission.stations.length === 0) return;
+  const ends = emission.def.ends(emission.group, emission.params);
+  for (const id of emission.stations) {
+    const dancer = emission.group.members[id];
+    const end = ends[id];
+    if (dancer !== undefined && end) standing.set(dancer, end);
+  }
 }
 
 /**

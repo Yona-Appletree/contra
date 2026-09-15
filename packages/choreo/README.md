@@ -321,6 +321,22 @@ whichever of them a call's `ends` does not permit from that call's own
 call, which would still claim their beats and rob the untouched end of its
 single, whole-cycle `wait-out`.
 
+**The cycle planner seam (M1 of the figure model).** How one time through
+becomes figures is now injectable: `ScriptDeciderOptions.cycle?: CyclePlanner`
+takes a pure function from a `CycleInput` — the dance, the formation, the
+registry, the hall as it stands, the beat the time through starts on, whether
+it is the first, where the last figure left every dancer, and a `mintGroup`
+that registers a group on the timeline — to the cycle's `CycleEmission`s, in
+the order they are to be added, plus the hall as it stands afterwards. Left
+out, it is `defaultCyclePlanner`, which is the two-pass emission half of
+`emitCycle` exactly as described above, lifted out whole. Everything else
+stays the decider's: `emitFigure`, `standingAt`, the utterances, and the whole
+between-dances interval. Nothing in the seam is form-specific — a planner that
+wants relations, slots or a lattice brings them itself, which is how
+`@caller/contra`'s own set-state layer reaches the decider without this
+package learning a word of contra. `square.test.ts` runs on the default, which
+is what proves the extraction changed nothing.
+
 ## Form neutrality, and how it is enforced
 
 `src/testing/square.ts` is a square formation — four couples on the sides of

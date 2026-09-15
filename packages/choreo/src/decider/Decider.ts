@@ -1,6 +1,14 @@
 import type { Beat } from "@caller/core";
 import type { Dance } from "../dance/Dance.js";
-import type { Formation } from "../formation/Formation.js";
+import type { AnyFigureDef, EndPose, FigureRegistry } from "../figure/FigureDef.js";
+import type {
+  DancerId,
+  Formation,
+  GroupPlan,
+  HallState,
+  StationId,
+} from "../formation/Formation.js";
+import type { Group } from "../group/Group.js";
 import type { Timeline, TimelineEvent } from "../timeline/Timeline.js";
 
 /**
@@ -56,6 +64,67 @@ export function formationOf(library: ChoreoLibrary, dance: Dance): Formation {
     );
   }
   return formation;
+}
+
+/**
+ * Everything a {@link CyclePlanner} is given for one time through.
+ *
+ * It is the whole of what the decider knows about *where the dancing is*: the
+ * dance, the formation it is written in, the figures available, the hall as it
+ * stands, the beat the time through starts on, and where the last figure left
+ * every dancer. Nothing in it is contra — a planner that wanted contra meanings
+ * would have to bring them itself, which is exactly the point of the seam
+ * (`@caller/contra`'s `planCycle.ts` is the first one that does).
+ */
+export interface CycleInput {
+  dance: Dance;
+  formation: Formation;
+  registry: FigureRegistry;
+  /** The hall as this time through starts. */
+  hall: HallState;
+  /** The beat this time through starts on. */
+  start: Beat;
+  /** Whether this is the first time through of this dance. */
+  first: boolean;
+  /** Where the last figure emitted left each dancer, in world px. */
+  standingAt: ReadonlyMap<DancerId, EndPose>;
+  /** A fresh instance of one group plan, registered on the timeline. */
+  mintGroup(plan: GroupPlan): Group;
+}
+
+/**
+ * One figure the planner wants emitted: exactly the arguments the decider's own
+ * `emitFigure` takes, as data.
+ *
+ * `stations` are the stations of `group` this figure actually binds — the rest
+ * of the group is not in the event at all — and `start` is an absolute beat, not
+ * an offset into the time through.
+ */
+export interface CycleEmission {
+  group: Group;
+  def: AnyFigureDef;
+  params: object & { beats: Beat };
+  stations: readonly StationId[];
+  start: Beat;
+}
+
+/**
+ * How one time through becomes figures: the seam `@caller/contra` reaches the
+ * decider through.
+ *
+ * A planner is a **pure function** of its {@link CycleInput} (beyond minting
+ * groups, which is how a group reaches the timeline) to the cycle's figure
+ * emissions, in the order they are to be added, plus the hall as it stands
+ * afterwards. What the caller *says* is not a planner's business: the decider
+ * keeps the utterances, the between-dances interval and `standingAt` itself.
+ *
+ * The default — `defaultCyclePlanner`, today's own emission half — is what
+ * `ScriptDeciderOptions.cycle` falls back to, and it is what
+ * `src/testing/square.test.ts` runs on, so a form that supplies its own planner
+ * cannot quietly change what a square does.
+ */
+export interface CyclePlanner {
+  (input: CycleInput): { emissions: CycleEmission[]; next: HallState };
 }
 
 /** Which item of a program is running, and how far into it. */
@@ -146,6 +215,14 @@ export interface ScriptDeciderOptions {
   firstCallLeadBeats: Beat;
   /** The beat the program starts on. */
   startBeat: Beat;
+  /**
+   * How a time through becomes figures; see {@link CyclePlanner}.
+   *
+   * Left out — every caller before `@caller/contra`'s own planner — is
+   * `defaultCyclePlanner`, which is the emission half of what the decider used
+   * to do inline and is unchanged by having been lifted out of it.
+   */
+  cycle?: CyclePlanner;
 }
 
 /**
