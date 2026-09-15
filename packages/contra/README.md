@@ -70,6 +70,19 @@ does: somebody is always out, and never the same couple twice running. The
 oracle checks five couples as well as the even lengths, because the demo
 hall's longer line is five.
 
+**Lining a hall up in becket.** A becket hall does not walk into becket
+places: it lines up **improper** — partners across the set, larks and robins
+alternating down each line — takes hands four like anybody else, and the ring
+moves one place round, which is what turns the improper line becket. The words
+are the user's own (`becketHandsFourCalls`: "move one place to the left. this
+is a becket dance. your partner should be on the side of the set with you")
+and the **direction is measured, not typed**: `@caller/choreo`'s
+`lineUpShiftOf` reads it off this formation's own progression. `BECKET_RIGHT`
+(`src/formation/becketRight.ts`) is a right-progressing becket, which no demo
+dance is, and it is what proves the `"RIGHT"` branch — the user: "_technically_
+if its a right-progressing becket dance, you should move one place _to the
+right_."
+
 **Where a becket set sits.** `SetSpec.centre` is where a line's _first_ dancer
 stands, which is what it means for a duple improper set, and a hall hands the
 same point to both formations. A becket set's first dancer is at place `-1`,

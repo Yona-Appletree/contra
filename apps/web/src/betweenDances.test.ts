@@ -1,5 +1,6 @@
 import type { UtteranceEvent } from "@caller/choreo";
 import { APPLAUSE_CALLS, HANDS_FOUR_CALLS, HERE_WE_GO, nextDanceCall } from "@caller/choreo";
+import { reachReport } from "@caller/choreo";
 import { becketHandsFourCalls, DEMO_DANCES, danceBySlug } from "@caller/contra";
 import { FONT, layoutBubble } from "@caller/hall";
 import { layoutHall } from "@caller/hall";
@@ -232,4 +233,33 @@ describe("every sentence fits the caller's bubble", () => {
       }
     }
   });
+});
+
+/**
+ * The arms, over the whole interval.
+ *
+ * AC1: a hand is never further from its own shoulder than the arm can reach.
+ * The hands-four ring is the first thing between two dances to *place* a hand
+ * at all — before B3 everybody's arms hung by their sides from the last note
+ * to the first — so this is where the invariant has to be re-proved.
+ */
+describe("nobody reaches further than an arm goes", () => {
+  // ~20k arm solves; a couple of hundred ms here, and CI's runner is up to
+  // fifteen times slower than this Mac under the full turbo run.
+  it(
+    "holds AC1 through the applause, the walk, the ring and the potatoes",
+    { timeout: 20_000 },
+    () => {
+      const program = createDemoProgram(world);
+      // One interval, which is all this milestone changed; the dancing beats
+      // either side of it are every other milestone's oracle.
+      program.decider.advance(ITEM_BEATS + 4);
+      const report = reachReport(program.decider.timeline(), GAP, ITEM_BEATS + 2);
+      expect(report.hands).toBeGreaterThan(0);
+      expect(
+        report.maxShort,
+        `worst: ${JSON.stringify(report.worst)} over ${String(report.hands)} hands`,
+      ).toBeLessThanOrEqual(0);
+    },
+  );
 });

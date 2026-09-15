@@ -108,6 +108,18 @@ export const TAKE_HANDS: FigureDef<TakeHandsParams> = {
 /** How far into the figure a hold is fully taken, beyond the step in. */
 const TAKE_TAIL = 0.4;
 
+/**
+ * How much of the step out the release takes: the hands are back by the
+ * dancers' sides **half way** through it, not at the end of it.
+ *
+ * You let go of the ring and *then* walk to your place; a hall that kept hold
+ * all the way out would be stretching between a ring 9.9 px in radius and
+ * places that may be forty px away — which is not a hand-hold, it is a tug of
+ * war, and the AC1 reach oracle says so (`betweenDances.test.ts` measured a
+ * 0.56 px shortfall on a becket dance's own pre-slide places before this).
+ */
+const RELEASE_SHARE = 0.5;
+
 /** The hand `t` beats in: up from the dancer's side to the join, and back down. */
 function heldOrDown(
   self: EndPose,
@@ -118,7 +130,8 @@ function heldOrDown(
 ): Hand {
   const down = hangingHand(self.p, self.facing, side, t, 1);
   const take = ramp(t, 0, Math.min(params.inBeats + TAKE_TAIL, params.beats / 2));
-  const release = ramp(t, Math.max(params.beats - params.outBeats, params.beats / 2), params.beats);
+  const lettingGo = Math.max(params.beats - params.outBeats, params.beats / 2);
+  const release = ramp(t, lettingGo, lettingGo + (params.beats - lettingGo) * RELEASE_SHARE);
   return lerpHand(lerpHand(down, joined, take), down, release);
 }
 

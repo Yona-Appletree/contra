@@ -168,15 +168,42 @@ interface FigureDef<P extends FigureParams> {
 renderer per frame. Tuning values are parameters, which is what makes a
 flourish data rather than a variant figure.
 
-Three built-in figures live here, because the decider itself needs them:
+Four built-in figures live here, because the decider itself needs them:
 
 | Figure            | What it does                                                                                                            |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `wait-out`        | The couple with nobody to dance with steps together, holds hands, lets go, and crosses over during the last eight beats |
 | `walk-to-station` | Everyone walks from one station to another, or stands; also the "who is left out" stand and the between-dance line-up   |
 | `applaud`         | The hall stops where it is, turns to the band and claps — the applause at the end of every dance                        |
+| `take-hands`      | Hands four: the group steps into a ring, joins hands round it, moves `places` round, and lets go on to its own places   |
 
-The contra figure library is M8's; these two are the engine's own.
+The contra figure library is M8's; these four are the engine's own.
+
+### The ring — `src/figure/ring.ts`
+
+The regular ring a group makes when it takes hands round: `n` places evenly
+spaced, the radius that puts neighbours exactly a hold spacing apart so every
+arm reaches, and its phase turned to where the dancers already stand.
+`ringOf`, `ringOrder`, `ringShift`, `ringWalk` and `ringHands` are all here and
+`@caller/contra`'s `figures/ring.ts` re-exports every one of them — `circle`,
+`star`, `petronella`, `balance` and the figure-spec language read them from
+there. The geometry lives at this layer because the decider's own `take-hands`
+needs it and may not import a form.
+
+`ringOrder` runs **anticlockwise on the floor**: with y increasing downward, a
+dancer facing the ring's centre moves to their own left as their angle about
+the centre increases. That is the direction `ringShift(ring, id, +1)` goes, and
+the direction a circle left travels.
+
+### The line-up shift — `src/formation/lineUpShift.ts`
+
+Whether a formation's hall moves after it has taken hands four, and which way.
+Derived, never declared: ask the formation's own `progression.next` where one
+time through leaves a dancer, and measure that against the way the dancer was
+facing. Travel **along** the facing is no shift; travel **across** it is a
+shift, to whichever side the travel is on. That is the whole of what makes a
+becket dance becket — you progress sideways — and it means a becket whose lines
+slide the other way answers `"right"` with nothing written down.
 
 ### Dances and programs — `src/dance/`
 
