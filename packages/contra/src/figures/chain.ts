@@ -247,6 +247,13 @@ function reachesPastTheFour(call: ContraCall): boolean {
       return true;
     }
   }
+  // **A written relation list** (M9b): `"self+partner+N1+N2"` names four
+  // dancers one relation at a time and out of two minor sets, which is the one
+  // thing this template is furthest from being able to answer. The `+` is the
+  // whole test — `set/relations.ts`'s `parseRelationList` is the authority on
+  // the spelling, and this module is the *load*-time half that `set/` replaces,
+  // so it reads the notation rather than the relation table.
+  if (typeof call.who === "string" && call.who.includes("+")) return true;
   // **A `who` that is a relation at all** (M7b). `pairs: "N1"` is `neighbors` by
   // another name and the template pairs it happily, but a *selector* is looked
   // up in the formation's own tag table and `N1` is not one: Contrablend's B2

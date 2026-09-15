@@ -100,6 +100,32 @@ export function parseRelation(word: string): Relation {
 }
 
 /** Whether this word is a relation at all — for a `who` that may be a tag instead. */
+/**
+ * **The separator in a relation list** (M9b): `"self+partner+N1+N2"`.
+ *
+ * A record writes a `who` that names four dancers one at a time — Jeremy
+ * Corners' *"[with twos, W1, and N2 M1]"* — as a `+`-joined list of relation
+ * words read **from the active dancer**. The spelling is a string rather than a
+ * JSON array because `Selector` already reads an array as a list of *stations*
+ * of one group, and the two would be indistinguishable in a record. See
+ * {@link parseRelationList} and `docs/dance-record.md`.
+ */
+export const RELATION_LIST_SEPARATOR = "+";
+
+/**
+ * A relation list, parsed — or `undefined` when the word is not one.
+ *
+ * Every item has to be a relation word, `self` included, and there have to be
+ * at least two of them: one relation on its own is the ordinary `who` and must
+ * keep resolving as it always has.
+ */
+export function parseRelationList(word: string): Relation[] | undefined {
+  if (!word.includes(RELATION_LIST_SEPARATOR)) return undefined;
+  const words = word.split(RELATION_LIST_SEPARATOR).map((part) => part.trim());
+  if (words.length < 2 || !words.every((part) => isRelationWord(part))) return undefined;
+  return words.map((part) => parseRelation(part));
+}
+
 export function isRelationWord(word: string): boolean {
   try {
     parseRelation(word);

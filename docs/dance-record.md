@@ -103,6 +103,25 @@ shadow — and the lane is used for it only when the ring really does span two,
 which is measured rather than declared. A relation that names nobody leaves that
 dancer out of the ring and on hold-place, as everywhere else.
 
+**`who` may be a written list of relations** (M9b, DD31), for the four a
+transcript names **one dancer at a time**. The spelling is a `+`-joined string —
+`"who": "self+partner+N1+N2"` — and it is a string rather than a JSON array
+because an array `who` already means _a list of stations of one group_ and the
+two would be indistinguishable. Every item is a relation word, `self` included,
+and there have to be at least two of them; a `who` with no `+` in it is not a
+list and resolves exactly as it always has.
+
+The list is followed **from each active dancer, in the order it is written**, and
+the four it finds are cast into the figure's parts in that order — so the record
+says which of the four dances which part. It is the general case of the ring
+above, which is `self + partner + <the relation> + <their partner>` with the
+last two written for you. Jeremy Corners' A1 is the dance that needed it:
+_"Interrupted square through 2 [with twos, W1, and N2 M1]"_ names four dancers
+out of two minor sets and no group selector, tag or single relation says that.
+The ordinary rules still hold: four distinct dancers or it is not a foursome,
+nobody is in two of them, and a dancer any one of the relations leaves out —
+the ends of the line — is left out of the call and dances hold-place.
+
 ## Shorthand and canonical parameters
 
 A figure's parameters are its **canonical** ones — the `params.defaults` block of
@@ -318,9 +337,9 @@ that has gone wrong at least once.
 12. **A selection the library cannot say is a reading, and it goes in `notes`**
     (M9). Three of them turned up in the two Banner dances and none is a bug:
     a group selection that names four dancers out of two minor sets one by one
-    (_"[with twos, W1, and N2 M1]"_ — `who` takes a tag, a list of stations of
-    **one** group, or a relation ring of you, your partner, the dancer the
-    relation names and their partner, and none of those is that four); a
+    (_"[with twos, W1, and N2 M1]"_ — **answered in M9b** by the written
+    relation list above, `"who": "self+partner+N1+N2"`, which is the one of the
+    three that turned out to be a missing notation rather than a reading); a
     transcript token that cannot be read at all (_"Square through 2
     (NR;SRNL)"_); and a figure called for **half of itself** (_"(4) In long
     lines, go forward (facing out)"_, where `long-lines` goes forward and back
