@@ -6,7 +6,9 @@ import { balance, balanceRing } from "./balance.js";
 import { balanceAndSwing } from "./balance-and-swing.js";
 import { californiaTwirl } from "./california-twirl.js";
 import { circle } from "./circle.js";
+import { diamond } from "./diamond.js";
 import { doSiDo } from "./do-si-do.js";
+import { downTheHall } from "./down-the-hall.js";
 import { hey } from "./hey.js";
 import { longLines } from "./long-lines.js";
 import { passThrough } from "./pass-through.js";
@@ -36,9 +38,11 @@ export const CONTRA_FIGURES = {
   allemande,
   "do-si-do": doSiDo,
   "long-lines": longLines,
+  "down-the-hall": downTheHall,
   circle,
   star,
   petronella,
+  diamond,
   "california-twirl": californiaTwirl,
   "right-and-left-through": rightAndLeftThrough,
   "robins-chain": robinsChain,

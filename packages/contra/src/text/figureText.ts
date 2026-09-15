@@ -13,7 +13,9 @@ import balanceRingText from "../../../../data/figures/balance-ring.json" with { 
 import balanceText from "../../../../data/figures/balance.json" with { type: "json" };
 import californiaTwirlText from "../../../../data/figures/california-twirl.json" with { type: "json" };
 import circleText from "../../../../data/figures/circle.json" with { type: "json" };
+import diamondText from "../../../../data/figures/diamond.json" with { type: "json" };
 import doSiDoText from "../../../../data/figures/do-si-do.json" with { type: "json" };
+import downTheHallText from "../../../../data/figures/down-the-hall.json" with { type: "json" };
 import heyText from "../../../../data/figures/hey.json" with { type: "json" };
 import longLinesText from "../../../../data/figures/long-lines.json" with { type: "json" };
 import passThroughText from "../../../../data/figures/pass-through.json" with { type: "json" };
@@ -115,7 +117,9 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       balanceText,
       californiaTwirlText,
       circleText,
+      diamondText,
       doSiDoText,
+      downTheHallText,
       heyText,
       longLinesText,
       passThroughText,

@@ -37,6 +37,11 @@ export interface ContraCall {
    * selector that needs it.
    */
   group?: GroupSelector;
+  /**
+   * Which true end(s) a widened group's call is willing to widen into; see
+   * `FigureCall.ends`. Left out is `"both"`.
+   */
+  ends?: "both" | "top" | "bottom";
   call?: string;
 }
 
@@ -123,6 +128,7 @@ export function chainCalls(
       params: { ...(call.params ?? {}), from },
       ...(call.who === undefined ? {} : { who: call.who }),
       ...(call.group === undefined ? {} : { group: call.group }),
+      ...(call.ends === undefined ? {} : { ends: call.ends }),
       ...(call.call === undefined ? {} : { call: call.call }),
     });
   }

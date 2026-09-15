@@ -1,0 +1,11 @@
+{
+  "id": "down-the-hall",
+  "walkthrough": {
+    "short": "Form a line with your own four, walk down the hall together, turn as couples, and walk back to place.",
+    "long": "With the group's own four, form a line side by side and take hands. Walk forward down the hall together, turn as couples to face back the way you came, and walk back up the hall to place. Bend the line: let go, and find your partner's own spot. {where}"
+  },
+  "call": {
+    "short": "DOWN THE HALL",
+    "long": "DOWN THE HALL AND BACK TO BEND THE LINE"
+  }
+}
