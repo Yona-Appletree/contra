@@ -1,4 +1,4 @@
-import { danceBySlug } from "@caller/contra";
+import { DANCE_FILES, danceBySlug, danceFromFile } from "@caller/contra";
 import { ROLE_COLOURS } from "@caller/hall";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -107,6 +107,21 @@ describe("the walkthrough card", () => {
     const said = render(<WalkthroughCard dance={danceBySlug("chorus-jig")!} />);
     expect(words(said)).toContain("Robins: The other robin is beside you.");
     expect(words(said)).toContain("Larks: The other lark is beside you.");
+  });
+
+  it("renders a caller's own paragraphs round the entry they belong to", () => {
+    // The `teach` overlay (vision §4). `before` sits above the heading and
+    // `after` below the hint, in the ordinary text style rather than the
+    // hint's, because the caller is talking and the hint is the app.
+    const edited = danceFromFile({
+      ...DANCE_FILES["butter"]!,
+      teach: { "A1/slide-left": { before: "Look left first.", after: "All together now." } },
+    });
+    const said = render(<WalkthroughCard dance={edited} />);
+    expect(words(said)).toContain("Look left first.");
+    expect(words(said)).toContain("All together now.");
+    expect(said).toContain('class="walkthrough-said-own" data-testid="walkthrough-before"');
+    expect(said).toContain('class="walkthrough-said-own" data-testid="walkthrough-after"');
   });
 
   it("reads a concurrent call as one entry with a line and a show link per branch", () => {

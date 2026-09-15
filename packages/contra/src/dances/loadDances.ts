@@ -6,6 +6,7 @@ import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { paramDefaults } from "../library/interpret.js";
 import { PROGRESSES_PARAM, REBIND_PARAM } from "../set/planCycle.js";
 import { TRADE_PARAM } from "../set/resolve.js";
+import { checkDanceTeach } from "../text/teach.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
 import { formationById } from "./formations.js";
 
@@ -220,6 +221,16 @@ export function danceFromFile(file: DanceFile): Dance {
   const formation: Formation = formationById(file.formation);
   for (const phrase of file.phrases as ContraPhrase[]) {
     for (const call of phrase.figures) checkCall(file.slug, phrase.name, formation, call);
+  }
+  // **A stale `teach` key warns rather than throwing** (M13): a dance is
+  // re-encoded from time to time, and a key that no longer names anything must
+  // not take the dance off the programme. The caller's other edits still land.
+  for (const fault of checkDanceTeach({
+    slug: file.slug,
+    phrases: file.phrases as Dance["phrases"],
+    ...(file.teach === undefined ? {} : { teach: file.teach }),
+  })) {
+    console.warn(fault);
   }
   const spec: ContraDanceSpec = {
     slug: file.slug,

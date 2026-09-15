@@ -64,6 +64,8 @@ export {
 export type { WalkthroughCard, WalkthroughEntry, WalkthroughLine } from "./walkthrough.js";
 export { danceWalkthrough } from "./walkthrough.js";
 
+export { DANCE_LEVEL_KEYS, applyTeach, checkDanceTeach, teachKey } from "./teach.js";
+
 export type { CallPolicy, CallingCardCell, CallingCardRow, SpokenCall } from "./callScript.js";
 export {
   DEFAULT_CALL_POLICY,

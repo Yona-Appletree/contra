@@ -305,6 +305,34 @@ first; a hey for three adds the sentence for the dancer standing out. Where the
 two role sentences will not fit the teach budget between them, the second is
 dropped from the walkthrough and kept for the figure's own page.
 
+### Editing a dance's walkthrough
+
+A caller who wants a different sentence for **one dance** does not edit the
+generated text — there is none on disk to edit, and there could not be: the
+moment a walkthrough is stored, re-encoding the dance or correcting a figure's
+words stops reaching it. Instead the dance file writes a `teach` block, keyed by
+where in the record the edit goes:
+
+```json
+"teach": {
+  "A1/slide-left": { "before": "Look on your left diagonal first." },
+  "A2/robins-chain": { "replace": "Chain across to your partner." },
+  "B1/balance-ring/2": { "after": "Same again." },
+  "A2/loop": { "replace": "Small loop, on the spot." },
+  "opening": { "replace": "…" },
+  "wrap": { "after": "…" }
+}
+```
+
+`<phrase>/<figure>` names the first call of that figure in that phrase; `/2`
+names the second; a concurrent branch is named by its own figure name in the
+same phrase; `opening` and `wrap` are the two dance-level sentences. `before` and
+`after` are paragraphs round the entry, in the caller's own words — the voice
+rules above are about the **language** and do not run over them. `replace` takes
+the place of the mechanics line. A key that names nothing **warns** at load and
+the rest of the dance loads, because a dance is re-encoded from time to time and
+a stale key must not take it off the programme. See `docs/dance-record.md`.
+
 ### Where you end is not written
 
 `{where}` is gone. The written language stops at **how far** (§3); where the
