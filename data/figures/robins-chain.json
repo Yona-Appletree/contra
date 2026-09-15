@@ -7,8 +7,19 @@
     "teach": "{chains} pull by right hands in the middle, passing right shoulders, and carry on across the set. The lark you come to is already backing a small circle. Join it at the far side: your left hand in the lark's left, the lark's right hand on your own right hand behind your back. Walk forward as the lark walks backward, turning as one, and open out side by side."
   },
   "call": {
-    "1": "CHAIN",
+    "4": "{chains} CHAIN",
     "2": "{chains} CHAIN",
-    "4": "{chains} CHAIN"
+    "1": "CHAIN"
+  },
+  "variants": {
+    "to=partner": {
+      "call": { "4": "{chains} CHAIN TO YOUR {to}" }
+    },
+    "to=neighbor": {
+      "call": { "4": "{chains} CHAIN TO YOUR {to}" }
+    },
+    "to=N2": {
+      "call": { "4": "{chains} CHAIN TO YOUR {to}" }
+    }
   }
 }

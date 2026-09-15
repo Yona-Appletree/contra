@@ -1051,8 +1051,22 @@ words alone. One table — `src/text/relationWords.ts` — says who a relation i
 in both registers, for every text in the app.
 
 Where a figure **leaves** you is no longer written (D22): `{where}` is gone from
-the texts, and `landmark(def, params, group)` generates the sentence beside them
-— "Your partner is across from you. Your neighbor is beside you." See
+the texts, and the sentence is generated beside them — "Your partner is across
+from you. Your neighbor is beside you." Two functions say it, in one
+vocabulary (`src/text/seam.ts`, and nothing else in the app has a second):
+
+- **`seamHint(boundary, reference)`** — the hint at a **seam of a dance**, read
+  off the planner's own honest ends. `danceBoundaries(dance, formation)` in
+  `src/set/planCycle.ts` dances the dance headlessly on a probe line and reports
+  every dancer's spot, holds, slot and partner at every call boundary, with the
+  instances on either side of it; the hint is said only when something changed,
+  and splits by role when the roles disagree.
+- **`landmark(def, params, group)`** — the same sentence about a **figure**, over
+  one figure's own boundary pair, which is the question the Moves page can ask.
+
+**`danceWalkthrough(dance)`** (`src/text/walkthrough.ts`) is the whole card: the
+formation's own opening, one entry per call of the record with its heading, its
+lines and its hint, and the progression sentence at the wrap. See
 [`docs/move-texts.md`](../../docs/move-texts.md) for the voice, the file shape
 and the slot vocabulary. `describe` stays on the figure contract until the
 cleanup that removes it.
