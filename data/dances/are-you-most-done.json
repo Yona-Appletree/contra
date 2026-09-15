@@ -18,39 +18,19 @@
         {
           "figure": "allemande",
           "beats": 8,
-          "params": {
-            "pairs": [["1L", "2L"]],
-            "hand": "L",
-            "amount": 1.5
-          },
-          "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF"
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 }
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": {
-            "pairs": "neighbors",
-            "endFacing": "across"
-          },
-          "call": "NEIGHBOUR SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors", "endFacing": "across" } }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        {
-          "figure": "long-lines",
-          "beats": 8,
-          "call": "LONG LINES FORWARD AND BACK"
-        },
+        { "figure": "long-lines", "beats": 8 },
         {
           "figure": "star",
           "beats": 8,
-          "params": {
-            "hand": "L",
-            "amount": 0.875
-          },
+          "params": { "hand": "L", "amount": 0.875 },
           "call": "STAR LEFT SEVEN EIGHTHS"
         }
       ]
@@ -62,10 +42,7 @@
           "figure": "hey",
           "beats": 16,
           "who": "N2",
-          "params": {
-            "axis": "diagonal",
-            "passes": "LR N2L RR PL LR N2L RR PL~"
-          },
+          "params": { "axis": "diagonal", "passes": "LR N2L RR PL LR N2L RR PL~" },
           "call": "ON THE RIGHT DIAGONAL, HEY FOR FOUR"
         }
       ]
@@ -76,32 +53,11 @@
         {
           "figure": "allemande",
           "beats": 4,
-          "params": {
-            "pairs": [["1L", "2L"]],
-            "hand": "R",
-            "amount": 1
-          },
+          "params": { "pairs": [["1L", "2L"]], "hand": "R", "amount": 1 },
           "call": "LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT",
-          "while": [
-            {
-              "figure": "loop",
-              "who": "robins",
-              "params": {
-                "hand": "R",
-                "amount": 1
-              }
-            }
-          ]
+          "while": [{ "figure": "loop", "who": "robins", "params": { "hand": "R", "amount": 1 } }]
         },
-        {
-          "figure": "swing",
-          "beats": 12,
-          "params": {
-            "pairs": "partners",
-            "endFacing": "across"
-          },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "swing", "beats": 12, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     }
   ]

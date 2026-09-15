@@ -4,10 +4,7 @@
   "author": "Isaac Banner",
   "formation": "becket",
   "status": "lab",
-  "progression": {
-    "lark": 3,
-    "robin": 3
-  },
+  "progression": { "lark": 3, "robin": 3 },
   "notes": "The Caller's Box 18307, permission: full. A becket dance with a **triple progression**: every dancer moves three dancing places, which is `progression: { lark: 3, robin: 3 }` and goes through `progressSet`'s uniform path with nothing else changed - no refusal, no special case. What the dance reaches for is the other end of the set: N2 in A2, N3 in B1 and N4 twice, in B1 and B2. **Still owed, and it is three faults rather than one** (M9c; M8b's becket `N_k` table is settled and the relations resolve now). Closure passes at 0.0000 px at every checked length. (1) **`collision`** fails at all eight. At six couples the worst is **0.863 px at beat 67.625**, inside A1's `balance-ring` of the second time through: the triple progression maps two whole hands-fours on to each other's places, and the first gatherer of the next time through walks `c1/lark` from (-16, 40) to (-16, 80) while `c3/robin` walks the same line from (-16, 100) to (-16, 60). At four couples it is 0.000 px at beat 64, where B2's two partner swings settle four dancers on **two** floor points - the same shared-pool fault Contrablend has - and the two wait groups then faithfully copy it. (2) **`reach`** fails at 4, 5, 7, 8, 9, 10 and 12, and it is four figures rather than one: `long-lines` (11.2162-63.6705 px), `pull-by` (5.73-20.68), the partner `swing` (5.48-33.26) and `balance-ring` (up to 12.82). The cause is upstream of all of them - A2's `pull-by` with `pairs: \"N2\"` is a **66.5 px pull-by danced in two beats** at twelve couples, because in becket N2 really is two couple places away, and everything downstream inherits the scatter: B1's long line has members up to 86 px off the line, holding hands. **The direction is the opposite of what M9b expected**: at four couples, where N2, N3 and N4 all name nobody and half the dance is hold-place, reach all but passes (1.1737 px in `robins-chain`), and at six it passes outright. The failures appear exactly where N2 *does* name somebody. **Two readings recorded rather than measured.** B1's \"(4) In long lines, go forward (facing out)\" is written as a four-beat `long-lines`, which goes forward and back in four rather than forward only, because the figure has no parameter for half of itself or for which way the line faces. The interrupted square through's `(N3R;PL)` is written as its two pairings out of the N3 ring's own four stations, so that \"N3 by the right\" is the pair across the ring and \"partner by the left\" is the pair beside each other.",
   "source": {
     "callersBoxId": 18307,
@@ -19,63 +16,26 @@
     {
       "name": "A1",
       "figures": [
-        {
-          "figure": "balance-ring",
-          "beats": 4,
-          "call": "BALANCE THE RING"
-        },
-        {
-          "figure": "petronella",
-          "beats": 4,
-          "call": "PETRONELLA TURN TO THE RIGHT"
-        },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": {
-            "pairs": "neighbors"
-          },
-          "call": "NEIGHBOUR SWING"
-        }
+        { "figure": "balance-ring", "beats": 4 },
+        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN TO THE RIGHT" },
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors" } }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        {
-          "figure": "robins-chain",
-          "beats": 8,
-          "params": {
-            "chains": "robin"
-          },
-          "call": "ROBINS CHAIN TO YOUR PARTNER"
-        },
+        { "figure": "robins-chain", "beats": 8, "params": { "chains": "robin" } },
         {
           "figure": "balance",
           "beats": 4,
-          "params": {
-            "pairs": [["1R", "2R"]],
-            "hold": "one",
-            "hand": "R"
-          },
+          "params": { "pairs": [["1R", "2R"]], "hold": "one", "hand": "R" },
           "call": "ROBINS BALANCE BY THE RIGHT"
         },
+        { "figure": "pull-by", "beats": 2, "params": { "pairs": [["1R", "2R"]], "hand": "R" } },
         {
           "figure": "pull-by",
           "beats": 2,
-          "params": {
-            "pairs": [["1R", "2R"]],
-            "hand": "R"
-          },
-          "call": "ROBINS PULL BY THE RIGHT"
-        },
-        {
-          "figure": "pull-by",
-          "beats": 2,
-          "params": {
-            "pairs": "N2",
-            "hand": "L"
-          },
+          "params": { "pairs": "N2", "hand": "L" },
           "call": "NUMBER TWO PULL BY THE LEFT"
         }
       ]
@@ -102,19 +62,8 @@
           },
           "call": "WITH NUMBER THREE, BALANCE THE RIGHT AND SQUARE THROUGH TWO"
         },
-        {
-          "figure": "long-lines",
-          "beats": 4,
-          "call": "LONG LINES GO FORWARD"
-        },
-        {
-          "figure": "jersey-twirl",
-          "beats": 4,
-          "params": {
-            "pairs": "N4"
-          },
-          "call": "NUMBER FOUR JERSEY TWIRL"
-        }
+        { "figure": "long-lines", "beats": 4, "call": "LONG LINES GO FORWARD" },
+        { "figure": "jersey-twirl", "beats": 4, "params": { "pairs": "N4" } }
       ]
     },
     {
@@ -126,19 +75,8 @@
           "who": "N4",
           "call": "BALANCE THE RING WITH NUMBER FOUR"
         },
-        {
-          "figure": "petronella",
-          "beats": 4,
-          "call": "PETRONELLA TURN TO THE RIGHT"
-        },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": {
-            "pairs": "partners"
-          },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN TO THE RIGHT" },
+        { "figure": "swing", "beats": 8, "params": { "pairs": "partners" } }
       ]
     }
   ]
