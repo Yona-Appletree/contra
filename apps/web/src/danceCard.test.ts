@@ -31,24 +31,29 @@ describe("the dance card's figure lines", () => {
     }
   });
 
-  it("prints one line per figure, where the caller says two in one breath", () => {
-    // Butter's slide is two beats, so the caller says it and the circle
-    // together; the **card** still has a line for each, which is the difference
-    // between something read and something heard.
+  it("prints one line per figure at the short register, whatever the caller says", () => {
+    // Butter's slide is two beats, so the **caller** says it and the circle
+    // together; the card still has a line for each, which is the difference
+    // between something read and something heard. And the card's own register
+    // is the short form (D31): "NEIGHBOR SWING", not "SWING YOUR NEIGHBOR".
     const butter = DEMO_DANCES.find((d) => d.slug === "butter")!;
     const card = cardDance(butter);
     expect(card.phrases[0]!.figures.map((f) => f.call)).toEqual([
-      "SHIFT LEFT",
-      "CIRCLE LEFT THREE PLACES",
-      "SWING YOUR NEIGHBOR",
+      "SLIDE LEFT",
+      "CIRCLE LEFT",
+      "NEIGHBOR SWING",
     ]);
     const rows = callingCard(butter);
     expect(rows[0]!.byTime[0]!.text).toBe("SHIFT LEFT, CIRCLE LEFT THREE PLACES");
     expect(rows[1]!.byTime[0]!.mergedInto).toBe(0);
   });
 
-  it("keeps a dance's own flourish where a figure's forms cannot say it", () => {
+  it("shows a flourish figure's own short form, because a flourish is the long one", () => {
+    // After the Solstice writes "AND SWING" for its A1 swing, which is a
+    // 4-beat flourish; at the card's own two beats the figure's own form is
+    // what there is room for.
     const solstice = DEMO_DANCES.find((d) => d.slug === "after-the-solstice")!;
-    expect(cardDance(solstice).phrases[0]!.figures[1]!.call).toBe("AND SWING");
+    expect(cardDance(solstice).phrases[0]!.figures[1]!.call).toBe("NEIGHBOR SWING");
+    expect(callingCard(solstice)[1]!.byTime[0]!.text).toBe("AND SWING");
   });
 });

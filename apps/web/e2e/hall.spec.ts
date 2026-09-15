@@ -15,7 +15,10 @@ import { matchGolden, openHall } from "./golden.js";
 
 /** The first dance of the programme, and its first call. */
 const FIRST_DANCE = "airpants";
-const FIRST_CALL = "NEIGHBOR BALANCE AND SWING";
+// M13: what the caller says is derived now, at whatever length there is room
+// for — Airpants writes no `call` of its own for any figure, and the first time
+// through gets the whole sentence.
+const FIRST_CALL = "WITH YOUR NEIGHBOR BALANCE AND SWING";
 
 test("the hall draws, with the band, the lines and the caller", async ({ page }) => {
   const errors: string[] = [];
@@ -71,16 +74,16 @@ test("every figure of the first dance is called before it starts", async ({ page
 
 /**
  * "The calls stay around too long... but not until the next call" (the user,
- * 2026-09-14). Beat 33 is deep into B1's partner swing (the call for it is
- * said over beats [28, 32)) with nothing else due for another eleven beats,
- * so the bubble is empty rather than still showing "PARTNER BALANCE AND
- * SWING".
+ * 2026-09-14). Beat 38 is deep into B1's partner balance and swing — whose call
+ * is said from beat 28, for as long as the words take — with nothing else due
+ * until B2's own call at 44, so the bubble is empty rather than still holding
+ * the last one.
  */
 test("the bubble falls silent between two calls, rather than holding the last one", async ({
   page,
 }) => {
   await openHall(page, { beat: 0, zoom: 2 });
-  expect(await page.evaluate(() => window.hallDemo?.call(33))).toBe("");
+  expect(await page.evaluate(() => window.hallDemo?.call(38))).toBe("");
 });
 
 test("choosing a dance is a native select", async ({ page }) => {

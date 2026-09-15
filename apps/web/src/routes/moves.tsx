@@ -1,6 +1,8 @@
 import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
 import type { DancerId, Group } from "@caller/choreo";
+import { concurrentCalls, danceSchedule } from "@caller/choreo";
+import { danceBySlug } from "@caller/contra";
 import type { FacingStyle, Person, Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, ROLE_COLOURS, createPerson, createRenderer, drawText } from "@caller/hall";
 import type { CSSProperties, JSX } from "react";
@@ -107,9 +109,18 @@ export function MovesPage({
   const catalogue = useCatalogue();
   const tiles = useTiles(engine);
   const solo = soloKey(path);
+  // **The walkthrough card's "show" link** (D23): `?dance=<slug>&figure=<index>`
+  // asks for this figure as *that dance* dances it, rather than as the gallery's
+  // own first-call tile does. `&branch=<n>` picks one branch of a concurrent
+  // call.
+  const at = useMemo(() => callAt(params), [params]);
   const found = useMemo(
-    () => (solo === null ? {} : soloTile(solo, tiles, catalogue, engine)),
-    [solo, tiles, catalogue, engine],
+    () =>
+      solo === null
+        ? {}
+        : ((at === undefined ? undefined : danceCallTile(solo, at, engine)) ??
+          soloTile(solo, tiles, catalogue, engine)),
+    [solo, tiles, catalogue, engine, at],
   );
   const single = found.tile;
   // A deep link that names nothing is an empty page with a line saying so, not
@@ -571,7 +582,7 @@ function Row({
 
       <div className="moves-row-body">
         {described.map((call) => (
-          <MoveText key={call.figure} call={call} named={tile.kind === "seam"} />
+          <MoveText key={call.figure} call={call} named={tile.kind === "seam"} teachOpen={solo} />
         ))}
         {entry === undefined ? null : <Params entry={entry} />}
         {tile.notes.map((note) => (
@@ -861,7 +872,23 @@ function DanceIndex({ entry }: { entry: MoveEntry }): JSX.Element | null {
  * `describe` is still the fallback for a figure with no text file. Nothing in
  * the library is in that state, and the line says so plainly if one ever is.
  */
-function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.Element {
+function MoveText({
+  call,
+  named,
+  teachOpen = false,
+}: {
+  call: GalleryCall;
+  named: boolean;
+  /**
+   * Whether the teach starts open.
+   *
+   * On its **own** page it does (P5, D29): somebody who followed "show" from a
+   * walkthrough entry came here to read the whole thing, and one more click is
+   * one click too many. In the index it stays behind the disclosure, which is
+   * the whole point of the row.
+   */
+  teachOpen?: boolean;
+}): JSX.Element {
   const label = named ? <b>{call.figure}: </b> : null;
   if (call.texts === undefined) {
     return (
@@ -880,7 +907,7 @@ function MoveText({ call, named }: { call: GalleryCall; named: boolean }): JSX.E
         {label}
         {call.texts.walkthrough.line}
       </p>
-      <details className="moves-row-teach">
+      <details className="moves-row-teach" open={teachOpen}>
         <summary>teach</summary>
         <p data-testid="moves-walkthrough-teach">{call.texts.walkthrough.teach}</p>
         {call.hint === undefined ? null : (
@@ -1172,6 +1199,58 @@ export function soloTile(
     }
   }
   return {};
+}
+
+/** Which call of which dance a `?dance=&figure=&branch=` link asks for. */
+export function callAt(
+  params: URLSearchParams,
+): { dance: string; figure: number; branch: number } | undefined {
+  const dance = params.get("dance");
+  const figure = Number(params.get("figure"));
+  if (dance === null || !Number.isInteger(figure) || figure < 0) return undefined;
+  const branch = Number(params.get("branch") ?? 0);
+  return { dance, figure, branch: Number.isInteger(branch) && branch > 0 ? branch : 0 };
+}
+
+/**
+ * **One figure, as one dance dances it** (D23): the walkthrough card's "show".
+ *
+ * A gallery tile runs a figure from the first dance that calls it, which is what
+ * a browser of the library wants and is *not* what somebody who just read "more"
+ * on a walkthrough entry wants: they want this figure, in this dance's
+ * formation, with this call's own parameters and its own dancers. So the link
+ * carries the dance and the index and the tile is built on the spot, through the
+ * same `variantTile` a parameter row uses.
+ *
+ * `undefined` for a slug or an index that names nothing, and for a figure the
+ * link's own call does not name — the page then falls back to the ordinary tile
+ * with a note, which is what a stale link should do.
+ */
+function danceCallTile(
+  id: string,
+  at: { dance: string; figure: number; branch: number },
+  engine: EngineChoice,
+): { tile?: GalleryTile; problem?: string } | undefined {
+  const dance = danceBySlug(at.dance);
+  if (dance === undefined) return undefined;
+  const written = danceSchedule(dance)[at.figure];
+  if (written === undefined) return undefined;
+  const call = concurrentCalls(written.call)[at.branch];
+  if (call === undefined || call.figure !== id) return undefined;
+  const made = variantTile(
+    id,
+    {
+      key: `${id}@${at.dance}:${String(at.figure)}`,
+      title: `${id} · from ${dance.title}, ${written.phrase}`,
+      params: { ...(call.params ?? {}) },
+      beats: call.beats,
+      dance: dance.slug,
+      ...(call.who === undefined ? {} : { who: call.who }),
+    },
+    {},
+    engine,
+  );
+  return "tile" in made ? { tile: made.tile } : { problem: made.problem };
 }
 
 /** The deep link that opens one tile on its own. */
