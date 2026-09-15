@@ -8,6 +8,7 @@ import {
   withDefaults,
 } from "@caller/choreo";
 import {
+  CONTRA_EVENNESS,
   CONTRA_MOTION_BOUNDS,
   CONTRA_TAKE_MOTION,
   CONTRA_TRAVEL_MOTION,
@@ -114,6 +115,33 @@ function boundsSection(): string[] {
     "guard at 1.5 × that would be a guard nothing in the library could ever trip.",
     "See `figures/motionBounds.ts` for the derivation and the whole ranking, and",
     "`dances/motionAllowlist.ts` for the rows a dance is allowed to be over it on.",
+    "",
+    "### The evenness bound (M10b)",
+    "",
+    "`travel` is a peak, and a peak cannot see a figure where one role sprints while",
+    "another strolls, because neither of them need be fast. Two columns do:",
+    "**`roles`** is the fastest role's mean speed over the whole figure divided by the",
+    "slowest's, and **`halves`** is one dancer's faster half of a figure divided by their",
+    'slower half. The user, judging the chain: *"people try to move at a constant speed',
+    'throughout the moves for the most part."* So the ideal of both is **1.00**.',
+    "",
+    "Their bound is the **floor's own aspect**, and it is the one bound here with no guard",
+    `factor on top: **${CONTRA_EVENNESS.spread.toFixed(2)}×**, which is the minor set's own rectangle — ` +
+      `${String(CONTRA_EVENNESS.acrossPx)} px across the set`,
+    `against ${String(CONTRA_EVENNESS.alongPx)} px along it, the same in duple improper, proper and becket. Four`,
+    "dancers standing on those four places cannot be sent round them evenly: a figure that",
+    "walks the rectangle *must* spread its roles in the ratio of its two sides. `petronella`,",
+    "which is exactly that figure, measures 1.5455 run alone, and " +
+      `\`${CONTRA_EVENNESS.witnessId}\` ${CONTRA_EVENNESS.witnessSpread.toFixed(4)} — both`,
+    "just under the aspect, which is the evidence that the aspect is the ceiling the floor",
+    "imposes rather than a number picked to clear them.",
+    "",
+    "A guard factor would be a licence rather than a guard here. Every other bound above",
+    "multiplies a *magnitude*; this is a **ratio whose ideal is 1**, and three times it",
+    "would permit a figure to walk one role nearly five times as fast as another. The",
+    "headroom is in the reference instead. Neither column is measured on a **seam** row —",
+    "a seam is half of each of two figures and a mean over half a figure is not one — so a",
+    "seam shows `—`, which is not `1.00`.",
     "",
     "**The elbow bound F3a derived was useless, and F3c found out why.** A take moved the",
     "elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat, a number",
@@ -326,6 +354,8 @@ function mergeInto(a: MotionStats, b: MotionStats): MotionStats {
       | "elbowPerHand"
       | "heightRate"
       | "travel"
+      | "roleSpread"
+      | "partSpread"
       | "elbowHeightRate"
       | "flipJump"
       | "dip",
@@ -339,6 +369,8 @@ function mergeInto(a: MotionStats, b: MotionStats): MotionStats {
     elbowPerHand: worse("elbowPerHand"),
     heightRate: worse("heightRate"),
     travel: worse("travel"),
+    roleSpread: worse("roleSpread"),
+    partSpread: worse("partSpread"),
     elbowHeightRate: worse("elbowHeightRate"),
     flipJump: worse("flipJump"),
     dip: worse("dip"),
@@ -364,6 +396,9 @@ function severity(s: MotionStats): number {
     s.elbowSpeed.value / CONTRA_MOTION_BOUNDS.elbowSpeedPx,
     s.elbowPerHand.value / CONTRA_MOTION_BOUNDS.elbowPerHand,
     s.heightRate.value / CONTRA_MOTION_BOUNDS.heightRatePx,
+    s.travel.value / CONTRA_MOTION_BOUNDS.travelPx,
+    s.roleSpread.value / CONTRA_MOTION_BOUNDS.spread,
+    s.partSpread.value / CONTRA_MOTION_BOUNDS.spread,
     s.dip.value / CONTRA_MOTION_BOUNDS.dipPx,
     s.stateFlips > 0 ? 1 : 0,
     s.nonFinite > 0 ? 1000 : 0,
@@ -371,8 +406,8 @@ function severity(s: MotionStats): number {
 }
 
 const HEADER = [
-  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | flips | jump px | NaN | dip px | worst hand at |",
-  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | roles × | halves × | flips | jump px | NaN | dip px | worst hand at |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
 ];
 
 function table(rows: readonly MotionStats[]): string[] {
@@ -384,7 +419,9 @@ function table(rows: readonly MotionStats[]): string[] {
         `| \`${r.key}\` | ${over(r.handSpeed.value, CONTRA_MOTION_BOUNDS.handSpeedPx)} | ` +
         `${over(r.elbowSpeed.value, CONTRA_MOTION_BOUNDS.elbowSpeedPx)} | ` +
         `${over(r.elbowPerHand.value, CONTRA_MOTION_BOUNDS.elbowPerHand, 2)} | ` +
-        `${over(r.heightRate.value, CONTRA_MOTION_BOUNDS.heightRatePx)} | ${r.stateFlips} | ` +
+        `${over(r.heightRate.value, CONTRA_MOTION_BOUNDS.heightRatePx)} | ` +
+        `${over(r.travel.value, CONTRA_MOTION_BOUNDS.travelPx)} | ` +
+        `${spread(r.roleSpread.value)} | ${spread(r.partSpread.value)} | ${r.stateFlips} | ` +
         `${over(r.flipJump.value, CONTRA_MOTION_BOUNDS.handSpeedPx * MOTION_STEP, 2)} | ` +
         `${r.nonFinite} | ${over(r.dip.value, CONTRA_MOTION_BOUNDS.dipPx, 2)} | ${where(r)} |`,
     ),
@@ -394,6 +431,10 @@ function table(rows: readonly MotionStats[]): string[] {
 /** A number, marked when it is over its bound. */
 const over = (value: number, bound: number, places = 1): string =>
   value > bound ? `**${value.toFixed(places)}**` : value.toFixed(places);
+
+/** A spread, marked when it is over the one bound the two share; `—` unmeasured. */
+const spread = (value: number): string =>
+  value <= 0 ? "—" : over(value, CONTRA_MOTION_BOUNDS.spread, 2);
 
 const where = (r: MotionStats): string =>
   r.handSpeed.dancer === undefined
