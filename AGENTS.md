@@ -85,8 +85,11 @@ From `plan.md` AC2 and AC3 — any change to these numbers is a reversal
   from the same figure frame.
 - The **robin's hand stacks on top**, the lark's underneath; the robin's
   arms draw over the lark's.
-- Foot swing **±2.6 px**, torso sway **1.5°**, both on the beat, with
-  **no vertical bounce**.
+- Feet within **±2.6 px** of rest (the planted gait's band), torso sway
+  **1.5°**, both on the beat, with **no vertical bounce**. The number has not
+  moved: since M10 it is the radius a _planted_ foot may be from its rest
+  position — the foot is fixed on the floor while it is inside the band and
+  dragged at its edge past that — rather than the amplitude of a swing.
 - Shoulders **11 px**, arm reach **15 px**, hold spacing **14 px**, the two
   lines **18 px** further apart than a single pair's spacing, **4 cm per
   px**.

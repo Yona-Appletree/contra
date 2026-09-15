@@ -7,7 +7,13 @@ import {
   motionReport,
   withDefaults,
 } from "@caller/choreo";
-import { CONTRA_MOTION_BOUNDS, CONTRA_TAKE_MOTION, GUARD_FACTOR } from "./motionBounds.js";
+import {
+  CONTRA_MOTION_BOUNDS,
+  CONTRA_TAKE_MOTION,
+  CONTRA_TRAVEL_MOTION,
+  GUARD_FACTOR,
+  TRAVEL_GUARD_FACTOR,
+} from "./motionBounds.js";
 import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
 import { CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
@@ -86,6 +92,28 @@ function boundsSection(): string[] {
     "",
     "The dip bound comes from the one out-and-back the model asks for: a hanging hand",
     "swings forward and back once a beat, `2 × HAND_HANG_SWING_PX` = 1.2 px.",
+    "",
+    "### The sustained-travel bound (M10, R6)",
+    "",
+    "Every column above is about a **drawn arm**, and a figure can pass all of them while",
+    "walking its dancers across the hall at a run. `travel` is the one column about the",
+    "body: the fastest any dancer moves, averaged over a sliding **one-beat window**.",
+    "Sustained, not instantaneous — a beat is the unit a count is written in, and what",
+    "separates a walk from a take is that a take is over inside one.",
+    "",
+    "Its guard is **" +
+      `${TRAVEL_GUARD_FACTOR}×**, not 3×: the reference is the swing's own orbit at ` +
+      `**${CONTRA_TRAVEL_MOTION.travelPx.toFixed(4)} px/beat** ` +
+      `(\`${CONTRA_TRAVEL_MOTION.travelAt}\`), which gives a bound of ` +
+      `**${CONTRA_MOTION_BOUNDS.travelPx.toFixed(4)} px/beat**. A walk faster than one and`,
+    "a half swings is a run, where three times an honest take is still obviously a take.",
+    "",
+    "The fastest figure run alone is **not** the reference: `" +
+      `${CONTRA_TRAVEL_MOTION.fastestId}\` reaches ${CONTRA_TRAVEL_MOTION.fastestPx.toFixed(4)} px/beat,` +
+      " and it is a two-beat figure probed outside the line of four it is danced in. A",
+    "guard at 1.5 × that would be a guard nothing in the library could ever trip.",
+    "See `figures/motionBounds.ts` for the derivation and the whole ranking, and",
+    "`dances/motionAllowlist.ts` for the rows a dance is allowed to be over it on.",
     "",
     "**The elbow bound F3a derived was useless, and F3c found out why.** A take moved the",
     "elbow at 250 px/beat — 9.33× the hand — which put the guard at 750 px/beat, a number",

@@ -25,7 +25,7 @@ import type { FigureEvent, Timeline } from "./Timeline.js";
  * instant, so the take and the release animate instead of switching.
  *
  * **And the feet** (M10): every sample whose figure left `feet` undefined and
- * whose `amp` is above zero gets the planted gait. See {@link gaitFeet}.
+ * whose `amp` is above zero gets the planted gait. See {@link withGait}.
  */
 export function poseAt(timeline: Timeline, dancer: DancerId, beat: Beat): PoseSample {
   const event = timeline.figureAt(dancer, beat);

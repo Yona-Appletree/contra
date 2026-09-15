@@ -230,3 +230,81 @@ whole format; this is what changed and why.
   hall needs yet. Dancer-centric agency shows up at resolution; shared geometry
   is still computed together inside an instance. The actor decider (workbench
   M14) stays additive behind the same timeline seam.
+
+## Amendment, M10 (motion profiles)
+
+M10 fills in the timing half of a `FigureDefinition` and puts the feet
+somewhere they can be answered for.
+
+### The timing vocabulary
+
+`TimingProfile.profile` was declared by M2 and consumed by nothing but the
+figure lab's own printout. It now means something, and it has **three** values
+that are genuinely different questions:
+
+- **`smooth`** — one smoothstep over the leg. The pre-M10 default and what a
+  figure that is not a walk keeps: a balance's 1 px rock, the hey's deliberately
+  linear step on and off, slide left's own `stepped()` pace (S2, #52).
+- **`trapezoid`** — the figure's own **explicit** four-corner speed window,
+  written out in the shape as a `SpeedWindow` and read by `kinds/orbitPair.ts`.
+  A figure that already says exactly how it accelerates does not want a general
+  rule laid over it: the swing, the allemande, the do-si-do and the shoulder
+  round.
+- **`cruise`** — `@caller/core`'s constant-speed trapezoid with ramps of
+  `min(1 beat, leg / 4)`. Up to speed in about a beat, hold the speed, down in
+  about a beat, which is what a body walking _on_ the beat rather than easing
+  through it does. Peak-over-average speed is 4/3 on any leg of four beats or
+  fewer and 8/7 on an eight-beat one, against the smoothstep's 3/2 at every
+  length.
+
+**The ramp rule is the profile's, not a kind's.** `profileProgress` reads
+`cruiseRamp` for itself, so every cruising leg in the library ramps by the same
+rule and no shape kind picks a number. A fixed one-beat ramp on a two-beat leg
+would be a triangle with no plateau at all — a 2.0× peak, worse than the
+smoothstep it replaced — which is why the rule has the `leg / 4` half.
+
+The **stretch** field is unchanged: whether extra beats buy distance or pace.
+
+### The gait's home: the timeline, not the interpreter
+
+M10's brief said the planted gait would be "an interpreter service reading the
+kind's velocity". It is not, and the reason is structural:
+
+1. The gait needs the body at beats **other than the one being drawn**. The
+   plant at whole beat `k` reads the body there and its velocity at `k + 0.5`;
+   a `PoseSample` is one instant and an interpreter is handed one `t`.
+2. The plant a dancer is standing on at the start of a figure was put down
+   during the **previous** figure, and a figure cannot see its neighbours.
+3. **Three** different things produce poses — interpreted definitions,
+   `@caller/choreo`'s own four engine figures, and, until M11, the bridged coded
+   figures. A gait written for one of them would have left the other two with no
+   foot motion at all the moment `quietMotion` stopped supplying it.
+
+So the gait is a **pure function in `@caller/core`** (`plantedGait`, over a
+`BodyPath`) applied by **`@caller/choreo`'s `poseAt`** to every sample whose
+figure left `feet` undefined and whose `amp` is above zero, scaled by `amp`.
+`poseAt` is the lowest layer that has a time-addressable body path for every
+dancer on every path, knows the event's absolute `start` — which is what carries
+the gait's parity — and can reach the figures either side.
+
+M1's constraint that "nothing in `timeline/` changes" was M1's, not M10's.
+
+The one kind that places its own `feet` is `orbitPair`, and it keeps doing so:
+it knows its own body analytically, so it runs the same core function over its
+own `placeAt` and fades the result into the buzz step. A figure that sets `feet`
+still wins over the timeline's gait, exactly as it did over `quietMotion`'s.
+
+### Consequences
+
+- The body path `poseAt` builds reaches into the **neighbouring** figures in
+  both directions. A plant that lands on a figure boundary is placed from the
+  velocity half a beat later, which belongs to the next figure; without the
+  forward reach the two sides computed different plants and the foot jumped
+  about 2.7 px at every seam.
+- Plants are memoised per (event, dancer) on a `WeakMap` keyed on the
+  `FigureEvent`. A cache, not state: same timeline, same feet.
+- `compareFigures` gains two allowed differences, `"feet"` and `"profile"`, both
+  saying that the motion layer moved and the coded twin was deliberately left
+  where it is (M11 deletes it). Neither weakens DD21: the ends, the joins and
+  the hold places are still asserted, and every cruised carrier's end is exactly
+  0 px and 0° from its twin's.
