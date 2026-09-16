@@ -73,20 +73,30 @@ two couples trading places every time through — and three things are not:
 ### `becket`
 
 Partners side by side facing the couple across the set, progressing by
-sliding to their own left. A becket set has a waiting place beyond each end
-(places `-1` and `places`), so it holds `2 × places + 2` couples. A couple
-that has slid to the end spends one time through on the waiting place and
-comes back in on the other line, one place along: that crossing is
-`wait-out`'s `'mirror'`, in a frame centred halfway between the two places,
-so the one built-in figure does becket's end effect and duple improper's.
+sliding **half a couple width** — one dancer position — to their own left.
+The two lines face opposite ways, so they pass each other one whole couple
+width a time through and the couple that was on your diagonal is the couple
+you now face. The user's own words (DD54): _"its really shift half-way, isn't
+it?"_ A couple's `place` is therefore a **half-integer** on alternate times
+through, which everything that reads one copes with because a place is only
+ever multiplied by `COUPLE_PITCH_PX`.
 
-**An odd number of couples** cannot fill a becket set — two couples stand at
-every dancing place, one from each line — so the odd one out takes a second
-waiting place beyond the bottom end. The set then alternates between `places`
-dancing places and `places − 1`, which is what a real line of five couples
-does: somebody is always out, and never the same couple twice running. The
-oracle checks five couples as well as the even lengths, because the demo
-hall's longer line is five.
+The relative motion is one couple place a time through, which is duple
+improper's, so the ends are duple improper's too. Both lines start on the same
+couple places and every couple dances; a time through later the two grids are
+half a place out of step, the couple at each end has nobody across from it and
+stands out; a time through after that the grids line up again and the two that
+stood out have crossed the set and come back in on the other line. The crossing
+is `wait-out`'s `'mirror'`, in a frame centred halfway along the half-place
+step, so the one built-in figure does becket's end effect and duple improper's.
+Nothing crosses straight over (S2's odd-line case): a half-place slide never
+runs a couple off the end without a time out first.
+
+**An odd number of couples** puts one more couple on one line than the other,
+so exactly one couple is out every time through and it is the other end each
+time — again exactly what an odd duple improper line does. The oracle checks
+the odd lengths as well as the even ones, because the demo hall's shorter line
+is seven.
 
 **Lining a hall up in becket.** A becket hall does not walk into becket
 places: it lines up **improper** — partners across the set, larks and robins
@@ -96,23 +106,28 @@ are the user's own (`becketHandsFourCalls`: "move one place to the left. this
 is a becket dance. your partner should be on the side of the set with you")
 and the **direction is measured, not typed**: `@caller/choreo`'s
 `lineUpShiftOf` reads it off this formation's own progression. `BECKET_RIGHT`
-(`src/formation/becketRight.ts`) is a right-progressing becket, which no demo
-dance is, and it is what proves the `"RIGHT"` branch — the user: "_technically_
-if its a right-progressing becket dance, you should move one place _to the
-right_."
+(`src/formation/becketRight.ts`) is a right-progressing becket — the user:
+"_technically_ if its a right-progressing becket dance, you should move one
+place _to the right_." Since FR-C2 it is a formation a **record may name**, and
+Are You 'Most Done? is one: its transcript calls B1 "on right diagonal, hey"
+with `N2` and its author says the dance begins with the same neighbours as the
+hey, and those three sentences hold together only if you progress to your
+right. It is made by the same factories as `BECKET` with the sign of the slide
+turned round, so the right-progressing branch is not a branch: it is the same
+body of code with `step = +1`.
 
 **Where a becket set sits.** `SetSpec.centre` is where a line's _first_ dancer
 stands, which is what it means for a duple improper set, and a hall hands the
-same point to both formations. A becket set's first dancer is at place `-1`,
-so `BECKET.start` puts the frame `BECKET_TOP_OFFSET_PX` (one waiting place
-plus half a couple, 50 px) down the hall from it. Without that a becket line
-in the demo hall would start 50 px above the top of the dance floor, on the
-stage.
+same point to both formations. The topmost dancer a becket set ever has is the
+lark of the couple standing out beyond the top, at position `-1`, so
+`BECKET.start` puts the frame `BECKET_TOP_OFFSET_PX` (one waiting position plus
+half a place, 30 px) down the hall from it. Without that a becket line in the
+demo hall would start above the top of the dance floor, on the stage.
 
 **A dance that progresses in its first figure** — Butter shifts left in its
 first two beats — begins on {@link BECKET_BEFORE_SLIDE} rather than on the
-stations: every dancer, the waiting couple included, is one couple place back
-along their own line and slides in. That is `Dance.startPlaces`; see
+stations: every dancer, the waiting couple included, is **half** a couple place
+back along their own line and slides in. That is `Dance.startPlaces`; see
 `@caller/choreo`'s README.
 
 Becket's closure is proved the same way duple improper's is, by a sequence in
@@ -169,10 +184,10 @@ returns a separate `"wait-*"` plan, because that would double-claim a couple
 this selector already folded in — and the _call's_ own `ends: "both" | "top"
 | "bottom"` field (see `@caller/choreo`'s README) is what actually decides,
 per call, whether a given true end's waiting couple dances or stands for it.
-An odd becket set's rare second waiting place beyond the bottom is left an
-unwidened true end of its own (`"line"` only ever widens with the couple
-immediately adjacent to the dancing line) — flagged for whichever milestone's
-dance needs that shape; no corpus dance in this milestone's scope does.
+A waiting place that is not immediately adjacent to the dancing line is left
+an unwidened true end of its own (`"line"` only ever widens with the couple
+next to it) — flagged for whichever milestone's dance needs that shape. Neither
+becket nor duple improper ever builds one, so nothing in the corpus reaches it.
 
 ## The hub — `src/set/` and `src/library/`
 
@@ -210,35 +225,33 @@ which is exactly why relations cannot be `@caller/choreo` meanings.
 transcripts name resolves in both contra formations, and
 `dances/acceptance.test.ts`'s list of owed relations is empty.
 
-| word                       | duple improper                                                                                                                                                                                                                                                                                                                                          | becket                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `partner`                  | the **binding**, seeded from the other line at the same position                                                                                                                                                                                                                                                                                        | the binding, seeded from the same line one position along                                                               |
-| `opposite`                 | straight across the set — which here is your partner                                                                                                                                                                                                                                                                                                    | straight across — which here is your neighbour                                                                          |
-| `N0` … `Nk`                | same line, `(2k − 1) × travel` positions along                                                                                                                                                                                                                                                                                                          | the other line, `−(k − 1) × 2 × travel` positions along — one couple place a step, the way your couple is going (FR-C1) |
-| `shadow` k, `S0` … `Sk`    | the other line, `−partnerSide × 2k × travel`                                                                                                                                                                                                                                                                                                            | your own line, `−partnerSide × (2k − 1) × travel`                                                                       |
-| `trail-buddy`, `T1` …      | same line, `2k × travel` — **(unsure)**, nothing calls it                                                                                                                                                                                                                                                                                               | same                                                                                                                    |
-| `corner`, `C1`, `C0`, `C2` | `C1` your **first** corner (the right diagonal) and `C0` your **second** (the left) — across the set and one dancing place along it, the sign being your own role, since the two of a couple look at each other across the set (FR-B1, DD45); `C2` and up keep M6's own row, the dancer straight along your own line, which is what a cast off pairs on | the same offsets                                                                                                        |
+| word                       | duple improper                                                                                                                                                                                                                                                                                                                                          | becket                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `partner`                  | the **binding**, seeded from the other line at the same position                                                                                                                                                                                                                                                                                        | the binding, seeded from the same line one position along                                                             |
+| `opposite`                 | straight across the set — which here is your partner                                                                                                                                                                                                                                                                                                    | straight across — which here is your neighbour                                                                        |
+| `N0` … `Nk`                | same line, `(2k − 1) × travel` positions along                                                                                                                                                                                                                                                                                                          | the other line, `(k − 1) × 2 × step × travel` positions along — one couple place a step, the way your couple is going |
+| `shadow` k, `S0` … `Sk`    | the other line, `−partnerSide × 2k × travel`                                                                                                                                                                                                                                                                                                            | your own line, `−partnerSide × (2k − 1) × travel`                                                                     |
+| `trail-buddy`, `T1` …      | same line, `2k × travel` — **(unsure)**, nothing calls it                                                                                                                                                                                                                                                                                               | same                                                                                                                  |
+| `corner`, `C1`, `C0`, `C2` | `C1` your **first** corner (the right diagonal) and `C0` your **second** (the left) — across the set and one dancing place along it, the sign being your own role, since the two of a couple look at each other across the set (FR-B1, DD45); `C2` and up keep M6's own row, the dancer straight along your own line, which is what a cast off pairs on | the same offsets                                                                                                      |
 
 Three things make the table what it is rather than a set of guesses.
 
 - **`N_k` is the k-th couple along the set in the direction you progress**, and
-  in becket that is a **couple place** a step, not a time through (the user, E3:
-  _"N2 would be your next neighbor"_). With `step` the positions one progression
-  moves a dancer whose travel is `+1` (`SetLattice.progressionStep`: `+1`
-  improper, `−2` becket, because a becket couple slides `place − direction`),
-  duple improper's row is `Δ₁ + (k − 1) × 2 × step × travel` and becket's is
-  `Δ₁ + (k − 1) × step × travel`.
-  **The two are not the same rule, and the difference is measured, not stylistic.**
-  Duple improper's derives from an invariant — the neighbour you have _next_ is
-  the neighbour you have after one more time through — which `lattice.test.ts`
-  still checks for every dancer, every k, at every round. Becket's contradicts
-  it: both becket lines slide a couple place a time through and they face
-  opposite ways, so the two lines pass each other **two** couple places and only
-  a two-place step could track them. The caller's word for the couple one place
-  along is `N2` and the corpus uses it that way (Are You 'Most Done?'s diagonal
-  hey, The Set Monster's `N2`/`N3`/`N4`), so the table follows the word and
-  `relations.test.ts` counts what that costs against the hall rather than
-  asserting it away.
+  in becket that is a **couple place** a step (the user, E3: _"N2 would be your
+  next neighbor"_). With `step` the positions one progression moves a dancer
+  whose travel is `+1` (`SetLattice.progressionStep`: `+1` improper, `−1`
+  becket, because a becket couple slides half a place to its own left), **one
+  rule serves both**: `Δ₁ + (k − 1) × 2 × step × travel`.
+  **That it is one rule is a measurement, and FR-C2 is what made it one.**
+  It derives from an invariant — the neighbour you have _next_ is the neighbour
+  you have after one more time through — which `lattice.test.ts` checks for every
+  dancer, every k, at every round, in both formations. While a becket line slid a
+  whole couple place the two lines passed each other **two** couple places a time
+  through, only a two-place step could track them, and the caller's word (`N2`
+  for the couple one place along) and the geometry disagreed at all 216 compared
+  cases; FR-C1 followed the word and counted the cost, and FR-C2's half-width
+  slide removed it. `relations.test.ts` measures the table against the hall and
+  finds not one disagreement in either formation.
 - **A shadow is the opposite-role dancer who progresses the way you do**, on the
   opposite side of you from your partner, and the side is `partnerSide` so that
   the relation is its own inverse. The sign is evidence rather than convention:

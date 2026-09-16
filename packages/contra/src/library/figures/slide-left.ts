@@ -4,7 +4,7 @@ import { STEP_BEATS } from "../../figures/slide-left.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
 
 /**
- * **Slide left**, as data: the whole line sashays one couple's width along to
+ * **Slide left**, as data: the whole line sashays one place — half a couple's width — along to
  * its own left.
  *
  * Becket's progression, and the only figure in the library whose ends leave the
@@ -59,7 +59,7 @@ export const slideLeftDefinition: FigureDefinition = {
   id: "slide-left",
   call: "SLIDE LEFT ALONG THE SET",
   describe:
-    "In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.",
+    "In a becket dance the whole line slides one place along to its own left — half a couple's width, so that the two lines pass each other a whole one — and you find yourselves facing the couple that was on your diagonal. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.",
   lead: 4,
   nominalBeats: 4,
   roles: MINOR_SET_ROLES,
