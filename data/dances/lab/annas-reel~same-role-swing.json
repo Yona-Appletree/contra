@@ -1,0 +1,22 @@
+{
+  "of": "annas-reel",
+  "id": "same-role-swing",
+  "title": "The same-role balance and swing settles it",
+  "assumes": "The two robins (then the two larks) balance and swing, and they open out one on each line — so the swing is what puts each dancer on the other side of the set, and the partner swing after it is already the new formation.",
+  "quotes": "B1  (4) Women balance  (12) Women swing",
+  "notes": "Written on both passes. B1's swing is a same-role pair, which since M9f takes its two end places by the end of the orbit each dancer finishes on rather than by role — so which line each of them opens out on to is a fact about the swing rather than a coin toss.",
+  "patch": [
+    {
+      "at": "B1/0",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2B1/0",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

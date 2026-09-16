@@ -1,0 +1,26 @@
+{
+  "of": "jeremy-corners",
+  "id": "contradb",
+  "title": "ContraDB's ¶",
+  "assumes": "The last call of the pass is the one that carries it: the neighbour swing at the end of B2, once for the ones' pass and once for the twos'.",
+  "quotes": "ContraDB: “8: neighbors swing ⁋” — the last figure of B2, in both halves of the dance.",
+  "notes": "ContraDB marks the figure that carries the progression with a pilcrow, and Jeremy Corners has one per pass, on B2's neighbour swing. It is the last call of the pass, so this reading puts the shift a beat earlier than the engine's own pass boundary — and the difference is the mechanism, because a call that carries the progression at its end slides the dancers it leaves out along with their own line (M9g) and a boundary does not.",
+  "source": {
+    "name": "ContraDB 3242",
+    "url": "https://contradb.com/dances/3242"
+  },
+  "patch": [
+    {
+      "at": "B2/2",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2B2/2",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

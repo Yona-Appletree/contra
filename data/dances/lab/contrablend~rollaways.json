@@ -1,0 +1,15 @@
+{
+  "of": "contrablend",
+  "id": "rollaways",
+  "title": "The roll-aways carry it",
+  "assumes": "The travel is B1's two roll-aways: each one hands the robin along the line while the long lines go forward and back, and the set has moved on by the time the second one lets go and hands you a new partner.",
+  "quotes": "B1  (8) In long lines, go forward and back while partner roll away (W roll L, M side-step R)  (8) In long lines, go forward and back while shadow roll away (W roll L, M side-step R) (new partner)",
+  "patch": [
+    {
+      "at": "B1/1",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

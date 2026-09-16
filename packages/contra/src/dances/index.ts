@@ -1,4 +1,5 @@
 import type { Dance } from "@caller/choreo";
+import { CANDIDATE_DANCES } from "./candidates.js";
 import { DANCE_FILES } from "./danceFiles.js";
 import { danceFromFile } from "./loadDances.js";
 import programmeFile from "../../../../data/dances/programme.json" with { type: "json" };
@@ -64,10 +65,34 @@ export const DEMO_DANCE_SLUGS: readonly string[] = DEMO_DANCES.map((d) => d.slug
 /** Every dance this package loads, shipped and lab alike. */
 export const ALL_DANCES: readonly Dance[] = [...DEMO_DANCES, ...LAB_DANCES];
 
+/**
+ * Every dance the **lab** can measure: the loaded corpus plus M9h's candidate
+ * readings.
+ *
+ * A candidate is deliberately not in {@link ALL_DANCES} — it is one reading of a
+ * record rather than a dance of its own, and everything that walks the corpus
+ * (the Stage's programme, the Moves page's dance index, the trace plates, the
+ * acceptance tests) should keep seeing exactly the twenty-one files on disk. But
+ * `pnpm dance <slug>~<id>` has to reach one, because the whole point of a
+ * candidate is that it is measured the same way everything else is, so this is
+ * the list {@link import('./danceLab.js').danceLabReport} looks a slug up in.
+ */
+export const LAB_CORPUS: readonly Dance[] = [...ALL_DANCES, ...CANDIDATE_DANCES];
+
 /** The dance with this slug — a demo dance or a lab one — or `undefined`. */
 export const danceBySlug = (slug: string): Dance | undefined =>
   ALL_DANCES.find((d) => d.slug === slug);
 
+export type { CandidateFile, CandidatePatch } from "./candidates.js";
+export {
+  CANDIDATE_BASES,
+  CANDIDATE_DANCES,
+  candidateBySlug,
+  candidateFile,
+  candidateSlug,
+  candidatesOf,
+  splitCandidateSlug,
+} from "./candidates.js";
 export { LARKS, ROBINS } from "./pairs.js";
 export type { MotionAllowance, MotionMetric } from "./motionAllowlist.js";
 export { MOTION_ALLOWLIST, motionAllowance } from "./motionAllowlist.js";

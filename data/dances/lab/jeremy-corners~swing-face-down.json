@@ -1,0 +1,22 @@
+{
+  "of": "jeremy-corners",
+  "id": "swing-face-down",
+  "title": "The swing “face down” settles them, and the twos move up",
+  "assumes": "The ones balance and swing and end facing down, which is the actives' own way of saying they have arrived in the twos' place — and the twos, who are not in the swing at all, move up by sliding along their own line while it happens.",
+  "quotes": "B1  (4) Ones balance  (12) Ones swing; face down",
+  "notes": "Written on both passes. This is the one reading that leans on M9g's hold-place slide: a call that carries the progression at its end moves the dancers it leaves out along with their own line, which is exactly “the twos move up”.",
+  "patch": [
+    {
+      "at": "B1/0",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2B1/0",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

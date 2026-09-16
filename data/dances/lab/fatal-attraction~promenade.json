@@ -1,0 +1,22 @@
+{
+  "of": "fatal-attraction",
+  "id": "promenade",
+  "title": "The promenade round the major set is the progression",
+  "assumes": "The neighbour promenade counterclockwise round the major set is the travel: it walks you the whole way to number two's place and lets go there, so the cast back is already a figure of the new seating rather than the last step of the old one.",
+  "quotes": "A1  (8) Ladies chain to neighbor  (8) Neighbor promenade counterclockwise around the major set",
+  "notes": "The record's own clause on A2's cast-back is removed, so this reading has exactly one: the promenade carries it, at the promenade's end. The two are a hair apart in beats — the cast back begins where the promenade stops — and what differs is which call is danced in which seating and whether the dancers the call leaves out slide with their line.",
+  "patch": [
+    {
+      "at": "A1/1",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "A2/0",
+      "params": {
+        "progresses": null
+      }
+    }
+  ]
+}

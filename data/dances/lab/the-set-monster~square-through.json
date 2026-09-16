@@ -1,0 +1,16 @@
+{
+  "of": "the-set-monster",
+  "id": "square-through",
+  "title": "The square through and the Jersey twirl carry it",
+  "assumes": "B1 is the travelling phrase: a balance and square through two with number three, long lines forward, then a Jersey twirl with number four — you end B1 standing where number four was, and B2's ring and partner swing are danced there.",
+  "quotes": "B1  (8) Interrupted square through 2 [with N3]: (4) N3 neighbor balance (RH)  (4) Square through 2 (N3R;PL)  (4) In long lines, go forward (facing out)  (4) N4 neighbor Jersey twirl",
+  "notes": "One clause, on the Jersey twirl, so the whole triple shift lands at the end of B1 and A2's N2 and B1's N3 and N4 are all read from the seating the time through started in.",
+  "patch": [
+    {
+      "at": "B1/2",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

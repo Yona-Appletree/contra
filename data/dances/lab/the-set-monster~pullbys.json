@@ -1,0 +1,16 @@
+{
+  "of": "the-set-monster",
+  "id": "pullbys",
+  "title": "The pull-bys carry it",
+  "assumes": "A2 ends with two pull-bys — the robins by the right and number two by the left — and a pull-by is a dancer walking past another one to somewhere else: that is where the three places are taken, and the rest of the dance is danced from there.",
+  "quotes": "A2  (8) Ladies chain to partner  (4) Women balance (RH)  (2) Women pull by right  (2) N2 neighbor pull by left",
+  "notes": "One clause, on the second pull-by, so the dance's whole triple shift lands at the end of A2 and B1's N3 and N4 are read from the new seating — which is the thing to watch.",
+  "patch": [
+    {
+      "at": "A2/3",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}
