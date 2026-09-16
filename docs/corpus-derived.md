@@ -300,7 +300,10 @@ figure; `not-started` otherwise.
 public); `fixture` when the record is in `sets/hand.json` and `permission` is
 `full`; `cleared` is set only by hand through `pins.json` for a dance the
 author has cleared; `gated` otherwise. A record whose permission is not `full`
-is `gated` whatever set it is in.
+is `gated` whatever set it is in. Because the sets are computed from the
+index, `derive-index` writes every non-shipped record as `gated` and
+`derive-sets`, after writing the sets, rewrites the `publishable` field of the
+lines it selected; the chain is index → sets, never index → sets → index.
 
 ### The tag vocabulary
 
