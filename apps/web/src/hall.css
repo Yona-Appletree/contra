@@ -1045,3 +1045,268 @@
   color: var(--muted-foreground);
   overflow-wrap: anywhere;
 }
+
+/*
+ * The Tunes tab (F4): a jukebox.
+ *
+ * The book of tunes down one side and the picked tune's panel on the other,
+ * side by side from `lg:` up; on a phone the book comes first and picking a
+ * tune scrolls the panel up under it. The book is a list of rows rather than
+ * cards — thirteen titles want a column, not a grid — and the panel is the
+ * same paper the dance card is, so the two tabs read as two drawers of one
+ * box.
+ */
+.jukebox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .jukebox {
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .jukebox-book {
+    position: sticky;
+    top: 0.75rem;
+  }
+}
+
+.jukebox-book {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.jukebox-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.jukebox-shelf-title {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.jukebox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A row of the book: the title, its key and tempo, and a note when it sounds. */
+.jukebox-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 1rem;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.jukebox-row:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* The picked tune: on the lit board, as the current tab is. */
+.jukebox-row[aria-current="true"] {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+}
+
+.jukebox-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.jukebox-row-meta {
+  font-size: 0.6875rem;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.jukebox-row-mark {
+  color: var(--primary);
+  text-align: center;
+}
+
+.jukebox-panel {
+  min-width: 0;
+  /* Under the sticky tab bar when scrolled to on a phone. */
+  scroll-margin-top: 0.75rem;
+}
+
+.tune-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 760px;
+}
+
+.tune-page-next {
+  color: var(--muted-foreground);
+}
+
+/* The tune's own page: a sheet, phone-first, like the dance page. */
+.tune-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 760px;
+}
+
+.tune-page-head h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.tune-page-head p,
+.tune-page-note {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.tune-page-prose {
+  max-width: 70ch;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.tune-page section h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tune-page-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tune-page-status {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The notation on paper, as it is on the Stage's card. */
+.tune-page-paper {
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 12%, transparent);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.35),
+    0 10px 24px -12px oklch(0 0 0 / 0.7);
+}
+
+/* The band switcher: chips, the pressed one in the lit board's gold. */
+.tune-bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.tune-bands button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tune-bands button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.tune-bands button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* The hand chart: a phrase a row, a bar a cell, the current one lit. */
+.tune-chart {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tune-chart th {
+  width: 2.5rem;
+  padding: 0.25rem 0.375rem 0.25rem 0;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.tune-chart td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.25rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tune-chart td.tune-chart-current {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.tune-page-refs,
+.tune-page-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+
+/* Links off the page — to read about the tune, to dance to it — look like links. */
+.tune-page-refs a,
+.tune-page-sets a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 70%, transparent);
+  text-underline-offset: 0.15em;
+}
+
+.tune-page-refs a:hover,
+.tune-page-sets a:hover {
+  text-decoration-color: var(--primary);
+}
+
+.tune-page-set-name {
+  font-weight: 600;
+}

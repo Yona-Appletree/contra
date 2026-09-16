@@ -10,6 +10,7 @@ import { MovesPage } from "./routes/moves.js";
 import { PairPage } from "./routes/pair.js";
 import { SpikesPage } from "./routes/spikes.js";
 import { MoveTracesPage, TracesPage } from "./routes/traces.js";
+import { TunePage, TunesPage } from "./routes/tunes.js";
 import { readHallRoute } from "./state/hallUrl.js";
 
 export function App() {
@@ -119,6 +120,25 @@ export function App() {
     );
   }
 
+  // `#/tunes/<slug>`: one tune's own page (F4), keyed on the slug alone — the
+  // page owns `?band=` and rewrites it itself, and a key on the params would
+  // remount it, and stop the tune, on every band switch.
+  const tune = tuneSlug(route.path);
+  if (tune !== undefined) {
+    const page = <TunePage key={tune} slug={tune} params={route.params} />;
+    return bare ? page : <Tabbed tab="tunes">{page}</Tabbed>;
+  }
+
+  // `#/tunes`: the jukebox (F4). Not keyed on the params: the page owns
+  // `?tune=` and `?band=` and rewrites them itself as the music moves on.
+  if (route.path === "/tunes") {
+    return (
+      <Tabbed tab="tunes">
+        <TunesPage params={route.params} />
+      </Tabbed>
+    );
+  }
+
   // Everything else is the hall: `#/`, and `#/dance/<slug>?tune=<slug>`.
   const hall = readHallRoute(route.path, route.params);
   const stage = (
@@ -157,11 +177,18 @@ export function danceSlug(path: string): string | undefined {
   return parts.length === 2 && parts[0] === "dances" ? parts[1] : undefined;
 }
 
+/** The slug of `#/tunes/<slug>` (the tune page, F4), or `undefined` for `/tunes` itself and everything else. */
+export function tuneSlug(path: string): string | undefined {
+  const parts = path.split("/").filter((part) => part.length > 0);
+  return parts.length === 2 && parts[0] === "tunes" ? parts[1] : undefined;
+}
+
 /** Which tabs there are, in order, and where each one goes. */
 const TABS = [
   { id: "stage", label: "Stage", href: "#/" },
   { id: "moves", label: "Moves", href: "#/moves" },
   { id: "dances", label: "Dances", href: "#/dances" },
+  { id: "tunes", label: "Tunes", href: "#/tunes" },
 ] as const;
 
 /**

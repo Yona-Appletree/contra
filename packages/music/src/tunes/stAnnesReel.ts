@@ -17,6 +17,14 @@ export const stAnnesReel = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "A Canadian reel that spread from Québec's and the Maritimes' fiddlers into the whole North American repertoire in the twentieth century, and is now a session and contra standard on both sides of the border.",
+  references: [
+    {
+      label: "St. Anne's Reel on thesession.org",
+      url: "https://thesession.org/tunes/search?q=St.+Anne%27s+Reel",
+    },
+  ],
   lines: [
     "A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|",
     "A2AA FAdA|A2AA FAdA|d2dd cdec|d2dd cdec|A2AA FAdA|A2AA FAdA|d2cd efge|fdec d2z2|",

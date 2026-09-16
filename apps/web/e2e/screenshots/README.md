@@ -88,6 +88,12 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `u4-tempo-124-390.png`                 | U4: the same bar at 124 (three digits) — `trails` has not moved                   |
 | `u4-select-announces-390.png`          | U4: the moment Kitchen Stomp is picked — the bubble announces it, band still      |
 | `u4-stage-buttons-390.png`             | U4: the speaker and the new reset button side by side in the stage's corner       |
+| `f4-tune-page-390.png`                 | F4: a tune's page at 390 × 844, `#/tunes/soldiers-joy`, silent                    |
+| `f4-tune-page-1280-playing.png`        | F4: the same page at 1280 × 900, playing — the cursor and the chart at A2 bar 3   |
+| `f4-tune-page-1280-banjo.png`          | F4: the same page a bar later, switched to the banjo band mid-tune, `?band=banjo` |
+| `f4-jukebox-390.png`                   | F4: the jukebox at 390 × 844, `#/tunes`, silent — the book, then the panel        |
+| `f4-jukebox-390-playing.png`           | F4: the same, Old Joe Clark picked and sounding at A1 bar 3                       |
+| `f4-jukebox-1280-playing.png`          | F4: the jukebox at 1280 × 900, the book beside the panel, sounding                |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and

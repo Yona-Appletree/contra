@@ -17,6 +17,14 @@ export const morrisonsJig = defineTune({
   type: "jig",
   key: "Em",
   defaultBpm: 116,
+  about:
+    "An Irish jig named for the Sligo fiddler James Morrison, who recorded it in the 1930s; a session standard, with a B part that climbs to the high B.",
+  references: [
+    {
+      label: "Morrison's Jig on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Morrison%27s+Jig",
+    },
+  ],
   lines: [
     "E2B BAB|dBA E3|E2B BAB|dBA E3|e2f gfe|dBA E3|e2f gfe|dBA E3|",
     "E2B BAB|dBA E3|E2B BAB|dBA E3|e2f gfe|dBA E3|e2f gfe|dBA E3|",

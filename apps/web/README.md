@@ -1,14 +1,14 @@
 # @caller/web
 
 The public app: Vite + React, served at `/contra/` on GitHub Pages. A tab bar
-carries three tabs — Stage, Moves, Dances — over the hall, the pixel contra
-dance that dances itself.
+carries four tabs — Stage, Moves, Dances, Tunes — over the hall, the pixel
+contra dance that dances itself.
 
 ## Routes
 
 A four-line hash router (`src/routes/hashRoute.ts`) and a small tab shell in
 `src/App.tsx` that reads the route and either wraps it in the tab bar or
-renders it bare. Three tabs, plus the routes below them that have no tab of
+renders it bare. Four tabs, plus the routes below them that have no tab of
 their own and are reached by URL or by a link on the page above them.
 
 - **Stage** (`#/` and `#/dance/<slug>?tune=<slug>`, M9, P1, the default tab).
@@ -124,6 +124,31 @@ their own and are reached by URL or by a link on the page above them.
   resolves** — every figure instance the planner makes of the dance, one time
   through, with its cast, anchor, ends, carried hands and anybody it left
   standing. The same table `pnpm dance <slug>` prints, from the same function.
+- **Tunes** (`#/tunes`, F4). **A jukebox** — the user: "something where you
+  can pick the tune but stay on the same page to listen". The book of tunes
+  `@caller/music` bundles down one side, reels then jigs, one row each with
+  its key and tempo; the picked tune's panel on the other: the notation with
+  the bar cursor following the music, **the band switcher** (the same setting
+  through each of the four bands, `rearrange`, switched mid-tune without
+  losing the beat — the listening check the per-tune-arrangement plan owed),
+  the hand chord chart as a table with the current bar lit, a paragraph about
+  the tune, links to read about it, "appears in" with a link to the Stage
+  pinned to that set (`#/?tune=<set>`), and a link to the tune's own page.
+  Picking a tune plays it, twice through with four potatoes in front, and
+  the jukebox goes on into the next tune in the book as a set on the Stage
+  goes on to its next tune — the panel follows. It is the Stage's `Player`
+  playing one long medley (`src/jukebox.ts`: the book rotated so the pick is
+  first, chained cycle to cycle by the player itself, the beat read back
+  once a beat and placed within the sounding tune by `jukeboxPosition`).
+  `?tune=<slug>` and `?band=<house|string|banjo|piano>` keep the pick on the
+  URL, written with `replaceState` (as the Stage writes its dance) so a
+  change does not remount the page; a reload shows the pick silent until a
+  tap. The references are **about** the tune — Wikipedia where an article
+  exists, thesession.org's search otherwise — never the source of the
+  setting, which was typed from memory; the panel says so once.
+- `#/tunes/<slug>?band=<id>` — one tune's own page: the same panel with a
+  queue of one, so the tune loops until stopped. Linkable, and the place a
+  tune's facts live when the book is not wanted beside them.
 - `#/pair` — **the pair page (M5, gate G1).** Hidden from the tab bar since
   M9 moved it off the front page; still linkable. The two-dancers spike's
   64-beat sequence at 112 bpm, played from `@caller/contra`'s figure
@@ -219,7 +244,10 @@ selector, the audio clock, the silent between-dances interval, what the
 caller announces over it, and two Stage-tab goldens), `e2e/frame.spec.ts`
 (the M3/M4 fixture goldens), `e2e/perf.spec.ts` (AC7, both halves),
 `e2e/pair.spec.ts` (three pair goldens, the page's controls, and the
-per-figure strips — gate G1's artifact), `e2e/gallery.spec.ts` (F3b, M12: the tab
+per-figure strips — gate G1's artifact), `e2e/tunes.spec.ts` (F4: the jukebox lists every tune, plays the one picked
+and switches to another; a tune page plays and the band switches without
+stopping it; `?tune=` and `?band=` open on the pick),
+`e2e/gallery.spec.ts` (F3b, M12: the tab
 bar reaches all three tabs, the definitions in their families with each row's
 own facts, the generated parameter rows and one of them deep-linked, every
 tile's own info, and the move gallery strips). `e2e/golden.ts` is the pixel-comparison helper `hall.spec.ts` and
@@ -235,7 +263,9 @@ B4: the thanks/announce/walk/ready gap between two dances), `src/program.test.ts
 adjacent dances, and dances every medley once before any repeats),
 `src/programme.test.ts` (the whole evening danced: every dancer has a figure
 at every beat, including a waiting couple's `wait-out` — the regression a
-plain coverage check missed), `src/galleryTiles.test.ts` (the gallery's
+plain coverage check missed), `src/routes/tunes.test.tsx` and `src/tuneText.test.ts` (F4: the jukebox's
+book and panel and a tune page's parts, rendered statically; the key and
+position words; where a medley beat falls in the jukebox's queue), `src/galleryTiles.test.ts` (the gallery's
 figure and seam tiles cover every figure the registry holds and every seam
 the demo dances actually dance) and `src/moveCatalogue.test.ts` (M12: the
 catalogue is the library's own list, every row's facts come off the

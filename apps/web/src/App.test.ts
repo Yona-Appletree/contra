@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { danceSlug, moveTracesId, tracesSlug } from "./App.js";
+import { danceSlug, moveTracesId, tracesSlug, tuneSlug } from "./App.js";
 
 describe("danceSlug (U3: #/dances/<slug>, the dance page)", () => {
   it("names the slug of a plain dance path", () => {
@@ -33,5 +33,19 @@ describe("tracesSlug and moveTracesId still agree with danceSlug's boundaries", 
   it("moveTracesId wants exactly three segments under /moves ending in /traces", () => {
     expect(moveTracesId("/moves/hey/traces")).toBe("hey");
     expect(moveTracesId("/moves/hey")).toBeUndefined();
+  });
+});
+
+describe("tuneSlug (F4: #/tunes/<slug>, the tune page)", () => {
+  it("names the slug of a tune path, and nothing for the book itself", () => {
+    expect(tuneSlug("/tunes/soldiers-joy")).toBe("soldiers-joy");
+    expect(tuneSlug("/tunes")).toBeUndefined();
+    expect(tuneSlug("/tunes/")).toBeUndefined();
+  });
+
+  it("is undefined for the other tabs' paths", () => {
+    expect(tuneSlug("/dances/airpants")).toBeUndefined();
+    expect(tuneSlug("/moves/hey")).toBeUndefined();
+    expect(tuneSlug("/tunes/soldiers-joy/more")).toBeUndefined();
   });
 });

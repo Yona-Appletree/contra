@@ -16,19 +16,26 @@ import type { JSX } from "react";
 export function SpeakerButton({
   playing,
   onToggle,
+  testId = "hall-play",
+  label,
 }: {
   playing: boolean;
   onToggle: () => void;
+  /** The Tunes tab (F4) puts one on every card, so the test id is a prop; the Stage keeps its own. */
+  testId?: string;
+  /** What the button says it does, when "Play music" is not it: "Play Soldier's Joy". */
+  label?: string;
 }): JSX.Element {
+  const title = label ?? (playing ? "Pause music" : "Play music");
   return (
     <button
       type="button"
       onClick={onToggle}
-      data-testid="hall-play"
+      data-testid={testId}
       className="speaker-button"
-      aria-label={playing ? "Pause music" : "Play music"}
+      aria-label={title}
       aria-pressed={playing}
-      title={playing ? "Pause music" : "Play music"}
+      title={title}
     >
       <svg viewBox="0 0 9 6" aria-hidden focusable="false">
         {/* The speaker body: a box and a cone, both the ink colour, in

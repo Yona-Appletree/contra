@@ -20,6 +20,18 @@ export const arkansasTraveler = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "An American fiddle tune from the 1840s, tied to a comic stage dialogue between a traveller and a squatter, and Arkansas's official state historic song.",
+  references: [
+    {
+      label: "The Arkansas Traveler on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/The_Arkansas_Traveler_(song)",
+    },
+    {
+      label: "Arkansas Traveler on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Arkansas+Traveler",
+    },
+  ],
   arrangement: STRING_BAND,
   lines: [
     "A2AB cded|cAA2 ABA2|A2AB cded|cAA2 A2A2|d2fa gfed|cded cAA2|d2fa gfed|cded cAA2|",

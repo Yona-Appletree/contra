@@ -16,6 +16,18 @@ export const irishWasherwoman = defineTune({
   type: "jig",
   key: "D",
   defaultBpm: 116,
+  about:
+    "One of the best-known Irish jigs, in print since the eighteenth century, and the tune most people hum when asked for a jig.",
+  references: [
+    {
+      label: "The Irish Washerwoman on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/The_Irish_Washerwoman",
+    },
+    {
+      label: "Irish Washerwoman on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Irish+Washerwoman",
+    },
+  ],
   lines: [
     "d2d cdA|BAF D3|d2d cdA|BAF D3|f2f edc|dcA D3|f2f edc|dcA D3|",
     "d2d cdA|BAF D3|d2d cdA|BAF D3|f2f edc|dcA D3|f2f edc|dcA D3|",

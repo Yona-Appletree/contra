@@ -38,6 +38,26 @@ export interface TuneSource {
   chords: ChordChart;
   /** The band. Default {@link BAND}: fiddle, piano, acoustic bass. */
   arrangement?: Arrangement;
+  /**
+   * A sentence or two about the tune for the tunes page: where it comes
+   * from and what it is to a contra dance. Prose, not provenance — the
+   * provenance of the *setting* is the file's own doc comment, and the page
+   * says once, for every tune, that the settings were typed from memory.
+   */
+  about?: string;
+  /**
+   * Where to read about the tune. These are references *about* the tune —
+   * an encyclopedia article, a session site's page for it — not the source
+   * of this setting, which was typed from memory rather than copied from
+   * any of them. The tunes page prints them as links.
+   */
+  references?: readonly Reference[];
+}
+
+/** One link about a tune: what to call it, and where it goes. */
+export interface Reference {
+  label: string;
+  url: string;
 }
 
 /** A chord symbol as abcjs prints and plays it: `D`, `A7`, `G`, `Em`, `Bm`. */
@@ -119,6 +139,77 @@ export const PIANO_BAND: Arrangement = {
  * per-instrument balance is a taste call that wants an ear, not a guess.
  */
 export const BANDS: readonly Arrangement[] = [BAND, STRING_BAND, BANJO_BAND, PIANO_BAND];
+
+/** The short names the bands go by in a URL (`#/tunes/<slug>?band=banjo`). */
+export type BandId = "house" | "string" | "banjo" | "piano";
+
+/** One of the four bands with a name to print and an id to link by. */
+export interface NamedBand {
+  id: BandId;
+  /** What the page calls it: "the house band", "a string band". */
+  label: string;
+  arrangement: Arrangement;
+}
+
+/**
+ * The four bands, named, in the order {@link BANDS} lists them. The tunes
+ * page's band switcher is a row of these; `bandOf` reads a tune's own band
+ * back out of the list.
+ */
+export const NAMED_BANDS: readonly NamedBand[] = [
+  { id: "house", label: "the house band", arrangement: BAND },
+  { id: "string", label: "a string band", arrangement: STRING_BAND },
+  { id: "banjo", label: "a banjo band", arrangement: BANJO_BAND },
+  { id: "piano", label: "a piano band", arrangement: PIANO_BAND },
+];
+
+/** The named band a tune is written for, or `undefined` for an arrangement none of the four is. */
+export function bandOf(tune: Pick<Tune, "arrangement">): NamedBand | undefined {
+  return NAMED_BANDS.find((band) => sameArrangement(band.arrangement, tune.arrangement));
+}
+
+/** Whether two arrangements name the same three voices at the same volumes. */
+export function sameArrangement(a: Arrangement, b: Arrangement): boolean {
+  return (["melody", "chords", "bass"] as const).every(
+    (part) => a[part].program === b[part].program && a[part].volume === b[part].volume,
+  );
+}
+
+/**
+ * The name a player would give a General MIDI program, for the instruments
+ * the four bands use; anything else is named by its number, which is what
+ * abcjs would need to hear it anyway.
+ */
+export function instrumentName(program: number): string {
+  return INSTRUMENT_NAMES[program] ?? `program ${String(program)}`;
+}
+
+const INSTRUMENT_NAMES: Readonly<Record<number, string>> = {
+  0: "piano",
+  25: "guitar",
+  32: "bass",
+  40: "fiddle",
+  105: "banjo",
+};
+
+/** A band as a player would say it: "fiddle, piano and bass". */
+export function describeBand(arrangement: Arrangement): string {
+  const [melody, chords, bass] = [arrangement.melody, arrangement.chords, arrangement.bass].map(
+    (voice) => instrumentName(voice.program),
+  );
+  return `${melody}, ${chords} and ${bass}`;
+}
+
+/**
+ * The same tune played by another band: the melody, the chart and everything
+ * else as written, the ABC rewritten with the new band's `%%MIDI` programs.
+ * A tune is data, so this is {@link defineTune} over the same source — the
+ * tunes page's band switcher is this and nothing more.
+ */
+export function rearrange(tune: Tune, arrangement: Arrangement): Tune {
+  if (sameArrangement(tune.arrangement, arrangement)) return tune;
+  return defineTune({ ...tune, arrangement });
+}
 
 /** An ordered list of tunes to play, each repeated `timesThroughEach` times. */
 export interface Medley {

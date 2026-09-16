@@ -23,6 +23,14 @@ export const keshJig = defineTune({
   type: "jig",
   key: "G",
   defaultBpm: 116,
+  about:
+    "An Irish jig in G, made famous by the Bothy Band's 1975 recording and a session standard ever since.",
+  references: [
+    {
+      label: "The Kesh Jig on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Kesh+Jig",
+    },
+  ],
   arrangement: PIANO_BAND,
   lines: [
     "D2D GAB|c2A BGE|D2D GAB|c2A G3|B2G FGA|BAG FED|B2G FGA|BAG G3|",

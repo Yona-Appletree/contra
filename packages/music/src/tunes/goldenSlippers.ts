@@ -20,6 +20,18 @@ export const goldenSlippers = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    '"Oh, Dem Golden Slippers", written by James A. Bland in 1879 and long since a fiddle-tune standard, played here as a reel.',
+  references: [
+    {
+      label: "Oh, Dem Golden Slippers on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/Oh,_Dem_Golden_Slippers",
+    },
+    {
+      label: "Golden Slippers on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Golden+Slippers",
+    },
+  ],
   arrangement: BANJO_BAND,
   lines: [
     "d2fa d2fa|gfed cAA2|d2fa d2fa|gfed cAd2|a2fa gfed|cded cAA2|a2fa gfed|cded cAd2|",

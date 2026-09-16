@@ -20,6 +20,18 @@ export const whiskeyBeforeBreakfast = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "A Canadian reel that came into the American repertoire through Manitoba fiddler Andy DeJarlis, and has been among the most-played tunes at contra and old-time sessions since the 1970s.",
+  references: [
+    {
+      label: "Whiskey Before Breakfast on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/Whiskey_Before_Breakfast",
+    },
+    {
+      label: "Whiskey Before Breakfast on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Whiskey+Before+Breakfast",
+    },
+  ],
   arrangement: STRING_BAND,
   lines: [
     "DFAd fed2|efed cAA2|DFAd fed2|efed cAd2|f2fe d2de|fgaf gfed|f2fe d2de|faag fed2|",
