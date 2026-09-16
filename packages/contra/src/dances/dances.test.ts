@@ -12,6 +12,7 @@ import {
 } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
+import { BECKET_RIGHT } from "../formation/becketRight.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { PROPER } from "../formation/proper.js";
 import { createContraRegistry } from "../figures/registry.js";
@@ -59,7 +60,7 @@ describe("the demo dance registry", () => {
         ).toBe(16);
       }
       expect(dance.author.length).toBeGreaterThan(0);
-      expect([DUPLE_IMPROPER.id, BECKET.id, PROPER.id]).toContain(dance.formation);
+      expect([DUPLE_IMPROPER.id, BECKET.id, BECKET_RIGHT.id, PROPER.id]).toContain(dance.formation);
       expect(() => validateDance(dance)).not.toThrow();
     });
 
@@ -111,7 +112,7 @@ describe("a programme of every dance, danced end to end", () => {
   const ITEM_BEATS = 2 * 64 + betweenDancesBeats(SCRIPT_DECIDER_DEFAULTS);
 
   it("switches from each dance to the next without anybody jumping", () => {
-    const formations = [DUPLE_IMPROPER, BECKET, PROPER];
+    const formations = [DUPLE_IMPROPER, BECKET, BECKET_RIGHT, PROPER];
     const registry = createContraRegistry(LAB_RUN.figures);
     const hall = createHall(DUPLE_IMPROPER, [{ id: "set0", couples: 5, centre: [0, 0], axis: 90 }]);
     const decider = createScriptDecider(
@@ -135,7 +136,7 @@ describe("a programme of every dance, danced end to end", () => {
       program,
       registry,
       hall,
-      createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET, PROPER]),
+      createLibrary([...DEMO_DANCES], [DUPLE_IMPROPER, BECKET, BECKET_RIGHT, PROPER]),
       { cycle: LAB_RUN.cycle },
     );
     decider.advance(DEMO_DANCES.length * ITEM_BEATS);
