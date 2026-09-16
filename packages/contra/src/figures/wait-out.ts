@@ -126,17 +126,17 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
  * the formation rather than a fault in any dance:
  *
  * **A becket cycle boundary moves the slots and leaves every body where it
- * stands.** Every dancer therefore ends a time through one couple place *behind*
- * the place their next time through calls theirs, and the first figure of that
- * time through walks them the rest of the way — that is what `progressed
- * 40.0000 px` has always been reporting. The waiting couple was the one body
+ * stands.** Every dancer therefore ends a time through half a couple place
+ * *behind* the place their next time through calls theirs, and the first figure
+ * of that time through walks them the rest of the way — that is what
+ * `progressed` has always been reporting. The waiting couple was the one body
  * the boundary did move, because its crossing is planned to finish on the
  * progressed place; so it arrived on a place the couple that had just danced
  * there was still standing on, and the two shared a point at exactly beat 64
  * (Are You 'Most Done? and The Set Monster, every checked length; M9b measured
- * it). Reckoned from one couple place back, the waiting couple is behind its
- * new place by exactly what everybody else is behind theirs, and the dance
- * gathers all of them together.
+ * it). Reckoned from a shift back, the waiting couple is behind its new place by
+ * exactly what everybody else is behind theirs, and the dance gathers all of
+ * them together.
  *
  * **Butter does not move by a pixel**, and that is the check on this rule
  * rather than a coincidence. A becket dance that slides in its own first figure
@@ -145,16 +145,24 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
  * always had. The difference is that it is now the formation's rule for every
  * becket dance instead of one record's special case.
  *
+ * **How far back, and which way, is read off the group** (FR-C2) rather than
+ * written down as a sign. A mirror crossing carries the couple's own midpoint to
+ * the point opposite through the frame's centre, so the along-the-set half of
+ * that displacement — `−2 × the midpoint's own local y` — *is* the shift, and
+ * offsetting the start by it puts the landing a shift back along the line the
+ * couple comes in on. It comes out at exactly {@link PLACE_PITCH_PX} for a
+ * becket set of either handedness, and the sign takes care of itself: a
+ * right-progressing becket's wait frames are hung the other way up, and a
+ * hard-coded `+y` landed its crossing on a dancing couple at every line length.
+ *
  * Only the mirror crossing is reckoned this way: a duple improper couple swaps
  * across its own waiting row, which no dancing place is on.
  */
 function crossFrom(group: Group, station: StationId): EndPose {
   const s = groupStation(group, station);
+  const mid = group.stations.reduce((sum, each) => sum + each.p[1], 0) / group.stations.length;
   return {
-    // Local `+y` runs along the frame's axis, and a wait frame is turned end
-    // for end at the bottom of the set, so `+y` is "one place back along my own
-    // line" at both ends — the same sign `BECKET_BEFORE_SLIDE` uses.
-    p: framePoint(group.frame, [s.p[0], s.p[1] + PLACE_PITCH_PX]),
+    p: framePoint(group.frame, [s.p[0], s.p[1] - 2 * mid]),
     facing: frameAngle(group.frame, s.facing),
   };
 }
