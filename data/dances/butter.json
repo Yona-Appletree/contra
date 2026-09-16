@@ -11,12 +11,12 @@
     "transcript": "A1  (2) Shift left  (6) Circle left 3/4  (8) Neighbor swing\nA2  (8) In long lines, go forward and back   (8) Ladies chain to partner\nB1  (16) Hey (WR;NL;MR;PL;WR;NL;MR)\nB2  (4) Partner balance   (12) Partner swing"
   },
   "startPlaces": {
-    "1L": { "p": [-16, 30], "facing": 0 },
-    "1R": { "p": [-16, 50], "facing": 0 },
-    "2L": { "p": [16, -30], "facing": 180 },
-    "2R": { "p": [16, -50], "facing": 180 },
-    "WL": { "p": [-16, 10], "facing": 0 },
-    "WR": { "p": [-16, 30], "facing": 0 }
+    "1L": { "p": [-16, 10], "facing": 0 },
+    "1R": { "p": [-16, 30], "facing": 0 },
+    "2L": { "p": [16, -10], "facing": 180 },
+    "2R": { "p": [16, -30], "facing": 180 },
+    "WL": { "p": [-16, 0], "facing": 0 },
+    "WR": { "p": [-16, 20], "facing": 0 }
   },
   "waitOut": { "joinBeats": 2 },
   "phrases": [

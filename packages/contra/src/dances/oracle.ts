@@ -23,6 +23,7 @@ import {
   stationPose,
 } from "@caller/choreo";
 import { BECKET } from "../formation/becket.js";
+import { BECKET_RIGHT } from "../formation/becketRight.js";
 import type { FigureDefaultsOverride } from "../figures/registry.js";
 import { contraFigureOf, createContraRegistry } from "../figures/registry.js";
 import { templateFigureOf } from "../library/figures/index.js";
@@ -48,14 +49,15 @@ export const COLLISION_PX = 8;
 /** The line lengths a duple improper dance is checked at (the plan's 2 to 6). */
 export const DUPLE_LINES = [2, 3, 4, 5, 6] as const;
 /**
- * A becket set holds `2 × places + 2` couples when the hall is even and
- * `2 × places + 1` when it is odd, so its lengths are 4 to 12.
+ * A becket set dances `floor(couples / 2)` fours when its two lines' grids line
+ * up and one fewer when they are half a place out of step, so its lengths are 4
+ * to 12.
  *
  * The odd lengths are in the list because an odd becket line is a different
- * shape — one waiting place rather than two, and a couple crossing straight
- * over at the other end (S2) — so it is worth measuring rather than assuming.
- * **Seven is the demo hall's own shorter line** (P1's `DEMO_LINES = [8, 7]`),
- * which is the odd shape the user actually watches.
+ * shape — one couple out every time through, at the other end each time, rather
+ * than two out every other time through (FR-C2) — so it is worth measuring
+ * rather than assuming. **Seven is the demo hall's own shorter line** (P1's
+ * `DEMO_LINES = [8, 7]`), which is the odd shape the user actually watches.
  */
 export const BECKET_LINES = [4, 5, 6, 7, 8, 9, 10, 12] as const;
 
@@ -108,7 +110,7 @@ export function threadsOnTheOldPath(dance: Dance): boolean {
 
 /** The line lengths this dance's formation is checked at. */
 export const linesFor = (dance: Dance): readonly number[] =>
-  dance.formation === BECKET.id ? BECKET_LINES : DUPLE_LINES;
+  dance.formation === BECKET.id || dance.formation === BECKET_RIGHT.id ? BECKET_LINES : DUPLE_LINES;
 
 /**
  * How one dance is run, beyond the figure tuning: which cycle planner plans it.

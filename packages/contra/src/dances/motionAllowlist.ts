@@ -140,21 +140,12 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "milestone that answers it, not the motion profile, which already took " +
       "3.5 px/beat off the figure's own number.",
   },
-  {
-    dance: "*",
-    key: "wait-out",
-    metric: "travel",
-    reason:
-      "**E27: the slide's pace.** A couple waiting out at the end of the set " +
-      "slides a whole place — 32 px — to rejoin, which is 28.7 px/beat " +
-      "sustained and the fastest travel in the programme, against M10's own " +
-      "bound of 23.32. S2 (#52) ruled the slide's pace and this is that " +
-      "ruling's cost, not a new defect. The levers are the transitions model " +
-      "or `PLACE_PITCH_PX`, and neither belongs to the figure-model roadmap: " +
-      "this row is the standing record of what the slide costs until a " +
-      "transitions milestone exists to move it. Butter is the dance that " +
-      "shows it.",
-  },
+  // **E27's `wait-out travel` row is gone** (FR-C2). It read "a couple waiting
+  // out at the end of the set slides a whole place — 32 px — to rejoin, which
+  // is 28.7 px/beat sustained and the fastest travel in the programme". A becket
+  // slide is half a couple place since DD54, so the crossing no longer drags the
+  // couple a whole place and the row has nothing to allow: the allowlist test
+  // ("holds nothing that no loaded dance actually needs") is what took it away.
   // ---- M10b: the two evenness columns, bound 1.60x (the minor set's own
   // rectangle; `figures/motionBounds.ts`). Every row below is a figure whose
   // roles or whose halves are *meant* to be uneven, or whose unevenness is a

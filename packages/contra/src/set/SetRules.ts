@@ -1,6 +1,10 @@
 import type { Formation } from "@caller/choreo";
 import { BECKET, BECKET_LATTICE, BECKET_RELATIONS } from "../formation/becket.js";
-import { BECKET_RIGHT } from "../formation/becketRight.js";
+import {
+  BECKET_RIGHT,
+  BECKET_RIGHT_LATTICE,
+  BECKET_RIGHT_RELATIONS,
+} from "../formation/becketRight.js";
 import {
   DUPLE_IMPROPER,
   DUPLE_IMPROPER_LATTICE,
@@ -41,11 +45,12 @@ export const CONTRA_SET_RULES: Readonly<Record<string, SetRules>> = {
   // is a different lattice and a different neighbour, not a flag on improper.
   [PROPER.id]: { id: PROPER.id, lattice: PROPER_LATTICE, relations: PROPER_RELATIONS },
   // A right-progressing becket is a becket in every way but which way its lines
-  // slide, so it stands on the same lattice and relates by the same offsets.
+  // slide — so it stands on the same geometry with the slide's sign turned round
+  // (FR-C2), which is what puts its `N_k` on the other diagonal.
   [BECKET_RIGHT.id]: {
     id: BECKET_RIGHT.id,
-    lattice: BECKET_LATTICE,
-    relations: BECKET_RELATIONS,
+    lattice: BECKET_RIGHT_LATTICE,
+    relations: BECKET_RIGHT_RELATIONS,
   },
 };
 

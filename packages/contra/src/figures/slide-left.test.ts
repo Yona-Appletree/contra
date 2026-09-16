@@ -4,6 +4,7 @@ import { angleDiff } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import { BECKET, COUPLE_PITCH_PX } from "../formation/becket.js";
 import { PLACE_PITCH_PX } from "../formation/dupleImproper.js";
+import { PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 import { STEP_BEATS, slideLeft, stepped } from "./slide-left.js";
 import { figureMoves, figureProblems, probeFigure, probeGroup, stationSpot } from "./testing.js";
 
@@ -32,18 +33,21 @@ describe("slide left", () => {
     expect(figureProblems(probeFigure(slideLeft, {}, { group: probeGroup(BECKET) }))).toEqual([]);
   });
 
-  it("slides every dancer one couple place to their own left, still facing across", () => {
+  it("slides every dancer half a couple place to their own left, still facing across", () => {
     const ends = figureMoves(slideLeft, {}, BECKET);
-    // The `+1` line faces `+x`, so its own left is `−y`; the other line's is `+y`.
+    // The `+1` line faces `+x`, so its own left is `−y`; the other line's is
+    // `+y`. Half a couple place — one dancer position — since FR-C2: the two
+    // lines slide opposite ways, so they pass each other one whole couple
+    // width and you land facing the couple that was on your diagonal.
     for (const id of ["1L", "1R"]) {
       const from = stationSpot(BECKET, id);
       expect(ends[id]!.p[0], id).toBeCloseTo(from.p[0], 9);
-      expect(ends[id]!.p[1], id).toBeCloseTo(from.p[1] - COUPLE_PITCH_PX, 9);
+      expect(ends[id]!.p[1], id).toBeCloseTo(from.p[1] - PLACE_PITCH_PX, 9);
       expect(ends[id]!.facing, id).toBe(from.facing);
     }
     for (const id of ["2L", "2R"]) {
       const from = stationSpot(BECKET, id);
-      expect(ends[id]!.p[1], id).toBeCloseTo(from.p[1] + COUPLE_PITCH_PX, 9);
+      expect(ends[id]!.p[1], id).toBeCloseTo(from.p[1] + PLACE_PITCH_PX, 9);
     }
   });
 });
@@ -79,7 +83,7 @@ describe("slide left reads as two steps", () => {
     // `smooth`'s peak is 1.5× its average whether it is run once over the whole
     // figure or once per step, so stepping costs nothing in top speed.
     const peak = Math.max(...speeds(CALLED_BEATS));
-    const average = COUPLE_PITCH_PX / CALLED_BEATS;
+    const average = PLACE_PITCH_PX / CALLED_BEATS;
     expect(peak).toBeGreaterThan(average);
     expect(peak).toBeLessThan(1.51 * average);
   });
@@ -242,10 +246,11 @@ describe("slide left crosses a marked couple over instead", () => {
     }
     // Turning half way round while walking across costs more top speed than
     // sliding along does, and it is the fastest body motion in the library.
-    // Pinned so it cannot creep: S2 measured **40.78** px/beat here, against
-    // **44.47** with the turn driven by the steps and **29.99** for the plain
-    // slide. The whole table is in S2's report.
-    expect(peak).toBeGreaterThan(COUPLE_PITCH_PX / CALLED_BEATS);
+    // Pinned so it cannot creep: S2 measured **40.78** px/beat here with a
+    // whole-couple slide, against **44.47** with the turn driven by the steps
+    // and **29.99** for the plain slide. FR-C2 halved the slide itself, so the
+    // crosser's own travel is what is left. The whole table is in S2's report.
+    expect(peak).toBeGreaterThan(PLACE_PITCH_PX / CALLED_BEATS);
     expect(peak).toBeLessThan(42);
   });
 });

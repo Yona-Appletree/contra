@@ -9,11 +9,11 @@ import type {
 } from "@caller/choreo";
 import { HANDS_FOUR_GROUP, createHall, danceBeats, sampleTrace, stationRank } from "@caller/choreo";
 import {
-  BECKET,
   LAB_RUN,
   danceAlone,
   danceBySlug,
   formationFor,
+  isBecket,
   threadsOnTheOldPath,
 } from "@caller/contra";
 
@@ -114,7 +114,7 @@ export function danceTraceBySlug(slug: string, options?: DanceTraceOptions): Tra
  * comfortable one.
  */
 export function couplesFor(dance: Dance): number {
-  return dance.formation === BECKET.id ? 6 : 4;
+  return isBecket(dance) ? 6 : 4;
 }
 
 /** How far past the window the decider is run, so the last beat is covered. */

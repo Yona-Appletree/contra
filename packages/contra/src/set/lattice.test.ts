@@ -99,31 +99,27 @@ describe("a progression is a shift of every dancer's slot (Q14)", () => {
 describe("the relations are what the progression makes them", () => {
   /**
    * M6's sign invariant — the neighbour you have **next** is the neighbour you
-   * have after one more time through — and **the price of FR-C1, stated as a
-   * number rather than deleted**.
+   * have after one more time through — **restored for becket by FR-C2**.
    *
-   * It still holds for duple improper, where it is what pins the sign, and it
-   * is asked wherever **both** answers name somebody, which is the honest scope
-   * of it: a dancer who reaches the end of the line turns round, and every
+   * It is asked wherever **both** answers name somebody, which is the honest
+   * scope of it: a dancer who reaches the end of the line turns round, and every
    * offset written along their direction of travel turns round with them.
    *
-   * **It cannot hold for becket any more, and no choice of sign would save
-   * it.** Write `N_k = across + (k − 1) × s` positions along the other line.
-   * One time through moves the asking dancer `p` positions and the other line
-   * `−p`, so the couple standing where `N_k` pointed has been replaced by the
-   * one that was `2p` further on; the invariant is `(k − 1)s + 2p = k·s`, that
-   * is `s = 2p`. Becket's `p` is `progressionStep = −2`, so the *only* `s` that
-   * satisfies it is `−4`: **two** couple places a step, which is what M6 wrote
-   * and M8b kept. The user's ruling (E3, DD49) is that `N2` is the couple one
-   * couple place along — the caller's "next neighbour" — so `s` is `−2` and the
-   * invariant goes. It goes **all the way**: every one of the 216 compared
-   * becket cases disagrees, by exactly one couple place, because a series that
-   * steps one place cannot track a set that slides two.
+   * **Why it holds again.** Write `N_k = across + (k − 1) × s` positions along
+   * the other line. One time through moves the asking dancer `p` positions and
+   * the other line `−p`, so the couple standing where `N_k` pointed has been
+   * replaced by the one that was `2p` further on; the invariant is
+   * `(k − 1)s + 2p = k·s`, that is `s = 2p`, uniquely. FR-C1 had to break it:
+   * the model then slid a whole couple place a line (`p = −2`) while the
+   * caller's "next neighbour" is one couple place (`s = −2`), and every one of
+   * the 216 compared becket cases disagreed by exactly one place. FR-C2's
+   * half-width slide makes `p = −1`, so `s = 2p = −2` is both the caller's word
+   * and the geometry, and the two agree at every case.
    *
-   * The count is asserted, and the disagreement asserted to be becket's alone,
-   * so that the day somebody restores the two-place step this test says so.
+   * The counts are asserted so that the day somebody puts the whole-place slide
+   * back, this test says how much it costs.
    */
-  it("N(k+1) today is N(k) after one progression — duple improper's, and what becket does instead", () => {
+  it("N(k+1) today is N(k) after one progression, in both formations", () => {
     const counted: Record<string, { agree: number; disagree: number }> = {};
     for (const [formation, couples] of [
       [DUPLE_IMPROPER, 6],
@@ -147,9 +143,7 @@ describe("the relations are what the progression makes them", () => {
               continue;
             }
             disagree += 1;
-            // Becket's disagreement is exactly one couple place, every time:
-            // the series steps one place and the set slides two.
-            expect(formation.id, `${formation.id} ${dancer.id} N${String(k + 1)}`).toBe("becket");
+            expect.fail(`${formation.id} ${dancer.id} N${String(k + 1)} is not N${String(k)} next`);
           }
         }
         set = formation.progression.next(set);
@@ -158,7 +152,7 @@ describe("the relations are what the progression makes them", () => {
     }
     expect(counted).toEqual({
       "duple-improper": { agree: 48, disagree: 0 },
-      becket: { agree: 0, disagree: 216 },
+      becket: { agree: 252, disagree: 0 },
     });
   });
 

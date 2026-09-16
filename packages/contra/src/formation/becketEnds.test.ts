@@ -13,10 +13,12 @@ import { ALL_DANCES } from "../dances/index.js";
 import { LAB_RUN } from "../dances/danceLab.js";
 import { danceAlone } from "../dances/oracle.js";
 import { waitOut } from "../figures/wait-out.js";
-import { BECKET, COUPLE_PITCH_PX } from "./becket.js";
+import { BECKET } from "./becket.js";
+import { PLACE_PITCH_PX } from "./dupleImproper.js";
 
 /**
- * **The becket end-of-set crossing never puts two dancers on one point** — M9c.
+ * **The becket end-of-set crossing never puts two dancers on one point** — M9c,
+ * re-derived in FR-C2's unit (half a couple place, one dancer position).
  *
  * M9b measured the fault and it is a rule of the formation rather than a fault
  * in any dance: a becket cycle boundary moves the *slots* and leaves every
@@ -34,18 +36,24 @@ import { BECKET, COUPLE_PITCH_PX } from "./becket.js";
  * within AC6's 8 px of anybody.
  *
  * The line lengths are the oracles' own (`BECKET_LINES`), which is every even
- * line from four to twelve and the odd ones between: an even becket line has a
- * waiting place at both ends and an odd one only at the bottom, and the two
- * ends' frames are turned end for end from each other, so all three cases have
- * to be in the table.
+ * line from four to twelve and the odd ones between: an even becket line stands
+ * a couple out at both ends on the times through when its two grids are out of
+ * step and an odd one stands one out at one end, and the two ends' frames are
+ * turned end for end from each other, so all three cases have to be in the
+ * table.
  */
 const LINES = [4, 5, 6, 7, 8, 9, 10, 12] as const;
 
 /** AC6's number: no two torso centres within 8 px. */
 const COLLISION_PX = 8;
 
+/**
+ * A becket set **one time through in**, which is the shape that has couples
+ * standing out at every length (FR-C2): the two lines' grids start in step and
+ * fall out of it, so a hall that has just lined up has nobody out at all.
+ */
 const set = (couples: number): SetState =>
-  BECKET.start({ id: "b", couples, centre: [0, 0], axis: 90 });
+  BECKET.progression.next(BECKET.start({ id: "b", couples, centre: [0, 0], axis: 90 }));
 
 /** Where every dancer of a set stands, as its own groups place them. */
 function places(state: SetState): Map<DancerId, Vec2> {
@@ -64,9 +72,9 @@ const waitPlans = (state: SetState): GroupPlan[] =>
 /** `wait-out`'s parameters for a whole time through, short landing or not. */
 const paramsFor = (crossShort: boolean) => withDefaults(waitOut, { crossShort }, 64);
 
-describe("the becket end-of-set crossing lands one couple place short", () => {
+describe("the becket end-of-set crossing lands half a couple place short", () => {
   for (const couples of LINES) {
-    it(`lands exactly a couple place back from the place it comes in on, ${String(couples)} couples`, () => {
+    it(`lands exactly half a couple place back from the place it comes in on, ${String(couples)} couples`, () => {
       const state = set(couples);
       // Where the next time through wants everybody — the engine's own landing,
       // and what `becket.test.ts` asserts the unshortened crossing reaches.
@@ -81,11 +89,13 @@ describe("the becket end-of-set crossing lands one couple place short", () => {
           const wanted = next.get(dancer)!;
           // The long landing is the progressed place itself.
           expect(dist(long[station.id]!.p, wanted), `${dancer} long`).toBeLessThan(1e-9);
-          // The short one is that place, one couple place back along the line
-          // the couple is coming in on — which is the line it lands on, so the
-          // step is measured against the two places that line runs between.
+          // The short one is that place, **half** a couple place back along the
+          // line the couple is coming in on — which is the line it lands on, so
+          // the step is measured against the two places that line runs between,
+          // and it is exactly what a becket boundary leaves every other body
+          // behind by (FR-C2).
           expect(dist(short[station.id]!.p, wanted), `${dancer} short`).toBeCloseTo(
-            COUPLE_PITCH_PX,
+            PLACE_PITCH_PX,
             9,
           );
           // Same facing either way: a crossing couple always turns round.
@@ -96,7 +106,8 @@ describe("the becket end-of-set crossing lands one couple place short", () => {
           checked += 1;
         }
       }
-      // An even line waits at both ends, an odd one only at the bottom.
+      // An even line waits at both ends; an odd one waits at one end, which is
+      // the other end each time through.
       expect(checked).toBe(couples % 2 === 0 ? 4 : 2);
     });
 

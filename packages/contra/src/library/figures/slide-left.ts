@@ -1,5 +1,5 @@
 import type { AngleExpr, FigureDefinition, NumberExpr } from "../FigureDefinition.js";
-import { COUPLE_PITCH_PX } from "../../formation/becket.js";
+import { PLACE_PITCH_PX } from "../../formation/dupleImproper.js";
 import { STEP_BEATS } from "../../figures/slide-left.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
 
@@ -65,7 +65,7 @@ export const slideLeftDefinition: FigureDefinition = {
   roles: MINOR_SET_ROLES,
   actors: "all",
   anchor: "hands-four",
-  params: { kind: "canonical", defaults: { alongPx: COUPLE_PITCH_PX, direction: 1 } },
+  params: { kind: "canonical", defaults: { alongPx: PLACE_PITCH_PX, direction: 1 } },
   shape: {
     kind: "path",
     // Everybody's path is their own: nobody is paired with anybody.
