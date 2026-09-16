@@ -49,8 +49,10 @@ describe("the dance lab", () => {
 
   it("resolves every call of a dance, once per minor set", () => {
     const rows = danceResolution(BUTTER, 6);
-    // Butter has seven calls; six couples in becket make two minor sets.
-    expect(rows.filter((r) => r.figure === "hey")).toHaveLength(2);
+    // Butter has seven calls; six couples in becket make **three** minor sets
+    // since FR-C2 — both lines start on the same couple places and nobody is
+    // out on the time through a hall lines up for.
+    expect(rows.filter((r) => r.figure === "hey")).toHaveLength(3);
     expect(new Set(rows.map((r) => r.figure))).toEqual(
       new Set([
         "slide-left",

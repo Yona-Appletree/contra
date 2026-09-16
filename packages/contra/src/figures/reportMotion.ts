@@ -22,7 +22,7 @@ import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
 import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
 import { LAB_RUN } from "../dances/danceLab.js";
-import { BECKET } from "../formation/becket.js";
+import { isBecket } from "../dances/formations.js";
 
 /**
  * `docs/motion-report.md`: the whole instrument, as one page somebody can read
@@ -183,7 +183,7 @@ function dancesSection(): string[] {
   const seams = new Map<string, MotionStats>();
   let overall: MotionStats | undefined;
   for (const dance of DEMO_DANCES) {
-    const couples = linesFor(dance).includes(6) && dance.formation === BECKET.id ? 6 : 4;
+    const couples = linesFor(dance).includes(6) && isBecket(dance) ? 6 : 4;
     // On the engine that can dance it, which for every dance written before M5
     // is the decider's own — the two differ by up to 1.16 px at the ends of a
     // line (M3's cycle-start switch), and switching them all over is a rewrite

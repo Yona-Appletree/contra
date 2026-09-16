@@ -3,7 +3,7 @@
   "title": "Butter",
   "author": "Gene Hubert",
   "formation": "becket",
-  "notes": "The Caller's Box 10320, permission: full.",
+  "notes": "The Caller's Box 10320, permission: full. **FR-C2 halved this dance's own shift.** \"Shift left\" moves half a couple width - one dancer position, 20 px - since DD54, so `startPlaces` puts every dancer half a couple place back rather than a whole one and `slide-left`'s default `alongPx` is `PLACE_PITCH_PX`. Measured before -> after at every checked length (4-12): closure, reach and collision unchanged and green (0.0000, 0.0000, 8.500 px); **`progressed` 0.0000 everywhere**, where at the odd lengths it read **68.0000** and nothing said so (M9f's finding). The slide itself is **20.0 -> 10.0 px/beat** over its two beats (hand 30.2 -> 17.6, elbow 30.2 -> 15.6), and the `wait-out` it sets up is **28.7 -> 15.3 px/beat** of travel (hand 61.9 -> 53.6, elbow 66.5 -> 60.7, elbow-per-hand 1.95x -> 1.76x) - so E27's `wait-out travel` allowlist row, the fastest sustained travel in the programme, has nothing left to allow and is deleted.",
   "source": {
     "callersBoxId": 10320,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10320",
@@ -11,29 +11,59 @@
     "transcript": "A1  (2) Shift left  (6) Circle left 3/4  (8) Neighbor swing\nA2  (8) In long lines, go forward and back   (8) Ladies chain to partner\nB1  (16) Hey (WR;NL;MR;PL;WR;NL;MR)\nB2  (4) Partner balance   (12) Partner swing"
   },
   "startPlaces": {
-    "1L": { "p": [-16, 30], "facing": 0 },
-    "1R": { "p": [-16, 50], "facing": 0 },
-    "2L": { "p": [16, -30], "facing": 180 },
-    "2R": { "p": [16, -50], "facing": 180 },
-    "WL": { "p": [-16, 10], "facing": 0 },
-    "WR": { "p": [-16, 30], "facing": 0 }
+    "1L": {
+      "p": [-16, 10],
+      "facing": 0
+    },
+    "1R": {
+      "p": [-16, 30],
+      "facing": 0
+    },
+    "2L": {
+      "p": [16, -10],
+      "facing": 180
+    },
+    "2R": {
+      "p": [16, -30],
+      "facing": 180
+    },
+    "WL": {
+      "p": [-16, 0],
+      "facing": 0
+    },
+    "WR": {
+      "p": [-16, 20],
+      "facing": 0
+    }
   },
-  "waitOut": { "joinBeats": 2 },
+  "waitOut": {
+    "joinBeats": 2
+  },
   "phrases": [
     {
       "name": "A1",
       "figures": [
-        { "figure": "slide-left", "beats": 2, "call": "SHIFT LEFT" },
+        {
+          "figure": "slide-left",
+          "beats": 2,
+          "call": "SHIFT LEFT"
+        },
         {
           "figure": "circle",
           "beats": 6,
-          "params": { "direction": "left", "places": 3 },
+          "params": {
+            "direction": "left",
+            "places": 3
+          },
           "call": "CIRCLE LEFT THREE QUARTERS"
         },
         {
           "figure": "swing",
           "beats": 8,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
+          "params": {
+            "pairs": "neighbors",
+            "endFacing": "across"
+          },
           "call": "NEIGHBOR SWING"
         }
       ]
@@ -41,8 +71,16 @@
     {
       "name": "A2",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN TO YOUR PARTNER" }
+        {
+          "figure": "long-lines",
+          "beats": 8,
+          "call": "LONG LINES FORWARD AND BACK"
+        },
+        {
+          "figure": "robins-chain",
+          "beats": 8,
+          "call": "ROBINS CHAIN TO YOUR PARTNER"
+        }
       ]
     },
     {
@@ -51,7 +89,10 @@
         {
           "figure": "hey",
           "beats": 16,
-          "params": { "start": "robin", "by": "right" },
+          "params": {
+            "start": "robin",
+            "by": "right"
+          },
           "call": "HEY FOR FOUR"
         }
       ]
@@ -62,7 +103,10 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
+          "params": {
+            "pairs": "partners",
+            "endFacing": "across"
+          },
           "call": "PARTNER BALANCE AND SWING"
         }
       ]

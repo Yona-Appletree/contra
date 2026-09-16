@@ -128,8 +128,42 @@ export { latticeSpan } from "./span.js";
  * the set from you.
  */
 export function progressModel(model: SetModel, shift: RoleShift = SINGLE_PROGRESSION): SetModel {
+  const { lattice } = setRulesOf(model.formation);
+  const own = lattice.progressSlot;
+  if (own === undefined) return shiftModel(model, shift);
+  // **A formation with its own end effects moves one place at a time** (FR-C2).
+  // A becket couple that has run past the end of its line crosses the set on the
+  // progression *after* the one that put it there, so which dancers cross
+  // changes between one place and the next and the span has to be re-read
+  // between them — which is exactly what `progressSet`'s uniform path does to
+  // the seating, one `Progression.next` per place.
+  const counts = new Set(Object.values(model.dancers).map((d) => shiftFor(shift, d.role)));
+  const times = [...counts][0] ?? 1;
+  if (counts.size > 1 || shift.line === "swap") {
+    throw new Error(
+      `unsupported: a role-asymmetric progression in "${model.formation}", whose own end ` +
+        `effects change which couples are standing out between one place and the next (M9)`,
+    );
+  }
+  if (!Number.isInteger(times) || times < 0) {
+    throw new Error(`a progression is a whole number of places, not ${String(times)}`);
+  }
+  let out = model;
+  for (let i = 0; i < times; i++) {
+    const span = spanOf(out);
+    const moved: Record<DancerId, DancerState> = {};
+    for (const dancer of Object.values(out.dancers)) {
+      moved[dancer.id] = { ...dancer, ...own(dancer, span), holds: {} };
+    }
+    out = rebound({ ...out, dancers: moved });
+  }
+  return out;
+}
+
+/** {@link progressModel}'s own arithmetic: one shift of every slot, crossing at the ends. */
+function shiftModel(model: SetModel, shift: RoleShift): SetModel {
   const span = spanOf(model);
-  const { relations, lattice } = setRulesOf(model.formation);
+  const { lattice } = setRulesOf(model.formation);
   const dancers: Record<DancerId, DancerState> = {};
   for (const dancer of Object.values(model.dancers)) {
     const steps = shiftFor(shift, dancer.role) * lattice.progressionStep * dancer.travel;
@@ -151,8 +185,13 @@ export function progressModel(model: SetModel, shift: RoleShift = SINGLE_PROGRES
         ? { ...moved, slot: { ...moved.slot, line: moved.slot.line === 0 ? 1 : 0 } }
         : moved;
   }
-  const next: SetModel = { ...model, dancers };
-  for (const dancer of Object.values(dancers)) {
+  return rebound({ ...model, dancers });
+}
+
+/** Every dancer's `partner` binding re-read off the lattice the shift has left. */
+function rebound(next: SetModel): SetModel {
+  const { relations } = setRulesOf(next.formation);
+  for (const dancer of Object.values(next.dancers)) {
     dancer.partner = latticePartner(next, relations, dancer.id) ?? dancer.id;
   }
   return next;

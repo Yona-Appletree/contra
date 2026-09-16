@@ -11,6 +11,7 @@ import type {
 } from "@caller/choreo";
 import { frameAngle, framePoint } from "@caller/choreo";
 import type { RelationTable } from "./relations.js";
+import type { LatticeSpan } from "./span.js";
 import { latticeSpan } from "./span.js";
 import type { SetShape } from "./shape.js";
 import { LINES_SHAPE } from "./shape.js";
@@ -126,13 +127,28 @@ export interface SetLattice {
    * `travel` is `+1`, signed.
    *
    * `+1` for duple improper, where a couple trades places with the one it is
-   * dancing with; `-2` for becket, where a couple slides one couple place — two
-   * positions — to its own *left*, which is the other way round from its own
-   * `direction`. It is what turns "progress three places" (Contrablend's
+   * dancing with; `-1` for becket, where a couple slides **half** a couple place
+   * — one position — to its own *left*, which is the other way round from its
+   * own `direction` (FR-C2, DD54; it was `-2` while the model slid a whole
+   * couple place). It is what turns "progress three places" (Contrablend's
    * robins) into an offset on the lattice, and it is the `step` in the relation
    * tables' own general rule `N_k = N_1 + (k - 1) * 2 * step * travel`.
    */
   progressionStep: number;
+  /**
+   * How one **single** progression moves one dancer, for a formation whose end
+   * effects are not {@link progressionStep} plus "run off the end of your line
+   * and keep your dancing place".
+   *
+   * Optional, and supplied only by becket, whose couple standing out beyond the
+   * end of a line crosses the set on the progression **after** the one that put
+   * it there — so which dancers cross changes between one place and the next and
+   * a multi-place shift has to be walked a place at a time. Everything else
+   * takes the default arithmetic, unchanged to the digit.
+   *
+   * `span` is the occupied reach of the lattice **before** this progression.
+   */
+  progressSlot?(dancer: DancerState, span: LatticeSpan): { slot: Slot; travel: 1 | -1 };
   /** Which slot the dancer of `couple` taking `role` calls home. */
   slotOf(couple: CoupleState, role: RoleName): Slot;
   /**

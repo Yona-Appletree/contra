@@ -17,7 +17,6 @@ import {
   standing,
   waitOutStart,
 } from "@caller/choreo";
-import { COUPLE_PITCH_PX } from "../formation/becket.js";
 
 /**
  * {@link waitOut}'s parameters: the engine's, less `crossTo`, which is read off
@@ -25,9 +24,9 @@ import { COUPLE_PITCH_PX } from "../formation/becket.js";
  */
 export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
   /**
-   * Whether a mirror crossing lands **one couple place short** of the place the
-   * couple comes in on — M9c. Defaults `false`, which is the engine's own
-   * landing, station for station.
+   * Whether a mirror crossing lands **half a couple place short** of the place
+   * the couple comes in on — M9c, in FR-C2's unit. Defaults `false`, which is
+   * the engine's own landing, station for station.
    *
    * This is the whole of the becket end-of-set fix and it belongs to the
    * *planner*, not to the formation, because it is a claim about what a cycle
@@ -35,9 +34,10 @@ export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
    *
    * - A time through that begins **where the last one left everybody**
    *   (`contraCyclePlanner`'s `"standing"`, which is the figure model's whole
-   *   point) leaves every dancer one couple place behind the place their new
-   *   slot names, and the first figure walks them in. `progressed 40.0000 px`
-   *   is that distance, printed for every becket dance since M6. A waiting
+   *   point) leaves every dancer **half** a couple place behind the place their
+   *   new slot names, and the first figure walks them in — `progressed` is that
+   *   distance, printed for every becket dance since M6 (40 px while a becket
+   *   line slid a whole couple place, `PLACE_PITCH_PX` since FR-C2). A waiting
    *   couple whose crossing finished *on* the progressed place was therefore
    *   the one body the boundary moved — and it landed on the couple that had
    *   just danced there, which had not moved yet. That is the `collision
@@ -46,8 +46,8 @@ export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
    * - A time through that restarts from the formation's **first places**
    *   (`legacyCyclePlanner`, and `defaultCyclePlanner` — today's shipped path
    *   and AC1's baseline) teleports every dancer on to their new place at the
-   *   boundary, so the waiting couple has to be on its own or the seam is
-   *   40 px wide. `sequence.test.ts`'s becket closure is what says so.
+   *   boundary, so the waiting couple has to be on its own or the seam is a
+   *   shift wide. `sequence.test.ts`'s becket closure is what says so.
    *
    * So the planner that knows which of the two it is sets this, and a dance
    * never writes it.
@@ -114,7 +114,8 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
 
 /**
  * Where a becket couple's crossing is reckoned from: its own waiting place,
- * **one couple place back along its own line** — M9c.
+ * **half a couple place back along its own line** — M9c, re-derived in FR-C2's
+ * unit (one dancer position, `PLACE_PITCH_PX`).
  *
  * `@caller/choreo`'s mirror reckons the crossing from where the couple *started*
  * the figure (`WaitOutParams.startPlaces`, which is the waiting place unless a
@@ -124,17 +125,17 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
  * the formation rather than a fault in any dance:
  *
  * **A becket cycle boundary moves the slots and leaves every body where it
- * stands.** Every dancer therefore ends a time through one couple place *behind*
- * the place their next time through calls theirs, and the first figure of that
- * time through walks them the rest of the way — that is what `progressed
- * 40.0000 px` has always been reporting. The waiting couple was the one body
+ * stands.** Every dancer therefore ends a time through half a couple place
+ * *behind* the place their next time through calls theirs, and the first figure
+ * of that time through walks them the rest of the way — that is what
+ * `progressed` has always been reporting. The waiting couple was the one body
  * the boundary did move, because its crossing is planned to finish on the
  * progressed place; so it arrived on a place the couple that had just danced
  * there was still standing on, and the two shared a point at exactly beat 64
  * (Are You 'Most Done? and The Set Monster, every checked length; M9b measured
- * it). Reckoned from one couple place back, the waiting couple is behind its
- * new place by exactly what everybody else is behind theirs, and the dance
- * gathers all of them together.
+ * it). Reckoned from a shift back, the waiting couple is behind its new place by
+ * exactly what everybody else is behind theirs, and the dance gathers all of
+ * them together.
  *
  * **Butter does not move by a pixel**, and that is the check on this rule
  * rather than a coincidence. A becket dance that slides in its own first figure
@@ -143,16 +144,24 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
  * always had. The difference is that it is now the formation's rule for every
  * becket dance instead of one record's special case.
  *
+ * **How far back, and which way, is read off the group** (FR-C2) rather than
+ * written down as a sign. A mirror crossing carries the couple's own midpoint to
+ * the point opposite through the frame's centre, so the along-the-set half of
+ * that displacement — `−2 × the midpoint's own local y` — *is* the shift, and
+ * offsetting the start by it puts the landing a shift back along the line the
+ * couple comes in on. It comes out at exactly `PLACE_PITCH_PX` for a
+ * becket set of either handedness, and the sign takes care of itself: a
+ * right-progressing becket's wait frames are hung the other way up, and a
+ * hard-coded `+y` landed its crossing on a dancing couple at every line length.
+ *
  * Only the mirror crossing is reckoned this way: a duple improper couple swaps
  * across its own waiting row, which no dancing place is on.
  */
 function crossFrom(group: Group, station: StationId): EndPose {
   const s = groupStation(group, station);
+  const mid = group.stations.reduce((sum, each) => sum + each.p[1], 0) / group.stations.length;
   return {
-    // Local `+y` runs along the frame's axis, and a wait frame is turned end
-    // for end at the bottom of the set, so `+y` is "one place back along my own
-    // line" at both ends — the same sign `BECKET_BEFORE_SLIDE` uses.
-    p: framePoint(group.frame, [s.p[0], s.p[1] + COUPLE_PITCH_PX]),
+    p: framePoint(group.frame, [s.p[0], s.p[1] - 2 * mid]),
     facing: frameAngle(group.frame, s.facing),
   };
 }
@@ -205,7 +214,7 @@ function crossTogether(
   const centre = group.frame.centre;
   const mid: Vec2 = [(home.p[0] + mate.p[0]) / 2, (home.p[1] + mate.p[1]) / 2];
   const offset: Vec2 = [home.p[0] - mid[0], home.p[1] - mid[1]];
-  // Where the crossing is reckoned from: one couple place back along the
+  // Where the crossing is reckoned from: half a couple place back along the
   // couple's own line when the planner asked for the short landing
   // ({@link crossFrom}), and otherwise where the couple started the figure —
   // the waiting place unless the dance progressed in its own first figure and

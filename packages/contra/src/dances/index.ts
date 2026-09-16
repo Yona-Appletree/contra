@@ -84,7 +84,7 @@ export type { AcceptanceDance } from "./acceptance.js";
 export { ACCEPTANCE_SET, UNSUPPORTED_FIGURES, UNSUPPORTED_RELATIONS } from "./acceptance.js";
 export type { DanceFile, DanceFileSource } from "./loadDances.js";
 export { danceFromFile } from "./loadDances.js";
-export { CONTRA_FORMATIONS, formationById } from "./formations.js";
+export { CONTRA_FORMATIONS, formationById, isBecket } from "./formations.js";
 export type { DanceOracles, DanceRunOptions } from "./oracle.js";
 export {
   BECKET_LINES,

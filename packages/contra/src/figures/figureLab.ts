@@ -30,6 +30,7 @@ import {
 import { LAB_RUN } from "../dances/danceLab.js";
 import type { DanceOracles } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
+import { isBecket } from "../dances/formations.js";
 
 /**
  * `packages/contra/scripts/figureLab.mjs`'s data (O1): everything `pnpm figure
@@ -59,7 +60,7 @@ export function dancesUsingFigure(id: string, dances: readonly Dance[] = DEMO_DA
 
 /** The couples a dance is checked at: `reportMotion.ts`'s own convention. */
 export function danceCouples(dance: Dance): number {
-  return linesFor(dance).includes(6) && dance.formation === BECKET.id ? 6 : 4;
+  return linesFor(dance).includes(6) && isBecket(dance) ? 6 : 4;
 }
 
 /**
@@ -379,7 +380,7 @@ export function figureLabReport(
 
   const usedDances = dancesUsingFigure(id, demoDances);
   const scoped = dance === undefined ? usedDances : usedDances.filter((d) => d.slug === dance);
-  const becketUsed = usedDances.some((d) => d.formation === BECKET.id);
+  const becketUsed = usedDances.some((d) => isBecket(d));
 
   const assertionGroups = figureAssertionGroups(id, overrides);
   const duple = figureAloneRow(id, "duple", overrides);

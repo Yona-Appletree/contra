@@ -2,7 +2,7 @@ import type { Beat, Vec2 } from "@caller/core";
 import { addScaled, clamp01, dirOf, mix, smooth } from "@caller/core";
 import type { ContraParams, FigurePlan, PlanContext, Spots } from "./ContraFigure.js";
 import { contraFigure } from "./ContraFigure.js";
-import { COUPLE_PITCH_PX } from "../formation/becket.js";
+import { PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 
 /** {@link slideLeft}'s parameters. */
 export interface SlideLeftParams extends ContraParams {
@@ -87,10 +87,10 @@ export const slideLeft = contraFigure<SlideLeftParams>({
   id: "slide-left",
   call: "SLIDE LEFT ALONG THE SET",
   describe:
-    "In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.",
+    "In a becket dance the whole line slides one place along to its own left — half a couple's width, so that the two lines pass each other a whole one — and you find yourselves facing the couple that was on your diagonal. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.",
   lead: 4,
   beats: 4,
-  defaults: { from: {}, alongPx: COUPLE_PITCH_PX, direction: 1 },
+  defaults: { from: {}, alongPx: PLACE_PITCH_PX, direction: 1 },
 
   plan(ctx: PlanContext, params: SlideLeftParams): FigurePlan {
     // Who crosses the set instead of sliding along it. The two of them are one

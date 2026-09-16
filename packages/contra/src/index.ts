@@ -22,6 +22,7 @@ export {
   BECKET_LINE_UP_CALLS,
   BECKET_RELATIONS,
   BECKET_STATIONS,
+  BECKET_SHIFT_PLACES,
   BECKET_TOP_OFFSET_PX,
   BECKET_WAIT_STATIONS,
   COUPLE_PITCH_PX,
@@ -286,7 +287,11 @@ export {
   legacyLibrary,
 } from "./library/legacy.js";
 
-export { BECKET_RIGHT } from "./formation/becketRight.js";
+export {
+  BECKET_RIGHT,
+  BECKET_RIGHT_LATTICE,
+  BECKET_RIGHT_RELATIONS,
+} from "./formation/becketRight.js";
 
 export * from "./figures/index.js";
 export * from "./pair/index.js";
@@ -318,6 +323,7 @@ export {
   type DanceFileSource,
   CONTRA_FORMATIONS,
   formationById,
+  isBecket,
   LARKS,
   ROBINS,
   BECKET_LINES,
