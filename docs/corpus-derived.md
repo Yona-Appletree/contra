@@ -135,7 +135,7 @@ no derived file; `--report` counts each on its own line.
 
 Two line shapes beyond the plain one:
 
-- **Concurrent.** A line containing `||`, or `while` case-insensitively,
+- **Concurrent.** A line containing `||`, or the word "while" surrounded by spaces (case-insensitive),
   keeps its `text` whole and adds `"branches": [Line, …]` (two or more; 13
   lines split into three), each branch a plain line without `raw` and without
   `beats` (a branch takes the parent's). When both markers appear, `||` wins.
@@ -304,7 +304,18 @@ through their cluster.
 **Status**: `shipped` when a `data/dances/<slug>.json` names this id in
 `source.callersBoxId` and carries no `status` field; `lab` when it carries
 `"status": "lab"`; `custom-only` when it exists but every call is the `custom`
-figure; `not-started` otherwise.
+figure (`packages/contra/src/library/figures/custom.ts`, which plans
+hold-place and carries the caller's line as text); `not-started` otherwise.
+
+**Consumers in the app**: `packages/contra/src/corpus/corpusData.ts` resolves
+the data root (`$CONTRA_DATA`, else `../contra-data`) and reads the index, the
+sets and a record; `importCallersBox.ts` turns a derived record into a dance
+record whose every line is a `custom` call, refusing only formations the
+package cannot seat; `corpusSuite.test.ts` imports and plans every hand-set
+dance and skips with a message when the corpus is absent. CI checks the
+private repository out when the `CONTRA_DATA_TOKEN` secret exists and skips
+otherwise. `turbo.json` passes `CONTRA_DATA` through to `test`; without that
+the suite would skip with the corpus present.
 
 **Publishable**: `shipped` when status is shipped or lab (the record is already
 public); `fixture` when the record is in `sets/hand.json` and `permission` is
