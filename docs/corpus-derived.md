@@ -57,8 +57,11 @@ each formats its output through prettier with this repository's config
 (print width 100), so a copy into `data/corpus/fixtures/` passes
 `format:check` unchanged. Running `prettier --check` from inside `contra-data`
 will flag them, because that repository has no config; that is expected. Every script
-accepts `--data <path>` to override `CONTRA_DATA`, `--only <id>[,<id>]` to
-process a few records, and `--report` to print counts without writing. Tests
+accepts `--data <path>` to override the data root (else `$CONTRA_DATA`, else
+`$CONTRA_DATA_DIR`, which the crawlers and `update.sh` export, else
+`../contra-data`), `--only <id>[,<id>]` to process a few records (not
+`derive-clusters`, whose output is global and would be wrong for a subset),
+and `--report` to print counts without writing. Tests
 live beside each script as `derive-<name>.test.mjs` and run with
 `pnpm exec vitest run scripts/corpus`; they use hand-written inputs, never the
 cache. `contra-data/update.sh` runs the whole chain after each crawl.
@@ -201,8 +204,16 @@ lingo marks and a trailing `⁋` on the progression figure.
     },
   ],
   "beats": 64, // sum
+  "warnings": [], // always present; what the parser could not find, never a crash
 }
 ```
+
+Quirks of the pages the parser allows for: the hook paragraph closes with a
+stray `</h2>` on every hooked page; every `<tr>` is followed by an orphan
+`</tr>`; `formation` is free text with over a hundred spellings and is kept
+verbatim; `preamble` and `notes` are rendered markdown, flattened to one line.
+`lingo.underlined` and `lingo.struck` hold each mark's whole text (a mark is
+often a phrase), not single words.
 
 ## `derived/clusters.json`: one dance under several ids
 
@@ -219,9 +230,14 @@ them so popularity can be summed and a dance found from any source.
     "authorKey": "gene-hubert", // first author, lower-case, kebab
     "callersBox": ["10320"], // ids, most videos first
     "contradb": ["…"],
-    "portland": { "title": "Butter", "count": 17, "callers": 12, "callersBoxId": "10320" }, // or null
+    "portland": {
+      // or null; several Portland rows may land on one cluster (115 do), so they are summed and kept
+      "count": 17, // sum of the rows' counts
+      "callers": 12, // max over the rows
+      "rows": [{ "title": "Butter", "count": 17, "callers": 12, "callersBoxId": "10320" }], // every row verbatim, highest count first
+    },
     "videos": 280, // sum over callersBox members
-    "canonical": "10320", // the Caller's Box id with the most videos, or the first
+    "canonical": "10320", // the Caller's Box id with the most videos, or the first; a cluster with no Caller's Box member falls back to its first ContraDB id, then null
     "note": "", // set when the join was by title alone (no author match): "title-only"
   },
 ]
@@ -230,9 +246,21 @@ them so popularity can be summed and a dance found from any source.
 Joining rules, in order: a Portland row's `callersBoxId` joins it to that
 record's cluster outright; otherwise `titleKey` and `authorKey` both match;
 otherwise `titleKey` matches and one side has no author (`Traditional`,
-`Unknown person`, blank), recorded as `title-only`. A title match with two
+`Unknown person`, `unknown`, `anon`, blank, on either source), recorded as
+`title-only`. `authorKey` is the first author after every author string is
+split on " and ", " & ", "," and ";", so a co-authored dance keys the same
+whether a source stores one string or a list. An authorless cluster id ends
+in a bare `--`. A title match with two
 different named authors does **not** join (there are several dances called
 "Butter"). Every record is in exactly one cluster, alone if nothing joins it.
+
+Two known artefacts, accepted for now: `circassian circle--` is the largest
+cluster by videos (426) and rests on the weakest rule, three authorless
+records joined by title; and the Portland sheet's own `callersBoxId` for
+"Cows Are Watching" points at Cary Ravitz's "Cows are Watching Variation"
+(id 9686), so rule one faithfully puts the Portland row there while the Bill
+Pope original (7173, 60 videos) has none. A correction belongs in the sheet,
+or in a future override list, not in the joining rules.
 
 ## `derived/index.jsonl`: one line per Caller's Box record
 
