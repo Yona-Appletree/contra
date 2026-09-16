@@ -37,7 +37,13 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../..");
-const DATA_DIR = resolve(REPO_ROOT, "data/local/corpus-raw/callers-box");
+// Where the cache lives: $CONTRA_DATA_DIR if set (the private contra-data
+// checkout, see data/README.md), else data/local/ — which is gitignored and,
+// on the user's machine, a symlink to that same checkout.
+const DATA_ROOT = process.env.CONTRA_DATA_DIR
+  ? resolve(process.env.CONTRA_DATA_DIR)
+  : resolve(REPO_ROOT, "data/local");
+const DATA_DIR = resolve(DATA_ROOT, "corpus-raw/callers-box");
 const MANIFEST_PATH = resolve(DATA_DIR, "manifest.jsonl");
 
 const REPO_URL = "https://github.com/Yona-Appletree/contra";

@@ -1,4 +1,8 @@
-# Crawling The Caller's Box
+# Crawling The Caller's Box and ContraDB
+
+Two crawlers, one set of manners. The Caller's Box crawler is described
+first; the ContraDB crawler (added 2026-09-16) follows under
+[ContraDB](#contradb-scriptscorpuscrawl-contradbmjs).
 
 `scripts/corpus/crawl-callers-box.mjs` fetches every dance's JSON export
 from [The Caller's Box](https://www.ibiblio.org/contradance/thecallersbox/)
@@ -151,11 +155,9 @@ has run out — or at `--max-id` if one was given.
 
 ## Out of scope (held, not forgotten)
 
-- **ContraDB.** Not touched by this script or this document. The user has
-  not ruled on it, its unauthenticated `POST /api/v1/dances` API leaks
-  `publish: "sketchbook"` (draft) records by default, and its maintainers'
-  own stance is an open six-year-old GitHub issue (`contradb/contra#297`).
-  Held as E15.
+- **ContraDB** was held here (E15) until 2026-09-16; it now has its own
+  crawler and its own section below. Nothing about the Caller's Box
+  crawler changed for it.
 - **Normalisation, parsing, or import** of anything the crawl fetches into
   the dance format `packages/contra/src/dances/` reads. That's a later
   mission's job, same as the corpus ADR already says for the Portland
@@ -188,9 +190,10 @@ something this script or milestone does automatically.
 >
 > Thanks for maintaining such a useful resource.
 
-**To ContraDB** (`ContraDB.admonsterator@gmail.com`, cc referencing issue
-#297) — kept here for completeness even though ContraDB itself is out of
-scope for this crawler:
+**To ContraDB** (`ContraDB.admonsterator@gmail.com`) — **sent by the user
+on 2026-06-01; no reply as of 2026-09-16.** That silence, after three and
+a half months, is the footing the ContraDB crawler below proceeds on. The
+text as drafted:
 
 > Subject: Reading ContraDB's public API for a research project
 >
@@ -227,3 +230,173 @@ consequences, both pre-existing and not introduced by this script:
   `pnpm exec turbo run test` for the same reason — no workspace package
   owns `scripts/`. Run it directly: `pnpm exec vitest run
 scripts/corpus/crawl-callers-box.test.mjs`.
+
+## ContraDB (`scripts/corpus/crawl-contradb.mjs`)
+
+Added 2026-09-16. The user's ruling, verbatim: "proceed with a gentle
+scrape, same rules as caller's box: 2s per call, keep the data next to
+that data but separate, build a tool to do it and update it later."
+
+ContraDB (https://contradb.com, Dave Morse's AGPL Rails app, source at
+`github.com/contradb/contra`) is here for one thing The Caller's Box does
+not carry: **a per-figure progression mark.** ContraDB's own curation
+guide asks transcribers to "use the '⁋rogress' menu option at least once
+per dance", and defines it as "the progression happens after the figure".
+On a dance page it is rendered as a pilcrow at the end of the figure's
+text — `<div class="show-figure">slide left along set ⁋</div>`. It is a
+human-entered flag, so older or hastier transcriptions may lack it;
+`--report` counts how many cached dances carry one.
+
+### What ContraDB exposes, and what the crawler reads
+
+- **`robots.txt`** allows everything and states no crawl-delay. The source
+  has no rate limiter. The two-second floor is carried over from the
+  Caller's Box crawler by the ruling above, not asked for by the site.
+- **`POST /api/v1/dances`** — an unauthenticated JSON search endpoint (the
+  same one the site's own search page uses). For each dance visible to an
+  anonymous visitor it returns id, title, choreographer (name and id),
+  formation, hook, transcriber, `publish` tier, and created/updated
+  timestamps. **Figures are not in it.** Default order is `created_at`
+  descending, which is stable across pages. Found on 2026-09-16: a page
+  of 500 answers HTTP 500 while 200 is fine, and one run of four
+  consecutive dances (created 2025-04-17 to 2025-04-23, somewhere in ids
+  2702–2832) crashes any page that includes them. The crawler halves a
+  page that answers 5xx down to a single dance and steps over one that
+  still fails, logging the offset. **Those four dances are absent from the
+  cache — a known gap**, four of 2,370.
+- **`GET /dances/<id>`** — the dance page, ~7 KB of server-rendered HTML,
+  figures and pilcrows included, in ContraDB's default dialect
+  (gentlespoons/ladles). This is the only place the figures are readable
+  without an account, so this is what gets cached, byte for byte.
+- **`GET /choreographers`** — the public consent table, one page: each
+  choreographer's `publish` consent (never / sometimes / always /
+  deceased-and-unknown, or blank). Cached once per run.
+
+### Visibility rules the crawler applies
+
+ContraDB has three publish tiers: `off` (private), `sketchbook` (draft),
+and `all` (shown as "everywhere"). Private dances never appear in the
+listing and their pages 404 anonymously. Sketchbook dances **do** appear in
+the listing (the API queries with `sketchbook: true` regardless of who is
+asking) and their pages are readable by URL — but the server stamps them
+`X-Robots-Tag: noindex`, which is as explicit a "do not index" as a site
+can give. So:
+
+- Only `publish: "everywhere"` dances have their page fetched.
+- Sketchbook dances are recorded in the manifest as `status: "skipped"`
+  (title and choreographer copied from the listing, so the count is
+  known), and never fetched.
+- Any page that nevertheless arrives with `X-Robots-Tag: noindex` is
+  discarded unread (`status: "noindex"`). Belt and braces; it should
+  never trigger.
+
+### Rate and identification
+
+One request every two seconds, every request — listing pages, the
+choreographers page, dance pages, and retries alike. A network error backs
+off (doubling from 4 s, capped at 60 s, three retries) and is then recorded
+as `status: "error"` and retried on the next run. The User-Agent is the
+same shape as the Caller's Box crawler's and requires `CONTRA_CRAWL_CONTACT`.
+
+The first run, 2026-09-16 (log in `data/local/crawl-contradb.log`): one
+listing pass of 31 requests (15 pages plus the bisect around the four
+unlistable dances), the choreographers page, and 2,178 dance pages, all
+`ok`, none missing or erroring, median gap 2.1 s, 76 minutes end to end,
+21 MB on disk. `--report` afterwards: 1,862 of the 2,178 cached dances
+carry at least one ⁋ (1,768 exactly one; 94 two or more), 316 carry none;
+18,046 figures in all, 1,972 of them marked.
+
+### Where the data lands, and that it never enters git
+
+```
+data/local/corpus-raw/contradb/index-page-<n>.json   # each listing page's raw JSON, overwritten per run
+data/local/corpus-raw/contradb/choreographers.html    # the consent table, raw, overwritten per run
+data/local/corpus-raw/contradb/<id>.html              # one dance page, raw, "everywhere" dances only
+data/local/corpus-raw/contradb/manifest.jsonl         # one line per dance per attempt; last line per id wins
+```
+
+`data/local/` is gitignored, same as for the Caller's Box — and since
+2026-09-16 it is a symlink to the private `contra-data` checkout (see
+`data/README.md`; `CONTRA_DATA_DIR` overrides the location for both
+crawlers). Each manifest line copies its descriptive fields verbatim from
+the listing — nothing is parsed out of the page:
+
+```json
+{
+  "id": 1,
+  "url": "https://contradb.com/dances/1",
+  "fetchedAt": "2026-09-16T15:30:00.000Z",
+  "status": "ok",
+  "sha256": "…",
+  "bytes": 7310,
+  "publish": "everywhere",
+  "title": "The Rendezvous",
+  "choreographer": "Dan Pearl",
+  "choreographerId": 12,
+  "formation": "improper",
+  "transcriber": "Dave Morse",
+  "createdAt": "2015-06-27T02:14:07.000Z",
+  "updatedAt": "2019-01-05T18:12:44.000Z"
+}
+```
+
+`status` is `"ok"`, `"missing"` (404 — made private or deleted between the
+listing and the fetch), `"noindex"`, `"error"`, or `"skipped"`
+(sketchbook). Only `"ok"` lines have a cached page.
+
+### Updating later
+
+Re-running is the update mechanism, and it is cheap: the listing is
+re-read (one pass), and a dance's page is fetched only if it is new, its
+`updated_at` differs from the manifest's, its last attempt errored, or it
+has moved out of the sketchbook. Unchanged dances cost nothing. Dances the
+manifest knows that the listing no longer lists (unpublished, made
+private, or deleted since) are logged as "gone" and left alone — their
+cached page stays, and the report shows their last status.
+
+```bash
+# Full run, or an update — the same command either way:
+CONTRA_CRAWL_CONTACT="you@example.com" pnpm corpus:crawl:contradb
+
+# See what a run would fetch (one listing pass, no pages):
+CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-contradb.mjs --plan
+
+# Fetch at most N pages and stop:
+CONTRA_CRAWL_CONTACT="you@example.com" node scripts/corpus/crawl-contradb.mjs --dry-run 5
+
+# Counts by status and tier, plus how many cached dances carry a ⁋ (no network):
+node scripts/corpus/crawl-contradb.mjs --report
+```
+
+The crawl is safe to interrupt: each dance's manifest line and page are
+written before the next request, and the next run simply skips what is
+already cached at the current `updated_at`.
+
+### The ethics footing, and the publication rule
+
+- The user emailed the site's live contact address on 2026-06-01 stating
+  the intent, the rate and the publication limits (the draft above), and
+  had no reply by 2026-09-16. The user's standing rule — "ask for
+  forgiveness over permission unless it's likely to cause them pain" —
+  covers a 75-minute crawl at this rate.
+- The maintainers' ethics discussion (`contradb/contra#297`, opened 2018,
+  still open) was read but deliberately **not** commented on — the user's
+  call: "no one has commented on that post in 8 years, I don't really
+  want to unearth it."
+- Fetching and caching is all this crawler does. **Publishing anything
+  from the cache is governed by the ADR amendment of 2026-09-16** in
+  `docs/adr/2026-09-13-corpus-and-permission.md`: same shape as the
+  Caller's Box rule, with ContraDB's own signals (`publish: "everywhere"`,
+  the choreographer's consent tier) standing in for the Caller's Box
+  `Permission` field.
+- Contact addresses, for the record: `ContraDB.admonsterator@gmail.com`
+  is the one the live site shows today (every dance page, the help
+  page); `adminisaur@contradb.com` appears only in the years-old wiki and
+  issue thread.
+
+### Lint and test coverage
+
+Same situation as the Caller's Box crawler (see above): `scripts/` is
+outside every workspace package, so run `pnpm exec eslint scripts/corpus/`
+and `pnpm exec vitest run scripts/corpus/crawl-contradb.test.mjs` directly.
+`pnpm exec prettier --check .` does cover both files.

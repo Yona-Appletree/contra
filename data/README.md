@@ -115,7 +115,22 @@ they are written in and the whole slot vocabulary;
 `packages/contra/src/text/figureText.test.ts` enforces as much of it as a
 machine can.
 
-## `local/corpus-raw/callers-box/` (never committed)
+## `local/` — the private `contra-data` checkout
+
+Since 2026-09-16 everything under `data/local/` lives in a separate,
+**private** repository, [Yona-Appletree/contra-data](https://github.com/Yona-Appletree/contra-data),
+so the two crawls are stored and versioned somewhere other than one
+laptop (the user's ruling: "the data is publicly available anyways. seems
+pretty safe to me"). On the user's machine `data/local` is a symlink to
+that checkout; both crawlers also honour `CONTRA_DATA_DIR` for an
+explicit location. `data/local/` stays gitignored here, and the rule is
+unchanged: the private repository is storage, not a licence — nothing in
+it reaches this public repository except derived data that has passed the
+ADR's gate. To update, run `contra-data`'s `update.sh` (it runs both
+crawlers, commits, and pushes); a workflow there does the same on the
+first of each month.
+
+## `local/corpus-raw/callers-box/` (never committed here)
 
 `scripts/corpus/crawl-callers-box.mjs` (see `docs/corpus-crawl.md`) walks
 The Caller's Box's dance ids upward, one JSON export per id at one request
@@ -128,6 +143,23 @@ dance's figures still need the same author-clearance gate `corpus/` and
 `dances/` above already require, and a dance marked non-`"full"` there
 stays unpublished for now regardless of anything cached locally, per the
 user's own ruling recorded in `docs/corpus-crawl.md`.
+
+## `local/corpus-raw/contradb/` (never committed here)
+
+`scripts/corpus/crawl-contradb.mjs` (see `docs/corpus-crawl.md`, "ContraDB")
+reads ContraDB's public listing (`POST /api/v1/dances`), caches the
+listing pages and the choreographers' consent table raw, and fetches one
+page per dance whose publish tier is "everywhere" — never sketchbook,
+never private — at one request every two seconds, into
+`data/local/corpus-raw/contradb/`: `<id>.html` byte for byte, plus an
+append-only `manifest.jsonl` (last line per id wins) whose fields are
+copied verbatim from the listing. It is here for ContraDB's per-figure
+progression mark (⁋), which The Caller's Box does not have. Re-running it
+is how it updates: only new or changed dances are refetched.
+
+Same rule as the Caller's Box cache above: a research cache, not corpus
+data. Nothing here is transformed or published; anything drawn from it
+goes through the ADR's publication gate, in its 2026-09-16 amendment.
 
 ## Permission note
 
