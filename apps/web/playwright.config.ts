@@ -37,7 +37,18 @@ const PORT = safePort(
  * the hash changes, so every path that was already fine keeps the port it had.
  */
 function safePort(port: number): number {
-  const BLOCKED = new Set([4190, 5060, 5061]);
+  // **And the two macOS already answers on** (M9h). 5000 and 7000 are the
+  // AirPlay Receiver's, served by Control Centre and on by default on a Mac,
+  // and what they answer `GET /contra/` with is `403 Forbidden` from
+  // `Server: AirTunes/950.7.1`. That is worse than a port Chrome refuses,
+  // because the page loads: `--strict-port` stops `vite preview` binding, but
+  // `reuseExistingServer` sees something answering at the URL, decides a server
+  // is already up, and **every e2e test in that worktree then screenshots
+  // AirPlay** and fails on an empty body. This worktree's own path hashed to
+  // 5000 and took the whole suite out, the smoke test included, until it was
+  // found — so the two go in the list beside the Chrome ones rather than being
+  // rediscovered.
+  const BLOCKED = new Set([4190, 5000, 5060, 5061, 7000]);
   let at = port;
   while (BLOCKED.has(at)) at += 1;
   return at;

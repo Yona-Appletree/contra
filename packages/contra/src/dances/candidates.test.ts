@@ -133,9 +133,15 @@ describe("where a candidate is, and is not", () => {
     // the corpus — the programme, the Moves page's dance index, the trace
     // plates, the acceptance tests — must keep seeing exactly the files on disk.
     for (const dance of CANDIDATE_DANCES) {
-      expect(ALL_DANCES.some((d) => d.slug === dance.slug), dance.slug).toBe(false);
+      expect(
+        ALL_DANCES.some((d) => d.slug === dance.slug),
+        dance.slug,
+      ).toBe(false);
       expect(DEMO_DANCE_SLUGS).not.toContain(dance.slug);
-      expect(LAB_CORPUS.some((d) => d.slug === dance.slug), dance.slug).toBe(true);
+      expect(
+        LAB_CORPUS.some((d) => d.slug === dance.slug),
+        dance.slug,
+      ).toBe(true);
     }
     expect(LAB_CORPUS.length).toBe(ALL_DANCES.length + CANDIDATE_DANCES.length);
   });

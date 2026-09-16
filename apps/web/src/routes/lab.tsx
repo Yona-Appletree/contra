@@ -101,6 +101,12 @@ function LabIndex(): JSX.Element {
           </li>
         ))}
       </ul>
+      <p className="max-w-[90ch] text-sm">
+        <a href="#/lab/dance">The dance lab</a> is the other half of this one: a whole dance rather
+        than a seam, and candidate <b>records</b> rather than two engines &mdash; five dances whose
+        one open question is where they physically carry their progression, each shown with the
+        readings of it side by side.
+      </p>
       <p className="text-sm">
         <a href="#/moves">Back to the moves</a>
       </p>

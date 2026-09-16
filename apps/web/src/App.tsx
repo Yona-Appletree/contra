@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { BuildInfoBadge } from "./buildInfo/BuildInfoBadge.js";
+import { DanceLabPage, danceLabSlug } from "./routes/danceLab.js";
 import { DancePage, DancesPage } from "./routes/dances.js";
 import { FramePage } from "./routes/frame.js";
 import { HallPage } from "./routes/hall.js";
@@ -54,6 +55,22 @@ export function App() {
       <MoveTracesPage
         key={`${moveTraces}|${route.params.toString()}`}
         id={moveTraces}
+        params={route.params}
+      />
+    );
+    return bare ? page : <Tabbed tab="moves">{page}</Tabbed>;
+  }
+
+  // `#/lab/dance` and `#/lab/dance/<slug>`: the **dance lab** (M9h) — one
+  // dance, its record and the candidate readings of where it carries its
+  // progression, side by side over a whole time through. Checked before the
+  // seam lab below, which matches every other `/lab/...` path.
+  const labDance = danceLabSlug(route.path);
+  if (labDance !== null) {
+    const page = (
+      <DanceLabPage
+        key={`${route.path}|${route.params.toString()}`}
+        path={route.path}
         params={route.params}
       />
     );
