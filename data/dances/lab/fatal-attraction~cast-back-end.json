@@ -4,7 +4,7 @@
   "title": "The cast back completes the move",
   "assumes": "The promenade brings you round, and the two beats of the cast back are the last step of it: you are not on your new place until the robins have cast and the larks have gone forward, so the shift belongs at the end of that call rather than at its start.",
   "quotes": "A2  (2) Women cast back || Men go forward  (6) N2 neighbor right shoulder round  (8) N2 neighbor swing",
-  "notes": "This is the reading M9b committed and DD43 replaced: the same clause, `\"progresses\": true` instead of `\"progresses\": \"start\"`. It is here because the choice between the two is exactly E6's question for this dance, and the record's notes already say that the end reading is the one that did not close.",
+  "notes": "This is the reading M9b committed and DD43 replaced: the same clause, `\"progresses\": true` instead of `\"progresses\": \"start\"`. It is here because the choice between the two is exactly E6's question for this dance, and the record's notes already say that the end reading is the one that did not close. **Measured** at six couples: `closure 0.0000 · progressed 37.7359 · reach 5.1801 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 2.5791 · 1.895`, and the same at every length 4–12. Twice the reach short and a collision on zero: giving the cast-back's two beats to the seating it is leaving is what the record's own notes said did not close, and it still does not.",
   "patch": [
     {
       "at": "A2/0",

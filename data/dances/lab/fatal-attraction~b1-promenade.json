@@ -4,7 +4,7 @@
   "title": "The second promenade carries the second half",
   "assumes": "The dance goes round the major set twice and comes back: A1's promenade takes you out to number two and B1's clockwise one brings the whole thing home, so the set does not move on until B1 has finished and everything before it is still danced with the neighbour the card calls number two.",
   "quotes": "B1  (8) N2 neighbor promenade clockwise around the major set  (8) Women allemande right 1 & 1/2",
-  "notes": "The record's clause on A2's cast-back is removed and the shift is written on B1's promenade instead. The A2 calls go back to the card's own word — the shoulder round and the swing say N2 again, and so does B1's promenade — because until the shift happens the couple the first promenade carried you round to is still number two rather than your neighbour.",
+  "notes": "The record's clause on A2's cast-back is removed and the shift is written on B1's promenade instead. The A2 calls go back to the card's own word — the shoulder round and the swing say N2 again, and so does B1's promenade — because until the shift happens the couple the first promenade carried you round to is still number two rather than your neighbour. **Measured** at six couples: `closure 0.0000 · progressed 37.7359 · reach 11.4875 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 2.5791 · 1.895`, and the same at every length 4–12. Four times the reach short: keeping the whole of A2 and B1 in the seating the time through started in means the shoulder round, the swing and the promenade all reach across a couple place the bodies have already crossed.",
   "patch": [
     {
       "at": "A2/0",

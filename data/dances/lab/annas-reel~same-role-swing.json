@@ -4,7 +4,7 @@
   "title": "The same-role balance and swing settles it",
   "assumes": "The two robins (then the two larks) balance and swing, and they open out one on each line — so the swing is what puts each dancer on the other side of the set, and the partner swing after it is already the new formation.",
   "quotes": "B1  (4) Women balance  (12) Women swing",
-  "notes": "Written on both passes. B1's swing is a same-role pair, which since M9f takes its two end places by the end of the orbit each dancer finishes on rather than by role — so which line each of them opens out on to is a fact about the swing rather than a coin toss.",
+  "notes": "Written on both passes. B1's swing is a same-role pair, which since M9f takes its two end places by the end of the orbit each dancer finishes on rather than by role — so which line each of them opens out on to is a fact about the swing rather than a coin toss. **Measured** at six couples: `closure 32.0000 · progressed 32.0000 · reach 1.4129 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 0.0000 · 4.091`. The same `progressed` as the other two readings — 37.7359 down to the set's own width — so what tells the three apart is where the 32 px of closure lands rather than how far the dancers get.",
   "patch": [
     {
       "at": "B1/0",
