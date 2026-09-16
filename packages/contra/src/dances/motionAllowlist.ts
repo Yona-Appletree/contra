@@ -127,6 +127,28 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "px/beat off it.",
   },
   {
+    dance: "are-you-most-done",
+    key: "allemande",
+    metric: "travel",
+    reason:
+      "The same call-count arithmetic as the circle above, in the dance the " +
+      "card is hardest on. Are You 'Most Done?'s B2 is *(4) Men allemande " +
+      "right 1*: a whole turn in **four** beats, between the two larks of a " +
+      "becket minor set, who stand on a **diagonal** 37.74 px apart (the set " +
+      "is 32 px wide and a becket couple stands half a couple place along its " +
+      "own line). Measured at six couples, beats 48-52: the lark's whole path " +
+      "is 73.40 px — walk in to the middle, once round, walk out — and the " +
+      "worst one-beat window of it is 33.91 px/beat against M10's 23.32. The " +
+      "same allemande run alone is 10.1 px/beat (docs/motion-report.md), and " +
+      "A1's, which is once and a half over **eight** beats between the same " +
+      "two dancers, is 15.15. So it is not the figure and it is not the cycle " +
+      "boundary — M9g's straightening hey took the boundary's own walk-in " +
+      "away and this row did not move a digit (33.9 before and after, while " +
+      "`swing` went 27.4 -> 21.5 and `long-lines` 24.7 -> 3.8). The levers are " +
+      "the card's four beats or how far apart a becket minor set's two larks " +
+      "stand, and neither is the motion profile's.",
+  },
+  {
     dance: "*",
     key: "star",
     metric: "travel",

@@ -205,7 +205,15 @@ export interface Lane {
 
 /** One schedule, expanded and laid out: what the kind and its tests both read. */
 export interface PlannedSchedule {
+  /** The lane the hey **starts** on. */
   lane: Lane;
+  /**
+   * The lane the hey **ends** on, which is the same object for every hey but a
+   * straightening one (M9g).
+   */
+  laneEnd: Lane;
+  /** Where the lane is `t` beats in: a constant unless the hey straightens. */
+  laneAt: (t: Beat) => Lane;
   /** How many legs the weave is danced for, out of the whole turn's eight. */
   legs: number;
   /** Those legs as a fraction of the whole weave. */
@@ -260,19 +268,41 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
   const passPx = evalNumber(shape.passPx, env);
   const joinBeats = evalNumber(shape.joinBeats, env);
   const lane = laneOf(shape, input, env);
-  const cos = Math.cos((lane.axis * Math.PI) / 180);
-  const sin = Math.sin((lane.axis * Math.PI) / 180);
-  /** A weave-local point as a frame-local one. */
-  const toFrame = (q: Vec2): Vec2 => [
-    lane.centre[0] + q[0] * cos - q[1] * sin,
-    lane.centre[1] + q[0] * sin + q[1] * cos,
-  ];
-  /** A frame-local point in weave-local px. */
-  const toWeave = (p: Vec2): Vec2 => {
-    const x = p[0] - lane.centre[0];
-    const y = p[1] - lane.centre[1];
+  // **The lane is a trajectory** (M9g): the hey that straightens as it proceeds
+  // ends on a different lane from the one it starts on, and everything the
+  // weave is written in follows it. For every other hey the two are the same
+  // object and `laneAt` is a constant, so nothing downstream can tell.
+  const straighten = straightenOf(shape, input, lane, env);
+  const laneEnd = straighten?.lane ?? lane;
+  /** Where the lane is `t` beats in. */
+  const laneAt = (t: Beat): Lane =>
+    straighten === undefined ? lane : lerpLane(lane, laneEnd, beats <= 0 ? 1 : ramp(t, 0, beats));
+  /** A weave-local point as a frame-local one, on a given lane. */
+  const toFrameOn = (on: Lane, q: Vec2): Vec2 => {
+    const cos = Math.cos((on.axis * Math.PI) / 180);
+    const sin = Math.sin((on.axis * Math.PI) / 180);
+    return [on.centre[0] + q[0] * cos - q[1] * sin, on.centre[1] + q[0] * sin + q[1] * cos];
+  };
+  /** A frame-local point in weave-local px, on a given lane. */
+  const toWeaveOn = (on: Lane, p: Vec2): Vec2 => {
+    const cos = Math.cos((on.axis * Math.PI) / 180);
+    const sin = Math.sin((on.axis * Math.PI) / 180);
+    const x = p[0] - on.centre[0];
+    const y = p[1] - on.centre[1];
     return [x * cos + y * sin, -x * sin + y * cos];
   };
+  /** A frame-local point in weave-local px, on the lane the hey starts on. */
+  const toWeave = (p: Vec2): Vec2 => toWeaveOn(lane, p);
+  /**
+   * Where a dancer's place is at the end of the figure, frame-local.
+   *
+   * Their own place for every hey but a straightening one, where each line has
+   * slid half of the diagonal's own lean along itself and the place has gone
+   * with it.
+   */
+  const endPlaceOf = (role: FigureRole): Vec2 => slidPlace(ctx.spot(role).p);
+  /** A frame-local place, where the lane's own turn leaves it. */
+  const slidPlace = (p: Vec2): Vec2 => straighten?.slid(p) ?? p;
 
   const params = input.params;
   const written = readPassList(params[shape.shorthand.passes]);
@@ -379,13 +409,16 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     if (tb === undefined) return 1;
     return 1 - 2 * smooth(clamp01((t - tb) / bounceCross));
   };
-  /** The weave itself, in weave-local px. */
-  const weaveAt = (deg: number, side: number): Vec2 => {
+  /** The weave itself, in weave-local px, on a given lane. */
+  const weaveOn = (on: Lane, deg: number, side: number): Vec2 => {
     const rad = (deg * Math.PI) / 180;
-    return [lane.reach * Math.cos(rad), side * V * Math.sin(3 * rad)];
+    return [on.reach * Math.cos(rad), side * V * Math.sin(3 * rad)];
   };
+  /** The weave itself, in weave-local px, on the lane the hey starts on. */
+  const weaveAt = (deg: number, side: number): Vec2 => weaveOn(lane, deg, side);
   /** Where a dancer is on the weave `t` beats in, weave-local. */
-  const onWeave = (role: FigureRole, t: Beat): Vec2 => weaveAt(psi(role, t), flip(role, t));
+  const onWeave = (role: FigureRole, t: Beat): Vec2 =>
+    weaveOn(laneAt(t), psi(role, t), flip(role, t));
 
   /**
    * Which way the weave is going `t` beats in, as a frame-local facing.
@@ -399,6 +432,11 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     const on = onWeave(role, t);
     const ahead = onWeave(role, t + LOOK_BEATS);
     const step: Vec2 = [ahead[0] - on[0], ahead[1] - on[1]];
+    // On a lane that turns under the dancers, the way the weave is going is
+    // read on the lane they are on at that moment.
+    const at = laneAt(t);
+    const cos = Math.cos((at.axis * Math.PI) / 180);
+    const sin = Math.sin((at.axis * Math.PI) / 180);
     return angleOfVec([step[0] * cos - step[1] * sin, step[0] * sin + step[1] * cos]);
   };
 
@@ -459,7 +497,11 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       // last meeting is.
       offEnd[role] = [0, 0];
     } else {
-      const to = toWeave(ctx.spot(landing[role]!).p);
+      // **Read on the lane the hey ends on**, which for a straightening hey is
+      // not the one it starts on: the place you land on has slid along its own
+      // line with the lane, and both the place and the weave's own last point
+      // are measured in the end lane's coordinates.
+      const to = toWeaveOn(laneEnd, endPlaceOf(landing[role]!));
       const end = onWeave(role, beats);
       offEnd[role] = [to[0] - end[0], to[1] - end[1]];
     }
@@ -481,7 +523,7 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     const arriving = even(t, beats - joinBeats, beats);
     const from = offStart[role]!;
     const to = offEnd[role]!;
-    return toFrame([
+    return toFrameOn(laneAt(t), [
       on[0] + from[0] * leaving + to[0] * arriving,
       on[1] + from[1] * leaving + to[1] * arriving,
     ]);
@@ -638,7 +680,9 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
       continue;
     }
     if (!short) {
-      ends[role] = ctx.spot(landing[role]!);
+      // The place the weave lands you on, slid along its own line if the lane
+      // straightened under you (M9g).
+      ends[role] = { ...ctx.spot(landing[role]!), p: endPlaceOf(landing[role]!) };
       continue;
     }
     ends[role] = { p: settled?.[role] ?? placeAt(role, beats), facing: 0 };
@@ -669,12 +713,29 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
     const dancing = roles.filter((role) => !standing.has(role));
     const points: Record<string, Vec2> = {};
     for (const role of dancing) points[role] = placeAt(role, beats);
-    const out = settleOnPlaces(dancing, points, input.places ?? [], input.spokenFor);
+    // **On the places as the lane's own turn leaves them** (M9g).
+    //
+    // A short hey stops at the lane's edge, between two places, and M2's rule is
+    // that the honest end is the pair of places it is between — searched over
+    // the whole lane's places, because on an ordinary hey the dancer may be
+    // between two that belong to somebody else.
+    //
+    // A **straightening** hey is not free that way: its lines have each slid
+    // along themselves by the last beat, so the four places it can stop between
+    // are its own four, slid. Searching the whole lane would be searching a
+    // mixture — the rest of the lane has not slid, and the ledger's claims are
+    // written in the places as they were — and it picks a dancer up and puts
+    // them forty px away (measured at six couples: `1L` on to `(−16, 110)`).
+    const settleTo =
+      straighten === undefined
+        ? (input.places ?? [])
+        : roles.map((role) => slidPlace(ctx.spot(role).p));
+    const out = settleOnPlaces(dancing, points, settleTo, input.spokenFor);
     for (const role of dancing) {
       const to = out[role];
       if (to === undefined) continue;
       const on = onWeave(role, beats);
-      const want = toWeave(to);
+      const want = toWeaveOn(laneEnd, to);
       offEnd[role] = [want[0] - on[0], want[1] - on[1]];
     }
     return out;
@@ -704,6 +765,8 @@ export function scheduleOf(shape: ScheduleShape, input: ShapeInput): PlannedSche
 
   return {
     lane,
+    laneEnd,
+    laneAt,
     legs,
     amount,
     items,
@@ -844,6 +907,137 @@ function laneOf(shape: ScheduleShape, input: ShapeInput, env: ExprEnv): Lane {
     word === "across" ? 0 : word === "along" ? 90 : spread(0) >= spread(1) ? 0 : 90;
   const half = word === "spread" ? Math.max(spread(0), spread(1)) : spread(axis === 0 ? 0 : 1);
   return { centre, axis, half, reach: half * evalNumber(shape.loopReach, env) };
+}
+
+/** Where a straightening hey is going: the lane it ends on, and the places with it. */
+interface Straighten {
+  /** The lane at the last beat. */
+  lane: Lane;
+  /**
+   * Where a place on one of the two lines has slid to by the last beat.
+   *
+   * Every place of the hey's own group moves with the line it stands on — the
+   * dancers' places and the formation's homes alike — so a short hey settles on
+   * the straightened places rather than the ones it set off from.
+   */
+  slid: (p: Vec2) => Vec2;
+}
+
+/**
+ * **The hey that straightens as it proceeds** (M9g, Q12 re-opened; DD57).
+ *
+ * The Caller's Box's note on Are You 'Most Done? — *"Hey can straighten out as
+ * it proceeds. Dance begins with same neighbors as in the hey"* — is one
+ * sentence about the lane and one about the progression, and under FR-C2's
+ * half-width becket shift they are the **same** fact.
+ *
+ * A right-diagonal hey's four dancers are two couples across the set and one
+ * couple place apart along it. Straighten that lane — slide each line along
+ * **itself** until the two couples are square across the set — and each line has
+ * moved **half a couple place** in the direction its own line progresses, which
+ * is exactly the becket shift (`BECKET_SHIFT_PLACES = 0.5`). So a hey that
+ * straightens *is* the progression: the dance's `progresses` clause moves the
+ * seating at the same beat the lane finishes turning, the bodies are already
+ * there, and nothing downstream has to walk a couple place in over the first
+ * beats of the next figure.
+ *
+ * It is the lane that moves, not the hey's shape: the weave is the same weave in
+ * lane-local coordinates from the first beat to the last, and the lane it is
+ * written in turns under it. So every count of the pass list still happens, in
+ * order, by the shoulders the record wrote.
+ *
+ * **Only a lane with two lines of two can straighten.** A hey for three has no
+ * two lines to square up, and a lane read off the frame's own axes is square
+ * already; both come back `undefined` and are bit-for-bit what they were.
+ */
+function straightenOf(
+  shape: ScheduleShape,
+  input: ShapeInput,
+  lane: Lane,
+  env: ExprEnv,
+): Straighten | undefined {
+  if (input.params[shape.shorthand.straighten] !== true) return undefined;
+  const { ctx, roles } = input;
+  if (roles.length !== 4) return undefined;
+  const points = roles.map((role) => ctx.spot(role).p);
+  const split = lineSplit(points, lane.centre);
+  if (split === undefined) return undefined;
+  const { near, far, line, lean, across } = split;
+  // Half the lean each, along the line's own direction: the near line slides
+  // forward and the far line back, so the lane's own middle does not move and
+  // the two lines end square across it.
+  const slide: Vec2 = [(line[0] * lean) / 2, (line[1] * lean) / 2];
+  const centre = lane.centre;
+  const slid = (p: Vec2): Vec2 => {
+    // Which of the two lines a place is on, read across the lane. The two lines
+    // are the only thing the lane has, so a point is on one or the other.
+    const sign = (p[0] - centre[0]) * across[0] + (p[1] - centre[1]) * across[1] < 0 ? 1 : -1;
+    return [p[0] + sign * slide[0], p[1] + sign * slide[1]];
+  };
+  const from = slid(near);
+  const to = slid(far);
+  const half = dist(from, to) / 2;
+  return {
+    lane: {
+      centre,
+      axis: angleOfVec([to[0] - from[0], to[1] - from[1]]),
+      half,
+      reach: half * evalNumber(shape.loopReach, env),
+    },
+    slid,
+  };
+}
+
+/**
+ * The four dancers as two lines of two, and how far the far line leans along
+ * itself from the near one.
+ *
+ * The same split {@link diagonalLane} makes — the principal axis says which two
+ * are a line, and a line's place is the middle of its two dancers — with the
+ * line's **own** direction read off the pair that stands on it, which is the
+ * direction a dancer of a contra line can slide without leaving the line.
+ */
+function lineSplit(
+  points: readonly Vec2[],
+  centre: Vec2,
+): { near: Vec2; far: Vec2; line: Vec2; lean: number; across: Vec2 } | undefined {
+  if (points.length !== 4) return undefined;
+  const dir = dirOf(principalAxis(points, centre));
+  const on = (p: Vec2): number => (p[0] - centre[0]) * dir[0] + (p[1] - centre[1]) * dir[1];
+  const order = [...points].sort((a, b) => on(a) - on(b));
+  const mid = (a: Vec2, b: Vec2): Vec2 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const near = mid(order[0]!, order[1]!);
+  const far = mid(order[2]!, order[3]!);
+  // The line's own direction: from one dancer of a line to the other. The two
+  // lines are parallel in every contra formation, and averaging the two keeps
+  // the answer honest if they ever are not.
+  const a: Vec2 = [order[1]![0] - order[0]![0], order[1]![1] - order[0]![1]];
+  const b: Vec2 = [order[3]![0] - order[2]![0], order[3]![1] - order[2]![1]];
+  const sum: Vec2 = [a[0] + b[0], a[1] + b[1]];
+  const len = Math.hypot(sum[0], sum[1]);
+  if (len < 1e-9) return undefined;
+  const line: Vec2 = [sum[0] / len, sum[1] / len];
+  const gap: Vec2 = [far[0] - near[0], far[1] - near[1]];
+  const lean = gap[0] * line[0] + gap[1] * line[1];
+  // What is left of the gap once the lean is taken out: the direction from the
+  // near line to the far one, which is what tells a place which line it is on.
+  const side: Vec2 = [gap[0] - lean * line[0], gap[1] - lean * line[1]];
+  const wide = Math.hypot(side[0], side[1]);
+  if (wide < 1e-9) return undefined;
+  return { near, far, line, lean, across: [side[0] / wide, side[1] / wide] };
+}
+
+/** The lane `f` of the way from one to another. */
+function lerpLane(from: Lane, to: Lane, f: number): Lane {
+  return {
+    centre: [
+      from.centre[0] + (to.centre[0] - from.centre[0]) * f,
+      from.centre[1] + (to.centre[1] - from.centre[1]) * f,
+    ],
+    axis: angleLerp(from.axis, to.axis, f),
+    half: from.half + (to.half - from.half) * f,
+    reach: from.reach + (to.reach - from.reach) * f,
+  };
 }
 
 /** Whoever stands this hey out: a hey for three's idle role. */

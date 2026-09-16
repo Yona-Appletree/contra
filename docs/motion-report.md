@@ -103,6 +103,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | roles × | halves × | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `wait-out` | 53.6 | 60.7 | 2.39 | 6.7 | 15.3 | 1.09 | **17.39** | 122 | 1.00 | 0 | 2.26 | `set0/c5/lark` L at beat 65.719 |
 | `pull-by` | 46.7 | 168.2 | **44.61** | 43.9 | 15.0 | 1.00 | 1.00 | 28 | 0.47 | 0 | 1.20 | `set0/c0/lark` R at beat 126.719 |
 | `grand-right-and-left` | 49.1 | 168.2 | **44.61** | 43.9 | 15.0 | **2.00** | **3.00** | 28 | 1.12 | 0 | 1.45 | `set0/c3/lark` L at beat 64.656 |
 | `turn-as-couples` | 52.4 | 169.9 | 5.51 | 24.3 | 15.1 | 1.00 | 1.00 | 18 | 0.70 | 0 | **14.21** | `set0/c1/robin` L at beat 22.219 |
@@ -110,9 +111,8 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6.1 | 1.00 | **2.86** | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
 | `circle` | 28.6 | 37.2 | 1.90 | 8.0 | **27.2** | 1.00 | 1.00 | 46 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
 | `bend-the-line` | 33.3 | 34.9 | 4.57 | 9.7 | 13.4 | 1.20 | — | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
-| `wait-out` | 53.6 | 60.7 | 2.39 | 6.7 | 15.3 | 1.09 | **4.76** | 114 | 1.00 | 0 | 2.26 | `set0/c5/lark` L at beat 65.719 |
 | `robins-chain` | 62.0 | 153.0 | 8.17 | 45.4 | 21.9 | **2.00** | **1.90** | 0 | 0.00 | 0 | **8.61** | `set0/c2/robin` L at beat 25.688 |
-| `star` | 40.6 | 39.9 | 2.23 | 12.1 | **25.1** | 1.00 | 1.00 | 72 | 0.23 | 0 | **8.27** | `set0/c3/robin` R at beat 59.031 |
+| `star` | 40.6 | 58.8 | 2.82 | 12.1 | **25.1** | 1.07 | 1.23 | 92 | 0.23 | 0 | **8.27** | `set0/c3/robin` R at beat 59.031 |
 
 ### The ten worst seams
 
@@ -129,7 +129,7 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | `allemande → allemande` | 15.1 | 18.2 | 1.55 | 0.0 | 10.0 | — | — | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
 | `allemande → balance-wave` | 30.2 | 44.2 | 1.82 | 22.0 | 10.8 | — | — | 4 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
 
-Over all ten dances: 1,015,808 measurements, 1040 hand-state flips, **0 of them not a finite number**.
+Over all ten dances: 1,114,112 measurements, 1182 hand-state flips, **0 of them not a finite number**.
 
 ## Every figure, alone
 
@@ -495,7 +495,7 @@ Face the way you are going and walk round the outside of the set in single file,
 
 ### `slide-left` — SLIDE LEFT ALONG THE SET
 
-In a becket dance the whole line slides one couple's width along to its own left, so you find yourselves facing a new couple. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.
+In a becket dance the whole line slides one place along to its own left — half a couple's width, so that the two lines pass each other a whole one — and you find yourselves facing the couple that was on your diagonal. It is a sidestep, not a walk round: you stay square to the couple across the set and to your own partner beside you, take two steps sideways along the line — one to the beat, one to the next — and glance the way you are going. The whole line moves together. This is the becket progression, and it is what the dance's last figure sets up.
 
 ### `square-through` — SQUARE THROUGH
 

@@ -123,13 +123,22 @@ describe("the dance lab", () => {
       // a dance with no lane call at all that is every call of the schedule,
       // which is what this asserted before and still does.
       const inLane = (r: { group: string }) => minorSetOf(r.group).endsWith("/lane");
-      const laneCalls = new Set(rows.filter(inLane).map((r) => r.start)).size;
-      const fourCalls = new Set(rows.filter((r) => !inLane(r)).map((r) => r.start)).size;
+      const laneStarts = new Set(rows.filter(inLane).map((r) => r.start));
+      const fourStarts = new Set(rows.filter((r) => !inLane(r)).map((r) => r.start));
       for (const place of places) {
         const run = rows.filter((r) => minorSetOf(r.group) === place);
-        expect(run.length, `${dance.slug} ${place}`).toBeGreaterThanOrEqual(
-          place.endsWith("/lane") ? laneCalls : fourCalls,
-        );
+        // **A place may not last the whole time through** (M9g). A call that
+        // carries the progression itself renames the minor sets in the middle
+        // of the dance — Are You 'Most Done?'s hey leaves `set0/p0` and enters
+        // `set0/p0.5` — so what a place runs is every call of its partition
+        // *while it exists*, which is the same number as before for every dance
+        // that keeps one seating all the way through.
+        const starts = place.endsWith("/lane") ? laneStarts : fourStarts;
+        const from = Math.min(...run.map((r) => r.start));
+        const to = Math.max(...run.map((r) => r.start));
+        const mine = [...starts].filter((s) => s >= from && s <= to).length;
+        expect(run.length, `${dance.slug} ${place}`).toBeGreaterThanOrEqual(mine);
+        expect(mine, `${dance.slug} ${place} spans nothing`).toBeGreaterThan(0);
         for (let i = 1; i < run.length; i++) {
           // What one call hands on is exactly what the next one takes over —
           // for the instances that share a pair of dancers, which for a

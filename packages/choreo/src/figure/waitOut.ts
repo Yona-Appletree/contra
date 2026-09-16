@@ -1,5 +1,16 @@
 import type { Beat, PoseSample, Vec2 } from "@caller/core";
-import { angleOfVec, dot, hangingHand, lerpHand, norm, ramp, shouldersAt, sub } from "@caller/core";
+import {
+  angleOfVec,
+  dot,
+  hangingHand,
+  lerpHand,
+  norm,
+  ramp,
+  rot,
+  shouldersAt,
+  smooth,
+  sub,
+} from "@caller/core";
 import type { StationId } from "../formation/Formation.js";
 import { frameAngle, framePoint } from "../formation/Frame.js";
 import type { Group } from "../group/Group.js";
@@ -165,23 +176,35 @@ export const WAIT_OUT: FigureDef<WaitOutParams> = {
     // leaves it. The part-out ramp always runs on schedule regardless of
     // `cross`, so a gap this instance's own beats run out on — whether or not
     // it goes on to cross — ends at `home` too.
+    // The hold's two ends turn with the couple: they step together at the end
+    // they are standing at, turn half way round while they wait if they came in
+    // the wrong way round, and step back out from the end their own station
+    // names. A couple that came in the way the stations expect never turns and
+    // every one of these three poses is the station's own.
     const walk = !params.join
       ? undefined
       : t < g.joinBeats
-        ? walkStep(self.start, self.hold, t, g.joinBeats, 0, "cruise")
+        ? walkStep(self.start, g.turned(self.hold, g.turnAt(0)), t, g.joinBeats, 0, "cruise")
         : t >= g.partStart
-          ? walkStep(self.hold, self.home, t - g.partStart, g.partBeats, 0, "cruise")
+          ? walkStep(
+              g.turned(self.hold, g.turnAt(g.partStart)),
+              self.home,
+              t - g.partStart,
+              g.partBeats,
+              0,
+              "cruise",
+            )
           : undefined;
     // The fallback is reached mid-hold (`join` true, between the two ramps) or
     // for the whole span (`join` false, which never ramps in at all) — `hold`
     // in the first case, `home` in the second.
-    const restPose = params.join ? self.hold : self.home;
+    const restPose = params.join ? g.turned(self.hold, g.turnAt(t)) : self.home;
     const pose = walk ? standing(walk.p, walk.facing) : standing(restPose.p, restPose.facing);
 
     const myRole = groupStation(group, station).role;
     const theirRole = groupStation(group, g.otherId(station)).role;
     const joined = joinHands(
-      g.joinPoint,
+      g.joinPointAt(t),
       params.holdDrop,
       [myRole, theirRole],
       group.roleSet,
@@ -262,33 +285,55 @@ function geometry(group: Group, params: WaitOutParams) {
   const joinPoint: Vec2 = [(shA[0] + shB[0]) / 2, (shA[1] + shB[1]) / 2];
 
   /**
-   * **Which end of the hold each dancer takes: the one they are standing at.**
+   * **A couple that arrives the wrong way round turns half way in the hold.**
    *
    * The two ends and the point where the hands meet are the *stations*' — the
    * couple ends up `frame.spacing` apart, centred on the same midpoint, on the
    * same axis, whoever is where. What the stations cannot say is which of the
    * two dancers takes which end, because a dance may leave the couple on each
    * other's sides: Anna's Reel's swap-sides progression does it across the set,
-   * Fatal Attraction's mid-cycle shift does it along the line. Assigned by
-   * station, the two then walk straight lines that cross, and the couple steps
-   * *through itself* on the way to its own hold — measured at 0.0000 px (the
-   * 0.17 and 0.45 px a 1/8-beat grid reports are the samples either side of the
-   * crossing), 44 times over three dances and every line length they are
-   * checked at.
+   * Fatal Attraction's mid-cycle shift and Are You 'Most Done?'s do it along
+   * the line. Stepping together *by station* makes the two walk straight lines
+   * that cross, and the couple steps through itself on the way to its own hold
+   * — measured at 0.0000 px, 44 times over three dances (M9e).
    *
-   * So the near end, which is the one they would take: `u` runs from `b`'s
-   * station to `a`'s, and a couple standing the other way round along it swaps
-   * ends. The inside hand follows the end rather than the station — it is
-   * whichever hand is nearer the mate — and `joinPoint` does not move, because
-   * it is the midpoint of the two shoulders of the two ends and neither end has
-   * moved. `home` follows too, so the step back out and the crossing that
-   * follows it are reckoned from the end the dancer is actually standing at;
-   * `target` reads `start`, so where the couple *lands* is untouched either way.
+   * M9e stepped them in at the near end and left them there. That is right for
+   * a wait that ends in a **crossing** — the crossing is what re-seats the
+   * couple, and it runs from the end each dancer is really standing at to the
+   * other station, which is M9e's own fixture — and wrong for one that does
+   * not: the dancer then steps back out on to the *other* dancer's station and
+   * the seating and the floor disagree by a place for the rest of the dance
+   * (M9g measured 20.0000 px of `progressed` on Are You 'Most Done?, at every
+   * line length, once its hey carried the progression and the end couples
+   * stopped crossing at a boundary that no longer shifts).
+   *
+   * So a wait that ends where it stands ends it by **turning**: the couple
+   * steps together at the end they are standing at, takes hands, and turns half
+   * way round while it waits, so it steps back out on the ends its own stations
+   * name. The hold is a rigid pair — the whole configuration is a rotation of
+   * the stations' own about the hold's midpoint — so the turn costs the joined
+   * hands nothing: the hands go round with them and each dancer keeps the same
+   * hand from the take to the release. It is a two-hand turn, which is what a
+   * waiting couple does anyway.
    *
    * Inert for a couple that arrives the way its stations expect, which is every
-   * dance in the programme.
+   * dance in the programme: `turnFrom` is 0 and every pose below is the
+   * station's own.
    */
   const swapped = dot(sub(startA.p, startB.p), u) < 0;
+  /** How far round from the stations' own arrangement the couple comes in, degrees. */
+  const turnFrom = swapped && !params.cross ? 180 : 0;
+  /** A pose turned `deg` about the hold's midpoint. */
+  const turned = (pose: EndPose, deg: number): EndPose =>
+    deg === 0
+      ? pose
+      : {
+          p: [
+            mid[0] + rot(sub(pose.p, mid), deg)[0],
+            mid[1] + rot(sub(pose.p, mid), deg)[1],
+          ] as Vec2,
+          facing: pose.facing + deg,
+        };
   const endOfA: Omit<WaitSide, "start"> = {
     home: homeA,
     hold: { p: holdA, facing: faceA },
@@ -299,9 +344,12 @@ function geometry(group: Group, params: WaitOutParams) {
     hold: { p: holdB, facing: faceB },
     inside: "R",
   };
+  // A couple that is going to cross keeps M9e's ends — the crossing re-seats
+  // it — and one that is not takes its own and turns into them.
+  const keptEnds = swapped && turnFrom === 0;
   const sides: Record<StationId, WaitSide> = {
-    [a.id]: { ...(swapped ? endOfB : endOfA), start: startA },
-    [b.id]: { ...(swapped ? endOfA : endOfB), start: startB },
+    [a.id]: { ...(keptEnds ? endOfB : endOfA), start: startA },
+    [b.id]: { ...(keptEnds ? endOfA : endOfB), start: startB },
   };
 
   // `join` false means there is no ramp *in*: a gap that does not open at the
@@ -324,13 +372,28 @@ function geometry(group: Group, params: WaitOutParams) {
   };
   const otherId = (id: StationId): StationId => (id === a.id ? b.id : a.id);
 
+  const partStart = crossStart - partBeats;
+  /**
+   * How far round from the stations' own arrangement the couple is `t` beats in.
+   *
+   * `turnFrom` while they step together, easing to nothing by the time they step
+   * back out. Zero for a couple that came in the way its stations expect, and
+   * then every pose below is exactly the station's own.
+   */
+  const turnAt = (t: Beat): number =>
+    turnFrom === 0 ? 0 : turnFrom * (1 - smooth(ramp(t, joinBeats, partStart)));
+
   return {
     joinBeats,
     crossBeats,
     crossStart,
     partBeats,
-    partStart: crossStart - partBeats,
-    joinPoint,
+    partStart,
+    turned,
+    turnAt,
+    /** Where the joined hands are `t` beats in: the hold's own point, turned with it. */
+    joinPointAt: (t: Beat): Vec2 =>
+      turnFrom === 0 ? joinPoint : turned({ p: joinPoint, facing: 0 }, turnAt(t)).p,
     side,
     otherId,
     /**

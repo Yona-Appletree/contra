@@ -958,6 +958,12 @@ export interface ScheduleShorthand {
   idle: string;
   /** The lane's axis: the dancers' own spread, across, along, or a diagonal. */
   axis: string;
+  /**
+   * Whether the lane **straightens as the hey proceeds**: each line slides along
+   * itself until the two are square across the set. A diagonal hey only, and the
+   * becket half-shift when it is one (M9g).
+   */
+  straighten: string;
   /** Whether every meeting is a pull by rather than a pass. */
   hands: string;
 }

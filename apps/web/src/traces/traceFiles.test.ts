@@ -1,4 +1,4 @@
-import { danceBeats } from "@caller/choreo";
+import { concurrentCalls, danceBeats } from "@caller/choreo";
 import { ALL_DANCES, DEMO_DANCE_SLUGS, danceBySlug } from "@caller/contra";
 import { describe, expect, it } from "vitest";
 import { figureTiles } from "../galleryTiles.js";
@@ -64,10 +64,24 @@ describe.each(DANCES)("the dance $slug", ({ slug }) => {
     // Attraction's "(2) Women cast back || Men go forward"), and a call the
     // traced four are all standing out of draws one hold-place cell where the
     // record wrote two (Are You 'Most Done?'s diagonal hey at six couples).
+    //
+    // **Nor of a dance whose own figure carries the progression** (M9g). Are
+    // You 'Most Done?'s hey shifts the seating at beat 48, so the couple the
+    // shift puts out waits the rest of the time through and the strip draws it:
+    // a `wait-out` cell over beats 48–64 that no call of the record wrote. It
+    // is the dance's own diagnosis in the same way the two above are.
+    //
     // What has to hold for every dance is that the cells run in order, each
     // covers real beats, and together they span the window end to end — which
     // is what makes the picture a strip of the dance rather than of part of it.
-    if (DEMO_DANCE_SLUGS.includes(slug)) {
+    const carriesTheShift = dance.phrases.some((phrase) =>
+      phrase.figures.some((figure) =>
+        concurrentCalls(figure).some(
+          (call) => "progresses" in (call.params ?? ({} as Record<string, unknown>)),
+        ),
+      ),
+    );
+    if (DEMO_DANCE_SLUGS.includes(slug) && !carriesTheShift) {
       expect(trace.cells).toHaveLength(called.length);
       expect(trace.cells.map((cell) => cell.to - cell.from)).toEqual(called.map((f) => f.beats));
     }
