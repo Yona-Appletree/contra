@@ -17,7 +17,6 @@ import {
   standing,
   waitOutStart,
 } from "@caller/choreo";
-import { PLACE_PITCH_PX } from "../formation/dupleImproper.js";
 
 /**
  * {@link waitOut}'s parameters: the engine's, less `crossTo`, which is read off
@@ -38,7 +37,7 @@ export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
    *   point) leaves every dancer **half** a couple place behind the place their
    *   new slot names, and the first figure walks them in — `progressed` is that
    *   distance, printed for every becket dance since M6 (40 px while a becket
-   *   line slid a whole couple place, {@link PLACE_PITCH_PX} since FR-C2). A waiting
+   *   line slid a whole couple place, `PLACE_PITCH_PX` since FR-C2). A waiting
    *   couple whose crossing finished *on* the progressed place was therefore
    *   the one body the boundary moved — and it landed on the couple that had
    *   just danced there, which had not moved yet. That is the `collision
@@ -116,7 +115,7 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
 /**
  * Where a becket couple's crossing is reckoned from: its own waiting place,
  * **half a couple place back along its own line** — M9c, re-derived in FR-C2's
- * unit (one dancer position, {@link PLACE_PITCH_PX}).
+ * unit (one dancer position, `PLACE_PITCH_PX`).
  *
  * `@caller/choreo`'s mirror reckons the crossing from where the couple *started*
  * the figure (`WaitOutParams.startPlaces`, which is the waiting place unless a
@@ -150,7 +149,7 @@ export const waitOut: FigureDef<ContraWaitOutParams> = {
  * the point opposite through the frame's centre, so the along-the-set half of
  * that displacement — `−2 × the midpoint's own local y` — *is* the shift, and
  * offsetting the start by it puts the landing a shift back along the line the
- * couple comes in on. It comes out at exactly {@link PLACE_PITCH_PX} for a
+ * couple comes in on. It comes out at exactly `PLACE_PITCH_PX` for a
  * becket set of either handedness, and the sign takes care of itself: a
  * right-progressing becket's wait frames are hung the other way up, and a
  * hard-coded `+y` landed its crossing on a dancing couple at every line length.
