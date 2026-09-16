@@ -22,7 +22,6 @@ import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
 import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
 import { LAB_RUN } from "../dances/danceLab.js";
-import { BECKET } from "../formation/becket.js";
 import { isBecket } from "../dances/formations.js";
 
 /**

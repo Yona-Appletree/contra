@@ -156,13 +156,14 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
     metric: "partSpread",
     reason:
       "**E27 again, as a shape rather than a speed.** A couple waiting out at " +
-      "the end of the set stands still for part of the figure and slides a " +
-      "whole place (32 px) in the rest, so its two halves are 4.65-4.76x apart " +
-      "and 17.40x in a lab dance. That is what waiting out *is* - you wait, " +
-      "then you come in - and it is the same 32 px slide S2 (#52) ruled and " +
-      "the `travel` row above allowlists. The levers are the same two: the " +
-      "transitions model, or `PLACE_PITCH_PX`. M10b measured it and owns " +
-      "neither lever; a transitions milestone is what would take this row away.",
+      "the end of the set stands still for part of the figure and crosses it " +
+      "in the rest, so its two halves are far apart — 3.07x in Butter since " +
+      "FR-C2 halved the slide, and up to 17.40x in a lab dance. That is what " +
+      "waiting out *is*: you wait, then you come in. The levers are the " +
+      "transitions model, or the width of the set; M10b measured it and owns " +
+      "neither, and a transitions milestone is what would take this row away. " +
+      "Its `travel` twin is gone, which is what FR-C2's half-width slide " +
+      "bought: the crossing no longer drags the couple a whole couple place.",
   },
   {
     dance: "*",

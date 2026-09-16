@@ -17,7 +17,7 @@ import type { Library } from "../library/Library.js";
 import { contraDataEngine } from "../library/engine.js";
 import { contraDataFigures } from "../library/figures/index.js";
 import { waypointMeets } from "../library/kinds/waypoints.js";
-import { latticeSpan } from "../set/lattice.js";
+import { latticeSpan, progressionOf } from "../set/lattice.js";
 import type { SetShapeKind, TargetShape } from "../set/shape.js";
 import { shapeFromEnds, shapeMiss, solveShape, turnsToTarget } from "../set/shape.js";
 import { contraCyclePlanner } from "../set/planCycle.js";
@@ -502,6 +502,23 @@ export function danceLabReport(
         `reach ${mark(reachOk)} (worst short ${o.maxShort.toFixed(4)} px) · ` +
         `collision ${mark(collisionOk)} (closest ${fixed(o.minDistancePx)} px) · ` +
         `coverage ${mark(coverageOk)}${coverageOk ? "" : ` (${o.coverage.join("; ")})`}`,
+    );
+  }
+  // **How many places the dance progresses, when that is a caller's warning**
+  // (FR-C2, the user's own words): "in double progression dances, even numbered
+  // sets have this parity thing where there's actually two independent sets that
+  // are interwoven but never interact. callers usually point this out and
+  // suggest odd numbered lines." Informational — a hall of any length dances the
+  // dance, it just does not mix — and measured in `becketMeeting.test.ts`.
+  const shift = progressionOf(dance);
+  const eachRole = [...new Set(Object.values(shift.places))];
+  const places = eachRole.length === 1 ? eachRole[0] : undefined;
+  if (places !== undefined && places > 1 && places % 2 === 0) {
+    lines.push(
+      "",
+      `**${places === 2 ? "Double" : `${String(places)}-place`} progression: an ` +
+        "even-numbered line splits into two interwoven sets that never meet; callers " +
+        "suggest an odd number of couples.**",
     );
   }
   lines.push("");

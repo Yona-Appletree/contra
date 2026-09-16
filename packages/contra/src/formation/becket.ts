@@ -1032,21 +1032,24 @@ export function becketRelations(id: string, step: 1 | -1): RelationTable {
       const loop = becketLoop(span);
       if (loop === undefined) return offsetOnly(rel, from, neighbourStep);
       const j = ring(loop, loopIndexOf(loop, from.slot));
+      // **Four of the six rows are plain offsets on the two lines.**
+      //
+      // *Your partner* (FR-C2) is the other dancer of your own couple, one
+      // position along your own line on the side {@link partnerSide} gives —
+      // which can never run off the end, because your couple is two adjacent
+      // positions wherever it stands. M8b read it off the loop, and a loop whose
+      // steps are couples cannot answer it once a couple's own place may be a
+      // half-integer.
+      //
+      // *The cross-set rows* (FR-C1): a neighbour k couple places along is a
+      // place on the floor, and a place off the end of the other line is nobody,
+      // which is what the end of a set is.
+      //
+      // The loop is kept for the two rows that really are steps round it — your
+      // shadow and your trail buddy — because those are the same dancer for the
+      // whole dance however often the set turns round at an end.
       switch (rel.kind) {
-        // **Your partner is a plain offset** (FR-C2): in becket they are the
-        // other dancer of your own couple, one position along your own line on
-        // the side {@link partnerSide} gives — which can never run off the end,
-        // because your couple is two adjacent positions wherever it stands. M8b
-        // read it off the loop, and a loop whose steps are couples cannot
-        // answer it once a couple's own place may be a half-integer.
         case "partner":
-        // The cross-set rows are **offsets on the two lines** again (FR-C1): a
-        // neighbour k couple places along is a place on the floor, and a place
-        // that is off the end of the other line is nobody, which is what the end
-        // of a set is. The loop below is kept for the two rows that really are
-        // steps round it — your shadow and your trail buddy — because those are
-        // the same dancer for the whole dance however often the set turns round
-        // at an end.
         case "neighbor":
         case "opposite":
         case "corner":
