@@ -69,14 +69,18 @@ const REPO_ROOT = resolve(HERE, "../..");
 /** docs/corpus-derived.md's two sets, and the `rule` line each one records. */
 export const HAND = {
   name: "hand",
-  perValue: 3,
+  perValue: 2,
+  greedy: true,
   allTiers: false,
-  rule: "3 per tag value by clusterVideos, permission full, plus pins",
+  rule:
+    "pins, then greedily the permission-full record covering the most tag " +
+    "values still short of 2 per value, by clusterVideos, one per cluster",
 };
 
 export const SUITE = {
   name: "suite",
   perValue: 25,
+  greedy: false,
   allTiers: true,
   rule:
     "25 per tag value by clusterVideos, permission full, " +
@@ -129,13 +133,26 @@ function clusterKeyOf(line) {
  * The set itself, pure: index lines and pins in, the file's `dances` array and
  * the counts --report prints out.
  *
- * For each tag value in turn, the `perValue` most-danced records carrying it
- * whose permission is `full`, never twice from one cluster — a cluster is one
- * dance under several ids, and three copies of Heartbeat Contra would be a
- * set of one. Then the tier sweep (suite only), then the include pins, and
- * every exclude pin removed last so an exclusion cannot be out-voted.
+ * Two strategies, because the two sets want different things.
+ *
+ * `hand` is GREEDY, and small on purpose. It starts with the pins, then
+ * repeatedly takes the record covering the most tag values still short of the
+ * quota — ties going to the most-danced, then the lower id — and stops when
+ * nothing left can fill a gap. Taking the top `perValue` records of every
+ * value independently gave 117 dances against a two-hundred-slot quota,
+ * because each rare value dragged in a record nothing else needed; choosing
+ * for coverage instead lets one well-stocked dance answer for a dozen values
+ * at once, which is what a set a person is meant to read through requires.
+ *
+ * `suite` is PER-VALUE: the `perValue` most-danced records carrying each
+ * value, plus every tier 1 and tier 2 record. CI runs it and nobody reads it,
+ * so breadth beats brevity there and the simple rule is the right one.
+ *
+ * Both keep one record per cluster — a cluster is one dance under several ids,
+ * and three copies of Heartbeat Contra would be a set of one — and in both,
+ * every exclude pin is removed last, so an exclusion cannot be out-voted.
  */
-export function chooseSet(lines, { perValue, allTiers = false }, pins = {}) {
+export function chooseSet(lines, { perValue, allTiers = false, greedy = false }, pins = {}) {
   const { include, exclude, cleared } = normalisePins(pins);
   const excluded = new Set(exclude.map((pin) => String(pin.id)));
   const byId = new Map(lines.map((line) => [String(line.id), line]));
@@ -148,7 +165,6 @@ export function chooseSet(lines, { perValue, allTiers = false }, pins = {}) {
     reasons.get(id).add(reason);
   };
 
-  const fill = new Map();
   const sorted = [...lines].sort(byPopularity);
   const byTag = new Map(ALL_TAG_VALUES.map((tag) => [tag, []]));
   for (const line of sorted) {
@@ -157,41 +173,27 @@ export function chooseSet(lines, { perValue, allTiers = false }, pins = {}) {
     for (const tag of line.tags ?? []) byTag.get(tag)?.push(line);
   }
 
-  // "One per cluster" holds over the whole set, not merely within one tag
-  // value: the first value to reach a cluster picks the record that stands for
-  // it, and every later value either reuses that record or passes the cluster
-  // over. Without this the set fills up with the same dance under three ids —
-  // three Circassian Circles, two Heartbeat Contras — which is exactly what a
-  // cluster exists to prevent.
-  const standsFor = new Map();
-  for (const tag of ALL_TAG_VALUES) {
-    const carriers = byTag.get(tag) ?? [];
-    const clustersAvailable = new Set(carriers.map(clusterKeyOf));
-    fill.set(tag, { candidates: clustersAvailable.size, chosen: 0 });
-    const usedHere = new Set();
-    for (const line of carriers) {
-      if (fill.get(tag).chosen >= perValue) break;
-      const key = clusterKeyOf(line);
-      if (usedHere.has(key)) continue;
-      const already = standsFor.get(key);
-      if (already !== undefined && already !== String(line.id)) continue;
-      usedHere.add(key);
-      standsFor.set(key, String(line.id));
-      addReason(String(line.id), `tag:${tag}`);
-      fill.get(tag).chosen += 1;
-    }
-  }
+  // `candidates` is how many DISTINCT CLUSTERS could ever fill this value —
+  // the ceiling the quota is measured against, and what --report calls short.
+  const fill = new Map(
+    ALL_TAG_VALUES.map((tag) => [
+      tag,
+      { candidates: new Set((byTag.get(tag) ?? []).map(clusterKeyOf)).size, chosen: 0 },
+    ]),
+  );
 
-  if (allTiers) {
-    // Every tier 1 and tier 2 record, whatever its permission: the set is a
-    // list of ids and reasons, and a gated record stays gated in the index.
-    for (const line of sorted) {
-      if (excluded.has(String(line.id))) continue;
-      if (SUITE_TIERS.includes(line.tier)) addReason(String(line.id), `tier:${line.tier}`);
-    }
-  }
+  // clusterKey → the id standing for that cluster in this set. "One per
+  // cluster" holds over the whole set, not merely within one tag value:
+  // whichever step reaches a cluster first picks its record, and every later
+  // step either reuses that record or passes the cluster over.
+  const standsFor = new Map();
+  const claim = (line) => {
+    const key = clusterKeyOf(line);
+    if (!standsFor.has(key)) standsFor.set(key, String(line.id));
+  };
 
   const missingPins = [];
+  const pinned = [];
   for (const pin of include) {
     const id = String(pin.id);
     if (!byId.has(id)) {
@@ -199,7 +201,84 @@ export function chooseSet(lines, { perValue, allTiers = false }, pins = {}) {
       continue;
     }
     if (excluded.has(id)) continue;
-    addReason(id, `pin:${pin.reason ?? ""}`);
+    pinned.push({ line: byId.get(id), reason: `pin:${pin.reason ?? ""}` });
+  }
+
+  if (greedy) {
+    // What a record would add: one per value it carries that is still short.
+    // A record whose every value is already stocked is worth nothing, however
+    // popular it is, and is never taken.
+    const gainOf = (line) => {
+      let gain = 0;
+      for (const tag of line.tags ?? []) {
+        const counts = fill.get(tag);
+        if (counts && counts.chosen < perValue) gain += 1;
+      }
+      return gain;
+    };
+    const take = (line, pinReason) => {
+      const id = String(line.id);
+      claim(line);
+      if (pinReason) addReason(id, pinReason);
+      for (const tag of line.tags ?? []) {
+        const counts = fill.get(tag);
+        if (!counts || counts.chosen >= perValue) continue;
+        counts.chosen += 1;
+        addReason(id, `tag:${tag}`);
+      }
+    };
+
+    // The pins are in the set whatever their permission, and they go first, so
+    // that what they already cover is not bought a second time.
+    for (const pin of pinned) take(pin.line, pin.reason);
+
+    for (;;) {
+      let best = null;
+      let bestGain = 0;
+      // `sorted` is most-danced-then-lowest-id and the comparison is strict,
+      // so the tie-break falls out of the scan order rather than a second sort.
+      for (const line of sorted) {
+        const id = String(line.id);
+        if (excluded.has(id) || reasons.has(id)) continue;
+        if (line.permission !== "full") continue;
+        if (standsFor.has(clusterKeyOf(line))) continue;
+        const gain = gainOf(line);
+        if (gain > bestGain) {
+          best = line;
+          bestGain = gain;
+        }
+      }
+      // Every value is either at its quota or out of candidates.
+      if (!best) break;
+      take(best, null);
+    }
+  } else {
+    for (const tag of ALL_TAG_VALUES) {
+      const counts = fill.get(tag);
+      const usedHere = new Set();
+      for (const line of byTag.get(tag) ?? []) {
+        if (counts.chosen >= perValue) break;
+        const key = clusterKeyOf(line);
+        if (usedHere.has(key)) continue;
+        const already = standsFor.get(key);
+        if (already !== undefined && already !== String(line.id)) continue;
+        usedHere.add(key);
+        claim(line);
+        addReason(String(line.id), `tag:${tag}`);
+        counts.chosen += 1;
+      }
+    }
+
+    if (allTiers) {
+      // Every tier 1 and tier 2 record, whatever its permission: the set is a
+      // list of ids and reasons, and a gated record stays gated in the index.
+      for (const line of sorted) {
+        if (excluded.has(String(line.id))) continue;
+        if (SUITE_TIERS.includes(line.tier)) addReason(String(line.id), `tier:${line.tier}`);
+      }
+    }
+
+    for (const pin of pinned) addReason(String(pin.line.id), pin.reason);
   }
 
   for (const id of excluded) reasons.delete(id);

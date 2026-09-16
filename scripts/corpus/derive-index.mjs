@@ -304,7 +304,6 @@ export const FIGURE_TAGS = [
   ["orbit", ["orbit", "orbits"]],
   ["contra-corners", ["contra corners", "contra corner"]],
   ["cast", ["cast"]],
-  ["actives", ["actives", "active", "active couple"]],
   ["figure-eight", ["figure eight", "figure-eight", "figure 8", "fig 8"]],
   ["arch", ["arch", "arches"]],
 ];

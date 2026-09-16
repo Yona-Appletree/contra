@@ -3,7 +3,7 @@
 // Every input is hand-written in the shape derive-dances.mjs writes — nothing
 // here reads the private cache, so these run anywhere. The largest block is
 // the figure vocabulary: docs/corpus-derived.md requires each value's word
-// list to be pinned by a test, so every one of its thirty-three values has a
+// list to be pinned by a test, so every one of its thirty-two values has a
 // line taken from (or shaped exactly like) a real Caller's Box figure that
 // must raise it, and a line that must not.
 
@@ -316,7 +316,6 @@ const FIGURE_CASES = [
   ["orbit", "Orbit clockwise 1/2 while centers allemande", "Circle left 1/2"],
   ["contra-corners", "Ones balance and swing contra corners", "Allemande left corner"],
   ["cast", "Ones cast off around the twos", "Ones lead down the hall"],
-  ["actives", "Actives down the outside", "Ones down the outside"],
   ["figure-eight", "Ones figure eight 1/2 up through the twos", "Ones cross over and go below"],
   ["arch", "Twos arch, ones dive through", "Twos lead up the hall"],
 ];

@@ -81,7 +81,7 @@ describe("normalisePins", () => {
 });
 
 describe("chooseSet", () => {
-  it("takes the three most-danced records carrying a value", () => {
+  it("fills a value to its quota of two, most-danced first, and then stops", () => {
     const lines = [
       indexLine({ id: "1", clusterVideos: 10, tags: [SWING] }),
       indexLine({ id: "2", clusterVideos: 30, tags: [SWING] }),
@@ -89,12 +89,27 @@ describe("chooseSet", () => {
       indexLine({ id: "4", clusterVideos: 5, tags: [SWING] }),
     ];
     const { dances } = chooseSet(lines, HAND);
-    expect(dances.map((dance) => dance.id)).toEqual(["2", "3", "1"]);
+    expect(dances.map((dance) => dance.id)).toEqual(["2", "3"]);
     expect(dances[0].reasons).toEqual([`tag:${SWING}`]);
   });
 
-  it("never takes two records of one cluster, even for different values", () => {
+  it("prefers the record that covers the most values still short", () => {
+    // 1 is the most danced, but 2 and 3 between them cover three values to
+    // its one, so greed takes them and never needs 1 at all.
+    const lines = [
+      indexLine({ id: "1", cluster: "a", clusterVideos: 400, tags: [SWING] }),
+      indexLine({ id: "2", cluster: "b", clusterVideos: 10, tags: [SWING, CHAIN] }),
+      indexLine({ id: "3", cluster: "c", clusterVideos: 9, tags: [SWING, CHAIN] }),
+    ];
+    const { dances } = chooseSet(lines, HAND);
+    expect(dances.map((dance) => dance.id)).toEqual(["2", "3"]);
+    expect(dances[0].reasons).toEqual([`tag:${SWING}`, `tag:${CHAIN}`]);
+  });
+
+  it("never takes two records of one cluster, and lets the widest one stand for it", () => {
     // The Circassian Circle case: 426 videos under three Caller's Box ids.
+    // 11 carries both values, so it is the one the cluster is represented by,
+    // and neither 10 nor 12 is reachable afterwards.
     const lines = [
       indexLine({ id: "10", cluster: "circle--", clusterVideos: 426, tags: [SWING] }),
       indexLine({ id: "11", cluster: "circle--", clusterVideos: 426, tags: [SWING, CHAIN] }),
@@ -102,9 +117,63 @@ describe("chooseSet", () => {
     ];
     const { dances } = chooseSet(lines, HAND);
     expect(dances).toHaveLength(1);
-    expect(dances[0].id).toBe("10");
-    // And the cluster's one record can only answer for the values it carries.
-    expect(dances[0].reasons).toEqual([`tag:${SWING}`]);
+    expect(dances[0].id).toBe("11");
+    expect(dances[0].reasons).toEqual([`tag:${SWING}`, `tag:${CHAIN}`]);
+  });
+
+  it("starts with the pins, so a value they already cover is not bought twice", () => {
+    const lines = [
+      indexLine({ id: "1", cluster: "a", clusterVideos: 1, tags: [SWING] }),
+      indexLine({ id: "2", cluster: "b", clusterVideos: 400, tags: [SWING] }),
+      indexLine({ id: "3", cluster: "c", clusterVideos: 300, tags: [SWING] }),
+    ];
+    const { dances } = chooseSet(lines, HAND, { include: [{ id: "1", reason: "encoded" }] });
+    // The pin fills one of swing's two places, so only one more is bought —
+    // without the pins going first, 2 and 3 would both be taken.
+    expect(dances.map((dance) => dance.id)).toEqual(["2", "1"]);
+    expect(dances.find((dance) => dance.id === "1").reasons).toEqual([
+      "pin:encoded",
+      `tag:${SWING}`,
+    ]);
+  });
+
+  it("stops when a value has no candidates left, rather than looping", () => {
+    // Only one cluster carries chain, so chain never reaches its quota of two
+    // and the run has to end on "nothing left can fill a gap".
+    const lines = [
+      indexLine({ id: "1", cluster: "a", clusterVideos: 10, tags: [SWING, CHAIN] }),
+      indexLine({ id: "2", cluster: "a", clusterVideos: 10, tags: [CHAIN] }),
+      indexLine({ id: "3", cluster: "b", clusterVideos: 5, tags: [SWING] }),
+    ];
+    const { dances, fill } = chooseSet(lines, HAND);
+    expect(dances.map((dance) => dance.id)).toEqual(["1", "3"]);
+    expect(fill.get(CHAIN)).toEqual({ candidates: 1, chosen: 1 });
+    expect(fill.get(SWING)).toEqual({ candidates: 2, chosen: 2 });
+  });
+
+  it("never takes a record whose every value is already stocked", () => {
+    const lines = [
+      indexLine({ id: "1", cluster: "a", clusterVideos: 1, tags: [SWING] }),
+      indexLine({ id: "2", cluster: "b", clusterVideos: 2, tags: [SWING] }),
+      indexLine({ id: "3", cluster: "c", clusterVideos: 999, tags: [SWING] }),
+    ];
+    const { dances } = chooseSet(lines, HAND, {
+      include: [
+        { id: "1", reason: "encoded" },
+        { id: "2", reason: "encoded" },
+      ],
+    });
+    // The two pins fill swing between them, so the most-danced record in the
+    // corpus adds nothing and is left out.
+    expect(dances.map((dance) => dance.id)).toEqual(["2", "1"]);
+  });
+
+  it("leaves the suite on the per-value rule, at twenty-five", () => {
+    const lines = Array.from({ length: 30 }, (_unused, at) =>
+      indexLine({ id: String(at + 1), cluster: `c${at}`, clusterVideos: 100 - at, tags: [SWING] }),
+    );
+    expect(chooseSet(lines, HAND).dances).toHaveLength(2);
+    expect(chooseSet(lines, SUITE).dances).toHaveLength(25);
   });
 
   it("ignores a record the site does not mark full", () => {
@@ -167,7 +236,7 @@ describe("chooseSet", () => {
 
   it("sorts by tier, then clusterVideos descending, then id", () => {
     const lines = [
-      indexLine({ id: "30", tier: 2, clusterVideos: 10, tags: [SWING] }),
+      indexLine({ id: "30", tier: 2, clusterVideos: 10, tags: [CHAIN] }),
       indexLine({ id: "10", tier: 1, clusterVideos: 60, tags: [SWING] }),
       indexLine({ id: "20", tier: 1, clusterVideos: 60, tags: [SWING] }),
     ];
@@ -210,7 +279,8 @@ describe("setFile", () => {
   it("writes the doc's three keys in the doc's order", () => {
     const file = setFile({ dances: [], rule: HAND.rule, generatedAt: "2026-09-16" });
     expect(Object.keys(file)).toEqual(["generatedAt", "rule", "dances"]);
-    expect(file.rule).toBe("3 per tag value by clusterVideos, permission full, plus pins");
+    expect(file.rule).toContain("pins, then greedily");
+    expect(file.rule).toContain("2 per value");
   });
 });
 
