@@ -76,7 +76,9 @@ describe.each(DANCES)("the dance $slug", ({ slug }) => {
     // is what makes the picture a strip of the dance rather than of part of it.
     const carriesTheShift = dance.phrases.some((phrase) =>
       phrase.figures.some((figure) =>
-        concurrentCalls(figure).some((call) => call.params?.["progresses"] !== undefined),
+        concurrentCalls(figure).some(
+          (call) => "progresses" in (call.params ?? ({} as Record<string, unknown>)),
+        ),
       ),
     );
     if (DEMO_DANCE_SLUGS.includes(slug) && !carriesTheShift) {
