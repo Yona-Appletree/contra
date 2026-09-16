@@ -737,6 +737,36 @@ function Choice<T extends string | number>({
   );
 }
 
+/** One scheduled measurement task's handle, whichever scheduler ran it. */
+type WorkHandle = ReturnType<typeof setTimeout> | number;
+
+/**
+ * Runs `cb` on the next task — soon, when `eager`, or only when the browser
+ * is otherwise idle.
+ *
+ * The shown length's jobs are few and gate what the page is showing right
+ * now, so they run back to back with `setTimeout`. Everything past that is
+ * the sweep of every other checked length, which nobody is waiting on: on a
+ * slow device (a phone, a loaded CI runner) running it eagerly starves the
+ * very click or repaint the page exists to answer, so it runs through
+ * `requestIdleCallback` instead, which yields to input and rendering and only
+ * spends spare time on it. `{ timeout }` is a ceiling, not a target, so the
+ * sweep still finishes rather than starving forever on a page that is never
+ * idle.
+ */
+function scheduleWork(cb: () => void, eager: boolean): WorkHandle {
+  if (!eager && typeof requestIdleCallback === "function") {
+    return requestIdleCallback(cb, { timeout: 500 });
+  }
+  return setTimeout(cb, 0);
+}
+
+/** Cancels a {@link scheduleWork} task, whichever scheduler it came from. */
+function cancelWork(handle: WorkHandle): void {
+  clearTimeout(handle as ReturnType<typeof setTimeout>);
+  if (typeof cancelIdleCallback === "function") cancelIdleCallback(handle as number);
+}
+
 /**
  * Every column's oracles, at the length being danced first and then at every
  * other checked length, **one measurement per task**.
@@ -746,7 +776,9 @@ function Choice<T extends string | number>({
  * eight lengths — so doing them all before the first paint would leave a phone
  * with a blank page for several seconds. The shown length comes first for every
  * column, because that is the row of numbers under the picture; the rest fill in
- * behind it and the dots are grey until they do.
+ * behind it, scheduled idle (see {@link scheduleWork}) so the sweep never gets
+ * ahead of what the page actually needs to do, and the dots are grey until it
+ * does.
  *
  * `data-measured` and `data-swept` on the control bar are how a screenshot waits
  * for each stage.
@@ -777,6 +809,7 @@ function useCandidateMeasures(section: ReturnType<typeof danceLabSection>): {
     const shownJobs = section.columns.length;
     let live = true;
     let i = 0;
+    let pending: ReturnType<typeof setTimeout> | number | undefined;
     const next = (): void => {
       if (!live) return;
       const job = jobs[i];
@@ -794,12 +827,19 @@ function useCandidateMeasures(section: ReturnType<typeof danceLabSection>): {
       });
       i += 1;
       if (i === shownJobs) setStage({ shown: true, done: false });
-      setTimeout(next, 0);
+      // The shown length's jobs (one per column) gate `data-measured` and are
+      // few, so they run back to back. Every length past that is the sweep —
+      // The Set Monster alone is eight lengths of a triple progression, tens
+      // of seconds of planning nobody is waiting on — so once the shown length
+      // is in, the rest is scheduled idle: whatever the page (a click, a
+      // render, a phone's own touch handling) needs runs first, and the sweep
+      // fills the grey dots in behind it rather than in front of it.
+      pending = scheduleWork(next, i < shownJobs);
     };
-    const id = setTimeout(next, 0);
+    pending = scheduleWork(next, true);
     return () => {
       live = false;
-      clearTimeout(id);
+      if (pending !== undefined) cancelWork(pending);
     };
   }, [section]);
 
