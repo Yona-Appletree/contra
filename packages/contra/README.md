@@ -683,6 +683,19 @@ programme. So the demo never shows a dance that does not dance, and a milestone
 encoding a hard dance can commit the record and work on it in the lab. No dance
 file sets it yet; the acceptance set's twelve arrive this way from M5.
 
+**Candidate readings**, `data/dances/lab/<slug>~<id>.json` (M9h): one caller's
+reading of where a record physically carries its progression, written as the
+clauses that reading adds and nothing else — the record in `data/dances/` stays
+the transcript's. `src/dances/candidates.ts` patches a call by
+`"<phrase>/<index>"`, merges its `params` (`null` removes one), may replace `who`
+and the record's own `progression`, and can say nothing else: `startPlaces` is
+not a candidate. A candidate loads as the dance `<slug>~<id>`, is measured by
+`pnpm dance <slug>~<id>`, and is in **`LAB_CORPUS` and nothing else** — not
+`ALL_DANCES`, not the programme, no card, no plate. `#/lab/dance/<slug>` is what
+they are for: the record and its readings side by side over a whole time through,
+for a caller to pick from. See
+[docs/dance-record.md](../../docs/dance-record.md#candidate-readings).
+
 **The dance lab**, `pnpm dance <slug>`: one dance's whole inner loop — how every
 call resolves against the live set, the oracles at every checked line length, the
 motion rows for its own figures and seams (over-bound values **fail** unless
