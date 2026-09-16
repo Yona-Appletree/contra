@@ -20,6 +20,15 @@ export const oldJoeClark = defineTune({
   type: "reel",
   key: "AMix",
   defaultBpm: 112,
+  about:
+    "An Appalachian old-time tune in the mixolydian mode, sung with countless verses and played as a breakdown, documented since the early 1900s.",
+  references: [
+    { label: "Old Joe Clark on Wikipedia", url: "https://en.wikipedia.org/wiki/Old_Joe_Clark" },
+    {
+      label: "Old Joe Clark on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Old+Joe+Clark",
+    },
+  ],
   arrangement: BANJO_BAND,
   lines: [
     "A2AA cAA2|BcdB A2A2|A2AA cAA2|BcdB cAA2|e2ed cAA2|dcAG A2A2|e2ed cAA2|dcAG A2A2|",

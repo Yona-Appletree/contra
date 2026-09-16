@@ -21,6 +21,15 @@ export const soldiersJoy = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "One of the oldest and most widely played fiddle tunes in the English-speaking world, in print since the 1770s and a fixture of American contra dances ever since.",
+  references: [
+    { label: "Soldier's Joy on Wikipedia", url: "https://en.wikipedia.org/wiki/Soldier%27s_Joy" },
+    {
+      label: "Soldier's Joy on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Soldier%27s+Joy",
+    },
+  ],
   lines: [
     "d2dc d2fa|d2fa d2fa|e2ec e2ga|e2ga e2ga|d2dc d2fa|d2fa d2fa|e2ga fedc|d4 d4|",
     "d2dc d2fa|d2fa d2fa|e2ec e2ga|e2ga e2ga|d2dc d2fa|d2fa d2fa|e2ga fedc|d4 d4|",

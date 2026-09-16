@@ -1,14 +1,14 @@
 # @caller/web
 
 The public app: Vite + React, served at `/contra/` on GitHub Pages. A tab bar
-carries three tabs — Stage, Moves, Dances — over the hall, the pixel contra
-dance that dances itself.
+carries four tabs — Stage, Moves, Dances, Tunes — over the hall, the pixel
+contra dance that dances itself.
 
 ## Routes
 
 A four-line hash router (`src/routes/hashRoute.ts`) and a small tab shell in
 `src/App.tsx` that reads the route and either wraps it in the tab bar or
-renders it bare. Three tabs, plus the routes below them that have no tab of
+renders it bare. Four tabs, plus the routes below them that have no tab of
 their own and are reached by URL or by a link on the page above them.
 
 - **Stage** (`#/` and `#/dance/<slug>?tune=<slug>`, M9, P1, the default tab).
@@ -124,6 +124,25 @@ their own and are reached by URL or by a link on the page above them.
   resolves** — every figure instance the planner makes of the dance, one time
   through, with its cast, anchor, ends, carried hands and anybody it left
   standing. The same table `pnpm dance <slug>` prints, from the same function.
+- **Tunes** (`#/tunes`, F4). The band's book: one paper card per tune
+  `@caller/music` bundles, reels then jigs, with the tune's type, key and
+  tempo, its band (`bandOf` / `describeBand`), the sets it is in, and a play
+  button — the user's ask, "a music player page where you can just hear each
+  tune". One player for the page (`src/tunePlayer.ts`: a one-tune medley
+  looping, four potatoes in front, the beat as state once a beat), so a
+  second card's button switches rather than stacks.
+- `#/tunes/<slug>?band=<house|string|banjo|piano>` — one tune's own page:
+  the notation with the bar cursor following the music, **the band
+  switcher** (the same setting through each of the four bands, `rearrange`,
+  switched mid-tune without losing the beat — the listening check the
+  per-tune-arrangement plan owed), the hand chord chart as a table with the
+  current bar lit, a paragraph about the tune, links to read about it, and
+  "appears in" with a link to the Stage pinned to that set (`#/?tune=<set>`).
+  `?band=` is written with `replaceState`, as the Stage writes its dance, so
+  switching does not remount the page. The references are **about** the tune
+  — Wikipedia where an article exists, thesession.org's search otherwise —
+  never the source of the setting, which was typed from memory; the page
+  says so once.
 - `#/pair` — **the pair page (M5, gate G1).** Hidden from the tab bar since
   M9 moved it off the front page; still linkable. The two-dancers spike's
   64-beat sequence at 112 bpm, played from `@caller/contra`'s figure
@@ -219,7 +238,9 @@ selector, the audio clock, the silent between-dances interval, what the
 caller announces over it, and two Stage-tab goldens), `e2e/frame.spec.ts`
 (the M3/M4 fixture goldens), `e2e/perf.spec.ts` (AC7, both halves),
 `e2e/pair.spec.ts` (three pair goldens, the page's controls, and the
-per-figure strips — gate G1's artifact), `e2e/gallery.spec.ts` (F3b, M12: the tab
+per-figure strips — gate G1's artifact), `e2e/tunes.spec.ts` (F4: the Tunes tab lists every tune, a
+tune page plays and the band switches without stopping it),
+`e2e/gallery.spec.ts` (F3b, M12: the tab
 bar reaches all three tabs, the definitions in their families with each row's
 own facts, the generated parameter rows and one of them deep-linked, every
 tile's own info, and the move gallery strips). `e2e/golden.ts` is the pixel-comparison helper `hall.spec.ts` and
@@ -235,7 +256,9 @@ B4: the thanks/announce/walk/ready gap between two dances), `src/program.test.ts
 adjacent dances, and dances every medley once before any repeats),
 `src/programme.test.ts` (the whole evening danced: every dancer has a figure
 at every beat, including a waiting couple's `wait-out` — the regression a
-plain coverage check missed), `src/galleryTiles.test.ts` (the gallery's
+plain coverage check missed), `src/routes/tunes.test.tsx` and `src/tuneText.test.ts` (F4: the Tunes tab's
+cards and a tune page's parts, rendered statically, and the key and position
+words), `src/galleryTiles.test.ts` (the gallery's
 figure and seam tiles cover every figure the registry holds and every seam
 the demo dances actually dance) and `src/moveCatalogue.test.ts` (M12: the
 catalogue is the library's own list, every row's facts come off the

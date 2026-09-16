@@ -20,6 +20,14 @@ export const swallowtailJig = defineTune({
   type: "jig",
   key: "Em",
   defaultBpm: 116,
+  about:
+    "An Irish jig in E minor, one of the first jigs most session players learn, and a staple of the jig set at a contra dance.",
+  references: [
+    {
+      label: "Swallowtail Jig on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Swallowtail+Jig",
+    },
+  ],
   arrangement: STRING_BAND,
   lines: [
     "EFG FED|EFG B3|EFG FED|EFG B3|Bcd efg|fed cBA|Bcd efg|fed E3|",

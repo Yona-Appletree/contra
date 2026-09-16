@@ -1,7 +1,19 @@
 import { parseOnly, type TuneObject } from "abcjs";
 import { describe, expect, it } from "vitest";
-import { tunes } from "./index.js";
-import { BAND, BANDS, barsOf, chordPair, halvesOf, writeAbc } from "./Tune.js";
+import { soldiersJoy, tunes } from "./index.js";
+import {
+  BAND,
+  BANDS,
+  BANJO_BAND,
+  NAMED_BANDS,
+  bandOf,
+  barsOf,
+  chordPair,
+  describeBand,
+  halvesOf,
+  rearrange,
+  writeAbc,
+} from "./Tune.js";
 import { inKey, tokensOf } from "../chords/harmonise.js";
 
 const EXPECTED_FRACTION: Record<"reel" | "jig", { num: string; den: string }> = {
@@ -188,5 +200,54 @@ describe("the band: every tune is arranged, charted and in key", () => {
       arrangement: BAND,
     });
     expect(abc).toContain('"D"d2dc d2fa|"D"d2fa "A7"d2fa|');
+  });
+});
+
+/**
+ * The tunes page (F4) reads three more things off a tune: a sentence about
+ * it, where to read more, and which of the four named bands it is written
+ * for. And its band switcher is `rearrange`: the same setting, another band.
+ */
+describe("what the tunes page reads (F4)", () => {
+  it.each(tunes)("$title says what it is and where to read about it", (tune) => {
+    expect(tune.about, `${tune.title} has no about`).toBeDefined();
+    expect((tune.about ?? "").length).toBeGreaterThan(40);
+    expect(tune.references?.length ?? 0, `${tune.title} has no references`).toBeGreaterThan(0);
+    for (const ref of tune.references ?? []) {
+      expect(ref.label.length).toBeGreaterThan(0);
+      // The references are about the tune, never the source of the setting,
+      // which was typed from memory; they are all on the open web.
+      expect(ref.url).toMatch(/^https:\/\/(en\.wikipedia\.org|thesession\.org)\//);
+    }
+  });
+
+  it("every tune is written for one of the four named bands, and the names are the bands", () => {
+    for (const tune of tunes) {
+      expect(bandOf(tune), `${tune.title}'s band is not a named one`).toBeDefined();
+    }
+    expect(NAMED_BANDS.map((band) => band.arrangement)).toEqual(BANDS);
+    expect(new Set(NAMED_BANDS.map((band) => band.id)).size).toBe(NAMED_BANDS.length);
+  });
+
+  it("names a band by its instruments", () => {
+    expect(describeBand(BAND)).toBe("fiddle, piano and bass");
+    expect(describeBand(BANJO_BAND)).toBe("banjo, guitar and bass");
+  });
+
+  it("rearrange changes the band's programs and nothing else about the tune", () => {
+    const banjo = rearrange(soldiersJoy, BANJO_BAND);
+    expect(banjo).not.toBe(soldiersJoy);
+    expect(banjo.arrangement).toBe(BANJO_BAND);
+    expect(bandOf(banjo)?.id).toBe("banjo");
+    expect(banjo.lines).toBe(soldiersJoy.lines);
+    expect(banjo.chords).toBe(soldiersJoy.chords);
+    expect(banjo.about).toBe(soldiersJoy.about);
+    expect(banjo.abc).toContain("%%MIDI program 105");
+    expect(banjo.abc).toContain("%%MIDI chordprog 25");
+    const withoutMidi = (abc: string): string => abc.replace(/^%%MIDI.*\n/gm, "");
+    expect(withoutMidi(banjo.abc)).toBe(withoutMidi(soldiersJoy.abc));
+    // The tune's own band is the tune itself, so the switcher's "as written"
+    // is not a copy.
+    expect(rearrange(soldiersJoy, soldiersJoy.arrangement)).toBe(soldiersJoy);
   });
 });

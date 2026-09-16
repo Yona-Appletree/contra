@@ -17,6 +17,18 @@ export const fishersHornpipe = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "An eighteenth-century hornpipe of British origin, in print since the 1780s, played at reel speed as a contra-dance standard.",
+  references: [
+    {
+      label: "Fisher's Hornpipe on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/Fisher%27s_Hornpipe",
+    },
+    {
+      label: "Fisher's Hornpipe on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Fisher%27s+Hornpipe",
+    },
+  ],
   lines: [
     "d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|",
     "d2fa gfed|cAFA GABc|d2fa gfed|cAFA GABc|d2fg agfe|dcBA GFED|d2fg agfe|dcBA G2D2|",

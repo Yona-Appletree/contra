@@ -17,6 +17,14 @@ export const mississippiSawyer = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  about:
+    "An American old-time reel played across the South and Midwest since the nineteenth century; the name is usually said to be a river snag, a fallen tree sawing up and down in the current.",
+  references: [
+    {
+      label: "Mississippi Sawyer on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Mississippi+Sawyer",
+    },
+  ],
   lines: [
     "A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|",
     "A2AG FGAB|AFAG FDD2|A2AG FGAB|AFAG FDD2|d2AF GFED|FGAB AFD2|d2AF GFED|FGAB AFD2|",

@@ -25,7 +25,10 @@ interface TuneSource {
   lines: readonly [string, string, string, string]; // the melody, one phrase a line, 8 bars a line
   chords: ChordChart; // the hand chart: 4 × 8 of Chord | [Chord, Chord]
   arrangement?: Arrangement; // default BAND
+  about?: string; // a sentence or two for the tunes page
+  references?: readonly Reference[]; // links *about* the tune, never the source of the setting
 }
+interface Reference { label: string; url: string }
 interface Tune extends TuneSource {
   arrangement: Arrangement;
   abc: string; // written by defineTune: headers, %%MIDI directives, chord symbols
@@ -43,6 +46,14 @@ const STRING_BAND: Arrangement; // fiddle 40, steel guitar 25, bass 32
 const BANJO_BAND: Arrangement; // banjo 105, steel guitar 25, bass 32
 const PIANO_BAND: Arrangement; // piano 0 on the tune, steel guitar 25, bass 32
 const BANDS: readonly Arrangement[]; // the four above, in that order
+type BandId = "house" | "string" | "banjo" | "piano";
+interface NamedBand { id: BandId; label: string; arrangement: Arrangement }
+const NAMED_BANDS: readonly NamedBand[]; // BANDS with a name and an id each
+function bandOf(tune: Pick<Tune, "arrangement">): NamedBand | undefined;
+function sameArrangement(a: Arrangement, b: Arrangement): boolean;
+function instrumentName(program: number): string; // 40 → "fiddle", 105 → "banjo"
+function describeBand(arrangement: Arrangement): string; // "fiddle, piano and bass"
+function rearrange(tune: Tune, arrangement: Arrangement): Tune; // the same setting, another band
 function defineTune(source: TuneSource): Tune;
 function writeAbc(tune: Pick<TuneSource, …> & { arrangement: Arrangement }): string;
 function barsOf(line: string): string[];
@@ -216,6 +227,14 @@ count-in changes with the band and nothing per-tune is written anywhere: a
 banjo-led reel is plucked in, a piano-led jig struck in. A flute- or
 accordion-led tune would want a fourth `blown` timbre first.
 
+**Hearing them is the Tunes tab's job** (`apps/web`, `#/tunes/<slug>`, F4):
+its band switcher is `rearrange(tune, band)` — `defineTune` over the same
+source with another arrangement, so the melody, the chart and the `about`
+come through untouched and only the `%%MIDI` lines move — and `NAMED_BANDS`
+gives the four an id for the URL (`?band=banjo`) and a label for the page.
+`bandOf` reads a tune's own band back out of that list, which is how the page
+marks one "as written".
+
 Volumes are abcjs' own defaults (105 / 48 / 64) in every band. Per-instrument
 balance is the kind of taste that wants an ear rather than a guess, and is
 left for a pass after a listen.
@@ -252,7 +271,11 @@ shares a tone with the notes; the ear is for those.
 Thirteen traditional public-domain tunes (nine reels, four jigs), typed as
 ABC from the agent's own memory (not copied from any transcription site —
 see each tune file's own provenance comment for a confidence note on both the
-melody and, since 2026-09-15, the chord chart). Three charts (Soldier's Joy,
+melody and, since 2026-09-15, the chord chart). Since F4 (2026-09-16) each
+also carries an `about` sentence and `references` for the Tunes tab: links
+**about** the tune — Wikipedia where an article exists, thesession.org's
+search for it otherwise — and deliberately not a transcription, because none
+was copied; the page says so beside them. Three charts (Soldier's Joy,
 Haste to the Wedding, The Kesh Jig) started as the music-sound spike's; the
 Kesh's had three cells moved off a D the melody never touches. The
 first three are M6's; T1 added the other ten so a whole evening does not

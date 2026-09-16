@@ -1045,3 +1045,210 @@
   color: var(--muted-foreground);
   overflow-wrap: anywhere;
 }
+
+/*
+ * The Tunes tab (F4): the band's book.
+ *
+ * A tune card is the same paper as the dance card — `--card` stock, its own
+ * ink, the warm header band — so the two tabs read as two drawers of one
+ * box. The speaker button is the Stage's, on the card's own paper.
+ */
+.tunes-group-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
+.tune-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 12%, transparent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--card-foreground);
+  font-size: 0.875rem;
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.35),
+    0 10px 24px -12px oklch(0 0 0 / 0.7);
+}
+
+/* The one that is sounding: lit in the floor board's gold, inside its frame. */
+.tune-card[data-playing="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.tune-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.625rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--card-accent);
+}
+
+.tune-card-title {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tune-card-title:hover {
+  text-decoration: underline;
+}
+
+.tune-card-meta {
+  font-size: 0.75rem;
+  color: color-mix(in oklab, currentColor 70%, transparent);
+}
+
+.tune-card-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+}
+
+.tune-card-lines {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: 0.8125rem;
+}
+
+.tune-card-dim {
+  color: color-mix(in oklab, currentColor 65%, transparent);
+}
+
+/* The tune's own page: a sheet, phone-first, like the dance page. */
+.tune-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 760px;
+}
+
+.tune-page-head h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.tune-page-head p,
+.tune-page-note {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.tune-page-prose {
+  max-width: 70ch;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.tune-page section h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tune-page-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tune-page-status {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The notation on paper, as it is on the Stage's card. */
+.tune-page-paper {
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 12%, transparent);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.35),
+    0 10px 24px -12px oklch(0 0 0 / 0.7);
+}
+
+/* The band switcher: chips, the pressed one in the lit board's gold. */
+.tune-bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.tune-bands button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tune-bands button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.tune-bands button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* The hand chart: a phrase a row, a bar a cell, the current one lit. */
+.tune-chart {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tune-chart th {
+  width: 2.5rem;
+  padding: 0.25rem 0.375rem 0.25rem 0;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.tune-chart td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.25rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tune-chart td.tune-chart-current {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.tune-page-refs,
+.tune-page-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+
+.tune-page-set-name {
+  font-weight: 600;
+}

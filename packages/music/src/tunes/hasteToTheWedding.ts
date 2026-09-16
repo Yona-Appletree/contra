@@ -16,6 +16,18 @@ export const hasteToTheWedding = defineTune({
   type: "jig",
   key: "D",
   defaultBpm: 116,
+  about:
+    "An eighteenth-century jig from the British Isles, in print by the 1760s and carried into both the Irish session and the New England contra repertoire.",
+  references: [
+    {
+      label: "Haste to the Wedding on Wikipedia",
+      url: "https://en.wikipedia.org/wiki/Haste_to_the_Wedding",
+    },
+    {
+      label: "Haste to the Wedding on thesession.org",
+      url: "https://thesession.org/tunes/search?q=Haste+to+the+Wedding",
+    },
+  ],
   lines: [
     "dcd AFA|dcd fed|ecA FAd|ecA FAG|dcd AFA|dcd fed|efg fdc|dfd d2A|",
     "dcd AFA|dcd fed|ecA FAd|ecA FAG|dcd AFA|dcd fed|efg fdc|dfd d2A|",
