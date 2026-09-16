@@ -25,7 +25,8 @@
     "strips": "node apps/web/scripts/strips.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs",
-    "corpus:crawl:contradb": "node scripts/corpus/crawl-contradb.mjs"
+    "corpus:crawl:contradb": "node scripts/corpus/crawl-contradb.mjs",
+    "corpus:derive:dances": "node scripts/corpus/derive-dances.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

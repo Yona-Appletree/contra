@@ -4,6 +4,11 @@ Two crawlers, one set of manners. The Caller's Box crawler is described
 first; the ContraDB crawler (added 2026-09-16) follows under
 [ContraDB](#contradb-scriptscorpuscrawl-contradbmjs).
 
+This document covers the **raw** cache only — what is fetched, and how.
+What the `scripts/corpus/derive-*.mjs` scripts turn that cache into, and the
+shape of every file under `derived/`, is
+[docs/corpus-derived.md](./corpus-derived.md).
+
 `scripts/corpus/crawl-callers-box.mjs` fetches every dance's JSON export
 from [The Caller's Box](https://www.ibiblio.org/contradance/thecallersbox/)
 (`dance.php?id=<id>&format=JSON`), ids ascending from 1, one request ever
