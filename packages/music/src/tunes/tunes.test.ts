@@ -1,7 +1,7 @@
 import { parseOnly, type TuneObject } from "abcjs";
 import { describe, expect, it } from "vitest";
 import { tunes } from "./index.js";
-import { BAND, barsOf, chordPair, halvesOf, writeAbc } from "./Tune.js";
+import { BAND, BANDS, barsOf, chordPair, halvesOf, writeAbc } from "./Tune.js";
 import { inKey, tokensOf } from "../chords/harmonise.js";
 
 const EXPECTED_FRACTION: Record<"reel" | "jig", { num: string; den: string }> = {
@@ -91,7 +91,7 @@ describe("bundled tunes", () => {
 describe("the band: every tune is arranged, charted and in key", () => {
   it.each(tunes)("$title's ABC carries the arrangement's programs and volumes", (tune) => {
     const band = tune.arrangement;
-    expect(band).toEqual(BAND);
+    expect(BANDS, `"${tune.title}" plays a band this package declares`).toContainEqual(band);
     expect(tune.abc).toContain(`%%MIDI program ${String(band.melody.program)}\n`);
     expect(tune.abc).toContain(`%%MIDI chordprog ${String(band.chords.program)}\n`);
     expect(tune.abc).toContain(`%%MIDI bassprog ${String(band.bass.program)}\n`);
@@ -105,6 +105,24 @@ describe("the band: every tune is arranged, charted and in key", () => {
       chordprog: [band.chords.program],
       bassprog: [band.bass.program],
     });
+  });
+
+  it("plays more than one band across the bundle", () => {
+    // The point of a per-tune arrangement: a medley can change colour
+    // mid-set. Written as a count rather than a fixed assignment, so moving
+    // one tune from one band to another is a one-line change to that tune.
+    const played = new Set(tunes.map((tune) => JSON.stringify(tune.arrangement)));
+    expect(played.size).toBeGreaterThanOrEqual(4);
+    expect(tunes.filter((tune) => tune.arrangement === BAND).length).toBeGreaterThan(0);
+  });
+
+  it.each(tunes)("$title's melody is its loudest voice, so the potatoes follow it", (tune) => {
+    // `potatoesFor` counts the dance in with the loudest voice of the
+    // arrangement (`loudestVoice`). A band whose chords out-shouted its
+    // melody would silently move the count-in onto the chord instrument.
+    const band = tune.arrangement;
+    expect(band.melody.volume).toBeGreaterThanOrEqual(band.chords.volume);
+    expect(band.melody.volume).toBeGreaterThanOrEqual(band.bass.volume);
   });
 
   it.each(tunes)("$title has a chord on every bar, in its own key", (tune) => {

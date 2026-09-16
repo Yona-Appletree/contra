@@ -1,4 +1,4 @@
-import { defineTune } from "./Tune.js";
+import { STRING_BAND, defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
@@ -6,6 +6,10 @@ import { defineTune } from "./Tune.js";
  * E minor (dorian-leaning) setting with the B part on the high G is the
  * standard session one. The chart (2026-09-15) is Em with the D and G a band
  * plays under the descending runs; moderate confidence.
+ *
+ * Band: STRING_BAND. A guitar under the jig, which is what gives the
+ * Swallowtail set its change of colour when the Washerwoman follows on the
+ * house band.
  *
  * Written out in full (AABB, 32 bars) with no repeat signs; four source
  * lines of eight bars, one per phrase (see `packages/music/README.md`).
@@ -16,6 +20,7 @@ export const swallowtailJig = defineTune({
   type: "jig",
   key: "Em",
   defaultBpm: 116,
+  arrangement: STRING_BAND,
   lines: [
     "EFG FED|EFG B3|EFG FED|EFG B3|Bcd efg|fed cBA|Bcd efg|fed E3|",
     "EFG FED|EFG B3|EFG FED|EFG B3|Bcd efg|fed cBA|Bcd efg|fed E3|",

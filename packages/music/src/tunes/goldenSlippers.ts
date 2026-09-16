@@ -1,4 +1,4 @@
-import { defineTune } from "./Tune.js";
+import { BANJO_BAND, defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune
@@ -7,6 +7,9 @@ import { defineTune } from "./Tune.js";
  * not the song's vocal line; the A part's D–A7 alternation is standard. The
  * chart (2026-09-15) is that alternation, with the G a band adds on the A
  * part's second bar; moderate confidence.
+ *
+ * Band: BANJO_BAND. Bland wrote it for the minstrel stage; the banjo is the
+ * instrument it was written for, and it shares Old Joe Clark's samples.
  *
  * Written out in full (AABB, 32 bars) with no repeat signs; four source
  * lines of eight bars, one per phrase (see `packages/music/README.md`).
@@ -17,6 +20,7 @@ export const goldenSlippers = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  arrangement: BANJO_BAND,
   lines: [
     "d2fa d2fa|gfed cAA2|d2fa d2fa|gfed cAd2|a2fa gfed|cded cAA2|a2fa gfed|cded cAd2|",
     "d2fa d2fa|gfed cAA2|d2fa d2fa|gfed cAd2|a2fa gfed|cded cAA2|a2fa gfed|cded cAd2|",

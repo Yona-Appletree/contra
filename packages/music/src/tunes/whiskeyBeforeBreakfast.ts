@@ -1,4 +1,4 @@
-import { defineTune } from "./Tune.js";
+import { STRING_BAND, defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
@@ -7,6 +7,9 @@ import { defineTune } from "./Tune.js";
  * setting; a few passing notes may differ from any one printed version. The
  * chart (2026-09-15) follows the typed melody: D, with A7 at the cadences and
  * the G where the melody passes through it; moderate confidence.
+ *
+ * Band: STRING_BAND. The same guitar backup as the other American reels it
+ * sits beside in the Mississippi set.
  *
  * Written out in full (AABB, 32 bars) with no repeat signs; four source
  * lines of eight bars, one per phrase (see `packages/music/README.md`).
@@ -17,6 +20,7 @@ export const whiskeyBeforeBreakfast = defineTune({
   type: "reel",
   key: "D",
   defaultBpm: 112,
+  arrangement: STRING_BAND,
   lines: [
     "DFAd fed2|efed cAA2|DFAd fed2|efed cAd2|f2fe d2de|fgaf gfed|f2fe d2de|faag fed2|",
     "DFAd fed2|efed cAA2|DFAd fed2|efed cAd2|f2fe d2de|fgaf gfed|f2fe d2de|faag fed2|",
