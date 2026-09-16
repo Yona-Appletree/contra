@@ -67,29 +67,33 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   font:11.5px ui-monospace,Menlo,monospace;white-space:nowrap;background:var(--panel)}
 .shape-nav a:hover{background:var(--accent);color:#1b1410}
 .shape-sec{margin:0 0 26px}
-.shape-head{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}
+.shape-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}
+.shape-head > .txt{flex:1 1 16rem;min-width:0}
 .shape-head h3{margin:0;font-size:17px;font-weight:600;line-height:1.25}
 .shape-head .sub{font:11px ui-monospace,Menlo,monospace;color:var(--muted);margin-top:2px}
 .shape-head p{margin:5px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:70ch}
 .shape-dia{flex:0 0 auto;background:var(--dark);border-radius:6px;padding:4px;border:1px solid var(--line)}
-.shape-facts{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;font:10.5px ui-monospace,Menlo,monospace}
-.fact{border-radius:3px;padding:1px 5px;background:#ffffff14;color:var(--muted);white-space:nowrap}
+.shape-facts{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;font:10.5px ui-monospace,Menlo,monospace;max-width:100%}
+.fact{border-radius:3px;padding:1px 5px;background:#ffffff14;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .fact.model{background:#9fd08a1f;color:var(--good)}
 .fact.spike{background:#e7b96b1f;color:var(--accent)}
 
 /* ---- the figure tile grid ---- */
 .tiles{display:flex;flex-wrap:wrap;gap:10px}
 .tiles.dense{gap:6px}
-.fig{width:var(--tile);cursor:pointer;background:transparent;border:0;padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;gap:3px}
+/* `white-space:normal` undoes the control strip's `nowrap` on every button:
+   a tile is a button, and its caption has to wrap inside the tile's width. */
+.fig{flex:0 0 var(--tile);width:var(--tile);min-width:0;overflow:hidden;cursor:pointer;background:transparent;border:0;
+  padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;gap:3px;white-space:normal}
 .fig:hover .tile-box{outline:1px solid var(--accent)}
 .tile-box{position:relative;width:var(--tile);height:var(--tile);overflow:hidden;background:var(--dark);border-radius:4px;
   box-shadow:0 0 0 1px #0000007a,0 3px 8px -4px #0009}
 .tile-box img{position:absolute;image-rendering:pixelated;transform-origin:0 0;left:0;top:0}
-.tile-box .beat{position:absolute;right:3px;bottom:2px;font:9px ui-monospace,Menlo,monospace;color:#ffffff66}
-.tile-box .dot{position:absolute;left:4px;top:4px;width:6px;height:6px;border-radius:50%}
-.fig .nm{font-size:12px;font-weight:600;line-height:1.25}
-.fig .mt{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted)}
-.fig .note{font-size:11px;color:var(--muted);line-height:1.35}
+.tile-box .dot{position:absolute;left:4px;top:4px;width:6px;height:6px;border-radius:50%;z-index:2}
+.fig .nm{font-size:12px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.fig .mt{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere}
+.fig .note{font-size:11px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
 .dot.s-ok{background:var(--good)}
 .dot.s-fixed{background:var(--accent)}
 .dot.s-wrong{background:var(--bad)}
@@ -103,8 +107,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .combo .src{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted)}
 .combo p{margin:4px 0 6px;font-size:12px;color:var(--muted);line-height:1.45;max-width:70ch}
 .seq{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px}
-.seq .arrow{align-self:center;color:var(--accent);font-size:15px;padding:0 1px;margin-top:-16px}
-.seq .fig{width:calc(var(--tile) * 0.72)}
+.seq .arrow{color:var(--accent);font-size:15px;padding:0 1px;align-self:flex-start;
+  margin-top:calc(var(--tile) * 0.3)}
+.seq .fig{flex:0 0 calc(var(--tile) * 0.72);width:calc(var(--tile) * 0.72)}
 .seq .tile-box{width:calc(var(--tile) * 0.72);height:calc(var(--tile) * 0.72)}
 details{margin-top:6px}
 summary{font:11px ui-monospace,Menlo,monospace;color:var(--muted);cursor:pointer;width:fit-content}
@@ -117,14 +122,15 @@ summary{font:11px ui-monospace,Menlo,monospace;color:var(--muted);cursor:pointer
   border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--panel)}
 .fig-pick button{font-size:11px;padding:2px 6px}
 .b-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
-.b-head .tile-box{width:calc(var(--tile) * 1.4);height:calc(var(--tile) * 1.4)}
-.b-head h3{margin:0;font-size:19px}
+.b-head > .tile-box{flex:0 0 auto;width:calc(var(--tile) * 1.4);height:calc(var(--tile) * 1.4)}
+.b-head > div:not(.tile-box){flex:1 1 16rem;min-width:0}
+.b-head h3{margin:0;font-size:19px;overflow-wrap:anywhere}
 .callline{font:13px ui-monospace,Menlo,monospace;color:var(--accent);margin:4px 0 2px;letter-spacing:.02em}
 .teach{font-size:12.5px;color:var(--muted);line-height:1.5;max-width:70ch;margin:4px 0}
 h4.sub{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:16px 0 6px;
   border-bottom:1px solid var(--line);padding-bottom:3px}
-.in-shape{display:flex;gap:10px;align-items:flex-start;border-left:2px solid var(--line);padding:4px 0 4px 10px;margin:8px 0}
-.in-shape .txt{min-width:0}
+.in-shape{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;border-left:2px solid var(--line);padding:4px 0 4px 10px;margin:8px 0}
+.in-shape .txt{flex:1 1 14rem;min-width:0}
 .in-shape h5{margin:0;font-size:13px;font-weight:600}
 .in-shape p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45;max-width:64ch}
 .danced{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
@@ -527,10 +533,9 @@ function tileBox(src, frames, extra) {
   const img = document.createElement('img');
   img.src = src; img.alt = '';
   box.appendChild(img);
-  const beatTag = document.createElement('span');
-  beatTag.className = 'beat';
-  box.appendChild(beatTag);
-  const entry = {box, img, frames, beatTag, ready: false, offset: (extra && extra.offset) || 0};
+  // No beat caption of our own: every strip frame already carries its beat,
+  // drawn under it in the hall's own bitmap font by e2e/gallery.spec.ts.
+  const entry = {box, img, frames, ready: false, offset: (extra && extra.offset) || 0};
   img.addEventListener('load', () => { entry.ready = true; paintFilm(entry); });
   if (img.complete && img.naturalWidth) { entry.ready = true; paintFilm(entry); }
   films.push(entry);
@@ -547,7 +552,6 @@ function paintFilm(e) {
   const ox = (T - w * s) / 2, oy = (TH - h * s) / 2;
   e.img.style.transform = `translate(${ox - fx * s}px, ${oy}px) scale(${s})`;
   e.img.style.width = e.img.naturalWidth + 'px';
-  e.beatTag.textContent = (k / 2).toFixed(1);
 }
 function paintAll() { for (const e of films) paintFilm(e); }
 
@@ -594,6 +598,7 @@ function figTile(id, note, inShape, opts) {
   const {box} = tileBox(picFor(id, inShape), frames);
   const dot = el('span', 'dot s-' + statusOf(id));
   dot.title = statusNote(id);
+  if (!showStatus) dot.style.display = 'none';
   box.appendChild(dot);
   b.appendChild(box);
   b.appendChild(el('div', 'nm', id));
@@ -676,7 +681,7 @@ function renderA(root) {
     const dia = el('div', 'shape-dia');
     dia.appendChild(diagram(s.dia, 1));
     head.appendChild(dia);
-    const txt = el('div');
+    const txt = el('div', 'txt');
     txt.appendChild(el('h3', null, s.title));
     txt.appendChild(el('div', 'sub', s.sub));
     txt.appendChild(el('p', null, s.blurb));
@@ -935,10 +940,11 @@ function renderD(root) {
     groups = Object.keys(STATUS_TEXT).map(k => [STATUS_TEXT[k], 'the register, 2026-09-15',
       Object.keys(FIG).filter(id => statusOf(id) === k && match(id)).map(i => [i, null])]);
   }
+  const distinct = new Set(groups.flatMap(g => g[2].map(x => x[0]))).size;
   const total = groups.reduce((n, g) => n + g[2].length, 0);
-  root.appendChild(el('div', 'count', total + ' of ' + Object.keys(FIG).length + ' figures'
+  root.appendChild(el('div', 'count', distinct + ' of the library\'s ' + Object.keys(FIG).length + ' figures'
     + (fa.shape || fa.family || fa.status || fa.q ? ' match the filter' : '')
-    + (fa.groupBy === 'shape' ? ' — a figure danced from three shapes is counted in all three' : '')));
+    + (total !== distinct ? ' — ' + total + ' tiles, because a figure danced from three shapes is shown in all three' : '')));
 
   for (const [title, sub, ids] of groups) {
     if (!ids.length) continue;
