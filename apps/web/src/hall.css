@@ -996,6 +996,132 @@
 }
 
 /*
+ * The dance lab (M9h): one dance's record and the candidate readings of where
+ * it carries its progression, side by side over a whole time through.
+ *
+ * It borrows the seam lab's `.lab-variant*` grid above — a column is a column —
+ * and adds four things a record needs that an engine did not: the clauses the
+ * reading writes, the words it is built on, a dot per checked line length, and
+ * the dance's own calls as a ruler under the control bar. Phone first: the
+ * ruler scrolls sideways on its own rather than widening the page, and the
+ * columns stack.
+ */
+.dance-lab-quote {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  border-left: 2px solid color-mix(in oklab, var(--foreground) 20%, transparent);
+  padding-left: 0.5rem;
+}
+
+.dance-lab-clauses {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.dance-lab-clauses code {
+  color: var(--foreground);
+}
+
+.dance-lab-broken {
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, oklch(0.6 0.2 25) 18%, transparent);
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* A dot per checked line length: the number itself, coloured by its verdict. */
+.dance-lab-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.125rem 0 0;
+}
+
+.dance-lab-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dance-lab-dot-unknown {
+  color: var(--muted-foreground);
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+
+.dance-lab-dot-pass {
+  color: oklch(0.92 0.09 140);
+  background: color-mix(in oklab, oklch(0.7 0.15 140) 28%, transparent);
+}
+
+.dance-lab-dot-fail {
+  color: oklch(0.93 0.08 25);
+  background: color-mix(in oklab, oklch(0.62 0.2 25) 34%, transparent);
+}
+
+/* The length the columns above are actually dancing at: the row of numbers
+ * beside these dots is this one's. */
+.dance-lab-dot-shown {
+  box-shadow: 0 0 0 1px currentcolor;
+  font-weight: 700;
+}
+
+/* The dance's own calls, in order, with the one happening now lit. */
+.dance-lab-ruler {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0 0 0.25rem;
+  list-style: none;
+}
+
+.dance-lab-call {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 0.3125rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.dance-lab-call-now {
+  border-color: currentcolor;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.dance-lab-call-phrase {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dance-lab-call-beats {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.dance-lab-boundary {
+  border-style: dashed;
+}
+
+/*
  * The dance page's resolution table (M3): what each call of a dance becomes on
  * the new engine — one row per figure instance the planner makes, read off a
  * real run. The same table `pnpm dance <slug>` prints, in the page's voice.

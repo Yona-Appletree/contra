@@ -1,0 +1,22 @@
+{
+  "of": "annas-reel",
+  "id": "allemande-n2",
+  "title": "The seven-beat allemande with N2 is the crossing",
+  "assumes": "The allemande right once and a quarter with number two is a seven-beat turn that leaves you a quarter past where you started — the quarter is the crossing, and everything after it, the hey included, is danced one place along and on the other line.",
+  "quotes": "A2  (7) N2 neighbor allemande right 1 & 1/4  (9) Hey 1/2 (WL;PR;ML;N2R)",
+  "notes": "Written on both passes. The hey's own pass list still says N2R, which after this clause is read from the seating the allemande left — which is the thing to watch. **Measured** at six couples: `closure 32.0000 · progressed 32.0000 · reach 0.5531 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 0.0000 · 4.091`. The same `progressed` as the hey and the swing readings: all three take the place along the set and leave the crossing.",
+  "patch": [
+    {
+      "at": "A2/0",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2A2/0",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

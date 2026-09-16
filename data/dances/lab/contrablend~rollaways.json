@@ -1,0 +1,16 @@
+{
+  "of": "contrablend",
+  "id": "rollaways",
+  "title": "The roll-aways carry it",
+  "assumes": "The travel is B1's two roll-aways: each one hands the robin along the line while the long lines go forward and back, and the set has moved on by the time the second one lets go and hands you a new partner.",
+  "quotes": "B1  (8) In long lines, go forward and back while partner roll away (W roll L, M side-step R)  (8) In long lines, go forward and back while shadow roll away (W roll L, M side-step R) (new partner)",
+  "notes": "The clause is on the second roll-away, the one that already rebinds partner to shadow, so the whole of B2 is danced in the new seating. A set progresses once per call that claims it, so “a place at each roll-away” cannot be written as two clauses without progressing twice; one clause at the end of the pair is the nearest thing the record can say. **Measured** at six couples, against the record's `closure 0.0000 · progressed 51.2250 · reach 0.0000 · collision 8.559`: `closure 68.0000 · progressed 86.1626 · reach 54.5692 short · collision 0.000`, and it fails at all five checked lengths where the record passes at two, three and six. Moving the shift sixteen beats earlier makes B2's circle with the shadow and its shoulder round with N2 resolve from the new seating, and the per-role shift (larks one place, robins three) re-pairs the set under them.",
+  "patch": [
+    {
+      "at": "B1/1",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

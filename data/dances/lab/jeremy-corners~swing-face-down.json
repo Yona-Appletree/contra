@@ -1,0 +1,22 @@
+{
+  "of": "jeremy-corners",
+  "id": "swing-face-down",
+  "title": "The swing “face down” settles them, and the twos move up",
+  "assumes": "The ones balance and swing and end facing down, which is the actives' own way of saying they have arrived in the twos' place — and the twos, who are not in the swing at all, move up by sliding along their own line while it happens.",
+  "quotes": "B1  (4) Ones balance  (12) Ones swing; face down",
+  "notes": "Written on both passes. This is the one reading that leans on M9g's hold-place slide: a call that carries the progression at its end moves the dancers it leaves out along with their own line, which is exactly “the twos move up”. **Measured** at six couples: `closure 32.0000 · progressed 37.7359 · reach 0.1737 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 0.0000 · 0.000`. The least reach of the four readings by a factor of ten, and `progressed` still does not move — so the twos' slide is cheap, and it is not what this dance's number is made of.",
+  "patch": [
+    {
+      "at": "B1/0",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2B1/0",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

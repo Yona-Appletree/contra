@@ -1,0 +1,16 @@
+{
+  "of": "contrablend",
+  "id": "shoulder-round",
+  "title": "The shoulder round places everyone",
+  "assumes": "The travel is B2's right shoulder round once and a half with number two: it is the call that ends “face N3”, so it is the call that puts everybody on their new place.",
+  "quotes": "B2  (10) N2 neighbor right shoulder round 1 & 1/2; face N3",
+  "notes": "The shoulder round is the last call of the time through, so this reading puts the shift where the engine already puts it — at the last call's end rather than at the boundary a beat later. What it changes is the mechanism: a call that carries the progression slides the dancers it leaves out along with their own line (M9g), and the boundary does not. **Measured** at six couples: `closure 46.1411 · progressed 64.0000 · reach 1.1047 short · collision 0.000`, against the record's `0.0000 · 51.2250 · 0.0000 · 8.559`. So the mechanism is not free even at the call the boundary already follows: the hold-place slide moves the dancers the round leaves out, and the shift then lands on a set the round has not squared.",
+  "patch": [
+    {
+      "at": "B2/2",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

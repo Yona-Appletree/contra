@@ -315,6 +315,66 @@ does not dance. The record's `notes` say what is still owed. It moves out of the
 lab and into `data/dances/programme.json` when it is green at every checked line
 length.
 
+## Candidate readings
+
+`data/dances/lab/<slug>~<id>.json` is **one caller's reading of a record**, and it
+exists to be shown: five dances are blocked on a question no measurement can
+answer — _where does this dance physically carry its progression?_ — and the way
+to ask it is to dance the alternatives side by side and let a caller point.
+`#/lab/dance/<slug>` is the page that does that; [the dance lab](./dance-lab.md)
+describes it.
+
+A candidate is **not** a copy of the record. `data/dances/<slug>.json` stays the
+transcript's, untouched, and the candidate file holds the two or three clauses
+the reading adds and nothing else — which is also what a reviewer wants to read,
+because the clause _is_ the reading.
+
+```jsonc
+{
+  "of": "the-set-monster", // the record this reads
+  "id": "contradb", // unique within that dance
+  "title": "ContraDB's ¶", // what the column is called
+  "assumes": "Three places, taken one at a time…", // one line, in a caller's words
+  "quotes": "ContraDB: “6: ladles balance & pull by right…”", // the words it rests on
+  "source": { "name": "ContraDB 2068", "url": "https://contradb.com/dances/2068" },
+  "notes": "…", // anything a reader of the file needs told
+  "progression": { "lark": 1, "robin": 1 }, // replaces the record's own, where the reading changes it
+  "patch": [
+    { "at": "A2/2", "params": { "progresses": true } },
+    { "at": "B1/0", "who": "N1" },
+    { "at": "B1/2", "params": { "pairs": "N2", "progresses": true } },
+  ],
+}
+```
+
+- **`at` is `"<phrase>/<index>"`** — the phrase's own name and the call's
+  zero-based place in it, which is how a record is read aloud ("B1's second
+  call") and the only two coordinates a phrase list has. A **concurrent** call is
+  addressed by its parent: a `while`'s branches are one call, and `progresses` is
+  read across all of them.
+- **`params` is merged** over the call's own. `null` **removes** a parameter,
+  which is how a reading moves a clause the record already has: a set progresses
+  once per call that claims it, so a reading that puts the shift somewhere else
+  has to take the old one off.
+- **`who`** replaces the call's own, for a reading that changes who a call is
+  with. A reading that moves the shift earlier moves what `N2` means after it, so
+  the relations usually move with the clause.
+- A candidate may say **nothing else**. In particular **`startPlaces` is not a
+  candidate** and the file has no way to write one: moving a dance's first places
+  moves the number the oracle reads without moving a dancer, which is
+  oracle-tuning. The question is where the _dancing_ carries the shift.
+
+A candidate loads as a dance called `<slug>~<id>`, and
+**`pnpm dance <slug>~<id>` measures it** like any other. It is in nothing else:
+not in `ALL_DANCES`, not in the programme, no card, no Stage page, no trace
+plate — everything that walks the corpus keeps seeing exactly the files in
+`data/dances/`. `LAB_CORPUS` is the list that has both.
+
+Where **ContraDB** has a page for the dance it is worth reading first: its figure
+list prints a pilcrow (`⁋`) against the figure that carries the progression,
+which is this question answered by the people who catalogue the dance. Two of the
+five acceptance dances have one.
+
 ---
 
 ## The Caller's Box notation, and what it maps to

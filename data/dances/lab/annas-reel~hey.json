@@ -1,0 +1,22 @@
+{
+  "of": "annas-reel",
+  "id": "hey",
+  "title": "The half hey crosses the lines",
+  "assumes": "The half hey is the crossing: you weave out of your own line and stop on the other one, and the balance and swing that follows is danced from the new side.",
+  "quotes": "A2  (7) N2 neighbor allemande right 1 & 1/4  (9) Hey 1/2 (WL;PR;ML;N2R)",
+  "notes": "Written on both passes, because Anna's Reel is a two-pass record and the set progresses at the end of each pass. **Measured** at six couples: `closure 32.0000 · progressed 32.0000 · reach 0.0000 · collision 0.000`, against the record's `0.0000 · 37.7359 · 0.0000 · 4.091`. The record's `progressed` 37.7359 = sqrt(32^2 + 20^2) becomes a flat **32.0000**, which is the set's own width and nothing along it: the hey carries the place, and what is left over is the crossing. It costs 32 px of closure at the hey's own seam.",
+  "patch": [
+    {
+      "at": "A2/1",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2A2/1",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

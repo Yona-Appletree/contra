@@ -128,6 +128,53 @@ figure strip — written to `--out` (default `data/local/dance-lab/<slug>/traces
 gitignored) through the same `traces:export` path the committed plates use.
 `--no-traces` skips them, which is what a batch run over every dance wants.
 
+## `#/lab/dance/<slug>` — the lab in the app
+
+The command above answers "does this record dance". The **page** answers a
+question the command cannot: _where is this dance supposed to carry its
+progression?_
+
+That is a choreography question, not an engine one. The engine reseats every
+dancer at the cycle boundary, and five records leave their dancers a whole shift
+away from the seat the boundary gives them, because nothing they call walks
+anybody to the new place. Which call is supposed to is a fact a caller knows, so
+the page asks by **showing** — the user's own words: _"figure out a way to ask me
+by showing me the dances, maybe alternatives so I can see it. its hard to imagine
+it all."_
+
+`#/lab/dance` lists the five. Each dance's page puts the record and its
+[candidate readings](./dance-record.md#candidate-readings) side by side:
+
+- **one column per reading**, the record first, each the whole line at **six
+  couples** — the worst or joint-worst `progressed` length for all five —
+  animated over one whole time through plus the first eight beats of the next,
+  from **one clock**, slowed to ¼, ½ or 1×, looped. `?couples=n` opens any other
+  checked length; `?beat=n` freezes; `?speed=`, `?zoom=` and `?trails=1` are
+  there too;
+- **the four oracle numbers under each**, at the length being danced —
+  `closure`, `progressed`, `reach`, `collision` — read from `oraclesFor` on the
+  contra planner, which is the same function section 2 above prints. `progressed`
+  is the one the question is about: zero means the dancing carried everybody to
+  the new place;
+- **a dot per checked line length**, green or red, ringed on the one being
+  danced, so a reading that is green at six and nowhere else cannot hide;
+- **one line of what the reading assumes**, the words it is built on, and the
+  clauses it writes;
+- **a strip per column** underneath, a frame every eight beats in the same
+  columns, so the whole time through can be read down a column while the tiles
+  are still moving;
+- **a call ruler** above, which lights the call being watched and jumps to any of
+  them — because the answer is the name of a call;
+- **a pick button**, which copies the chosen record's id and shows it. Nothing
+  writes back: the user tells the director, and the director writes the clause
+  into `data/dances/<slug>.json`.
+
+**A reading that fails is shown failing.** What is being chosen is the dance, not
+the green — a reading can be right about the choreography and still expose
+something the engine owes, and hiding that would be choosing for the caller. A
+reading that cannot be planned at all at that length says so where its canvas
+would be.
+
 ## The pure half
 
 Everything except the traces comes from `packages/contra/src/dances/danceLab.ts`

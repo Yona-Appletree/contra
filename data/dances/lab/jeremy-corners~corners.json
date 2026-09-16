@@ -1,0 +1,22 @@
+{
+  "of": "jeremy-corners",
+  "id": "corners",
+  "title": "Contra corners along the set carries them",
+  "assumes": "Turning contra corners along the set is what walks the actives down: sixteen beats of reaching to the couple above and the couple below, and they come out of it a place along.",
+  "quotes": "A2  (16) Ones turn contra corners (along the set)",
+  "notes": "Written on both passes. Contra corners is danced by six dancers (DD45), so this is the one reading in which the couples above and below are part of the travel rather than watching it. **Measured** at six couples: `closure 32.0000 · progressed 37.7359 · reach 3.9529 short · collision 0.000`, against the record's `0.0000 · 37.7359 · 0.0000 · 0.000`. `progressed` does not move, and the corners reach further than the diamond reading does.",
+  "patch": [
+    {
+      "at": "A2/0",
+      "params": {
+        "progresses": true
+      }
+    },
+    {
+      "at": "2A2/0",
+      "params": {
+        "progresses": true
+      }
+    }
+  ]
+}

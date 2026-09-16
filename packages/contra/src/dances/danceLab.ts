@@ -26,7 +26,7 @@ import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
 import { setRulesFor } from "../set/SetRules.js";
 import { modelFromSet } from "../set/SetModel.js";
 import { UNSUPPORTED_FIGURES } from "./acceptance.js";
-import { ALL_DANCES } from "./index.js";
+import { LAB_CORPUS } from "./index.js";
 import type { MotionMetric } from "./motionAllowlist.js";
 import { motionAllowance } from "./motionAllowlist.js";
 import type { DanceOracles } from "./oracle.js";
@@ -395,7 +395,7 @@ function targetOf(library: Library, call: ContraCall): TargetShape | undefined {
 export function danceLabReport(
   slug: string,
   couples?: number,
-  dances: readonly Dance[] = ALL_DANCES,
+  dances: readonly Dance[] = LAB_CORPUS,
 ): DanceLabReport {
   const dance = dances.find((d) => d.slug === slug);
   if (!dance) {
@@ -569,7 +569,26 @@ export function danceLabReport(
   // A warning, never a failure: a shape clause describes where a figure leaves
   // you, and a caller wants to be told when the description and the dancing
   // part company rather than have the dance refuse to load.
-  const shapes = danceShapes(dance, at);
+  //
+  // **It may still throw** (M9h). A dance that resolves at the lab's own line
+  // length may fail to plan at another — a candidate reading that moves the
+  // progression can leave a waiting couple's `wait-out` overlapping the
+  // `walk-to-station` before it — and until now that threw out of the whole
+  // report, so the reader got a stack trace instead of the two sections above
+  // it that had already measured. The lab is the thing that says a dance does
+  // not dance, so it says it here too.
+  let shapes: ShapeRow[] = [];
+  try {
+    shapes = danceShapes(dance, at);
+  } catch (error) {
+    ok = false;
+    lines.push(
+      "## 3b. Shapes — a call that names the shape it forms (Q6)",
+      "",
+      `**FAIL** — this dance does not plan at ${String(at)} couples: ${String(error)}`,
+      "",
+    );
+  }
   if (shapes.length > 0) {
     lines.push("## 3b. Shapes — a call that names the shape it forms (Q6)", "");
     for (const row of shapes) {
@@ -610,13 +629,21 @@ export function danceLabReport(
       "A value over its bound fails unless `motionAllowlist.ts` says why.",
     "",
   );
-  const timeline = danceAlone(dance, at, until, {}, LAB_RUN).timeline();
-  const motion = motionReport(timeline, until, {
-    step: MOTION_STEP,
-    bounds: CONTRA_MOTION_BOUNDS,
-  });
   const reasons = new Map<string, string>();
-  for (const row of [...motion.figures, ...motion.seams]) {
+  let motion: { figures: MotionStats[]; seams: MotionStats[] } | undefined;
+  try {
+    const timeline = danceAlone(dance, at, until, {}, LAB_RUN).timeline();
+    motion = motionReport(timeline, until, {
+      step: MOTION_STEP,
+      bounds: CONTRA_MOTION_BOUNDS,
+    });
+  } catch (error) {
+    // Same reason as section 3b's: a dance that does not plan has no motion
+    // rows, and saying so is the report's job.
+    ok = false;
+    lines.push(`**FAIL** — nothing to measure: ${String(error)}`);
+  }
+  for (const row of motion === undefined ? [] : [...motion.figures, ...motion.seams]) {
     const problems = overBound(row);
     for (const metric of problems) {
       const allowed = motionAllowance(dance.slug, row.key, metric);
@@ -625,7 +652,9 @@ export function danceLabReport(
     }
     lines.push(motionLine(row, dance.slug, problems));
   }
-  if (motion.figures.length === 0 && motion.seams.length === 0) lines.push("_none measured._");
+  if (motion !== undefined && motion.figures.length === 0 && motion.seams.length === 0) {
+    lines.push("_none measured._");
+  }
   lines.push("");
   if (reasons.size > 0) {
     lines.push("Allowed, with reasons:", "");
