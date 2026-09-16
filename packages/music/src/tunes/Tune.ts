@@ -76,6 +76,50 @@ export const BAND: Arrangement = {
   bass: { program: 32, volume: 64 },
 };
 
+/**
+ * The old-time backup: the same fiddle over a steel-string guitar (25) instead
+ * of a piano. A guitar chops where a piano booms, which is what the American
+ * reels in this bundle are usually backed by.
+ */
+export const STRING_BAND: Arrangement = {
+  melody: { program: 40, volume: 105 },
+  chords: { program: 25, volume: 48 },
+  bass: { program: 32, volume: 64 },
+};
+
+/**
+ * A banjo (105) on the tune, guitar behind it. The minstrel-era and old-time
+ * reels; the banjo is also what makes their potatoes *plucked* rather than
+ * bowed, with nothing said about potatoes anywhere but here.
+ */
+export const BANJO_BAND: Arrangement = {
+  melody: { program: 105, volume: 105 },
+  chords: { program: 25, volume: 48 },
+  bass: { program: 32, volume: 64 },
+};
+
+/**
+ * A piano (0) leading, guitar on the chords: a jig taken by the piano player
+ * while the fiddle sits out. Its potatoes are struck, which is the hammer the
+ * count-in had before any arrangement existed.
+ */
+export const PIANO_BAND: Arrangement = {
+  melody: { program: 0, volume: 105 },
+  chords: { program: 25, volume: 48 },
+  bass: { program: 32, volume: 64 },
+};
+
+/**
+ * Every band a bundled tune may name. The melody is the loudest voice in all
+ * of them, deliberately: {@link Arrangement} has no notion of a lead, so the
+ * loudest voice is what {@link import("../player/potatoes.js").potatoesFor}
+ * reads the count-in's instrument from, and a chord voice that out-shouted the
+ * melody would quietly take the potatoes with it. The volumes themselves are
+ * abcjs' own defaults (105 downbeat, 48 chick, 64 boom) in every band — the
+ * per-instrument balance is a taste call that wants an ear, not a guess.
+ */
+export const BANDS: readonly Arrangement[] = [BAND, STRING_BAND, BANJO_BAND, PIANO_BAND];
+
 /** An ordered list of tunes to play, each repeated `timesThroughEach` times. */
 export interface Medley {
   slug: string;

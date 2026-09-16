@@ -26,6 +26,10 @@ export {
 } from "./player/potatoes.js";
 export {
   BAND,
+  BANDS,
+  BANJO_BAND,
+  PIANO_BAND,
+  STRING_BAND,
   arkansasSet,
   arkansasTraveler,
   barsOf,

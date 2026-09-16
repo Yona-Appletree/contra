@@ -39,6 +39,10 @@ type ChordChart = readonly (readonly BarChords[])[];
 interface Voice { program: number; volume: number } // General MIDI program, MIDI velocity
 interface Arrangement { melody: Voice; chords: Voice; bass: Voice }
 const BAND: Arrangement; // fiddle 40 @ 105, piano 0 @ 48, acoustic bass 32 @ 64
+const STRING_BAND: Arrangement; // fiddle 40, steel guitar 25, bass 32
+const BANJO_BAND: Arrangement; // banjo 105, steel guitar 25, bass 32
+const PIANO_BAND: Arrangement; // piano 0 on the tune, steel guitar 25, bass 32
+const BANDS: readonly Arrangement[]; // the four above, in that order
 function defineTune(source: TuneSource): Tune;
 function writeAbc(tune: Pick<TuneSource, …> & { arrangement: Arrangement }): string;
 function barsOf(line: string): string[];
@@ -120,7 +124,9 @@ the **voice**: `potatoesFor` takes the loudest voice of the tune's arrangement
 instrument's family (`voiceOf`) — the strings **bow** them (a bow bite, a
 twenty-millisecond swell, an octave up where a fiddle's chord sits, a shorter
 stroke), the pianos **strike** them (the hammer the potatoes always had), and
-everything else **plucks** them. With the default `BAND` that is the fiddle.
+everything else **plucks** them. With the default `BAND` that is the fiddle;
+with `BANJO_BAND` it is the banjo and with `PIANO_BAND` the piano, which is
+the whole of what makes those tunes count in differently (see "The bands").
 This closes the state-and-debts note's item 16 ("potatoes want an
 arrangement"): the arrangement now exists, on the tune.
 
@@ -165,30 +171,64 @@ for both: `millisecondsPerMeasure = 60000 * meter.beatsPerBar / bpm`, with
 over `beatsPerBar`, so it would in fact "adjust for jigs" if a future jig
 ever needed a different beats-per-bar).
 
-## The band
+## The bands
 
-Every tune is played by the same band, and the band is written into the ABC.
 A tune file is a `defineTune({ key, lines, chords, … })` source: four lines of
 bare melody, a hand chord chart over them (one chord a bar, or a `[first,
 second]` pair at the half-bar — every bar has a space at its half-bar, which
-is where the second chord goes), and an `arrangement` that defaults to `BAND`:
-a fiddle (General MIDI 40) on the melody, a piano (0) on the chords and an
-acoustic bass (32) on the beat. `writeAbc` turns that into the `abc` string
-`Player` and `Notation` read — `%%MIDI program 40`, `%%MIDI chordprog 0`,
-`%%MIDI bassprog 32`, the chord and bass volumes, and a `"D"`-style chord
-symbol before each half-bar its chord starts on — and abcjs does the rest: it
-reads the chord symbols and writes its own boom-chick accompaniment, bass on
+is where the second chord goes), and an `arrangement` — three General MIDI
+voices with volumes — that defaults to `BAND`: a fiddle (40) on the melody, a
+piano (0) on the chords and an acoustic bass (32) on the beat. `writeAbc`
+turns that into the `abc` string `Player` and `Notation` read — `%%MIDI
+program`, `%%MIDI chordprog`, `%%MIDI bassprog`, the chord and bass volumes,
+and a `"D"`-style chord symbol before each half-bar its chord starts on — and
+abcjs does the rest: it reads the chord symbols and writes its own boom-chick accompaniment, bass on
 the beat and chord off it, the pattern chosen by the meter. This is what the
 original hall spike sounded like, and what the music-sound listening spike's
 route 2 chose (gate ruling 2026-09-15; ADR
 `docs/adr/2026-09-15-tunes-carry-chords-and-arrangement.md`). The notation
 draws the chord symbols above the stave, as a caller's card would.
 
+**Four bands, not one.** `BAND` was the only arrangement until 2026-09-16, so
+an evening was thirteen tunes played by one trio. Three more sit beside it in
+`Tune.ts`, and six tunes name one:
+
+| Band          | Melody    | Chords          | Bass             | Potatoes | Tunes                                                                                                                          |
+| ------------- | --------- | --------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `BAND`        | violin 40 | piano 0         | acoustic bass 32 | bowed    | Soldier's Joy, St. Anne's Reel, Fisher's Hornpipe, Mississippi Sawyer, Haste to the Wedding, Irish Washerwoman, Morrison's Jig |
+| `STRING_BAND` | violin 40 | steel guitar 25 | acoustic bass 32 | bowed    | Arkansas Traveler, Whiskey Before Breakfast, Swallowtail Jig                                                                   |
+| `BANJO_BAND`  | banjo 105 | steel guitar 25 | acoustic bass 32 | plucked  | Old Joe Clark, Golden Slippers                                                                                                 |
+| `PIANO_BAND`  | piano 0   | steel guitar 25 | acoustic bass 32 | struck   | The Kesh Jig                                                                                                                   |
+
+Four of the six medleys now change instrument mid-set — `arkansas-set` is a
+guitar-backed fiddle, then a banjo, then the house band; `kesh-set` opens on
+the piano and hands over to the fiddle. `reel-set` and `jig-set` are
+deliberately left on `BAND` throughout: they are the anchor, and one set of
+the evening sounds exactly as it always did.
+
+Two rules hold the bands together, and both are tests in `tunes.test.ts`.
+Every band's **melody is its loudest voice** — `Arrangement` has no notion of
+a lead, so the loudest voice is what `potatoesFor` counts the dance in with,
+and a chord voice that out-shouted the melody would quietly take the
+count-in with it. And every melody program falls in a family `voiceOf`
+already maps (strings bow, pianos strike, the rest pluck), which is why the
+count-in changes with the band and nothing per-tune is written anywhere: a
+banjo-led reel is plucked in, a piano-led jig struck in. A flute- or
+accordion-led tune would want a fourth `blown` timbre first.
+
+Volumes are abcjs' own defaults (105 / 48 / 64) in every band. Per-instrument
+balance is the kind of taste that wants an ear rather than a guess, and is
+left for a pass after a listen.
+
 **The samples are self-hosted.** abcjs loads one mp3 per note from
 `soundFontUrl`; the app passes its own `public/soundfont/` (see
 `apps/web/README.md`), built by `pnpm --filter @caller/web soundfont` from
-exactly the notes these tunes need, so nothing streams from
-paulrosen.github.io at run time. `createPlayer` states abcjs' own 3.0 volume
+exactly the notes these tunes need — 62 of them over five instruments, about
+1.4 MB — so nothing streams from paulrosen.github.io at run time. A new band
+means new samples, so `apps/web/src/soundfont.test.mjs` holds the committed
+audio to a 3 MB budget and checks both directions: every instrument a tune's
+band names has its notes on disk, and no instrument on disk belongs to a band
+no tune plays. `createPlayer` states abcjs' own 3.0 volume
 multiplier for it, because abcjs would otherwise give a custom URL 1.0.
 
 **The chords are hand charts, and the harmoniser checks them.** The
@@ -245,7 +285,8 @@ depending on how abcjs expands repeats for the synth's audio buffer, and
 spike did (`bar<16?0:1`, tuned to one specific `staffwidth`).
 `tunes.test.ts` checks all thirteen parse, have exactly 32 bars of the
 declared meter, have exactly eight bars on each of their four source lines,
-carry the arrangement's `%%MIDI` directives, have a chord on every bar in
+carry their own arrangement's `%%MIDI` directives (and name a band this
+package declares, with its melody the loudest voice), have a chord on every bar in
 their own key, and have two halves of the right length (four eighths for a
 reel, three for a jig) in every bar — which is also a check on the
 transcriptions themselves.

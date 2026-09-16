@@ -11,6 +11,8 @@ import {
 import { BAND } from "../tunes/Tune.js";
 import { soldiersJoy } from "../tunes/soldiersJoy.js";
 import { morrisonsJig } from "../tunes/morrisonsJig.js";
+import { oldJoeClark } from "../tunes/oldJoeClark.js";
+import { keshJig } from "../tunes/keshJig.js";
 import { tunes } from "../tunes/index.js";
 
 /**
@@ -188,8 +190,22 @@ describe("the loudest instrument plays them", () => {
     expect(POTATO_DEFAULTS.voice).toBe("struck");
   });
 
-  it("reads the voice off the tune's own arrangement: the default band's fiddle bows them", () => {
-    for (const tune of tunes) expect(potatoesFor(tune, BPM).voice, tune.slug).toBe("bowed");
+  /**
+   * The payoff of the per-tune arrangement: three of the bundled bands, three
+   * different count-ins, with nothing per-tune written here or in
+   * `potatoesFor` — each tune's own `arrangement` is the whole input.
+   */
+  it("reads the voice off the tune's own arrangement, so a band change changes the count-in", () => {
+    expect(potatoesFor(soldiersJoy, BPM).voice).toBe("bowed"); // BAND: a fiddle
+    expect(potatoesFor(oldJoeClark, BPM).voice).toBe("plucked"); // BANJO_BAND
+    expect(potatoesFor(keshJig, BPM).voice).toBe("struck"); // PIANO_BAND
+    // Every bundled tune gets one of the three; none falls through to a
+    // family its melody instrument does not belong to.
+    for (const tune of tunes) {
+      expect(potatoesFor(tune, BPM).voice, tune.slug).toBe(
+        voiceOf(tune.arrangement.melody.program),
+      );
+    }
     const pianoLed = {
       ...soldiersJoy,
       arrangement: { ...BAND, chords: { program: 0, volume: 127 } },

@@ -18,6 +18,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
+import { instrumentNames } from "./instrumentName.mjs";
 import { tunesDigest } from "./soundfontDigest.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -30,7 +31,6 @@ const BASE = "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/";
 const require = createRequire(resolve(root, "../../packages/music/package.json"));
 const abcjs = require("abcjs");
 const flatten = require("abcjs/src/synth/abc_midi_flattener.js");
-const instrumentName = require("abcjs/src/synth/instrument-index-to-name.js");
 const noteName = require("abcjs/src/synth/pitch-to-note-name.js");
 
 // The tunes are TypeScript in a workspace package; Vite loads them the way the
@@ -62,7 +62,7 @@ for (const tune of tunes) {
     for (const event of track) {
       if (event.cmd === "program") instrument = event.instrument;
       if (event.cmd === "note") {
-        need.add(`${instrumentName[event.instrument ?? instrument]}/${noteName[event.pitch]}`);
+        need.add(`${instrumentNames[event.instrument ?? instrument]}/${noteName[event.pitch]}`);
       }
     }
   }

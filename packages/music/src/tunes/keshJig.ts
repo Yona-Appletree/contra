@@ -1,4 +1,4 @@
-import { defineTune } from "./Tune.js";
+import { PIANO_BAND, defineTune } from "./Tune.js";
 
 /**
  * Provenance: typed from the agent's own memory of the traditional tune,
@@ -10,6 +10,10 @@ import { defineTune } from "./Tune.js";
  * the held G that ends bar 4, and under the "c2A" that opens the B part;
  * a G and a C are what those notes are) — moderate confidence.
  *
+ * Band: PIANO_BAND. The piano-led jig of the bundle: the piano takes the
+ * tune over a guitar while the fiddle sits out, and the count-in goes back
+ * to being struck.
+ *
  * Written out in full (AABB, 32 bars) with no repeat signs; four source
  * lines of eight bars, one per phrase (see `packages/music/README.md`).
  */
@@ -19,6 +23,7 @@ export const keshJig = defineTune({
   type: "jig",
   key: "G",
   defaultBpm: 116,
+  arrangement: PIANO_BAND,
   lines: [
     "D2D GAB|c2A BGE|D2D GAB|c2A G3|B2G FGA|BAG FED|B2G FGA|BAG G3|",
     "D2D GAB|c2A BGE|D2D GAB|c2A G3|B2G FGA|BAG FED|B2G FGA|BAG G3|",

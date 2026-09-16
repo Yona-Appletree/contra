@@ -1,5 +1,9 @@
 export {
   BAND,
+  BANDS,
+  BANJO_BAND,
+  PIANO_BAND,
+  STRING_BAND,
   barsOf,
   chordPair,
   defineTune,
