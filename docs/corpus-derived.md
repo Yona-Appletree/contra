@@ -52,8 +52,11 @@ node scripts/corpus/derive-sets.mjs        # index + sets/pins.json → sets/han
 node scripts/corpus/derive-fixtures.mjs    # sets/hand.json → contra/data/corpus/fixtures, index and set copies
 ```
 
-Every script is deterministic: the same inputs produce identical bytes, so a
-run followed by `pnpm format` and a second run is a no-op. Every script
+Every script is deterministic: the same inputs produce identical bytes, and
+each formats its output through prettier with this repository's config
+(print width 100), so a copy into `data/corpus/fixtures/` passes
+`format:check` unchanged. Running `prettier --check` from inside `contra-data`
+will flag them, because that repository has no config; that is expected. Every script
 accepts `--data <path>` to override `CONTRA_DATA`, `--only <id>[,<id>]` to
 process a few records, and `--report` to print counts without writing. Tests
 live beside each script as `derive-<name>.test.mjs` and run with
@@ -63,8 +66,8 @@ cache. `contra-data/update.sh` runs the whole chain after each crawl.
 ## `derived/dances/<id>.json`: a normalised Caller's Box record
 
 One file per raw record whose `phrases` is non-empty. Records with
-`Permission: "search"` have no figures and get no derived file; they are
-counted in `--report`.
+`Permission: "search"` (4,871) or `"no_figures"` (2) have no figures and get
+no derived file; `--report` counts each on its own line.
 
 ```jsonc
 {
@@ -87,7 +90,7 @@ counted in `--report`.
   "mixer": false, // Mixer? non-empty
   "phraseStructure": "4*8*2", // verbatim, or "4*8*2" when the raw field is ""
   "videos": 280, // Videos.length; the popularity proxy
-  "appearances": 7, // Appearances.length
+  "appearances": 8, // Appearances.length
   "callingNotes": [], // verbatim
   "phrases": [
     {
@@ -96,7 +99,7 @@ counted in `--report`.
       "lines": [
         {
           "raw": "(2) Shift left", // the string exactly as the site sent it
-          "beats": 2, // the leading (N), or null when there is none
+          "beats": 2, // the leading (N), or null when there is none or it is a range: "(1-8)" stays in text (785 lines)
           "text": "Shift left", // raw with the count and surrounding space removed
           "head": "shift left", // provisional: first two words after the actor is stripped
           "relations": [], // the Caller's Box relation words found: "N2", "S", "C1", …
@@ -107,9 +110,9 @@ counted in `--report`.
           "beats": 16,
           "text": "Hey (WR;NL;MR;PL;WR;NL;MR)",
           "head": "hey",
-          "relations": ["N", "P"],
+          "relations": ["N", "P"], // relation shorthand includes the stems of pass tokens (WR→W is a role and drops; NL→N)
           "fractions": [],
-          "passes": ["WR", "NL", "MR", "PL", "WR", "NL", "MR"], // only when text matches a hey pass list
+          "passes": ["WR", "NL", "MR", "PL", "WR", "NL", "MR"], // a parenthesised list of 2+ ";"-separated tokens matching [A-Z0-9-]*[RL]~? — bare "R"/"L" tokens count
         },
       ],
     },
@@ -130,19 +133,26 @@ counted in `--report`.
 Two line shapes beyond the plain one:
 
 - **Concurrent.** A line containing `||`, or ` while ` case-insensitively,
-  keeps its `text` whole and adds `"branches": [Line, Line]`, each branch a
-  plain line without `raw` and without `beats` (a branch takes the parent's).
+  keeps its `text` whole and adds `"branches": [Line, …]` (two or more; 13
+  lines split into three), each branch a plain line without `raw` and without
+  `beats` (a branch takes the parent's). When both markers appear, `||` wins.
   The Caller's Box also writes `,` for "while"; a comma is **not** split,
   because it is also ordinary punctuation. The index tags on `branches`.
-- **Composite.** A raw line ending in `:` is a parent; the raw lines that
-  follow it and begin with five spaces are its `"children": [Line]`, each a
-  full line with its own `raw`, `beats` and `text` (leading spaces trimmed
-  from `text`, kept in `raw`). The parent's `beats` is its own `(N)`; the
-  script records a `childrenBeatsMismatch: true` on the parent when the
-  children's beats do not sum to it, and does not correct either.
+- **Composite.** Indentation, not the trailing `:`, marks a child: a raw line
+  beginning with five spaces belongs to the nearest preceding line with less
+  indentation, recursively (ten spaces is a grandchild; three dances do it).
+  Most parents end in `:`, but 61 lines in 22 dances are indented under a
+  parent without one, and only the indentation rule gives those phrases the
+  right beat sum. Children are full lines with their own `raw`, `beats` and
+  `text` (leading spaces trimmed from `text`, kept in `raw`). Every parent
+  carries `childrenBeatsMismatch`, `true` when the children's beats do not sum
+  to its own `(N)`; nothing is corrected.
 
 `head` is a heuristic and is marked as such everywhere it is used: lower-case,
-parentheses removed, a leading actor phrase stripped (`neighbor`, `partner`,
+parenthesised and bracketed spans removed (3,905 lines lead with `[Ends]`,
+`[Groups of four]` and the like), a leading relation shorthand that introduces
+an actor stripped (`N3 men allemande left` → `allemande left`, but never a
+bare `ON`, which is also English), a leading actor phrase stripped (`neighbor`, `partner`,
 `ladies`, `men`, `women`, `larks`, `robins`, `ones`, `twos`, `all`, `N2
 neighbor`, `same-role neighbor`, `in long lines,` and the like), then the first
 two words. It exists so the index can tag figure families before a dance is
