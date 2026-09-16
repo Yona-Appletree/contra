@@ -103,8 +103,11 @@ const RELATION_WORD_MATCHERS = RELATION_WORDS.map(([word, relation]) => [
 
 // A hey's pass list: two or more `;`-separated tokens inside one pair of
 // parentheses, each a hand (`WR`, `NL`, `N2L`) with an optional `~` marking a
-// pass that carries into the next phrase.
-const PASS_TOKEN = "[A-Z0-9-]+[RL]~?";
+// pass that carries into the next phrase. The stem is optional, because a hey
+// for six or eight names who only the first pass is with and then writes the
+// hands alone — `(NR;L;R;L;R;L)`, `(R;L;R)`. A bare hand contributes a pass
+// but no relation: there is no one in `L` to name.
+const PASS_TOKEN = "[A-Z0-9-]*[RL]~?";
 const PASS_LIST = new RegExp(`\\((${PASS_TOKEN}(?:;${PASS_TOKEN})+)\\)`);
 
 // `3/4`, `1 & 1/2`, and the three unicode fractions — recorded as written,

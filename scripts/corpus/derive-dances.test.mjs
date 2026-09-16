@@ -211,11 +211,28 @@ describe("extractPasses", () => {
     ]);
   });
 
+  it("reads a list of bare hand tokens", () => {
+    // A hey for six or eight names who the first pass is with and then writes
+    // the hands alone. A bare hand is still a pass; it just names no one, so
+    // only the stemmed token contributes a relation.
+    const line = parseLine("(16) Hey for six 5/6 (NR;L;R;L;R;L;NR;L;R;L) (across the set)");
+    expect(line.passes).toEqual(["NR", "L", "R", "L", "R", "L", "NR", "L", "R", "L"]);
+    expect(line.relations).toEqual(["N"]);
+    expect(extractPasses("As couples, hey for three 1/2 (R;L;R)")).toEqual(["R", "L", "R"]);
+    expect(extractRelations("Grand right and left (R;L)", ["R", "L"])).toEqual([]);
+    expect(extractRelations("Hey for eight 1/2 (OR;L;R;L)", ["OR", "L", "R", "L"])).toEqual(["O"]);
+  });
+
   it("is not fooled by an ordinary parenthesis", () => {
     expect(
       extractPasses("In long lines, go forward and back (M roll L, W side-step R)"),
     ).toBeNull();
     expect(extractPasses("Pass through along (N2R)")).toBeNull();
+    // A prose aside is not a pass list, with or without the commas.
+    expect(extractPasses("Star right (women ccw in center, men cw on outside)")).toBeNull();
+    expect(
+      extractPasses("Slide right, men slide two places (W past N-1, M past (N-1;M))"),
+    ).toBeNull();
   });
 });
 
