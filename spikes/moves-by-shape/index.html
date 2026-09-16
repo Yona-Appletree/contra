@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moves by shape — figures in context</title>
+<style>
+/*
+ * The app's own palette, distilled from packages/ui-design/src/theme.css
+ * (the hall after dark, oklch) into the hex the other spikes use, plus the
+ * two role colours, which are a contract number: lark gold #e0a32e,
+ * robin red #c8362f (AGENTS.md, docs/role-colours.md).
+ */
+:root{
+  --bg:#141110; --panel:#1e1917; --panel2:#272019; --ink:#ebdfcd; --muted:#a8977f;
+  --accent:#e7b96b; --line:#3c3128; --dash:#6b5741; --floor:#c9a06a; --dark:#0c0a09;
+  --lark:#e0a32e; --robin:#c8362f; --bad:#e07a7a; --good:#9fd08a; --warn:#e0c07a;
+  --tile:150px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 46px,#0f0d0c 46px,#0f0d0c 47px,#1a1614 47px,#1a1614 48px);}
+header,section{max-width:1480px;margin:0 auto;padding:16px 18px}
+h1{font-size:22px;margin:8px 0 6px;letter-spacing:.02em}
+h2{font-size:17px;margin:34px 0 6px;color:var(--accent);border-top:1px solid var(--line);padding-top:16px}
+p.hint{color:var(--muted);margin:4px 0 10px;max-width:96ch;font-size:13.5px}
+p.hint b{color:var(--ink);font-weight:600}
+p.hint code,code{color:var(--accent);font:12.5px ui-monospace,Menlo,monospace}
+blockquote{margin:6px 0 10px;border-left:3px solid var(--dash);padding:2px 0 2px 10px;color:var(--muted);font-size:13px;max-width:96ch}
+blockquote b{color:var(--ink)}
+a{color:var(--accent)}
+
+/* ---- the exploration controls: the dashed strip ---- */
+.controls{border:1px dashed var(--dash);border-radius:8px;padding:9px 11px;display:flex;flex-wrap:wrap;
+  gap:8px 16px;align-items:center;margin:10px 0 12px;background:var(--panel);position:sticky;top:0;z-index:20}
+.controls.inner{position:static;border-style:solid;border-color:var(--line);padding:6px 9px;margin:6px 0 10px;background:var(--panel2)}
+.grp{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font:11.5px ui-monospace,Menlo,monospace;color:var(--muted)}
+.grp span.l{color:var(--accent);white-space:nowrap}
+button,.btn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;
+  padding:4px 9px;font:11.5px ui-monospace,Menlo,monospace;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--dash)}
+button.on{background:#4a3a24;border-color:var(--accent);color:var(--accent)}
+button.primary{background:#3b2f1f;border-color:var(--accent);color:var(--accent)}
+input[type=search]{background:var(--dark);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 7px;font:11.5px ui-monospace,Menlo,monospace;width:9rem}
+select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 7px;font:11.5px ui-monospace,Menlo,monospace}
+
+/* ---- the side-by-side frame row (section 0) ---- */
+.frames{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 12px;align-items:flex-start}
+.frame{flex:0 0 auto;width:390px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden;
+  box-shadow:0 6px 20px -12px #000}
+.frame > .frame-head{background:var(--panel2);border-bottom:1px solid var(--line);padding:6px 10px;font:11.5px ui-monospace,Menlo,monospace;
+  color:var(--accent);display:flex;justify-content:space-between;align-items:center;gap:8px;position:sticky;top:0;z-index:3}
+.frame > .frame-head em{color:var(--muted);font-style:normal;font-size:11px}
+.frame-body{height:660px;overflow:auto;padding:10px}
+@media (max-width:820px){.frames{flex-direction:column}.frame{width:100%}.frame-body{height:520px}}
+
+/* ---- the stage a concept renders into ---- */
+.stage{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:12px;overflow:hidden}
+.stage.narrow{width:390px;max-width:100%;margin:0}
+.narrow,.frame-body{--tile:110px}
+
+/* ---- shape sections (concept A) ---- */
+.shape-nav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.shape-nav a{border:1px solid var(--line);border-radius:5px;padding:3px 7px;color:inherit;text-decoration:none;
+  font:11.5px ui-monospace,Menlo,monospace;white-space:nowrap;background:var(--panel)}
+.shape-nav a:hover{background:var(--accent);color:#1b1410}
+.shape-sec{margin:0 0 26px}
+.shape-head{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}
+.shape-head h3{margin:0;font-size:17px;font-weight:600;line-height:1.25}
+.shape-head .sub{font:11px ui-monospace,Menlo,monospace;color:var(--muted);margin-top:2px}
+.shape-head p{margin:5px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:70ch}
+.shape-dia{flex:0 0 auto;background:var(--dark);border-radius:6px;padding:4px;border:1px solid var(--line)}
+.shape-facts{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;font:10.5px ui-monospace,Menlo,monospace}
+.fact{border-radius:3px;padding:1px 5px;background:#ffffff14;color:var(--muted);white-space:nowrap}
+.fact.model{background:#9fd08a1f;color:var(--good)}
+.fact.spike{background:#e7b96b1f;color:var(--accent)}
+
+/* ---- the figure tile grid ---- */
+.tiles{display:flex;flex-wrap:wrap;gap:10px}
+.tiles.dense{gap:6px}
+.fig{width:var(--tile);cursor:pointer;background:transparent;border:0;padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;gap:3px}
+.fig:hover .tile-box{outline:1px solid var(--accent)}
+.tile-box{position:relative;width:var(--tile);height:var(--tile);overflow:hidden;background:var(--dark);border-radius:4px;
+  box-shadow:0 0 0 1px #0000007a,0 3px 8px -4px #0009}
+.tile-box img{position:absolute;image-rendering:pixelated;transform-origin:0 0;left:0;top:0}
+.tile-box .beat{position:absolute;right:3px;bottom:2px;font:9px ui-monospace,Menlo,monospace;color:#ffffff66}
+.tile-box .dot{position:absolute;left:4px;top:4px;width:6px;height:6px;border-radius:50%}
+.fig .nm{font-size:12px;font-weight:600;line-height:1.25}
+.fig .mt{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted)}
+.fig .note{font-size:11px;color:var(--muted);line-height:1.35}
+.dot.s-ok{background:var(--good)}
+.dot.s-fixed{background:var(--accent)}
+.dot.s-wrong{background:var(--bad)}
+.dot.s-unsure{background:var(--warn)}
+.dot.s-unreviewed{background:#ffffff2e}
+
+/* ---- combinations ---- */
+.combos{margin-top:10px}
+.combo{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:8px 10px;margin:8px 0}
+.combo h4{margin:0 0 2px;font-size:13px;font-weight:600}
+.combo .src{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted)}
+.combo p{margin:4px 0 6px;font-size:12px;color:var(--muted);line-height:1.45;max-width:70ch}
+.seq{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px}
+.seq .arrow{align-self:center;color:var(--accent);font-size:15px;padding:0 1px;margin-top:-16px}
+.seq .fig{width:calc(var(--tile) * 0.72)}
+.seq .tile-box{width:calc(var(--tile) * 0.72);height:calc(var(--tile) * 0.72)}
+details{margin-top:6px}
+summary{font:11px ui-monospace,Menlo,monospace;color:var(--muted);cursor:pointer;width:fit-content}
+.film{margin-top:6px;overflow-x:auto;background:var(--dark);border-radius:4px;max-width:100%}
+.film img{display:block;image-rendering:pixelated;transform-origin:0 0}
+.film .inner{position:relative}
+
+/* ---- concept B: the figure page ---- */
+.fig-pick{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;max-height:6.5rem;overflow:auto;
+  border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--panel)}
+.fig-pick button{font-size:11px;padding:2px 6px}
+.b-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.b-head .tile-box{width:calc(var(--tile) * 1.4);height:calc(var(--tile) * 1.4)}
+.b-head h3{margin:0;font-size:19px}
+.callline{font:13px ui-monospace,Menlo,monospace;color:var(--accent);margin:4px 0 2px;letter-spacing:.02em}
+.teach{font-size:12.5px;color:var(--muted);line-height:1.5;max-width:70ch;margin:4px 0}
+h4.sub{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:16px 0 6px;
+  border-bottom:1px solid var(--line);padding-bottom:3px}
+.in-shape{display:flex;gap:10px;align-items:flex-start;border-left:2px solid var(--line);padding:4px 0 4px 10px;margin:8px 0}
+.in-shape .txt{min-width:0}
+.in-shape h5{margin:0;font-size:13px;font-weight:600}
+.in-shape p{margin:3px 0 0;font-size:11.5px;color:var(--muted);line-height:1.45;max-width:64ch}
+.danced{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.danced li{font-size:12px;border-left:2px solid var(--line);padding-left:8px}
+.danced .ph{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.danced b{font-weight:600}
+.danced .lab{color:var(--muted);font-style:italic}
+
+/* ---- concept C: the dance ---- */
+.dance-pick{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.dance-head h3{margin:0;font-size:19px}
+.dance-head .by{font-size:12px;color:var(--muted)}
+.dstrip{margin:8px 0;overflow-x:auto;background:var(--dark);border-radius:6px;border:1px solid var(--line);padding:2px}
+.dstrip img{display:block;max-width:none}
+.phrase{margin:10px 0}
+.phrase-name{font:11px ui-monospace,Menlo,monospace;color:var(--accent);letter-spacing:.06em;margin-bottom:4px}
+.call{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:5px 0;border-top:1px solid #ffffff10}
+.call .spine{width:calc(var(--tile) * 0.62)}
+.call .tile-box{width:calc(var(--tile) * 0.62);height:calc(var(--tile) * 0.62)}
+.call .txt{min-width:0}
+.call .ct{font:12px ui-monospace,Menlo,monospace;color:var(--ink);letter-spacing:.02em}
+.call .cm{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);margin-top:2px}
+.call .shapechip{display:inline-flex;align-items:center;gap:4px;border-radius:3px;padding:1px 5px;background:#e7b96b1a;color:var(--accent);
+  font:10.5px ui-monospace,Menlo,monospace;margin-top:3px}
+
+/* ---- concept D: facets ---- */
+.facets{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:8px 9px;margin-bottom:10px}
+.facet-row{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.facet-row .l{font:10.5px ui-monospace,Menlo,monospace;color:var(--accent);width:4.5rem;flex:0 0 auto}
+.facet-row button{font-size:10.5px;padding:2px 6px}
+.count{font:11px ui-monospace,Menlo,monospace;color:var(--muted);margin:6px 0}
+.group-h{font-size:13px;font-weight:600;margin:12px 0 5px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:3px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.group-h em{font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);font-style:normal}
+.empty{font-size:12px;color:var(--muted);padding:10px 0}
+
+.note{border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0;color:var(--muted);font-size:12.5px;background:var(--panel);max-width:96ch;line-height:1.5}
+.note b{color:var(--ink)}
+table.gate{border-collapse:collapse;font-size:12.5px;margin:8px 0;max-width:96ch}
+table.gate th,table.gate td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.gate th{background:var(--panel2);color:var(--accent);font-weight:600;font-size:11.5px}
+ol.gateq{font-size:13px;color:var(--muted);line-height:1.6;max-width:90ch}
+ol.gateq b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Moves page by shape &middot; figures in context</h1>
+  <p class="hint"><b>Thesis.</b> The Moves page today files 45 figures by the <i>shape kind of their definition</i> — balances, turns for two, rings and stars, walks. That is the library's filing system, not a dancer's. A dancer asks "I am standing in a line of four facing down the hall &mdash; what happens now?", and the answer is a different cut of the same 45. This spike puts <b>the formation first</b> and asks which of four ways of doing that a caller would actually browse.</p>
+  <blockquote>
+    <b>The user, 2026-09-15.</b> &ldquo;it may make sense to organize the page with formation as the first item of the hierarchy. like, &lsquo;hands-four&rsquo; or contra set moves whatever we call the default arrangement. then alternate forms, like short wavy lines, long wavy lines, down the set, diamond&rdquo;<br>
+    &ldquo;some moves only make sense in bigger sets (promenade the set, long lines) or different configurations (turn as a couple or alone in short lines down the hall) and seeing the full dance as an example might be good, too.&rdquo;<br>
+    &ldquo;I don&rsquo;t see the turn alone or turn as couple or the other couple ways you can turn to come back up in context&hellip; something to think about, putting in the common combinations&rdquo;<br>
+    (on turn alone) &ldquo;this is almost always done in a short line of four after going down the hall. so it should probably be shown that way?&rdquo; &mdash; (on contra corners) &ldquo;can only be shown correctly with 6 dancers&rdquo;
+  </blockquote>
+  <p class="hint"><b>How to read this.</b> Section&nbsp;0 is the decision matrix: all four concepts in 390&nbsp;px phone frames, side by side, scrolling independently. Sections&nbsp;1&ndash;4 are the same four concepts at full desktop width, each with its own controls, so you can actually use them. Every picture is a <b>real committed strip</b> from <code>apps/web/e2e/strips/</code> and every dance plot a real <code>traces/dances/*-strip.svg</code>, copied in &mdash; nothing here is drawn by hand and nothing imports production code. Tiles <b>loop</b> through their strip's frames on the app's own clock; pause them with the control strip if a screenshot is wanted.</p>
+  <p class="hint"><b>One honest caveat, because it changes what you are judging.</b> The strips that exist were rendered over each figure's <i>own</i> group — the formation named under every tile (<code>duple-improper</code>, <code>proper</code>, <code>becket</code>). Since FR-B1 the tile machinery can draw a figure over any set, so in the build each tile would be re-rendered <b>in the shape of its section</b>. Where a real picture of a figure in a non-default shape already exists — the turn alone into a diamond, the box circulate in long waves, the wave of four, contra corners over four couples — this spike uses it and says so with a gold <span style="color:var(--accent)">in&nbsp;shape</span> chip. Judge the <b>arrangement</b>, and read a grey <span style="color:var(--muted)">default&nbsp;set</span> chip as "this picture will be redrawn".</p>
+
+  <div class="controls" id="ctl">
+    <div class="grp"><span class="l">go to</span>
+      <a class="btn" href="#s0">0 · side by side</a>
+      <a class="btn" href="#s1">1 · A shapes</a>
+      <a class="btn" href="#s2">2 · B figure</a>
+      <a class="btn" href="#s3">3 · C dance</a>
+      <a class="btn" href="#s4">4 · D facets</a>
+      <a class="btn" href="#s5">5 · the gate</a>
+    </div>
+    <div class="grp"><span class="l">tiles</span>
+      <button id="btnPlay" class="primary">&#9208; pause</button>
+      <button id="btnStep">&#9193; step</button>
+      <span id="beatV">beat 0.0</span>
+    </div>
+    <div class="grp"><span class="l">status dots</span><button id="btnStatus" class="on">on</button></div>
+    <div class="grp"><span class="l">density</span><button data-den="roomy" class="on">roomy</button><button data-den="dense">dense</button></div>
+    <div class="grp"><span class="l">sections 1&ndash;4 width</span><button data-w="wide" class="on">desktop</button><button data-w="narrow">390 px</button></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2>0. The four concepts, side by side, at 390&nbsp;px</h2>
+  <p class="hint">The same 45 figures, the same 21 dances, the same pictures &mdash; four ways in. Each frame scrolls on its own; they share one clock and one selection, so picking a figure in <b>B</b> and a dance in <b>C</b> shows in the full-width sections too. On a phone these stack; on a desk the row scrolls sideways.</p>
+  <div class="frames" id="frames"></div>
+</section>
+
+<section id="s1">
+  <h2>1. Concept A &mdash; By shape: the page <i>is</i> the formations</h2>
+  <p class="hint"><b>The idea.</b> The top level of the page is the arrangement the set is standing in, in the user's own order: the lines (a hands four) first, then the alternate forms. Each section opens with a <b>diagram of the shape</b> &mdash; where the four (or eight) stand and which way they look &mdash; then the figures that are danced <i>from</i> it, each drawn in it, then the <b>common combinations</b> that live in that shape. A figure that is danced from three shapes appears in three sections; that is the point, not a duplication bug. Families are gone from the top level; every tile still carries its family as a chip.</p>
+  <p class="hint"><b>What it costs.</b> The longest page of the four, and the lines section is a third of the library, so the default arrangement is still a wall. <b>What it buys:</b> it is the only one of the four where <i>turn alone</i> is filed under "a line of four, down the hall" and a reader meets it there, which is exactly what the review asked for.</p>
+  <div class="stage" id="stage-A"></div>
+</section>
+
+<section id="s2">
+  <h2>2. Concept B &mdash; The figure in context: one move, every shape it lives in</h2>
+  <p class="hint"><b>The idea.</b> Browsing stays as it is; the <i>row</i> grows. Open a figure and it shows itself in every shape it appears in &mdash; one strip per shape, with a sentence on what changes &mdash; then the <b>common combinations</b> it belongs to as short sequences with the real seam strips behind a disclosure, then the dances that call it. This is the answer to "I don't see the turn alone&hellip; in context": a figure page carries its own context instead of the page's filing carrying it.</p>
+  <p class="hint"><b>What it costs.</b> Nothing organises the browse &mdash; you have to already know which move you want. <b>What it buys:</b> it is the deepest answer per move, and the only concept that can say "almost always danced in a short line of four after going down the hall" <i>on the move itself</i>.</p>
+  <div class="stage" id="stage-B"></div>
+</section>
+
+<section id="s3">
+  <h2>3. Concept C &mdash; The dance as the example: pick a dance, watch it in order</h2>
+  <p class="hint"><b>The idea.</b> "Seeing the full dance as an example might be good, too." A dance opens as its own strip &mdash; the real <code>traces/dances/&lt;slug&gt;-strip.svg</code>, one small pen plot per call, the cell as wide as the call is long &mdash; and then every call in order with its own looping tile, its count, the caller's words, and <b>the shape the set is standing in</b> beside it. Every call opens that figure's page (concept B).</p>
+  <p class="hint"><b>What it costs.</b> It is a <i>dance</i> browser, not a move browser: a figure only appears where some dance calls it, so the nine figures no dance calls have no home. <b>What it buys:</b> context for free and honestly &mdash; the combination is not a curated list, it is the record.</p>
+  <div class="stage" id="stage-C"></div>
+</section>
+
+<section id="s4">
+  <h2>4. Concept D &mdash; Shape &times; family as facets: one grid, two keys, plus the review</h2>
+  <p class="hint"><b>The idea.</b> No editorial order at all. A filter bar carries the shapes, the families and the <b>review status</b> from the register, and a dense grid of tiles reflows under it; a <i>group by</i> switch decides which key is the heading and which is the filter, so the same page is "by shape, families as a filter" or "by family, shapes as a filter" depending on which way you came in. This is the concept that does double duty as the review surface the register asked for ("the Moves page could show each row's status so the review is done on the page").</p>
+  <p class="hint"><b>What it costs.</b> A tool, not a page: no prose, no combinations, nothing to read on a first visit. <b>What it buys:</b> it is the only one that answers "show me everything still unreviewed that is danced from a wave" in one gesture, and the only one that can be re-keyed without a rebuild.</p>
+  <div class="stage" id="stage-D"></div>
+</section>
+
+<section id="s5">
+  <h2>5. The gate</h2>
+  <div class="note"><b>Where the pictures come from.</b> <code>pix/figures/</code> &mdash; all 45 committed figure strips. <code>pix/seams/</code> &mdash; 21 committed seam strips, which are what makes a "common combination" a real picture rather than a caption. <code>pix/variants/</code> &mdash; 14 committed parameter-row strips, which is where the genuine in-shape pictures live (the turn alone into a diamond, the wave of four left-first, the circulate with the robins facing in). <code>pix/dances/</code> &mdash; six real dance plots. All copied in; the spike imports nothing (<code>check:deps</code> forbids it).</div>
+  <div class="note"><b>The shape a figure is filed under is the spike's own reading.</b> The model knows five shapes (<code>set/shape.ts</code>: lines, line-of-four, wave, ring, diamond) and only four facts about which figure makes which: <code>down-the-hall</code> and <code>up-the-hall</code> end in a line of four, <code>balance-wave</code> ends in a wave, <code>bend-the-line</code> ends in a ring, and Jeremy Corners' two <code>turn-alone</code>s land in a diamond. Those five are marked <span class="fact model">from the model</span>. Everything else on this page is a proposed filing, marked <span class="fact spike">spike's reading</span>, and is exactly what the gate is for &mdash; the shape list and the assignment are the decision, the layout is the easier half.</div>
+  <h4 class="sub">Gate questions</h4>
+  <ol class="gateq" id="gateq"></ol>
+  <h4 class="sub">My lean</h4>
+  <p class="hint" id="lean"></p>
+</section>
+
+<script id="spike-data" type="application/json">{"figures":{"balance":{"id":"balance","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"BALANCE","callLong":"{pairs} BALANCE","teach":"Take {hold} with {pairs} and rock: two steps in toward them, two steps back."},"balance-ring":{"id":"balance-ring","beats":4,"frames":8,"formation":"duple-improper","params":"kitchen-stomp","call":"BALANCE","callLong":"BALANCE THE RING","teach":"All four take hands in a ring. Rock in toward the middle for two beats, back out for two."},"swing":{"id":"swing","beats":8,"frames":16,"formation":"becket","params":"butter","call":"SWING","callLong":"{pairs} SWING","teach":"Close into a ballroom hold with {pairs}, right hips together, and buzz round. Open out side by side."},"allemande":{"id":"allemande","beats":8,"frames":16,"formation":"duple-improper","params":"airpants","call":"ALLEMANDE","callLong":"{pairs} ALLEMANDE {hand} {amount}","teach":"Join {hand} hands with {pairs}, forearms up, and walk round each other, {amount}."},"shoulder-round":{"id":"shoulder-round","beats":3,"frames":6,"formation":"duple-improper","params":"on-the-prowl","call":"SHOULDER ROUND","callLong":"{pairs} {hand} SHOULDER ROUND {amount}","teach":"Walk round {pairs} keeping your {hand} shoulder toward them, and keep looking at each other. No hands."},"balance-and-swing":{"id":"balance-and-swing","beats":16,"frames":32,"formation":"duple-improper","params":"airpants","call":"BALANCE AND SWING","callLong":"{pairs} BALANCE AND SWING","teach":"Take both hands with {pairs}, rock in and out, then swing without letting go."},"turn-contra-corners":{"id":"turn-contra-corners","beats":16,"frames":32,"formation":"proper","params":"chorus-jig","call":"CONTRA CORNERS","callLong":"TURN CONTRA CORNERS","teach":"Right hand to the other active, left to your first corner, back, left to your second corner, and back again."},"square-through":{"id":"square-through","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"SQUARE THROUGH","callLong":"SQUARE THROUGH TWO HANDS","teach":"Right hand to the one you face and pull by, left hand to the next one and pull by."},"interrupted-square-through":{"id":"interrupted-square-through","beats":8,"frames":16,"formation":"duple-improper","params":"figure defaults","call":"BALANCE AND SQUARE THROUGH","callLong":"BALANCE THE RIGHT AND SQUARE THROUGH TWO","teach":"Balance on the right hand you are about to pull by with, then square through two hands."},"pull-by":{"id":"pull-by","beats":2,"frames":4,"formation":"duple-improper","params":"a-rare-bird","call":"PULL BY","callLong":"{pairs} PULL BY THE {hand}","teach":"Give {hand} hands to {pairs} and walk straight past each other."},"grand-right-and-left":{"id":"grand-right-and-left","beats":6,"frames":12,"formation":"duple-improper","params":"whoosh","call":"GRAND RIGHT AND LEFT","callLong":"GRAND RIGHT AND LEFT THREE HANDS","teach":"Right hand to the one facing you, pull by; left to the next; right to the one after."},"turn-alone":{"id":"turn-alone","beats":4,"frames":8,"formation":"proper","params":"chorus-jig","call":"TURN ALONE","callLong":"TURN ALONE","teach":"Turn round on the spot by yourself, so you end facing back the way you came."},"go-down-outside":{"id":"go-down-outside","beats":8,"frames":16,"formation":"proper","params":"chorus-jig","call":"DOWN THE OUTSIDE","callLong":"GO DOWN THE OUTSIDE","teach":"Step out of your line and walk down the outside of the set on your own."},"go-up-outside":{"id":"go-up-outside","beats":8,"frames":16,"formation":"proper","params":"chorus-jig","call":"UP THE OUTSIDE","callLong":"COME BACK UP THE OUTSIDE","teach":"Turn round and walk back up the outside of the set into your own place."},"cast-off":{"id":"cast-off","beats":4,"frames":8,"formation":"proper","params":"chorus-jig","call":"CAST OFF","callLong":"CAST OFF AND TRADE PLACES","teach":"Turn out of the set, swoop round the dancer along the line from you, and loop back into their place."},"circulate":{"id":"circulate","beats":4,"frames":8,"formation":"duple-improper","params":"whoosh","call":"CIRCULATE","callLong":"CIRCULATE ONE PLACE ALONG","teach":"Everybody moves one place along the box at the same time."},"loop":{"id":"loop","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"LOOP","callLong":"LOOP TO THE {hand}","teach":"On your own, walk a small circle to the named side and come back to your place."},"cast-back":{"id":"cast-back","beats":2,"frames":4,"formation":"duple-improper","params":"figure defaults","call":"CAST BACK","callLong":"CAST BACK ONE PLACE","teach":"Turn away from the middle and walk round the outside into the place behind you."},"fatal-attraction/go-forward":{"id":"fatal-attraction/go-forward","beats":2,"frames":4,"formation":"duple-improper","params":"figure defaults"},"circle":{"id":"circle","beats":6,"frames":12,"formation":"duple-improper","params":"airpants","call":"CIRCLE {direction}","callLong":"CIRCLE {direction} {places}","teach":"Take hands in a ring. Circle {places} to your {direction}."},"star":{"id":"star","beats":8,"frames":16,"formation":"duple-improper","params":"the-baby-rose","call":"STAR {hand}","callLong":"STAR {hand} {places}","teach":"Put your {hand} hand on the wrist of the dancer ahead of you and walk forward, {places}."},"petronella":{"id":"petronella","beats":4,"frames":8,"formation":"duple-improper","params":"kitchen-stomp","call":"PETRONELLA","callLong":"PETRONELLA TURN","teach":"Spin once round to your own right and travel round the set, {places}. Nobody holds on."},"single-file-promenade":{"id":"single-file-promenade","beats":2,"frames":4,"formation":"duple-improper","params":"on-the-prowl","call":"SINGLE FILE","callLong":"SINGLE FILE PROMENADE {direction} {amount}","teach":"Walk round the outside of the set in single file, one behind the other, holding nothing."},"long-lines":{"id":"long-lines","beats":8,"frames":16,"formation":"duple-improper","params":"airpants","call":"LONG LINES","callLong":"LONG LINES FORWARD AND BACK","teach":"Take hands along your own line, walk four steps in, and four steps back out."},"do-si-do":{"id":"do-si-do","beats":10,"frames":20,"formation":"duple-improper","params":"airpants","call":"DO-SI-DO","callLong":"{pairs} DO-SI-DO {amount}","teach":"Pass right shoulders with {pairs}, slide back to back, then back up passing left shoulders, {amount}."},"pass-through":{"id":"pass-through","beats":2,"frames":4,"formation":"duple-improper","params":"after-the-solstice","call":"PASS THROUGH","callLong":"PASS THROUGH {direction} THE SET","teach":"Walk past the dancer you face {direction} the set, right shoulders, without turning."},"slide-left":{"id":"slide-left","beats":2,"frames":4,"formation":"becket","params":"butter","call":"SLIDE {direction}","callLong":"SLIDE {direction} ALONG THE SET","teach":"The whole line steps sideways one couple's width to its {direction}, on to a new couple."},"roll-away":{"id":"roll-away","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"ROLL AWAY","callLong":"ROLL AWAY WITH A HALF SASHAY","teach":"Take near hands with {pairs}: {roller} rolls across in front, turning inward, the other slides behind."},"california-twirl":{"id":"california-twirl","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"CALIFORNIA TWIRL","callLong":"TAKE HANDS AND CALIFORNIA TWIRL","teach":"Join one hand with {pairs}, the lark puts it up, the robin walks under: you trade places and face back."},"mad-robin":{"id":"mad-robin","beats":3,"frames":6,"formation":"duple-improper","params":"on-the-prowl","call":"MAD ROBIN","callLong":"MAD ROBIN AROUND {pairs}","teach":"Look across the set and keep looking: circle round {pairs}, beside you, without turning your body."},"jersey-twirl":{"id":"jersey-twirl","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"JERSEY TWIRL","callLong":"JERSEY TWIRL WITH YOUR {pairs}","teach":"Inside hands with the dancer beside you, raise them, and trade places under the arch."},"right-and-left-through":{"id":"right-and-left-through","beats":8,"frames":16,"formation":"duple-improper","params":"after-the-solstice","call":"RIGHT AND LEFT","callLong":"RIGHT AND LEFT THROUGH","teach":"Pass the dancer you face by the right, then courtesy turn with {couples}."},"robins-chain":{"id":"robins-chain","beats":8,"frames":16,"formation":"becket","params":"butter","call":"CHAIN","callLong":"{chains} CHAIN","teach":"{chains} pull by right hands in the middle, then join left hands as the lark backs his circle round to your right, facing in."},"hey":{"id":"hey","beats":16,"frames":32,"formation":"becket","params":"butter","call":"HEY","callLong":"HEY FOR FOUR","teach":"Nobody takes hands. Weave the figure of eight across the set, passing alternate shoulders, and come back here."},"down-the-hall":{"id":"down-the-hall","beats":6,"frames":12,"formation":"duple-improper","params":"the-nice-combination","call":"DOWN THE HALL","callLong":"DOWN THE HALL FOUR IN LINE","teach":"Take hands in a line of four across the hall and walk down it together."},"up-the-hall":{"id":"up-the-hall","beats":6,"frames":12,"formation":"duple-improper","params":"the-nice-combination","call":"UP THE HALL","callLong":"UP THE HALL FOUR IN LINE","teach":"In the same line of four, walk back up the hall the way you came."},"bend-the-line":{"id":"bend-the-line","beats":2,"frames":4,"formation":"duple-improper","params":"the-nice-combination","call":"BEND THE LINE","callLong":"BEND THE LINE INTO A RING","teach":"The ends of your line walk forward and the middles back up, so the line bends into a ring."},"lead-down":{"id":"lead-down","beats":4,"frames":8,"formation":"proper","params":"chorus-jig","call":"LEAD DOWN","callLong":"LEAD DOWN THE CENTRE","teach":"Take the inside hand of the dancer across from you and walk down the middle of the set."},"lead-up":{"id":"lead-up","beats":4,"frames":8,"formation":"proper","params":"chorus-jig","call":"LEAD UP","callLong":"LEAD BACK UP THE CENTRE","teach":"Walk back up the middle of the set together and step apart into your own places."},"turn-as-couples":{"id":"turn-as-couples","beats":2,"frames":4,"formation":"duple-improper","params":"the-nice-combination","call":"TURN AS COUPLES","callLong":"TURN AS COUPLES","teach":"Keep hold of the dancer beside you and turn the two of you round together."},"promenade":{"id":"promenade","beats":8,"frames":16,"formation":"duple-improper","params":"figure defaults","call":"PROMENADE","callLong":"PROMENADE AROUND THE SET","teach":"Side by side, both hands joined, walk the two of you round the whole set."},"balance-wave":{"id":"balance-wave","beats":4,"frames":8,"formation":"duple-improper","params":"whoosh","call":"BALANCE THE WAVE","callLong":"BALANCE THE WAVE","teach":"In your wave, step forward together and come back to the line."},"balance-wave-of-four":{"id":"balance-wave-of-four","beats":4,"frames":8,"formation":"duple-improper","params":"figure defaults","call":"BALANCE THE WAVE","callLong":"BALANCE THE WAVE OF FOUR","teach":"One short line across the set, hands along it, and balance forwards and back."},"wait-out":{"id":"wait-out","beats":64,"frames":32,"formation":"duple-improper","params":"figure defaults","call":"WAIT OUT","callLong":"WAIT IT OUT AND CROSS OVER","teach":"You have nobody to dance with this time through. Wait at the end of the line, then cross over."},"walk-to-station":{"id":"walk-to-station","beats":8,"frames":16,"formation":"duple-improper","params":"figure defaults","call":"TAKE YOUR PLACES","callLong":"WALK TO YOUR PLACE","teach":"Walk to the place the next figure wants you on and stand there."}},"dances":[{"slug":"a-rare-bird","title":"A Rare Bird","author":"Bob Isaacs","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"pull-by","beats":2,"call":"PASS ALONG THE LINE BY THE RIGHT","params":{"pairs":"neighbors","hand":"R"}},{"figure":"pull-by","beats":2,"call":"PASS THE NEXT BY THE LEFT","params":{"pairs":"N2","hand":"L"}},{"figure":"shoulder-round","beats":6,"call":"RIGHT SHOULDER ROUND NUMBER THREE","params":{"pairs":"N3","hand":"R","amount":1}},{"figure":"pull-by","beats":2,"call":"PASS BACK BY THE LEFT","params":{"pairs":"N2","hand":"L"}},{"figure":"shoulder-round","beats":4,"call":"HALF A RIGHT SHOULDER ROUND WITH YOUR NEIGHBOUR","params":{"pairs":"neighbors","hand":"R","amount":0.5}}]},{"name":"A2","calls":[{"figure":"single-file-promenade","beats":4,"call":"SINGLE FILE PROMENADE HALF WAY ROUND","params":{"amount":0.5,"direction":"clockwise"}},{"figure":"swing","beats":12,"call":"NEIGHBOUR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"swing","beats":10,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"star","beats":6,"call":"STAR LEFT THREE QUARTERS","params":{"hand":"L","places":3}},{"figure":"pull-by","beats":2,"call":"PULL BY THE LEFT","params":{"pairs":"neighbors","hand":"L"}}]}]},{"slug":"after-the-solstice","title":"After the Solstice","author":"Lisa Greenleaf","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"do-si-do","beats":8,"call":"NEIGHBOR DO-SI-DO","params":{"pairs":"neighbors","amount":1}},{"figure":"swing","beats":8,"call":"AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"right-and-left-through","beats":8,"call":"RIGHT AND LEFT THROUGH","params":{"couples":"partners"}},{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"pass-through","beats":2,"call":"PASS THROUGH ALONG THE SET","params":{"direction":"along"}}]}]},{"slug":"airpants","title":"Airpants","author":"Lisa Greenleaf","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"allemande","beats":8,"call":"ROBINS ALLEMANDE RIGHT ONE AND A HALF","params":{"pairs":[["1R","2R"]],"hand":"R","amount":1.5}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"do-si-do","beats":10,"call":"NEIGHBOR DO-SI-DO ONE AND A HALF","params":{"pairs":"neighbors","amount":1.5}}]}]},{"slug":"annas-reel","title":"Anna's Reel","author":"Rick Mohr","formation":"duple-improper","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"allemande","beats":8,"call":"ROBINS ALLEMANDE RIGHT ONCE AND A HALF","params":{"pairs":[["1R","2R"]],"hand":"R","amount":1.5}},{"figure":"balance-wave-of-four","beats":4,"call":"BALANCE THE WAVE OF FOUR, ROBINS BY THE RIGHT, NEIGHBOUR BY THE LEFT","params":{"centre":"robin","hand":"R"}},{"figure":"allemande","beats":4,"call":"NEIGHBOUR ALLEMANDE LEFT THREE QUARTERS","params":{"pairs":"neighbors","hand":"L","amount":0.75}}]},{"name":"A2","calls":[{"figure":"allemande","beats":7,"call":"ALLEMANDE RIGHT ONCE AND A QUARTER WITH NUMBER TWO","params":{"pairs":"N2","hand":"R","amount":1.25}},{"figure":"hey","beats":9,"call":"HALF A HEY","params":{"amount":0.5,"passes":"RL PR LL N2R~"}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"ROBINS BALANCE AND SWING","params":{"pairs":[["1R","2R"]],"balanceBeats":4,"endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"swing","beats":16,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"2A1","calls":[{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONCE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}},{"figure":"balance-wave-of-four","beats":4,"call":"BALANCE THE WAVE OF FOUR, LARKS BY THE LEFT, NUMBER TWO BY THE RIGHT","params":{"centre":"lark","hand":"L"}},{"figure":"allemande","beats":4,"call":"ALLEMANDE RIGHT THREE QUARTERS WITH NUMBER TWO","params":{"pairs":"N2","hand":"R","amount":0.75}}]},{"name":"2A2","calls":[{"figure":"allemande","beats":7,"call":"ALLEMANDE LEFT ONCE AND A QUARTER WITH NUMBER THREE","params":{"pairs":"N3","hand":"L","amount":1.25}},{"figure":"hey","beats":9,"call":"HALF A HEY","params":{"amount":0.5,"passes":"LR PL RR N3L~"}}]},{"name":"2B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"LARKS BALANCE AND SWING","params":{"pairs":[["1L","2L"]],"balanceBeats":4,"endFacing":"across"}}]},{"name":"2B2","calls":[{"figure":"swing","beats":16,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]}]},{"slug":"are-you-most-done","title":"Are You 'Most Done?","author":"Russell Owen","formation":"becket","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONCE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}},{"figure":"swing","beats":8,"call":"NEIGHBOUR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"star","beats":8,"call":"STAR LEFT SEVEN EIGHTHS","params":{"hand":"L","amount":0.875}}]},{"name":"B1","calls":[{"figure":"hey","beats":16,"call":"ON THE RIGHT DIAGONAL, HEY FOR FOUR","params":{"axis":"diagonal","passes":"LR N2L RR PL LR N2L RR PL~"}}]},{"name":"B2","calls":[{"figure":"allemande","beats":4,"call":"LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT","params":{"pairs":[["1L","2L"]],"hand":"R","amount":1}},{"figure":"swing","beats":12,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]}]},{"slug":"butter","title":"Butter","author":"Gene Hubert","formation":"becket","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"slide-left","beats":2,"call":"SHIFT LEFT","params":{}},{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"swing","beats":8,"call":"NEIGHBOR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR PARTNER","params":{}}]},{"name":"B1","calls":[{"figure":"hey","beats":16,"call":"HEY FOR FOUR","params":{"start":"robin","by":"right"}}]},{"name":"B2","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]}]},{"slug":"chorus-jig","title":"Chorus Jig","author":"traditional","formation":"proper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"go-down-outside","beats":8,"call":"ONES DOWN THE OUTSIDE","params":{}},{"figure":"go-up-outside","beats":8,"call":"ONES BACK UP THE OUTSIDE","params":{}}]},{"name":"A2","calls":[{"figure":"lead-down","beats":4,"call":"ONES LEAD DOWN THE CENTRE","params":{"pairs":"partners"}},{"figure":"turn-alone","beats":4,"call":"TURN ALONE","params":{}},{"figure":"lead-up","beats":4,"call":"LEAD BACK UP","params":{"pairs":"partners"}},{"figure":"cast-off","beats":4,"call":"CAST OFF, TWOS MOVE UP","params":{"pairs":"C2"}}]},{"name":"B1","calls":[{"figure":"turn-contra-corners","beats":16,"call":"ONES TURN CONTRA CORNERS","params":{}}]},{"name":"B2","calls":[{"figure":"balance-and-swing","beats":16,"call":"ONES BALANCE AND SWING, FACE UP","params":{"pairs":"partners","balanceBeats":4,"endFacing":"up"}}]}]},{"slug":"contra-cockaigne","title":"Contra Cockaigne","author":"Devin Nordson","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"allemande","beats":8,"call":"ROBINS ALLEMANDE RIGHT ONE AND A HALF","params":{"pairs":[["1R","2R"]],"hand":"R","amount":1.5}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN","params":{}},{"figure":"star","beats":8,"call":"STAR LEFT ONCE","params":{"hand":"L","places":4}}]}]},{"slug":"contrablend","title":"Contrablend","author":"Cary Ravitz","formation":"duple-improper","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOUR BALANCE AND SWING","params":{"pairs":"neighbors","balanceBeats":4,"endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"swing","beats":10,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"roll-away","beats":8,"call":"LONG LINES FORWARD AND BACK, ROLL AWAY YOUR PARTNER","params":{"pairs":"partners","roller":"robin"}},{"figure":"roll-away","beats":8,"call":"AGAIN, ROLL AWAY YOUR SHADOW; NEW PARTNER","params":{"pairs":"shadow","roller":"robin","rebind":{"partner":"shadow"}}}]},{"name":"B2","calls":[{"figure":"circle","beats":3,"call":"CIRCLE RIGHT THREE QUARTERS WITH YOUR SHADOW","params":{"direction":"right","places":3}},{"figure":"turn-alone","beats":3,"call":"TURN ALONE","params":{}},{"figure":"shoulder-round","beats":10,"call":"RIGHT SHOULDER ROUND NUMBER TWO, ONCE AND A HALF","params":{"pairs":"N2","hand":"R","amount":1.5}}]}]},{"slug":"fatal-attraction","title":"Fatal Attraction","author":"Roger Auman","formation":"becket","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR NEIGHBOUR","params":{}},{"figure":"promenade","beats":8,"call":"NEIGHBOUR PROMENADE COUNTERCLOCKWISE AROUND THE SET","params":{"pairs":"neighbors","direction":"counterclockwise","places":2}}]},{"name":"A2","calls":[{"figure":"cast-back","beats":2,"call":"ROBINS CAST BACK, LARKS GO FORWARD","params":{"progresses":"start"}},{"figure":"shoulder-round","beats":6,"call":"RIGHT SHOULDER ROUND WITH NUMBER TWO","params":{"pairs":"neighbors","hand":"R","amount":1}},{"figure":"swing","beats":8,"call":"SWING NUMBER TWO","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"promenade","beats":8,"call":"PROMENADE NUMBER TWO CLOCKWISE AROUND THE SET","params":{"pairs":"neighbors","direction":"clockwise","places":2}},{"figure":"allemande","beats":8,"call":"ROBINS ALLEMANDE RIGHT ONCE AND A HALF","params":{"pairs":[["1R","2R"]],"hand":"R","amount":1.5}}]},{"name":"B2","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","balanceBeats":4,"endFacing":"across"}}]}]},{"slug":"jeremy-corners","title":"Jeremy Corners","author":"Isaac Banner","formation":"duple-improper","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"pass-through","beats":2,"call":"ONES PASS THROUGH ACROSS","params":{}},{"figure":"turn-alone","beats":2,"call":"TURN TO YOUR RIGHT","params":{"amount":0.25}},{"figure":"cast-back","beats":2,"call":"CAST ROUND ONE","params":{}},{"figure":"turn-alone","beats":2,"call":"STEP INTO THE MIDDLE AND FACE YOUR PARTNER: DIAMONDS","params":{"amount":0.25,"form":{"shape":"diamond","at":"point"}}},{"figure":"interrupted-square-through","beats":8,"call":"BALANCE THE RIGHT WITH YOUR NEIGHBOUR AND SQUARE THROUGH TWO","params":{"balanceWith":"neighbors","firstPass":"neighbors","firstHand":"R","secondPass":"partners","secondHand":"L"}}]},{"name":"A2","calls":[{"figure":"turn-contra-corners","beats":16,"call":"ONES TURN CONTRA CORNERS","params":{}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"ONES BALANCE AND SWING, FACE DOWN","params":{"pairs":"partners","balanceBeats":4,"endFacing":"down"}}]},{"name":"B2","calls":[{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING","params":{}},{"figure":"single-file-promenade","beats":4,"call":"LARK ONE AND THE TWOS, SINGLE FILE PROMENADE CLOCKWISE A THIRD","params":{"direction":"clockwise","amount":0.3333333333333333}},{"figure":"swing","beats":8,"call":"NEIGHBOUR SWING","params":{"pairs":"neighbors"}}]},{"name":"2A1","calls":[{"figure":"pass-through","beats":2,"call":"TWOS PASS THROUGH ACROSS","params":{}},{"figure":"turn-alone","beats":2,"call":"TURN TO YOUR RIGHT","params":{"amount":0.25}},{"figure":"cast-back","beats":2,"call":"CAST ROUND ONE","params":{}},{"figure":"turn-alone","beats":2,"call":"STEP INTO THE MIDDLE AND FACE YOUR PARTNER: DIAMONDS","params":{"amount":0.25,"form":{"shape":"diamond","at":"point"}}},{"figure":"interrupted-square-through","beats":8,"call":"WITH NUMBER TWO, BALANCE THE RIGHT AND SQUARE THROUGH TWO","params":{"balanceWith":"neighbors","firstPass":"neighbors","firstHand":"R","secondPass":"partners","secondHand":"L"}}]},{"name":"2A2","calls":[{"figure":"turn-contra-corners","beats":16,"call":"TWOS TURN CONTRA CORNERS","params":{}}]},{"name":"2B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"TWOS BALANCE AND SWING, FACE DOWN","params":{"pairs":"partners","balanceBeats":4,"endFacing":"down"}}]},{"name":"2B2","calls":[{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING","params":{}},{"figure":"single-file-promenade","beats":4,"call":"LARK TWO AND THE ONES, SINGLE FILE PROMENADE CLOCKWISE A THIRD","params":{"direction":"clockwise","amount":0.3333333333333333}},{"figure":"swing","beats":8,"call":"NEIGHBOUR SWING","params":{"pairs":"neighbors"}}]}]},{"slug":"jubilation","title":"Jubilation","author":"Gene Hubert","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}},{"figure":"allemande","beats":8,"call":"PARTNER ALLEMANDE RIGHT ONE AND A HALF","params":{"pairs":"partners","hand":"R","amount":1.5}}]},{"name":"B1","calls":[{"figure":"hey","beats":8,"call":"HALF A HEY","params":{"amount":0.5}},{"figure":"swing","beats":8,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN","params":{}}]}]},{"slug":"kitchen-stomp","title":"Kitchen Stomp","author":"Becky Hill","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}},{"figure":"swing","beats":8,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN","params":{}},{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING","params":{}},{"figure":"petronella","beats":4,"call":"PETRONELLA TURN","params":{}}]},{"name":"B2","calls":[{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING","params":{}},{"figure":"petronella","beats":4,"call":"PETRONELLA TURN","params":{}},{"figure":"star","beats":8,"call":"STAR LEFT ONCE","params":{"hand":"L","places":4}}]}]},{"slug":"neighbor-neighbor-on-the-wall","title":"Neighbor, Neighbor on the Wall","author":"Maia McCormick","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"swing","beats":8,"call":"NEIGHBOR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO PARTNER","params":{}},{"figure":"hey","beats":8,"call":"HALF A HEY","params":{"amount":0.5}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}},{"figure":"swing","beats":8,"call":"NEIGHBOR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]}]},{"slug":"on-the-prowl","title":"On the Prowl","author":"Chris Page","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"mad-robin","beats":3,"call":"MAD ROBIN HALF WAY AROUND YOUR NEIGHBOUR","params":{"pairs":"neighbors","amount":0.5,"direction":"clockwise"}},{"figure":"single-file-promenade","beats":2,"call":"SINGLE FILE PROMENADE A QUARTER","params":{"direction":"clockwise","amount":0.25}},{"figure":"shoulder-round","beats":3,"call":"HALF A RIGHT SHOULDER ROUND WITH YOUR PARTNER","params":{"pairs":"partners","hand":"R","amount":0.5}},{"figure":"swing","beats":8,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"mad-robin","beats":3,"call":"MAD ROBIN HALF WAY AROUND YOUR PARTNER","params":{"pairs":"partners","amount":0.5,"direction":"clockwise"}},{"figure":"single-file-promenade","beats":2,"call":"SINGLE FILE PROMENADE A QUARTER","params":{"direction":"clockwise","amount":0.25}},{"figure":"shoulder-round","beats":3,"call":"HALF A RIGHT SHOULDER ROUND WITH YOUR NEIGHBOUR","params":{"pairs":"neighbors","hand":"R","amount":0.5}},{"figure":"swing","beats":8,"call":"NEIGHBOR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR PARTNER","params":{}}]},{"name":"B2","calls":[{"figure":"hey","beats":16,"call":"RICOCHET HEY FOR FOUR","params":{"passes":"RR NL LR PL RR NL L! NL~"}}]}]},{"slug":"thanks-to-the-gene","title":"Thanks to the Gene","author":"Tom Hinds","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"right-and-left-through","beats":8,"call":"RIGHT AND LEFT THROUGH","params":{"couples":"neighbors"}},{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO PARTNER","params":{}}]},{"name":"B1","calls":[{"figure":"do-si-do","beats":6,"call":"ROBINS RIGHT SHOULDER ROUND","params":{"pairs":[["1R","2R"]],"amount":1}},{"figure":"swing","beats":10,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"allemande","beats":8,"call":"LARKS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1L","2L"]],"hand":"L","amount":1.5}}]}]},{"slug":"the-baby-rose","title":"The Baby Rose","author":"David Kaynor","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOR BALANCE AND SWING","params":{"pairs":"neighbors","endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"circle","beats":8,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"do-si-do","beats":8,"call":"PARTNER DO-SI-DO","params":{"pairs":"partners","amount":1}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN","params":{}},{"figure":"star","beats":8,"call":"STAR LEFT ONCE","params":{"hand":"L","places":4}}]}]},{"slug":"the-carousel","title":"The Carousel","author":"Tom Hinds","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"long-lines","beats":8,"call":"LONG LINES FORWARD AND BACK","params":{}},{"figure":"allemande","beats":8,"call":"ROBINS ALLEMANDE LEFT ONE AND A HALF","params":{"pairs":[["1R","2R"]],"hand":"L","amount":1.5}}]},{"name":"A2","calls":[{"figure":"hey","beats":16,"call":"FULL HEY FOR FOUR","params":{}}]},{"name":"B1","calls":[{"figure":"balance-and-swing","beats":16,"call":"PARTNER BALANCE AND SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"swing","beats":10,"call":"NEIGHBOR SWING","params":{"pairs":"neighbors","endFacing":"across"}}]}]},{"slug":"the-nice-combination","title":"The Nice Combination","author":"Gene Hubert","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"balance-and-swing","beats":16,"call":"NEIGHBOUR BALANCE AND SWING","params":{"pairs":"neighbors","balanceBeats":4,"endFacing":"across"}}]},{"name":"A2","calls":[{"figure":"down-the-hall","beats":6,"call":"DOWN THE HALL FOUR IN LINE","params":{"order":["1L","2R","2L","1R"]}},{"figure":"turn-as-couples","beats":2,"call":"TURN AS COUPLES WITH YOUR NEIGHBOUR","params":{"pairs":"neighbors"}},{"figure":"up-the-hall","beats":6,"call":"UP THE HALL FOUR IN LINE","params":{"order":["2R","1L","1R","2L"]}},{"figure":"bend-the-line","beats":2,"call":"BEND THE LINE","params":{}}]},{"name":"B1","calls":[{"figure":"circle","beats":6,"call":"CIRCLE LEFT THREE QUARTERS","params":{"direction":"left","places":3}},{"figure":"swing","beats":10,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B2","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR NEIGHBOUR","params":{}},{"figure":"star","beats":8,"call":"STAR LEFT ALL THE WAY","params":{"hand":"L","places":4}}]}]},{"slug":"the-set-monster","title":"The Set Monster","author":"Isaac Banner","formation":"becket","programme":false,"phrases":[{"name":"A1","calls":[{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING","params":{}},{"figure":"petronella","beats":4,"call":"PETRONELLA TURN TO THE RIGHT","params":{}},{"figure":"swing","beats":8,"call":"NEIGHBOUR SWING","params":{"pairs":"neighbors"}}]},{"name":"A2","calls":[{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR PARTNER","params":{"chains":"robin"}},{"figure":"balance","beats":4,"call":"ROBINS BALANCE BY THE RIGHT","params":{"pairs":[["1R","2R"]],"hold":"one","hand":"R"}},{"figure":"pull-by","beats":2,"call":"ROBINS PULL BY THE RIGHT","params":{"pairs":[["1R","2R"]],"hand":"R"}},{"figure":"pull-by","beats":2,"call":"NUMBER TWO PULL BY THE LEFT","params":{"pairs":"N2","hand":"L"}}]},{"name":"B1","calls":[{"figure":"interrupted-square-through","beats":8,"call":"WITH NUMBER THREE, BALANCE THE RIGHT AND SQUARE THROUGH TWO","params":{"balanceWith":[["1L","2L"],["1R","2R"]],"firstPass":[["1L","2L"],["1R","2R"]],"firstHand":"R","secondPass":"partners","secondHand":"L"}},{"figure":"long-lines","beats":4,"call":"LONG LINES GO FORWARD","params":{}},{"figure":"jersey-twirl","beats":4,"call":"NUMBER FOUR JERSEY TWIRL","params":{"pairs":"N4"}}]},{"name":"B2","calls":[{"figure":"balance-ring","beats":4,"call":"BALANCE THE RING WITH NUMBER FOUR","params":{}},{"figure":"petronella","beats":4,"call":"PETRONELLA TURN TO THE RIGHT","params":{}},{"figure":"swing","beats":8,"call":"PARTNER SWING","params":{"pairs":"partners"}}]}]},{"slug":"whoosh","title":"Whoosh","author":"Becky Hill","formation":"duple-improper","programme":true,"phrases":[{"name":"A1","calls":[{"figure":"grand-right-and-left","beats":6,"call":"GRAND RIGHT AND LEFT","params":{}},{"figure":"allemande","beats":6,"call":"ALLEMANDE LEFT ONCE WITH NUMBER FOUR","params":{"pairs":"N4","hand":"L","amount":1}},{"figure":"pull-by","beats":2,"call":"PULL BY THE RIGHT","params":{"pairs":"N3","hand":"R"}},{"figure":"allemande","beats":2,"call":"ALLEMANDE LEFT A HALF","params":{"pairs":"N2","hand":"L","amount":0.5}}]},{"name":"A2","calls":[{"figure":"balance-wave","beats":4,"call":"BALANCE THE LONG WAVE, RIGHT HAND TO YOUR NEIGHBOUR","params":{"hand":"R","facesIn":"lark"}},{"figure":"circulate","beats":4,"call":"CIRCULATE: LARKS CROSS, ROBINS LOOP RIGHT","params":{"facesIn":"lark","hand":"R"}},{"figure":"swing","beats":8,"call":"PARTNER SWING","params":{"pairs":"partners","endFacing":"across"}}]},{"name":"B1","calls":[{"figure":"right-and-left-through","beats":8,"call":"RIGHT AND LEFT THROUGH WITH YOUR PARTNER","params":{"couples":"partners"}},{"figure":"robins-chain","beats":8,"call":"ROBINS CHAIN TO YOUR NEIGHBOUR","params":{}}]},{"name":"B2","calls":[{"figure":"star","beats":8,"call":"STAR LEFT ALL THE WAY","params":{"hand":"L","places":4}},{"figure":"do-si-do","beats":8,"call":"DO-SI-DO NUMBER TWO","params":{"pairs":"N2"}}]}]}]}</script>
+<script>
+'use strict';
+const DATA = JSON.parse(document.getElementById('spike-data').textContent);
+const FIG = DATA.figures, DANCES = DATA.dances;
+
+/* ============================================================ the model's own vocabulary */
+
+/** The families are the definitions' own shape kinds (moveCatalogue.ts, verbatim titles). */
+const FAMILY = {
+  rock:'Balances', orbitPair:'Turns for two', ringWalk:'Rings and stars', path:'Crossings and passes',
+  courtesyTurn:'Courtesy turns', lineWalk:'Lines', wave:'Waves', unit:'Couples as one',
+  schedule:'Heys', waypoints:'Walks', sequence:'Figures made of parts', engine:"The engine's own",
+};
+/** Each figure's family: its definition's own `shape.kind`, read off packages/contra/src/library/figures/. */
+const KIND = {
+  allemande:'orbitPair','balance-and-swing':'sequence','balance-ring':'rock','balance-wave-of-four':'wave',
+  'balance-wave':'wave',balance:'rock','bend-the-line':'lineWalk','california-twirl':'path','cast-back':'waypoints',
+  'cast-off':'waypoints',circle:'ringWalk',circulate:'waypoints','do-si-do':'path','down-the-hall':'lineWalk',
+  'go-down-outside':'waypoints','go-up-outside':'waypoints','grand-right-and-left':'waypoints',hey:'schedule',
+  'interrupted-square-through':'sequence','jersey-twirl':'path','lead-down':'lineWalk','lead-up':'lineWalk',
+  'long-lines':'path',loop:'waypoints','mad-robin':'path','pass-through':'path',petronella:'ringWalk',
+  promenade:'unit','pull-by':'waypoints','right-and-left-through':'courtesyTurn','robins-chain':'courtesyTurn',
+  'roll-away':'path','shoulder-round':'orbitPair','single-file-promenade':'ringWalk','slide-left':'path',
+  'square-through':'path',star:'ringWalk',swing:'orbitPair','turn-alone':'waypoints','turn-as-couples':'unit',
+  'turn-contra-corners':'sequence','up-the-hall':'lineWalk','wait-out':'engine','walk-to-station':'engine',
+  'fatal-attraction/go-forward':'path',
+};
+
+/**
+ * The review register's status per figure (figure-review.md, 2026-09-15).
+ * `ok` green, `fixed` gold (fixed, awaiting the user), `wrong` red, `unsure` amber,
+ * `unreviewed` grey — the review the user asked to be done *on* the page.
+ */
+const STATUS = {
+  'roll-away':['fixed','fixed, awaiting your eye'],'california-twirl':['fixed','fixed, awaiting your eye'],
+  'mad-robin':['fixed','fixed, awaiting your eye'],'jersey-twirl':['unsure','unsure — needs your description'],
+  'down-the-hall':['ok','right, but its context is missing'],'balance-wave':['fixed','fixed, awaiting your eye'],
+  'balance-wave-of-four':['fixed','fixed, awaiting your eye'],'pull-by':['fixed','fixed, awaiting your eye'],
+  'turn-alone':['wrong','wrong context — belongs in a short line of four'],'cast-off':['fixed','fixed, awaiting your eye'],
+  circulate:['fixed','fixed as the box circulate, awaiting your eye'],circle:['fixed','fixed, awaiting your eye'],
+  star:['fixed','fixed, awaiting your eye — the grip'],petronella:['ok','right (a clap is still to come)'],
+  'single-file-promenade':['fixed','fixed, awaiting your eye'],promenade:['fixed','fixed, awaiting your eye'],
+  'turn-contra-corners':['fixed','fixed over six dancers, awaiting your eye'],
+  'shoulder-round':['fixed','fixed side by side, awaiting your eye'],
+};
+const STATUS_TEXT = {ok:'right',fixed:'fixed, awaiting you',wrong:'wrong',unsure:'unsure',unreviewed:'unreviewed'};
+const statusOf = id => (STATUS[id] || ['unreviewed','not looked at yet'])[0];
+const statusNote = id => (STATUS[id] || ['unreviewed','not looked at yet'])[1];
+
+/* ============================================================ the shapes, and what is danced from each */
+
+/**
+ * The shape list: `set/shape.ts`'s five kinds, split where a caller splits them
+ * (a wave across the set and a wave up it are one `kind` and two different
+ * places to stand), plus the proper/six-dancer arrangement the corner figures
+ * need. `model: true` marks a fact the library already holds.
+ *
+ * `figs` entries: [figure id, the note under the tile, an optional real picture
+ * of it in *this* shape from pix/variants/].
+ */
+const SHAPES = [
+  {
+    id:'lines', title:'The lines · a hands four', kind:'lines',
+    sub:'the default arrangement · 4 dancers · the model calls it `lines`',
+    blurb:"Two lines the length of the hall facing across, a hands four at every two couples. Nobody has formed anything: this is where a dance starts, where it returns between figures, and where two thirds of the library is danced.",
+    facts:[['model','the model\'s `lines`'],['spike','includes becket, the lines side by side']],
+    dia:'lines',
+    figs:[
+      ['balance','with the hands already taken, across the set'],
+      ['balance-and-swing',''],['swing',''],['allemande',''],['do-si-do',''],
+      ['shoulder-round','side by side, eyes locked (FR-B1)'],
+      ['pass-through',''],['pull-by',''],['right-and-left-through',''],['robins-chain',''],
+      ['long-lines','the whole line forward and back — needs the long set, not one hands four'],
+      ['hey',''],['grand-right-and-left',''],['mad-robin','orbit sideways, looking across'],
+      ['roll-away',''],['california-twirl',''],['jersey-twirl',''],['promenade','side by side, the same way',['promenade-partners.png','with your partner']],
+      ['slide-left','becket: the lines slide along themselves'],['loop',''],['cast-back',''],
+      ['square-through',''],['interrupted-square-through',''],['walk-to-station','the engine\'s own'],
+      ['wait-out','the engine\'s own — a whole time through at the end'],
+      ['fatal-attraction/go-forward','one dance\'s own figure'],
+    ],
+    combos:['chain-and-star','circle-and-pass'],
+  },
+  {
+    id:'ring', title:'A ring', kind:'ring',
+    sub:'a circle of joined hands · 4 dancers · the model calls it `ring`',
+    blurb:"A circle of joined hands, everybody facing its middle, the places evenly spaced whatever the stations under it are. A hands four makes one by taking hands; bend the line is the figure whose own `ends` say it forms one.",
+    facts:[['model','`bend-the-line` ends in a ring']],
+    dia:'ring',
+    figs:[
+      ['circle','the ring ridden round — elbows down, a smooth circle (FR-A2)'],
+      ['balance-ring','the ring rocked in and out'],
+      ['petronella','the ring spun one place to the right'],
+      ['star','the ring walked as a bowed chord, hand on the arm ahead',['star-hands-across.png','hands across']],
+      ['single-file-promenade','round the set in single file, like a bike chain'],
+      ['bend-the-line','the figure that forms it'],
+    ],
+    combos:['balance-and-spin'],
+  },
+  {
+    id:'wave-four', title:'A wave of four · short waves across the set', kind:'wave',
+    sub:'4 dancers across the set, alternately facing · the model calls it `wave`',
+    blurb:"A short wave: four dancers across the set with joined hands, facing alternately one way and the other, one pair in the middle and one on each line. Who is in the middle and which hand is taken are parameters of the balance, not of the shape.",
+    facts:[['model','`balance-wave` ends in a wave']],
+    dia:'wave4',
+    figs:[
+      ['balance-wave-of-four','the whole wave rocks — left first, right first, forwards and back',['balance-wave-of-four-left.png','direction = left']],
+      ['balance-wave','the two-dancer wave, rocked without breaking arms',['balance-wave-robins-in.png','robins facing in']],
+      ['allemande','an allemande once and a half is how a wave is usually formed'],
+      ['pull-by','out of the wave and on to the next'],
+    ],
+    combos:['the-wave'],
+  },
+  {
+    id:'long-waves', title:'Long wavy lines · up and down the set', kind:'wave',
+    sub:'the whole line, alternately facing up and down · the model calls it `wave`',
+    blurb:"The user, on the box circulate: “everyone is in long wavy lines up and down the set. alternating face in, face out.” The wave runs the length of the hall rather than across it, and a figure danced from it stays inside its own four — the box — even though the line runs past them both ways.",
+    facts:[['spike','the model has one `wave` kind; a caller has two']],
+    dia:'longwave',
+    figs:[
+      ['circulate','the box circulate: those facing in walk across, those facing out loop round — nobody changes minor set',['circulate-robins-in.png','robins facing in']],
+      ['balance-wave','the same balance, along the set instead of across it'],
+      ['grand-right-and-left','hand over hand along the line'],
+    ],
+    combos:['the-wave'],
+  },
+  {
+    id:'line-of-four', title:'A line of four · down the hall and back', kind:'line-of-four',
+    sub:'4 in a row in a written order, travelling the way they face',
+    blurb:"“Four dancers in a row in a written order, hands joined along it, travelling the way the line faces.” The order is what the shape *is* — a caller reads it out twice, because turning as couples reverses it. This is the section the review asked for by name: the turn alone and the turn as couples are the ways a line comes back up the hall, and they are only legible here.",
+    facts:[['model','`down-the-hall` and `up-the-hall` end in a line of four']],
+    dia:'line4',
+    figs:[
+      ['down-the-hall','take hands in a line of four and walk down it',['down-the-hall-order.png','the order 1L-2R-2L-1R']],
+      ['turn-as-couples','the couple turns as one unit, and the line\'s order reverses',['turn-as-couples-partners.png','with your partner']],
+      ['turn-alone','each dancer turns alone, in the line, and the order holds',['turn-alone-quarter.png','a quarter turn']],
+      ['up-the-hall','back up the hall, the order read out again',['up-the-hall-order.png','the order 2R-1L-1R-2L']],
+      ['bend-the-line','the line folds into a ring'],
+      ['lead-down','the couple leads down the middle — a proper set\'s way in'],
+      ['lead-up','and back up it'],
+    ],
+    combos:['down-and-back','down-the-middle'],
+  },
+  {
+    id:'diamond', title:'A diamond', kind:'diamond',
+    sub:'the hands four turned an eighth of a turn about its own middle',
+    blurb:"“its not a move. its a place setup. it means that the whole minor set is rotated 1/8 turn basically. many normal moves can happen from it, but people are arranged differently.” Two dancers come into the middle of the set a long way apart, up and down it — the *points* — and two are left out on the lines — the *sides*. Nothing forms it but arriving there.",
+    facts:[['model','Jeremy Corners\' two `turn-alone`s land in one']],
+    dia:'diamond',
+    figs:[
+      ['turn-alone','a quarter turn carrying “form diamonds, at the point” — the real picture of the shape',['turn-alone-into-diamond.png','forming the diamond']],
+      ['interrupted-square-through','reads the shape off the floor and dances from it'],
+      ['square-through',''],['pass-through','across the set, before the turn'],['cast-back','round one, out of the way'],
+    ],
+    combos:['the-diamond'],
+  },
+  {
+    id:'proper-six', title:'Proper lines · the actives and their corners', kind:'lines',
+    sub:'6 dancers and more · larks on one side, robins on the other',
+    blurb:"“can only be shown correctly with 6 dancers (its only ever done by the 1s or 2s at a time; actives and inactives).” A proper set — larks in one line, robins in the other — and a figure that needs the couple above and the couple below as well as your own. The tile is drawn over four couples, because a three-couple line leaves a couple waiting out and a couple standing out is not in the lane a figure resolves in.",
+    facts:[['spike','the arrangement, not a `SetShapeKind`']],
+    dia:'proper6',
+    figs:[
+      ['turn-contra-corners','allemande right in the middle, left with the first corner, right in the middle, left with the second — eight dancers drawn'],
+      ['cast-off','swoop out of the set to your right, round the other dancer, and loop back'],
+      ['go-down-outside','down the outside of the line, past the couple below'],
+      ['go-up-outside','and back up it'],
+      ['lead-down','the actives lead down the middle'],
+      ['lead-up','and back'],
+    ],
+    combos:['contra-corners','down-the-middle'],
+  },
+];
+
+/**
+ * The common combinations: real sequences out of the record, each with the real
+ * seam strips between its calls. This is the "putting in the common
+ * combinations" ask — a combination is a thing with a picture, not a caption.
+ */
+const COMBOS = [
+  {
+    id:'down-and-back', title:'Down the hall and back', src:'The Nice Combination · A2 · Gene Hubert',
+    shape:'line-of-four',
+    blurb:'The canonical line-of-four phrase, and the reason the turn alone needs a section of its own: what happens between “down” and “up” is the whole question. Turning as couples reverses the line’s order, which is why the caller reads it out twice — 1L-2R-2L-1R going down, 2R-1L-1R-2L coming back.',
+    steps:['down-the-hall','turn-as-couples','up-the-hall','bend-the-line'],
+    seams:['down-the-hall--turn-as-couples','turn-as-couples--up-the-hall','up-the-hall--bend-the-line'],
+  },
+  {
+    id:'down-the-middle', title:'Down the middle, turn alone, and cast', src:'Chorus Jig · A2 · traditional',
+    shape:'line-of-four',
+    blurb:'The other way back up the hall, and the one the review flagged: the actives lead down the middle, each dancer turns *alone* rather than as a couple, they lead back up, and cast off round the couple above. Shown side by side with the turn as couples above, the difference is a picture rather than a sentence.',
+    steps:['lead-down','turn-alone','lead-up','cast-off'],
+    seams:['lead-down--turn-alone','turn-alone--lead-up','lead-up--cast-off'],
+  },
+  {
+    id:'balance-and-spin', title:'Balance the ring and spin right', src:'Kitchen Stomp · A1 · Steve Zakon-Anderson',
+    shape:'ring',
+    blurb:'Take hands four, rock the ring, and spin one place to the right — twice round, and then the star. The seam is the whole trick: the balance has to leave the ring exactly where the petronella picks it up.',
+    steps:['balance-ring','petronella','balance-ring','star'],
+    seams:['balance-ring--petronella','petronella--balance-ring','petronella--star'],
+  },
+  {
+    id:'the-wave', title:'Into the wave, balance, circulate', src:'Whoosh · A2–B1 · Lisa Greenleaf',
+    shape:'wave-four',
+    blurb:'An allemande once and a half forms the wave, the wave is balanced, and the box circulate turns the four places one round — those facing in walk straight across, those facing out loop along their own line. Nobody changes minor set.',
+    steps:['allemande','balance-wave','circulate','swing'],
+    seams:['allemande--balance-wave','balance-wave--circulate','circulate--swing'],
+  },
+  {
+    id:'contra-corners', title:'Cast off and turn contra corners', src:'Chorus Jig · B1–B2 · traditional',
+    shape:'proper-six',
+    blurb:'The figure that needs six dancers to be shown at all, with what comes before and after it: cast off round the couple above, sixteen beats of corners, then the balance and swing in the middle facing down the set.',
+    steps:['cast-off','turn-contra-corners','balance-and-swing'],
+    seams:['cast-off--turn-contra-corners','turn-contra-corners--balance-and-swing'],
+  },
+  {
+    id:'chain-and-star', title:'Chain, and star back', src:'The Nice Combination · B2 · Gene Hubert',
+    shape:'lines',
+    blurb:'The oldest pair in contra: the robins chain across, the courtesy turn puts them back, and a star left brings everybody home. The long lines version is the same join one figure earlier.',
+    steps:['robins-chain','star'],
+    seams:['robins-chain--star','long-lines--star'],
+  },
+  {
+    id:'circle-and-pass', title:'Circle, pass through, do-si-do', src:'After the Solstice · Airpants',
+    shape:'lines',
+    blurb:'The workhorse transition out of a ring and on down the set: circle left three quarters, pass through, and meet the next couple. The seam out of a ring is where the hands have to be let go on the right beat.',
+    steps:['circle','pass-through','do-si-do'],
+    seams:['circle--pass-through','pass-through--do-si-do'],
+  },
+  {
+    id:'the-diamond', title:'Into the diamond, and the square through', src:'Jeremy Corners · A1 · lab',
+    shape:'diamond',
+    blurb:'Four ordinary calls whose *end* is the shape: pass through across, turn a quarter to the right, cast back round one, and step into the middle facing your partner — “form diamonds”. The interrupted square through that follows reads the shape off the floor.',
+    steps:['pass-through','turn-alone','cast-back','turn-alone','interrupted-square-through'],
+    seams:[],
+    pics:[['turn-alone-into-diamond.png','the fourth call, landing in the diamond']],
+  },
+];
+
+/** Which shapes a figure appears in, inverted from SHAPES. */
+const SHAPES_OF = {};
+for (const s of SHAPES) for (const f of s.figs) (SHAPES_OF[f[0]] ||= []).push([s.id, f[1], f[2]]);
+/** Which combinations a figure is a step of. */
+const COMBOS_OF = {};
+for (const c of COMBOS) for (const id of new Set(c.steps)) (COMBOS_OF[id] ||= []).push(c.id);
+const shapeById = id => SHAPES.find(s => s.id === id);
+const comboById = id => COMBOS.find(c => c.id === id);
+
+/* ============================================================ pictures: one frame of a real strip */
+
+/*
+ * A strip is a flex row written by e2e/gallery.spec.ts: 8 px of padding, then
+ * one frame per half beat with a 4 px gap, at 4×. So frame k of an image
+ * `naturalWidth` wide with `n` frames starts at 8 + k*(w+4) where
+ * w = (naturalWidth - 16 - 4*(n-1)) / n. Everything here is CSS transform on
+ * the one committed PNG — no canvas, no re-rendering, no production code.
+ */
+const PAD = 8, GAP = 4;
+const frameWidth = (natural, n) => (natural - PAD * 2 - GAP * (n - 1)) / n;
+
+/** How many frames each copied parameter-row strip has (strips/README.md's own table). */
+const VARIANT_FRAMES = {
+  'balance-wave-of-four-larks-centre.png':8, 'balance-wave-of-four-left.png':8,
+  'balance-wave-robins-in.png':8, 'circulate-robins-in.png':8, 'do-si-do-n2.png':16,
+  'down-the-hall-order.png':12, 'promenade-partners.png':16, 'shoulder-round-partners.png':6,
+  'star-hands-across.png':16, 'star-left-three.png':12, 'turn-alone-into-diamond.png':4,
+  'turn-alone-quarter.png':4, 'turn-as-couples-partners.png':4, 'up-the-hall-order.png':12,
+};
+
+let beat = 0, playing = true, showStatus = true;
+const films = [];   // every live tile, refreshed on the clock
+
+/** A looping tile: one square cell of a real strip, letterboxed and centred. */
+function tileBox(src, frames, extra) {
+  const box = document.createElement('div');
+  box.className = 'tile-box';
+  const img = document.createElement('img');
+  img.src = src; img.alt = '';
+  box.appendChild(img);
+  const beatTag = document.createElement('span');
+  beatTag.className = 'beat';
+  box.appendChild(beatTag);
+  const entry = {box, img, frames, beatTag, ready: false, offset: (extra && extra.offset) || 0};
+  img.addEventListener('load', () => { entry.ready = true; paintFilm(entry); });
+  if (img.complete && img.naturalWidth) { entry.ready = true; paintFilm(entry); }
+  films.push(entry);
+  return {box, entry};
+}
+
+function paintFilm(e) {
+  if (!e.ready || !e.box.isConnected) return;
+  const T = e.box.clientWidth || 110, TH = e.box.clientHeight || T;
+  const w = frameWidth(e.img.naturalWidth, e.frames), h = e.img.naturalHeight;
+  const s = Math.min(T / w, TH / h);
+  const k = ((Math.round(beat * 2) + e.offset) % e.frames + e.frames) % e.frames;
+  const fx = PAD + k * (w + GAP);
+  const ox = (T - w * s) / 2, oy = (TH - h * s) / 2;
+  e.img.style.transform = `translate(${ox - fx * s}px, ${oy}px) scale(${s})`;
+  e.img.style.width = e.img.naturalWidth + 'px';
+  e.beatTag.textContent = (k / 2).toFixed(1);
+}
+function paintAll() { for (const e of films) paintFilm(e); }
+
+/** A whole strip, scrollable, at half size: the app's own strip idiom. */
+function filmStrip(src, label) {
+  const wrap = document.createElement('div');
+  wrap.className = 'film';
+  const inner = document.createElement('div');
+  inner.className = 'inner';
+  const img = document.createElement('img');
+  img.src = src; img.alt = label || '';
+  img.addEventListener('load', () => {
+    const s = 0.5;
+    img.style.transform = `scale(${s})`;
+    inner.style.width = (img.naturalWidth * s) + 'px';
+    inner.style.height = (img.naturalHeight * s) + 'px';
+  });
+  inner.appendChild(img); wrap.appendChild(inner);
+  return wrap;
+}
+
+/* ============================================================ small parts */
+
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+const facts = pairs => {
+  const d = el('div', 'shape-facts');
+  for (const [k, t] of pairs) d.appendChild(el('span', 'fact ' + k, t));
+  return d;
+};
+const picFor = (id, inShape) => inShape ? 'pix/variants/' + inShape[0] : 'pix/figures/' + id.replace('/', '--') + '.png';
+
+/** One figure tile: the picture, the name, its count, family and shape chips. */
+function figTile(id, note, inShape, opts) {
+  const f = FIG[id] || {beats: 0, frames: 8};
+  const o = opts || {};
+  const b = el('button', 'fig');
+  b.title = (f.callLong || id) + ' — ' + statusNote(id);
+  const frames = inShape ? (VARIANT_FRAMES[inShape[0]] || 8) : f.frames;
+  const {box} = tileBox(picFor(id, inShape), frames);
+  const dot = el('span', 'dot s-' + statusOf(id));
+  dot.title = statusNote(id);
+  box.appendChild(dot);
+  b.appendChild(box);
+  b.appendChild(el('div', 'nm', id));
+  const meta = [f.beats ? f.beats + ' beats' : null, FAMILY[KIND[id]] || null].filter(Boolean).join(' · ');
+  b.appendChild(el('div', 'mt', meta));
+  const chips = el('div', 'shape-facts');
+  chips.appendChild(el('span', 'fact ' + (inShape ? 'spike' : ''), inShape ? 'in shape · ' + inShape[1] : 'default set · ' + (f.formation || '')));
+  b.appendChild(chips);
+  if (note) b.appendChild(el('div', 'note', note));
+  b.addEventListener('click', () => { state.figure = id; renderAll(); document.getElementById('s2').scrollIntoView(); });
+  return b;
+}
+
+/* ---- the shape diagrams: where people stand, and which way they look ---- */
+
+const L = '#e0a32e', R = '#c8362f';
+const DIAGRAMS = {
+  /* [x, y, facing-degrees, role] in a 100×64 box; facing 0 = right, 90 = down */
+  lines:   {w:112, h:64, people:[[22,18,90,L],[46,18,90,R],[70,18,90,L],[94,18,90,R],[22,46,270,R],[46,46,270,L],[70,46,270,R],[94,46,270,L]], caption:'up the hall ←   → down'},
+  ring:    {w:100, h:64, people:[[50,16,90,L],[76,32,180,R],[50,48,270,L],[24,32,0,R]], caption:'everybody faces the middle'},
+  wave4:   {w:100, h:64, people:[[50,8,90,L],[50,27,270,R],[50,46,90,L],[50,64,270,R]], vertical:true, caption:'across the set, alternately facing'},
+  longwave:{w:112, h:64, people:[[26,10,90,L],[26,30,270,R],[26,50,90,L],[86,10,270,R],[86,30,90,L],[86,50,270,R]], caption:'up and down the set'},
+  line4:   {w:112, h:64, people:[[16,32,90,L],[42,32,90,R],[68,32,90,L],[94,32,90,R]], caption:'the order, travelling down the hall'},
+  diamond: {w:100, h:64, people:[[50,10,180,L],[78,32,270,R],[50,54,0,L],[22,32,90,R]], caption:'points up and down the set, sides on the lines'},
+  proper6: {w:112, h:70, people:[[20,14,90,L],[20,35,90,L],[20,56,90,L],[92,14,270,R],[92,35,270,R],[92,56,270,R]], caption:'larks one side, robins the other'},
+};
+function diagram(name, scale) {
+  const d = DIAGRAMS[name];
+  const s = scale || 1;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${d.w} ${d.h + 14}`);
+  svg.setAttribute('width', d.w * s); svg.setAttribute('height', (d.h + 14) * s);
+  const add = (t, attrs) => {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', t);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    svg.appendChild(n); return n;
+  };
+  add('rect', {x:0, y:0, width:d.w, height:d.h + 14, fill:'#0c0a09', rx:3});
+  for (const [x, y, a, c] of d.people) {
+    add('circle', {cx:x, cy:y, r:5, fill:c});
+    const r = a * Math.PI / 180;
+    add('line', {x1:x + Math.cos(r) * 5, y1:y + Math.sin(r) * 5, x2:x + Math.cos(r) * 11, y2:y + Math.sin(r) * 11,
+      stroke:c, 'stroke-width':1.8, 'stroke-linecap':'round'});
+  }
+  const t = add('text', {x:d.w / 2, y:d.h + 9, fill:'#a8977f', 'font-size':7, 'text-anchor':'middle',
+    'font-family':'ui-monospace, Menlo, monospace'});
+  t.textContent = d.caption;
+  return svg;
+}
+
+/* ============================================================ state */
+
+const state = {
+  figure: 'turn-alone',
+  dance: 'the-nice-combination',
+  shapeFilter: null,
+  facet: {shape: null, family: null, status: null, q: '', groupBy: 'shape'},
+  dense: false,
+};
+
+/* ============================================================ concept A — by shape */
+
+function renderA(root) {
+  root.textContent = '';
+  const nav = el('div', 'shape-nav');
+  for (const s of SHAPES) {
+    const a = el('a', null, s.title.split(' · ')[0]);
+    a.href = '#'; a.addEventListener('click', ev => {
+      ev.preventDefault();
+      root.querySelector('[data-shape="' + s.id + '"]').scrollIntoView({block:'start'});
+    });
+    nav.appendChild(a);
+  }
+  root.appendChild(nav);
+
+  for (const s of SHAPES) {
+    const sec = el('div', 'shape-sec');
+    sec.dataset.shape = s.id;
+    const head = el('div', 'shape-head');
+    const dia = el('div', 'shape-dia');
+    dia.appendChild(diagram(s.dia, 1));
+    head.appendChild(dia);
+    const txt = el('div');
+    txt.appendChild(el('h3', null, s.title));
+    txt.appendChild(el('div', 'sub', s.sub));
+    txt.appendChild(el('p', null, s.blurb));
+    txt.appendChild(facts(s.facts.concat([['', s.figs.length + ' figures']])));
+    head.appendChild(txt);
+    sec.appendChild(head);
+
+    const tiles = el('div', 'tiles' + (state.dense ? ' dense' : ''));
+    for (const [id, note, inShape] of s.figs) tiles.appendChild(figTile(id, state.dense ? '' : note, inShape));
+    sec.appendChild(tiles);
+
+    if (s.combos && s.combos.length) {
+      const wrap = el('div', 'combos');
+      wrap.appendChild(el('h4', 'sub', 'Common combinations in this shape'));
+      for (const cid of s.combos) wrap.appendChild(comboCard(comboById(cid)));
+      sec.appendChild(wrap);
+    }
+    root.appendChild(sec);
+  }
+}
+
+/** One combination: the sequence as tiles with arrows, and the real seam strips behind a disclosure. */
+function comboCard(c) {
+  const card = el('div', 'combo');
+  card.appendChild(el('h4', null, c.title));
+  card.appendChild(el('div', 'src', c.src));
+  card.appendChild(el('p', null, c.blurb));
+  const seq = el('div', 'seq');
+  c.steps.forEach((id, i) => {
+    if (i) seq.appendChild(el('div', 'arrow', '→'));
+    seq.appendChild(figTile(id, '', null));
+  });
+  card.appendChild(seq);
+  if (c.seams.length) {
+    const d = el('details');
+    d.appendChild(el('summary', null, 'the ' + c.seams.length + ' real seam strips — four beats each side of every join'));
+    for (const s of c.seams) {
+      d.appendChild(el('div', 'src', s.replace('--', '  →  ')));
+      d.appendChild(filmStrip('pix/seams/' + s + '.png', s));
+    }
+    card.appendChild(d);
+  }
+  if (c.pics) for (const [p, label] of c.pics) {
+    const d = el('details');
+    d.appendChild(el('summary', null, label + ' — the real strip'));
+    d.appendChild(filmStrip('pix/variants/' + p, label));
+    card.appendChild(d);
+  }
+  return card;
+}
+
+/* ============================================================ concept B — the figure in context */
+
+function renderB(root) {
+  root.textContent = '';
+  const pick = el('div', 'fig-pick');
+  for (const id of Object.keys(FIG).sort()) {
+    const b = el('button', state.figure === id ? 'on' : '', id);
+    b.addEventListener('click', () => { state.figure = id; renderAll(); });
+    pick.appendChild(b);
+  }
+  root.appendChild(pick);
+
+  const id = state.figure, f = FIG[id] || {};
+  const head = el('div', 'b-head');
+  const shapes = SHAPES_OF[id] || [];
+  const best = shapes.find(s => s[2]);
+  const bestPic = best && best[2];
+  head.appendChild(tileBox(picFor(id, bestPic), bestPic ? (VARIANT_FRAMES[bestPic[0]] || 8) : f.frames).box);
+  const t = el('div');
+  t.appendChild(el('h3', null, id));
+  t.appendChild(el('div', 'callline', f.callLong || f.call || '—'));
+  t.appendChild(el('div', 'teach', f.teach || ''));
+  t.appendChild(facts([
+    ['', (f.beats || '?') + ' beats'], ['', FAMILY[KIND[id]] || 'unfiled'],
+    ['', 'drawn over ' + (f.formation || '?')],
+    ['spike', shapes.length + (shapes.length === 1 ? ' shape' : ' shapes')],
+    ['model', 'review: ' + statusNote(id)],
+  ]));
+  head.appendChild(t);
+  root.appendChild(head);
+
+  root.appendChild(el('h4', 'sub', 'In every shape it is danced from'));
+  if (!shapes.length) root.appendChild(el('div', 'empty', 'The spike files this figure under no shape yet — a gap worth naming at the gate.'));
+  for (const [sid, note, inShape] of shapes) {
+    const s = shapeById(sid);
+    const row = el('div', 'in-shape');
+    const dia = el('div', 'shape-dia');
+    dia.appendChild(diagram(s.dia, 0.72));
+    row.appendChild(dia);
+    row.appendChild(figTile(id, '', inShape));
+    const txt = el('div', 'txt');
+    txt.appendChild(el('h5', null, s.title));
+    txt.appendChild(el('p', null, note || s.blurb));
+    txt.appendChild(facts(inShape ? [['spike', 'a real strip of it in this shape: ' + inShape[1]]]
+      : [['', 'the picture is the default set — the build redraws it over this shape']]));
+    row.appendChild(txt);
+    root.appendChild(row);
+  }
+
+  const combos = COMBOS_OF[id] || [];
+  root.appendChild(el('h4', 'sub', 'Common combinations it belongs to'));
+  if (!combos.length) root.appendChild(el('div', 'empty', 'No combination in the spike names this figure yet.'));
+  for (const cid of combos) root.appendChild(comboCard(comboById(cid)));
+
+  const uses = [];
+  for (const d of DANCES) for (const p of d.phrases) for (const c of p.calls) {
+    if (c.figure === id) uses.push([d, p, c]);
+  }
+  uses.sort((a, b) => (b[0].programme - a[0].programme));
+  root.appendChild(el('h4', 'sub', 'Danced in (' + uses.length + ')'));
+  const ul = el('ul', 'danced');
+  if (!uses.length) ul.appendChild(el('li', 'lab', 'No dance in the record calls it — the tile is the only evidence there is.'));
+  for (const [d, p, c] of uses) {
+    const li = el('li');
+    li.appendChild(el('span', 'ph', p.name + ' · ' + c.beats + ' beats' + (d.programme ? '' : ' · lab')));
+    const line = el('div');
+    const a = el('b', null, d.title);
+    line.appendChild(a);
+    line.appendChild(document.createTextNode(' — ' + (c.call || id)));
+    li.appendChild(line);
+    const ps = Object.keys(c.params || {}).filter(k => k !== 'from' && k !== 'carried');
+    if (ps.length) li.appendChild(el('div', 'ph', ps.map(k => k + '=' + JSON.stringify(c.params[k])).join('  ')));
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => { state.dance = d.slug; renderAll(); document.getElementById('s3').scrollIntoView(); });
+    ul.appendChild(li);
+  }
+  root.appendChild(ul);
+}
+
+/* ============================================================ concept C — the dance as the example */
+
+/** The shape the set is standing in at a call: the spike's own reading, off SHAPES. */
+const CALL_SHAPE = {};
+for (const s of SHAPES) for (const f of s.figs) if (!CALL_SHAPE[f[0]]) CALL_SHAPE[f[0]] = s.id;
+
+function renderC(root) {
+  root.textContent = '';
+  const pick = el('div', 'dance-pick');
+  const order = DANCES.slice().sort((a, b) => (b.programme - a.programme) || a.title.localeCompare(b.title));
+  for (const d of order) {
+    const b = el('button', state.dance === d.slug ? 'on' : '', d.title + (d.programme ? '' : ' ·lab'));
+    b.addEventListener('click', () => { state.dance = d.slug; renderAll(); });
+    pick.appendChild(b);
+  }
+  root.appendChild(pick);
+
+  const d = DANCES.find(x => x.slug === state.dance) || DANCES[0];
+  const head = el('div', 'dance-head');
+  head.appendChild(el('h3', null, d.title));
+  head.appendChild(el('div', 'by', (d.author || 'traditional') + ' · ' + d.formation + (d.programme ? ' · in the programme' : ' · lab dance')));
+  root.appendChild(head);
+
+  const HAS_PLOT = ['chorus-jig', 'the-nice-combination', 'whoosh', 'jeremy-corners', 'kitchen-stomp', 'butter'];
+  if (HAS_PLOT.includes(d.slug)) {
+    const wrap = el('div', 'dstrip');
+    const img = el('img');
+    img.src = 'pix/dances/' + d.slug + '-strip.svg';
+    img.alt = d.title + ' — the whole dance, one pen plot per call';
+    wrap.appendChild(img);
+    root.appendChild(wrap);
+    root.appendChild(el('div', 'src', 'the real ' + d.slug + '-strip.svg — one pen plot per call, the cell as wide as the call is long; larks gold, robins red, the ones darker'));
+  } else {
+    root.appendChild(el('div', 'empty', 'The spike copied six dance plots in; this dance would carry its own on the real page.'));
+  }
+
+  for (const p of d.phrases) {
+    const ph = el('div', 'phrase');
+    ph.appendChild(el('div', 'phrase-name', p.name));
+    for (const c of p.calls) {
+      const row = el('div', 'call');
+      const f = FIG[c.figure];
+      if (f) {
+        const holder = el('div', 'spine');
+        holder.appendChild(tileBox(picFor(c.figure, null), f.frames).box);
+        row.appendChild(holder);
+      } else row.appendChild(el('div', 'spine'));
+      const txt = el('div', 'txt');
+      txt.appendChild(el('div', 'ct', c.call || c.figure));
+      txt.appendChild(el('div', 'cm', '(' + c.beats + ') ' + c.figure));
+      const sid = CALL_SHAPE[c.figure];
+      if (sid) {
+        const chip = el('span', 'shapechip', 'in ' + shapeById(sid).title.split(' · ')[0].toLowerCase());
+        txt.appendChild(chip);
+      }
+      row.appendChild(txt);
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => { state.figure = c.figure; renderAll(); document.getElementById('s2').scrollIntoView(); });
+      ph.appendChild(row);
+    }
+    root.appendChild(ph);
+  }
+}
+
+/* ============================================================ concept D — facets */
+
+function renderD(root) {
+  root.textContent = '';
+  const fa = state.facet;
+  const bar = el('div', 'facets');
+  const row = (label, items, key) => {
+    const r = el('div', 'facet-row');
+    r.appendChild(el('span', 'l', label));
+    const all = el('button', fa[key] === null ? 'on' : '', 'all');
+    all.addEventListener('click', () => { fa[key] = null; renderAll(); });
+    r.appendChild(all);
+    for (const [v, t, n] of items) {
+      const b = el('button', fa[key] === v ? 'on' : '', t + (n !== undefined ? ' ' + n : ''));
+      b.addEventListener('click', () => { fa[key] = fa[key] === v ? null : v; renderAll(); });
+      r.appendChild(b);
+    }
+    bar.appendChild(r);
+  };
+  row('shape', SHAPES.map(s => [s.id, s.title.split(' · ')[0], s.figs.length]), 'shape');
+  const famCount = {};
+  for (const id in FIG) famCount[KIND[id]] = (famCount[KIND[id]] || 0) + 1;
+  row('family', Object.keys(FAMILY).filter(k => famCount[k]).map(k => [k, FAMILY[k], famCount[k]]), 'family');
+  const stCount = {};
+  for (const id in FIG) stCount[statusOf(id)] = (stCount[statusOf(id)] || 0) + 1;
+  row('review', Object.keys(STATUS_TEXT).filter(k => stCount[k]).map(k => [k, STATUS_TEXT[k], stCount[k]]), 'status');
+
+  const r2 = el('div', 'facet-row');
+  r2.appendChild(el('span', 'l', 'group by'));
+  for (const g of ['shape', 'family', 'review']) {
+    const b = el('button', fa.groupBy === g ? 'on' : '', g);
+    b.addEventListener('click', () => { fa.groupBy = g; renderAll(); });
+    r2.appendChild(b);
+  }
+  const q = document.createElement('input');
+  q.type = 'search'; q.placeholder = 'name or call…'; q.value = fa.q;
+  q.addEventListener('input', () => { fa.q = q.value; renderAll(); q.focus(); });
+  r2.appendChild(q);
+  bar.appendChild(r2);
+  root.appendChild(bar);
+
+  const match = id => {
+    if (fa.family && KIND[id] !== fa.family) return false;
+    if (fa.status && statusOf(id) !== fa.status) return false;
+    if (fa.shape && !(SHAPES_OF[id] || []).some(s => s[0] === fa.shape)) return false;
+    if (fa.q) {
+      const hay = (id + ' ' + ((FIG[id] || {}).callLong || '') + ' ' + ((FIG[id] || {}).teach || '')).toLowerCase();
+      if (!hay.includes(fa.q.toLowerCase())) return false;
+    }
+    return true;
+  };
+
+  let groups;
+  if (fa.groupBy === 'shape') {
+    groups = SHAPES.map(s => [s.title, s.sub, s.figs.filter(f => match(f[0])).map(f => [f[0], f[2]])]);
+    const homeless = Object.keys(FIG).filter(id => !(SHAPES_OF[id] || []).length && match(id));
+    if (homeless.length) groups.push(['Filed under no shape yet', 'the gap the gate should close', homeless.map(i => [i, null])]);
+  } else if (fa.groupBy === 'family') {
+    groups = Object.keys(FAMILY).map(k => [FAMILY[k], 'the definitions\' own shape kind: ' + k,
+      Object.keys(FIG).filter(id => KIND[id] === k && match(id)).map(i => [i, null])]);
+  } else {
+    groups = Object.keys(STATUS_TEXT).map(k => [STATUS_TEXT[k], 'the register, 2026-09-15',
+      Object.keys(FIG).filter(id => statusOf(id) === k && match(id)).map(i => [i, null])]);
+  }
+  const total = groups.reduce((n, g) => n + g[2].length, 0);
+  root.appendChild(el('div', 'count', total + ' of ' + Object.keys(FIG).length + ' figures'
+    + (fa.shape || fa.family || fa.status || fa.q ? ' match the filter' : '')
+    + (fa.groupBy === 'shape' ? ' — a figure danced from three shapes is counted in all three' : '')));
+
+  for (const [title, sub, ids] of groups) {
+    if (!ids.length) continue;
+    const h = el('div', 'group-h');
+    h.appendChild(el('span', null, title));
+    h.appendChild(el('em', null, ids.length + ' · ' + sub));
+    root.appendChild(h);
+    const tiles = el('div', 'tiles dense');
+    for (const [id, inShape] of ids) tiles.appendChild(figTile(id, '', inShape));
+    root.appendChild(tiles);
+  }
+  if (!total) root.appendChild(el('div', 'empty', 'Nothing matches. Clear a filter.'));
+}
+
+/* ============================================================ assembly */
+
+const CONCEPTS = [
+  ['A', 'By shape', 'the page is the formations', renderA],
+  ['B', 'The figure in context', 'one move, every shape', renderB],
+  ['C', 'The dance as the example', 'pick a dance, watch it', renderC],
+  ['D', 'Shape × family facets', 'one grid, two keys', renderD],
+];
+
+function renderAll() {
+  films.length = 0;
+  const frames = document.getElementById('frames');
+  frames.textContent = '';
+  for (const [k, name, tag, fn] of CONCEPTS) {
+    const fr = el('div', 'frame');
+    const h = el('div', 'frame-head');
+    h.appendChild(el('span', null, k + ' · ' + name));
+    h.appendChild(el('em', null, tag));
+    fr.appendChild(h);
+    const body = el('div', 'frame-body');
+    fn(body);
+    fr.appendChild(body);
+    frames.appendChild(fr);
+  }
+  for (const [k, , , fn] of CONCEPTS) {
+    const stage = document.getElementById('stage-' + k);
+    fn(stage);
+  }
+  requestAnimationFrame(paintAll);
+}
+
+/* ---- gate copy, written where it is read ---- */
+const GATE = [
+  ['<b>Is the shape the right top level at all?</b> Concept <b>A</b> bets the whole page on it; <b>D</b> makes it one key of two; <b>B</b> and <b>C</b> leave the browse as it is and put context inside the row. Pass looks like naming one of the four as the page, and one as an addition to it.'],
+  ['<b>Is this the right shape list, and in this order?</b> Seven sections here: the lines (a hands four), a ring, a wave of four across the set, long wavy lines up and down it, a line of four down the hall, a diamond, and proper lines over six dancers. The model knows five kinds and files a wave across the set and a wave along it as the same one. Should they be two sections (as here) or one?'],
+  ['<b>What is the default arrangement called?</b> The user wrote “‘hands-four’ or contra set moves whatever we call the default arrangement”. The model calls it <code>lines</code>; this spike heads it “The lines · a hands four”. Your word decides the heading and the URL.'],
+  ['<b>Does a figure belong in every shape it is danced from, or only its home one?</b> Here <code>turn-alone</code> appears three times (a line of four, a diamond, proper lines) and <code>balance-wave</code> twice. That is the honest answer to “show it in context” and it makes the lines section long. The alternative is one home per figure and a “also danced from…” line.'],
+  ['<b>Do the combinations belong to the shape (A), to the figure (B), or to the dance (C)?</b> All three carry the same eight sequences here from the same seam strips. A caller looking up “how do I come back up the hall” is served by A; a caller looking up the turn alone is served by B.'],
+  ['<b>Is the six-dancer arrangement a shape, or a property of a figure?</b> “Proper lines · the actives and their corners” is a section here, holding the four figures that need the couples above and below. It is not a <code>SetShapeKind</code> and never will be.'],
+  ['<b>Should the review status ride on the page?</b> Every tile carries a status dot, and D can filter by it. The register asked for the review to be done on the page; the counter-argument is that a reader who is not you does not care that a figure is “awaiting the user”.'],
+];
+const LEAN = '<b>My lean: A as the page, B as the row it opens.</b> A is the only concept that puts the user’s sentence on the screen — the formation is the first item of the hierarchy — and it is the only one where the turn alone is <i>met</i> in a line of four rather than looked up. But A alone cannot carry “this is almost always done after going down the hall”, because that is a fact about one move; B is where it goes, and B is cheap because the row already exists. C is worth building afterwards for its own sake (the dance plots are already committed and it is nearly free), and I would not build D: its one real win, the review filter, is a chip on A’s sections, and a facet browser with no prose is the page we are trying to move away from.';
+
+document.getElementById('gateq').innerHTML = GATE.map(g => '<li>' + g[0] + '</li>').join('');
+document.getElementById('lean').innerHTML = LEAN;
+
+/* ---- the clock: one frame per half beat at 112 bpm, the app's own tempo ---- */
+const HALF_BEAT_MS = 60000 / 112 / 2;
+setInterval(() => {
+  if (!playing) return;
+  beat += 0.5;
+  document.getElementById('beatV').textContent = 'beat ' + beat.toFixed(1);
+  paintAll();
+}, HALF_BEAT_MS);
+
+/* ---- the control strip ---- */
+document.getElementById('btnPlay').addEventListener('click', ev => {
+  playing = !playing;
+  ev.target.textContent = playing ? '⏸ pause' : '▶ play';
+  ev.target.classList.toggle('primary', playing);
+});
+document.getElementById('btnStep').addEventListener('click', () => {
+  beat += 0.5;
+  document.getElementById('beatV').textContent = 'beat ' + beat.toFixed(1);
+  paintAll();
+});
+document.getElementById('btnStatus').addEventListener('click', ev => {
+  showStatus = !showStatus;
+  ev.target.classList.toggle('on', showStatus);
+  ev.target.textContent = showStatus ? 'on' : 'off';
+  document.querySelectorAll('.tile-box .dot').forEach(d => { d.style.display = showStatus ? '' : 'none'; });
+});
+document.querySelectorAll('#ctl [data-den]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#ctl [data-den]').forEach(o => o.classList.remove('on'));
+  b.classList.add('on');
+  state.dense = b.dataset.den === 'dense';
+  renderAll();
+}));
+document.querySelectorAll('#ctl [data-w]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#ctl [data-w]').forEach(o => o.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.stage').forEach(s => s.classList.toggle('narrow', b.dataset.w === 'narrow'));
+  requestAnimationFrame(paintAll);
+}));
+window.addEventListener('resize', () => requestAnimationFrame(paintAll));
+
+renderAll();
+setTimeout(paintAll, 350);
+setTimeout(paintAll, 1200);
+</script>
+</body>
+</html>
