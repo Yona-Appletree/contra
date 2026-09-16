@@ -11,6 +11,7 @@ import type { FigureDefaultsOverride } from "@caller/contra";
 import {
   ALL_DANCES,
   BECKET,
+  BECKET_RIGHT,
   PROPER,
   DEMO_DANCES,
   DUPLE_IMPROPER,
@@ -579,10 +580,12 @@ export function createDemoProgram(
     program,
     engineHalves.registry,
     hall,
-    // **Three formations since M7.** Chorus Jig is proper — larks in one line
-    // and robins in the other, all the way through — and a library that does
-    // not hold it refuses the dance by name at load.
-    createLibrary(dances, [DUPLE_IMPROPER, BECKET, PROPER]),
+    // **Four formations since M9g.** Chorus Jig is proper — larks in one line
+    // and robins in the other, all the way through — and Are You 'Most Done?
+    // is becket the other way round, the handedness FR-C2 registered and M9g
+    // promoted. A library that does not hold a programme dance's formation
+    // refuses the dance by name at load, and the hall then never draws at all.
+    createLibrary(dances, [DUPLE_IMPROPER, BECKET, BECKET_RIGHT, PROPER]),
     engineHalves.library === undefined
       ? {}
       : { cycle: createContraCyclePlanner({ library: engineHalves.library }) },

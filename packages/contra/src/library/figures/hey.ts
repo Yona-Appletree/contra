@@ -39,6 +39,12 @@ import { MINOR_SET_ROLES } from "./carriers.js";
  * - **`axis`** — which way the lane runs: off the dancers' own spread by
  *   default, or named outright. `"diagonal"` parses and names M8, which is where
  *   a hey whose four dancers span two minor sets can be resolved at all.
+ * - **`straighten`** — the lane **turns under the weave** over the figure: each
+ *   line slides along itself until the two are square across the set. The
+ *   Caller's Box's note on Are You 'Most Done? ("Hey can straighten out as it
+ *   proceeds") is what asks for it, and on a right-diagonal becket hey the slide
+ *   is half a couple place — the becket progression itself, carried by the
+ *   figure. See `kinds/schedule.ts`'s `straightenOf`.
  * - **`hands`** — a hey with hands, where every meeting is a pull by rather than
  *   a pass. 48 dances in the corpus write one.
  *
@@ -72,6 +78,7 @@ export const heyDefinition: FigureDefinition = {
       for: 4,
       idle: "",
       axis: "spread",
+      straighten: false,
       hands: false,
       weavePx: 6.5,
       joinBeats: 2,
@@ -95,6 +102,7 @@ export const heyDefinition: FigureDefinition = {
       for: "for",
       idle: "idle",
       axis: "axis",
+      straighten: "straighten",
       hands: "hands",
     },
   },

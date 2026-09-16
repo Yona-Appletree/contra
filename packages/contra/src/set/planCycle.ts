@@ -1,4 +1,4 @@
-import type { Beat } from "@caller/core";
+import type { Beat, Vec2 } from "@caller/core";
 import { angleDiff } from "@caller/core";
 import type {
   AnyFigureDef,
@@ -31,6 +31,7 @@ import {
   framePoint,
   localAngle,
   localPoint,
+  stationPose,
   withDefaults,
 } from "@caller/choreo";
 import type {
@@ -413,6 +414,18 @@ function planContraCycle(
     span: { start: Beat; end: Beat };
     claimed: Map<DancerId, Span[]>;
     states: Map<SetId, SetState>;
+    /**
+     * **Whether the seating really moves on at the end of this run** (M9g).
+     *
+     * A couple that stands out crosses the set *at a progression*, and a run of
+     * beats does not always end at one: a pass whose own figure carried the
+     * progression makes no shift at its boundary, and neither does a pass that
+     * is not the `progressEvery`th. Crossing there walks the couple to the other
+     * line for nothing — measured on Are You 'Most Done?, whose hey carries the
+     * progression at beat 48, where the end couples crossed at beat 64 and read
+     * `progressed 37.7359 px` (across the set and a shift) for it.
+     */
+    shifts: boolean;
   }> = [];
   const shift = progressionOf(dance);
   const progressEvery = dance.progressEvery ?? 1;
@@ -448,6 +461,22 @@ function planContraCycle(
           models.set(set.id, progressModel(before, shift));
         }
         const model = models.get(set.id)!;
+        /**
+         * Where the shift this call is about to make moves each dancer's seat.
+         *
+         * Only for a call that carries the progression at its **end**: the
+         * dancers it leaves out slide with their own line rather than standing
+         * in the way of the ones it sweeps. `undefined` everywhere else, and
+         * then the hold-place branch below is exactly what it was.
+         */
+        const shiftOf =
+          carries === "end"
+            ? progressionSlide(
+                formation,
+                states.get(set.id)!,
+                progressSet(formation, model, states.get(set.id)!, shift),
+              )
+            : undefined;
         const groups = formation.groupsFor(selector, states.get(set.id)!);
         const instances = resolveConcurrent(
           call,
@@ -471,19 +500,40 @@ function planContraCycle(
             // own `origins`, read at emission time out of the real `standingAt`,
             // because that is where they physically are rather than where the
             // chain thinks they should be.
+            //
+            // **Unless the call carries the progression at its end** (M9g): then
+            // the whole set moves on when it finishes, and standing still is
+            // standing in the way. A dancer with nothing to do slides with their
+            // own line — the vector between the seat they are leaving and the
+            // seat the shift gives them, which in becket is half a couple place
+            // along the line and is the same for everybody on it. Measured on
+            // Are You 'Most Done?, whose diagonal hey carries the progression:
+            // the couple with no N2 stood on `(16, 40)` while a hey dancer's
+            // straightened end landed there, `collision 0.0000 px` at beat 48 at
+            // every line length.
+            const slide = shiftOf;
             pending.push({
               at: offset,
               make: (standing) => {
                 const origins: Record<StationId, EndPose> = {};
+                const endPlaces: Record<StationId, EndPose> = {};
                 for (const id of stations) {
-                  const here = standing.get(group.members[id]!);
+                  const dancer = group.members[id]!;
+                  const here = standing.get(dancer);
                   if (here) origins[id] = here;
+                  const step = slide?.(dancer);
+                  if (here && step) {
+                    endPlaces[id] = {
+                      p: localPoint(group.frame, [here.p[0] + step[0], here.p[1] + step[1]]),
+                      facing: localAngle(group.frame, here.facing),
+                    };
+                  }
                 }
                 return [
                   {
                     group,
                     def: WALK_TO_STATION as AnyFigureDef,
-                    params: withDefaults(WALK_TO_STATION, { origins }, instance.beats),
+                    params: withDefaults(WALK_TO_STATION, { origins, endPlaces }, instance.beats),
                     stations,
                     start: instance.start,
                   },
@@ -492,9 +542,20 @@ function planContraCycle(
             });
             // A dancer standing still moves nowhere and holds nothing: their spot
             // is left where the chain has it, and whatever they were holding is
-            // let go.
+            // let go. One that **slides with the progression** has moved, and the
+            // model has to be told, or the next call picks them up a shift behind
+            // (`walk-to-station -> allemande`, 20.0000 px of closure, measured).
             for (const dancer of Object.values(instance.cast)) {
               model.dancers[dancer]!.holds = {};
+              const step = slide?.(dancer);
+              if (step) {
+                const spot = model.dancers[dancer]!.spot;
+                model.dancers[dancer]!.spot = {
+                  p: [spot.p[0] + step[0], spot.p[1] + step[1]],
+                  facing: spot.facing,
+                };
+                local.delete(dancer);
+              }
               lastInstance.delete(dancer);
             }
             continue;
@@ -604,7 +665,12 @@ function planContraCycle(
         // first call of a pass, ends no run of beats: there is nothing before it
         // to fill against its old seating.
         if (seatedTo > seatedFrom) {
-          fills.push({ span: { start: seatedFrom, end: seatedTo }, claimed, states: seatedIn });
+          fills.push({
+            span: { start: seatedFrom, end: seatedTo },
+            claimed,
+            states: seatedIn,
+            shifts: true,
+          });
         }
         seatedFrom = seatedTo;
       }
@@ -614,7 +680,12 @@ function planContraCycle(
     // has been planned** — see the fill loop below, and `everClaimed` for why.
     /** Whether this pass's boundary shifts the slots at all (M9b). */
     const boundaryShifts = !progressedInPass && (passIndex + 1) % progressEvery === 0;
-    fills.push({ span: { start: seatedFrom, end: span.end }, claimed, states: new Map(states) });
+    fills.push({
+      span: { start: seatedFrom, end: span.end },
+      claimed,
+      states: new Map(states),
+      shifts: boundaryShifts,
+    });
 
     // **The pass boundary** (M8). The set progresses at the end of every pass
     // unless the record says otherwise, and the dancers stay exactly where the
@@ -672,7 +743,10 @@ function planContraCycle(
                 def,
                 params: waitParams(def, group, standing, {
                   join,
-                  cross: to === fill.span.end,
+                  // The crossing belongs to the **progression**, not to the run
+                  // of beats: a run that ends where the seating does not move
+                  // leaves the couple standing where it is (M9g).
+                  cross: to === fill.span.end && fill.shifts,
                   beats: to - from,
                 }),
                 stations: Object.keys(group.members),
@@ -799,6 +873,45 @@ function progressesHere(call: FigureCall): ProgressesAt | undefined {
     found = at;
   }
   return found;
+}
+
+/**
+ * **How far the progression moves each dancer's own seat**, world px (M9g).
+ *
+ * The seating before against the seating after, dancer by dancer. In a becket
+ * set it is half a couple place along the line for everybody on it — the couple
+ * that is about to stand out included, whose seat moves off the end of the line
+ * by the same vector as everybody else's — and in duple improper it is a couple
+ * place along the set. A dancer the shift has no seat for either side of it
+ * gets `undefined` and is left standing.
+ *
+ * It is the *seat*'s displacement and not the body's: the bodies are wherever
+ * the dance has got to, and a couple whose two dancers are on each other's
+ * places is still a couple sliding one way along one line.
+ */
+function progressionSlide(
+  formation: Formation,
+  before: SetState,
+  after: SetState,
+): (dancer: DancerId) => Vec2 | undefined {
+  const seats = (state: SetState): Map<DancerId, Vec2> => {
+    const out = new Map<DancerId, Vec2>();
+    for (const plan of formation.groupsFor(HANDS_FOUR_GROUP, state)) {
+      for (const station of plan.stations) {
+        const dancer = plan.members[station.id];
+        if (dancer !== undefined) out.set(dancer, stationPose(plan.frame, station).p);
+      }
+    }
+    return out;
+  };
+  const from = seats(before);
+  const to = seats(after);
+  return (dancer) => {
+    const a = from.get(dancer);
+    const b = to.get(dancer);
+    if (a === undefined || b === undefined) return undefined;
+    return [b[0] - a[0], b[1] - a[1]];
+  };
 }
 
 /** The shape a definition says it forms, or `undefined` (M7). */
