@@ -129,11 +129,12 @@ export function App() {
     return bare ? page : <Tabbed tab="tunes">{page}</Tabbed>;
   }
 
-  // `#/tunes`: the band's book, one card per tune (F4).
+  // `#/tunes`: the jukebox (F4). Not keyed on the params: the page owns
+  // `?tune=` and `?band=` and rewrites them itself as the music moves on.
   if (route.path === "/tunes") {
     return (
       <Tabbed tab="tunes">
-        <TunesPage />
+        <TunesPage params={route.params} />
       </Tabbed>
     );
   }

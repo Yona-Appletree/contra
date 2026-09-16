@@ -1,6 +1,6 @@
 import { REEL } from "@caller/core";
 import { describe, expect, it } from "vitest";
-import { barAt, keyName, positionText } from "./tuneText.js";
+import { barAt, jukeboxPosition, keyName, positionText } from "./tuneText.js";
 
 const reel = { meter: REEL, beatsPerCycle: 64 as const };
 
@@ -32,5 +32,22 @@ describe("positionText and barAt", () => {
     expect(barAt(reel, 64)).toBe(0);
     expect(barAt(reel, 130)).toBe(1);
     expect(positionText(reel, 64 + 32)).toBe("B1 · bar 1");
+  });
+});
+
+describe("jukeboxPosition", () => {
+  it("counts the potatoes against the first tune", () => {
+    expect(jukeboxPosition(-4, 3, 2)).toEqual({ index: 0, beat: -4, timeThrough: 1 });
+  });
+
+  it("moves to the next tune after the times through, and wraps the queue", () => {
+    expect(jukeboxPosition(0, 3, 2)).toEqual({ index: 0, beat: 0, timeThrough: 1 });
+    expect(jukeboxPosition(64, 3, 2)).toEqual({ index: 0, beat: 64, timeThrough: 2 });
+    expect(jukeboxPosition(128, 3, 2)).toEqual({ index: 1, beat: 0, timeThrough: 1 });
+    expect(jukeboxPosition(3 * 128 + 70, 3, 2)).toEqual({ index: 0, beat: 70, timeThrough: 2 });
+  });
+
+  it("loops a queue of one", () => {
+    expect(jukeboxPosition(128 + 5, 1, 2)).toEqual({ index: 0, beat: 5, timeThrough: 1 });
   });
 });

@@ -5,36 +5,43 @@ import { TunePage, TunesPage, medleysWith } from "./tunes.js";
 
 /**
  * Static renders, as `dances.test.tsx` does: what the Tunes tab (F4) puts on
- * the page needs no interaction to prove — the cards, the notation's home, the
+ * the page needs no interaction to prove — the book's rows, the panel, the
  * band switcher, the chart, the references and the sets — and the player is
  * only made on a tap, so a render never touches `AudioContext`.
  */
-describe("TunesPage (F4: #/tunes)", () => {
-  const html = renderToStaticMarkup(<TunesPage />);
+describe("TunesPage (F4: #/tunes, the jukebox)", () => {
+  const page = (query = ""): string =>
+    renderToStaticMarkup(<TunesPage params={new URLSearchParams(query)} />);
 
-  it("has one card per bundled tune, each linking to its own page, with a play button", () => {
-    const cards = [...html.matchAll(/data-testid="tune-card" data-slug="([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    // Reels then jigs, each in the bundle's own order.
+  it("has one row per bundled tune, reels then jigs, and the first tune on the panel", () => {
+    const html = page();
+    const rows = [...html.matchAll(/data-testid="tune-row" data-slug="([^"]+)"/g)].map((m) => m[1]);
     const byType = (type: "reel" | "jig"): string[] =>
       tunes.filter((tune) => tune.type === type).map((tune) => tune.slug);
-    expect(cards).toEqual([...byType("reel"), ...byType("jig")]);
-    for (const tune of tunes) {
-      expect(html).toContain(`href="#/tunes/${tune.slug}"`);
-    }
-    expect(html.match(/data-testid="tune-play"/g)?.length).toBe(tunes.length);
-  });
-
-  it("files the reels before the jigs", () => {
+    expect(rows).toEqual([...byType("reel"), ...byType("jig")]);
     expect(html.indexOf("Reels")).toBeLessThan(html.indexOf("Jigs"));
-    expect(html.match(/data-testid="tunes-group"/g)?.length).toBe(2);
+    expect(html).toContain(`data-testid="tunes-page" data-tune="${rows[0] ?? ""}"`);
+    expect(html).toContain(`data-testid="tune-panel" data-slug="${rows[0] ?? ""}"`);
+    // The picked row is marked; nothing sounds before a tap.
+    expect(html).toContain(
+      `data-slug="${rows[0] ?? ""}" data-sounding="false" aria-current="true"`,
+    );
+    expect(html.match(/data-testid="tune-play"/g)?.length).toBe(1);
   });
 
-  it("says each tune's band and the sets it is in", () => {
-    expect(html).toContain("the house band: fiddle, piano and bass");
-    expect(html).toContain("a banjo band: banjo, guitar and bass");
-    expect(html).toContain("in reel-set");
+  it("opens on ?tune= and ?band=, and links the picked tune's own page", () => {
+    const html = page("tune=old-joe-clark&band=piano");
+    expect(html).toContain('data-testid="tunes-page" data-tune="old-joe-clark"');
+    expect(html).toContain('data-testid="tune-panel" data-slug="old-joe-clark" data-band="piano"');
+    expect(html).toContain('data-slug="old-joe-clark" data-sounding="false" aria-current="true"');
+    expect(html).toContain('href="#/tunes/old-joe-clark"');
+    expect(html).toContain("a banjo band (as written)");
+  });
+
+  it("falls back to the first tune for a tune it does not have", () => {
+    expect(page("tune=no-such-tune")).toContain(
+      `data-testid="tunes-page" data-tune="${tunes[0]!.slug}"`,
+    );
   });
 });
 
@@ -56,6 +63,9 @@ describe("TunePage (F4: #/tunes/<slug>)", () => {
     expect(html).toContain("https://en.wikipedia.org/wiki/Soldier%27s_Joy");
     expect(html).toContain("typed from memory");
     expect(html).toContain('href="#/?tune=reel-set"');
+    // The page is the tune alone: no book, no link to itself.
+    expect(html).not.toContain('data-testid="tune-row"');
+    expect(html).not.toContain('data-testid="tune-page-link"');
   });
 
   it("marks the tune's own band as written, and takes another from ?band=", () => {
@@ -65,7 +75,6 @@ describe("TunePage (F4: #/tunes/<slug>)", () => {
     expect(piano).toContain('data-band="piano"');
     expect(piano).toContain('data-testid="tune-band-piano" aria-pressed="true"');
     expect(piano).toContain('data-testid="tune-band-banjo" aria-pressed="false"');
-    // The notation is the rearranged tune's: the piano's program, not the banjo's.
     expect(piano).toContain("piano, guitar and bass. The same setting");
   });
 
@@ -82,7 +91,7 @@ describe("medleysWith", () => {
   it("finds every set a tune is in, in the sets' own order", () => {
     const washerwoman = tunes.find((tune) => tune.slug === "irish-washerwoman")!;
     expect(medleysWith(washerwoman).map((set) => set.slug)).toEqual(["jig-set", "swallowtail-set"]);
-    // Every bundled tune is in at least one set, so no page says "no set".
+    // Every bundled tune is in at least one set, so no panel says "no set".
     for (const tune of tunes) expect(medleysWith(tune).length).toBeGreaterThan(0);
     expect(medleys.length).toBe(6);
   });

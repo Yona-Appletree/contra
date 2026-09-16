@@ -227,7 +227,7 @@ count-in changes with the band and nothing per-tune is written anywhere: a
 banjo-led reel is plucked in, a piano-led jig struck in. A flute- or
 accordion-led tune would want a fourth `blown` timbre first.
 
-**Hearing them is the Tunes tab's job** (`apps/web`, `#/tunes/<slug>`, F4):
+**Hearing them is the Tunes tab's job** (`apps/web`, `#/tunes`, F4):
 its band switcher is `rearrange(tune, band)` — `defineTune` over the same
 source with another arrangement, so the melody, the chart and the `about`
 come through untouched and only the `%%MIDI` lines move — and `NAMED_BANDS`

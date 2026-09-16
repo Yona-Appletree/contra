@@ -47,3 +47,26 @@ export function barAt(tune: Pick<Tune, "meter" | "beatsPerCycle">, beat: Beat): 
   const t = ((beat % cycle) + cycle) % cycle;
   return Math.floor(t / tune.meter.beatsPerBar);
 }
+
+/**
+ * Where a jukebox's medley beat falls: which item of a queue of `n` tunes is
+ * sounding, the beat within it (0 to `timesThrough × 64 − 1`, or negative
+ * through the potatoes before the first), and which time through that is.
+ * The queue wraps, as the player's own sequence does.
+ */
+export function jukeboxPosition(
+  beat: Beat,
+  n: number,
+  timesThrough: number,
+  beatsPerCycle = 64,
+): { index: number; beat: Beat; timeThrough: number } {
+  const per = timesThrough * beatsPerCycle;
+  if (beat < 0 || n <= 0) return { index: 0, beat, timeThrough: 1 };
+  const item = Math.floor(beat / per);
+  const inTune = beat - item * per;
+  return {
+    index: item % n,
+    beat: inTune,
+    timeThrough: Math.floor(inTune / beatsPerCycle) + 1,
+  };
+}
