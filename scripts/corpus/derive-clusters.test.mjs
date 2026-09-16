@@ -69,9 +69,36 @@ describe("authorKey", () => {
   it("kebabs the first author and ignores the rest", () => {
     expect(authorKey(["Gene Hubert"])).toBe("gene-hubert");
     expect(authorKey(["Chris Page", "Someone Else"])).toBe("chris-page");
-    expect(authorKey("Bob  O'Shea-Smith, Jr.")).toBe("bob-o-shea-smith-jr");
+    expect(authorKey("Bob  O'Shea-Smith")).toBe("bob-o-shea-smith");
     expect(authorKey([])).toBe("");
     expect(authorKey(undefined)).toBe("");
+  });
+
+  it("keys a co-authored dance the same from either source", () => {
+    // The real case: Caller's Box 7173 splits the two names into an array,
+    // ContraDB 625 writes them as one string. Same dance, so same key.
+    expect(authorKey(["Bill Pope", "Judy Goldsmith"])).toBe("bill-pope");
+    expect(authorKey("Bill Pope and Judy Goldsmith")).toBe("bill-pope");
+    expect(authorKey(["Bill Pope and Judy Goldsmith"])).toBe("bill-pope");
+  });
+
+  it("splits on every joiner people actually type", () => {
+    for (const written of [
+      "Bill Pope & Judy Goldsmith",
+      "Bill Pope, Judy Goldsmith",
+      "Bill Pope; Judy Goldsmith",
+      "Bill Pope and Judy Goldsmith and Someone Else",
+    ]) {
+      expect(authorKey(written)).toBe("bill-pope");
+    }
+    // "and" needs the spaces around it, so a name containing those letters
+    // is left whole.
+    expect(authorKey("Sandy Anderson")).toBe("sandy-anderson");
+  });
+
+  it("falls through an empty first entry to the next name", () => {
+    expect(authorKey(["", "Gene Hubert"])).toBe("gene-hubert");
+    expect(authorKey([" , ", "Gene Hubert"])).toBe("gene-hubert");
   });
 
   it("treats the names that mean nobody as authorless", () => {
@@ -142,6 +169,32 @@ describe("buildClusters: the joining rules", () => {
     expect(clusterNamed(result, "butter--").note).toBe("");
   });
 
+  it("joins a co-authored dance across the sources' two ways of writing it", () => {
+    // Caller's Box 7173 and ContraDB 625, exactly as each source has them.
+    const result = buildClusters({
+      callersBox: [
+        {
+          id: "7173",
+          title: "Cows Are Watching",
+          authors: ["Bill Pope", "Judy Goldsmith"],
+          videos: 60,
+        },
+      ],
+      contradb: [
+        { id: "625", title: "Cows are Watching", choreographer: "Bill Pope and Judy Goldsmith" },
+      ],
+    });
+    expect(result.clusters).toHaveLength(1);
+    expect(result.clusters[0]).toMatchObject({
+      cluster: "cows are watching--bill-pope",
+      callersBox: ["7173"],
+      contradb: ["625"],
+      videos: 60,
+      canonical: "7173",
+      note: "",
+    });
+  });
+
   it("joins a ContraDB record to its Caller's Box twin by title and author", () => {
     const result = buildClusters({
       callersBox: [dance("10320", "Butter", "Gene Hubert", 280)],
@@ -186,10 +239,17 @@ describe("buildClusters: the Portland rows", () => {
     });
     const cluster = clusterNamed(result, "butter--gene-hubert");
     expect(cluster.portland).toEqual({
-      title: "Butter, as Erik calls it",
       count: 17,
       callers: 17,
-      callersBoxId: "10320",
+      rows: [
+        {
+          title: "Butter, as Erik calls it",
+          choreographer: "",
+          count: 17,
+          callers: 17,
+          callersBoxId: "10320",
+        },
+      ],
     });
     expect(result.stats.portlandJoinedById).toBe(1);
     expect(cluster.note).toBe("");
@@ -208,7 +268,7 @@ describe("buildClusters: the Portland rows", () => {
     const result = buildClusters({ callersBox, portland: [portlandRow("Butter", "", 6)] });
     expect(clusterNamed(result, "butter--gene-hubert")).toMatchObject({
       note: "title-only",
-      portland: { title: "Butter", count: 6, callers: 6, callersBoxId: null },
+      portland: { count: 6, callers: 6, rows: [{ title: "Butter", count: 6 }] },
     });
     expect(result.stats.portlandJoinedByTitleOnly).toBe(1);
   });
@@ -223,7 +283,7 @@ describe("buildClusters: the Portland rows", () => {
       callersBox: [],
       videos: 0,
       canonical: null,
-      portland: { title: "Butter", count: 2 },
+      portland: { count: 2, callers: 2, rows: [{ title: "Butter", choreographer: "Cary Ravitz" }] },
     });
     expect(result.stats.portlandUnjoined).toBe(1);
     expect(result.unjoinedRows.map((row) => row.title)).toEqual(["Butter"]);
@@ -239,14 +299,24 @@ describe("buildClusters: the Portland rows", () => {
     expect(clusterNamed(result, "butter--gene-hubert").portland.count).toBe(17);
   });
 
-  it("shows the highest-count row when several land on one cluster, whatever the input order", () => {
+  it("keeps every row when several land on one cluster, sums the counts, drops none", () => {
     const rows = [
       portlandRow("Butter", "Gene Hubert", 3),
-      portlandRow("Butter", "", 17, { callersBoxId: "10320" }),
+      portlandRow("Butter (var)", "", 17, { callersBoxId: "10320" }),
     ];
     const first = buildClusters({ callersBox, portland: rows });
     const reversed = buildClusters({ callersBox, portland: [...rows].reverse() });
-    expect(clusterNamed(first, "butter--gene-hubert").portland.count).toBe(17);
+    // count is the sum of the rows; callers is the largest single row's,
+    // because the same caller appears in more than one row.
+    expect(clusterNamed(first, "butter--gene-hubert").portland).toMatchObject({
+      count: 20,
+      callers: 17,
+      rows: [
+        { title: "Butter (var)", count: 17 },
+        { title: "Butter", count: 3 },
+      ],
+    });
+    // Highest count first, whatever order the sheet listed them in.
     expect(first.clusters).toEqual(reversed.clusters);
     expect(first.stats.portlandExtraRowsOnACluster).toBe(1);
   });
@@ -261,7 +331,18 @@ describe("buildClusters: the Portland rows", () => {
       contradb: [],
       videos: 0,
       canonical: null,
-      portland: { title: "A Dance Nobody Filed", count: 5, callers: 5, callersBoxId: null },
+      portland: {
+        count: 5,
+        callers: 5,
+        rows: [
+          {
+            title: "A Dance Nobody Filed",
+            choreographer: "Jo Smith",
+            count: 5,
+            callers: 5,
+          },
+        ],
+      },
     });
   });
 });

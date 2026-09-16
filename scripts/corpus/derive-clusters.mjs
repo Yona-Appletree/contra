@@ -83,13 +83,26 @@ const AUTHORLESS_KEYS = new Set([
   "anonymous",
 ]);
 
+// The two sources disagree about what an author field is: The Caller's Box
+// splits co-authors into an array (["Bill Pope", "Judy Goldsmith"]) while
+// ContraDB keeps one free-text string ("Bill Pope and Judy Goldsmith"). Both
+// name the same dance, so both must key the same way — split on the joiners
+// people actually type, then take the first name either way.
+const AUTHOR_SEPARATOR_RE = /\s+and\s+|\s*&\s*|\s*,\s*|\s*;\s*/i;
+
 /** First author, lower-cased, every run of non-alphanumerics a single hyphen. */
 export function authorKey(authors) {
-  const first = Array.isArray(authors) ? authors[0] : authors;
-  return String(first ?? "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  const list = Array.isArray(authors) ? authors : [authors];
+  for (const entry of list) {
+    const first = String(entry ?? "").split(AUTHOR_SEPARATOR_RE)[0];
+    const key = first
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    // An empty or punctuation-only first entry falls through to the next.
+    if (key) return key;
+  }
+  return "";
 }
 
 /** True when the author field names nobody, so a title-only join is allowed. */
@@ -122,14 +135,28 @@ function makeCluster(titleKey, author) {
   };
 }
 
-/** The Portland row a cluster shows when several of them landed on it. */
-function bestPortlandRow(rows) {
-  return [...rows].sort(
+/**
+ * The Portland side of a cluster. Several rows land on one cluster often
+ * enough (115 of 1,293 today) that showing only one would quietly throw
+ * away a dance's programming history — the sheet lists "Cows are Watching"
+ * and "Cows Are Watching, var" as separate rows of the same dance. So every
+ * row is kept verbatim, highest count first, with the cluster's own `count`
+ * the sum of them and `callers` the largest single row's (callers are people,
+ * and the same caller appears in several rows, so summing them would count
+ * one person twice).
+ */
+function portlandSummary(rows) {
+  const sorted = [...rows].sort(
     (a, b) =>
       (b.count ?? 0) - (a.count ?? 0) ||
       (b.callers ?? 0) - (a.callers ?? 0) ||
       String(a.title).localeCompare(String(b.title)),
-  )[0];
+  );
+  return {
+    count: sorted.reduce((sum, row) => sum + (row.count ?? 0), 0),
+    callers: sorted.reduce((most, row) => Math.max(most, row.callers ?? 0), 0),
+    rows: sorted,
+  };
 }
 
 /**
@@ -323,21 +350,13 @@ function finishCluster(cluster) {
   const contradb = cluster.members
     .filter((member) => member.source === "contradb")
     .sort((a, b) => Number(a.id) - Number(b.id));
-  const row = cluster.portlandRows.length > 0 ? bestPortlandRow(cluster.portlandRows) : null;
   return {
     cluster: cluster.cluster,
     titleKey: cluster.titleKey,
     authorKey: cluster.authorKey,
     callersBox: callersBox.map((member) => member.id),
     contradb: contradb.map((member) => member.id),
-    portland: row
-      ? {
-          title: row.title,
-          count: row.count ?? 0,
-          callers: row.callers ?? 0,
-          callersBoxId: row.callersBoxId ?? null,
-        }
-      : null,
+    portland: cluster.portlandRows.length > 0 ? portlandSummary(cluster.portlandRows) : null,
     videos: callersBox.reduce((sum, member) => sum + member.videos, 0),
     canonical: callersBox[0]?.id ?? contradb[0]?.id ?? null,
     note: cluster.titleOnly ? "title-only" : "",
