@@ -6,7 +6,13 @@ describe("danceWalkthrough", () => {
   it("has one step per figure call, in order, for every demo dance", () => {
     for (const dance of DEMO_DANCES) {
       const steps = danceWalkthrough(dance);
-      const figures = dance.phrases.flatMap((p) => p.figures.map((f) => f.figure));
+      // **A concurrent call is two steps, not one** (M9g). Are You 'Most Done?
+      // is the first programme dance to write a `while` clause — *"larks
+      // allemande right once || robins loop right"* — and a walkthrough that
+      // said only the first half of it would be telling half the room nothing.
+      const figures = dance.phrases.flatMap((p) =>
+        p.figures.flatMap((f) => [f.figure, ...(f.while ?? []).map((w) => w.figure)]),
+      );
       expect(
         steps.map((s) => s.figure),
         dance.slug,

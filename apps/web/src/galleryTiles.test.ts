@@ -1,5 +1,5 @@
 import { dist } from "@caller/core";
-import { poseAt } from "@caller/choreo";
+import { concurrentCalls, poseAt } from "@caller/choreo";
 import {
   dataOnlyFigureIds,
   DEMO_DANCES,
@@ -59,9 +59,16 @@ describe("the seam tiles", () => {
   test("are every distinct figure pair the ten dances dance", () => {
     const wanted = new Set<string>();
     for (const dance of DEMO_DANCES) {
-      const flat = dance.phrases.flatMap((p) => p.figures);
+      // **One step of the dance may be several figures**, which `corpusSeams`
+      // has said since M8 and which a Stage dance makes true since M9g: Are You
+      // 'Most Done?'s B2 is "larks allemande right once || robins loop right",
+      // and the robins' loop into the partner swing is as real a seam as the
+      // larks' allemande into it.
+      const flat = dance.phrases.flatMap((p) => p.figures).map((call) => concurrentCalls(call));
       for (let i = 0; i < flat.length; i++) {
-        wanted.add(`${flat[i]!.figure}--${flat[(i + 1) % flat.length]!.figure}`);
+        for (const a of flat[i]!) {
+          for (const b of flat[(i + 1) % flat.length]!) wanted.add(`${a.figure}--${b.figure}`);
+        }
       }
     }
     expect(new Set(seams.map((t) => t.key))).toEqual(wanted);
