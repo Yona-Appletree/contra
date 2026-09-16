@@ -37,6 +37,13 @@ const SPIKES: SpikeEntry[] = [
     ruling:
       "The body walks on the cruise; feet are the planted gait, right foot first, on count 1.",
   },
+  {
+    slug: "moves-by-shape",
+    name: "Moves by shape · figures in context",
+    date: "2026-09-16",
+    ruling:
+      "Awaiting the gate: four ways to put the formation first — by shape, the figure in every shape, the dance as the example, shape × family facets.",
+  },
 ];
 
 /**
