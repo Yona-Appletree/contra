@@ -1249,6 +1249,20 @@
   font-size: 0.8125rem;
 }
 
+/* Links off the page — to read about the tune, to dance to it — look like links. */
+.tune-page-refs a,
+.tune-page-sets a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 70%, transparent);
+  text-underline-offset: 0.15em;
+}
+
+.tune-page-refs a:hover,
+.tune-page-sets a:hover {
+  text-decoration-color: var(--primary);
+}
+
 .tune-page-set-name {
   font-weight: 600;
 }
