@@ -135,7 +135,7 @@ no derived file; `--report` counts each on its own line.
 
 Two line shapes beyond the plain one:
 
-- **Concurrent.** A line containing `||`, or ` while ` case-insensitively,
+- **Concurrent.** A line containing `||`, or `while` case-insensitively,
   keeps its `text` whole and adds `"branches": [Line, …]` (two or more; 13
   lines split into three), each branch a plain line without `raw` and without
   `beats` (a branch takes the parent's). When both markers appear, `||` wins.
@@ -164,11 +164,11 @@ exists.
 
 Formation id mapping (`FormationBase` → our id; anything else → `null`):
 
-| FormationBase                          | id               |
-| -------------------------------------- | ---------------- |
-| `Duple Minor - Improper`               | `duple-improper` |
-| `Duple Minor - Becket`                 | `becket`         |
-| `Duple Minor - Proper`                 | `proper`         |
+| FormationBase            | id               |
+| ------------------------ | ---------------- |
+| `Duple Minor - Improper` | `duple-improper` |
+| `Duple Minor - Becket`   | `becket`         |
+| `Duple Minor - Proper`   | `proper`         |
 
 ## `derived/contradb/<id>.json`: a parsed ContraDB record
 
@@ -279,7 +279,17 @@ through their cluster.
   "clusterVideos": 280,
   "portlandCount": 17,
   "tier": 1,
-  "tags": ["formation:becket", "progression:single", "relation:neighbor", "relation:partner", "figure:hey", "figure:chain", "figure:circle", "figure:swing", "figure:slide"],
+  "tags": [
+    "formation:becket",
+    "progression:single",
+    "relation:neighbor",
+    "relation:partner",
+    "figure:hey",
+    "figure:chain",
+    "figure:circle",
+    "figure:swing",
+    "figure:slide",
+  ],
   "tagsProvisional": true, // false once tags come from an encoded record
   "status": "shipped", // not-started | custom-only | lab | shipped
   "slug": "butter", // data/dances slug when encoded, else null
@@ -312,17 +322,27 @@ dance is encoded, values on the relation, concurrency, timing and figure axes
 come from the derived record's `text`, `relations`, `flags` and `head` fields
 by the rules stated here, and `tagsProvisional` is true.
 
-| Axis          | Values                                                                                                                                                                                                                                                                                                                                                     | Provisional rule                                                                                                                                       |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `formation`   | `improper` `becket` `proper` `triple-minor` `circle-mixer` `facing-lines` (four facing four, three facing three, Sicilian circle) `other`                                                                                                                                                                                                              | from `FormationBase`                                                                                                                                   |
-| `progression` | `single` `double` `none` `other`                                                                                                                                                                                                                                                                                                                           | from `Progression`                                                                                                                                     |
-| `phrase`      | `standard` `nonstandard`                                                                                                                                                                                                                                                                                                                                   | `phraseStructure` is `4*8*2` and four phrases named A1 A2 B1 B2, or eight named with a `2` prefix                                                    |
-| `relation`    | `neighbor` `partner` `next-neighbor` (N2, N3) `prev-neighbor` (N0, N-1) `shadow` `same-role` `diagonal` `corner` `opposite` `trail-buddy` `ones-twos` `six` (groups of six, hey for six, contra corners)                                                                                                                                                | from `relations` and text                                                                                                                              |
-| `concurrency` | `none` `split`                                                                                                                                                                                                                                                                                                                                             | `flags.concurrent > 0`                                                                                                                                 |
-| `timing`      | `composite` `odd-counts` `zero-beat` `uncounted` `either` `swing-off-grid` (a swing whose beats is not 8, 10, 12 or 16)                                                                                                                                                                                                                                  | from `flags` and lines                                                                                                                                 |
-| `figure`      | `swing` `balance` `circle` `star` `allemande` `do-si-do` `chain` `right-left-through` `hey` `hey-partial` (ricochet, broken, 1/4, 3/4, `~`) `wave` `long-lines` `down-the-hall` `petronella` `pass-through` `square-through` `pull-by` `roll-away` `twirl` (California twirl, box the gnat, swat the flea) `mad-robin` `shoulder-round` `promenade` `slide` `slice` `poussette` `give-and-take` `circulate` `orbit` `contra-corners` `cast` `actives` `figure-eight` `arch` | from `head` and text; each value's word list lives in `derive-index.mjs` with the value, and a test pins every list to at least one real-shaped line |
+| Axis          | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Provisional rule                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `formation`   | `improper` `becket` `proper` `triple-minor` `circle-mixer` `facing-lines` (four facing four, three facing three, Sicilian circle) `other`                                                                                                                                                                                                                                                                                                                         | from `FormationBase`                                                                                                                                 |
+| `progression` | `single` `double` `none` `other`                                                                                                                                                                                                                                                                                                                                                                                                                                  | from `Progression`                                                                                                                                   |
+| `phrase`      | `standard` `nonstandard`                                                                                                                                                                                                                                                                                                                                                                                                                                          | `phraseStructure` is `4*8*2` and four phrases named A1 A2 B1 B2, or eight named with a `2` prefix                                                    |
+| `relation`    | `neighbor` `partner` `next-neighbor` (N2, N3) `prev-neighbor` (N0, N-1) `shadow` `same-role` `diagonal` `corner` `opposite` `trail-buddy` `ones-twos` `six` (groups of six, hey for six, contra corners)                                                                                                                                                                                                                                                          | from `relations` and text                                                                                                                            |
+| `concurrency` | `none` `split`                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `flags.concurrent > 0`                                                                                                                               |
+| `timing`      | `composite` `odd-counts` `zero-beat` `uncounted` `either` `swing-off-grid` (a swing whose beats is not 8, 10, 12 or 16)                                                                                                                                                                                                                                                                                                                                           | from `flags` and lines                                                                                                                               |
+| `figure`      | `swing` `balance` `circle` `star` `allemande` `do-si-do` `chain` `right-left-through` `hey` `hey-partial` (ricochet, broken, 1/4, 3/4, `~`) `wave` `long-lines` `down-the-hall` `petronella` `pass-through` `square-through` `pull-by` `roll-away` `twirl` (California twirl, box the gnat, swat the flea) `mad-robin` `shoulder-round` `promenade` `slide` `slice` `poussette` `give-and-take` `circulate` `orbit` `contra-corners` `cast` `figure-eight` `arch` | from `head` and text; each value's word list lives in `derive-index.mjs` with the value, and a test pins every list to at least one real-shaped line |
 
 Adding a value is a change to this table and to the script's list together.
+Readings the scripts take where the table leaves room: `hey-partial` is
+literal (ricochet, broken, quarter, three-quarter, `~`), so a plain `Hey 1/2`
+is only `figure:hey`; `formation` maps only the spellings named above and puts
+Indecent, Progressed improper and Reverse progression improper in `other`;
+`progression` reads the sentence before the first full stop, so `Single. Swap
+sides` is `single`, and a blank field is `other`; `relation:corner` excludes
+contra corners, which is `six`; `swing-off-grid` needs a counted swing; a
+`cleared` pin beats `fixture` whatever the permission, and shipped beats both.
+`figure:actives` was in the first draft of this table and fired on two records
+in twelve thousand (the corpus writes "ones" and "twos"); it was removed.
 
 ## `derived/sets/`
 
@@ -343,17 +363,28 @@ Adding a value is a change to this table and to the script's list together.
   "generatedAt": "2026-09-16", // a date, so the file is stable within a day
   "rule": "3 per tag value by clusterVideos, permission full, plus pins",
   "dances": [
-    { "id": "10320", "cluster": "butter--gene-hubert", "title": "Butter", "tier": 1, "reasons": ["pin:shipped demo dance", "tag:figure:hey", "tag:formation:becket"] },
+    {
+      "id": "10320",
+      "cluster": "butter--gene-hubert",
+      "title": "Butter",
+      "tier": 1,
+      "reasons": ["pin:shipped demo dance", "tag:figure:hey", "tag:formation:becket"],
+    },
   ],
 }
 ```
 
-**hand**: for every tag value, the three records with the highest
-`clusterVideos` that carry it and are `permission: full`, one per cluster;
-plus every `include` pin; minus every `exclude` pin. Around forty dances.
-**suite**: the same with twenty-five per value, plus every tier 1 and tier 2
-record. A record appears once with every reason that selected it. Both are
-sorted by tier, then `clusterVideos` descending, then id.
+**hand** is built greedily so it stays small: start with the `include` pins;
+then, among `permission: full` records not yet chosen (one record stands for a
+cluster, globally), repeatedly pick the one covering the most tag values still
+below a quota of **two**, ties broken by `clusterVideos` descending then id,
+until every value has met its quota or has no candidates left; minus every
+`exclude` pin. **suite**: for every tag value the twenty-five records with the
+highest `clusterVideos` that carry it (one per cluster), plus every tier 1 and
+tier 2 record whatever its permission (the set file holds only ids and
+reasons; a non-`full` record stays `gated` in the index). A record appears once
+with every reason that selected it. Both are sorted by tier, then
+`clusterVideos` descending, then id. Neither script takes `--only`.
 
 ## `contra/data/corpus/fixtures/<id>.json`: the public hand set
 
