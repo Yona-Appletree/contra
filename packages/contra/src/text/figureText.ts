@@ -54,6 +54,7 @@ import upTheHallText from "../../../../data/figures/up-the-hall.json" with { typ
 import jerseyTwirlText from "../../../../data/figures/jersey-twirl.json" with { type: "json" };
 import squareThroughText from "../../../../data/figures/square-through.json" with { type: "json" };
 import interruptedSquareThroughText from "../../../../data/figures/interrupted-square-through.json" with { type: "json" };
+import customText from "../../../../data/figures/custom.json" with { type: "json" };
 
 /**
  * The four texts a move is written in, as data: what a caller says and what a
@@ -181,6 +182,7 @@ export const FIGURE_TEXTS: Readonly<Record<string, FigureTextFile>> = Object.fro
       jerseyTwirlText,
       squareThroughText,
       interruptedSquareThroughText,
+      customText,
       // **A dance-local figure's texts are in its own dance file** (D10, M8),
       // beside the definition literal they belong to, so that promoting one is
       // still a copy of one thing rather than of two things in two directories.
@@ -439,6 +441,7 @@ const SLOTS: Record<string, (value: unknown, register: Register) => string | und
   roller: rollerWords,
   hold: holdWords,
   start: startWords,
+  text: customWords,
 };
 
 /** Every slot name a text is allowed to use, `{where}` included. */
@@ -518,6 +521,33 @@ const NUMBER_WORDS: Readonly<Record<string, string>> = {
   "4": "four",
   "5": "five",
 };
+
+/**
+ * **The `custom` figure's own line**, which is the only slot whose words are
+ * the *dance's* rather than the vocabulary's.
+ *
+ * Every other slot here turns a parameter into English the library wrote down:
+ * `hand: "R"` is "right", `amount: 1.5` is "once and a half". `custom` has no
+ * English of its own to turn into — the whole figure is "we have not encoded
+ * this line yet, here is what the source said" — so the words are the value,
+ * and the two registers are the same words. `resolveFigureText`'s own `shout`
+ * is what upper-cases them for the call, which is why a `custom` call with no
+ * `call` of its own says the transcript's line in capitals.
+ *
+ * Trimmed and collapsed, because a transcript line is copied verbatim and the
+ * walkthroughs are checked for double spaces. An **empty** line falls back to
+ * {@link UNWRITTEN_CALL} rather than throwing: the figure's own declared
+ * default is the empty string, and the Moves page resolves every figure's texts
+ * against its declared defaults to draw a row for it.
+ */
+function customWords(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const written = value.replace(/\s+/g, " ").trim();
+  return written === "" ? UNWRITTEN_CALL : written;
+}
+
+/** What a `custom` call with no line of its own is called. */
+const UNWRITTEN_CALL = "the caller's own line";
 
 function sideWords(value: unknown): string | undefined {
   return value === "R" ? "right" : value === "L" ? "left" : undefined;
