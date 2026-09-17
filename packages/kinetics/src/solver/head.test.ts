@@ -29,7 +29,7 @@ describe("solveHead", () => {
     expect([...solved.headYawDeg]).toEqual([0, 0]);
   });
 
-  it("clamps a partner behind the shoulder to the neck's range", () => {
+  it("gives up a partner behind the shoulder and looks ahead, rather than clamping to one side", () => {
     const n = 64;
     const solved = solveHead({
       tempo: t,
@@ -37,7 +37,7 @@ describe("solveHead", () => {
       bearingDeg: new Array<number>(n).fill(150),
     });
     for (const yaw of solved.headYawDeg) expect(yaw).toBeLessThanOrEqual(ANGULAR_CAPS.lookDeg);
-    expect(solved.headYawDeg[n - 1]).toBeCloseTo(ANGULAR_CAPS.lookDeg, 9);
+    expect(solved.headYawDeg[n - 1]).toBeCloseTo(0, 9);
   });
 
   it("squares the head when there is nothing to look at", () => {

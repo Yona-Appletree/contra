@@ -21,12 +21,12 @@ describe("the listing", () => {
     expect(lines).toMatchSnapshot();
     expect(lines[0]).toBe("beat 0 · body · stand · look at robin · bow 25°");
     expect(lines).toContain(
-      "beat 10 · body · step back and to the left 35 cm · look at robin · take right hands with robin — allemande-R",
+      "beat 10 · exit · step back and to the left 30 cm · turn an eighth left · look at robin · take right hands with robin — allemande-R",
     );
     expect(lines).toContain(
-      "beat 11 · exit · step forward 10 cm · turn a quarter left · look at robin",
+      "beat 11 · exit · step forward and to the left 25 cm · turn an eighth left · look at robin",
     );
-    expect(lines.some((l) => l.startsWith("beat 19 · exit"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("beat 18 · exit"))).toBe(true);
   });
 
   it("stands the solo dancer in plain words", () => {

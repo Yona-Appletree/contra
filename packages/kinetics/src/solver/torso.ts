@@ -25,25 +25,63 @@ export const solveTorso = (input: TorsoInput): TorsoSolution => {
   const yawDeg: number[] = new Array(facing.length);
   const limited: LimitedSample[] = [];
 
+  // What the torso wants, sample by sample: the planned facing plus the pull
+  // of the hands it is holding. The comfort term follows a hand target that
+  // can kink (a take while spiralling), and a kink in the yaw lands on the
+  // shoulders as acceleration; so the wish is smoothed first — a zero-phase
+  // low-pass over `COMFORT_SMOOTHING_SAMPLES`, forward then back so it does
+  // not lag — and only then rate-limited.
+  const comfortRaw: number[] = new Array(facing.length);
   for (let i = 0; i < facing.length; i++) {
-    const want = facing[i]! + comfortYawDeg(facing[i]!, hips[i]!, pulls[i] ?? []);
+    comfortRaw[i] = comfortYawDeg(facing[i]!, hips[i]!, pulls[i] ?? []);
+  }
+  // Only the comfort term is smoothed: the planned facing is the executor's
+  // and already continuous, and passes through untouched.
+  const comfort = smoothTriangular(comfortRaw, COMFORT_SMOOTHING_SAMPLES);
+  const want = facing.map((f, i) => f + comfort[i]!);
+
+  for (let i = 0; i < facing.length; i++) {
     if (i === 0) {
-      yawDeg[0] = want;
+      yawDeg[0] = want[0]!;
       continue;
     }
-    const step = angleDiff(yawDeg[i - 1]!, want);
+    const step = angleDiff(yawDeg[i - 1]!, want[i]!);
     if (Math.abs(step) > capPerSample + 1e-9) {
       limited.push({ sample: i, value: Math.abs(step), cap: capPerSample });
       yawDeg[i] = yawDeg[i - 1]! + Math.sign(step) * capPerSample;
     } else {
-      yawDeg[i] = want;
+      yawDeg[i] = yawDeg[i - 1]! + step;
     }
   }
 
   return { yawDeg, limited };
 };
 
-/** Everything the torso is solved from, every array indexed by sample. */
+/** The torso's wish is smoothed over this many samples (a quarter beat at 16 per beat) before it is followed. */
+export const COMFORT_SMOOTHING_SAMPLES = 4;
+
+/**
+ * A symmetric triangular moving average of half-width `samples`, edges
+ * clamped: zero phase, so the smoothed wish neither leads nor lags the raw one.
+ */
+const smoothTriangular = (values: readonly number[], samples: number): number[] => {
+  const n = values.length;
+  if (n === 0 || samples <= 0) return [...values];
+  const out: number[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    let sum = 0;
+    let weight = 0;
+    for (let j = -samples; j <= samples; j++) {
+      const w = samples + 1 - Math.abs(j);
+      const k = Math.min(n - 1, Math.max(0, i + j));
+      sum += w * values[k]!;
+      weight += w;
+    }
+    out[i] = sum / weight;
+  }
+  return out;
+};
+
 export interface TorsoInput {
   tempo: Tempo;
   /** The facing the executor planned, degrees. */

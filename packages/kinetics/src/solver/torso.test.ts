@@ -60,15 +60,22 @@ describe("solveTorso", () => {
   });
 
   it("comes round to the hold as the take ramps in", () => {
-    const weights = [0, 0.25, 0.5, 0.75, 1];
+    // A take ramping over sixteen samples, then held for sixteen more.
+    const weights = [...Array.from({ length: 16 }, (_, i) => i / 16), ...Array(16).fill(1)];
     const solved = solveTorso({
       tempo: t,
       facing: weights.map(() => 0),
       hips: weights.map(() => HIP),
       pulls: weights.map((w) => [pullAt(20, w)]),
     });
-    expect(solved.yawDeg[0]).toBe(0);
-    expect(solved.yawDeg[4]).toBeCloseTo(20, 9);
+    // The comfort term is smoothed over a quarter beat, so the first sample
+    // already leans a touch toward the take; it starts small, never falls
+    // back, and settles on the full pull.
+    expect(solved.yawDeg[0]).toBeLessThan(5);
+    for (let i = 1; i < solved.yawDeg.length; i++) {
+      expect(solved.yawDeg[i]).toBeGreaterThanOrEqual(solved.yawDeg[i - 1]! - 1e-9);
+    }
+    expect(solved.yawDeg[solved.yawDeg.length - 1]).toBeCloseTo(20, 9);
     expect(solved.limited).toEqual([]);
   });
 

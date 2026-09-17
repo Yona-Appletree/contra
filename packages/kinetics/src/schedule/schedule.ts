@@ -14,7 +14,7 @@ import { holdNeeds } from "./seams.js";
 import type { Floor, Pose } from "./state.js";
 import { bearing, handState, initialFloor, midpoint, sameHold, setHand } from "./state.js";
 import type { PlannedStep, PxLimits } from "./steps.js";
-import { beatsNeeded, limitsAtTempo, planSteps } from "./steps.js";
+import { beatsNeeded, limitsAtTempo, planSteps, stepFractions } from "./steps.js";
 
 /**
  * The scheduler (DA8, DA9): a compiled sequence becomes, per call, an
@@ -76,8 +76,8 @@ interface Instance {
   notes: string[];
   seamIn: SeamKind;
   seamOut: SeamKind;
-  /** Slot keys this instance's body and exit emitted, so a re-plan can retract them. */
-  emitted: Map<DancerId, string[]>;
+  /** The instructions this instance's body and exit emitted, so a re-plan can retract exactly them and nothing that rode on the same slot. */
+  emitted: Map<DancerId, { key: string; instr: Instr }[]>;
   bodyStart: Map<DancerId, Pose>;
   bodyEnd: Map<DancerId, Pose>;
   /** Whether the body can be re-planned over fewer beats to make room for an exit. */
@@ -125,11 +125,19 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     const existing = map.get(key);
     if (existing) map.set(key, { ...existing, instrs: [...existing.instrs, instr] });
     else map.set(key, { beat, half, instrs: [instr], call, window });
-    inst?.emitted.get(d)?.push(key);
+    inst?.emitted.get(d)?.push({ key, instr });
   };
+  /** Take back what `inst` emitted for `d`; a hold or drop another figure put on the same slot stays. */
   const retract = (inst: Instance, d: DancerId): void => {
     const map = slots.get(d);
-    for (const key of inst.emitted.get(d) ?? []) map?.delete(key);
+    if (!map) return;
+    for (const { key, instr } of inst.emitted.get(d) ?? []) {
+      const slot = map.get(key);
+      if (!slot) continue;
+      const instrs = slot.instrs.filter((i) => i !== instr);
+      if (instrs.length === 0) map.delete(key);
+      else map.set(key, { ...slot, instrs });
+    }
     inst.emitted.set(d, []);
   };
   const emitStep = (
@@ -198,6 +206,28 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       inst,
     );
   };
+
+  // ---- the cruise ramp -----------------------------------------------------------
+
+  /** Whether this dancer took a step in the beat before `beat`. */
+  const wasStepping = (d: DancerId, beat: number): boolean =>
+    (slots.get(d)?.get(slotKey(beat - 1, 0))?.instrs ?? []).some((i) => i.op === "step");
+  /** Whether this dancer stands still once the instance ends: no next call, or one whose body does not walk. */
+  const stopsAfter = (inst: Instance, d: DancerId): boolean => {
+    const next = neighbourOf(inst, d, 1);
+    if (!next) return true;
+    const kind = next.figure.windows[0]?.kind;
+    return (
+      next.nobody ||
+      kind === undefined ||
+      kind === "stand" ||
+      kind === "intrinsic" ||
+      kind === "pivot"
+    );
+  };
+  /** The fractions for a run of steps from `beat`, ramping at either end where the dancer is at rest. */
+  const fractionsFor = (d: DancerId, beat: number, beats: number, rampDown: boolean): number[] =>
+    stepFractions(beats, !wasStepping(d, beat), rampDown);
 
   // ---- geometry ---------------------------------------------------------------
 
@@ -357,7 +387,23 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
 
   // ---- the body ----------------------------------------------------------------
 
-  const emitBody = (inst: Instance, from: number, to: number, start: Map<DancerId, Pose>): void => {
+  /**
+   * The negotiated exit of an orbit: over its last `beats`, the orbit's own
+   * points are blended toward where the next figure starts, so the body
+   * spirals out to the next `pre` instead of stopping and stepping to it.
+   */
+  interface ExitBlend {
+    beats: number;
+    targets: Map<DancerId, Pose>;
+  }
+
+  const emitBody = (
+    inst: Instance,
+    from: number,
+    to: number,
+    start: Map<DancerId, Pose>,
+    blend?: ExitBlend,
+  ): void => {
     inst.bodyEnd = new Map();
     for (const d of inst.dancers) setPose(d, start.get(d) as Pose);
     if (to - from <= 0 || inst.nobody) {
@@ -393,7 +439,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       }
       switch (w.kind) {
         case "orbit":
-          emitOrbit(inst, w, span.from, n, dancers, from);
+          emitOrbit(inst, w, span.from, n, dancers, from, span.to === to ? blend : undefined);
           break;
         case "walk":
           for (const d of dancers) {
@@ -434,16 +480,19 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
             const veer =
               w.shoulder === "right" ? leftOf(bearing(me.p, dest)) : rightOf(bearing(me.p, dest));
             const heading = bearing(me.p, dest);
+            const shares = fractionsFor(d, span.from, n, span.to !== to || stopsAfter(inst, d));
             let prev: Pose = me;
+            let t = 0;
             for (let k = 1; k <= n; k++) {
-              const t = k / n;
+              t = k === n ? 1 : t + (shares[k - 1] ?? 0);
               const along: Vec2 = [
                 me.p[0] + (dest[0] - me.p[0]) * t,
                 me.p[1] + (dest[1] - me.p[1]) * t,
               ];
               const bow = PASS_VEER_PX * Math.sin(Math.PI * t);
               const p: Vec2 = [along[0] + veer[0] * bow, along[1] + veer[1] * bow];
-              const facing = k === n ? heading : bearing(prev.p, p);
+              const facingRaw = k === n ? heading : bearing(prev.p, p);
+              const facing = prev.facing + angleDiff(prev.facing, facingRaw);
               const step: PlannedStep = {
                 to: p,
                 facing,
@@ -529,6 +578,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     n: number,
     dancers: DancerId[],
     bodyFrom: number,
+    blend?: ExitBlend,
   ): void => {
     if (dancers.length < 2) return;
     const axis = centroid(dancers.map((d) => poseOf(d).p));
@@ -551,6 +601,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         span: call0.span,
       });
       rate = w.rateMaxTurnsPerBeat;
+      turns = rate * n;
     }
     inst.rate = rate;
     if (w.buzz) {
@@ -560,29 +611,66 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         emit(d, from + n - 1, 1, { op: "buzz", on: false }, call.id, "body", inst);
       }
     }
+    // The orbit's own cruise ramp: half a step to start from standing, half a
+    // step to stop; `progress[k]` is how far round the body is after step k.
+    const lastWindow = from + n === inst.end - inst.exit || blend !== undefined;
+    const shares = fractionsFor(
+      dancers[0] as DancerId,
+      from,
+      n,
+      lastWindow && !blend && stopsAfter(inst, dancers[0] as DancerId),
+    );
+    const progress: number[] = [0];
+    for (const f of shares) progress.push((progress[progress.length - 1] ?? 0) + f);
     const posAt = (d: DancerId, k: number): Vec2 => {
-      const theta = (theta0.get(d) ?? 0) + sign * 360 * rate * k;
+      const theta = (theta0.get(d) ?? 0) + sign * 360 * turns * (progress[k] ?? 1);
       return [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
     };
     for (const d of dancers) {
       const call = inst.calls.get(d) as CompiledCall;
       const startFacing = poseOf(d).facing;
+      const target = blend?.targets.get(d);
       let prev: Pose = poseOf(d);
+      let spiralFacing: number | undefined;
       for (let k = 1; k <= n; k++) {
-        const theta = (theta0.get(d) ?? 0) + sign * 360 * rate * k;
-        const p = posAt(d, k);
-        const facing = orbitFacing(w, theta, sign, startFacing, () => {
+        const theta = (theta0.get(d) ?? 0) + sign * 360 * turns * (progress[k] ?? 1);
+        let p = posAt(d, k);
+        let facing = orbitFacing(w, theta, sign, startFacing, () => {
           const partner = castOf(inst, d, "partner");
           return partner && dancers.includes(partner) ? bearing(p, posAt(partner, k)) : startFacing;
         });
+        const exiting = blend !== undefined && target !== undefined && k > n - blend.beats;
+        if (exiting && target) {
+          // Spiral out: the last `blend.beats` steps lean toward the next
+          // figure's start, the final one landing on it exactly. The facing
+          // turns from where it was when the spiral began straight to the
+          // target's, spread evenly, rather than riding the orbit's own turn
+          // as well (which stacked the two into one 113° step).
+          const i = k - (n - blend.beats);
+          const sBlend = i >= blend.beats ? 1 : smoothstep(i / blend.beats);
+          // Blend in polar coordinates about the axis, so the orbit keeps its
+          // tangential pace while the radius and the bearing ease toward the
+          // target's; a Cartesian blend lengthens one step and shortens the next.
+          const rT = dist(axis, target.p);
+          const thetaEnd = (theta0.get(d) ?? 0) + sign * 360 * turns;
+          const thetaT = thetaEnd + angleDiff(thetaEnd, bearing(axis, target.p));
+          const rK = r + (rT - r) * sBlend;
+          const thetaK = theta + (thetaT - thetaEnd) * sBlend;
+          p = [axis[0] + rK * dirOf(thetaK)[0], axis[1] + rK * dirOf(thetaK)[1]];
+          if (i >= blend.beats) p = target.p;
+          spiralFacing ??= prev.facing;
+          facing = spiralFacing + angleDiff(spiralFacing, target.facing) * (i / blend.beats);
+        }
+        // Keep the facing on one continuous branch from step to step.
+        facing = prev.facing + angleDiff(prev.facing, facing);
         const step: PlannedStep = {
           to: p,
           facing,
           pivot: angleDiff(prev.facing, facing),
           lengthPx: dist(prev.p, p),
         };
-        emitStep(d, from + k - 1, step, call, "body", inst);
-        emitLook(d, from + k - 1, inst, call, "body", from + k - 1 - bodyFrom);
+        emitStep(d, from + k - 1, step, call, exiting ? "exit" : "body", inst);
+        emitLook(d, from + k - 1, inst, call, exiting ? "exit" : "body", from + k - 1 - bodyFrom);
         prev = { p, facing };
       }
       setPose(d, prev);
@@ -636,7 +724,11 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       const call = inst.calls.get(d) as CompiledCall;
       const a = poses.get(d) as Pose;
       const t = targets.get(d) as Pose;
-      const steps = planSteps(a, t, beats, limits);
+      const rampDown =
+        window === "exit"
+          ? false
+          : !["orbit", "walk", "pass"].includes(inst.figure.windows[0]?.kind ?? "");
+      const steps = planSteps(a, t, beats, limits, fractionsFor(d, from, beats, rampDown));
       if (!steps) {
         ok = false;
         continue;
@@ -806,12 +898,35 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       prev.dancers.length === inst.dancers.length &&
       inst.dancers.every((d) => prev.dancers.includes(d));
     if (need > 0 && prevShared && prev.replannable) {
-      let k = need;
+      const prevKind = prev.figure.windows[prev.figure.windows.length - 1]?.kind;
+      // A spiral over one beat is a corner; over two it is a curve. Give an
+      // orbit's exit two beats whenever its body can spare them.
+      let k = prevKind === "orbit" ? Math.max(need, SPIRAL_MIN_BEATS) : need;
       let done = false;
       for (let attempt = 0; attempt < 4 && !done; attempt++) {
         const bodyBeats = prev.end - prev.start - prev.entry - k;
         if (bodyBeats < prev.figure.beats.min) break;
         for (const d of prev.dancers) retract(prev, d);
+        if (prevKind === "orbit") {
+          // An orbit spirals out over its last k beats to where this figure
+          // starts: the exit is inside the body's motion, not a walk after it.
+          emitBody(prev, prev.start + prev.entry, prev.end, prev.bodyStart, { beats: k, targets });
+          const landed = prev.dancers.every(
+            (d) => beatsNeeded(poseOf(d), targets.get(d) as Pose, limits) === 0,
+          );
+          if (!landed) {
+            k += 1;
+            continue;
+          }
+          prev.exit = k;
+          prev.notes.push(
+            `exit: the last ${k} beat${k === 1 ? "" : "s"} spiral out to where ${inst.figure.id} starts`,
+          );
+          for (const d of prev.dancers) prev.bodyEnd.set(d, poseOf(d));
+          need = 0;
+          done = true;
+          continue;
+        }
         emitBody(prev, prev.start + prev.entry, prev.end - k, prev.bodyStart);
         const fromPoses = new Map<DancerId, Pose>(
           prev.dancers.map((d) => [d, prev.bodyEnd.get(d) as Pose]),
@@ -928,6 +1043,9 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
 /** How far a passing dancer veers off the straight line, px. */
 const PASS_VEER_PX = 3;
 
+/** The fewest beats an orbit spirals out over, when its body can spare them. */
+const SPIRAL_MIN_BEATS = 2;
+
 /**
  * Elision (D8, DA14): a call whose counterpart is nobody and whose figure says
  * `casts.partner: "elide"` is removed and its beats go to the next call
@@ -1022,6 +1140,11 @@ function roleMatches(inst: Instance, d: DancerId, role: Role | undefined): boole
   const first = inst.dancers[0] as DancerId;
   return inst.calls.get(first)?.cast[role] === d;
 }
+
+const smoothstep = (k: number): number => {
+  const c = k < 0 ? 0 : k > 1 ? 1 : k;
+  return c * c * (3 - 2 * c);
+};
 
 const centroid = (points: Vec2[]): Vec2 => {
   const sum = points.reduce<[number, number]>((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);

@@ -95,8 +95,10 @@ describe("the fixture", () => {
 
   it("chooses the allemande's rate from the beats its body has", () => {
     const allemande = lark[2]!;
-    const body = allemande.body[1] - allemande.body[0];
-    expect(allemande.rate).toBeCloseTo(1 / body, 9);
+    // The orbit runs through its exit too — the spiral out is the last turn
+    // of the same orbit — so the rate is one turn over body plus exit.
+    const orbit = allemande.exit[1] - allemande.body[0];
+    expect(allemande.rate).toBeCloseTo(1 / orbit, 9);
     expect(allemande.rate!).toBeLessThanOrEqual(0.25);
   });
 

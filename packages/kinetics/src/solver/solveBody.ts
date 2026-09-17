@@ -127,17 +127,8 @@ export const solveBodies = (input: SolveInput): SolvedBodies => {
 
     const bearingDeg = p.look.map((target, i) => bearingOf(target, heads, id, i));
     const head = solveHead({ tempo, torsoYawDeg: yaw.get(id)!, bearingDeg });
-    for (const limit of head.limited) {
-      violations.push({
-        dancer: id,
-        kind: "look-rate",
-        sample: limit.sample,
-        beat: beatOf(p.trajectory, limit.sample),
-        point: "headYaw",
-        value: limit.value,
-        cap: limit.cap,
-      });
-    }
+    // The neck lagging its target (`head.limited`) is the neck keeping its own
+    // rate, not a violation: a look is a wish. It is not reported here.
 
     const solved: Trajectory = {
       tempo: p.trajectory.tempo,

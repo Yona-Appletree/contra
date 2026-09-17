@@ -26,15 +26,22 @@ export const solveHead = (input: HeadInput): HeadSolution => {
 
   for (let i = 0; i < torsoYawDeg.length; i++) {
     const bearing = bearingDeg[i];
-    // Nothing to look at: the head sits square on the shoulders.
+    // Nothing to look at: the head sits square on the shoulders. A target the
+    // neck cannot reach (behind the shoulder) is given up rather than clamped:
+    // clamping flips the head from one shoulder to the other as a partner
+    // passes behind, which is the whip the do-si-do's `elseAt: "ahead"` rule
+    // exists to avoid — the eyes go ahead until the partner is back in range.
     const off = bearing === undefined ? 0 : angleDiff(torsoYawDeg[i]!, bearing);
-    const want = Math.min(Math.max(off, -ANGULAR_CAPS.lookDeg), ANGULAR_CAPS.lookDeg);
+    const want = Math.abs(off) <= ANGULAR_CAPS.lookDeg ? off : 0;
     if (i === 0) {
       headYawDeg[0] = want;
       continue;
     }
     const step = want - headYawDeg[i - 1]!;
     if (Math.abs(step) > capPerSample + 1e-9) {
+      // The neck turns as fast as it may toward the target; `limited` records
+      // where it lagged, for the debugger, and is not a violation — a look is
+      // a wish, and the neck's rate is the neck's to keep.
       limited.push({ sample: i, value: Math.abs(step), cap: capPerSample });
       headYawDeg[i] = headYawDeg[i - 1]! + Math.sign(step) * capPerSample;
     } else {

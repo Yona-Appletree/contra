@@ -90,35 +90,21 @@ describe("the fixture, executed", () => {
   });
 
   /**
-   * The hip's shortfall, pinned rather than smoothed away.
+   * AC2, the effectors: every hip, foot and hand of both dancers under its cap
+   * with no jump, over the whole fixture.
    *
-   * Every violation is an acceleration at one of two seams, and both are the
-   * same complaint: the scheduler plans a walk as equal steps with no ramp
-   * into or out of it, so the hip is asked to be at full walking speed within
-   * one beat of a standstill.
-   *
-   * - **beat 4**, the do-si-do stepping off: 8.68 px (35 cm) inside the first
-   *   beat, from still. Bang-bang — the best any profile can do — needs about
-   *   21.9 px/beat², or 305 cm/s², against a cap of 250. It is not the
-   *   interpolation: no curve through those targets is legal.
-   * - **beats 10–11**, the do-si-do closing into the allemande's entry: an
-   *   8.68 px step reversed into a 3 px one, which is a corner rather than a
-   *   stop.
-   *
-   * The fix is a cruise ramp in the scheduler's step plan (engine 2 had one:
-   * `CRUISE_RAMP_BEATS`), not a bigger number in `CAPS`. Raising the cap is
-   * the one thing this test exists to prevent.
+   * This test once pinned two hip seams instead — the do-si-do stepping off
+   * from still at full walking speed, and its exit cornering into the
+   * allemande — because the scheduler planned a walk as equal steps with no
+   * ramp. The fix was the scheduler's, not a bigger number in `CAPS`: a
+   * cruise ramp (a half step to start from standing, a half step to stop) and
+   * an orbit that spirals out to the next figure's start instead of stopping
+   * and stepping to it. Raising a cap is the one thing this test exists to
+   * prevent.
    */
-  it("reports the hip's two seams, and nothing else", () => {
+  it("proves every effector of both dancers, hips included", () => {
     for (const id of PAIR.dancers) {
-      const hip = proveMotion(executed.trajectories[id]!).filter((v) => v.point === "hip");
-      expect(hip.length).toBeGreaterThan(0);
-      expect(new Set(hip.map((v) => v.kind))).toEqual(new Set(["accel", "vjump"]));
-      const beats = [...new Set(hip.map((v) => Math.floor(v.beat)))].sort((a, b) => a - b);
-      expect(beats).toEqual([4, 10, 11]);
-      const worst = Math.max(...hip.filter((v) => v.kind === "accel").map((v) => v.value));
-      // 22.4 against 17.94: 25% over, not an order of magnitude.
-      expect(worst).toBeLessThan(1.3 * caps.hip.accelPxPerBeat2);
+      expect(proveMotion(executed.trajectories[id]!)).toEqual([]);
     }
   });
 
@@ -134,16 +120,20 @@ describe("the fixture, executed", () => {
     expect(dist(lark.points.handR![i]!, robin.points.handR![i]!)).toBeCloseTo(0, 9);
   });
 
-  it("takes the allemande's hand once and lets it go once", () => {
+  it("takes the allemande's hand once per allemande and lets it go once", () => {
     for (const id of PAIR.dancers) {
       const holds = executed.input.dancers[id]!.holds;
-      expect(holds).toHaveLength(1);
-      const held = holds[0]!;
-      expect(held.hand).toBe("right");
-      expect(held.hold).toBe("allemande-R");
-      expect(held.with).toBe(id === "lark" ? "robin" : "lark");
-      // The take is emitted TAKE_BEATS before the allemande's body at beat 12.
-      expect(held.fromSample).toBe((12 - TAKE_BEATS) * T.samplesPerBeat);
+      expect(holds).toHaveLength(2);
+      holds.forEach((held, n) => {
+        expect(held.hand).toBe("right");
+        expect(held.hold).toBe("allemande-R");
+        expect(held.with).toBe(id === "lark" ? "robin" : "lark");
+        // The take is emitted TAKE_BEATS before the allemande's body (beats 12
+        // and 28), and the release ramps out over the next figure's first beats.
+        const start = n === 0 ? 12 : 28;
+        expect(held.fromSample).toBe((start - TAKE_BEATS) * T.samplesPerBeat);
+        expect(held.toSample).toBe((start + 8 + TAKE_BEATS) * T.samplesPerBeat + 1); // exclusive
+      });
     }
   });
 

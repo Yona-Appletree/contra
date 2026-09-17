@@ -140,3 +140,11 @@ export type {
   SolvedBodies,
 } from "./solver/solveBody.js";
 export { TORSO_RISE_PX, shoulderPoint, solveBodies } from "./solver/solveBody.js";
+
+// the executor (P5)
+export type { Executed, ExecutionViolation } from "./executor/execute.js";
+export { execute } from "./executor/execute.js";
+
+// the whole stack as one call, and the page that shows it (P7)
+export type { Run, RunError, RunOptions, RunWarning } from "./pipeline.js";
+export { run } from "./pipeline.js";
