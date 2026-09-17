@@ -298,7 +298,7 @@ dance in the corpus asks for.
   which is supplied as `<slug>/<name>`; a call names it that way
   (`"figure": "fatal-attraction/go-forward"`), so a reader always knows where to
   look and two dances cannot collide.
-- Its four **texts** go in the same literal, under `texts`, in exactly the shape
+- Its seven **texts** go in the same literal, under `texts`, in exactly the shape
   `data/figures/<id>.json` has — so that the whole figure is one thing in one
   place.
 - **Promoting one is a copy**: move the literal into
