@@ -938,7 +938,6 @@ export function seamTile(
     overrides,
     engine,
   });
-  const registry = createContraRegistry([], overrides);
   const notes = [
     ...(wrapped
       ? [
