@@ -1035,8 +1035,8 @@ export function HallPage({
           />
         </div>
 
-        <aside className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-1 lg:px-0">
-          <div className="flex min-w-0 flex-col gap-1.5" data-testid="hall-card">
+        <aside className="flex min-w-0 flex-1 flex-col gap-2.5 px-3 pb-1 lg:px-0">
+          <div className="flex min-w-0 flex-col gap-2.5" data-testid="hall-card">
             {/* P4: the notecard replaces `@caller/music`'s `Card` on the Stage
                 (AC6). The `Card` itself stays where it still belongs — the
                 Dances tab's static card — and `danceCard.ts` with it. */}
