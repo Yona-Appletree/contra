@@ -401,6 +401,10 @@ All four join hands in a ring and walk round — circle left means the way your 
 
 From long wavy lines up and down the set, everybody moves one place round the box of four you are standing in, all at the same time. If you are facing in, walk straight across the set to the place opposite, passing right shoulders. If you are facing out, loop out of your own line, round, and back into it on the other place of your box, and arrive facing in. Nobody leaves the four they are dancing with.
 
+### `contrablend/long-lines-roll-away` — LONG LINES FORWARD AND BACK ROLL AWAY
+
+Take hands along your own line with the dancer beside you and walk four steps into the set. Walk four steps back out, and on the way back the roller rolls across in front of the other, turning inward, nose to nose first, while the other side-steps behind into the place they came out of. You come out of the line one dancing place along it from where you went in, still facing across, and the line is the same line.
+
 ### `do-si-do` — DO-SI-DO
 
 Walk forward and pass right shoulders, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around — you face the same way for the whole eight beats. Once round for a plain do-si-do, once and a half where the dance says so.
