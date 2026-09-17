@@ -33,7 +33,7 @@ body {
 }
 #app {
   display: grid;
-  grid-template-rows: auto auto auto 1fr 1fr;
+  grid-template-rows: auto auto auto auto 1fr 1fr;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 6px;
   height: 100%;
@@ -507,4 +507,50 @@ section[data-pane="layout"] > h2 .size-label {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 400;
+}
+
+/* ---- the trace panel, under the strip ------------------------------------ */
+
+.complaints .line {
+  cursor: pointer;
+}
+.complaints .line:hover {
+  background: var(--panel2);
+}
+.trace {
+  grid-column: 1 / -1;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  max-height: 140px;
+  overflow: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+.trace-head {
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.trace-fact {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+.trace-fact .layer {
+  flex: none;
+  width: 64px;
+  color: var(--accent);
+}
+.trace-help {
+  color: var(--good);
+  margin-top: 2px;
+}
+.timeline .annotation {
+  font-size: 9px;
+  fill: var(--accent);
+}
+.timeline .annotation.say {
+  fill: var(--ink);
+  font-style: italic;
 }

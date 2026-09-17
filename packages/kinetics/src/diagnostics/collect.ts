@@ -2,7 +2,7 @@ import type { DancerId } from "../dialect/Dialect.js";
 import type { CompiledCall } from "../lang/compile.js";
 import type { Run, RunError, RunWarning } from "../pipeline.js";
 import type { ScheduledCall } from "../schedule/schedule.js";
-import type { Diagnostic, Fact } from "./Diagnostic.js";
+import type { Diagnostic, Fact, Stage } from "./Diagnostic.js";
 import { floorChecks } from "./checks/index.js";
 
 /**
@@ -15,7 +15,7 @@ import { floorChecks } from "./checks/index.js";
 export function collectDiagnostics(run: Run): Diagnostic[] {
   const out = new Map<string, Diagnostic>();
   const add = (d: Diagnostic): void => {
-    const key = `${d.code}|${d.message}|${String(d.beat ?? "")}|${String(d.span?.start ?? "")}`;
+    const key = `${d.code}|${d.message.replace(/, worst at [\d.]+/, "")}|${String(d.span?.start ?? "")}`;
     const had = out.get(key);
     if (had === undefined) {
       out.set(key, d);
@@ -27,32 +27,36 @@ export function collectDiagnostics(run: Run): Diagnostic[] {
 
   for (const e of run.errors) add(fromError(run, e));
   for (const w of run.warnings) add(fromWarning(run, w));
-  for (const v of run.executed?.violations ?? []) {
-    add({
-      code: "K040",
-      severity: "error",
-      stage: "execute",
-      message: `${v.point} ${v.kind} ${v.value.toFixed(1)} over ${v.cap.toFixed(1)} at beat ${v.beat.toFixed(2)}`,
-      beat: v.beat,
-      dancers: [v.dancer],
-      trace: traceAt(run, v.dancer, v.beat, {
-        layer: "execute",
-        what: `${v.point}: ${v.kind} ${v.value.toFixed(2)} (cap ${v.cap.toFixed(2)}) at sample ${String(v.sample)}`,
-      }),
-    });
-  }
-  for (const v of run.solved?.violations ?? []) {
+  // The executor's, the solver's and the proof's violations come one per
+  // sample and one per dancer; a report that lists them all is not read.
+  // Consecutive samples fold into a stretch, and stretches of the same point
+  // and kind across every dancer fold into one line: how many, the worst,
+  // who — with the worst stretch's trace.
+  const kept: (Stretch & { code: string; stage: Stage })[] = [];
+  for (const v of foldViolations(run.executed?.violations ?? []))
+    kept.push({ ...v, code: "K040", stage: "execute" });
+  for (const v of foldViolations(run.solved?.violations ?? [])) {
     const isProof = v.kind === "speed" || v.kind === "accel" || v.kind === "jump";
+    kept.push({ ...v, code: isProof ? "K060" : "K050", stage: isProof ? "proof" : "solve" });
+  }
+  const byPoint = new Map<string, (Stretch & { code: string; stage: Stage })[]>();
+  for (const v of kept) {
+    const key = `${v.code}|${v.point}|${v.kind}`;
+    byPoint.set(key, [...(byPoint.get(key) ?? []), v]);
+  }
+  for (const group of byPoint.values()) {
+    const worst = group.reduce((a, b) => (b.value / b.cap > a.value / a.cap ? b : a));
+    const dancers = [...new Set(group.map((v) => v.dancer))];
     add({
-      code: isProof ? "K060" : "K050",
+      code: worst.code,
       severity: "error",
-      stage: isProof ? "proof" : "solve",
-      message: `${String(v.point)} ${v.kind} ${v.value.toFixed(1)} over ${v.cap.toFixed(1)} at beat ${v.beat.toFixed(2)}`,
-      beat: v.beat,
-      dancers: [v.dancer],
-      trace: traceAt(run, v.dancer, v.beat, {
-        layer: isProof ? "proof" : "solve",
-        what: `${String(v.point)}: ${v.kind} ${v.value.toFixed(2)} (cap ${v.cap.toFixed(2)}) at sample ${String(v.sample)}`,
+      stage: worst.stage,
+      message: `${worst.point} ${worst.kind} over its cap in ${String(group.length)} stretch${group.length === 1 ? "" : "es"}; worst ×${(worst.value / worst.cap).toFixed(2)} at beat ${worst.beat.toFixed(2)} (${worst.dancer})`,
+      beat: worst.beat,
+      dancers,
+      trace: traceAt(run, worst.dancer, worst.beat, {
+        layer: worst.stage,
+        what: stretchFact(worst),
       }),
     });
   }
@@ -61,6 +65,75 @@ export function collectDiagnostics(run: Run): Diagnostic[] {
     (a, b) => (a.beat ?? -1) - (b.beat ?? -1) || a.code.localeCompare(b.code),
   );
 }
+
+/** A run of consecutive samples of one violation, at its worst. */
+interface Stretch {
+  dancer: DancerId;
+  point: string;
+  kind: string;
+  /** The worst sample's beat. */
+  beat: number;
+  from: number;
+  to: number;
+  value: number;
+  cap: number;
+  samples: number;
+}
+
+interface SampleViolation {
+  dancer: DancerId;
+  point: string;
+  kind: string;
+  sample: number;
+  beat: number;
+  value: number;
+  cap: number;
+}
+
+/** Consecutive samples of the same dancer, point and kind become one stretch. */
+export function foldViolations(list: readonly SampleViolation[]): Stretch[] {
+  const byKey = new Map<string, SampleViolation[]>();
+  for (const v of list) {
+    const key = `${v.dancer}|${String(v.point)}|${v.kind}`;
+    byKey.set(key, [...(byKey.get(key) ?? []), v]);
+  }
+  const out: Stretch[] = [];
+  for (const group of byKey.values()) {
+    const sorted = [...group].sort((a, b) => a.sample - b.sample);
+    let current: Stretch | undefined;
+    let lastSample = -10;
+    for (const v of sorted) {
+      if (current === undefined || v.sample > lastSample + 1) {
+        if (current !== undefined) out.push(current);
+        current = {
+          dancer: v.dancer,
+          point: String(v.point),
+          kind: v.kind,
+          beat: v.beat,
+          from: v.beat,
+          to: v.beat,
+          value: v.value,
+          cap: v.cap,
+          samples: 1,
+        };
+      } else {
+        current.to = v.beat;
+        current.samples += 1;
+        if (v.value / v.cap > current.value / current.cap) {
+          current.value = v.value;
+          current.cap = v.cap;
+          current.beat = v.beat;
+        }
+      }
+      lastSample = v.sample;
+    }
+    if (current !== undefined) out.push(current);
+  }
+  return out.sort((a, b) => a.from - b.from);
+}
+
+const stretchFact = (s: Stretch): string =>
+  `${s.point}: ${s.kind} ${s.value.toFixed(2)} against a cap of ${s.cap.toFixed(2)} over ${String(s.samples)} sample${s.samples === 1 ? "" : "s"}`;
 
 const SCHEDULE_CODES: Readonly<Record<string, string>> = {
   TimingViolation: "K020",

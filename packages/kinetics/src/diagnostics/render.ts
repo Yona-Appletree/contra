@@ -19,7 +19,9 @@ import { CODES } from "./codes.js";
 export function renderText(
   diagnostics: readonly Diagnostic[],
   sources: readonly Source[] = [],
+  options: { traces?: boolean } = {},
 ): string {
+  const traces = options.traces ?? true;
   const lines: string[] = [];
   for (const d of diagnostics) {
     const title = CODES[d.code]?.title;
@@ -41,7 +43,7 @@ export function renderText(
     if (d.beat !== undefined) where.push(`beat ${fmt(d.beat)}`);
     if (d.dancers.length > 0) where.push(d.dancers.join(" "));
     if (where.length > 0) lines.push(`   = ${where.join(" · ")}`);
-    for (const f of d.trace) lines.push(`   = ${factText(f)}`);
+    if (traces) for (const f of d.trace) lines.push(`   = ${factText(f)}`);
     if (d.suggestion !== undefined) lines.push(`   = help: ${d.suggestion}`);
     lines.push("");
   }

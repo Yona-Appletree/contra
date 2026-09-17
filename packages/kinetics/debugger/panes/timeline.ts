@@ -64,6 +64,21 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
       root.append(svg("line", { x1: x, y1: RULER - 4, x2: x, y2: height, class: "grid" }));
       root.append(svg("text", { x: x + 2, y: RULER - 5, class: "tick" }, String(beat)));
     }
+    // Annotations — `card` and `say` — where the dancers reached them.
+    const seen = new Set<string>();
+    for (const a of run.sequence?.annotations ?? []) {
+      const key = `${a.text}@${String(a.beat)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const x = beatToX(a.beat);
+      const label = svg(
+        "text",
+        { x: x + 2, y: RULER - 5, class: `annotation ${a.kind}` },
+        a.kind === "say" ? `“${a.text}”` : a.text,
+      );
+      label.append(svg("title", {}, `${a.kind} at beat ${String(a.beat)}`));
+      root.append(label);
+    }
     // Where one time through ends and the next begins.
     for (let beat = TIME_THROUGH_BEATS; beat < endBeat; beat += TIME_THROUGH_BEATS) {
       const x = beatToX(beat);

@@ -68,7 +68,7 @@ export function cli(argv: readonly string[]): CliResult {
       return {
         output: flags.has("json")
           ? renderJson(result.diagnostics, sources) + "\n"
-          : renderText(result.diagnostics, sources),
+          : renderText(result.diagnostics, sources, { traces: !flags.has("brief") }),
         code: errors > 0 ? 1 : 0,
       };
     }
@@ -77,7 +77,7 @@ export function cli(argv: readonly string[]): CliResult {
   }
 }
 
-const USAGE = `dance check <file.dance> [--floor <name>[:<size>] | --minor-sets <n>] [--json] [--bpm <n>]
+const USAGE = `dance check <file.dance> [--floor <name>[:<size>] | --minor-sets <n>] [--json | --brief] [--bpm <n>]
 dance format <file.dance>
 dance lint <file.dance>
 `;

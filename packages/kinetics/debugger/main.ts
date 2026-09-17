@@ -11,7 +11,6 @@ import { timelinePane } from "./panes/timeline.js";
 import { treePane } from "./panes/tree.js";
 import { view3dPane } from "./panes/view3d.js";
 import {
-  FORMATIONS,
   LIBRARY,
   MOVES,
   PRESETS,
@@ -60,16 +59,16 @@ const presetSelect = el("select", "pick");
 for (const [key, preset] of Object.entries(PRESETS)) {
   presetSelect.append(new Option(preset.label, key));
 }
-const formationSelect = el("select", "pick");
-for (const f of FORMATIONS) formationSelect.append(new Option(f, f));
 const sizeSelect = el("select", "pick");
 for (const n of SIZES) sizeSelect.append(new Option(`${String(n)} minor sets`, String(n)));
 const times = el("span", "times");
-transport.append(playButton, range, readout, times, presetSelect, formationSelect, sizeSelect);
+transport.append(playButton, range, readout, times, presetSelect, sizeSelect);
 
 const chips = el("div", "chips");
 const strip = el("div", "complaints");
-app.append(transport, chips, strip);
+const tracePanel = el("div", "trace");
+tracePanel.hidden = true;
+app.append(transport, chips, strip, tracePanel);
 
 // ---- the panes -------------------------------------------------------------
 
@@ -108,7 +107,6 @@ function recompute(resetSource: boolean): void {
   if (!preset) return;
   if (resetSource) source = preset.source;
   // The dance owns its floor; the hall says how long the set is.
-  formationSelect.disabled = true;
   sizeSelect.value = String(size ?? preset.size ?? 2);
 
   current = run(source, {
@@ -176,6 +174,7 @@ const drawComplaints = (of: Run): void => {
     "bad",
     list.some((c) => c.bad),
   );
+  tracePanel.hidden = true;
   if (list.length === 0) {
     strip.append(el("div", "line", summaryOf(of)));
     return;
@@ -186,6 +185,34 @@ const drawComplaints = (of: Run): void => {
     if (c.where !== "") line.append(el("span", "where", c.where));
     line.append(el("span", "what", c.message));
     if (c.count > 1) line.append(el("span", "count", `×${String(c.count)}`));
+    line.title = "click: the bar to the beat, the dancers picked, the trace below";
+    // Click: the bar goes to the beat, the first dancer is followed, the trace shows.
+    line.addEventListener("click", () => {
+      const d = c.diagnostic;
+      if (d.beat !== undefined) {
+        bar.pause();
+        bar.set(d.beat);
+      }
+      const first = d.dancers[0];
+      if (first !== undefined && of.dialect.dancers.includes(first)) {
+        picked = first;
+        drawChips(of, of.dialect.dancers);
+        redraw();
+      }
+      tracePanel.replaceChildren();
+      tracePanel.hidden = false;
+      tracePanel.append(el("div", "trace-head", `${c.tag} · ${c.message}`));
+      for (const f of d.trace) {
+        const row = el("div", "trace-fact");
+        row.append(
+          el("span", "layer", f.layer),
+          el("span", "what", f.what + (f.why === undefined ? "" : ` — ${f.why}`)),
+        );
+        tracePanel.append(row);
+      }
+      if (d.suggestion !== undefined)
+        tracePanel.append(el("div", "trace-help", `help: ${d.suggestion}`));
+    });
     strip.append(line);
   }
 };
