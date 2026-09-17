@@ -83,12 +83,14 @@ describe("when a hint is said at all", () => {
    * **The count, pinned** — what the gate reads (question 2: "said too often,
    * or not often enough?").
    *
-   * 47 of the programme's 105 seams. The plan's own estimate was 20 to 35 over
-   * the **ten** demo dances the vision was written against; the programme is
-   * fifteen dances now, and 47 over fifteen is the same rate. A rule change here
-   * moves this number, which is the point of pinning it.
+   * 50 of the programme's 111 seams. The plan's own estimate was 20 to 35 over
+   * the **ten** demo dances the vision was written against; the programme was
+   * fifteen dances at G1 (47 of 105) and is sixteen now — M9g promoted Are You
+   * 'Most Done? on `main` after G1 closed (P7's rebase) — and 50 over sixteen
+   * is the same rate. A rule change here moves this number, which is the point
+   * of pinning it.
    */
-  it("speaks at 47 of the programme's 105 seams", () => {
+  it("speaks at 50 of the programme's 111 seams", () => {
     let seams = 0;
     let hinted = 0;
     for (const dance of DEMO_DANCES) {
@@ -97,8 +99,8 @@ describe("when a hint is said at all", () => {
       seams += entries.length - 1;
       hinted += entries.filter((entry) => entry.hint !== undefined).length;
     }
-    expect(seams).toBe(105);
-    expect(hinted).toBe(47);
+    expect(seams).toBe(111);
+    expect(hinted).toBe(50);
   });
 
   it("says nothing where the next call is with the dancer this one was", () => {
