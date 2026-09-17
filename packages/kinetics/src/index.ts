@@ -2,23 +2,47 @@
 // motion. Nothing imports this package (D11); see README.md.
 export const KINETICS = "engine 3" as const;
 
-// the language: source text → a per-dancer compiled sequence
+// the .dance language (the dance-language plan, P1): one grammar for
+// formations, moves and dances, with its formatter, linter and checker
 export type {
-  Arg,
-  CallStmt,
-  DefineStmt,
-  IfStmt,
-  RepeatStmt,
-  SelectStmt,
-  SourceProgram,
-  Span,
-  Stmt,
-} from "./lang/ast.js";
-export type { ParseError } from "./lang/parse.js";
-export { isParseError, parse } from "./lang/parse.js";
-export type { CompileError, CompiledCall, CompiledSequence } from "./lang/compile.js";
-export { compile } from "./lang/compile.js";
-export { FIXTURE_PROGRAM } from "./lang/fixture.js";
+  Arg as DanceArg,
+  BinaryOp,
+  EnumItem,
+  Expr,
+  File as DanceFile,
+  Item,
+  ModuleItem,
+  ModuleKind,
+  Param,
+  Span as DanceSpan,
+  Stmt as DanceStmt,
+  Transform,
+} from "./lang/syntax.js";
+export { BUILTIN_TYPES, UNITS } from "./lang/syntax.js";
+export type { Comment, SyntaxError, Token } from "./lang/lexer.js";
+export { isSyntaxError, tokenize } from "./lang/lexer.js";
+export { parse as parseDance, parseWithComments } from "./lang/parser.js";
+export { format, printFile } from "./lang/format.js";
+export type { LintIssue, LintOptions } from "./lang/lint.js";
+export { lint } from "./lang/lint.js";
+export type { CheckError, CheckOptions } from "./lang/check.js";
+export { BUILTIN_FUNCTIONS, BUILTIN_STATEMENTS, check } from "./lang/check.js";
+export type { CompileError, CompileInput, CompiledCall, CompiledSequence } from "./lang/compile.js";
+export { compile, kebab } from "./lang/compile.js";
+
+// the tree (P2): a formation evaluated into groups, places and anchors in
+// metres; who stands where; `$name` for one dancer
+export type { Frame, Op } from "./tree/Frame.js";
+export { apply, applyAll, compose, distance, norm } from "./tree/Frame.js";
+export type { Anchor, Deferred, Group, Place, Provide } from "./tree/Tree.js";
+export { centreOf, chainTo, groupsOf, placeAt, placesOf } from "./tree/Tree.js";
+export type { Env, Value } from "./tree/values.js";
+export type { EvalError, Modules } from "./tree/evaluate.js";
+export { buildFormation, collect, evalExpr, isEvalError } from "./tree/evaluate.js";
+export type { Membership } from "./tree/membership.js";
+export { membership, progress, seatAll } from "./tree/membership.js";
+export type { Resolved } from "./tree/relations.js";
+export { providedNames, resolve } from "./tree/relations.js";
 
 // the IR: a figure as timed constraints
 export type {
@@ -52,10 +76,11 @@ export { allemande } from "./figures/allemande.js";
 export { bow } from "./figures/bow.js";
 export { doSiDo } from "./figures/doSiDo.js";
 
-// the dialect: who is on the floor, and what a selector word means
+// the floor: a formation built and seated, and the dialect the stack reads
 export type { DancerId, DancerState, Dialect, DialectId, SetState } from "./dialect/Dialect.js";
-export { unknownSelector } from "./dialect/Dialect.js";
-export { PAIR, PAIR_SOLO } from "./dialect/pair/Pair.js";
+export { METRE_PX, framePx, treeDialect } from "./dialect/tree/TreeDialect.js";
+export type { Floor } from "./tree/floor.js";
+export { floorOf } from "./tree/floor.js";
 
 // units, the body, motion and the proof (P2)
 export type { Tempo } from "./units/Tempo.js";

@@ -1,0 +1,33 @@
+// Butter — Gene Hubert, becket. From data/dances/butter.json:
+// A1 (2) Shift left (6) Circle left 3/4 (8) Neighbor swing
+// A2 (8) Long lines forward and back (8) Robins chain to partner
+// B1 (16) Hey (WR;NL;MR;PL;WR;NL;MR)
+// B2 (4) Partner balance (12) Partner swing
+// The first time through has no shift: the circle takes the eight beats.
+// The robins chain and the hey are not written yet: a partner swing stands
+// in for the two, keeping the sixty-four beats and bringing each couple
+// back together on the lark's side as the chain would.
+
+dance butter($partner: Place, $neighbor: Place, $minor-set: Group) {
+  title "Butter";
+  repeat (7) {
+    if ($time != 1) {
+      progress();
+    }
+    if ($neighbor) {
+      if ($time == 1) {
+        circle($minor-set, Left, places = 3, beats = 8);
+      } else {
+        shift($partner, Left);
+        circle($minor-set, Left, places = 3, beats = 6);
+      }
+      swing($neighbor, beats = 8);
+      long-lines($neighbor, beats = 8);
+      swing($partner, beats = 24);
+      balance($partner);
+      swing($partner, beats = 12);
+    } else {
+      wait-out($partner, beats = 64);
+    }
+  }
+}

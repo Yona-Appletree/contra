@@ -1,0 +1,35 @@
+// Becket: couples side by side facing across the set. The ones stand on the
+// left line facing right and progress up the hall (their own left); the twos
+// stand on the right line facing left and progress down it. Lines 1.28 m
+// apart, dancers 0.8 m apart along a line — bite A's numbers, in metres.
+
+formation minor-set() {
+  anchor centre = point(x = 0m, y = 0m);
+  anchor across = line(through = centre, along = y);
+  group ones = couple() at translate(x = -0.64m);
+  group twos = couple() at translate(x = 0.64m) rotate(180);
+  provide $neighbor: Place = opposite-role(other(me));
+  provide $across: Place = across(me, across);
+}
+
+// A progression moves each couple half a minor set along the hall (one
+// dancer place), the two lines opposite ways, so the places a hands four is
+// danced in alternate between two interleaved sets of positions. The minor
+// sets are laid at half their own length apart to say so: adjacent ones
+// overlap, and only every other one is occupied at any time.
+formation major-set(minor-sets: Int = 3) {
+  anchor up = direction(-y);
+  anchor top = line(through = point(x = 0m, y = -0.8m), along = x);
+  repeat (i in 2 * minor-sets - 1) group minor-set() at translate(y = 0.8m * i);
+  // Out at the ends: a couple that leaves the top crosses to the right line
+  // and waits, facing left; one that leaves the bottom crosses to the left
+  // line and waits, facing right.
+  group out-top = couple() at translate(x = 0.64m, y = -0.8m) rotate(180);
+  group out-bottom = couple() at translate(x = -0.64m, y = 1.6m * minor-sets - 0.8m);
+  seat = alternate(minor-set);
+  next = duple-progression(along = up, out-top = out-top, out-bottom = out-bottom);
+}
+
+formation becket(minor-sets: Int = 3) {
+  group major-set(minor-sets = minor-sets);
+}

@@ -66,7 +66,7 @@ core ← choreo ← contra          (form-neutral model; contra is one form)
 core ← contra                   (a contra figure emits poses, so it needs core)
 core ← hall                     (renderer reads pose samples and the timeline)
 core ← music                    (clock, tunes, medleys)
-core ← kinetics                 (engine 3; nothing imports kinetics)
+core, hall ← kinetics           (engine 3; nothing imports kinetics)
 ui-design ← ui-base             (theme tokens, shadcn primitives)
 apps/web → core, choreo, contra, hall, music, ui-design, ui-base
 apps/storybook → everything

@@ -1,21 +1,24 @@
-import type { ContraFormation } from "../src/dialect/contra/formations.js";
 import type { DancerId } from "../src/dialect/Dialect.js";
 import { run, type Run } from "../src/pipeline.js";
 import { complaintsOf, summaryOf } from "./complaints.js";
 import { cursor } from "./cursor.js";
 import { graphsPane } from "./panes/graphs.js";
+import { layoutPane } from "./panes/layout.js";
 import { listingPane } from "./panes/listing.js";
 import { pixelsPane } from "./panes/pixels.js";
 import { sourcePane } from "./panes/source.js";
 import { timelinePane } from "./panes/timeline.js";
+import { treePane } from "./panes/tree.js";
 import { view3dPane } from "./panes/view3d.js";
 import {
+  FORMATIONS,
+  MOVES,
   PRESETS,
   TIME_THROUGH_BEATS,
-  dialectOf,
+  floorFor,
+  sizeParamOf,
   timeLabel,
   timesThrough,
-  type Floor,
 } from "./presets.js";
 import { colourOf, el, type Pane } from "./view.js";
 
@@ -29,8 +32,7 @@ import { colourOf, el, type Pane } from "./view.js";
  * on, a time through to jump to, and one dancer of the many to follow.
  */
 const BPM = 112;
-const FORMATIONS: ContraFormation[] = ["becket", "duple-improper"];
-const COUPLES = [2, 3, 4, 5, 6, 7, 8];
+const SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const app = document.getElementById("app");
 if (!app) throw new Error("no #app");
@@ -39,7 +41,8 @@ const bar = cursor();
 bar.setBpm(BPM);
 
 let presetKey = "pair";
-let floor: Floor = { formation: "becket", couples: 3 };
+let formation = "pair";
+let size: number | undefined;
 let source = PRESETS.pair?.source ?? "";
 let picked: DancerId | "all" = "all";
 let current: Run | undefined;
@@ -60,10 +63,10 @@ for (const [key, preset] of Object.entries(PRESETS)) {
 }
 const formationSelect = el("select", "pick");
 for (const f of FORMATIONS) formationSelect.append(new Option(f, f));
-const couplesSelect = el("select", "pick");
-for (const n of COUPLES) couplesSelect.append(new Option(`${String(n)} couples`, String(n)));
+const sizeSelect = el("select", "pick");
+for (const n of SIZES) sizeSelect.append(new Option(`${String(n)} minor sets`, String(n)));
 const times = el("span", "times");
-transport.append(playButton, range, readout, times, presetSelect, formationSelect, couplesSelect);
+transport.append(playButton, range, readout, times, presetSelect, formationSelect, sizeSelect);
 
 const chips = el("div", "chips");
 const strip = el("div", "complaints");
@@ -76,6 +79,7 @@ const panes: Pane[] = [
     source = text;
     recompute(false);
   }),
+  layoutPane(),
   timelinePane((beat) => {
     bar.pause();
     bar.set(beat);
@@ -84,6 +88,7 @@ const panes: Pane[] = [
   view3dPane(),
   graphsPane(),
   pixelsPane(),
+  treePane(),
 ];
 for (const pane of panes) app.append(pane.el);
 
@@ -103,13 +108,25 @@ function recompute(resetSource: boolean): void {
   const preset = PRESETS[presetKey];
   if (!preset) return;
   if (resetSource) source = preset.source;
-  const contra = preset.fixed === undefined;
-  formationSelect.disabled = !contra;
-  couplesSelect.disabled = !contra;
-  formationSelect.value = floor.formation;
-  couplesSelect.value = String(floor.couples);
+  const sizeParam = sizeParamOf(formation);
+  sizeSelect.disabled = sizeParam === undefined;
+  if (sizeParam !== undefined && size === undefined) size = sizeParam.fallback;
+  formationSelect.value = formation;
+  sizeSelect.value = String(size ?? sizeParam?.fallback ?? 1);
+  for (const option of sizeSelect.options) {
+    option.text = `${option.value} ${sizeParam?.name === "couples" ? "couples" : "minor sets"}`;
+  }
 
-  current = run(source, { dialect: dialectOf(preset, floor), bpm: BPM });
+  let floor;
+  try {
+    floor = floorFor(formation, size);
+  } catch (error) {
+    strip.replaceChildren(
+      el("div", "line bad", error instanceof Error ? error.message : String(error)),
+    );
+    return;
+  }
+  current = run(source, { floor, moves: MOVES, bpm: BPM });
   const dancers = current.dialect.dancers;
   if (picked !== "all" && !dancers.includes(picked)) picked = "all";
 
@@ -205,21 +222,25 @@ range.addEventListener("input", () => {
 presetSelect.addEventListener("change", () => {
   presetKey = presetSelect.value;
   const preset = PRESETS[presetKey];
-  if (preset?.floor) floor = { ...preset.floor };
+  if (preset) {
+    formation = preset.formation;
+    size = preset.size;
+  }
   bar.pause();
   bar.set(0);
   recompute(true);
 });
-for (const control of [formationSelect, couplesSelect]) {
-  control.addEventListener("change", () => {
-    floor = {
-      formation: formationSelect.value as ContraFormation,
-      couples: Number(couplesSelect.value),
-    };
-    bar.pause();
-    recompute(false);
-  });
-}
+formationSelect.addEventListener("change", () => {
+  formation = formationSelect.value;
+  size = undefined;
+  bar.pause();
+  recompute(false);
+});
+sizeSelect.addEventListener("change", () => {
+  size = Number(sizeSelect.value);
+  bar.pause();
+  recompute(false);
+});
 window.addEventListener("keydown", (event) => {
   const target = event.target;
   const typing =

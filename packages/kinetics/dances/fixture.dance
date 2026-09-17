@@ -1,0 +1,14 @@
+// The program the whole vertical stack is built on: forty beats, two
+// figures, one repeat — small enough to read in the debugger, big enough to
+// need every layer.
+
+dance fixture($partner: Place) {
+  bow($partner);
+  repeat (2) figure();
+  bow($partner);
+}
+
+dance figure($partner: Place) {
+  do-si-do($partner);
+  allemande($partner, Right);
+}

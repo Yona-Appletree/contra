@@ -1,5 +1,5 @@
 import type { DancerId } from "../src/dialect/Dialect.js";
-import type { Span } from "../src/lang/ast.js";
+import type { Span } from "../src/lang/syntax.js";
 import type { Run } from "../src/pipeline.js";
 
 /** One line of the errors strip: what minded, about whom, where, and why. */

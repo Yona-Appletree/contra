@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PAIR, PAIR_SOLO } from "../dialect/pair/Pair.js";
-import type { Dialect } from "../dialect/Dialect.js";
+import { compileDance, readDance, standardFloor } from "../dances/load.js";
+import { treeDialect } from "../dialect/tree/TreeDialect.js";
 import { FIGURES } from "../figures/registry.js";
+import type { FigureRegistry } from "../figures/registry.js";
 import type { FigureIR } from "../ir/Figure.js";
-import { compile } from "../lang/compile.js";
-import { FIXTURE_PROGRAM } from "../lang/fixture.js";
-import { parse } from "../lang/parse.js";
+import { parse } from "../lang/parser.js";
 import { tempo } from "../units/Tempo.js";
 import { TAKE_BEATS } from "../units/limits.js";
 import { schedule } from "./schedule.js";
@@ -13,8 +12,19 @@ import type { Schedule } from "./schedule.js";
 
 const T = tempo(112);
 
-const run = (source: string, dialect: Dialect = PAIR, registry = FIGURES): Schedule => {
-  const { sequence, errors } = compile(parse(source), registry, dialect);
+const FIXTURE_PROGRAM = readDance("fixture.dance");
+
+/** A dance on a standard floor; `extraMoves` declares any figure the registry has that `moves.dance` does not. */
+const run = (
+  source: string,
+  floorName = "pair",
+  registry: FigureRegistry = FIGURES,
+  extraMoves = "",
+): Schedule => {
+  const floor = standardFloor(floorName);
+  const dialect = treeDialect(floor);
+  const moves = parse(readDance("moves.dance") + extraMoves);
+  const { sequence, errors } = compileDance(source, floor, { registry, moves });
   expect(errors).toEqual([]);
   return schedule(sequence, dialect, T);
 };
@@ -109,7 +119,7 @@ describe("the fixture", () => {
 
 describe("errors", () => {
   it("reports an allemande once round in two beats as a rate violation", () => {
-    const s = run("partner = select(across)\nallemande(partner, right, 1, 2)");
+    const s = run("dance d($partner: Place) { allemande($partner, Right, beats = 2); }");
     expect(s.errors.map((e) => e.kind)).toContain("RateTooHigh");
   });
   it("reports a timing violation when entry and exit leave no body", () => {
@@ -125,17 +135,19 @@ describe("errors", () => {
         holds: [],
       },
     };
-    const s = run("partner = select(across)\nbow(partner)\ntight(partner)", PAIR, {
-      ...FIGURES,
-      tight,
-    });
+    const s = run(
+      "dance d($partner: Place) { bow($partner); tight($partner); }",
+      "pair",
+      { ...FIGURES, tight },
+      'move tight($partner: Place) { ir "tight"; }',
+    );
     expect(s.errors.map((e) => e.kind)).toContain("TimingViolation");
   });
 });
 
 describe("nobody", () => {
   it("stands the solo dancer for forty beats with no holds and no errors", () => {
-    const s = run(FIXTURE_PROGRAM, PAIR_SOLO);
+    const s = run(FIXTURE_PROGRAM, "solo");
     expect(s.errors).toEqual([]);
     const program = s.programs.lark!;
     expect(
@@ -162,10 +174,12 @@ describe("nobody", () => {
       casts: { partner: "elide" },
       elide: "stretch",
     };
-    const s = run("partner = select(across)\nshifty(partner)\nbow(partner)", PAIR_SOLO, {
-      ...FIGURES,
-      shifty,
-    });
+    const s = run(
+      "dance d($partner: Place) { shifty($partner); bow($partner); }",
+      "solo",
+      { ...FIGURES, shifty },
+      'move shifty($partner: Place) { ir "shifty"; }',
+    );
     expect(s.errors).toEqual([]);
     const calls = s.calls.lark ?? [];
     expect(calls.map((c) => c.call.figure.id)).toEqual(["bow"]);

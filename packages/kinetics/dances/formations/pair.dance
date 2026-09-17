@@ -1,0 +1,10 @@
+// Two dancers facing each other 0.8 m apart: the floor the vertical stack
+// was built on. Not a couple — nobody is on anybody's right — so each is
+// named after their place.
+
+formation pair() {
+  place lark role Lark at translate(x = -0.4m);
+  place robin role Robin at translate(x = 0.4m) rotate(180);
+  provide $partner: Place = other(me);
+  provide $role: Role = role(me);
+}

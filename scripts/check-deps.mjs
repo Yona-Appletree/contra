@@ -18,7 +18,8 @@ const PACKAGES = {
   hall: { dir: "packages/hall", allows: new Set(["core"]) },
   music: { dir: "packages/music", allows: new Set(["core"]) },
   // Engine 3 (D11): nothing lists `kinetics` in its own `allows`, on purpose.
-  kinetics: { dir: "packages/kinetics", allows: new Set(["core"]) },
+  // It draws its debugger's people with `hall`'s own passes (dance-language P6).
+  kinetics: { dir: "packages/kinetics", allows: new Set(["core", "hall"]) },
   "ui-design": { dir: "packages/ui-design", allows: new Set([]) },
   "ui-base": { dir: "packages/ui-base", allows: new Set(["ui-design"]) },
   web: {

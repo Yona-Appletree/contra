@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { PAIR_SOLO } from "./dialect/pair/Pair.js";
-import { FIXTURE_PROGRAM } from "./lang/fixture.js";
+import { loadMoves, readDance, standardFloor } from "./dances/load.js";
 import { run } from "./pipeline.js";
+
+const FIXTURE = readDance("fixture.dance");
+const opts = (floorName: string) => ({
+  floor: standardFloor(floorName),
+  moves: loadMoves(),
+  bpm: 112,
+});
 
 describe("run", () => {
   it("takes the fixture through every layer", () => {
-    const result = run(FIXTURE_PROGRAM, { bpm: 112 });
+    const result = run(FIXTURE, opts("pair"));
 
     // The proof's remaining red dots are the debugger's to show honestly (the
     // hip's acceleration where a walk starts, the solver's torso and head
@@ -26,14 +32,14 @@ describe("run", () => {
   });
 
   it("runs the solo dancer too", () => {
-    const result = run(FIXTURE_PROGRAM, { dialect: PAIR_SOLO, bpm: 112 });
+    const result = run(FIXTURE, opts("solo"));
     expect(result.errors).toEqual([]);
     expect(result.dialect.dancers).toHaveLength(1);
     expect(result.solved).toBeDefined();
   });
 
-  it("stops at a parse error with nothing after it", () => {
-    const result = run("bow(", { bpm: 112 });
+  it("stops at a syntax error with nothing after it", () => {
+    const result = run("dance d() { bow(", opts("pair"));
     expect(result.parseError?.stage).toBe("parse");
     expect(result.program).toBeUndefined();
     expect(result.sequence).toBeUndefined();
@@ -42,8 +48,28 @@ describe("run", () => {
     expect(result.errors).toHaveLength(1);
   });
 
+  it("reports what the checker minds, with a span, and still compiles the rest", () => {
+    const result = run(
+      "dance d($partner: Place) { allemande($partner, Robin); bow($partner); }",
+      opts("pair"),
+    );
+    expect(result.errors.map((e) => `${e.stage}: ${e.message}`)).toContain(
+      "check: Robin is not a Hand: Left, Right",
+    );
+    expect(result.errors.every((e) => e.stage !== "parse")).toBe(true);
+    expect(result.sequence).toBeDefined();
+  });
+
+  it("names a $ the floor does not provide", () => {
+    const result = run("dance d($neighbor: Place) { swing($neighbor); }", opts("pair"));
+    expect(result.errors.map((e) => e.message)).toContain("pair does not provide $neighbor");
+  });
+
   it("reports an allemande with no beats to turn in and still schedules what it can", () => {
-    const result = run("partner = select(across)\nallemande(partner, right, 1, 2)\n", { bpm: 112 });
+    const result = run(
+      "dance d($partner: Place) { allemande($partner, Right, beats = 2); }",
+      opts("pair"),
+    );
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.sequence).toBeDefined();
   });

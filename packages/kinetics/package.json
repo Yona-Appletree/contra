@@ -15,7 +15,8 @@
     "test:golden": "exit 0"
   },
   "dependencies": {
-    "@caller/core": "workspace:*"
+    "@caller/core": "workspace:*",
+    "@caller/hall": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.13.5",

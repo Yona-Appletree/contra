@@ -245,6 +245,14 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     f.facing = pose.facing;
   };
   const homeFacing = (d: DancerId): number => dialect.homeFacing?.(d) ?? poseOf(d).facing;
+  /**
+   * Home as it is **during this call**: the facing of the dancer's own place
+   * at that point of the dance. A couple that has crossed to the other line
+   * at an end faces the other way from where it started the evening, so the
+   * dialect's beat-0 answer is only the fallback.
+   */
+  const homeOf = (inst: Instance, d: DancerId): number =>
+    inst.calls.get(d)?.seatAfter.facing ?? homeFacing(d);
   const castOf = (inst: Instance, d: DancerId, role: Role): DancerId | undefined =>
     role === "self" ? d : inst.calls.get(d)?.cast[role];
 
@@ -358,7 +366,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     for (const clause of clauses) {
       if (clause.who !== "self") continue;
       if (clause.kind === "facing") {
-        if (clause.toward === "home") facing = homeFacing(d);
+        if (clause.toward === "home") facing = homeOf(inst, d);
         else {
           const other = castOf(inst, d, clause.toward);
           if (other) facing = bearing(p, poseOf(other).p);
@@ -383,7 +391,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         if (!side) continue;
         let mid = midpoint(me.p, poseOf(other).p);
         const f = clauses.some((c) => c.kind === "facing" && c.toward === "home")
-          ? homeFacing(d)
+          ? homeOf(inst, d)
           : facing;
         if (clause.centre === "left-seat") {
           // Move the centre along the home facing onto the left-hand dancer's seat line.
@@ -537,7 +545,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           for (const d of dancers) {
             const call = inst.calls.get(d) as CompiledCall;
             const me = poseOf(d);
-            const target: Pose = { p: call.seatAfter.p, facing: homeFacing(d) };
+            const target: Pose = { p: call.seatAfter.p, facing: call.seatAfter.facing };
             const lastWindow = span.to === to;
             const steps =
               planSteps(
