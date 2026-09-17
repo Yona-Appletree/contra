@@ -34,15 +34,17 @@ Runs, in order, and prints a one-screen summary of all five to stdout:
 
 0. **Its definition** — what the library says the figure _is_ (M2): its shape
    kind, its figure-roles, its actor rule, its anchor, its ends rule, its timing
-   profile and the holds it takes. A figure still reached through the legacy
-   bridge says so in one line, and everything below it measures the coded
-   figure; a figure written as data says which kind draws it, so a red run
-   points at either a definition or a shape kind and never at a figure's own
-   code, because a data figure has none. An id the library has not got at all
-   prints that instead of guessing.
+   profile and the holds it takes. It says which **kind** draws the figure, so
+   a red run points at either a definition or a shape kind and never at a
+   figure's own code, because a figure has none — M11 deleted the last one that
+   did. An id the library has not got at all prints that instead of guessing.
 1. **Its assertions** — every `figureChecks.ts` entry whose key is the figure
-   itself, or a `"prev → next"` seam key with it on either side (e.g.
-   `balance → swing` for `swing`) — pass/fail with the evidence line each.
+   itself, or a `"prev → next"` seam key with it on either side — pass/fail
+   with the evidence line each. The machinery that finds a seam group by the
+   ids in its key is still here; the one seam check there was,
+   `balance → swing`, went with the coded layer in M11 (it threaded two calls
+   on a hands-four, which is not how anything dances now) and rebuilding it
+   through resolution is owed.
 2. **Its motion row, alone** — the motion oracle over the figure by itself in
    a duple-improper group of four, and in becket too if any demo dance calls
    the figure from becket — against the library's current bounds, over-bound
@@ -56,12 +58,17 @@ Runs, in order, and prints a one-screen summary of all five to stdout:
    one), so the number says at a glance whether a definition is riding the
    profile it declares. A figure whose travel is not one leg — a figure that
    steps in, turns and steps out; a balance that rocks — reads higher or lower
-   than either, and the number is descriptive rather than a bound. It measures
-   **the definition**, unlike everything else in this section, which is still
-   the coded twin for every figure that has one; a definition that cannot be
-   planned over a whole minor set standing alone (the swing's anchor is `meet`,
-   which wants the two dancers resolution hands it) falls back to the coded
-   figure and the line says so.
+   than either, and the number is descriptive rather than a bound.
+
+   **What is measured is the definition**, and since M11 there is nothing else
+   to measure. A figure resolution mints one instance **per pair** — the swing's
+   anchor is `meet`, which wants the two dancers resolution hands it — is
+   planned pair by pair over the hands-four by `figures/onFour.ts`, which is
+   what the coded twin used to do for it. A figure that needs more of the set
+   than a minor set holds (a circulate, a long wave, a figure minted per
+   dancer) has no figure-alone row and no pace rows: it is measured in a dance,
+   in section 3.
+
 3. **Its oracles** — closure (AC5), reach (AC1) and collision (AC6) over the
    same dances, one time through each, pass/fail with the worst number.
 4. **Its pictures** — the figure's strip (the half-beat frames at 4×, the
@@ -92,11 +99,8 @@ the registry has and the library does not (`wait-out`, `walk-to-station`)
 simply has no section 0, and a figure the **library** has and the registry
 does not is still measurable: the lab interprets the definition itself.
 
-After M5 that is **every figure**, so section 0 is the usual first thing to
-read: if the geometry is wrong, the definition is where it is wrong.
-Six of them have no coded twin at all — `pull-by`, `grand-right-and-left`,
-`hey`, `mad-robin`, `shoulder-round` and `single-file-promenade` — and the lab
-measures those the same way, off the definition.
+That is **every figure**, so section 0 is the usual first thing to read: if the
+geometry is wrong, the definition is where it is wrong.
 
 `--chain <n>` is **gone** (A6). It measured one of `robins-chain`'s five
 courtesy-turn candidates against the shipped one; M4 makes the lark's orbit

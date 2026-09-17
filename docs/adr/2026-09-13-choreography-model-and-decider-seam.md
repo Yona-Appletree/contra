@@ -3,6 +3,16 @@
 Date: 2026-09-13
 Status: accepted
 
+**Superseded in part by
+[2026-09-15-figure-model-set-state-and-resolution.md](./2026-09-15-figure-model-set-state-and-resolution.md).**
+What stands: the four layers, the decider seam, the timeline, the oracles and
+the rendering contract. What does not: this ADR froze `Frame` and `FigureDef`
+to protect a figure library written as seventeen TypeScript closures, and that
+library was rebuilt as data and then deleted (M11, 2026-09-16/17, on the user's
+ruling). A contra figure is a `FigureDefinition` read by an interpreter now,
+and `@caller/choreo`'s script decider takes an optional, form-neutral
+`CyclePlanner` that the contra planner supplies.
+
 ## Context
 
 The simulator has to do four things that pull in different directions. It

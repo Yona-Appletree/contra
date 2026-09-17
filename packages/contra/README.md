@@ -130,14 +130,16 @@ stations: every dancer, the waiting couple included, is **half** a couple place
 back along their own line and slides in. That is `Dance.startPlaces`; see
 `@caller/choreo`'s README.
 
-Becket's closure is proved the same way duple improper's is, by a sequence in
-`src/figures/sequences.ts` that the script decider dances: everything in it
-returns to the places it started on, and `slide-left` at the end is the
-progression. It closes to 3.4 × 10⁻¹⁴ px at every line length from four
-couples to twelve. (M7 could not write that fixture, because the engine's
-placeholder figure maps a station of a group on to a station of the _same_
-group and a becket couple's progression takes it out of its group frame
-entirely — which is what `slide-left` is for.)
+Becket's closure is proved the same way duple improper's is: by the dances
+themselves. `dances.test.ts` runs every record in `data/dances/` through the
+three oracles at every line length its formation is checked at, and Butter is
+the becket case — it progresses in its own first figure and closes to 0.0000 px
+at 4, 5, 6, 7, 8, 9, 10 and 12 couples.
+
+The two **synthetic** sequences that used to carry this claim (`sequences.ts`)
+went with the coded layer in M11: they were written as coded figure calls
+threaded by `chainCalls`, and the dances they stood in for now cover every
+formation the library serves.
 
 ### `"shadow-pair"` and `"line"` (M2)
 
@@ -191,11 +193,11 @@ becket nor duple improper ever builds one, so nothing in the corpus reaches it.
 
 ## The hub — `src/set/` and `src/library/`
 
-The figure model's middle layer (`docs/adr/2026-09-15-figure-model-set-state-and-resolution.md`).
-It is being built beside the coded figure library below, not instead of it: M1
-stands the hub up and proves it dances the ten demo dances **pose-identical** to
-the old path with every coded figure bridged, and the figures move over to it one
-at a time after that.
+The figure model's middle layer (`docs/adr/2026-09-15-figure-model-set-state-and-resolution.md`),
+and since M11 the only one. It was built beside the coded figure library: M1
+stood the hub up and proved it danced the ten demo dances **pose-identical** to
+the old path with every coded figure bridged, the figures moved over one at a
+time, and M11 deleted the layer they moved off.
 
 ### Set state — `src/set/SetModel.ts`
 
@@ -286,8 +288,8 @@ array, a tag the formation defines — and now also a **relation word**
 (`who: "N2"`). An instance is a `Group` whose stations are figure-roles, which
 is what leaves `FigureEvent`, `poseAt`, the oracles and the renderer untouched.
 
-Four actor rules so far. `"all"` is the legacy bridge's: one instance per minor
-set over everybody the call selected. `"pairs"` makes an instance per pair, the
+Four actor rules so far. `"all"` is one instance per minor set over everybody
+the call selected — the carriers', and what the legacy bridge used to be. `"pairs"` makes an instance per pair, the
 pairs named by `params.pairs` — a relation word resolved against the live set,
 or the station pairs a dance record writes today (`[["1L","2L"]]`, "larks
 allemande left") — and everybody the pairing leaves out dances hold-place, which
@@ -340,7 +342,8 @@ each instance's honest ends.
 Since M3 the app runs this planner: `?engine=new` is the Stage's default and
 `?engine=old` is the decider's own `defaultCyclePlanner`, kept reachable until
 M11. `planCycle.golden.test.ts` is the proof that the two agree — on
-`legacyCyclePlanner`, the all-bridged planner, which is what AC1 is about.
+`legacyCyclePlanner`, the all-bridged planner AC1 was about, which M11 deleted
+with the bridge.
 
 **Where a time through starts** is `ContraCyclePlannerOptions.start`. `"standing"`
 — the default, and M3's deliberate switch — picks every dancer up where the last
@@ -348,8 +351,8 @@ figure really left them, so a figure's honest end survives the cycle boundary
 instead of everyone snapping back on to their station between one time through
 and the next. `"first-places"` restarts from `Dance.startPlaces` or the
 formation's stations, which is what `chainCalls` does and therefore what a
-planner being compared against `chainCalls` has to do; `legacyCyclePlanner`
-keeps it.
+planner being compared against `chainCalls` had to do; it went with
+`legacyCyclePlanner` as the default that is left.
 
 ### The library — `src/library/`
 
@@ -357,11 +360,11 @@ keeps it.
 rule, a parameter spec, a shape, holds, an ends rule, a timing profile and a
 nominal count. Every definition survives `JSON.parse(JSON.stringify(def))`.
 
-`{ kind: "legacy", figure }` is the **legacy bridge**, which wraps a coded
-`ContraFigure` as a definition whose figure-roles are the hands-four station ids
-and whose anchor is the formation's own minor-set frame. A figure leaves the
-bridge when it is rewritten as data; by M11 the bridge is empty and
-`src/library/legacy.ts` is deleted.
+There was a `{ kind: "legacy", figure }` shape — the **legacy bridge**, which
+wrapped a coded `ContraFigure` as a definition whose figure-roles were the
+hands-four station ids and whose anchor was the formation's own minor-set frame.
+A figure left the bridge when it was rewritten as data; M11 deleted the last
+coded figure, `src/library/legacy.ts` and the shape kind together.
 
 **The shape kinds** are implemented once each in `src/library/kinds/`, and no
 figure has code of its own:
@@ -411,11 +414,22 @@ _draws_ and the library holds what a figure _is_; `poseAt` resolves a figure by
 (`src/library/engine.ts`) builds the consistent pair, and `planCycle` refuses a
 mismatch by name rather than planning one figure and drawing another.
 
-## The figure library — `src/figures/`
+## The figures — `src/library/figures/`
 
-Every figure the demo's dances call, on `@caller/choreo`'s `FigureDef` and
-`Group` contract, plus the registry a decider dances from
-(`createContraRegistry()`).
+Every figure the corpus calls, each a `FigureDefinition` read as data and
+interpreted into the `ContraFigure` the timeline samples, plus the registry a
+decider dances from (`createContraRegistry()`).
+
+**There is no coded figure layer.** It used to be seventeen TypeScript closures
+under `src/figures/`, and M11 deleted them on the user's ruling — _"yes, you can
+delete the old code, please do, it'll live on in git."_
+[`docs/figure-layer-retirement.md`](../../docs/figure-layer-retirement.md) is
+the map of what each of them became. What is left in `src/figures/` is the
+**contract** a definition is interpreted into (`ContraFigure.ts`), the geometry
+the shape kinds share (`pairing.ts`, `ring.ts`, `courtesyTurn.ts`), the dance
+record's own types (`chain.ts`), the registry, and the lab
+(`figureChecks.ts`, `figureLab.ts`, `motionBounds.ts`, `reportMotion.ts`,
+`testing.ts`, `onFour.ts`).
 
 ### The table
 
@@ -472,19 +486,16 @@ where the dancers already stand (below); the defaults given are the rest.
 | `custom`                     | 8     | the call's own `text`          | `text` `""` — **data**, no coded twin, `actors: "each"`: an unencoded line of a transcript, danced as a stand with the hands down. Zero beats allowed. What `corpus/importCallersBox.ts` writes every Caller's Box line as                                                           |
 | `wait-out`                   | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                                                                                                                                                                             |
 
-A figure marked **data** is a `FigureDefinition` in `src/library/figures/`; its
-row above is the coded figure it replaced, which stays in this directory until
-M11 deletes it and is what the per-figure golden holds it to. After M5 that is
-**every figure**, and `src/figures/hey.ts` is the first coded figure actually
-**deleted**: the hey's own gate ran against it and its numbers are frozen in
-`library/figures/heyWeaveGolden.ts`, which the definition is still held to.
-`endHalf` is gone from the swing and the allemande: a gatherer reads its end
-spacing off the formation rather than guessing it.
-
-Four rows say **no coded twin**: M6's two travellers, M5's hey (whose twin was
-deleted with the milestone) and M5's three new figures. Those are the ones
-`dataOnlyFigureIds()` names, and the ones `createContraRegistry()` seeds from
-the library so that everything which draws a figure can find them.
+Every figure is **data**: a `FigureDefinition` in `src/library/figures/`. The
+rows that say _"no coded twin"_ never had one; the rest replaced a coded figure
+of the same id, and what holds each of them to that figure is a **recorded
+fixture** — the coded figure sampled once before M11 deleted it, every case,
+both formations, from the stations and displaced, at every 1/8 beat, committed
+as `src/library/figures/fixtures/<id>.json` and never regenerated. The hey was
+the first, a milestone early: its weave is frozen in
+`library/figures/heyWeaveGolden.ts` in the same spirit. `endHalf` is gone from
+the swing and the allemande: a gatherer reads its end spacing off the formation
+rather than guessing it.
 
 The eleven M4 migrated are the **carriers** — they leave people wherever their
 own shape put them, where the five M2 migrated are **gatherers** and settle on
@@ -607,22 +618,14 @@ Nothing in the library needs a declared contact: even a swinging pair stays
 further apart than AC6's distance, so the sequences check every pair with no
 exemption at all.
 
-### The sequences — `src/figures/sequences.ts`
+### The sequences — deleted (M11)
 
-Two dances the script decider dances, one per formation, which is where AC5
-lives:
-
-- **duple improper** — circle left ¾, swing your partner; long lines, robins
-  chain; star left half, do-si-do; balance and swing your neighbour. The star
-  goes **half** way round: the brief that asked for this sequence does not say
-  how far, and the dance only progresses for that answer, because the neighbour
-  swing at the end is the identity on places from a becket-like arrangement.
-- **becket** — circle left once, long lines; right and left through, and back;
-  star right once, star left once; balance and swing your partner, slide left.
-  Everything but the slide returns to the places it started on, and the slide is
-  becket's progression.
-
-Closure, reach and collisions over eight times through, at every line length:
+Two synthetic dances, one per formation, used to carry AC5 — everything in them
+returned to the places it started on and the progression was the last figure.
+They were written as coded figure calls threaded by `chainCalls`, so they went
+with the coded layer. What they measured, the real dances measure: closure,
+reach and collisions over eight times through, at every line length, over every
+record in `data/dances/`. Their last numbers, for the record:
 
 | formation      | couples | closure        | `short` | min torso distance |
 | -------------- | ------- | -------------- | ------- | ------------------ |
@@ -803,144 +806,33 @@ Two of those are worth calling out as _structural_, not merely unwritten:
 group, and a `Group` is one minor set. A figure over a bigger frame — a hall
 figure, or a group of eight — is a model change, not another file in here.
 
-## The pair figures — `src/pair/`
+## The pair figures — deleted (M11)
 
-The five figures the gate-3 two-dancers spike settled, plus the fall back that
-closes its sequence, as parameterised definitions over `@caller/core`'s pose
-contract. Behaviour was read from `spikes/two-dancers/index.html` and retyped;
-production code never imports from `spikes/`.
+`src/pair/` was the two-dancer engine behind `#/pair`: five figures the gate-3
+two-dancers spike settled, plus the fall back that closed its sequence, as
+parameterised definitions over `@caller/core`'s pose contract. It was gate G1's
+artifact, and it went with the coded layer on the user's ruling. Its page, its
+three goldens and its nine strips went with it.
 
-This is the **pair page's own model**, and it stays: the G1 goldens and the
-nine per-figure strips are pixel comparisons against exactly this code, so
-nothing in it has changed. What M8 added is `src/figures/`, the library on
-`@caller/choreo`'s group contract — the same dancing, on the engine's terms.
-Where a number was settled at gate 3 the library **imports it from here**
-rather than restating it: the swing's radius, lateral offset, body turn, hand
-drop, back and shoulder hands, lean, flare and buzz feet; the balance's rock
-profile, back ratio and lean cap; the allemande's turn radius; the trapezoid
-speed profile. Four of those are now `@caller/core`'s own and are re-exported
-from here under the names both layers already import — the hanging hand
-(`handDown`), the trapezoid profile, the swing's buzz feet (`swingFeet`) and the
-`armShortfall` probe; nothing about them is contra, and a second copy is the
-only way the two swings could ever put a foot in a different place.
-
-The package exports these six under `pair`-prefixed names — `pairBalance`,
-`pairSwing`, `pairAllemande`, `pairDoSiDo`, `pairWalkIn`, `pairFallBack` —
-because the library exports a `balance` and a `swing` of its own, and those are
-the ones a dance calls.
-
-### The contract
-
-```ts
-interface FigureDef<P extends object> {
-  readonly id: string;
-  readonly call: string;
-  readonly lead: Beat;
-  readonly beats: Beat;
-  readonly params: readonly (keyof P & string)[];
-  readonly defaults: P;
-  beatsOf?(params: P): Beat;
-  sample(frame: PairFrame, role: PairRole, t: Beat, params: P): PoseSample;
-}
-```
-
-`sample` computes **both** dancers from the frame and returns the one asked
-for, so a joined hand is literally one floor point that both roles carry —
-not two points that agree to a tolerance. `pairCall(def, frame, params)` binds
-a figure to a frame and erases `P`, which is what a sequence holds.
-
-### The figures
-
-| id          | beats | parameters (defaults)                                      | what it does                                                                                                                                   |
-| ----------- | ----- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `walk-in`   | 4     | none                                                       | From the lines, `LINE_OFFSET_PX` further apart, in to the hold; the take is animated over the last beat and a bit.                             |
-| `balance`   | 4     | `rock` 1.0 px, `takeHands` false                           | Rock forward then back with two hands joined, feet planted. `takeHands` is for a balance that follows a figure with the hands down.            |
-| `swing`     | 8     | `turns` 2, `handOffset` 5 px, `beats` 8, `endFacing` null  | Ballroom hold, buzz step, open out with the lark on the left. `handOffset` is how far in from the joined shoulders the outstretched hands sit. |
-| `allemande` | 8     | `hand` `"L"`, `amount` 1, `inward` 45°, `startFacing` null | One hand at the centre; each body turns `inward` degrees toward that centre so the arm has something to pull against.                          |
-| `do-si-do`  | 8     | none                                                       | Round back to back with the hands down and the facing kept; only the head follows.                                                             |
-| `fall-back` | 8     | `release` true                                             | Let the hands go and walk back to the lines.                                                                                                   |
-
-`endFacing` and `startFacing` default to `null`, which means "take it from the
-frame": a swing ends on the line its turning stopped on, and an allemande
-starts facing across the pair, which is where a swing leaves it. That default
-is what makes swing → allemande close exactly.
-
-### Tuning numbers, and where they came from
-
-Everything below is a figure parameter or a module constant in this package.
-**No rendering-contract number was changed**: shoulders are still 11 px, reach
-15, hold spacing 14, lines 18 further, 4 cm per px, and the spike's 10.4 px
-shoulders were not restored.
-
-- **`balance.rock` is 1.0 px**, where the spike rocked 1.3. The back rock is
-  `BALANCE_BACK_RATIO = 1.4 / 1.3` times it, the spike's own asymmetry. The
-  pose's `lean` is capped at `BALANCE_LEAN_CAP = 1.0` px.
-- **`HEAD_LEAN_FOLLOW` in `@caller/hall` is 0.5**, where the spike drew 0.8.
-  Together with the smaller rock this moves a balancing dancer's head 2.4 px
-  forward of their standing place instead of 3.0, so at the closest point of a
-  balance the two head centres are 9.2 px apart instead of 8.0 — a gap of
-  3.4 px between a 2.9 px skull and its partner's, where the spike had 2.2 px
-  (2.8 and 1.6 for the wider `bob` and `curly` heads). Gate G1 question 2.
-- **`swing.handOffset` is 5 px** and **`allemande.inward` is 45°**, the two
-  gate-3 tweaks, now parameters. The allemande's was 20° at gate G1 and the
-  user rejected it — "the torso should be rotated towards the other person so
-  the arm is angled _forward_ not back" — so 45° is F1's answer. `handForwardAngle`
-  measures it: the joined hand stays 70° forward of the shoulder line for the
-  whole of the turn, against 43.2° at 20°.
-
-### The invariants these hold
-
-Every figure's test walks it at every eighth of a beat and asserts
-`solveArm(...).short === 0` for both dancers (plan AC1), solving the arms
-exactly as `@caller/hall` does: body position quantised, shoulders hung off
-the swayed torso. `armShortfall` and `worstShortfall` are exported so M8's
-figures can use the same probe.
-
-`DEMO_PAIR_SEQUENCE` is the spike's 64 beats. Its test asserts AC1 over the
-whole loop, that each figure's end pose is the next figure's start pose within
-0.01 px (`poseGap`), and that a hand pair within the renderer's
-`JOIN_EPSILON_PX` is the same point and the same height unless a take or a
-release is in flight through that band.
-
-`poseGap` deliberately ignores `stepRate` and `amp`. Both are rates rather
-than positions, and at a figure boundary — where every figure here is
-momentarily still and the step phase is exactly zero, because every figure
-starts on a whole beat — neither moves a pixel.
-
-### Deliberate differences from the spike
-
-- **Hanging hands are explicit.** A figure emits a real `Hand` for a hand at
-  the dancer's side rather than `'down'`, because `easeSeam` cannot
-  interpolate `'down'` (it switches at the midpoint of the seam) and because
-  every take and release has to animate out of somewhere. `handDown` **is**
-  `@caller/core`'s `hangingHand` — F3a moved the resting-arm model down into
-  `core`, so this package no longer keeps its own copy of the `HAND_HANG_*`
-  numbers and there is nothing left for the two copies to disagree about.
-- **The arm swing starts and ends at zero.** The spike's `walk-in` opened with
-  the arms already swinging while `fall-back` closed with them still, so the
-  hanging hands jumped up to 0.8 px at three seams and the seam ease hid it.
-  Ramping the swing in over the first 0.4 beats and out before the end closes
-  those seams exactly.
-- **`fall-back`'s weight shift tapers out** over its last beat, for the same
-  reason, and is measured from the figure's own beat rather than the dance's.
-- **The swing fades its sway out instead of cutting it.** `core`'s `buzz` is a
-  boolean that replaces the feet outright, so the swing keeps `buzz: false`,
-  places its own feet (walking cross-faded into the buzz step, as the spike
-  did) and uses `amp` to fade the torso sway out as the buzz comes in.
-- **Both dancers flare.** The spike gave the skirt flare to the robin only;
-  flare comes from turning, so both get it — a skirt is decided by a dancer's
-  seed and never by their role. Invisible on any surface the renderer's
-  `skirts` option is off for, which is everything but the Stage.
+The numbers settled at gate 3 did **not** go, because the library imported them
+rather than restating them. They are where their one reader is now: the swing's
+radius, lateral offset, body turn, hand drop, back and shoulder hands, lean and
+flare in `library/figures/swing.ts`; the balance's rock profile, back ratio and
+lean cap in `library/kinds/rock.ts`; the allemande's turn radius in
+`library/figures/allemande.ts`. The four that are `@caller/core`'s — the hanging
+hand (`handDown`), the trapezoid speed profile, the buzz feet (`swingFeet`) and
+the `armShortfall` probe — are imported from `core` directly; `pair/` had been
+re-exporting them since M2, and nothing about any of them is contra.
 
 ## The figure library as data — `src/library/`
 
 A figure **is** data. A `FigureDefinition` says what a figure is — its actors,
 its figure-roles, the anchor its shape is drawn about, that shape, its holds,
 where it leaves people, its timing and its symmetries — and a **shape kind** in
-`src/library/kinds/` draws it. `interpretDefinition(def)` returns the same
-`ContraFigure` `contraFigure({ plan })` returns, so a definition and a coded
-figure are the same thing to the registry, the decider, `chainCalls`, the three
-oracles and the renderer. See
+`src/library/kinds/` draws it. `interpretDefinition(def)` returns a
+`ContraFigure` — the same thing `contraFigure({ plan })` returns — so the
+registry, the decider, the three oracles and the renderer all see one kind of
+figure and none of them knows a definition from anything else. See
 [`docs/adr/2026-09-14-figure-primitive-language.md`](../../docs/adr/2026-09-14-figure-primitive-language.md)
 for why the calculus is an expression language rather than flat JSON.
 
@@ -955,9 +847,10 @@ against that — rather than a template.
   `PointExpr` and their evaluators), re-targeted from stations on to
   figure-roles in M2.
 - `library/FigureDefinition.ts` is the data shape, and `library/kinds/` the
-  seven shapes that draw one: `rock`, `orbitPair` and `sequence` (M2),
-  `ringWalk`, `path` and `courtesyTurn` (M4), and the `legacy` bridge that is
-  down to the hey.
+  eleven shapes that draw one: `rock`, `orbitPair` and `sequence` (M2),
+  `ringWalk`, `path` and `courtesyTurn` (M4), `schedule` (M5), `waypoints`,
+  `lineWalk`, `unit` and `wave` (M6-M8). The `legacy` bridge that stood beside
+  them went with the coded layer in M11.
 - `library/figures/` holds the definitions themselves, and
   `library/symmetry.ts` the `mirror` and `roleSwap` transforms that make a
   circle right the mirror image of a circle left rather than a second figure.

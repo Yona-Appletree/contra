@@ -17,6 +17,12 @@ in full here — see the roadmap plan for the exact wording each was written
 against); this file exists to state, for each, what the shipped code
 actually measures today.
 
+**A second roadmap's criteria follow them.** The figure-model plan
+(`2026-09-14-2040-figure-model`) has seven of its own, AC1–AC7, and they are
+not the ten above; M11 re-measured them and they are the last section of this
+file. Where the two numbering schemes collide, the section heading says which
+plan it belongs to.
+
 ## AC1 — hands meet by construction and never over-stretch
 
 **Max `short` across every demo dance, at every line length its formation is
@@ -200,3 +206,151 @@ minutes there, that is noted as future work per the checklist, not
 optimised here — but a 26.6 s local uncached run makes a CI runner north of
 10 minutes unlikely absent a very different bottleneck (network, runner
 contention) than anything this repository's own task graph creates.
+
+---
+
+# The figure-model plan's AC1–AC7 — as measured (M11)
+
+A different roadmap's criteria: `2026-09-14-2040-figure-model`, which replaced
+the whole contra figure layer with set state, resolution and figures as data,
+and whose last milestone deleted the coded layer. Measured on
+`fm-m11-retirement`, on this agent's own machine — arm64 macOS 26.5.0
+(`Darwin Kernel Version 25.5.0`, `T6020`), Node v25.2.1 — at the branch head
+this file was committed with. This agent does not watch CI.
+
+## AC1 (figure model) — the demo dances are pose-identical through the hub
+
+**Measured at M1 and true until M11: 0 diff at 1e-9 px, 1e-9° and hands
+identical**, over the ten demo dances the old path could thread, at every line
+length their formations are checked at, two times through, every dancer, at
+every 1/8 beat — plus the three oracle reports and `coverageProblems` empty on
+both sides. `planCycle.golden.test.ts` asserted it on every run from M1 until
+this milestone.
+
+**It cannot be re-measured, and that is not a failure.** Both sides of the
+comparison were the coded layer: the contra planner with **every figure
+bridged** against the decider's own planner over the **coded** registry. The
+user ruled the coded layer could go, so there is nothing left to put on either
+side. The claim it made — that resolution against set state reproduces
+`chainCalls` when the figures are the same figures — is what the whole plan was
+built on, and it was true every day the two paths both existed.
+
+**What stands in its place, at AC1's own tolerance:** `planCycle.golden.test.ts`
+is now the **deletion's own proof that nothing moved**. Every demo dance, at
+every line length its formation is checked at, every dancer, on every beat of
+two times through, compared against the poses the same code produced at
+`3f44e4d` — the last commit that still held the coded layer — at **1e-9 px and
+1e-9°**, with `timeline.dancers()` asserted in its own order. **87 cases, 0
+diff.** `packages/contra/src/set/danceGolden.ts` says why at length.
+
+## AC2 (figure model) — Butter's `endHalf` override is gone
+
+**Gone, and the dance closes without it.** `swingDefinition.params` declares
+`{ pairs, turns, handOffset, endFacing }` and no `endHalf`; the coded swing's
+own defaults had one, which `library/figures/swing.test.ts` still asserts off
+the recorded fixture. `pnpm dance butter`, at **every** becket line length
+(4, 5, 6, 7, 8, 9, 10, 12 couples):
+
+- closure **pass, worst 0.0000 px** (AC5's 0.01 px)
+- `progressed` **0.0000 px**
+- reach **pass, worst short 0.0000 px** (AC1's 0 short)
+- collision **pass, closest 8.500 px** (AC6's 8 px)
+- coverage **pass**
+
+The mechanism is the one M2 predicted: the data swing reads its end spacing off
+the formation's own places instead of guessing, so the override has nothing left
+to correct.
+
+## AC3 (figure model) — every migrated figure matches its coded predecessor
+
+**Every per-figure golden passes, against a recorded fixture rather than a live
+coded figure.** Each coded figure was sampled once at `3f44e4d`, before the
+deletion — every parameter case, both formations, from the stations and
+displaced, every station, at every 1/8 beat, at full float precision — and
+committed as `packages/contra/src/library/figures/fixtures/<id>.json`. Sixteen
+files, 10 MB, written once and never regenerated: the recorder went with the
+figures it recorded.
+
+- **The five gatherers** (`balance`, `balance-ring`, `swing`,
+  `balance-and-swing`, `allemande`) — DD21's tolerance, 0.01 px and 0.1°, from
+  the stations, with **no** allowed difference but `"feet"` (M10's planted gait,
+  which the coded twin was deliberately not retrofitted with). Displaced, the
+  honest end is allowed to differ and what is asserted instead is its positive
+  form: **`home` < 1e-9 px** — a gatherer leaves people _on_ the places.
+- **The swing** is the exception the user ruled on at G1: **1 px and 1°**
+  (DD13 — _"seems kinda intense. maybe like 1px?"_), where DD21 had proposed
+  0.01/0.1. It is a ceiling, not a target; the measured worst is far under it.
+- **The eleven carriers** (`circle`, `star`, `long-lines`, `do-si-do`,
+  `pass-through`, `petronella`, `california-twirl`, `right-and-left-through`,
+  `robins-chain`, `roll-away`, `slide-left`) — no allowed difference in either
+  half, and nine of them declare exactly how far M10's cruise moved them
+  (position 3.0278 px, facing 12.24°, both **ends exactly 0**). Two agree with
+  their predecessor to the **last bit**: `expect(worst.position).toBe(0)`, which
+  is why the fixtures are not rounded.
+- **The hey** has been held to a frozen weave since M5, when its own coded twin
+  was deleted: `library/figures/heyWeaveGolden.ts`, every dancer's place and
+  facing at every half beat, measured against the live coded figure at
+  `c853767^` at **0.0000 px and 0.0000° over 9 312 pose comparisons**.
+
+`pnpm --filter @caller/contra test src/library/figures/`: **376 passed**.
+
+## AC4 (figure model) — the acceptance dances dance
+
+`pnpm dance <slug>` over the acceptance set (eleven dances; Jeremy Corners is
+parked — DD81, the Caller's Box marks it deprecated and the user: _"this dance
+is nuts"_):
+
+| dance                | `pnpm dance`                                                    |
+| -------------------- | --------------------------------------------------------------- |
+| Butter               | **green**                                                       |
+| Whoosh               | **green**                                                       |
+| Chorus Jig           | **green**                                                       |
+| The Nice Combination | **green**                                                       |
+| Are You 'Most Done?  | **green**                                                       |
+| On the Prowl         | **green**                                                       |
+| A Rare Bird          | **green**                                                       |
+| Anna's Reel          | FAIL — collision 4.091 px, and motion on `balance-wave-of-four` |
+| Contrablend          | FAIL                                                            |
+| The Set Monster      | FAIL                                                            |
+| Fatal Attraction     | FAIL                                                            |
+| Jeremy Corners       | FAIL — parked (DD81)                                            |
+
+The five that fail are exactly the five records with `"status": "lab"`, and each
+one's own `notes` field names the thing it fails on, measured, from before this
+milestone: Anna's Reel's numbers after the deletion — `collision 4.0915 px`,
+`balance-wave-of-four` elbow 225.0, elbow/hand 49.19×, travel 26.3, `allemande`
+elbow/hand 21.10×, travel 25.4 — are **identical in every digit** to the ones
+its record already recorded, which is the evidence that the deletion moved
+nothing. Four of the five are being finished in the user's own session (DD83).
+
+The **sixteen programme dances** are green at every checked line length:
+`dances.test.ts`, and `pnpm --filter @caller/contra test` is 1 792 passed.
+
+## AC5 (figure model) — no `describe` or seam-specific hand work remains
+
+**This milestone.** Deleted: the seventeen coded figures, `ContraFigure`'s
+seventeen closures, `chain.ts`'s `chainCalls` threading of them, `pairing.ts`'s
+place in the figure path, `balance-and-swing.ts`'s splice, `swing.ts`'s
+`placeHalf` as a figure's own code, `sequences.ts`, the whole `pair/` package
+and `#/pair`, the legacy bridge (`library/legacy.ts` and the `legacy` shape
+kind), `legacyCyclePlanner`, and the old engine's route into the app. **71
+files, 7 296 lines.** `docs/figure-layer-retirement.md` is the map.
+
+The hall's goldens: see the regeneration note in the pull request — the 134
+pictures held back from #93 were rewritten once here, and nothing else moved
+but the one strip this machine rewrites on a clean `main`.
+
+## AC6 (figure model) — a translator can encode a dance from the docs alone
+
+`docs/dance-record.md` and `docs/dance-lab.md` both exist; the record doc ends
+in a thirteen-step translator's checklist. The dry run's verdict is in the
+milestone's `_DONE.md`.
+
+## AC7 (figure model) — `@caller/choreo` stays form-neutral
+
+**`square.test.ts` passes unchanged in meaning**, on the decider's own default
+planner: a square still knows no `ones`, no `shadow` and no progression, and
+`@caller/choreo`'s 227 tests pass. `pnpm check:deps`: _all import edges are
+allowed_. Not one contra word crossed the seam in the whole plan — relations,
+slots, the lattice and resolution are all in `@caller/contra`, and what choreo
+gained is one additive, form-neutral `ScriptDeciderOptions.cycle`.

@@ -7,27 +7,45 @@ start with
 
 ## Where code goes
 
-| Kind of code                                                                       | Package / path                        | Filename                                 |
-| ---------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------- |
-| Clock, pose sample, arm solver, stacking, seam easing, style                       | `packages/core/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
-| The resting arm: where a `'down'` hand hangs, the elbow pole, the drawn arm points | `packages/core/src/kinematics/`       | `drawnArms.ts`                           |
-| Formation, group, figure def, progression, timeline, decider                       | `packages/choreo/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Contra role set, contra figures, contra dances                                     | `packages/contra/src/`                | `<Name>.ts`, co-located `<Name>.test.ts` |
-| A figure written as **data** (a `FigureSpec`), not code                            | `packages/contra/src/figures/specs/`  | `<name>Spec.ts`, co-located test         |
-| A dance written as **data**, loaded by `packages/contra/src/dances/`               | `data/dances/`                        | `<slug>.json`, plus `programme.json`     |
-| A figure's texts as **data**, loaded by `packages/contra/src/text/`                | `data/figures/`                       | `<figure-id>.json`                       |
-| The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts` |
-| Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts` |
-| A tune as **data**: key, melody lines, hand chord chart, arrangement               | `packages/music/src/tunes/`           | `<tuneName>.ts` via `defineTune`         |
-| The harmoniser: draft charts, chord plausibility                                   | `packages/music/src/chords/`          | `harmonise.ts`, co-located test          |
-| Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`             | `theme.css`                              |
-| Primitive component (no app knowledge)                                             | `packages/ui-base/src/components/ui/` | `<name>.tsx` (shadcn layout)             |
-| App screens, layout, routing, composition root                                     | `apps/web/src/`                       | `<Name>.tsx`                             |
-| Full-tree stories                                                                  | `apps/storybook/src/`                 | `<Name>.stories.tsx`                     |
-| Visual spikes (never imported by production code)                                  | `spikes/<name>/`                      | `index.html` + vendored assets           |
+| Kind of code                                                                       | Package / path                         | Filename                                             |
+| ---------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| Clock, pose sample, arm solver, stacking, seam easing, style                       | `packages/core/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The resting arm: where a `'down'` hand hangs, the elbow pole, the drawn arm points | `packages/core/src/kinematics/`        | `drawnArms.ts`                                       |
+| Formation, group, figure def, progression, timeline, decider                       | `packages/choreo/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Contra role set, contra formations, contra dances                                  | `packages/contra/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Set state and resolution: the lattice, relations, `resolveCall`, the cycle planner | `packages/contra/src/set/`             | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The figure library: the definition type, the shape kinds and the interpreter       | `packages/contra/src/library/`         | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| **One figure, written as data** (a `FigureDefinition`)                             | `packages/contra/src/library/figures/` | `<figure-id>.ts`, co-located test                    |
+| A dance written as **data**, loaded by `packages/contra/src/dances/`               | `data/dances/`                         | `<slug>.json` with a `status`, plus `programme.json` |
+| A figure's texts as **data**, loaded by `packages/contra/src/text/`                | `data/figures/`                        | `<figure-id>.json`                                   |
+| The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| A tune as **data**: key, melody lines, hand chord chart, arrangement               | `packages/music/src/tunes/`            | `<tuneName>.ts` via `defineTune`                     |
+| The harmoniser: draft charts, chord plausibility                                   | `packages/music/src/chords/`           | `harmonise.ts`, co-located test                      |
+| Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`              | `theme.css`                                          |
+| Primitive component (no app knowledge)                                             | `packages/ui-base/src/components/ui/`  | `<name>.tsx` (shadcn layout)                         |
+| App screens, layout, routing, composition root                                     | `apps/web/src/`                        | `<Name>.tsx`                                         |
+| Full-tree stories                                                                  | `apps/storybook/src/`                  | `<Name>.stories.tsx`                                 |
+| Visual spikes (never imported by production code)                                  | `spikes/<name>/`                       | `index.html` + vendored assets                       |
 
 A package may keep a local file at any layer when it needs one; the table
 names the default home, not a prohibition.
+
+**There is no coded figure layer.** Seventeen contra figures used to be
+TypeScript closures under `packages/contra/src/figures/`; M11 deleted them on
+the user's ruling ("yes, you can delete the old code, please do, it'll live on
+in git"), and `docs/figure-layer-retirement.md` is the map of what each of them
+became. A new figure is a `FigureDefinition` in `library/figures/<id>.ts`, a
+row in `packages/contra/README.md`'s table, and a `data/figures/<id>.json` of
+texts — never a function that draws. What is left in `figures/` is the
+**contract** every definition is interpreted into (`ContraFigure`) and the
+geometry the kinds share; `figures/onFour.ts` is what lets the lab run one of
+them alone on a minor set.
+
+A dance's `status` decides where it is danced: `"lab"` is a record being worked
+on, reachable at `#/lab/dance/<slug>` and by `pnpm dance <slug>`, and
+`programme.json` is the evening the demo shows — so the Stage never draws a
+dance that does not dance.
 
 ## The dependency rule
 
@@ -122,6 +140,35 @@ pnpm --filter @caller/<pkg> test
 pnpm --filter @caller/web build && ls apps/web/dist/spikes/hall/index.html
 pnpm fix                       # prettier + eslint --fix
 ```
+
+### The lab is the oracle
+
+Two commands, and they are the inner loop for anything that touches a figure or
+a dance. Neither is a test you run at the end: they print what the code does,
+in one screen, and exit non-zero when it is wrong.
+
+```bash
+pnpm dance <slug>              # one dance: resolution, the oracles at every checked
+                               # line length, end effects, the motion rows, a strip
+pnpm figure <id>               # one figure: its checks, its pace, its strip and pen
+```
+
+`pnpm dance` is what says whether a record resolves and dances
+([docs/dance-lab.md](./docs/dance-lab.md)); `pnpm figure` is what says whether a
+definition does what its `describe` claims
+([docs/figure-lab.md](./docs/figure-lab.md)). **A number either of them prints
+is worth more than a number a probe prints** (director debt 11): the probe runs
+a figure on a bare group of four, the lab runs it where a dance puts it.
+`docs/motion-report.md` is `pnpm report:motion`'s output over the whole library
+and is regenerated, never hand-edited.
+
+### Pictures for the user
+
+Screenshots and strips a person is going to look at are framed at **the Stage's
+2× zoom**: the whole pair or the whole minor set with a margin, a Stage-size
+frame magnified ×2 nearest-neighbour at most, under 0.8 MB. The user, 2026-09-17:
+_"2x zoom is great. I almost never need more than that."_ A ×6 crop of one
+dancer was unreadable to him — more zoom is less picture, not more detail.
 
 CI (`ci.yml`, job `CI`) runs `pnpm validate` on every pull request and on
 `main`. `main-push.yml` runs on push to `main`: it tags the commit
