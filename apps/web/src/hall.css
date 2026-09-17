@@ -411,18 +411,104 @@
 }
 
 /*
- * The tune's name over the interim notation sheet, in the spike's tune-box
- * caption (`.tunebox-head .cap`). P5 replaces the sheet with the box and this
- * with its "THE TUNE" caption; until then the Stage borrows nothing from
- * `@caller/music`'s card, which AC6 says has left this page.
+ * ---------------------------------------------------------------------------
+ * P5: the tune box, from the spike's "The tune box" block (`.tunebox*`,
+ * `.spuds`), round 2's ruling 3B: "a separate box for the tune... grow a
+ * dropdown to change it. clicking into the music should take you there in the
+ * tune, too, with move-level granularity."
+ *
+ * The spike's values verbatim, with two renamings: its `.spuds` is
+ * `.potatoes` here (the page calls them what the band calls them everywhere
+ * else — `POTATO_BEATS`, `potatoCount`, `hall-potatoes`), and its short
+ * notation classes (`.lab`, `.mv`, `.hit`) are `@caller/music`'s own
+ * `caller-music-*` ones, because the marks are drawn by the package now (D7)
+ * rather than by a spike that owned its whole SVG.
+ * ---------------------------------------------------------------------------
  */
-.stage-tune-caption {
-  display: block;
-  padding: 0.125rem 0.375rem 0.25rem;
+
+/* The cursor's orange, shared by the bar the music is on and the call being
+   danced under it. Declared here as well as on `.caller-music-notation` so
+   anything else the box grows can reach for it by name. */
+.tunebox {
+  --cursor: #b45309;
+}
+
+.tunebox-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem 0.35rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--card-foreground) 14%, transparent);
+}
+
+.tunebox-head .cap {
   font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   opacity: 0.55;
+  white-space: nowrap;
+}
+
+.tunebox select {
+  height: 26px;
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 25%, transparent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0 6px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 50%;
+}
+
+.tunebox-notation {
+  min-width: 0;
+  padding: 0.35rem 0.5rem 0.4rem;
+}
+
+/*
+ * The potatoes: four pixel spuds at the tune box's top right, lit one a beat
+ * as the band counts the dance in (AC9). `--primary` is the theme's gold, so
+ * a lit potato is the same colour as the play glyph in the band below.
+ */
+.potatoes {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.potatoes svg {
+  width: 22px;
+  height: auto;
+  shape-rendering: crispEdges;
+  opacity: 0.28;
+  transition: opacity 80ms;
+}
+
+.potatoes svg.lit {
+  opacity: 1;
+}
+
+.potatoes svg.now {
+  transform: scale(1.18);
+}
+
+.potatoes .p-line {
+  fill: #4a2f1a;
+}
+
+.potatoes .p-body {
+  fill: #c08a48;
+}
+
+.potatoes .p-eye {
+  fill: #7a5028;
+}
+
+.potatoes svg.lit .p-body {
+  fill: var(--primary);
 }
 
 /*
@@ -741,7 +827,19 @@
   opacity: 0.6;
 }
 
-/* The tune, drawn by abcjs: fit the column and mark the current bar. */
+/*
+ * The tune, drawn by abcjs: fit the column and mark the current bar.
+ *
+ * `--cursor` is the spike's own `#b45309`, named rather than repeated because
+ * two different marks are "where the music is": the bar the cursor is on, and
+ * the call being danced under it (P5). They have to be the same orange or the
+ * box reads as having two cursors, and the only way to keep two colours equal
+ * is to have one.
+ */
+.caller-music-notation {
+  --cursor: #b45309;
+}
+
 .caller-music-notation svg {
   display: block;
   width: 100%;
@@ -750,8 +848,56 @@
 }
 
 .caller-music-notation .caller-music-current-measure {
-  fill: #b45309;
-  stroke: #b45309;
+  fill: var(--cursor);
+  stroke: var(--cursor);
+}
+
+/*
+ * What `Notation` draws over the notes when the page asks for it (D7): the
+ * phrase letter at the left of each stave, the calls under the bars they take,
+ * the hairline where one call gives way to the next, and an invisible hit rect
+ * per bar. The spike's `.lab` / `.mv` / `.mvtick` / `.hit` values, unchanged.
+ */
+.caller-music-stave-label {
+  font:
+    600 9px system-ui,
+    sans-serif;
+  fill: currentColor;
+  opacity: 0.55;
+}
+
+.caller-music-stave-label.current {
+  opacity: 1;
+}
+
+.caller-music-caption {
+  font:
+    7px system-ui,
+    sans-serif;
+  fill: currentColor;
+  opacity: 0.5;
+  letter-spacing: 0.02em;
+}
+
+.caller-music-caption.current {
+  opacity: 1;
+  font-weight: 600;
+  fill: var(--cursor);
+}
+
+.caller-music-caption-tick {
+  stroke: currentColor;
+  stroke-width: 0.4;
+  opacity: 0.35;
+}
+
+.caller-music-bar-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.caller-music-bar-hit:hover {
+  fill: color-mix(in oklab, currentColor 6%, transparent);
 }
 
 /*

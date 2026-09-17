@@ -31,8 +31,13 @@ their own and are reached by URL or by a link on the page above them.
   - `seed=<n>` pins the seed for the evening's medley shuffle (T1); without
     it the seed is derived from the UTC date, so the shuffle differs day to
     day and a seeded URL still reproduces one evening exactly.
-  - `tune=<slug>` pins every dance to one medley instead of the seeded
-    shuffle (the tune select's own "shuffle" choice is the default).
+  - `tune=<slug>` pins the music. A **medley** slug (`reel-set`, `kesh-set`)
+    pins every dance to that set instead of the seeded shuffle, which is what
+    the Tunes tab's "appears in" links write (`#/?tune=<set>`). A **tune** slug
+    (`soldiers-joy`, `kesh-jig`) pins that one tune: to the dance the URL names
+    (`#/dance/butter?tune=kesh-jig`), or to every dance on a bare `#/`, which
+    is "this tune all evening". The tune box's select writes the same
+    parameter as it pins, so the address bar always says what is sounding.
   - `engine=<new|old>` (M3) picks which engine the hall dances on. **`new` is
     the default**: the contra `CyclePlanner` resolving every call against live
     set state, with the five migrated gatherers read as `FigureDefinition`s.

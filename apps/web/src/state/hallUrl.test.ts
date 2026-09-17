@@ -1,7 +1,8 @@
 import { DEMO_DANCES } from "@caller/contra";
+import { medleys, tunes } from "@caller/music";
 import { describe, expect, it } from "vitest";
 import { lineUpStartBeat } from "../program.js";
-import { MAX_LINES, MIN_LINES, readLines, readSeed, startBeatFor } from "./hallUrl.js";
+import { MAX_LINES, MIN_LINES, readLines, readSeed, readTunePin, startBeatFor } from "./hallUrl.js";
 
 describe("readLines", () => {
   it("is two lines — the shipped hall — with no ?lines= at all", () => {
@@ -86,5 +87,37 @@ describe("startBeatFor", () => {
   it("still honours an explicit ?beat=, dance or no dance", () => {
     expect(startBeatFor(undefined, new URLSearchParams("beat=8"))).toBe(8);
     expect(startBeatFor("butter", new URLSearchParams("beat=8"))).toBe(8);
+  });
+});
+
+/**
+ * P5, Q2: `?tune=` names either a bundled **tune** (pin that dance) or a
+ * **medley** (pin the evening, which is what it has always meant and what the
+ * Tunes tab's set links still write).
+ */
+describe("readTunePin", () => {
+  it("reads a bundled tune's slug as a tune pin", () => {
+    expect(readTunePin("soldiers-joy", tunes, medleys)).toEqual({
+      kind: "tune",
+      slug: "soldiers-joy",
+    });
+  });
+
+  it("reads a medley's slug as a medley pin — the Tunes tab's own #/?tune=<set>", () => {
+    expect(readTunePin("reel-set", tunes, medleys)).toEqual({ kind: "medley", slug: "reel-set" });
+    expect(readTunePin("kesh-set", tunes, medleys)).toEqual({ kind: "medley", slug: "kesh-set" });
+  });
+
+  it("is nothing at all for nonsense, an empty value or no parameter", () => {
+    expect(readTunePin("nonsense", tunes, medleys)).toBeUndefined();
+    expect(readTunePin("", tunes, medleys)).toBeUndefined();
+    expect(readTunePin(undefined, tunes, medleys)).toBeUndefined();
+    // "shuffle" is the page's own sentinel, not something either list holds.
+    expect(readTunePin("shuffle", tunes, medleys)).toBeUndefined();
+  });
+
+  it("prefers a tune when a slug is in both lists — the select is what writes it", () => {
+    const pin = readTunePin("both", [{ slug: "both" }], [{ slug: "both" }]);
+    expect(pin).toEqual({ kind: "tune", slug: "both" });
   });
 });

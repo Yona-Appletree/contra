@@ -67,12 +67,14 @@ export async function matchGolden(file: string, actual: Buffer): Promise<void> {
 /** Open the front page frozen at one beat and one zoom, and wait for it to draw. */
 export async function openHall(
   page: Page,
-  query: { dance?: string; beat?: number; zoom?: number; couples?: number } = {},
+  query: { dance?: string; beat?: number; zoom?: number; couples?: number; tune?: string } = {},
 ): Promise<void> {
   const params = new URLSearchParams();
   if (query.beat !== undefined) params.set("beat", String(query.beat));
   if (query.zoom !== undefined) params.set("zoom", String(query.zoom));
   if (query.couples !== undefined) params.set("couples", String(query.couples));
+  // A tune slug pins that tune; a medley slug pins the evening's set (P5, Q2).
+  if (query.tune !== undefined) params.set("tune", query.tune);
   const path = query.dance === undefined ? "#/" : `#/dance/${query.dance}`;
   await page.goto(`${path}?${params.toString()}`);
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");

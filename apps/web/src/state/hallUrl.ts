@@ -18,6 +18,36 @@ export function readHallRoute(path: string, params: URLSearchParams): HallRoute 
   };
 }
 
+/** What a `?tune=<slug>` on the Stage turns out to name. */
+export type TunePin =
+  /** A bundled tune: pin it to one dance (or, on a bare `#/`, to the evening). */
+  | { kind: "tune"; slug: string }
+  /** A medley: pin the evening to that set, which is what `?tune=` has always meant. */
+  | { kind: "medley"; slug: string };
+
+/**
+ * Read `?tune=<slug>` as either a tune or a medley (Q2: "yes, both").
+ *
+ * `?tune=` shipped meaning a **medley** — the Tunes tab still links
+ * `#/?tune=<set>` for "play this set all evening" — and P5 gives the Stage a
+ * select of individual tunes that writes the same parameter. The two
+ * namespaces are disjoint in fact (`soldiers-joy` is a tune, `reel-set` is a
+ * set) but nothing enforces it, so the order is written down rather than left
+ * to chance: a tune slug wins, because that is the one the select can produce.
+ * Anything that is neither is nothing at all — a stale or hand-typed link
+ * falls back to the evening's own seeded shuffle rather than to an error.
+ */
+export function readTunePin(
+  raw: string | undefined,
+  tunes: readonly { slug: string }[],
+  medleys: readonly { slug: string }[],
+): TunePin | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  if (tunes.some((tune) => tune.slug === raw)) return { kind: "tune", slug: raw };
+  if (medleys.some((medley) => medley.slug === raw)) return { kind: "medley", slug: raw };
+  return undefined;
+}
+
 /**
  * The beat the Stage should start its clock at (U4, the user: "when you
  * select a new dance it starts immediately... it should start with the

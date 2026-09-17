@@ -1,3 +1,4 @@
+import { tunes } from "@caller/music";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { HallPage } from "./hall.js";
@@ -112,8 +113,50 @@ describe("HallPage (P4: the notecard)", () => {
   it("no longer puts @caller/music's Card on the Stage", () => {
     const html = render();
     expect(html).not.toContain("caller-music-card");
-    // The tune's own notation is still there until P5 moves it into its box.
+    // The tune's own notation is in the tune box now (P5), under the notecard.
     expect(html).toContain('data-testid="hall-notation"');
+  });
+});
+
+/**
+ * P5: the tune box under the notecard (AC8, AC9). A static render proves the
+ * markup — the select, its options and the potatoes — which is all of the box
+ * that does not need abcjs's own geometry; the labels, the captions and the
+ * bar clicks are drawn from `getBBox` and are `hall.spec.ts`'s to prove.
+ */
+describe("HallPage (P5: the tune box)", () => {
+  const render = (params = "beat=0"): string =>
+    renderToStaticMarkup(
+      <HallPage dance="airpants" tune={undefined} params={new URLSearchParams(params)} />,
+    );
+
+  it("renders the tune box with a native select of every bundled tune", () => {
+    const html = render();
+    expect(html).toMatch(/<select[^>]*data-testid="hall-tune-select"/);
+    const box = html.slice(html.indexOf('data-testid="hall-tune-select"'));
+    const options = [...box.slice(0, box.indexOf("</select>")).matchAll(/<option /g)];
+    expect(options).toHaveLength(tunes.length);
+  });
+
+  it("puts the notation inside the box, where the cursor test still finds it", () => {
+    const html = render();
+    expect(html).toContain('class="tunebox-notation" data-testid="hall-notation"');
+    // The interim sheet's own caption is gone: the select is the readout now.
+    expect(html).not.toContain("stage-tune-caption");
+  });
+
+  it("shows four potatoes, none of them lit while the hall is dancing", () => {
+    const html = render();
+    expect(html).toMatch(/data-testid="hall-potatoes"[^>]*data-lit="0"/);
+    const box = html.slice(html.indexOf('data-testid="hall-potatoes"'));
+    expect([...box.slice(0, box.indexOf("</span>")).matchAll(/viewBox="0 0 10 8"/g)]).toHaveLength(
+      4,
+    );
+  });
+
+  it("lights the second potato on the second beat of a count-in", () => {
+    // Dance 1's four potatoes are beats 168–172; 169.5 is inside the second.
+    expect(render("beat=169.5")).toMatch(/data-testid="hall-potatoes"[^>]*data-lit="2"/);
   });
 });
 
@@ -130,11 +173,18 @@ describe("HallPage (U4: the control bar)", () => {
     expect(html).toMatch(/<select[^>]*data-testid="hall-dance-select"/);
   });
 
-  it("the tune and zoom selectors are gone", () => {
+  it("the zoom selector is gone, and the tune select is not in the bar", () => {
     const html = render();
-    expect(html).not.toContain('data-testid="hall-tune-select"');
     expect(html).not.toContain('data-testid="hall-zoom-auto"');
     expect(html).not.toContain('data-testid="hall-zoom-4"');
+    // U4 took the tune *set* selector out of the control bar and P5 did not
+    // put it back: the select the page has now is the tune box's own, in the
+    // aside, and it picks one tune for one dance rather than the evening's
+    // medley. So the assertion is where it is, not that it does not exist.
+    const bar = html.slice(html.indexOf('data-testid="hall-controls"'));
+    expect(bar.slice(0, bar.indexOf('data-testid="hall-trails"'))).not.toContain(
+      'data-testid="hall-tune-select"',
+    );
   });
 
   it("the tempo readout has a fixed width, so its digits changing width cannot reflow the bar", () => {

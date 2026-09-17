@@ -662,7 +662,11 @@ test("?zoom= still sizes the canvas directly, with no selector left in the bar",
 
   await expect(page.getByTestId("hall-zoom-4")).toHaveCount(0);
   await expect(page.getByTestId("hall-zoom-auto")).toHaveCount(0);
-  await expect(page.getByTestId("hall-tune-select")).toHaveCount(0);
+  // The tune *set* selector U4 removed is still gone from the bar. The select
+  // the page has now is P5's, in the tune box, and it picks one tune for one
+  // dance rather than the evening's medley — so what is asserted is that the
+  // control row has none of its own.
+  await expect(page.getByTestId("hall-controls").getByRole("combobox")).toHaveCount(1);
 });
 
 /**
@@ -701,6 +705,7 @@ declare global {
       beat: () => number;
       musicOn: () => boolean;
       potatoes: () => number;
+      tune: () => string;
       paused: () => boolean;
       muted: () => boolean;
       gain: () => number | null;
@@ -739,4 +744,137 @@ test("the notation's cursor follows the music beat, and waits on bar 1 through t
   expect(waiting.length).toBeGreaterThan(0);
   for (const c of waiting) expect(c).toMatch(/abcjs-l0\b/);
   for (const c of waiting) expect(c).toMatch(/abcjs-m0\b/);
+});
+
+/**
+ * P5, AC8: the tune box's select pins one tune to one dance for the visit and
+ * writes it to the URL, and a URL that already has one pins it on arrival.
+ *
+ * The evening's tune comes from a seeded shuffle that differs day to day, so
+ * the pick is whichever bundled tune is *not* the one already sounding — what
+ * is being proved is that picking changes the tune, not which tune the shuffle
+ * happened to deal.
+ */
+test("the tune select pins a tune to this dance, and writes it to the URL (AC8)", async ({
+  page,
+}) => {
+  await openHall(page, { dance: FIRST_DANCE, beat: 0, zoom: 2 });
+  const select = page.getByTestId("hall-tune-select");
+  expect(await select.evaluate((el) => el.tagName)).toBe("SELECT");
+
+  const sounding = await page.evaluate(() => window.hallDemo?.tune());
+  const pick = sounding === "soldiers-joy" ? "kesh-jig" : "soldiers-joy";
+  await select.selectOption(pick);
+
+  await expect.poll(() => page.evaluate(() => window.hallDemo?.tune())).toBe(pick);
+  await expect(select).toHaveValue(pick);
+  await expect(page).toHaveURL(new RegExp(`tune=${pick}`));
+
+  // And that URL, loaded fresh, opens on the pinned tune.
+  await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await expect(page.getByTestId("hall-tune-select")).toHaveValue(pick);
+  expect(await page.evaluate(() => window.hallDemo?.tune())).toBe(pick);
+});
+
+/**
+ * Q2: `?tune=` still takes a **medley** and still means "this set all evening"
+ * — the Tunes tab links `#/?tune=<set>` and those links keep working. The box
+ * shows the set's first tune, and the URL keeps naming the set rather than
+ * being rewritten to the tune it happens to be on.
+ */
+test("?tune=<medley> still pins the evening's set (AC8, Q2)", async ({ page }) => {
+  await openHall(page, { beat: 0, zoom: 2, tune: "reel-set" });
+  await expect(page.getByTestId("hall-tune-select")).toHaveValue("soldiers-joy");
+  expect(await page.evaluate(() => window.hallDemo?.tune())).toBe("soldiers-joy");
+  await expect(page).toHaveURL(/tune=reel-set/);
+});
+
+/**
+ * AC8's "the band switches to it without losing the beat": the jukebox's own
+ * move (`load`, then `play` at the clock's current beat), so the tune changes
+ * where the dance stands instead of restarting it.
+ */
+test("picking a tune while the band plays keeps the beat (AC8)", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await page.evaluate(() => window.hallDemo?.seek(0));
+  await page.getByTestId("hall-play").click();
+  await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
+    timeout: 20_000,
+  });
+
+  const before = await page.evaluate(() => ({
+    beat: window.hallDemo?.beat() ?? 0,
+    tune: window.hallDemo?.tune(),
+    at: performance.now(),
+  }));
+  const pick = before.tune === "soldiers-joy" ? "kesh-jig" : "soldiers-joy";
+  await page.getByTestId("hall-tune-select").selectOption(pick);
+  await expect.poll(() => page.evaluate(() => window.hallDemo?.tune())).toBe(pick);
+
+  // The band is still on, and the beat went on counting from where it was
+  // rather than starting the dance again: at 112 bpm wall time predicts the
+  // advance, and two beats of slack covers the load and the re-`play`.
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(true);
+  const after = await page.evaluate(() => ({
+    beat: window.hallDemo?.beat() ?? 0,
+    at: performance.now(),
+  }));
+  const predicted = ((after.at - before.at) / 1000) * (112 / 60);
+  expect(after.beat - before.beat).toBeGreaterThan(0);
+  expect(after.beat - before.beat).toBeLessThan(predicted + 2);
+});
+
+/**
+ * AC8's notation: a stave is a phrase, so the phrase letter sits at its left
+ * and the dance's calls are written under the bars they take, the one being
+ * danced in the cursor's own orange. Drawn from the rendered SVG's `getBBox`
+ * (D7), which is why this is an e2e and not a unit test.
+ */
+test("the tune box labels the staves and writes the calls under the bars (AC8)", async ({
+  page,
+}) => {
+  await openHall(page, { dance: FIRST_DANCE, beat: 3, zoom: 2 });
+  const notation = page.locator('[data-testid="hall-notation"]');
+
+  await expect(notation.locator(".caller-music-stave-label")).toHaveText(["A1", "A2", "B1", "B2"]);
+  // Airpants' six calls, one caption each; at beat 3 the hall is in A1's
+  // balance and swing, so exactly that one is the current one.
+  await expect(notation.locator(".caller-music-caption")).toHaveCount(6);
+  await expect(notation.locator(".caller-music-caption.current")).toHaveCount(1);
+  await expect(notation.locator(".caller-music-caption.current")).toContainText("NEIGHBOR");
+});
+
+/**
+ * AC8's click-to-seek: "clicking into the music should take you there in the
+ * tune, too, with move-level granularity" (round 2). A2's sixth bar is cycle
+ * beat 26, which is inside the robins' allemande — so the evening goes to the
+ * allemande's own start at 24, not to the bar.
+ */
+test("clicking a bar seeks to the start of the move that bar is in (AC8)", async ({ page }) => {
+  await openHall(page, { dance: FIRST_DANCE, zoom: 2 });
+  await page.evaluate(() => window.hallDemo?.seek(3));
+  await page
+    .locator('[data-testid="hall-notation"] .caller-music-bar-hit[data-line="1"][data-measure="5"]')
+    .click();
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(24, 0);
+});
+
+/**
+ * AC9: the four potatoes are dim except during a count-in, where one lights a
+ * beat. Dance 1's own count-in is beats 168–172 (`danceStartBeat(1)` is 168).
+ */
+test("the potatoes light one a beat as the band counts a dance in (AC9)", async ({ page }) => {
+  const lit = async (beat: number): Promise<string | null> => {
+    await openHall(page, { dance: FIRST_DANCE, beat, zoom: 2 });
+    return await page.getByTestId("hall-potatoes").getAttribute("data-lit");
+  };
+
+  expect(await lit(168.5)).toBe("1");
+  expect(await lit(169.5)).toBe("2");
+  expect(await lit(171.9)).toBe("4");
+  // Nothing lit while the hall is dancing.
+  expect(await lit(100)).toBe("0");
 });
