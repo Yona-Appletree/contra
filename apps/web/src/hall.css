@@ -23,7 +23,8 @@
  */
 .caller-stage-strip {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   /* The page sets this to the hall's own wall colour; the renderer's backdrop
      is the fallback, for anything that draws before the palette is read. */
   background: var(--stage-backdrop, #0c0a09);
@@ -36,7 +37,7 @@
 }
 
 /*
- * U3: the canvas's own box, so the speaker button can sit at a corner of it
+ * U3: the canvas's own box, so the mute chip can sit at a corner of it
  * rather than of the strip — the strip runs edge to edge on a phone (U1) and
  * is wider than the canvas at every zoom but 1×, where the two agree.
  */
@@ -47,34 +48,32 @@
 }
 
 /*
- * The stage's own buttons (U3's speaker, U4's reset): overlaid on the stage's
- * bottom-left corner rather than labelled buttons in the control row below.
- * Bottom-left, not bottom-right — the snack table and its two sitters
- * (`layoutHall`'s `table`) sit in the bottom-right of every hall, and the
- * bottom-left has only the sparser chair line behind it.
+ * P3: the stage's one overlaid control, the mute chip, at the top-right. The
+ * play control that used to sit on the canvas is the transport's ▶ in the band
+ * below now, and U4's reset is |◀◀ — so the dancers have their floor back and
+ * the one thing left on the wall is the thing that is *not* a transport.
  */
-.stage-buttons {
+.caller-stage-corner {
   position: absolute;
-  left: 6px;
-  bottom: 6px;
-  display: flex;
-  gap: 6px;
+  right: 4px;
+  top: 4px;
 }
 
 /*
  * A thumb-sized hit area (44 px, above the 40 px the brief asks) on a chip
  * dark enough to read the ink-coloured icon against whatever the floor is
- * doing underneath it, on any theme. The reset button (U4) shares this exact
- * face — same size, same hit area — so the two read as one family of
- * controls rather than two different designs bolted together.
+ * doing underneath it, on any theme. The Stage's mute chip is the same face at
+ * the spike's `.pixbtn.xs` size — 32 px with a 16 px glyph — because it is a
+ * setting rather than the thing you press to start.
  */
 .speaker-button,
-.reset-button {
+.stage-mute-button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
+  padding: 0;
   border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent);
   border-radius: 2px;
   background: color-mix(in oklab, black 55%, transparent);
@@ -82,21 +81,97 @@
 }
 
 .speaker-button svg,
-.reset-button svg {
+.stage-mute-button svg {
   width: 22px;
   height: auto;
   shape-rendering: crispEdges;
 }
 
+.speaker-button:active,
+.stage-mute-button:active {
+  background: color-mix(in oklab, black 75%, transparent);
+}
+
+.stage-mute-button {
+  width: 32px;
+  height: 32px;
+}
+
+.stage-mute-button svg {
+  width: 16px;
+}
+
 .speaker-body,
-.speaker-mute,
-.reset-triangle {
+.speaker-mute {
   fill: var(--foreground);
 }
 
-.speaker-waves,
-.reset-bar {
+.speaker-waves {
   fill: var(--primary);
+}
+
+/*
+ * The transport band: the five glyphs centred in the strip's own colour under
+ * the hall (the spike's `.stagebar.bare`). Its height — 44 px of hit area with
+ * 6 px above and 7 below — is `TRANSPORT_BAND_PX` in `hall.tsx`, which the
+ * auto-zoom subtracts from the window so the strip still clears the fold (D9).
+ */
+.caller-stage-band {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0 7px;
+}
+
+/*
+ * Bare: no chip, no border, a wider hit area than the glyph needs. The glyph
+ * is 39 px tall — the 11-row grid at 3 px a unit — and the outline layer's
+ * stroke lives in the one unit of viewBox padding around it.
+ */
+.transport-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.transport-button svg {
+  height: 39px;
+  width: auto;
+  shape-rendering: crispEdges;
+}
+
+.transport-button:active svg {
+  opacity: 0.6;
+}
+
+.transport-fill rect {
+  fill: var(--foreground);
+}
+
+/* The stop bars are the accent in every glyph; ▶ is the accent all over. */
+.transport-fill .gold,
+.transport-button-accent .transport-fill rect {
+  fill: var(--primary);
+}
+
+/*
+ * Round 3's outline: the same rects stroked two units wide and drawn *under*
+ * the fill, so only the outer unit of the stroke ever shows. Without it the
+ * ink-coloured glyphs sit too close to the wall's own value to read.
+ */
+.transport-outline rect {
+  fill: none;
+  stroke: oklch(0.15 0.02 55 / 0.45);
+  stroke-width: 2;
 }
 
 /*

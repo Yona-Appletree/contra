@@ -25,14 +25,54 @@ describe("HallPage (U3: the diagrams leave the Stage)", () => {
     expect(html).toContain('href="#/dances/airpants"');
   });
 
-  it("draws the speaker icon on the stage instead of a labelled play button", () => {
+  it("draws a pixel play glyph on the stage instead of a labelled play button", () => {
     const html = renderToStaticMarkup(
       <HallPage dance="airpants" tune={undefined} params={new URLSearchParams("beat=0")} />,
     );
     expect(html).toContain('data-testid="hall-play"');
-    expect(html).toContain("Play music");
+    // P3: the play control is the transport's ▶, named "Play"/"Pause" (D5) —
+    // the speaker that said "Play music" is the Tunes tab's button now.
+    expect(html).toContain('aria-label="Play"');
+    expect(html).not.toContain("Play music");
     // The control row keeps no button of its own with the old text.
     expect(html).not.toContain(">Play<");
+  });
+});
+
+/**
+ * P3: the Stage's chrome is the transport band under the hall and the mute chip
+ * on it — the speaker and the reset button are gone from this page.
+ */
+describe("HallPage (P3: the transport and the mute chip)", () => {
+  const render = (params = "beat=0"): string =>
+    renderToStaticMarkup(
+      <HallPage dance="airpants" tune={undefined} params={new URLSearchParams(params)} />,
+    );
+
+  it("renders all five transport controls", () => {
+    const html = render();
+    for (const id of [
+      "hall-prev-dance",
+      "hall-prev-move",
+      "hall-play",
+      "hall-next-move",
+      "hall-next-dance",
+    ]) {
+      expect(html).toContain(`data-testid="${id}"`);
+    }
+  });
+
+  it("renders the mute chip, unmuted, with its own accessible name", () => {
+    const html = render();
+    expect(html).toMatch(/data-testid="hall-mute"[^>]*aria-pressed="false"/);
+    expect(html).toContain("Mute the band");
+  });
+
+  it("no longer renders the reset button or the stage speaker", () => {
+    const html = render();
+    expect(html).not.toContain('data-testid="hall-reset"');
+    expect(html).not.toContain("Restart this dance");
+    expect(html).not.toContain('class="speaker-button"');
   });
 });
 
@@ -54,12 +94,6 @@ describe("HallPage (U4: the control bar)", () => {
     expect(html).not.toContain('data-testid="hall-tune-select"');
     expect(html).not.toContain('data-testid="hall-zoom-auto"');
     expect(html).not.toContain('data-testid="hall-zoom-4"');
-  });
-
-  it("the reset control sits beside the speaker, with its own accessible name", () => {
-    const html = render();
-    expect(html).toContain('data-testid="hall-reset"');
-    expect(html).toContain("Restart this dance");
   });
 
   it("the tempo readout has a fixed width, so its digits changing width cannot reflow the bar", () => {

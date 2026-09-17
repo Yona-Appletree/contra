@@ -18,8 +18,8 @@ import type { Medley, Player, Tune } from "@caller/music";
 import { Card, Notation, createPlayer, medleys, tunes } from "@caller/music";
 import type { CSSProperties, JSX } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ResetButton } from "../ResetButton.js";
-import { SpeakerButton } from "../SpeakerButton.js";
+import { MuteButton } from "../MuteButton.js";
+import { TransportBand } from "../TransportBand.js";
 import { cardDance } from "../danceCard.js";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
@@ -42,6 +42,8 @@ import {
 } from "../program.js";
 import { engineFromQuery, otherEngine } from "../state/engineQuery.js";
 import { engineHash, readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
+import { readMuted, writeMuted } from "../state/muted.js";
+import { nextDance, nextMove, prevDance, prevMove } from "../transport.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -66,12 +68,20 @@ const CARD_MIN_PX = 420;
 const COLUMN_GAP_PX = 24;
 
 /**
- * What sits above and below the hall in the window's own height: the tab bar,
- * the control bar and the gaps between them. "Auto" fits the hall in what is
- * left, so the thing you press play with is never below the fold — a hall two
- * screenfuls tall is not a bigger hall, it is a hall you have to scroll.
+ * The height of the transport band under the canvas: a 44 px hit area with the
+ * spike's own 6 px above and 7 px below (`.stagebar.bare`).
  */
-const HALL_CHROME_PX = 72;
+const TRANSPORT_BAND_PX = 57;
+
+/**
+ * What sits above and below the hall in the window's own height: the tab bar,
+ * the control bar, the transport band in the strip and the gaps between them.
+ * "Auto" fits the hall in what is left, so the thing you press play with is
+ * never below the fold — a hall two screenfuls tall is not a bigger hall, it
+ * is a hall you have to scroll. P3 put the transport *inside* the strip, so
+ * the band's own height joined the chrome the zoom has to leave room for (D9).
+ */
+const HALL_CHROME_PX = 72 + TRANSPORT_BAND_PX;
 
 /**
  * How wide the caller's bubble may get, in characters.
@@ -179,6 +189,11 @@ export function HallPage({
   const medleySlug = routeTune ?? SHUFFLE_MEDLEY;
   const [tempo, setTempo] = useState(112);
   const [playing, setPlaying] = useState(false);
+  // Whether the band is turned down, remembered on its own key across visits
+  // (AC4). Not pause: a muted player keeps running at gain 0, so the hall goes
+  // on dancing on a beat that is still a linear function of
+  // `AudioContext.currentTime`. Picking a dance does not touch it (A2).
+  const [muted, setMuted] = useState(readMuted);
   // Zoom is automatic (U4: "no size selector. its fine on auto") — the only
   // way to pick a fixed zoom now is the URL, for deep links and goldens.
   const zoomChoice = useMemo<"auto" | number>(() => zoomFrom(params.get("zoom")), [params]);
@@ -266,6 +281,15 @@ export function HallPage({
   const musicOnRef = useRef(false);
   /** True while the page wants a tune, whether or not one is sounding. */
   const wantsMusicRef = useRef(false);
+  /**
+   * True while ▮▮ is holding the evening still (A1, D3).
+   *
+   * Distinct from `!playing`: before the first ▶ the page is not playing
+   * either, and the hall is dancing anyway on the silent clock (the attract
+   * mode). Only a real pause sets this, and it is what makes a seek land
+   * frozen at its target rather than running on from it.
+   */
+  const pausedRef = useRef(false);
   useEffect(() => {
     clockRef.current = silent;
     musicOnRef.current = false;
@@ -336,26 +360,6 @@ export function HallPage({
   );
 
   /**
-   * The reset control (U4): return the dance now playing to the start of its
-   * own line-up, exactly where a fresh selection of it starts (requirement
-   * 6) — not to its dancing beat 0.
-   *
-   * Unlike picking a *different* dance from the bar, this does not rotate
-   * `danceOrder` or rebuild `program`, so there is no fresh clock for the
-   * `[silent]` effect above to seed: `goSilent` rewinds the current one
-   * directly, exactly as a seek does. The item that announces the dance at
-   * `position.index` is the one before it in programme order — the same
-   * arithmetic `lineUpStartBeat` uses for a freshly picked dance, aimed at
-   * whichever dance is current instead of always at index 0.
-   */
-  const resetToLineUp = useCallback((): void => {
-    const idx = positionAt(program, beatNow()).index;
-    const at = lineUpStartBeat(program.dances.length, idx);
-    goSilent(at);
-    setBeat(at);
-  }, [program, beatNow, goSilent]);
-
-  /**
    * Start the next tune, optionally `potatoBeats` of potatoes ahead of it.
    *
    * With potatoes the tune's own buffers are scheduled *now* and start four
@@ -392,6 +396,31 @@ export function HallPage({
     musicOnRef.current = true;
     previousRef.current = undefined;
   }, []);
+
+  /**
+   * Jump the evening to a beat, on whichever clock belongs there (D3).
+   *
+   * The same rule `hallDemo.seek` has always used — with the band on, a target
+   * inside a dance goes through `goMusic`, which re-plays the tune from there
+   * and keeps the beat a linear function of `AudioContext.currentTime` (AC3);
+   * a target in a line-up hands back to the silent clock, because a line-up is
+   * silent. The two things P3 adds: a paused evening stays paused (`goSilent`
+   * resumes the silent clock, so the freeze is re-applied after it), and the
+   * React state that draws the card follows the jump immediately rather than
+   * on the frame loop's next quarter-beat.
+   *
+   * Playing state is untouched: seeking is not starting or stopping the band.
+   */
+  const seekTo = useCallback(
+    (to: Beat): void => {
+      const musicBeat = wantsMusicRef.current ? musicBeatOf(to) : null;
+      if (musicBeat === null) goSilent(to);
+      else goMusic(musicBeat);
+      if (pausedRef.current) silent.pause();
+      setBeat(to);
+    },
+    [goMusic, goSilent, silent],
+  );
 
   // Auto zoom: the biggest whole-number zoom whose world fits the width the
   // hall actually has (DD20 — "auto" may pick any of 1/2/3/4/6 by fit). On a
@@ -543,6 +572,10 @@ export function HallPage({
   }, [position.dance.slug, medleySlug]);
 
   const play = useCallback(async (): Promise<void> => {
+    // ▶ un-freezes the evening (D3). A fresh page is not paused, so this is a
+    // no-op on the first press — the one that primes the audio.
+    pausedRef.current = false;
+    silent.resume();
     let player = playerRef.current;
     if (player === null) {
       const AudioCtor = window.AudioContext ?? window.webkitAudioContext;
@@ -552,6 +585,9 @@ export function HallPage({
       // streams from abcjs' default host at run time.
       player = createPlayer(ctx, { soundFontUrl: `${import.meta.env.BASE_URL}soundfont/` });
       playerRef.current = player;
+      // A player born while the chip says muted starts muted, rather than
+      // shouting for the one frame it takes the effect below to notice it.
+      player.setMuted(muted);
     }
     await ctxRef.current?.resume();
     await player.load(medley);
@@ -567,13 +603,100 @@ export function HallPage({
     if (musicBeat === null) goSilent(from);
     else goMusic(musicBeat);
     setPlaying(true);
-  }, [medley, tempo, beatNow, goMusic, goSilent]);
+  }, [medley, muted, tempo, beatNow, goMusic, goSilent, silent]);
 
+  /**
+   * ▮▮ freezes the evening, not just the band (A1, D3).
+   *
+   * Before P3 "pause" only stopped the tune: `goSilent` resumes the silent
+   * clock, so the hall carried on dancing in silence. Yona's brief ruled the
+   * other way — the whole evening holds still, hall, notecard and cursor
+   * together — so the clock is paused straight after it is handed back.
+   */
   const pause = useCallback((): void => {
     wantsMusicRef.current = false;
     goSilent(beatNow());
+    silent.pause();
+    pausedRef.current = true;
     setPlaying(false);
-  }, [beatNow, goSilent]);
+  }, [beatNow, goSilent, silent]);
+
+  // The four seeks. Each reads the beat the press was made on and hands
+  // `transport.ts`'s ruling (AC1) to `seekTo`; none of them starts or stops
+  // the band.
+  const onPrevDance = useCallback((): void => {
+    seekTo(prevDance(program, beatNow()).beat);
+  }, [program, beatNow, seekTo]);
+  const onPrevMove = useCallback((): void => {
+    seekTo(prevMove(program, beatNow()).beat);
+  }, [program, beatNow, seekTo]);
+  const onNextMove = useCallback((): void => {
+    seekTo(nextMove(program, beatNow()).beat);
+  }, [program, beatNow, seekTo]);
+  const onNextDance = useCallback((): void => {
+    seekTo(nextDance(program, beatNow()).beat);
+  }, [program, beatNow, seekTo]);
+
+  const toggleMute = useCallback((): void => {
+    setMuted((on) => !on);
+  }, []);
+
+  // Remember the flag, and turn whatever player exists up or down. A player
+  // created later reads it in `play`.
+  useEffect(() => {
+    writeMuted(muted);
+    playerRef.current?.setMuted(muted);
+  }, [muted]);
+
+  /**
+   * The keyboard (AC5): space ▶/▮▮, ←/→ the moves, ⇧←/⇧→ the dances, m mute.
+   *
+   * On `window` rather than on the page's own element, because the transport
+   * is meant to work wherever the caller's hands are — but not while they are
+   * typing into something, so a focused `input`, `select`, `textarea` or
+   * editable element keeps its own arrow keys and space bar (the dance
+   * `<select>` in the row below is the one this matters for). A modifier other
+   * than Shift belongs to the browser.
+   */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        if (target.isContentEditable) return;
+      }
+      switch (event.key) {
+        case " ":
+          // Space scrolls a page otherwise, and this page is the transport.
+          event.preventDefault();
+          if (playing) pause();
+          else void play();
+          return;
+        case "ArrowLeft":
+          event.preventDefault();
+          if (event.shiftKey) onPrevDance();
+          else onPrevMove();
+          return;
+        case "ArrowRight":
+          event.preventDefault();
+          if (event.shiftKey) onNextDance();
+          else onNextMove();
+          return;
+        case "m":
+        case "M":
+          toggleMute();
+          return;
+        default:
+          return;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [playing, play, pause, onPrevDance, onPrevMove, onNextMove, onNextDance, toggleMute]);
 
   useEffect(() => {
     silent.setTempo(tempo);
@@ -591,14 +714,21 @@ export function HallPage({
       musicOn: () => musicOnRef.current,
       // How many times the band has played a dance in with four potatoes.
       potatoes: () => potatoesRef.current,
+      // Whether ▮▮ is holding the evening still. Only ever true on the silent
+      // clock: pause hands the evening back to it and then freezes it.
+      paused: () => clockRef.current === silent && !musicOnRef.current && silent.isPaused(),
+      // Whether the mute chip is on. The flag the page holds, not the gain —
+      // `gain()` is on its way there.
+      muted: () => playerRef.current?.muted() ?? muted,
+      // The band's master gain right now, or null before anything has played.
+      // Live, so just after a mute it is still coming down the ramp.
+      gain: () => playerRef.current?.gain() ?? null,
       // Jump the evening to a beat, keeping whichever clock should be running
       // there. A programme item is 172 beats, which is nearly a minute and a
       // half of wall clock, so this is the only way a headless test can watch a
       // dance switch happen.
       seek: (to: Beat) => {
-        const musicBeat = wantsMusicRef.current ? musicBeatOf(to) : null;
-        if (musicBeat === null) goSilent(to);
-        else goMusic(musicBeat);
+        seekTo(to);
       },
       // The bubble is pixels on a canvas, so a test cannot read it; this is
       // the string that was drawn into it.
@@ -618,7 +748,7 @@ export function HallPage({
     return () => {
       delete window.hallDemo;
     };
-  }, [draw, program, beatNow, goMusic, goSilent]);
+  }, [draw, program, beatNow, muted, seekTo, silent]);
 
   return (
     <main
@@ -657,26 +787,31 @@ export function HallPage({
           >
             <div className="caller-stage-canvas-wrap">
               <canvas ref={canvasRef} data-testid="hall-canvas" />
-              <div className="stage-buttons">
-                {/*
-                 * U3: the play control, an 8-bit speaker overlaid on the stage
-                 * itself rather than a labelled button in the row below — "the
-                 * 'play' button is not at all obvious … like a shorts video."
-                 * Same click handler as the old button, so the user gesture the
-                 * browser's autoplay policy needs is unchanged.
-                 */}
-                <SpeakerButton
-                  playing={playing}
-                  onToggle={() => void (playing ? pause() : play())}
-                />
-                {/*
-                 * U4: reset, beside the speaker — returns the dance now playing
-                 * to the start of its own line-up (requirement 6), the same
-                 * beat picking a dance from the bar starts at.
-                 */}
-                <ResetButton onReset={resetToLineUp} />
+              {/*
+               * The mute chip, on the wall at the stage's top-right. It is the
+               * only control still overlaid on the canvas: the play control
+               * U3 put here is the transport's ▶ in the band below now, and
+               * U4's reset is |◀◀. Mute is not pause (AC4), which is why the
+               * two are nowhere near each other.
+               */}
+              <div className="caller-stage-corner">
+                <MuteButton muted={muted} onToggle={toggleMute} />
               </div>
             </div>
+            {/*
+             * The transport, centred in the strip's own colour under the hall
+             * (the spike's 1F): five bare pixel glyphs on the wall rather than
+             * chips over the dancers.
+             */}
+            <TransportBand
+              playing={playing}
+              onPlay={() => void play()}
+              onPause={pause}
+              onPrevDance={onPrevDance}
+              onPrevMove={onPrevMove}
+              onNextMove={onNextMove}
+              onNextDance={onNextDance}
+            />
           </div>
           <ControlBar
             dance={position.dance.slug}
@@ -687,6 +822,10 @@ export function HallPage({
               setPlaying(false);
               wantsMusicRef.current = false;
               musicOnRef.current = false;
+              // A2: the pick rebuilds `program`, so a brand-new silent clock
+              // runs from that dance's line-up — the attract mode again, not a
+              // frozen evening. Mute is deliberately left alone.
+              pausedRef.current = false;
               playerRef.current?.stop();
             }}
             tempo={tempo}
@@ -921,6 +1060,9 @@ declare global {
       beat: () => Beat;
       musicOn: () => boolean;
       potatoes: () => number;
+      paused: () => boolean;
+      muted: () => boolean;
+      gain: () => number | null;
       seek: (to: Beat) => void;
       call: (at?: Beat) => string;
       bench: (frames: number) => number[];

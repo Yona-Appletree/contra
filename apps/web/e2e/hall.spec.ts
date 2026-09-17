@@ -136,45 +136,81 @@ test("choosing a dance starts its line-up, not its dancing beat 0", async ({ pag
 });
 
 /**
- * U4 requirement 4: a reset control beside the speaker, pixel-art, same size
- * and hit area, that returns the *current* dance to the start of its own
- * line-up — not a different dance, and not its dancing beat 0.
+ * P3 replaced U4's reset button with the transport's |◀◀, which goes to the
+ * dance's own **potatoes** rather than to the whole line-up ("a caller
+ * practising needs the count-in", Yona at round 2). The five glyphs stand
+ * where the speaker and the reset chip used to, and neither is on the Stage
+ * any more.
  */
-test("the reset control returns the current dance to its own line-up", async ({ page }) => {
-  await page.goto(`#/dance/${FIRST_DANCE}`);
-  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
-  // Somewhere into the dance's own first time through, well past its beat 0.
-  await page.evaluate(() => window.hallDemo?.seek(20));
+test("the transport replaces the speaker and the reset chip on the stage", async ({ page }) => {
+  await openHall(page, { dance: FIRST_DANCE, zoom: 2 });
 
-  const reset = page.getByTestId("hall-reset");
-  await expect(reset).toHaveAttribute("aria-label", "Restart this dance");
-  await reset.click();
-
-  await expect(page.getByTestId("hall-status")).toHaveText("The caller announces Airpants");
-  expect(await page.evaluate(() => window.hallDemo?.call())).toBe(
-    "NEXT: AIRPANTS, BY LISA GREENLEAF",
-  );
+  for (const [id, label] of [
+    ["hall-prev-dance", "Start of this dance"],
+    ["hall-prev-move", "Start of this move"],
+    ["hall-play", "Play"],
+    ["hall-next-move", "Next move"],
+    ["hall-next-dance", "Next dance"],
+  ] as const) {
+    await expect(page.getByTestId(id)).toHaveAttribute("aria-label", label);
+  }
+  await expect(page.getByTestId("hall-mute")).toHaveAttribute("aria-label", "Mute the band");
+  await expect(page.getByTestId("hall-reset")).toHaveCount(0);
 });
 
-test("the hall dances before anyone presses play, on the silent clock", async ({ page }) => {
-  await page.goto(`#/dance/${FIRST_DANCE}`);
-  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
-  const first = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
-  await page.waitForTimeout(400);
-  const later = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
-  expect(later).toBeGreaterThan(first);
-  // Nothing is playing yet, so there is no audio context at all.
-  expect(await page.evaluate(() => window.hallDemo?.audioState())).toBeNull();
+/**
+ * AC1, clicked rather than computed: `transport.test.ts` is the whole ruling
+ * as a table over the real programme, so what this adds is that the button
+ * wired to each rule really seeks the live page's clock.
+ *
+ * Airpants' moves start at 0, 16, 24, 32, 48 and 54 within the cycle; the
+ * second dance's potatoes are at 168 (`danceStartBeat(1)` = 172 − 4). The page
+ * is left running on the silent clock (the attract mode, A1), so the beat is
+ * read straight after each click and compared within half a beat.
+ */
+test("the four seeks land where the ruling says (AC1)", async ({ page }) => {
+  await openHall(page, { zoom: 2 });
+
+  const pressed = async (id: string, from: number): Promise<number> => {
+    const button = page.getByTestId(id);
+    // Hover first so the click itself is not also waiting for actionability:
+    // the silent clock is running, and |◀'s rule reads the beat the press was
+    // actually made on.
+    await button.hover();
+    await page.evaluate((beat) => window.hallDemo?.seek(beat), from);
+    await button.click();
+    return await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  };
+
+  // |◀ two beats into A2 (16) restarts it; half a beat into it goes back to
+  // A1 — the CD-player rule, no timed double press.
+  expect(await pressed("hall-prev-move", 18)).toBeCloseTo(16, 0);
+  expect(await pressed("hall-prev-move", 17.5)).toBeCloseTo(0, 0);
+  // ▶| from inside A1 is A2's first beat.
+  expect(await pressed("hall-next-move", 3)).toBeCloseTo(16, 0);
+  // ▶▶| from inside the first dance is the second dance's own potatoes.
+  expect(await pressed("hall-next-dance", 40)).toBeCloseTo(168, 0);
 });
 
-test("play primes the tune and starts the audio clock (AC4, DD12)", async ({ page }) => {
+/**
+ * AC2: ▶ primes the audio and starts the band; ▮▮ **freezes the whole
+ * evening** (A1, D3) rather than only stopping the tune, as "pause" did before
+ * P3; ▶ again picks it up where it stopped.
+ */
+test("play primes the tune, pause freezes the evening, play resumes it (AC2, AC4, DD12)", async ({
+  page,
+}) => {
   await page.goto(`#/dance/${FIRST_DANCE}`);
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  // The dancing start of the first dance, so the band has a tune to play.
+  await page.evaluate(() => window.hallDemo?.seek(0));
 
-  await page.getByTestId("hall-play").click();
-  // U3: the play control is the 8-bit speaker icon now, named by its
-  // accessible name rather than by text content.
-  await expect(page.getByTestId("hall-play")).toHaveAttribute("aria-label", "Pause music");
+  const play = page.getByTestId("hall-play");
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+  await play.click();
+  // D5: the transport's own labels, not the speaker's "Play music"/"Pause music".
+  await expect(play).toHaveAttribute("aria-label", "Pause");
+  await expect(play).toHaveAttribute("aria-pressed", "true");
 
   // Audio cannot be heard in a headless browser. What can be checked is that
   // the context really is running and that the synth really primed a buffer,
@@ -188,6 +224,158 @@ test("play primes the tune and starts the audio clock (AC4, DD12)", async ({ pag
   const first = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeGreaterThan(first);
+
+  // ▮▮ holds the whole evening still: the hall, the card and the cursor stop
+  // with the band, which is what A1 rules and what the glyph promises.
+  await play.click();
+  await expect(play).toHaveAttribute("aria-label", "Play");
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate(() => window.hallDemo?.paused())).toBe(true);
+  const frozen = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBe(frozen);
+
+  // ▶ picks it up again with the band.
+  await play.click();
+  await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
+    timeout: 20_000,
+  });
+  expect(await page.evaluate(() => window.hallDemo?.paused())).toBe(false);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeGreaterThan(frozen);
+});
+
+/**
+ * AC3: a seek inside the dance that is sounding keeps the tune's own clock —
+ * `goMusic` re-plays the tune from the target, so the beat is still a linear
+ * function of `AudioContext.currentTime` and the notation goes on following
+ * it. (A seek into a line-up hands back to the silent clock; that half is the
+ * interval/potatoes test below, which seeks with `hallDemo.seek` and still
+ * passes unchanged.)
+ */
+test("a ▶| inside the sounding dance keeps the tune's clock (AC3)", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await page.evaluate(() => window.hallDemo?.seek(0));
+  await page.getByTestId("hall-play").click();
+  await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
+    timeout: 20_000,
+  });
+
+  await page.evaluate(() => window.hallDemo?.seek(20));
+  const next = page.getByTestId("hall-next-move");
+  await next.click();
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(true);
+  await next.click();
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(true);
+  // Still inside the first dance's own two times through, and still playing.
+  const beat = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  expect(beat).toBeGreaterThan(20);
+  expect(beat).toBeLessThan(128);
+  expect(await page.evaluate(() => window.hallDemo?.audioState())).toBe("running");
+});
+
+/**
+ * AC4: mute is **not** pause. The master gain goes to zero and everything else
+ * carries on — the player is still the clock, the beat still advances, the
+ * context is still running — and the flag outlives a dance change and a
+ * reload on its own localStorage key.
+ */
+test("mute turns the band down without stopping anything (AC4)", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await page.evaluate(() => window.hallDemo?.seek(0));
+  await page.getByTestId("hall-play").click();
+  await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
+    timeout: 20_000,
+  });
+
+  const mute = page.getByTestId("hall-mute");
+  await expect(mute).toHaveAttribute("aria-pressed", "false");
+  await mute.click();
+  await expect(mute).toHaveAttribute("aria-label", "Unmute the band");
+
+  // `gain()` is the *live* value on a 10 ms ramp, so it is on its way to zero
+  // rather than exactly zero the instant the chip is pressed.
+  await page.waitForTimeout(100);
+  const gain = await page.evaluate(() => window.hallDemo?.gain() ?? 1);
+  expect(gain).toBeLessThan(0.01);
+  expect(await page.evaluate(() => window.hallDemo?.muted())).toBe(true);
+
+  // Nothing else moved: the band is still the clock and the hall still dances.
+  expect(await page.evaluate(() => window.hallDemo?.musicOn())).toBe(true);
+  expect(await page.evaluate(() => window.hallDemo?.audioState())).toBe("running");
+  const before = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeGreaterThan(before);
+
+  // Its own key, remembered.
+  expect(await page.evaluate(() => window.localStorage.getItem("hall:muted"))).toBe("true");
+
+  // A2: picking a dance rebuilds the evening and does not touch the mute.
+  await page.getByTestId("hall-dance-select").selectOption("kitchen-stomp");
+  await expect(mute).toHaveAttribute("aria-pressed", "true");
+
+  // And it survives a reload.
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await expect(page.getByTestId("hall-mute")).toHaveAttribute("aria-pressed", "true");
+});
+
+/** The Tunes tab's jukebox has no mute of its own and is unaffected (AC4). */
+test("the Tunes tab has no mute chip", async ({ page }) => {
+  await page.goto("#/tunes");
+  await expect(page.getByTestId("hall-mute")).toHaveCount(0);
+});
+
+/**
+ * AC5: the keyboard drives the same four seeks and the mute, wherever the
+ * caller's hands are — space ▶/▮▮, ←/→ the moves, ⇧←/⇧→ the dances, m mute.
+ */
+test("the arrow keys and m drive the transport (AC5)", async ({ page }) => {
+  await openHall(page, { zoom: 2 });
+
+  await page.evaluate(() => window.hallDemo?.seek(3));
+  await page.keyboard.press("ArrowRight");
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(16, 0);
+
+  await page.keyboard.press("Shift+ArrowRight");
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(168, 0);
+
+  const mute = page.getByTestId("hall-mute");
+  await expect(mute).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("m");
+  await expect(mute).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("m");
+  await expect(mute).toHaveAttribute("aria-pressed", "false");
+});
+
+/**
+ * AC5's other half: none of it fires while something is being typed into. The
+ * dance `<select>` is the one that matters — its own arrow keys pick a dance,
+ * and the transport must not take them away.
+ */
+test("the keyboard does nothing while the dance select has focus (AC5)", async ({ page }) => {
+  await openHall(page, { zoom: 2 });
+
+  await page.getByTestId("hall-dance-select").focus();
+  await page.evaluate(() => window.hallDemo?.seek(3));
+  await page.keyboard.press("ArrowRight");
+  // Whatever the select does with the key is the select's business; what must
+  // not happen is the transport's own jump to A2's first beat.
+  const guarded = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  expect(Math.abs(guarded - 16)).toBeGreaterThan(0.5);
+});
+
+test("the hall dances before anyone presses play, on the silent clock", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  const first = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  await page.waitForTimeout(400);
+  const later = await page.evaluate(() => window.hallDemo?.beat() ?? 0);
+  expect(later).toBeGreaterThan(first);
+  // Nothing is playing yet, so there is no audio context at all.
+  expect(await page.evaluate(() => window.hallDemo?.audioState())).toBeNull();
 });
 
 /**
@@ -371,10 +559,23 @@ test("?zoom= still sizes the canvas directly, with no selector left in the bar",
  * its lines and the caller has just said the first call — the frame that says
  * most about whether this looks like a contra dance.
  */
+/**
+ * A6 calls these two "canvas-only", and until P3 they were not quite: an
+ * element screenshot captures whatever is painted *over* the element, so U3's
+ * speaker and U4's reset chip were baked into the bottom-left corner of both
+ * PNGs. P3 took those two off the canvas (the transport is in the band under
+ * it now) and put the mute chip at the stage's top-right, which would have
+ * moved the goldens for a reason that has nothing to do with the hall. So the
+ * chrome overlaid on the stage is hidden for the shot, and the two PNGs were
+ * regenerated once with the dancers alone in them — which is what gate G2
+ * actually judges, and what no later phase's chrome can move again.
+ */
+const STAGE_CHROME_HIDDEN = ".caller-stage-corner { visibility: hidden; }";
+
 for (const zoom of [1, 3]) {
   test(`golden: the front page at ${zoom}×`, async ({ page }) => {
     await openHall(page, { dance: FIRST_DANCE, beat: 0, zoom });
-    const shot = await page.getByTestId("hall-canvas").screenshot();
+    const shot = await page.getByTestId("hall-canvas").screenshot({ style: STAGE_CHROME_HIDDEN });
     await matchGolden(`hall-front@${zoom}x.png`, shot);
   });
 }
@@ -387,6 +588,9 @@ declare global {
       beat: () => number;
       musicOn: () => boolean;
       potatoes: () => number;
+      paused: () => boolean;
+      muted: () => boolean;
+      gain: () => number | null;
       seek: (to: number) => void;
       call: (at?: number) => string;
       bench: (frames: number) => number[];
