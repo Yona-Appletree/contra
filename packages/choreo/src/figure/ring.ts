@@ -5,6 +5,7 @@ import {
   angleLerp,
   angleOfVec,
   dist,
+  lerp,
   mix,
   profileProgress,
   ramp,
@@ -162,14 +163,66 @@ function halfExtent(values: readonly number[]): number {
  * Whose place a station's dancer takes when the ring turns `places` places.
  * Positive is the way {@link Ring.order} runs, which is the way a circle left
  * travels.
+ *
+ * **A station is a whole number of places round**, so a fraction has to be
+ * rounded to one — and the rounding is done about zero rather than upward,
+ * because a ring turned back is a ring turned forward in a mirror. `Math.round`
+ * alone is sign-asymmetric (`Math.round(3.5)` is 4 and `Math.round(-3.5)` is
+ * −3), which left a star **left** seven eighths and a star **right** seven
+ * eighths a different number of places round, against the star definition's own
+ * declared mirror symmetry. Where a walk does not need a station at all, ask
+ * {@link ringEnd} instead: it keeps the fraction.
  */
 export function ringShift(ring: Ring, station: StationId, places: number): StationId {
   const n = ring.order.length;
   const at = ring.order.indexOf(station);
   if (at < 0) throw new Error(`station "${station}" is not on this ring`);
-  const id = ring.order[(((at + Math.round(places)) % n) + n) % n];
+  const whole = Math.sign(places) * Math.round(Math.abs(places));
+  const id = ring.order[(((at + whole) % n) + n) % n];
   if (id === undefined) throw new Error(`ring has no place for "${station}"`);
   return id;
+}
+
+/**
+ * How near a whole number of places counts as being one: far below any
+ * fraction a caller says, and well above the float crumbs a `places × amount`
+ * product leaves (a star's `4 × 0.75`).
+ */
+const WHOLE_PLACE_SLOP = 1e-9;
+
+/**
+ * **Where a ring walk of `places` places really ends** — the point on the floor
+ * the dancer at `station` reaches, given where everybody stands now (`from`).
+ *
+ * A whole number of places is somebody's own place, which is what a ring figure
+ * has always ended on: `from[ringShift(ring, station, places)]`, to the bit. A
+ * *fraction* of a place is the point that far along the last run, between the
+ * place the dancer has reached and the one they are heading for — because a
+ * caller who asks for seven eighths of a star asks for it **precisely so that
+ * it leaves you half a place short**, and that half place is what puts the next
+ * call on the diagonal. Rounding it away made every dancer about-face and walk
+ * an eighth of the ring back on to a station in the last beat and a half of the
+ * figure, which is the slide the user saw in Are You 'Most Done?'s A2.
+ *
+ * The same rule the chain travel already used for its own fractional place: the
+ * whole runs, then part of one more.
+ *
+ * Form-neutral: a point between two places on a ring is a point, and nothing
+ * here knows what form the ring is danced in.
+ */
+export function ringEnd(
+  ring: Ring,
+  from: RingPlaces,
+  station: StationId,
+  places: number,
+): Vec2 {
+  const way = Math.sign(places);
+  const whole = way * Math.floor(Math.abs(places) + WHOLE_PLACE_SLOP);
+  const reached = mustPlace(from, ringShift(ring, station, whole)).p;
+  const part = Math.abs(places) - Math.abs(whole);
+  if (part <= WHOLE_PLACE_SLOP) return reached;
+  const toward = mustPlace(from, ringShift(ring, station, whole + way)).p;
+  return lerp(reached, toward, part);
 }
 
 /**

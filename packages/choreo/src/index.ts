@@ -71,6 +71,7 @@ export {
   joinPoint,
   mustPlace,
   polar,
+  ringEnd,
   ringHands,
   ringOf,
   ringOrder,

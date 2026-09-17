@@ -12,7 +12,7 @@ import {
 import type { Ring } from "@caller/choreo";
 import type { FigurePlan, HandJoin, LocalHand, Spot, Spots } from "../../figures/ContraFigure.js";
 import { bearing, isHeld, takeAndRelease } from "../../figures/ContraFigure.js";
-import { ringFor, ringHands, ringHangDrop, ringShift, ringWalk } from "../../figures/ring.js";
+import { ringEnd, ringFor, ringHands, ringHangDrop, ringWalk } from "../../figures/ring.js";
 import type { FigureRole, HoldSpec, RingWalkShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
 import { evalAngle, evalNumber } from "../expr.js";
@@ -81,7 +81,12 @@ export function planRingWalk(
 
   const ends: Spots = {};
   for (const role of ctx.ids) {
-    const p = ctx.spot(ringShift(ring, role, sign * places)).p;
+    // **A ring walk ends where it leaves you**, whole place or not: `ringEnd`
+    // is the station for the twenty-four calls that ask for a whole number of
+    // places, and the point part way along the last run for a call like Are You
+    // 'Most Done?'s star left seven eighths — which is asked for *because* it
+    // leaves the set half a place short, on the diagonal the next call wants.
+    const p = ringEnd(ring, ctx.start, role, sign * places);
     ends[role] = {
       p,
       facing:
