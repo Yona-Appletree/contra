@@ -63,6 +63,8 @@ export interface CompiledSequence {
   annotations: readonly Annotation[];
   /** Every reassignment committed, in order, with the beat it happened at. */
   events: readonly Assignment[];
+  /** The beats at which each dancer reached each sync point (`progress()`), for the desync check. */
+  syncs: Readonly<Record<DancerId, readonly number[]>>;
 }
 
 /** A `card` or `say`, on the timeline: no beats, just a mark. */
@@ -162,6 +164,7 @@ export function compile(input: CompileInput): {
     memberships: [],
     annotations: [],
     events: [],
+    syncs: {},
   });
   if (entryFound === undefined) {
     report(
@@ -180,6 +183,7 @@ export function compile(input: CompileInput): {
   let dancers: Dancers = floor.dancers;
   const memberships: Membership[] = [floor.initial];
   const events: Assignment[] = [];
+  const syncs: Record<DancerId, number[]> = {};
   const annotations: Annotation[] = [];
   const perDancer: Record<DancerId, CompiledCall[]> = {};
   let title: string | undefined;
@@ -643,7 +647,10 @@ export function compile(input: CompileInput): {
       return;
     }
     if (r.value.kind === "call") t.cursor = r.value.call.end;
-    else t.atSync = true;
+    else {
+      t.atSync = true;
+      (syncs[t.dancer.id] ??= []).push(t.cursor);
+    }
   };
   let guard = 0;
   while (threads.some((t) => !t.done)) {
@@ -675,6 +682,7 @@ export function compile(input: CompileInput): {
     memberships,
     annotations,
     events,
+    syncs,
   };
   if (title !== undefined) sequence.title = title;
   return { sequence, errors, floor };
@@ -695,7 +703,9 @@ function ownFloor(
   // Every formation any module of the file names is read, so the checker knows them all.
   const mentioned = input.dance.items.flatMap((i) =>
     i.kind === "module"
-      ? i.body.filter((s): s is Extract<Stmt, { kind: "group" }> => s.kind === "group").map((s) => s.module)
+      ? i.body
+          .filter((s): s is Extract<Stmt, { kind: "group" }> => s.kind === "group")
+          .map((s) => s.module)
       : [],
   );
   if (named.length === 0) {

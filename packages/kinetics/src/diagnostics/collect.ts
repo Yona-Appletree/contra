@@ -3,6 +3,7 @@ import type { CompiledCall } from "../lang/compile.js";
 import type { Run, RunError, RunWarning } from "../pipeline.js";
 import type { ScheduledCall } from "../schedule/schedule.js";
 import type { Diagnostic, Fact } from "./Diagnostic.js";
+import { floorChecks } from "./checks/index.js";
 
 /**
  * Every complaint of a run as a {@link Diagnostic} with its trace: the
@@ -55,6 +56,7 @@ export function collectDiagnostics(run: Run): Diagnostic[] {
       }),
     });
   }
+  for (const d of floorChecks(run)) add(d);
   return [...out.values()].sort(
     (a, b) => (a.beat ?? -1) - (b.beat ?? -1) || a.code.localeCompare(b.code),
   );
@@ -78,7 +80,7 @@ function fromError(run: Run, e: RunError): Diagnostic {
       : e.stage === "check"
         ? "K002"
         : e.stage === "compile"
-          ? compileCode(e.message)
+          ? compileCode(e.message, e.span === undefined ? "" : sourceLine(run, e.span))
           : e.stage === "schedule"
             ? (SCHEDULE_CODES[e.kind ?? ""] ?? "K025")
             : e.stage === "execute"
@@ -143,7 +145,7 @@ function fromWarning(run: Run, w: RunWarning): Diagnostic {
     code,
     severity: "warning",
     stage: "schedule",
-    message: w.message,
+    message,
     dancers,
     trace,
   };
@@ -151,11 +153,13 @@ function fromWarning(run: Run, w: RunWarning): Diagnostic {
   return d;
 }
 
-const compileCode = (message: string): string =>
+const compileCode = (message: string, source = ""): string =>
   message.includes("does not provide $")
     ? "K011"
     : message.startsWith("assert failed")
-      ? "K012"
+      ? /\$beat|\$time|\$first-time|\$last-time/.test(source)
+        ? "K104"
+        : "K012"
       : / are both on |is on a place that does not exist|no place for me/.test(message)
         ? "K013"
         : "K010";
