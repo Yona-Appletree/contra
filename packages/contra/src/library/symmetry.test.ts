@@ -334,6 +334,10 @@ describe("symmetry as a transform", () => {
       "cast-back",
       "cast-off",
       "circulate",
+      // Contrablend's own long lines with the roll away on the way back: a
+      // figure for **two** (`actors: "pairs"`), like every other pair figure
+      // here, so resolution cuts the line into pairs and this harness cannot.
+      "contrablend/long-lines-roll-away",
       // The corpus's own: `custom` is a figure for **one** too — one instance
       // per dancer, standing still — so this harness, which plans a whole minor
       // set at once, is not where it is checked. `figures/custom.test.ts` is.
