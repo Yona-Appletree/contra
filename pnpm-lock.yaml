@@ -205,6 +205,9 @@ importers:
       '@caller/core':
         specifier: workspace:*
         version: link:../core
+      '@caller/hall':
+        specifier: workspace:*
+        version: link:../hall
     devDependencies:
       '@types/node':
         specifier: ^24.13.5

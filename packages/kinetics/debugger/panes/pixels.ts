@@ -1,6 +1,10 @@
-import { q256 } from "@caller/core";
+import type { ArmPair, PoseSample, Vec2 } from "@caller/core";
+import { q256, q256Vec2 } from "@caller/core";
+import type { DancerLayout, HandStack, Person } from "@caller/hall";
+import { createPerson, drawArms, drawBody, drawHead } from "@caller/hall";
 import type { DancerId } from "../../src/dialect/Dialect.js";
 import { sampleAt } from "../../src/motion/Trajectory.js";
+import type { Trajectory } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
 import type { HandPlate } from "../../src/solver/solveBody.js";
 import { boxesAt, membershipAt, padHull } from "../groups.js";
@@ -41,7 +45,12 @@ export function pixelsPane(): Pane {
   boxesToggle.title = "groups";
   const boxesLabel = el("label", "toggle-label", "groups ");
   boxesLabel.append(boxesToggle);
-  head.append(boxesLabel);
+  const wireToggle = el("input", "toggle");
+  wireToggle.type = "checkbox";
+  wireToggle.title = "the wireframe, for reading the graphs against";
+  const wireLabel = el("label", "toggle-label", "wire ");
+  wireLabel.append(wireToggle);
+  head.append(boxesLabel, wireLabel);
 
   let view: View | undefined;
   let beat = 0;
@@ -49,6 +58,8 @@ export function pixelsPane(): Pane {
   let size = { w: 80, h: 80 };
   let zoom = 6;
   let lines: number[] = [];
+  /** One person per dancer, from a seed, so the same dancer is the same person every run. */
+  let persons = new Map<DancerId, Person>();
 
   const draw = (): void => {
     const context = canvas.getContext("2d");
@@ -130,6 +141,11 @@ export function pixelsPane(): Pane {
     // Up the screen is further away: paint the far dancer first.
     order.sort((a, b) => a.y - b.y);
 
+    if (!wireToggle.checked) {
+      drawPeople(context, order, picked);
+      return;
+    }
+
     const onTop: { plate: HandPlate; colour: string }[] = [];
     for (const { dancer } of order) {
       const t = solved.trajectories[dancer];
@@ -171,14 +187,91 @@ export function pixelsPane(): Pane {
     for (const { plate, colour } of onTop) plate2x2(px, plate, colour);
   };
 
+  /**
+   * The app's own people (R9, P6): every dancer laid out from the solver's
+   * points and drawn with `@caller/hall`'s passes — bodies, then arms, then
+   * heads, far to near — on a four-times supersampled layer that is then
+   * downsampled onto the world canvas, exactly as the hall's renderer does,
+   * so the pane looks like the Stage at the same world resolution.
+   */
+  const SUPERSAMPLE = 4;
+  const drawPeople = (
+    context: CanvasRenderingContext2D,
+    order: readonly { dancer: DancerId; y: number }[],
+    picked: ReadonlySet<DancerId>,
+  ): void => {
+    if (!view?.run.solved) return;
+    const { run } = view;
+    const solved = run.solved as NonNullable<typeof run.solved>;
+    const layer = new OffscreenCanvas(size.w * SUPERSAMPLE, size.h * SUPERSAMPLE);
+    const g = layer.getContext("2d");
+    if (!g) return;
+    g.setTransform(
+      SUPERSAMPLE,
+      0,
+      0,
+      SUPERSAMPLE,
+      -origin.x * SUPERSAMPLE,
+      -origin.y * SUPERSAMPLE,
+    );
+    g.lineCap = "round";
+
+    const layouts: {
+      layout: DancerLayout;
+      stack: { L: HandStack; R: HandStack };
+      alpha: number;
+    }[] = [];
+    for (const { dancer } of order) {
+      const t = solved.trajectories[dancer];
+      const person = persons.get(dancer);
+      if (!t || !person) continue;
+      const i = sampleAt(t, beat);
+      const layout = layoutOf(person, t, i);
+      if (!layout) continue;
+      const stackOf = (hand: "left" | "right"): HandStack => {
+        const plate = solved.hands[dancer]?.[hand]?.[i];
+        if (!plate || plate.contact === "free") return "free";
+        return plate.onTop ? "top" : "bottom";
+      };
+      layouts.push({
+        layout,
+        stack: { L: stackOf("left"), R: stackOf("right") },
+        alpha: alphaOf(run, dancer, picked, beat),
+      });
+    }
+    const opts = { outline: true, shadow: true, skirts: false, snap: q256Vec2 };
+    for (const { layout, alpha } of layouts) {
+      g.globalAlpha = alpha;
+      drawBody(g, layout, opts);
+    }
+    for (const { layout, stack, alpha } of layouts) {
+      g.globalAlpha = alpha;
+      drawArms(g, layout, { ...opts, stack });
+    }
+    for (const { layout, alpha } of layouts) {
+      g.globalAlpha = alpha;
+      drawHead(g, layout, opts);
+    }
+    g.globalAlpha = 1;
+    context.imageSmoothingEnabled = true;
+    context.drawImage(layer, 0, 0, size.w, size.h);
+  };
+
   new ResizeObserver(draw).observe(body);
   boxesToggle.addEventListener("change", draw);
+  wireToggle.addEventListener("change", draw);
 
   return {
     el: section,
     setRun(next) {
       view = next;
       lines = linesOf(next.run);
+      persons = new Map(
+        next.run.dialect.dancers.map((id, seed) => [
+          id,
+          createPerson({ id, role: next.run.dialect.roleOf(id), seed: seed + 1, roleShirts: true }),
+        ]),
+      );
       zoom = zoomFor(next.run.dialect.dancers.length / 2);
       const b = boundsOf(setPoints(next.run), 24);
       origin = { x: Math.floor(b.min.x), y: Math.floor(b.min.y) };
@@ -194,6 +287,76 @@ export function pixelsPane(): Pane {
     },
   };
 }
+
+/**
+ * One dancer's solved points as the hall draws a person: the hip as the body
+ * centre, the feet body-local, both arms in the hall's three dimensions
+ * (heights relative to the shoulder), the head along the torso's yaw plus the
+ * neck's. The lean is degrees in the solver and px in the hall; a torso of
+ * ten px leaning θ puts its top sin θ × 10 px forward.
+ */
+const TORSO_PX = 10;
+const layoutOf = (person: Person, t: Trajectory, i: number): DancerLayout | undefined => {
+  const p = (name: string): Vec3 | undefined =>
+    (t.points as Record<string, readonly Vec3[] | undefined>)[name]?.[i];
+  const hip = p("hip");
+  const sl = p("shoulderL");
+  const sr = p("shoulderR");
+  const el3 = p("elbowL");
+  const er3 = p("elbowR");
+  const hl = p("handL");
+  const hr = p("handR");
+  const fl = p("footL");
+  const fr = p("footR");
+  if (!hip || !sl || !sr || !el3 || !er3 || !hl || !hr || !fl || !fr) return undefined;
+  const facing = t.channels.facing?.[i] ?? 0;
+  const headYaw = t.channels.headYaw?.[i] ?? 0;
+  const leanDeg = t.channels.lean?.[i] ?? 0;
+  const rad = (facing * Math.PI) / 180;
+  const fwd: Vec2 = [Math.cos(rad), Math.sin(rad)];
+  const right: Vec2 = [-Math.sin(rad), Math.cos(rad)];
+  const local = (q: Vec3): Vec2 => [
+    (q.x - hip.x) * fwd[0] + (q.y - hip.y) * fwd[1],
+    (q.x - hip.x) * right[0] + (q.y - hip.y) * right[1],
+  ];
+  const arm = (s: Vec3, e: Vec3, h: Vec3): ArmPair[0] => ({
+    shoulder: [s.x, s.y],
+    elbow: [e.x, e.y],
+    hand: [h.x, h.y],
+    short: 0,
+    elbowZ: e.z - s.z,
+    handZ: h.z - s.z,
+    reach: Math.hypot(h.x - s.x, h.y - s.y),
+  });
+  const arms: ArmPair = [arm(sl, el3, hl), arm(sr, er3, hr)];
+  const hands = {
+    L: { p: [hl.x, hl.y] as Vec2, drop: sl.z - hl.z },
+    R: { p: [hr.x, hr.y] as Vec2, drop: sr.z - hr.z },
+  };
+  const pose: PoseSample = {
+    p: [hip.x, hip.y],
+    facing,
+    look: facing + headYaw,
+    lean: Math.sin((leanDeg * Math.PI) / 180) * TORSO_PX,
+    hands,
+    stepRate: 1,
+    buzz: false,
+    flare: 0,
+    amp: 0,
+    feet: { L: local(fl), R: local(fr) },
+  };
+  return {
+    person,
+    pose,
+    p: [hip.x, hip.y],
+    torsoAngle: facing,
+    sway: 0,
+    feet: { L: local(fl), R: local(fr) },
+    headAngle: facing + headYaw,
+    hands,
+    arms,
+  };
+};
 
 /** A hand is two pixels by two, its top-left at the plate's own rounded point. */
 const plate2x2 = (
