@@ -49,7 +49,7 @@ export {
 } from "./pairing.js";
 
 export type { Ring, RingWalk } from "./ring.js";
-export { ringFor, ringHands, ringOf, ringShift, ringWalk } from "./ring.js";
+export { ringEnd, ringFor, ringHands, ringOf, ringShift, ringWalk } from "./ring.js";
 
 export type { CircleParams } from "./circle.js";
 export { circle } from "./circle.js";

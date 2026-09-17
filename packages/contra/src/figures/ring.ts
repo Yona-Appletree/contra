@@ -20,6 +20,7 @@ export {
   RING_ARM_EXTENSION,
   RING_FOOTPRINT_MARGIN_PX,
   RING_NEIGHBOR_SPACING_PX,
+  ringEnd,
   ringOf,
   ringOrder,
   ringShift,
