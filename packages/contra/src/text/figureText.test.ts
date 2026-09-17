@@ -409,4 +409,18 @@ describe("the variants", () => {
     const larks = resolveFigureText("hey", { start: "lark", by: "left" });
     expect(larks!.walkthrough.teach).toContain("Larks start by passing left shoulders");
   });
+
+  it("swaps who crosses and who loops for the box circulate (P7)", () => {
+    // FR-B1's own doc comment: "which route you dance is which way you are
+    // looking, not which role you are" — before this variant the text
+    // hardcoded "the larks cross, the robins loop" for `facesIn=robin` too,
+    // which is backwards whenever a wave forms with the robins facing in.
+    const larksIn = resolveFigureText("circulate", { facesIn: "lark", hand: "R" });
+    expect(larksIn!.walkthrough.teach).toContain("The larks walk straight across");
+    expect(larksIn!.walkthrough.teach).toContain("The robins loop out");
+
+    const robinsIn = resolveFigureText("circulate", { facesIn: "robin", hand: "R" });
+    expect(robinsIn!.walkthrough.teach).toContain("The robins walk straight across");
+    expect(robinsIn!.walkthrough.teach).toContain("The larks loop out");
+  });
 });

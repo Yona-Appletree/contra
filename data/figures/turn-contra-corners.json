@@ -4,7 +4,7 @@
   "defaultLevel": "line",
   "walkthrough": {
     "line": "Right to the other active, left to your first corner, back, left to your second corner.",
-    "teach": "Give your right hand to the other active and turn half way, then your left to your first corner and turn all the way round. Right hand to the active again, half way, left hand to your second corner all the way round, and right hand to the active once more to finish in the middle of the set. The corners stand and wait between their turns."
+    "teach": "Give your right hand to the other active and turn half way, then your left to your first corner and turn all the way round. Right hand to the active again, half way, then your left to your second corner and turn all the way round. The corners stand and wait between their turns."
   },
   "call": {
     "1": "CORNERS",

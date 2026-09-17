@@ -10,5 +10,12 @@
     "1": "CIRCULATE",
     "2": "CIRCULATE",
     "4": "CIRCULATE ONE PLACE ALONG"
+  },
+  "variants": {
+    "facesIn=robin": {
+      "walkthrough": {
+        "teach": "The robins walk straight across the set, passing right shoulders, and land one place along. The larks loop out of their own line and back into it one place along, going round to the {hand}. Everybody moves at once, and you end in the wave you started in with different dancers beside you."
+      }
+    }
   }
 }
