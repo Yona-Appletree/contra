@@ -1,4 +1,4 @@
-import type { Beat, Clock, Vec2 } from "@caller/core";
+import type { Beat, Clock, Hand, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
 import type { Dance, DancerId } from "@caller/choreo";
 import { danceSchedule } from "@caller/choreo";
@@ -671,8 +671,20 @@ function DanceCanvas({
  * section really drew (`DanceCandidateTile.origin`, shared across the columns so
  * they are comparable) and this takes it off. Velocities are differences and a
  * constant shift does not touch them, so the quiet motion is unchanged.
+ *
+ * A **placed** hand (a figure's joined hold, not `'down'`) is a floor point in
+ * the same absolute frame as `p` — `PoseSample`'s own contract, "two dancers
+ * joining hands compute the same `Hand` from the same figure frame" — so it has
+ * to move by the same `[ox, oy]` or the shoulder (hung off the shifted `p`) and
+ * the hand it is reaching for land in two different frames. `drawnArms`
+ * dutifully clamps the resulting shoulder-to-hand vector to the 15 px reach, so
+ * no single arm is ever drawn longer than the contract, but a whole column of
+ * dancers were being fed a shoulder-hand mismatch of the tile's own origin (up
+ * to ~75 px for these five dances) and every arm within reach of that mismatch
+ * maxed out its clamp pointing at the wrong place — which is what read as
+ * "arms three body-heights long" on a failing candidate column.
  */
-function shifted(
+export function shifted(
   tile: DanceCandidateTile,
   beat: Beat,
   trails: boolean,
@@ -680,13 +692,19 @@ function shifted(
 ): ReturnType<typeof hallFrame> {
   const drawn = hallFrame(tile.timeline, tile.people, beat, { trails, previous });
   const [ox, oy] = tile.origin;
+  const shiftHand = (hand: Hand | "down"): Hand | "down" =>
+    hand === "down" ? hand : { ...hand, p: [hand.p[0] - ox, hand.p[1] - oy] as Vec2 };
   return {
     at: drawn.at,
     frame: {
       ...drawn.frame,
       people: drawn.frame.people.map((dancer) => ({
         ...dancer,
-        pose: { ...dancer.pose, p: [dancer.pose.p[0] - ox, dancer.pose.p[1] - oy] as Vec2 },
+        pose: {
+          ...dancer.pose,
+          p: [dancer.pose.p[0] - ox, dancer.pose.p[1] - oy] as Vec2,
+          hands: { L: shiftHand(dancer.pose.hands.L), R: shiftHand(dancer.pose.hands.R) },
+        },
       })),
     },
   };
