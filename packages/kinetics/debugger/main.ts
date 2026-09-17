@@ -12,11 +12,11 @@ import { treePane } from "./panes/tree.js";
 import { view3dPane } from "./panes/view3d.js";
 import {
   FORMATIONS,
+  LIBRARY,
   MOVES,
   PRESETS,
   TIME_THROUGH_BEATS,
-  floorFor,
-  sizeParamOf,
+  resolveFormation,
   timeLabel,
   timesThrough,
 } from "./presets.js";
@@ -41,7 +41,6 @@ const bar = cursor();
 bar.setBpm(BPM);
 
 let presetKey = "pair";
-let formation = "pair";
 let size: number | undefined;
 let source = PRESETS.pair?.source ?? "";
 let picked: DancerId | "all" = "all";
@@ -108,25 +107,17 @@ function recompute(resetSource: boolean): void {
   const preset = PRESETS[presetKey];
   if (!preset) return;
   if (resetSource) source = preset.source;
-  const sizeParam = sizeParamOf(formation);
-  sizeSelect.disabled = sizeParam === undefined;
-  if (sizeParam !== undefined && size === undefined) size = sizeParam.fallback;
-  formationSelect.value = formation;
-  sizeSelect.value = String(size ?? sizeParam?.fallback ?? 1);
-  for (const option of sizeSelect.options) {
-    option.text = `${option.value} ${sizeParam?.name === "couples" ? "couples" : "minor sets"}`;
-  }
+  // The dance owns its floor; the hall says how long the set is.
+  formationSelect.disabled = true;
+  sizeSelect.value = String(size ?? preset.size ?? 2);
 
-  let floor;
-  try {
-    floor = floorFor(formation, size);
-  } catch (error) {
-    strip.replaceChildren(
-      el("div", "line bad", error instanceof Error ? error.message : String(error)),
-    );
-    return;
-  }
-  current = run(source, { floor, moves: MOVES, bpm: BPM });
+  current = run(source, {
+    moves: MOVES,
+    library: LIBRARY,
+    resolve: resolveFormation,
+    dynamics: { "minor-sets": size ?? preset.size ?? 2 },
+    bpm: BPM,
+  });
   const dancers = current.dialect.dancers;
   if (picked !== "all" && !dancers.includes(picked)) picked = "all";
 
@@ -221,20 +212,10 @@ range.addEventListener("input", () => {
 });
 presetSelect.addEventListener("change", () => {
   presetKey = presetSelect.value;
-  const preset = PRESETS[presetKey];
-  if (preset) {
-    formation = preset.formation;
-    size = preset.size;
-  }
+  size = PRESETS[presetKey]?.size;
   bar.pause();
   bar.set(0);
   recompute(true);
-});
-formationSelect.addEventListener("change", () => {
-  formation = formationSelect.value;
-  size = undefined;
-  bar.pause();
-  recompute(false);
 });
 sizeSelect.addEventListener("change", () => {
   size = Number(sizeSelect.value);

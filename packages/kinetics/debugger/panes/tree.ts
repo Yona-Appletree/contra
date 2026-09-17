@@ -1,6 +1,6 @@
 import type { DancerId } from "../../src/dialect/Dialect.js";
 import { expr } from "../../src/lang/format.js";
-import type { Membership } from "../../src/tree/membership.js";
+import type { Membership } from "../../src/tree/state.js";
 import type { Group } from "../../src/tree/Tree.js";
 import { chainTo } from "../../src/tree/Tree.js";
 import { colourOfKind, membershipAt, membershipIndexAt } from "../groups.js";
@@ -30,14 +30,15 @@ export function treePane(): Pane {
     if (index === shownIndex && pickKey === shownPick) return;
     shownIndex = index;
     shownPick = pickKey;
-    const membership = membershipAt(run, beat) ?? run.floor.initial;
+    const membership = membershipAt(run, beat) ?? (run.floor?.initial as Membership);
     const chain = new Set<string>();
     const followed: DancerId[] = pick.length === run.dialect.dancers.length ? [] : [...pick];
     for (const d of followed) {
       const path = membership.placeOf.get(d);
-      if (path !== undefined) for (const g of chainTo(run.floor.root, path)) chain.add(g.path);
+      if (path !== undefined)
+        for (const g of chainTo(run.floor?.root as Group, path)) chain.add(g.path);
     }
-    list.replaceChildren(node(run.floor.root, membership, chain, followed));
+    list.replaceChildren(node(run.floor?.root as Group, membership, chain, followed));
     list.prepend(
       el(
         "div",
@@ -62,7 +63,7 @@ export function treePane(): Pane {
     for (const p of group.provides) {
       head.append(el("span", "provide", `$${p.name}: ${p.type} = ${expr(p.deferred.expr)}`));
     }
-    if (group.next) head.append(el("span", "provide", `next = ${expr(group.next.expr)}`));
+    for (const f of group.functions) head.append(el("span", "provide", `provide ${f.name}()`));
     box.append(head);
     for (const place of group.places) {
       const who = membership.dancerOf.get(place.path);

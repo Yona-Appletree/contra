@@ -63,8 +63,6 @@ export type Stmt =
   | ProvideFnStmt
   | DancersStmt
   | ChildrenStmt
-  | NextStmt
-  | SeatStmt
   | LetStmt
   | AssignStmt
   | AssertStmt
@@ -84,8 +82,6 @@ export const SPACE_KINDS: readonly Stmt["kind"][] = [
   "provide",
   "provide-fn",
   "dancers",
-  "next",
-  "seat",
 ];
 
 /** `place robin role Robin at right(0.4m);` */
@@ -144,20 +140,6 @@ export interface DancersStmt {
 /** `children();` — where a module's caller's block goes. */
 export interface ChildrenStmt {
   kind: "children";
-  span: Span;
-}
-
-/** `next = …;` — deprecated in round 2 (P2 removes it). */
-export interface NextStmt {
-  kind: "next";
-  value: Expr;
-  span: Span;
-}
-
-/** `seat = …;` — deprecated in round 2 (P2 removes it). */
-export interface SeatStmt {
-  kind: "seat";
-  value: Expr;
   span: Span;
 }
 

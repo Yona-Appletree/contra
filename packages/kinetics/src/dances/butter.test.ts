@@ -5,7 +5,7 @@ import { proveMotion } from "../motion/prove.js";
 import { schedule } from "../schedule/schedule.js";
 import { tempo } from "../units/Tempo.js";
 import { BUTTER_BEATS_PER_TIME } from "./butter.js";
-import { compileDance, readDance, standardFloor } from "./load.js";
+import { compileDance, readDance } from "./load.js";
 
 const T = tempo(112);
 const BUTTER = readDance("butter.dance");
@@ -20,10 +20,11 @@ describe("Butter, the loop", () => {
   for (const minorSets of [1, 2, 3]) {
     const couples = minorSets * 2;
     it(`${String(couples)} couples: seven times through, first time without the shift, and the seams pinned`, () => {
-      const floor = standardFloor("becket", { "minor-sets": minorSets });
-      const d = treeDialect(floor);
-      const { sequence, errors } = compileDance(BUTTER, floor);
+      const { sequence, errors, floor } = compileDance(BUTTER, undefined, {
+        dynamics: { "minor-sets": minorSets },
+      });
       expect(errors).toEqual([]);
+      const d = treeDialect(floor!);
       expect(sequence.title).toBe("Butter");
       const calls = sequence.perDancer["1L"]!;
       // First time: no shift, and the circle takes the eight beats (D8).
@@ -61,10 +62,11 @@ describe("Butter, the loop", () => {
   }
 
   it("ends: a couple that runs off the end crosses over, waits one time through, and comes back in", () => {
-    const floor = standardFloor("becket", { "minor-sets": 2 });
-    const d = treeDialect(floor);
-    const { sequence, errors } = compileDance(BUTTER, floor);
+    const { sequence, errors, floor } = compileDance(BUTTER, undefined, {
+      dynamics: { "minor-sets": 2 },
+    });
     expect(errors).toEqual([]);
+    const d = treeDialect(floor!);
     // Somewhere in seven times through, every dancer stands a whole time through, and dances again after.
     for (const id of d.dancers) {
       const calls = sequence.perDancer[id]!;

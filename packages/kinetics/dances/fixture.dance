@@ -2,6 +2,11 @@
 // figures, one repeat — small enough to read in the debugger, big enough to
 // need every layer.
 
+module fixture-pair() {
+  group pair();
+  fixture();
+}
+
 module fixture() {
   bow($partner);
   repeat (2) figure();

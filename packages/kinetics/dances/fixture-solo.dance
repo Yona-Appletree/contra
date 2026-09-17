@@ -1,0 +1,6 @@
+// The fixture danced alone: the lark with nobody across, standing for forty beats.
+
+module fixture-solo() {
+  group solo();
+  fixture();
+}

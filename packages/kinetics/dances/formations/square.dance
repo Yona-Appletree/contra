@@ -6,10 +6,12 @@
 module square() {
   anchor center = point(x = 0m, y = 0m);
   for i in 0..4 {
-    group couple() at rotate(90 * i + 90) translate(x = -1.6m);
+    group couple() at rotate(90 * i + 90) translate(x = -1.6m) {
+      dancers;
+    }
   }
   provide $opposite: Place = same-role(child(index(me) + 2));
   provide $corner: Place = opposite-role(child(index(me) + (if (my-role() is Lark) 1 else 3)));
-  seat = all(couple);
-  next = none();
+  provide progress() {
+  }
 }

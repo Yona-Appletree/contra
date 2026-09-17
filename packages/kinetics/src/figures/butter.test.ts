@@ -80,9 +80,7 @@ describe("Butter's figures alone, at floor level", () => {
   });
 
   it("long lines forward and back returns everyone to place", () => {
-    const { s, dialect } = runProgram(
-      "module d() { long-lines($partner, beats = 8); }",
-    );
+    const { s, dialect } = runProgram("module d() { long-lines($partner, beats = 8); }");
     const program = s.programs["3L"]!;
     const steps = program.slots.flatMap((slot) => slot.instrs.filter((i) => i.op === "step"));
     expect(steps.length).toBeGreaterThan(0);
@@ -107,9 +105,10 @@ describe("Butter's figures alone, at floor level", () => {
     // After the progression the neighbour is a different dancer.
     const before = resolve(
       "neighbor",
-      floor.initial.placeOf.get("3L")!,
+      floor.dancers.byId("3L")!,
       floor.root,
       floor.mods,
+      floor.dancers,
     ).value;
     const beforeId =
       before.kind === "place" ? floor.initial.dancerOf.get(before.place.path) : undefined;

@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { loadMoves, readDance, standardFloor } from "./dances/load.js";
+import { readDance, standardFloor, standardRun } from "./dances/load.js";
 import { run } from "./pipeline.js";
 
 const FIXTURE = readDance("fixture.dance");
+/** A floor given to a dance that declares none. */
 const opts = (floorName: string) => ({
+  ...standardRun(),
   floor: standardFloor(floorName),
-  moves: loadMoves(),
   bpm: 112,
 });
+/** A dance that owns its floor. */
+const own = (dynamics: Record<string, number> = {}) => ({ ...standardRun(dynamics), bpm: 112 });
 
 describe("run", () => {
   it("takes the fixture through every layer", () => {
-    const result = run(FIXTURE, opts("pair"));
+    const result = run(FIXTURE, own());
 
     // The proof's remaining red dots are the debugger's to show honestly (the
     // hip's acceleration where a walk starts, the solver's torso and head
@@ -31,8 +34,8 @@ describe("run", () => {
     }
   });
 
-  it("runs the solo dancer too", () => {
-    const result = run(FIXTURE, opts("solo"));
+  it("runs the solo dancer too, from a dance that owns its floor", () => {
+    const result = run(readDance("fixture-solo.dance") + FIXTURE, own());
     expect(result.errors).toEqual([]);
     expect(result.dialect.dancers).toHaveLength(1);
     expect(result.solved).toBeDefined();
@@ -49,10 +52,7 @@ describe("run", () => {
   });
 
   it("reports what the checker minds, with a span, and still compiles the rest", () => {
-    const result = run(
-      "module d() { allemande($partner, Robin); bow($partner); }",
-      opts("pair"),
-    );
+    const result = run("module d() { allemande($partner, Robin); bow($partner); }", opts("pair"));
     expect(result.errors.map((e) => `${e.stage}: ${e.message}`)).toContain(
       "check: Robin is not a Hand: Left, Right",
     );
@@ -65,11 +65,15 @@ describe("run", () => {
     expect(result.errors.map((e) => e.message)).toContain("pair does not provide $neighbor");
   });
 
+  it("builds Butter's own floor at the hall's size", () => {
+    const result = run(readDance("butter.dance"), own({ "minor-sets": 2 }));
+    expect(result.errors.filter((e) => e.stage === "compile" || e.stage === "check")).toEqual([]);
+    expect(result.dialect.dancers).toHaveLength(8);
+    expect(result.sequence?.memberships.length).toBe(7);
+  });
+
   it("reports an allemande with no beats to turn in and still schedules what it can", () => {
-    const result = run(
-      "module d() { allemande($partner, Right, beats = 2); }",
-      opts("pair"),
-    );
+    const result = run("module d() { allemande($partner, Right, beats = 2); }", opts("pair"));
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.sequence).toBeDefined();
   });

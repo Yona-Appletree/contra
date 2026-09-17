@@ -7,10 +7,11 @@ import { beatsOf, defaultParams } from "../ir/Figure.js";
 import type { Ctx } from "../tree/evaluate.js";
 import { evalExpr, isEvalError, truthy } from "../tree/evaluate.js";
 import type { Floor } from "../tree/floor.js";
-import type { Membership } from "../tree/membership.js";
-import { progress } from "../tree/membership.js";
-import { providedNames, resolve } from "../tree/relations.js";
-import type { Group, Place } from "../tree/Tree.js";
+import { floorOf } from "../tree/floor.js";
+import { findFunction, providedNames, resolve, runFunction } from "../tree/relations.js";
+import type { Assignment, Dancer, Dancers, Membership } from "../tree/state.js";
+import { commit, membershipOf } from "../tree/state.js";
+import type { Place } from "../tree/Tree.js";
 import { placeAt, placesOf } from "../tree/Tree.js";
 import type { Value } from "../tree/values.js";
 import { NOBODY, describe } from "../tree/values.js";
@@ -44,9 +45,9 @@ export interface CompiledCall {
   group?: readonly DancerId[];
   /** This dancer's seat once the call has ended — moved, when a progression came before. */
   seatAfter: DancerState;
-  /** What each `$` variable the call read resolved to, for the debugger (P5). */
+  /** What each `$` variable the call read resolved to, for the debugger. */
   bindings: Readonly<Record<string, string>>;
-  /** Which membership snapshot (`CompiledSequence.memberships`) was current. */
+  /** Which seating (`CompiledSequence.memberships`) was current. */
   membership: number;
 }
 
@@ -56,10 +57,12 @@ export interface CompiledSequence {
   /** The first `card` the dance says, as its name. */
   title?: string;
   perDancer: Readonly<Record<DancerId, readonly CompiledCall[]>>;
-  /** The seatings, in order: at beat 0, then after each `progress()`. */
+  /** The seatings, in order: at beat 0, then after each commit. */
   memberships: readonly Membership[];
   /** `card` and `say` lines, at the beat each dancer reached them. */
   annotations: readonly Annotation[];
+  /** Every reassignment committed, in order, with the beat it happened at. */
+  events: readonly Assignment[];
 }
 
 /** A `card` or `say`, on the timeline: no beats, just a mark. */
@@ -75,47 +78,70 @@ export interface Annotation {
 export interface CompileError {
   message: string;
   span?: Span;
+  beat?: number;
+  dancers?: string[];
 }
 
 export interface CompileInput {
-  /** The dance file, and the name of the dance module to run (the first dance in the file by default). */
+  /** The dance file, and the name of the module to run (the first module with no `ir` by default). */
   dance: File;
   entry?: string;
   /** The moves the dance may call. */
   moves: File;
-  floor: Floor;
   registry: FigureRegistry;
+  /**
+   * The floor, when the dance does not declare its own. A dance that says
+   * `group becket(…)` builds its floor from `library` and `resolve`.
+   */
+  floor?: Floor;
+  /** The prelude and the couple: read with every floor a dance declares. */
+  library?: readonly File[];
+  /** The file that defines a module the dance's floor names (`becket` → `formations/becket.dance`). */
+  resolve?: (moduleName: string) => File | undefined;
+  /** `$` values the caller sets for the dance's space (`$minor-sets`). */
+  dynamics?: Readonly<Record<string, number>>;
 }
 
+/** What one dancer's walk hands the driver: a call that takes beats, or a sync point (`progress()`). */
+type Yielded = { kind: "call"; call: CompiledCall } | { kind: "sync" };
+
 /**
- * Compile a dance **per dancer** (DA14): each dancer walks the same
- * statements from their own place in the tree, so one text is every
- * dancer's script and a `$` variable that finds nobody is an end effect
- * rather than a special case.
+ * Compile a dance in **lock-step** (round 2, P2). Every dancer walks the
+ * same statements from their own place; the driver advances them together,
+ * one beat at a time. Within a beat every dancer reads the same state — the
+ * one the last commit left. `progress()` runs the formation's provided
+ * function for the dancer, queues the reassignments it makes, and yields;
+ * once every dancer at the beat has yielded, the queue **commits** as one
+ * transaction, the invariants are checked, and the dancers at the sync
+ * resume at the same beat with the new state. That is what the user's walk
+ * asked for: *"all of those things happen at once. And the invariants
+ * hold."*
  *
- * `$name` is resolved through the tree at the moment it is read (the
- * one-sigil rule), so after `progress()` the same word names the new
- * neighbour. A call to a **move** binds the move's `$` parameters from the
- * tree unless the call passes them, maps the move's parameters onto its
+ * A call to a **move** binds the move's `$` parameters from the tree
+ * unless the call passes them, maps the move's parameters onto its
  * figure's by name, and casts the first Place as the counterpart and the
- * first Group as the ring. A call to another **dance** is inlined. `repeat`
- * unrolls and provides `$time` and `$times`. Errors are returned, never
- * thrown, and a call with one is dropped rather than guessed at.
+ * first Group as the ring. A call to another module is inlined, with the
+ * caller's block as its `children()`. Errors are data, never thrown.
  */
 export function compile(input: CompileInput): {
   sequence: CompiledSequence;
   errors: CompileError[];
+  floor?: Floor;
 } {
   const errors: CompileError[] = [];
   const reported = new Set<string>();
-  const report = (message: string, span?: Span): void => {
+  const report = (
+    message: string,
+    span?: Span,
+    extra: { beat?: number; dancers?: string[] } = {},
+  ): void => {
     const key = `${message}@${span?.start ?? -1}`;
     if (reported.has(key)) return;
     reported.add(key);
-    errors.push(span === undefined ? { message } : { message, span });
+    errors.push({ message, ...(span === undefined ? {} : { span }), ...extra });
   };
 
-  const { floor, registry } = input;
+  const { registry } = input;
   const modules = new Map<string, ModuleItem>();
   for (const file of [input.moves, input.dance]) {
     for (const item of file.items) {
@@ -124,56 +150,61 @@ export function compile(input: CompileInput): {
       modules.set(item.name, item);
     }
   }
-  // The entry is the named module, else the file's first module that is a
-  // dance: one with no `ir` line (a move) and at least one time statement.
+  const isMoveModule = (m: ModuleItem): boolean => m.body.some((s) => s.kind === "ir");
   const dances = input.dance.items.filter(
-    (i): i is ModuleItem => i.kind === "module" && !i.body.some((s) => s.kind === "ir"),
+    (i): i is ModuleItem => i.kind === "module" && !isMoveModule(i),
   );
-  const entry = input.entry === undefined ? dances[0] : dances.find((d) => d.name === input.entry);
-  const memberships: Membership[] = [floor.initial];
-  const perDancer: Record<DancerId, readonly CompiledCall[]> = {};
-  const annotations: Annotation[] = [];
-  let title: string | undefined;
-  if (entry === undefined) {
+  const entryFound =
+    input.entry === undefined ? dances[0] : dances.find((d) => d.name === input.entry);
+  const empty = (name: string): CompiledSequence => ({
+    dialect: name,
+    perDancer: {},
+    memberships: [],
+    annotations: [],
+    events: [],
+  });
+  if (entryFound === undefined) {
     report(
       input.entry === undefined ? "the file has no dance" : `the file has no dance ${input.entry}`,
     );
-    return { sequence: { dialect: floor.name, perDancer, memberships, annotations }, errors };
+    return { sequence: empty("?"), errors };
   }
+  const entry: ModuleItem = entryFound;
 
-  // The static half of the one-sigil rule: every $ the dance requires or
-  // reads must be something this formation provides, before anybody dances.
-  const provided = providedNames(floor.root);
-  const known = (name: string): boolean =>
-    provided.has(name) || name === "time" || name === "times";
-  for (const p of entry.params) {
-    if (p.dynamic && !known(p.name)) report(`${floor.name} does not provide $${p.name}`, p.span);
-  }
+  // The floor: the dance's own, when it declares one, else the one given.
+  const floorFound = input.floor ?? ownFloor(input, entry, report);
+  if (floorFound === undefined) return { sequence: empty(entry.name), errors };
+  const floor: Floor = floorFound;
+  const { root, mods } = floor;
 
-  for (const dancer of floor.initial.placeOf.keys()) {
+  let dancers: Dancers = floor.dancers;
+  const memberships: Membership[] = [floor.initial];
+  const events: Assignment[] = [];
+  const annotations: Annotation[] = [];
+  const perDancer: Record<DancerId, CompiledCall[]> = {};
+  let title: string | undefined;
+  let membershipIndex = 0;
+
+  // The static half of the one-sigil rule: every $ the dance reads must be
+  // something this floor provides, or a cursor name.
+  const provided = providedNames(root);
+  const CURSOR = ["time", "times", "first-time", "last-time", "beat"];
+  const known = (name: string): boolean => provided.has(name) || CURSOR.includes(name);
+
+  // ---- one dancer's walk, as a generator the driver steps ----------------------
+
+  function* walkDancer(dancer0: Dancer): Generator<Yielded, void, void> {
+    const id = dancer0.id;
     const calls: CompiledCall[] = [];
-    let membership = floor.initial;
-    let membershipIndex = 0;
+    perDancer[id] = calls;
     let beat = 0;
-    /** The enclosing loops, innermost last; the innermost is "the time through". */
     const loops: { i: number; n: number; startBeat: number }[] = [];
-    /** The block a call with `{ … }` passed, for the callee's `children()`. */
     const childrenStack: { body: readonly Stmt[]; env: Map<string, Value> }[] = [];
+    const me = (): Dancer => dancers.byId(id) ?? dancer0;
+    const placeOfMe = (): Place | undefined => placeAt(root, me().place);
 
-    const placeOfMe = (): Place | undefined => {
-      const path = membership.placeOf.get(dancer);
-      return path === undefined ? undefined : placeAt(floor.root, path);
-    };
-
-    /** `$name` for this dancer now, with the static check done once per name. */
     const dyn = (name: string, span: Span | undefined, reads: Record<string, string>): Value => {
-      if (
-        name === "time" ||
-        name === "times" ||
-        name === "first-time" ||
-        name === "last-time" ||
-        name === "beat"
-      ) {
+      if (CURSOR.includes(name)) {
         const loop = loops[loops.length - 1];
         if (!loop) {
           if (name === "beat") return { kind: "number", value: beat };
@@ -197,24 +228,26 @@ export function compile(input: CompileInput): {
         report(`${floor.name} does not provide $${name}`, span);
         return NOBODY;
       }
-      const path = membership.placeOf.get(dancer);
-      if (path === undefined) return NOBODY;
-      const value = resolve(name, path, floor.root, floor.mods, membership).value;
-      reads[name] = nameOf(value, membership);
+      const value = resolve(name, me(), root, mods, dancers).value;
+      reads[name] = nameOf(value, dancers);
       return value;
     };
 
     const ctxFor = (env: Map<string, Value>, reads: Record<string, string>, span?: Span): Ctx => {
       const place = placeOfMe();
-      const ctx: Ctx = { mods: floor.mods, env, world: (f) => f };
+      const ctx: Ctx = { mods, env, world: (f) => f };
       if (place !== undefined) {
-        ctx.rel = {
-          group: floor.root,
+        const rel: NonNullable<Ctx["rel"]> = {
+          group: root,
           place,
-          root: floor.root,
+          root,
           me: place,
           dyn: (name) => dyn(name, span, reads),
+          roleAt: (path) => dancers.at(path)?.role ?? placeAt(root, path)?.role,
         };
+        const role = me().role;
+        if (role !== undefined) rel.role = role;
+        ctx.rel = rel;
       }
       return ctx;
     };
@@ -227,22 +260,31 @@ export function compile(input: CompileInput): {
       try {
         return evalExpr(e, ctxFor(env, reads, e.span));
       } catch (error) {
-        report(messageOf(error), isEvalError(error) && error.span ? error.span : e.span);
+        report(messageOf(error), isEvalError(error) && error.span ? error.span : e.span, {
+          beat,
+          dancers: [id],
+        });
         return undefined;
       }
     };
 
-    const walk = (
+    function* walk(
       stmts: readonly Stmt[],
       env: Map<string, Value>,
       path: readonly string[],
       stack: readonly string[],
-    ): void => {
+    ): Generator<Yielded, void, void> {
       for (const stmt of stmts) {
         switch (stmt.kind) {
           case "card":
           case "say":
-            annotations.push({ kind: stmt.kind, text: stmt.text, beat, dancer, span: stmt.span });
+            annotations.push({
+              kind: stmt.kind,
+              text: stmt.text,
+              beat,
+              dancer: id,
+              span: stmt.span,
+            });
             if (stmt.kind === "card" && title === undefined) title = stmt.text;
             break;
           case "place":
@@ -251,11 +293,8 @@ export function compile(input: CompileInput): {
           case "provide":
           case "provide-fn":
           case "dancers":
-          case "next":
-          case "seat":
-            // Space: nobody's pass read it. (Round 2 P2 makes the dance own its floor.)
-            break;
           case "ir":
+            // Space: nobody's pass read it.
             break;
           case "children": {
             const passed = childrenStack[childrenStack.length - 1];
@@ -264,20 +303,45 @@ export function compile(input: CompileInput): {
               break;
             }
             childrenStack.pop();
-            walk(passed.body, passed.env, path, stack);
+            yield* walk(passed.body, passed.env, path, stack);
             childrenStack.push(passed);
             break;
           }
-          case "assign":
-            report("reassignment ($x = …) is round 2's P2: not yet", stmt.span);
+          case "assign": {
+            // A reassignment in the dance itself: queued like one from a provided function.
+            const reads: Record<string, string> = {};
+            const value = evaluate(stmt.value, env, reads);
+            if (value === undefined) break;
+            const text =
+              value.kind === "group"
+                ? value.group.path
+                : value.kind === "place"
+                  ? value.place.path
+                  : value.kind === "string"
+                    ? value.value
+                    : value.kind === "member"
+                      ? value.member
+                      : undefined;
+            if (text === undefined) {
+              report(
+                `$${stmt.name} = ${describe(value)}: a group, a place, a name or a role is what a reassignment takes`,
+                stmt.span,
+                { beat, dancers: [id] },
+              );
+              break;
+            }
+            queue.push({ dancer: id, beat, property: stmt.name, value: text, span: stmt.span });
+            yield { kind: "sync" };
             break;
+          }
           case "assert": {
             const reads: Record<string, string> = {};
             const verdict = evaluate(stmt.condition, env, reads);
             if (verdict !== undefined && !truthy(verdict)) {
               report(
-                `assert failed${stmt.message === undefined ? "" : `: ${stmt.message}`} (beat ${String(beat)}, ${dancer})`,
+                `assert failed${stmt.message === undefined ? "" : `: ${stmt.message}`}`,
                 stmt.span,
+                { beat, dancers: [id] },
               );
             }
             break;
@@ -292,7 +356,7 @@ export function compile(input: CompileInput): {
             const reads: Record<string, string> = {};
             const verdict = evaluate(stmt.condition, env, reads);
             if (verdict === undefined) break;
-            walk(truthy(verdict) ? stmt.then : stmt.else, env, path, stack);
+            yield* walk(truthy(verdict) ? stmt.then : stmt.else, env, path, stack);
             break;
           }
           case "match": {
@@ -306,7 +370,7 @@ export function compile(input: CompileInput): {
                   subject.kind === "member" &&
                   subject.member === a.pattern,
               ) ?? stmt.arms.find((a) => a.pattern === undefined);
-            if (arm) walk(arm.body, env, path, stack);
+            if (arm) yield* walk(arm.body, env, path, stack);
             break;
           }
           case "repeat": {
@@ -319,7 +383,7 @@ export function compile(input: CompileInput): {
             }
             for (let i = 0; i < count.value; i += 1) {
               loops.push({ i, n: count.value, startBeat: beat });
-              walk(stmt.body, env, [...path, `repeat[${String(i)}]`], stack);
+              yield* walk(stmt.body, env, [...path, `repeat[${String(i)}]`], stack);
               loops.pop();
             }
             break;
@@ -338,36 +402,42 @@ export function compile(input: CompileInput): {
             for (let i = from.value; i <= end; i += 1) {
               env.set(stmt.binder, { kind: "number", value: i });
               loops.push({ i: i - from.value, n, startBeat: beat });
-              walk(stmt.body, env, [...path, `${stmt.binder}=${String(i)}`], stack);
+              yield* walk(stmt.body, env, [...path, `${stmt.binder}=${String(i)}`], stack);
               loops.pop();
             }
             break;
           }
           case "call": {
-            if (stmt.name === "progress") {
-              // A statement, not a figure: it takes no beats, and every dancer
-              // says it at the same point of the dance, so all of them see the
-              // same seating.
+            if (stmt.name === "progress" && !modules.has("progress")) {
+              // The formation's provided function, run for this dancer against
+              // the state as it is; its reassignments commit with everybody's.
               if (stmt.args.length > 0) report("progress() takes no arguments", stmt.span);
-              try {
-                membership = progress(floor.root, floor.mods, membership);
-              } catch (error) {
-                report(messageOf(error), stmt.span);
+              const found = findFunction("progress", me(), root);
+              if (found === undefined) {
+                report(`${floor.name} provides no progress() here`, stmt.span, {
+                  beat,
+                  dancers: [id],
+                });
                 break;
               }
-              membershipIndex += 1;
-              if (memberships[membershipIndex] === undefined)
-                memberships[membershipIndex] = membership;
+              try {
+                queue.push(...runFunction(found, me(), root, mods, dancers, beat));
+              } catch (error) {
+                report(
+                  messageOf(error),
+                  isEvalError(error) && error.span ? error.span : stmt.span,
+                  { beat, dancers: [id] },
+                );
+              }
+              yield { kind: "sync" };
               break;
             }
             const module = modules.get(stmt.name);
             if (module === undefined) {
-              report(`unknown move ${stmt.name}`, stmt.span);
+              report(`unknown module ${stmt.name}`, stmt.span);
               break;
             }
-            const isMove = module.body.some((s) => s.kind === "ir");
-            if (!isMove) {
-              // Another dance: inlined, with the caller's block as its children.
+            if (!isMoveModule(module)) {
               if (stack.includes(stmt.name)) {
                 report(`${stmt.name} calls itself`, stmt.span);
                 break;
@@ -376,7 +446,7 @@ export function compile(input: CompileInput): {
               const reads: Record<string, string> = {};
               bindPlain(module, stmt.args, env, inner, reads, evaluate, report, stmt.span);
               if (stmt.children) childrenStack.push({ body: stmt.children, env });
-              walk(module.body, inner, [...path, stmt.name], [...stack, stmt.name]);
+              yield* walk(module.body, inner, [...path, stmt.name], [...stack, stmt.name]);
               if (stmt.children) childrenStack.pop();
               break;
             }
@@ -385,12 +455,13 @@ export function compile(input: CompileInput): {
             if (call !== undefined) {
               calls.push(call);
               beat += call.beats;
+              yield { kind: "call", call };
             }
             break;
           }
         }
       }
-    };
+    }
 
     /** A move call: bind its contract from the tree or the call, map onto the figure, cast. */
     const compileMove = (
@@ -400,18 +471,14 @@ export function compile(input: CompileInput): {
       path: readonly string[],
     ): CompiledCall | undefined => {
       const ir = module.body.find((s): s is Extract<Stmt, { kind: "ir" }> => s.kind === "ir");
-      if (ir === undefined) {
-        report(`move ${module.name} names no figure`, module.span);
-        return undefined;
-      }
+      if (ir === undefined) return undefined;
       const figure = figureNamed(registry, ir.id);
       if (figure === undefined) {
-        report(`move ${module.name} names a figure that does not exist: "${ir.id}"`, ir.span);
+        report(`${module.name} names a figure that does not exist: "${ir.id}"`, ir.span);
         return undefined;
       }
       const reads: Record<string, string> = {};
       const bound = new Map<string, Value>();
-      // Positional arguments fill the $ parameters first, then the plain ones.
       const dynamics = module.params.filter((p) => p.dynamic);
       const plain = module.params.filter((p) => !p.dynamic);
       const order = [...dynamics, ...plain];
@@ -451,7 +518,6 @@ export function compile(input: CompileInput): {
       }
       if (!ok) return undefined;
 
-      // The figure's parameters, by name; the counterpart and the ring by type.
       const params: Record<string, string | number> = { ...defaultParams(figure) };
       let partner: DancerId | undefined;
       let group: readonly DancerId[] | undefined;
@@ -459,34 +525,28 @@ export function compile(input: CompileInput): {
       const ring = module.params.find((p) => p.type === "Group");
       for (const spec of figure.params) {
         if (spec.kind === "dancer") {
-          const who = counterpart === undefined ? undefined : bound.get(counterpart.name);
           if (counterpart === undefined) {
-            report(
-              `move ${module.name} names no Place for ${figure.id}'s ${spec.name}`,
-              module.span,
-            );
+            report(`${module.name} names no Place for ${figure.id}'s ${spec.name}`, module.span);
             return undefined;
           }
-          partner = who === undefined ? undefined : dancerOf(who, membership);
+          const who = bound.get(counterpart.name);
+          partner = who === undefined ? undefined : dancerOf(who, dancers);
           continue;
         }
         if (spec.kind === "group") {
-          const what = ring === undefined ? undefined : bound.get(ring.name);
           if (ring === undefined) {
-            report(
-              `move ${module.name} names no Group for ${figure.id}'s ${spec.name}`,
-              module.span,
-            );
+            report(`${module.name} names no Group for ${figure.id}'s ${spec.name}`, module.span);
             return undefined;
           }
-          group = what === undefined ? undefined : ringOf(what, dancer, membership, floor.root);
+          const what = bound.get(ring.name);
+          group = what === undefined ? undefined : ringOf(what, id, dancers);
           continue;
         }
         const param = module.params.find((p) => p.name === spec.name && !p.dynamic);
         const value = param === undefined ? undefined : bound.get(param.name);
         if (value === undefined) {
           if (spec.default === undefined) {
-            report(`move ${module.name} does not give ${figure.id} its ${spec.name}`, module.span);
+            report(`${module.name} does not give ${figure.id} its ${spec.name}`, module.span);
             return undefined;
           }
           continue;
@@ -524,7 +584,7 @@ export function compile(input: CompileInput): {
 
       const beats = beatsOf(figure, params);
       const cast: Record<Role, DancerId | undefined> = {
-        self: dancer,
+        self: id,
         partner,
         left: group?.[1],
         opposite: group?.[2],
@@ -552,22 +612,120 @@ export function compile(input: CompileInput): {
     const env = new Map<string, Value>();
     const reads: Record<string, string> = {};
     for (const p of entry.params) {
-      if (p.dynamic) continue;
-      if (p.default !== undefined) {
-        const value = evaluate(p.default, env, reads);
-        if (value !== undefined) env.set(p.name, value);
-      }
+      if (p.dynamic || p.default === undefined) continue;
+      const value = evaluate(p.default, env, reads);
+      if (value !== undefined) env.set(p.name, value);
     }
-    walk(entry.body, env, [], [entry.name]);
-    perDancer[dancer] = calls;
+    yield* walk(entry.body, env, [], [entry.name]);
   }
 
-  const sequence: CompiledSequence = { dialect: floor.name, perDancer, memberships, annotations };
+  // ---- the driver: everybody together, a beat at a time --------------------------
+
+  const queue: Assignment[] = [];
+  interface Thread {
+    dancer: Dancer;
+    gen: Generator<Yielded, void, void>;
+    cursor: number;
+    done: boolean;
+    atSync: boolean;
+  }
+  const threads: Thread[] = dancers.list.map((dancer) => ({
+    dancer,
+    gen: walkDancer(dancer),
+    cursor: 0,
+    done: false,
+    atSync: false,
+  }));
+  const step = (t: Thread): void => {
+    const r = t.gen.next();
+    if (r.done) {
+      t.done = true;
+      return;
+    }
+    if (r.value.kind === "call") t.cursor = r.value.call.end;
+    else t.atSync = true;
+  };
+  let guard = 0;
+  while (threads.some((t) => !t.done)) {
+    if (guard++ > 1_000_000) {
+      report("the dance does not end");
+      break;
+    }
+    const live = threads.filter((t) => !t.done);
+    const beat = Math.min(...live.map((t) => t.cursor));
+    const active = live.filter((t) => t.cursor === beat && !t.atSync);
+    for (const t of active) step(t);
+    const synced = threads.filter((t) => t.atSync && t.cursor === beat);
+    // Everybody at this beat has yielded: commit what they queued, together.
+    if (synced.length > 0 && !threads.some((t) => !t.done && t.cursor === beat && !t.atSync)) {
+      const { after, violations } = commit(root, dancers, queue, beat);
+      for (const v of violations) report(v.message, v.span, { beat: v.beat, dancers: v.dancers });
+      events.push(...queue);
+      queue.length = 0;
+      dancers = after;
+      memberships.push(membershipOf(dancers));
+      membershipIndex += 1;
+      for (const t of synced) t.atSync = false;
+    }
+  }
+
+  const sequence: CompiledSequence = {
+    dialect: floor.name,
+    perDancer,
+    memberships,
+    annotations,
+    events,
+  };
   if (title !== undefined) sequence.title = title;
-  return { sequence, errors };
+  return { sequence, errors, floor };
 }
 
-/** Bind a dance module's plain parameters from a call's arguments (its `$` ones are read from the tree). */
+/**
+ * The floor a dance declares: its own module evaluated for nobody, with the
+ * files that define the formations it names, the prelude and the couple.
+ */
+function ownFloor(
+  input: CompileInput,
+  entry: ModuleItem,
+  report: (message: string, span?: Span) => void,
+): Floor | undefined {
+  const named = entry.body
+    .filter((s): s is Extract<Stmt, { kind: "group" }> => s.kind === "group")
+    .map((s) => s.module);
+  // Every formation any module of the file names is read, so the checker knows them all.
+  const mentioned = input.dance.items.flatMap((i) =>
+    i.kind === "module"
+      ? i.body.filter((s): s is Extract<Stmt, { kind: "group" }> => s.kind === "group").map((s) => s.module)
+      : [],
+  );
+  if (named.length === 0) {
+    report(
+      `${entry.name} declares no floor (no "group <formation>(…)") and none was given`,
+      entry.span,
+    );
+    return undefined;
+  }
+  const files: File[] = [...(input.library ?? [])];
+  for (const name of [...new Set([...named, ...mentioned])]) {
+    if (files.some((f) => f.items.some((i) => i.kind === "module" && i.name === name))) continue;
+    const file = input.resolve?.(name);
+    if (file === undefined) {
+      report(`no file defines the formation ${name}`, entry.span);
+      return undefined;
+    }
+    files.push(file);
+  }
+  // The dance file itself, less the moves (their file is read separately).
+  files.push({ items: input.dance.items, source: input.dance.source });
+  try {
+    return floorOf(files, entry.name, {}, input.dynamics ?? {});
+  } catch (error) {
+    report(messageOf(error), isEvalError(error) ? error.span : entry.span);
+    return undefined;
+  }
+}
+
+/** Bind a module's plain parameters from a call's arguments (its `$` ones are read from the tree). */
 function bindPlain(
   module: ModuleItem,
   args: readonly Arg[],
@@ -601,30 +759,24 @@ function bindPlain(
 }
 
 /** The dancer standing on a place value, or nobody. */
-const dancerOf = (v: Value, membership: Membership): DancerId | undefined =>
-  v.kind === "place" ? membership.dancerOf.get(v.place.path) : undefined;
+const dancerOf = (v: Value, dancers: Dancers): DancerId | undefined =>
+  v.kind === "place" ? dancers.at(v.place.path)?.id : undefined;
 
 /**
  * The dancers of a group **in ring order clockwise from `me`**: sorted by
  * bearing from the middle of them and rotated to start at the asking
- * dancer, so the second is the one they would circle left into and the
- * third is across. A group with an empty place is nobody: a ring of three
- * is not a hands four.
+ * dancer. A group with an empty place is nobody: a ring of three is not a
+ * hands four.
  */
-function ringOf(
-  v: Value,
-  me: DancerId,
-  membership: Membership,
-  root: Group,
-): readonly DancerId[] | undefined {
+function ringOf(v: Value, me: DancerId, dancers: Dancers): readonly DancerId[] | undefined {
   if (v.kind !== "group") return undefined;
   const places = placesOf(v.group);
   if (places.length === 0) return undefined;
   const seated: { id: DancerId; place: Place }[] = [];
   for (const place of places) {
-    const id = membership.dancerOf.get(place.path);
-    if (id === undefined) return undefined;
-    seated.push({ id, place });
+    const d = dancers.at(place.path);
+    if (d === undefined) return undefined;
+    seated.push({ id: d.id, place });
   }
   if (!seated.some((s) => s.id === me)) return undefined;
   const cx = seated.reduce((s, m) => s + m.place.frame.x, 0) / seated.length;
@@ -635,24 +787,25 @@ function ringOf(
       Math.atan2(b.place.frame.y - cy, b.place.frame.x - cx),
   );
   const start = clockwise.findIndex((m) => m.id === me);
-  void root;
   return clockwise.map(
     (_, i) => (clockwise[(start + i) % clockwise.length] as { id: DancerId }).id,
   );
 }
 
 /** A value as the debugger shows a binding: the dancer on it, the group's kind, the member, or nobody. */
-function nameOf(v: Value, membership: Membership): string {
+function nameOf(v: Value, dancers: Dancers): string {
   switch (v.kind) {
     case "place":
-      return membership.dancerOf.get(v.place.path) ?? "nobody";
-    case "group": {
-      const ids = placesOf(v.group).map((p) => membership.dancerOf.get(p.path) ?? "·");
-      return `${v.group.kind} [${ids.join(" ")}]`;
-    }
+      return dancers.at(v.place.path)?.id ?? "nobody";
+    case "group":
+      return `${v.group.kind} [${placesOf(v.group)
+        .map((p) => dancers.at(p.path)?.id ?? "·")
+        .join(" ")}]`;
     case "member":
       return v.member;
     case "number":
+      return String(v.value);
+    case "bool":
       return String(v.value);
     case "nobody":
       return "nobody";

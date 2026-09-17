@@ -7,4 +7,5 @@ module pair() {
   place robin role Robin at fwd(0.4m) rotate(180);
   provide $partner: Place = other(me);
   provide $role: Role = role(me);
+  dancers;
 }

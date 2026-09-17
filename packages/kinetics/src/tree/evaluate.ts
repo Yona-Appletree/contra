@@ -1,9 +1,10 @@
 import type { Arg, Expr, File, ModuleItem, Span, Stmt, Transform } from "../lang/syntax.js";
 import { UNITS } from "../lang/syntax.js";
+import { readsDancer } from "../lang/lint.js";
 import type { Frame, Op } from "./Frame.js";
 import { IDENTITY, applyAll, distance, facingOf, norm, tidy, unit } from "./Frame.js";
 import type { Anchor, Group, Place, Provide, ProvidedFn } from "./Tree.js";
-import { centreOf, isGroup, membersOf, placesOf } from "./Tree.js";
+import { centreOf, groupsOf, isGroup, membersOf, placesOf } from "./Tree.js";
 import type { Env, Value } from "./values.js";
 import { NOBODY, bool, describe, isSomebody, len, num } from "./values.js";
 
@@ -64,9 +65,10 @@ export function buildFormation(
   mods: Modules,
   name: string,
   args: Readonly<Record<string, Value>> = {},
-): Group {
+  dynamics: Env = new Map(),
+): Built {
   const module = mods.modules.get(name);
-  if (module === undefined) throw evalError(`unknown formation ${name}`);
+  if (module === undefined) throw evalError(`unknown module ${name}`);
   if (module.kind !== "module") throw evalError(`${name} is not a module`);
   const named: Arg[] = Object.entries(args).map(([key, value]) => ({
     name: key,
@@ -74,7 +76,28 @@ export function buildFormation(
     value: literal(value),
     span: module.span,
   }));
-  return evalModule(mods, module, named, new Map(), name, name, (f) => f);
+  const build: Build = { seated: [], dynamics };
+  const root = evalModule(mods, module, named, new Map(), name, name, (f) => f, build, undefined);
+  return { root, seated: build.seated };
+}
+
+/** What nobody's pass produced: the tree, and the groups whose `dancers;` asked to be filled. */
+export interface Built {
+  root: Group;
+  seated: Group[];
+}
+
+/** What one build carries down the tree. */
+interface Build {
+  seated: Group[];
+  /** `$` variables set by the call chain (`$minor-sets`), readable in space. */
+  dynamics: Env;
+}
+
+/** A call's block, to be evaluated in the callee's scope where it says `children()`, else at its end. */
+interface Children {
+  body: readonly Stmt[];
+  env: Env;
 }
 
 /** A value written back as an expression, so `buildFormation`'s args go through the one binder. */
@@ -105,6 +128,7 @@ function bindParams(
   args: readonly Arg[],
   callerEnv: Env,
   span: Span,
+  dynamics: Env = new Map(),
 ): Map<string, Value> {
   const env = new Map<string, Value>();
   const plain = module.params.filter((p) => !p.dynamic);
@@ -120,7 +144,7 @@ function bindParams(
         arg.span,
       );
     }
-    env.set(param.name, evalExpr(arg.value, { mods, env: callerEnv, world: (f) => f }));
+    env.set(param.name, evalExpr(arg.value, { mods, env: callerEnv, world: (f) => f, dynamics }));
   }
   for (const p of module.params) {
     if (env.has(p.name)) continue;
@@ -128,7 +152,7 @@ function bindParams(
       if (!p.dynamic) throw evalError(`${module.name} needs ${p.name}: ${p.type}`, span);
       continue;
     }
-    env.set(p.name, evalExpr(p.default, { mods, env, world: (f) => f }));
+    env.set(p.name, evalExpr(p.default, { mods, env, world: (f) => f, dynamics }));
   }
   return env;
 }
@@ -141,8 +165,10 @@ function evalModule(
   path: string,
   name: string,
   world: (local: Frame) => Frame,
+  build: Build,
+  passed: Children | undefined,
 ): Group {
-  const env = bindParams(mods, module, args, callerEnv, module.span);
+  const env = bindParams(mods, module, args, callerEnv, module.span, build.dynamics);
   const places: Place[] = [];
   const children: Group[] = [];
   const anchors: Record<string, Anchor> = {};
@@ -159,8 +185,16 @@ function evalModule(
     provides,
     functions,
   };
-  const ctx = (): Ctx => ({ mods, env, world });
-  const walk = (stmts: readonly Stmt[]): void => {
+  let scope: Env = env;
+  const ctx = (): Ctx => ({ mods, env: scope, world, dynamics: build.dynamics });
+  let childrenPlaced = false;
+  const walk = (stmts: readonly Stmt[], inScope: Env = env): void => {
+    const outer = scope;
+    scope = inScope;
+    walkIn(stmts);
+    scope = outer;
+  };
+  const walkIn = (stmts: readonly Stmt[]): void => {
     for (const stmt of stmts) {
       switch (stmt.kind) {
         case "place": {
@@ -184,14 +218,18 @@ function evalModule(
             stmt.name ??
             `${stmt.module}#${String(children.filter((c) => c.kind === stmt.module).length)}`;
           const localOps = ops(stmt.at, ctx());
+          const block: Children | undefined =
+            stmt.children === undefined ? undefined : { body: stmt.children, env: new Map(scope) };
           const built = evalModule(
             mods,
             child,
             stmt.args,
-            env,
+            scope,
             `${path}/${childName}`,
             childName,
             (f) => world(applyAll(localOps, f)),
+            build,
+            block,
           );
           children.push(built);
           env.set(childName, { kind: "group", group: built });
@@ -204,12 +242,6 @@ function evalModule(
             deferred: { expr: stmt.value, env: new Map(env) },
           });
           break;
-        case "next":
-          group.next = { expr: stmt.value, env: new Map(env) };
-          break;
-        case "seat":
-          group.seat = { expr: stmt.value, env: new Map(env) };
-          break;
         case "let":
           env.set(stmt.name, evalExpr(stmt.value, ctx()));
           break;
@@ -221,7 +253,7 @@ function evalModule(
               stmt.span,
             );
           }
-          for (let i = 0; i < count.value; i += 1) walk(stmt.body);
+          for (let i = 0; i < count.value; i += 1) walkIn(stmt.body);
           break;
         }
         case "for": {
@@ -231,12 +263,13 @@ function evalModule(
             throw evalError("for needs whole numbers", stmt.span);
           const end = stmt.inclusive ? to.value : to.value - 1;
           for (let i = from.value; i <= end; i += 1) {
-            env.set(stmt.binder, num(i));
-            walk(stmt.body);
+            (scope as Map<string, Value>).set(stmt.binder, num(i));
+            walkIn(stmt.body);
           }
           break;
         }
         case "match": {
+          if (readsDancer(stmt.subject)) break;
           const subject = evalExpr(stmt.subject, ctx());
           const arm =
             stmt.arms.find(
@@ -245,7 +278,7 @@ function evalModule(
                 subject.kind === "member" &&
                 subject.member === a.pattern,
             ) ?? stmt.arms.find((a) => a.pattern === undefined);
-          if (arm) walk(arm.body);
+          if (arm) walkIn(arm.body);
           break;
         }
         case "provide-fn":
@@ -257,10 +290,14 @@ function evalModule(
           });
           break;
         case "dancers":
-          // Round 2 P2: fills this group's places. Until then the seating is `seat`'s.
+          build.seated.push(group);
           break;
         case "children":
-          // Round 2 P2.
+          if (passed !== undefined && !childrenPlaced) {
+            childrenPlaced = true;
+            // The caller's block, in the caller's environment, placed here.
+            walk(passed.body, new Map([...passed.env, ...env]));
+          }
           break;
         case "assign":
         case "assert":
@@ -270,8 +307,11 @@ function evalModule(
           // Time statements: nobody's pass leaves them for the dancers.
           break;
         case "if": {
+          // A branch on a dancer is time's; nobody's pass leaves it (the
+          // linter holds that no space statement sits under one).
+          if (readsDancer(stmt.condition)) break;
           const verdict = evalExpr(stmt.condition, ctx());
-          walk(truthy(verdict) ? stmt.then : stmt.else);
+          walkIn(truthy(verdict) ? stmt.then : stmt.else);
           break;
         }
         case "ir":
@@ -280,6 +320,9 @@ function evalModule(
     }
   };
   walk(module.body);
+  // A block the module never placed goes at the end: that is how
+  // `group minor-set() { dancers; }` seats a set from outside its module.
+  if (passed !== undefined && !childrenPlaced) walk(passed.body, new Map([...passed.env, ...env]));
   return group;
 }
 
@@ -373,7 +416,9 @@ export interface Ctx {
   env: Env;
   /** Local geometry into the world: where `point`, `line` and `direction` are made. */
   world: (local: Frame) => Frame;
-  /** Bound while a provide or `next` is evaluated for one dancer. */
+  /** `$` variables the call chain set (`$minor-sets`), readable even in space. */
+  dynamics?: Env;
+  /** Bound while a provide is evaluated for one dancer. */
   rel?: Relational;
 }
 
@@ -389,6 +434,10 @@ export interface Relational {
   me: Group | Place;
   /** `$name` lookups from a provide's expression, when the tree can answer them. */
   dyn?: (name: string) => Value | undefined;
+  /** The asking dancer's own role, which may differ from the place's after a swap. */
+  role?: string;
+  /** The role of whoever stands on a place now, else the place's own. */
+  roleAt?: (placePath: string) => string | undefined;
 }
 
 export const truthy = (v: Value): boolean => (v.kind === "bool" ? v.value : isSomebody(v));
@@ -415,7 +464,7 @@ export function evalExpr(e: Expr, ctx: Ctx): Value {
         : { kind: "member", member: e.member };
     }
     case "dyn": {
-      const found = ctx.rel?.dyn?.(e.name);
+      const found = ctx.rel?.dyn?.(e.name) ?? ctx.dynamics?.get(e.name);
       if (found === undefined) throw evalError(`$${e.name} is not available here`, e.span);
       return found;
     }
@@ -476,8 +525,16 @@ const worldDirection = (ctx: Ctx, facing: number): Frame => {
 };
 
 function binary(op: string, l: Expr, r: Expr, span: Span, ctx: Ctx): Value {
-  if (op === "and") return bool(truthy(evalExpr(l, ctx)) && truthy(evalExpr(r, ctx)));
-  if (op === "or") return bool(truthy(evalExpr(l, ctx)) || truthy(evalExpr(r, ctx)));
+  // `and` and `or` are value-returning, so `along(…) or out-top` is the
+  // next set or the out group, and a condition reads them as truth.
+  if (op === "and") {
+    const left = evalExpr(l, ctx);
+    return truthy(left) ? evalExpr(r, ctx) : left;
+  }
+  if (op === "or") {
+    const left = evalExpr(l, ctx);
+    return truthy(left) ? left : evalExpr(r, ctx);
+  }
   const left = evalExpr(l, ctx);
   const right = evalExpr(r, ctx);
   if (op === "is") {
@@ -496,14 +553,10 @@ function binary(op: string, l: Expr, r: Expr, span: Span, ctx: Ctx): Value {
   }
   // arithmetic: numbers with numbers, lengths with lengths, a length scaled by a number
   if (left.kind === "number" && right.kind === "number") {
+    const a = left.value;
+    const b = right.value;
     return num(
-      op === "+"
-        ? left.value + right.value
-        : op === "-"
-          ? left.value - right.value
-          : op === "*"
-            ? left.value * right.value
-            : left.value / right.value,
+      op === "+" ? a + b : op === "-" ? a - b : op === "*" ? a * b : op === "%" ? a % b : a / b,
     );
   }
   if (left.kind === "length" && right.kind === "length" && (op === "+" || op === "-")) {
@@ -655,7 +708,9 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
       const a = argsOf(["of"], args, span, ctx, name);
       const of = need(a, "of", name, span);
       const facing =
-        of.kind === "number" ? worldDirection(ctx, of.value).facing : directionOf(of, name, span, ctx);
+        of.kind === "number"
+          ? worldDirection(ctx, of.value).facing
+          : directionOf(of, name, span, ctx);
       return { kind: "anchor", anchor: { kind: "direction", frame: { x: 0, y: 0, facing } } };
     }
     case "centre": {
@@ -665,29 +720,49 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
         ? NOBODY
         : { kind: "anchor", anchor: { kind: "point", frame: tidy(centreOf(g)) } };
     }
-    // ---- the progression and the seating: plans, run by progression.ts
-    case "duple-progression":
-    case "triple-progression":
-      return {
-        kind: "progression",
-        name,
-        args: argsOf(["along", "out-top", "out-bottom"], args, span, ctx, name),
-      };
-    case "circle-progression":
-      return { kind: "progression", name, args: argsOf(["around"], args, span, ctx, name) };
-    case "none":
-      return { kind: "progression", name, args: {} };
-    case "alternate":
-    case "all": {
-      const every = args.find((a) => a.name === "every");
-      return {
-        kind: "seating",
-        name,
-        args: {
-          kind: { kind: "string", value: kindArg(args, name, span) },
-          every: every === undefined ? num(2) : evalExpr(every.value, ctx),
-        },
-      };
+    // ---- the neighbours of a group, for a progress function
+    case "along": {
+      const r = rel();
+      const a = argsOf(["of", "direction"], args, span, ctx, name);
+      const g = asGroup(need(a, "of", name, span), name, span);
+      if (g === undefined) return NOBODY;
+      const facing = directionOf(need(a, "direction", name, span), name, span, ctx);
+      const siblings = siblingsOf(r.root, g);
+      const here = projection(g, facing);
+      const beyond = siblings
+        .filter((s) => projection(s, facing) > here + 1e-6)
+        .sort((p, q) => projection(p, facing) - projection(q, facing));
+      const next = beyond[0];
+      return next === undefined ? NOBODY : { kind: "group", group: next };
+    }
+    case "first":
+    case "last": {
+      const r = rel();
+      const kind = kindArg(args, name, span);
+      const dirArg = args[1];
+      if (dirArg === undefined) throw evalError(`${name} takes a kind and a direction`, span);
+      const facing = directionOf(evalExpr(dirArg.value, ctx), name, span, ctx);
+      const ofKind = groupsOf(r.group)
+        .filter((g) => g.kind === kind)
+        .sort((p, q) => projection(p, facing) - projection(q, facing));
+      const pick = name === "first" ? ofKind[0] : ofKind[ofKind.length - 1];
+      return pick === undefined ? NOBODY : { kind: "group", group: pick };
+    }
+    case "around": {
+      const r = rel();
+      const a = argsOf(["of", "steps"], args, span, ctx, name);
+      const g = asGroup(need(a, "of", name, span), name, span);
+      if (g === undefined) return NOBODY;
+      const steps = need(a, "steps", name, span);
+      if (steps.kind !== "number") throw evalError("around takes a number of steps", span);
+      const siblings = siblingsOf(r.root, g);
+      const all = [g, ...siblings].sort((p, q) =>
+        p.path.localeCompare(q.path, undefined, { numeric: true }),
+      );
+      const i = all.findIndex((s) => s.path === g.path);
+      const n = all.length;
+      const pick = all[(((i + Math.round(steps.value)) % n) + n) % n];
+      return pick === undefined ? NOBODY : { kind: "group", group: pick };
     }
     // ---- relations: for one dancer
     case "other": {
@@ -717,14 +792,17 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
       const r = rel();
       const a = argsOf(["of"], args, span, ctx, name);
       const of = a["of"] ?? (isGroup(r.me) ? NOBODY : { kind: "place", place: r.me });
-      if (of.kind !== "place" || of.place.role === undefined) return NOBODY;
-      return { kind: "member", enum: "Role", member: of.place.role };
+      if (of.kind !== "place") return NOBODY;
+      const role =
+        of.place.path === r.place.path
+          ? (r.role ?? of.place.role)
+          : (r.roleAt?.(of.place.path) ?? of.place.role);
+      return role === undefined ? NOBODY : { kind: "member", enum: "Role", member: role };
     }
     case "my-role": {
       const r = rel();
-      return r.place.role === undefined
-        ? NOBODY
-        : { kind: "member", enum: "Role", member: r.place.role };
+      const role = r.role ?? r.place.role;
+      return role === undefined ? NOBODY : { kind: "member", enum: "Role", member: role };
     }
     case "opposite-role":
     case "same-role": {
@@ -733,10 +811,12 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
       const g = need(a, "in", name, span);
       if (g.kind === "nobody") return NOBODY;
       const candidates = g.kind === "place" ? [g.place] : placesOf(asGroup(g, name, span) as Group);
-      const mine = r.place.role;
+      const mine = r.role ?? r.place.role;
+      const roleOf = (p: Place): string | undefined => r.roleAt?.(p.path) ?? p.role;
       const wanted = candidates.filter(
         (p) =>
-          p.path !== r.place.path && (name === "same-role" ? p.role === mine : p.role !== mine),
+          p.path !== r.place.path &&
+          (name === "same-role" ? roleOf(p) === mine : roleOf(p) !== mine),
       );
       return placeValue(nearest(wanted, r.place.frame));
     }
@@ -791,6 +871,20 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
       throw evalError(`unknown function ${name}`, span);
   }
 }
+
+/** The other groups of the same kind under the same parent. */
+function siblingsOf(root: Group, g: Group): Group[] {
+  const parentPath = g.path.slice(0, g.path.lastIndexOf("/"));
+  const parent = groupsOf(root).find((p) => p.path === parentPath);
+  return parent === undefined ? [] : parent.children.filter((c) => c !== g && c.kind === g.kind);
+}
+
+/** How far along a facing a group's centre sits. */
+const projection = (g: Group, facing: number): number => {
+  const c = centreOf(g);
+  const d = unit(facing);
+  return Math.round((c.x * d.x + c.y * d.y) * 1000) / 1000;
+};
 
 const nearest = (places: readonly Place[], to: Frame): Place | undefined =>
   [...places].sort((a, b) => distance(a.frame, to) - distance(b.frame, to))[0];

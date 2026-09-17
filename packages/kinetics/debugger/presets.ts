@@ -23,6 +23,13 @@ const text = (relative: string): string => {
 export const PRELUDE = text("prelude.dance");
 export const COMMON = text("formations/common.dance");
 export const MOVES: File = parse(text("moves.dance"));
+/** The prelude and the couple, for a floor a dance declares. */
+export const LIBRARY: File[] = [parse(PRELUDE), parse(COMMON)];
+/** The file that defines a formation, by name. */
+export const resolveFormation = (name: string): File | undefined => {
+  const found = FILES[`../dances/formations/${name}.dance`];
+  return found === undefined ? undefined : parse(found);
+};
 
 /** The formations on disk (`becket`, `improper`, …), sorted. */
 export const FORMATIONS: string[] = Object.keys(FILES)

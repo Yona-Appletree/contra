@@ -5,4 +5,5 @@ module solo() {
   place lark role Lark at back(0.4m);
   provide $partner: Place = other(me);
   provide $role: Role = role(me);
+  dancers;
 }

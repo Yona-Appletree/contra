@@ -42,12 +42,7 @@ export const BUILTIN_FUNCTIONS: readonly string[] = [
   "direction",
   "centre",
   "group",
-  "duple-progression",
-  "triple-progression",
-  "circle-progression",
-  "none",
-  "alternate",
-  "all",
+  "around",
   "my-role",
 ];
 
@@ -134,9 +129,23 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
         case "dancers":
         case "children":
           break;
-        case "assign":
-          typeOf(stmt.value, scope.dyn.get(stmt.name), scope);
+        case "assign": {
+          // `$couple = "twos"` names a slot; anything else must be the property's type.
+          const wanted = scope.dyn.get(stmt.name);
+          const found = infer(stmt.value, wanted, scope);
+          if (
+            wanted !== undefined &&
+            found !== UNKNOWN &&
+            found !== "String" &&
+            !compatible(found, wanted)
+          ) {
+            scope.errors.push({
+              message: `expected ${wanted}, found ${found}`,
+              span: stmt.value.span,
+            });
+          }
           break;
+        }
         case "assert":
           condition(stmt.condition, scope);
           break;
@@ -174,10 +183,6 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
         case "provide":
           typeOf(stmt.value, stmt.type, scope);
           dyn.set(stmt.name, stmt.type);
-          break;
-        case "next":
-        case "seat":
-          typeOf(stmt.value, undefined, scope);
           break;
         case "let":
           env.set(stmt.name, typeOf(stmt.value, undefined, scope));
@@ -419,9 +424,12 @@ function infer(e: Expr, expected: string | undefined, scope: Scope): string {
         return "Bool";
       }
       if (e.op === "and" || e.op === "or") {
-        condition(e.left, scope);
-        condition(e.right, scope);
-        return "Bool";
+        // Value-returning: `along(…) or out-top` is a group; a condition reads it as truth.
+        const left = infer(e.left, undefined, scope);
+        const right = infer(e.right, undefined, scope);
+        if (left === right) return left;
+        if (left === "Bool" || right === "Bool") return "Bool";
+        return UNKNOWN;
       }
       if (e.op === "==" || e.op === "!=") {
         const left = infer(e.left, undefined, scope);

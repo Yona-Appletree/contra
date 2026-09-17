@@ -8,6 +8,7 @@ module minor-set() {
   group ones = couple(spacing = 1.28m) at translate(y = -0.4m) rotate(90);
   group twos = couple(spacing = 1.28m) at translate(y = 0.4m) rotate(270);
   provide $neighbor: Place = opposite-role(other(me));
+  provide $slot: Int = index(me);
 }
 
 module big-circle(minor-sets: Int = 6) {
@@ -15,8 +16,13 @@ module big-circle(minor-sets: Int = 6) {
   let n = 2 * minor-sets;
   let r = 1m * n / (2 * pi);
   for i in 0..n {
-    group minor-set() at rotate(360 / n * i) translate(x = r);
+    group minor-set() at rotate(360 / n * i) translate(x = r) {
+      if (i % 2 == 0) {
+        dancers;
+      }
+    }
   }
-  seat = alternate(minor-set);
-  next = circle-progression(around = center);
+  provide progress() {
+    $minor-set = around($minor-set, if ($slot == 0) 1 else -1);
+  }
 }

@@ -4,7 +4,7 @@ import { unit } from "../../src/tree/Frame.js";
 import type { Group } from "../../src/tree/Tree.js";
 import { groupsOf, placesOf } from "../../src/tree/Tree.js";
 import { buildFormation, collect } from "../../src/tree/evaluate.js";
-import { seatAll } from "../../src/tree/membership.js";
+import { instantiate } from "../../src/tree/state.js";
 import { num } from "../../src/tree/values.js";
 import { OTHER_KIND, colourOfKind, hull } from "../groups.js";
 import { ROLE_COLOURS, el, paneShell, svg, type Pane } from "../view.js";
@@ -81,8 +81,9 @@ export function layoutPane(): Pane {
         if (fallback?.kind === "number") size.value = String(fallback.value);
       }
       const args = sizeParam === undefined ? {} : { [sizeParam.name]: num(Number(size.value)) };
-      tree = buildFormation(mods, name, args);
-      seated = new Set(seatAll(tree, mods).dancerOf.keys());
+      const built = buildFormation(mods, name, args);
+      tree = built.root;
+      seated = new Set(instantiate(built.seated).list.map((d) => d.place));
       note.textContent = "";
     } catch (error) {
       note.textContent = error instanceof Error ? error.message : String(error);

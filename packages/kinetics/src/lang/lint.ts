@@ -96,10 +96,6 @@ function lintModule(
         case "dancers":
         case "children":
           break;
-        case "next":
-        case "seat":
-          readExpr(stmt.value, reads, dynReads);
-          break;
         case "let":
           bindings.set(stmt.name, stmt);
           readExpr(stmt.value, reads, dynReads);

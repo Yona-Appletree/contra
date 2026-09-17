@@ -1,0 +1,6 @@
+// The fixture on a becket floor: bow, do-si-do and allemande with your partner.
+
+module fixture-becket() {
+  group becket(minor-sets = $minor-sets);
+  fixture();
+}

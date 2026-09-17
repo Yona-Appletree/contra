@@ -162,12 +162,6 @@ class Printer {
       case "match":
         this.matchStmt(stmt, indent);
         return;
-      case "next":
-        this.line(`next = ${expr(stmt.value)};`, indent, stmt.span);
-        return;
-      case "seat":
-        this.line(`seat = ${expr(stmt.value)};`, indent, stmt.span);
-        return;
       case "let":
         this.line(`let ${stmt.name} = ${expr(stmt.value)};`, indent, stmt.span);
         return;
@@ -199,8 +193,17 @@ class Printer {
   private ifStmt(stmt: Extract<Stmt, { kind: "if" }>, indent: string, head: string): void {
     this.lines.push(`${indent}${head} (${expr(stmt.condition)}) {`);
     for (const s of stmt.then) this.stmt(s, `${indent}  `);
+    // Comments before the `else` keyword belong to the then block; after it, to the else.
+    const lastThen = stmt.then[stmt.then.length - 1];
+    const thenEnd = lastThen === undefined ? stmt.span.start : lastThen.span.end;
     const elseStart = stmt.else[0]?.span.start;
-    this.rest(`${indent}  `, elseStart ?? stmt.span.end);
+    const elseKeyword = elseStart === undefined ? -1 : this.file.source.indexOf("else", thenEnd);
+    this.rest(
+      `${indent}  `,
+      elseKeyword >= 0 && elseKeyword < (elseStart ?? Infinity)
+        ? elseKeyword
+        : (elseStart ?? stmt.span.end),
+    );
     if (stmt.else.length === 0) {
       this.lines.push(`${indent}}${this.trailing(stmt.span)}`);
       return;

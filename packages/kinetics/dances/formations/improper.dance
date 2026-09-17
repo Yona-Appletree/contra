@@ -10,17 +10,31 @@ module minor-set() {
   group twos = couple(spacing = 1.28m) at translate(y = 0.4m) rotate(270);
   provide $neighbor: Place = opposite-role(other(me));
   provide $across: Place = across(me, across);
+  provide $travel: Direction = if (index(me) == 0) Down else Up;
 }
 
 module major-set(minor-sets: Int = 3) {
   anchor down = direction(Down);
   for i in 0..2 * minor-sets - 1 {
-    group minor-set() at translate(y = 0.8m * i);
+    group minor-set() at translate(y = 0.8m * i) {
+      if (i % 2 == 0) {
+        dancers;
+      }
+    }
   }
   group out-bottom = couple(spacing = 1.28m) at translate(y = 1.6m * minor-sets - 0.8m) rotate(270);
   group out-top = couple(spacing = 1.28m) at translate(y = -0.8m) rotate(90);
-  seat = alternate(minor-set);
-  next = duple-progression(along = down, out-top = out-bottom, out-bottom = out-top);
+  provide progress() {
+    if ($minor-set) {
+      $minor-set = along($minor-set, $travel) or (if ($travel is Down) out-bottom else out-top);
+    } else if ($couple == out-bottom) {
+      $minor-set = last(minor-set, Down);
+      $couple = "twos";
+    } else {
+      $minor-set = last(minor-set, Up);
+      $couple = "ones";
+    }
+  }
 }
 
 module improper(minor-sets: Int = 3) {

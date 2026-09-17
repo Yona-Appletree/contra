@@ -33,15 +33,15 @@ export { compile, kebab } from "./lang/compile.js";
 // metres; who stands where; `$name` for one dancer
 export type { Frame, Op } from "./tree/Frame.js";
 export { apply, applyAll, compose, distance, norm } from "./tree/Frame.js";
-export type { Anchor, Deferred, Group, Place, Provide } from "./tree/Tree.js";
+export type { Anchor, Deferred, Group, Place, Provide, ProvidedFn } from "./tree/Tree.js";
 export { centreOf, chainTo, groupsOf, placeAt, placesOf } from "./tree/Tree.js";
 export type { Env, Value } from "./tree/values.js";
-export type { EvalError, Modules } from "./tree/evaluate.js";
+export type { Built, EvalError, Modules } from "./tree/evaluate.js";
 export { buildFormation, collect, evalExpr, isEvalError } from "./tree/evaluate.js";
-export type { Membership } from "./tree/membership.js";
-export { membership, progress, seatAll } from "./tree/membership.js";
+export type { Assignment, Dancer, Dancers, Membership, StateViolation } from "./tree/state.js";
+export { commit, dancersOf, instantiate, membershipOf } from "./tree/state.js";
 export type { Resolved } from "./tree/relations.js";
-export { providedNames, resolve } from "./tree/relations.js";
+export { findFunction, providedNames, resolve, runFunction } from "./tree/relations.js";
 
 // the IR: a figure as timed constraints
 export type {

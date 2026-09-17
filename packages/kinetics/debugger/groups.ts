@@ -1,7 +1,7 @@
 import type { DancerId } from "../src/dialect/Dialect.js";
 import { framePx } from "../src/dialect/tree/TreeDialect.js";
 import type { Run } from "../src/pipeline.js";
-import type { Membership } from "../src/tree/membership.js";
+import type { Membership } from "../src/tree/state.js";
 import type { Group } from "../src/tree/Tree.js";
 import { chainTo, groupsOf, placesOf } from "../src/tree/Tree.js";
 
@@ -62,7 +62,7 @@ export interface Box {
 
 /** Every occupied group at a seating, root left out, with the followed dancer's chain marked. */
 export function boxesAt(run: Run, membership: Membership, followed: readonly DancerId[]): Box[] {
-  const root = run.floor.root;
+  const root = run.floor?.root as Group;
   const mine = new Set<string>();
   for (const d of followed) {
     const path = membership.placeOf.get(d);
@@ -88,7 +88,7 @@ export function boxesAt(run: Run, membership: Membership, followed: readonly Dan
 export function minorSetIndex(run: Run, membership: Membership, dancer: DancerId): number {
   const path = membership.placeOf.get(dancer);
   if (path === undefined) return -1;
-  const sets = groupsOf(run.floor.root).filter((g) => g.kind === "minor-set");
+  const sets = groupsOf(run.floor?.root as Group).filter((g) => g.kind === "minor-set");
   return sets.findIndex((set) => placesOf(set).some((p) => p.path === path));
 }
 

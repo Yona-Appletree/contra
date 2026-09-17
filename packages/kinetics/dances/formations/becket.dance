@@ -10,26 +10,38 @@ module minor-set() {
   group twos = couple() at translate(x = 0.64m) rotate(180);
   provide $neighbor: Place = opposite-role(other(me));
   provide $across: Place = across(me, across);
+  provide $travel: Direction = if (index(me) == 0) Up else Down;
 }
 
 // A progression moves each couple half a minor set along the hall (one
 // dancer place), the two lines opposite ways, so the places a hands four is
 // danced in alternate between two interleaved sets of positions. The minor
 // sets are laid at half their own length apart to say so: adjacent ones
-// overlap, and only every other one is occupied at any time.
+// overlap, only every other one starts filled, and progress moves a couple
+// one set along the way it travels — out at the end, back in across.
 module major-set(minor-sets: Int = 3) {
   anchor up = direction(Up);
   anchor top = line(through = point(x = 0m, y = -0.8m), along = X);
   for i in 0..2 * minor-sets - 1 {
-    group minor-set() at translate(y = 0.8m * i);
+    group minor-set() at translate(y = 0.8m * i) {
+      if (i % 2 == 0) {
+        dancers;
+      }
+    }
   }
-  // Out at the ends: a couple that leaves the top crosses to the right line
-  // and waits, facing left; one that leaves the bottom crosses to the left
-  // line and waits, facing right.
   group out-top = couple() at translate(x = 0.64m, y = -0.8m) rotate(180);
   group out-bottom = couple() at translate(x = -0.64m, y = 1.6m * minor-sets - 0.8m);
-  seat = alternate(minor-set);
-  next = duple-progression(along = up, out-top = out-top, out-bottom = out-bottom);
+  provide progress() {
+    if ($minor-set) {
+      $minor-set = along($minor-set, $travel) or (if ($travel is Up) out-top else out-bottom);
+    } else if ($couple == out-top) {
+      $minor-set = last(minor-set, Up);
+      $couple = "twos";
+    } else {
+      $minor-set = last(minor-set, Down);
+      $couple = "ones";
+    }
+  }
 }
 
 module becket(minor-sets: Int = 3) {

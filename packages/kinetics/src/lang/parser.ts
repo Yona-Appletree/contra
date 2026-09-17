@@ -42,7 +42,6 @@ import { TRANSFORM_OPS, UNITS } from "./syntax.js";
  *             | "if" "(" expr ")" block {"else" "if" "(" expr ")" block} ["else" block]
  *             | "match" "(" expr ")" "{" {arm [","]} "}"      arm := (Member | "_") "=>" (block | stmt)
  *             | name "(" args ")" (";" | block)
- *             | "next" "=" expr ";"  |  "seat" "=" expr ";"   (deprecated; P2 removes them)
  * transform  := ("translate" | "rotate" | "mirror" | "fwd" | "back" | "left" | "right") "(" args ")"
  * args       := [arg {"," arg} [","]] ;  arg := [["$"] name "="] expr
  * expr       := or ; or := and {"or" and} ; and := not {"and" not}
@@ -271,10 +270,6 @@ class Parser {
           return { kind: "children", span: this.spanFrom(first) };
         }
         break;
-      case "next":
-      case "seat":
-        if (this.isPunct("=", 1)) return this.deprecatedStmt(first.text);
-        break;
       case "let":
         return this.letStmt();
       case "assert":
@@ -370,14 +365,6 @@ class Parser {
     const value = this.expr();
     this.expectPunct(";", `after "provide $${next.text}"`);
     return { kind: "provide", name: next.text, type, value, span: this.spanFrom(first) };
-  }
-
-  private deprecatedStmt(word: "next" | "seat"): Stmt {
-    const first = this.take();
-    this.expectPunct("=", `after "${word}"`);
-    const value = this.expr();
-    this.expectPunct(";", `after "${word} = …"`);
-    return { kind: word, value, span: this.spanFrom(first) };
   }
 
   private letStmt(): Stmt {

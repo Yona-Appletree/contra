@@ -44,6 +44,24 @@ export const loadFormation = (name: string): File[] => [
 /** `dances/moves.dance`, parsed. */
 export const loadMoves = (): File => loadDance("moves.dance");
 
+/** The prelude and the couple: what every floor a dance declares is read with. */
+export const loadLibrary = (): File[] => [
+  loadDance("prelude.dance"),
+  loadDance("formations/common.dance"),
+];
+
+/** The file that defines a formation, by its name, or nothing. */
+export const resolveFormation = (name: string): File | undefined =>
+  formationNames().includes(name) ? loadDance(`formations/${name}.dance`) : undefined;
+
+/** Everything a dance that owns its floor needs to run, for tests: the library, the resolver and the moves. */
+export const standardRun = (dynamics: Readonly<Record<string, number>> = {}) => ({
+  moves: loadMoves(),
+  library: loadLibrary(),
+  resolve: resolveFormation,
+  dynamics,
+});
+
 /** A standard floor: the named formation from disk, built and seated. */
 export const standardFloor = (name: string, args: Readonly<Record<string, number>> = {}): Floor =>
   floorOf(loadFormation(name), name, args);
@@ -51,15 +69,23 @@ export const standardFloor = (name: string, args: Readonly<Record<string, number
 /** A dance file from disk compiled on a floor with the standard moves — the tests' one-liner. */
 export function compileDance(
   source: string,
-  floor: Floor,
-  options: { registry?: FigureRegistry; moves?: File; entry?: string } = {},
+  floor?: Floor,
+  options: {
+    registry?: FigureRegistry;
+    moves?: File;
+    entry?: string;
+    dynamics?: Readonly<Record<string, number>>;
+  } = {},
 ): ReturnType<typeof compile> {
   const input: CompileInput = {
     dance: parse(source),
     moves: options.moves ?? loadMoves(),
-    floor,
     registry: options.registry ?? FIGURES,
+    library: loadLibrary(),
+    resolve: resolveFormation,
   };
+  if (floor !== undefined) input.floor = floor;
   if (options.entry !== undefined) input.entry = options.entry;
+  if (options.dynamics !== undefined) input.dynamics = options.dynamics;
   return compile(input);
 }

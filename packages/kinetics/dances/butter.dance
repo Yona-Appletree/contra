@@ -9,6 +9,7 @@
 // back together on the lark's side as the chain would.
 
 module butter() {
+  group becket(minor-sets = $minor-sets);
   card "Butter";
   repeat (7) {
     if (not $first-time) {

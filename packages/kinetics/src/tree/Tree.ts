@@ -25,12 +25,8 @@ export interface Group {
   anchors: Readonly<Record<string, Anchor>>;
   /** The `$` variables this group offers, as expressions to be evaluated with `me`. */
   provides: readonly Provide[];
-  /** The functions this group offers (`provide progress() { … }`), evaluated for one dancer (round 2, P2). */
+  /** The functions this group offers (`provide progress() { … }`), evaluated for one dancer. */
   functions: readonly ProvidedFn[];
-  /** The progression, when this group declares one. */
-  next?: Deferred;
-  /** Which of its groups are occupied at beat 0, when this group says. */
-  seat?: Deferred;
 }
 
 export interface Place {
