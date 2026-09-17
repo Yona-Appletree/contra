@@ -94,6 +94,12 @@ Nothing compares them — they are evidence, not goldens. The goldens are in
 | `f4-jukebox-390.png`                   | F4: the jukebox at 390 × 844, `#/tunes`, silent — the book, then the panel        |
 | `f4-jukebox-390-playing.png`           | F4: the same, Old Joe Clark picked and sounding at A1 bar 3                       |
 | `f4-jukebox-1280-playing.png`          | F4: the jukebox at 1280 × 900, the book beside the panel, sounding                |
+| `hp-phone-390.png`                     | P6/G1: the Stage at 390 × 844, `#/dance/airpants?beat=27&seed=1`, one screenful   |
+| `hp-laptop-1024.png`                   | P6/G1: the same URL at 1024 × 768, full page                                      |
+| `hp-laptop-1280.png`                   | P6/G1: the same URL at 1280 × 800, full page — the auto-zoom's other laptop size  |
+| `hp-sheet-390.png`                     | P6/G1: 390 × 844, the third ⓘ tapped — the allemande's bottom sheet, open         |
+| `hp-popover-1024.png`                  | P6/G1: 1024 × 768, the same ⓘ — the popover beside the call                       |
+| `hp-potatoes-1024.png`                 | P6/G1: `#/?beat=170.5&seed=1`, the tune box counting the next dance in, three lit |
 
 The U1 pair are the hall as it was, lines of five and four; the P1 pair are the
 same two viewports after the lines grew, so the two sets read as a before and
@@ -298,3 +304,31 @@ triangle-and-bar "skip to start" glyph next to the speaker's muted cone, both
 
 Taken from a scratch spec, `e2e/u4-control-bar-shots.spec.ts`, deleted
 afterwards per this file's own documented convention.
+
+The six `hp-*.png` pictures are G1's evidence — the gate that closes
+`yona-implement`'s first run through this plan and hands the page to Yona for
+a look. `hp-phone-390.png` and `hp-laptop-1024.png` are the two widths
+section 4 of the spike drew, both on Airpants' third move (`?beat=27&seed=1`):
+the strip with the mute chip and the transport band under it, the settings
+row, one call to a line on the notecard with the current one bold and
+underlined and the faded ones already danced, and the tune box's four staves
+below with the phrase letters at the left and the calls trimmed under the
+bars they take. `hp-laptop-1280.png` is the same URL again at the
+repository's own usual laptop size, so the two laptop pictures sit side by
+side: `HALL_CHROME_PX` now leaves the hall only 1× at both 1024 × 768 and
+1280 × 800, where a 1280 × 800 laptop got 2× before P3 put the transport
+inside the strip — one of G1's five questions is whether that is the size the
+gate wants, or whether the fit rule should count only the chrome above the
+strip and let the band sit just under the fold instead. `hp-sheet-390.png`
+and `hp-popover-1024.png` are the third ⓘ — the robins' allemande — tapped at
+each width: the bottom sheet over a dimmed page on the phone, `@caller/ui-base`'s
+popover welded to the call on the laptop, both carrying the figure's title,
+its beats, the parameter chips, the short walkthrough, "The long teach" and
+"▶ Jump here". `hp-potatoes-1024.png` is `?beat=170.5&seed=1` with no dance
+in the route — the potato count-in is pure beat arithmetic and does not care
+which dance the seed shuffles up — three beats into the second programme
+item's count-in, three of the tune box's four potatoes lit and the fourth
+still dim.
+
+Taken from a scratch spec, `e2e/hp-shots.spec.ts`, deleted afterwards per this
+file's own documented convention.

@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Notation } from "./Notation.js";
+import { Notation, trimToWidth } from "./Notation.js";
 import { soldiersJoy } from "../tunes/soldiersJoy.js";
 
 afterEach(cleanup);
@@ -83,5 +83,55 @@ describe("Notation", () => {
         expect(el.classList.contains("abcjs-m3")).toBe(true);
       });
     });
+  });
+
+  it("takes labels, captions and a bar-click handler, and draws none of them in jsdom", async () => {
+    // The decoration is positioned from `getBBox`, which jsdom does not
+    // implement: there, the component renders the plain notation and appends
+    // nothing (A5). This is the test that the props are inert rather than
+    // broken — and, because captions prepend `%%staffsep` to the ABC, that
+    // abcjs still parses the tune with the directive in front of it.
+    const clicks: Array<[number, number]> = [];
+    const { container } = render(
+      <Notation
+        tune={soldiersJoy}
+        beat={0}
+        staveLabels={["A1", "A2", "B1", "B2"]}
+        captions={[{ line: 0, fromBar: 0, bars: 4, text: "Circle left 3/4", current: true }]}
+        onBarClick={(line, measure) => clicks.push([line, measure])}
+      />,
+    );
+    await waitFor(() => expect(container.querySelector("svg")).toBeInTheDocument());
+    expect(container.querySelectorAll(".abcjs-staff-wrapper").length).toBe(4);
+    expect(container.querySelector(".caller-music-decoration")).not.toBeInTheDocument();
+    expect(container.querySelector(".caller-music-bar-hit")).not.toBeInTheDocument();
+    expect(container.querySelector(".caller-music-caption")).not.toBeInTheDocument();
+    expect(container.querySelector(".caller-music-stave-label")).not.toBeInTheDocument();
+    expect(clicks).toEqual([]);
+    // And the cursor still lands where it did.
+    expect(container.querySelectorAll(".caller-music-current-measure").length).toBeGreaterThan(0);
+  });
+});
+
+describe("trimToWidth", () => {
+  it("leaves text that already fits alone", () => {
+    expect(trimToWidth("Neighbour swing", () => true)).toBe("Neighbour swing");
+    expect(trimToWidth("", () => false)).toBe("");
+  });
+
+  it("shortens to the first fit, with an ellipsis", () => {
+    // Six characters' room: the longest prefix plus "…" that stays within it.
+    const fitted = trimToWidth("Balance the ring", (candidate) => candidate.length <= 6);
+    expect(fitted).toBe("Balan…");
+  });
+
+  it("drops a trailing space rather than leaving one before the ellipsis", () => {
+    expect(trimToWidth("Star right", (candidate) => candidate.length <= 6)).toBe("Star…");
+  });
+
+  it("never returns an empty string for text that has one character's room", () => {
+    const fitted = trimToWidth("Petronella", () => false);
+    expect(fitted).not.toBe("");
+    expect(fitted).toBe("P…");
   });
 });

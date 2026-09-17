@@ -23,7 +23,8 @@
  */
 .caller-stage-strip {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   /* The page sets this to the hall's own wall colour; the renderer's backdrop
      is the fallback, for anything that draws before the palette is read. */
   background: var(--stage-backdrop, #0c0a09);
@@ -36,7 +37,7 @@
 }
 
 /*
- * U3: the canvas's own box, so the speaker button can sit at a corner of it
+ * U3: the canvas's own box, so the mute chip can sit at a corner of it
  * rather than of the strip — the strip runs edge to edge on a phone (U1) and
  * is wider than the canvas at every zoom but 1×, where the two agree.
  */
@@ -47,34 +48,32 @@
 }
 
 /*
- * The stage's own buttons (U3's speaker, U4's reset): overlaid on the stage's
- * bottom-left corner rather than labelled buttons in the control row below.
- * Bottom-left, not bottom-right — the snack table and its two sitters
- * (`layoutHall`'s `table`) sit in the bottom-right of every hall, and the
- * bottom-left has only the sparser chair line behind it.
+ * P3: the stage's one overlaid control, the mute chip, at the top-right. The
+ * play control that used to sit on the canvas is the transport's ▶ in the band
+ * below now, and U4's reset is |◀◀ — so the dancers have their floor back and
+ * the one thing left on the wall is the thing that is *not* a transport.
  */
-.stage-buttons {
+.caller-stage-corner {
   position: absolute;
-  left: 6px;
-  bottom: 6px;
-  display: flex;
-  gap: 6px;
+  right: 4px;
+  top: 4px;
 }
 
 /*
  * A thumb-sized hit area (44 px, above the 40 px the brief asks) on a chip
  * dark enough to read the ink-coloured icon against whatever the floor is
- * doing underneath it, on any theme. The reset button (U4) shares this exact
- * face — same size, same hit area — so the two read as one family of
- * controls rather than two different designs bolted together.
+ * doing underneath it, on any theme. The Stage's mute chip is the same face at
+ * the spike's `.pixbtn.xs` size — 32 px with a 16 px glyph — because it is a
+ * setting rather than the thing you press to start.
  */
 .speaker-button,
-.reset-button {
+.stage-mute-button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
+  padding: 0;
   border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent);
   border-radius: 2px;
   background: color-mix(in oklab, black 55%, transparent);
@@ -82,21 +81,615 @@
 }
 
 .speaker-button svg,
-.reset-button svg {
+.stage-mute-button svg {
   width: 22px;
   height: auto;
   shape-rendering: crispEdges;
 }
 
+.speaker-button:active,
+.stage-mute-button:active {
+  background: color-mix(in oklab, black 75%, transparent);
+}
+
+.stage-mute-button {
+  width: 32px;
+  height: 32px;
+}
+
+.stage-mute-button svg {
+  width: 16px;
+}
+
 .speaker-body,
-.speaker-mute,
-.reset-triangle {
+.speaker-mute {
   fill: var(--foreground);
 }
 
-.speaker-waves,
-.reset-bar {
+.speaker-waves {
   fill: var(--primary);
+}
+
+/*
+ * The transport band: the five glyphs centred in the strip's own colour under
+ * the hall (the spike's `.stagebar.bare`). Its height — 44 px of hit area with
+ * 6 px above and 7 below — is `TRANSPORT_BAND_PX` in `hall.tsx`, which the
+ * auto-zoom subtracts from the window so the strip still clears the fold (D9).
+ */
+.caller-stage-band {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0 7px;
+}
+
+/*
+ * Bare: no chip, no border, a wider hit area than the glyph needs. The glyph
+ * is 39 px tall — the 11-row grid at 3 px a unit — and the outline layer's
+ * stroke lives in the one unit of viewBox padding around it.
+ */
+.transport-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.transport-button svg {
+  height: 39px;
+  width: auto;
+  shape-rendering: crispEdges;
+}
+
+.transport-button:active svg {
+  opacity: 0.6;
+}
+
+.transport-fill rect {
+  fill: var(--foreground);
+}
+
+/* The stop bars are the accent in every glyph; ▶ is the accent all over. */
+.transport-fill .gold,
+.transport-button-accent .transport-fill rect {
+  fill: var(--primary);
+}
+
+/*
+ * Round 3's outline: the same rects stroked two units wide and drawn *under*
+ * the fill, so only the outer unit of the stroke ever shows. Without it the
+ * ink-coloured glyphs sit too close to the wall's own value to read.
+ */
+.transport-outline rect {
+  fill: none;
+  stroke: oklch(0.15 0.02 55 / 0.45);
+  stroke-width: 2;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * P4: the notecard and the move popup, from `spikes/hall-page/index.html`.
+ *
+ * Every value below is the spike's own — the paper stock, the faint rules, the
+ * 18 px ⓘ, the 2 px gold underline, the sheet's 10 px corners and 18 px of
+ * bottom padding — copied rather than re-derived (the plan's "Conventions to
+ * preserve"). Two things are not verbatim and both are noted where they appear:
+ * `.nc-go`, because React puts a real `<button>` where the spike put a
+ * `role="button"` span, and the popover's fill, because `@caller/ui-base`'s
+ * `Popover` paints its own chrome and has to be told it is paper.
+ * ---------------------------------------------------------------------------
+ */
+
+/* The stock the notecard and (in P5) the tune box are both printed on. */
+.paper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 12%, transparent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--card-foreground);
+  font-size: 0.875rem;
+  box-shadow:
+    0 1px 1px oklch(0 0 0 / 0.35),
+    0 10px 24px -12px oklch(0 0 0 / 0.7);
+  width: 420px;
+  max-width: 100%;
+}
+
+/*
+ * The notecard (round 2: "think notecard. white background. clear simple
+ * text. minimal boxes. icon at the end for info. tapping takes you to the
+ * beginning."). Faint rules like an index card, the title on the first line,
+ * the phrase letter in the margin.
+ */
+.nc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.35rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--card-foreground) 14%, transparent);
+}
+
+.nc-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.nc-author {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+.nc-head .tt {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0.75rem 0.5rem;
+}
+
+.nc-row {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0.35rem;
+  align-items: baseline;
+  border-bottom: 1px solid color-mix(in oklab, var(--card-foreground) 8%, transparent);
+  padding: 0.3rem 0 0.25rem;
+}
+
+.nc-row:last-child {
+  border-bottom: none;
+}
+
+.nc-lab {
+  font-weight: 600;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+.nc-row.cur .nc-lab {
+  opacity: 1;
+}
+
+.nc-track {
+  display: flex;
+  gap: 0;
+  min-width: 0;
+}
+
+.nc-call {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: min(100%, 7rem);
+  padding: 0.05rem 0.35rem 0.3rem 0;
+  line-height: 1.3;
+  opacity: 0.7;
+}
+
+.nc-call:hover {
+  opacity: 1;
+}
+
+.nc-call.on {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.nc-call.done {
+  opacity: 0.55;
+}
+
+/*
+ * The seek half of a call. The spike's `.nc-call` **is** the button, with the
+ * ⓘ nested inside it as a `role="button"` span; on a laptop the ⓘ is
+ * `Popover`'s own `<button>`, and a button inside a button is not HTML — so
+ * the row is a `<div>` and this is the button, carrying the spike's own button
+ * reset. Everything the eye sees is unchanged.
+ */
+.nc-go {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nc-txt {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: break-word;
+}
+
+.nc-txt .with {
+  display: block;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  opacity: 0.85;
+}
+
+.nc-txt .with::before {
+  content: "‖ ";
+  opacity: 0.6;
+}
+
+/* How far through the call being danced the hall is. */
+.nc-prog {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
+  width: 0;
+  pointer-events: none;
+  transition: width 120ms linear;
+}
+
+.nc-call.on .nc-prog {
+  display: block;
+}
+
+.nc-call:not(.on) .nc-prog {
+  display: none;
+}
+
+/* The ⓘ: quiet until it is wanted. */
+.info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.45;
+  padding: 0;
+  flex: none;
+  margin-top: 1px;
+}
+
+.info:hover,
+.info[data-open="1"] {
+  opacity: 1;
+  background: color-mix(in oklab, currentColor 10%, transparent);
+}
+
+.info svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* One call to a line: the phrase's calls stack instead of sharing a rule. */
+.nc-list .nc-row {
+  grid-template-columns: 1.6rem 1fr;
+  padding: 0.2rem 0;
+}
+
+.nc-list .nc-track {
+  flex-direction: column;
+}
+
+.nc-list .nc-call {
+  padding: 0.15rem 0 0.3rem;
+}
+
+.nc-list .nc-beats {
+  font-size: 0.6875rem;
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  padding: 0 0.25rem;
+  flex: none;
+  align-self: center;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * P5: the tune box, from the spike's "The tune box" block (`.tunebox*`,
+ * `.spuds`), round 2's ruling 3B: "a separate box for the tune... grow a
+ * dropdown to change it. clicking into the music should take you there in the
+ * tune, too, with move-level granularity."
+ *
+ * The spike's values verbatim, with two renamings: its `.spuds` is
+ * `.potatoes` here (the page calls them what the band calls them everywhere
+ * else — `POTATO_BEATS`, `potatoCount`, `hall-potatoes`), and its short
+ * notation classes (`.lab`, `.mv`, `.hit`) are `@caller/music`'s own
+ * `caller-music-*` ones, because the marks are drawn by the package now (D7)
+ * rather than by a spike that owned its whole SVG.
+ * ---------------------------------------------------------------------------
+ */
+
+/* The cursor's orange, shared by the bar the music is on and the call being
+   danced under it. Declared here as well as on `.caller-music-notation` so
+   anything else the box grows can reach for it by name. */
+.tunebox {
+  --cursor: #b45309;
+}
+
+.tunebox-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem 0.35rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--card-foreground) 14%, transparent);
+}
+
+.tunebox-head .cap {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.tunebox select {
+  height: 26px;
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 25%, transparent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0 6px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 50%;
+}
+
+.tunebox-notation {
+  min-width: 0;
+  padding: 0.35rem 0.5rem 0.4rem;
+}
+
+/*
+ * The potatoes: four pixel spuds at the tune box's top right, lit one a beat
+ * as the band counts the dance in (AC9). `--primary` is the theme's gold, so
+ * a lit potato is the same colour as the play glyph in the band below.
+ */
+.potatoes {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.potatoes svg {
+  width: 22px;
+  height: auto;
+  shape-rendering: crispEdges;
+  opacity: 0.28;
+  transition: opacity 80ms;
+}
+
+.potatoes svg.lit {
+  opacity: 1;
+}
+
+.potatoes svg.now {
+  transform: scale(1.18);
+}
+
+.potatoes .p-line {
+  fill: #4a2f1a;
+}
+
+.potatoes .p-body {
+  fill: #c08a48;
+}
+
+.potatoes .p-eye {
+  fill: #7a5028;
+}
+
+.potatoes svg.lit .p-body {
+  fill: var(--primary);
+}
+
+/*
+ * The move popup: one body (`MoveDetail`), two dresses.
+ *
+ * The body's own rules are written against `.move-detail` rather than against
+ * the spike's `.pop`, because on a laptop the panel is `Popover`'s and paints
+ * no chrome of its own — the merged outline does. The sheet keeps the spike's
+ * `.pop` chrome verbatim.
+ */
+.move-detail {
+  font-size: 0.875rem;
+}
+
+.pop-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.pop-head b {
+  font-size: 1rem;
+}
+
+.pop-head .dim {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.pop-call {
+  margin: 0.15rem 0;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: 0.8125rem;
+}
+
+.pop-call .with {
+  display: block;
+  font-weight: 400;
+  padding-left: 0.75rem;
+}
+
+.pop-call .with::before {
+  content: "‖ ";
+  opacity: 0.6;
+}
+
+.pop-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0.35rem 0;
+}
+
+.pop-params span {
+  font-size: 0.6875rem;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: color-mix(in oklab, currentColor 8%, transparent);
+  opacity: 0.85;
+}
+
+.pop-short {
+  margin: 0.35rem 0;
+}
+
+.move-detail details {
+  font-size: 0.8125rem;
+  opacity: 0.85;
+}
+
+.move-detail summary {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.move-detail details p {
+  margin: 0.25rem 0 0;
+}
+
+.pop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  margin: 0.6rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.pop-actions .jump {
+  border: 1px solid color-mix(in oklab, currentColor 30%, transparent);
+  background: var(--card-accent);
+  color: inherit;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pop-actions a {
+  opacity: 0.8;
+  color: inherit;
+}
+
+/*
+ * The laptop's panel. `Popover` owns the fill, the hairline and the shadow —
+ * one SVG path welding the panel to the ⓘ — so all this carries is the spike's
+ * 340 px, its padding and the paper's ink. The fill and the border are custom
+ * properties the component sets *inline* on its own portalled layer, which is
+ * why overriding them to the card's stock takes `!important`; the layer is
+ * addressable because `panelTestId` names it.
+ */
+.move-panel {
+  width: 340px;
+  max-width: calc(100vw - 20px);
+  padding: 10px 12px 12px;
+  color: var(--card-foreground);
+}
+
+[data-testid="hall-move-panel-layer"] {
+  --popover-fill: var(--card) !important;
+  --popover-border: color-mix(in oklab, var(--card-foreground) 15%, transparent) !important;
+}
+
+/* The phone's dressing: a sheet up from the bottom edge, over a dimmed page. */
+.move-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.move-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid color-mix(in oklab, var(--card-foreground) 15%, transparent);
+  border-radius: 10px 10px 0 0;
+  box-shadow:
+    0 2px 2px oklch(0 0 0 / 0.3),
+    0 18px 40px -12px oklch(0 0 0 / 0.8);
+  padding: 10px 12px 18px;
+  font-size: 0.875rem;
+}
+
+.move-sheet .grab {
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in oklab, currentColor 25%, transparent);
+  margin: 0 auto 10px;
+}
+
+/*
+ * The ×. The spike has it in the popup's own head at `margin-left: auto`; here
+ * the head belongs to `MoveDetail`, which both dressings share and only one of
+ * which closes, so the sheet hangs its own × in the corner instead.
+ */
+.move-sheet .pop-x {
+  position: absolute;
+  right: 10px;
+  top: 12px;
+  border: none;
+  background: transparent;
+  font: 16px/1 system-ui;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  padding: 0 2px;
+}
+
+.move-sheet .pop-x:hover {
+  opacity: 1;
 }
 
 /*
@@ -234,7 +827,19 @@
   opacity: 0.6;
 }
 
-/* The tune, drawn by abcjs: fit the column and mark the current bar. */
+/*
+ * The tune, drawn by abcjs: fit the column and mark the current bar.
+ *
+ * `--cursor` is the spike's own `#b45309`, named rather than repeated because
+ * two different marks are "where the music is": the bar the cursor is on, and
+ * the call being danced under it (P5). They have to be the same orange or the
+ * box reads as having two cursors, and the only way to keep two colours equal
+ * is to have one.
+ */
+.caller-music-notation {
+  --cursor: #b45309;
+}
+
 .caller-music-notation svg {
   display: block;
   width: 100%;
@@ -243,8 +848,56 @@
 }
 
 .caller-music-notation .caller-music-current-measure {
-  fill: #b45309;
-  stroke: #b45309;
+  fill: var(--cursor);
+  stroke: var(--cursor);
+}
+
+/*
+ * What `Notation` draws over the notes when the page asks for it (D7): the
+ * phrase letter at the left of each stave, the calls under the bars they take,
+ * the hairline where one call gives way to the next, and an invisible hit rect
+ * per bar. The spike's `.lab` / `.mv` / `.mvtick` / `.hit` values, unchanged.
+ */
+.caller-music-stave-label {
+  font:
+    600 9px system-ui,
+    sans-serif;
+  fill: currentColor;
+  opacity: 0.55;
+}
+
+.caller-music-stave-label.current {
+  opacity: 1;
+}
+
+.caller-music-caption {
+  font:
+    7px system-ui,
+    sans-serif;
+  fill: currentColor;
+  opacity: 0.5;
+  letter-spacing: 0.02em;
+}
+
+.caller-music-caption.current {
+  opacity: 1;
+  font-weight: 600;
+  fill: var(--cursor);
+}
+
+.caller-music-caption-tick {
+  stroke: currentColor;
+  stroke-width: 0.4;
+  opacity: 0.35;
+}
+
+.caller-music-bar-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.caller-music-bar-hit:hover {
+  fill: color-mix(in oklab, currentColor 6%, transparent);
 }
 
 /*

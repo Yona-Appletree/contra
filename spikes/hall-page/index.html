@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Stage · transport, notecard, tune, mute</title>
+<style>
+/*
+ * The app's own palette, verbatim from packages/ui-design/src/theme.css, plus
+ * the hall's wall colour the stage strip is painted in (HALL_THEMES.grange).
+ */
+:root{
+  color-scheme:dark;
+  --radius:.5rem;
+  --background:oklch(0.235 0.022 58);
+  --foreground:oklch(0.925 0.018 78);
+  --card:oklch(0.995 0.004 90);
+  --card-foreground:oklch(0.22 0.02 50);
+  --card-accent:oklch(0.88 0.045 55);
+  --primary:oklch(0.72 0.1 72);
+  --primary-foreground:oklch(0.2 0.025 55);
+  --secondary:oklch(0.365 0.032 60);
+  --muted:oklch(0.315 0.028 58);
+  --muted-foreground:oklch(0.74 0.022 72);
+  --accent:oklch(0.41 0.037 60);
+  --border:oklch(0.4 0.03 60);
+  --input:oklch(0.4 0.03 60);
+  --wood-pitch:48px;
+  --wood-seam:oklch(0.2 0.018 55);
+  --wood-lit:oklch(0.272 0.024 60);
+  --wall-top:#75604c;
+  --wall:#5a4636;
+  --cursor:#b45309;
+  --dash:#6b5741;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--foreground);background-color:var(--background);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch));
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit}
+header,section{max-width:1480px;margin:0 auto;padding:18px 20px}
+h1{font-size:22px;margin:8px 0 6px;letter-spacing:.02em}
+h2{font-size:17px;margin:34px 0 6px;color:var(--primary);border-top:1px solid var(--border);padding-top:16px}
+h3{font-size:13px;margin:0 0 6px;color:var(--muted-foreground);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+p.hint{color:var(--muted-foreground);margin:4px 0 10px;max-width:90ch}
+p.hint b{color:var(--foreground);font-weight:600}
+code{font:12px ui-monospace,Menlo,monospace;background:var(--muted);padding:0 4px;border-radius:3px}
+kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--muted)}
+
+/* The exploration-controls strip. */
+.controls{border:1px dashed var(--dash);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 12px;background:oklch(0.2 0.02 58 / .85);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+.controls .grp{display:flex;align-items:center;gap:6px;font:12px ui-monospace,Menlo,monospace;color:var(--muted-foreground)}
+.controls .grp span.l{color:var(--primary)}
+.controls button{background:var(--muted);color:var(--foreground);border:1px solid var(--border);border-radius:5px;padding:4px 9px;font:12px ui-monospace,Menlo,monospace;cursor:pointer}
+.controls button.on{background:var(--accent);border-color:var(--primary);color:var(--primary)}
+.controls input[type=range]{width:220px;accent-color:var(--primary)}
+.controls .ro{min-width:24ch}
+
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.concept{display:flex;flex-direction:column;gap:6px;max-width:100%}
+.concept > p{margin:0;font-size:12px;color:var(--muted-foreground);max-width:390px}
+.concept > p b{color:var(--foreground)}
+.lean{color:var(--primary);font-weight:600}
+.pushback{border-left:3px solid var(--primary);padding:6px 12px;margin:10px 0;color:var(--muted-foreground);max-width:90ch;font-size:13px}
+.pushback b{color:var(--foreground)}
+.pushback ol,.pushback ul{margin:4px 0 0;padding-left:18px}
+.pushback li{margin:4px 0}
+
+/* ---------- The app's chrome, reproduced ---------- */
+.phone{width:390px;height:844px;border:1px solid var(--border);border-radius:6px;background:var(--background);position:relative;overflow:hidden;flex:none;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch))}
+.phone .scroll{height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}
+.laptop{width:1000px;max-width:100%;border:1px solid var(--border);border-radius:6px;background:var(--background);position:relative;overflow:hidden;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch))}
+.laptop .page{display:flex;gap:24px;align-items:flex-start;padding:16px}
+.laptop .left{display:flex;flex-direction:column;gap:8px;flex:none}
+.laptop .right{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.tabs{display:flex;align-items:stretch;gap:4px;border-bottom:1px solid var(--border);background:var(--muted);padding:0 8px;font-size:14px}
+.tabs a{padding:6px 12px;text-decoration:none;color:var(--muted-foreground);border-bottom:2px solid transparent}
+.tabs a.on{color:var(--foreground);font-weight:600;border-bottom-color:var(--primary)}
+.tabs a:nth-child(4){margin-right:auto}
+.tabs .badge{align-self:center;width:16px;height:16px;border-radius:50%;background:var(--primary);opacity:.8}
+
+/*
+ * The stage strip: the hall canvas, and — round 2 — the transport under it in
+ * the same 16-bit band, centred. On a phone the strip runs edge to edge; on a
+ * laptop it hugs the canvas, so the bar is exactly the canvas's width.
+ */
+.strip{display:flex;flex-direction:column;align-items:center;background:var(--wall-top)}
+.laptop .strip{width:fit-content;border-radius:4px}
+.canvaswrap{position:relative;display:inline-flex;max-width:100%}
+.canvaswrap img{display:block;image-rendering:pixelated;width:268px;height:342px}
+.canvaswrap.z2 img{width:536px;height:684px}
+.stage-tr{position:absolute;right:4px;top:4px}
+.stagebar{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0 9px;width:100%}
+.stagebar.bare{gap:2px;padding:6px 0 7px}
+.stagebar.dark{background:var(--wall)}
+
+/* Pixel buttons: the speaker/reset chip from hall.css. Every glyph sits on the same 11-row grid at 2.5 px a unit. */
+.pixbtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid color-mix(in oklab,var(--foreground) 35%,transparent);border-radius:2px;background:color-mix(in oklab,black 55%,transparent);cursor:pointer;padding:0;color:var(--foreground);position:relative}
+.pixbtn:active{background:color-mix(in oklab,black 75%,transparent)}
+.pixbtn svg{height:27px;width:auto;shape-rendering:crispEdges;fill:var(--foreground)}
+.pixbtn .fg .gold{fill:var(--primary)}
+.pixbtn.play{border-color:var(--primary)}
+.pixbtn.play svg{fill:var(--primary)}
+.pixbtn.xs{width:32px;height:32px}
+.pixbtn.xs svg{height:auto;width:16px}
+.pixbtn.muted svg .waves{display:none}
+.pixbtn:not(.muted) svg .cross{display:none}
+.pixbtn.armed::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;background:var(--primary)}
+/* 1F: no chip, just the glyph on the wall, bigger. */
+.pixbtn.bare{width:52px;height:44px;border:none;background:transparent}
+.pixbtn.bare svg{height:39px;fill:var(--foreground)}
+.pixbtn.bare.play svg .fg{fill:var(--primary)}
+.pixbtn.bare:active svg{opacity:.6}
+/* Round 3: a light outline round each glyph. The `.ol` layer is the same rects
+   stroked two units wide and drawn first, so only the outer unit shows. */
+.pixbtn svg .ol rect{fill:none;stroke:var(--ol,transparent);stroke-width:2}
+body[data-ol="none"] .pixbtn.bare{--ol:transparent}
+body[data-ol="faint"] .pixbtn.bare{--ol:oklch(0.15 0.02 55 / .45)}
+body[data-ol="ink"] .pixbtn.bare{--ol:oklch(0.15 0.02 55 / .85)}
+.olrow{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.olrow .sample{display:flex;flex-direction:column;gap:4px;align-items:center}
+.olrow .sample .band{display:flex;gap:2px;padding:6px 8px;background:var(--wall-top);border-radius:4px}
+/* The potatoes: four pixel spuds top-right of the tune box, lit one by one as the band counts the dance in. */
+.spuds{margin-left:auto;display:flex;gap:4px;align-items:center}
+.spuds svg{width:22px;height:auto;shape-rendering:crispEdges;opacity:.28;transition:opacity 80ms}
+.spuds svg.lit{opacity:1}
+.spuds svg.now{transform:scale(1.18)}
+.spuds .p-line{fill:#4a2f1a}.spuds .p-body{fill:#c08a48}.spuds .p-eye{fill:#7a5028}
+.spuds svg.lit .p-body{fill:var(--primary)}
+
+.toast{font:11px ui-monospace,Menlo,monospace;color:var(--muted-foreground);padding:0 8px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.laptop .toast{padding:0}
+.toast b{color:var(--primary);font-weight:500}
+
+/* The control row (select, tempo, trails) as it is shipped. */
+.ctl{display:flex;width:100%;align-items:center;gap:6px;overflow-x:auto;padding:0 8px;font-size:12px;white-space:nowrap}
+.laptop .ctl{padding:0}
+.ctl select,.tunebox select{height:28px;border:1px solid var(--input);border-radius:4px;background:var(--background);color:var(--foreground);padding:0 6px;font-size:12px}
+.ctl select{width:152px;flex:none}
+.ctl input[type=range]{width:64px;height:16px;accent-color:var(--primary)}
+.ctl .bpm{display:inline-block;width:1.6em;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted-foreground)}
+.ctl label{display:flex;align-items:center;gap:4px;flex:none}
+.tbtn{height:28px;border:1px solid var(--border);border-radius:4px;background:transparent;color:inherit;padding:0 6px;font-size:12px;cursor:pointer}
+.tbtn.on{border-color:currentColor;font-weight:600}
+.tbtn:not(.on){opacity:.6}
+
+.aside{display:flex;flex-direction:column;gap:10px;padding:0 12px 4px}
+.laptop .aside{padding:0}
+.status{font-size:12px;color:var(--muted-foreground);margin:0}
+.dancelink{font-size:12px;color:var(--muted-foreground);margin:0}
+
+/* ---------- Paper: the notecard and the tune box share the stock ---------- */
+.paper{display:flex;flex-direction:column;overflow:hidden;border:1px solid color-mix(in oklab,var(--card-foreground) 12%,transparent);border-radius:4px;background:var(--card);color:var(--card-foreground);font-size:.875rem;box-shadow:0 1px 1px oklch(0 0 0/.35),0 10px 24px -12px oklch(0 0 0/.7);width:420px;max-width:100%}
+.phone .paper{width:auto}
+
+/*
+ * The notecard (round 2: "think notecard. white background. clear simple
+ * text. minimal boxes. icon at the end for info. tapping takes you to the
+ * beginning."). Faint rules like an index card, the title on the first line,
+ * the phrase letter in the margin, and in E each call as wide as it is long.
+ */
+.nc-head{display:flex;align-items:baseline;gap:.5rem;padding:.5rem .75rem .35rem;border-bottom:1px solid color-mix(in oklab,var(--card-foreground) 14%,transparent)}
+.nc-title{font-weight:600;font-size:1.05rem;line-height:1.2}
+.nc-author{font-size:.75rem;opacity:.65}
+.nc-head .tt{margin-left:auto;font-size:.6875rem;opacity:.55;font-variant-numeric:tabular-nums}
+.nc-body{display:flex;flex-direction:column;padding:.15rem .75rem .5rem}
+.nc-row{display:grid;grid-template-columns:1.6rem 1fr;gap:.35rem;align-items:baseline;border-bottom:1px solid color-mix(in oklab,var(--card-foreground) 8%,transparent);padding:.3rem 0 .25rem}
+.nc-row:last-child{border-bottom:none}
+.nc-lab{font-weight:600;opacity:.5;font-variant-numeric:tabular-nums;font-size:.8125rem}
+.nc-row.cur .nc-lab{opacity:1}
+.nc-track{display:flex;gap:0;min-width:0}
+.nc-call{position:relative;display:flex;align-items:flex-start;gap:.2rem;min-width:min(100%,7rem);flex:1 1 0;padding:.05rem .35rem .3rem 0;border:none;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;line-height:1.3;opacity:.7}
+.nc-call + .nc-call{border-left:1px solid color-mix(in oklab,var(--card-foreground) 14%,transparent);padding-left:.4rem}
+.nc-call:hover{opacity:1}
+.nc-call.on{opacity:1;font-weight:600}
+.nc-call.done{opacity:.55}
+.nc-txt{min-width:0;flex:1;overflow-wrap:break-word}
+.nc-txt .with{display:block;font-weight:400;font-size:.8125rem;opacity:.85}
+.nc-txt .with::before{content:"‖ ";opacity:.6}
+.nc-prog{position:absolute;left:0;bottom:0;height:2px;background:var(--primary);width:0;pointer-events:none;transition:width 120ms linear}
+.nc-call + .nc-call .nc-prog{left:.4rem}
+.nc-call.on .nc-prog{display:block}
+.nc-call:not(.on) .nc-prog{display:none}
+.info{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:inherit;cursor:pointer;opacity:.45;padding:0;flex:none;margin-top:1px}
+.info:hover{opacity:1;background:color-mix(in oklab,currentColor 10%,transparent)}
+.info svg{width:12px;height:12px}
+/* F: one call to a line */
+.nc-list .nc-row{grid-template-columns:1.6rem 1fr;padding:.2rem 0}
+.nc-list .nc-track{flex-direction:column}
+.nc-list .nc-call{padding:.15rem 0 .3rem}
+.nc-list .nc-call + .nc-call{border-left:none;padding-left:0}
+.nc-list .nc-call + .nc-call .nc-prog{left:0}
+.nc-list .nc-beats{font-size:.6875rem;opacity:.45;font-variant-numeric:tabular-nums;margin-left:auto;padding:0 .25rem;flex:none;align-self:center}
+
+/*
+ * The tune box (round 2: "a separate box for the tune... grow a dropdown to
+ * change it. clicking into the music should take you there in the tune, too,
+ * with move-level granularity"). A stave is a phrase — eight bars, sixteen
+ * beats — so the phrase letter sits at the left of each stave, and in B the
+ * moves are written lightly under the bars they take.
+ */
+.tunebox-head{display:flex;align-items:center;gap:.5rem;padding:.45rem .75rem .35rem;border-bottom:1px solid color-mix(in oklab,var(--card-foreground) 14%,transparent)}
+.tunebox-head .cap{font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;opacity:.55;white-space:nowrap}
+.tunebox select{height:26px;background:var(--card);color:var(--card-foreground);border-color:color-mix(in oklab,var(--card-foreground) 25%,transparent);min-width:0;flex:0 1 auto;max-width:50%}
+.tunebox-head .tt{margin-left:auto;font-size:.6875rem;opacity:.55;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tunebox .notation{padding:.35rem .5rem .4rem}
+.tunebox .notation svg{display:block;width:100%;height:auto}
+.tunebox .notation .cur{fill:var(--cursor);stroke:var(--cursor)}
+.tunebox .notation .hit{fill:transparent;cursor:pointer}
+.tunebox .notation .hit:hover{fill:color-mix(in oklab,currentColor 6%,transparent)}
+.tunebox .notation .lab{font:600 9px system-ui,sans-serif;fill:currentColor;opacity:.55}
+.tunebox .notation .lab.cur{opacity:1}
+.tunebox .notation .mv{font:7px system-ui,sans-serif;fill:currentColor;opacity:.5;letter-spacing:.02em}
+.tunebox .notation .mv.cur{opacity:1;font-weight:600;fill:var(--cursor)}
+.tunebox .notation .mvtick{stroke:currentColor;stroke-width:.4;opacity:.35}
+.tunebox .notation .phead{stroke:var(--cursor);stroke-width:.8}
+
+/* The popup: one element, two dresses. */
+.pop{background:var(--card);color:var(--card-foreground);border-radius:6px;border:1px solid color-mix(in oklab,var(--card-foreground) 15%,transparent);box-shadow:0 2px 2px oklch(0 0 0/.3),0 18px 40px -12px oklch(0 0 0/.8);padding:10px 12px 12px;font-size:.875rem;display:none;z-index:30}
+.pop.popover{position:absolute;width:340px;max-width:calc(100vw - 20px)}
+.pop.sheet{position:absolute;left:0;right:0;bottom:0;border-radius:10px 10px 0 0;padding-bottom:18px}
+.pop.open{display:block}
+.pop .grab{width:36px;height:4px;border-radius:2px;background:color-mix(in oklab,currentColor 25%,transparent);margin:0 auto 10px;display:none}
+.pop.sheet .grab{display:block}
+.pop-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.25rem}
+.pop-head b{font-size:1rem}
+.pop-head .dim{font-size:.75rem;opacity:.6;font-variant-numeric:tabular-nums}
+.pop-head .x{margin-left:auto;border:none;background:transparent;font:16px/1 system-ui;cursor:pointer;color:inherit;opacity:.6;padding:0 2px}
+.pop-call{margin:.15rem 0;font-weight:600;letter-spacing:.02em;font-size:.8125rem}
+.pop-call .with{display:block;font-weight:400;padding-left:.75rem}
+.pop-call .with::before{content:"‖ ";opacity:.6}
+.pop-params{display:flex;flex-wrap:wrap;gap:4px;margin:.35rem 0}
+.pop-params span{font-size:.6875rem;padding:1px 6px;border-radius:9px;background:color-mix(in oklab,currentColor 8%,transparent);opacity:.85}
+.pop-short{margin:.35rem 0}
+.pop details{font-size:.8125rem;opacity:.85}
+.pop summary{cursor:pointer;opacity:.7}
+.pop details p{margin:.25rem 0 0}
+.pop-actions{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:.6rem 0 0;font-size:.8125rem}
+.pop-actions .jump{border:1px solid color-mix(in oklab,currentColor 30%,transparent);background:var(--card-accent);color:inherit;border-radius:4px;padding:3px 10px;font:inherit;font-weight:600;cursor:pointer}
+.pop-actions a{opacity:.8}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;z-index:29}
+.backdrop.open{display:block}
+.mini{font:12px ui-monospace,Menlo,monospace;color:var(--muted-foreground)}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Stage · transport, notecard, tune, mute</h1>
+  <p class="hint">UX spike for the front page, 2026-09-16, <b>round 3 — converged</b>. Everything below runs on one clock: press play anywhere and every frame moves together. The hall is a still of the real canvas (the caller's bubble left off it); the tune is a stand-in for abcjs. Open with <code>?demo=popover</code>, <code>?demo=sheet</code> or <code>?demo=fatal</code> to land in a state.</p>
+  <div class="pushback"><b>Round 1 rulings (Yona, 2026-09-16):</b>
+    <ul>
+      <li><b>Transport:</b> none of the four. It belongs in the sim's 16-bit area, <i>below the hall</i>, with the controls centred. The play triangle's extra pixel at the point looked odd — gone; every glyph now sits on one 11-row grid at the same pixel size.</li>
+      <li><b>Card:</b> 2D (the ruler card) was closest but not right: think <i>notecard</i> — white, clear simple text, minimal boxes, the info icon at the end, tapping takes you to the beginning of the move.</li>
+      <li><b>The tune is not part of the card.</b> A separate box, with a dropdown to change the tune; clicking into the music seeks there too, at move granularity; and the move — or at least A1 A2 B1 B2 — shown lightly under the music to tie it to the dance.</li>
+      <li><b>Mute:</b> good; the smaller 32 px chip is fine.</li>
+    </ul>
+    <b>Round 2 rulings (Yona, 2026-09-16):</b>
+    <ul>
+      <li><b>Transport:</b> 1F, the bare glyphs on the wall — with light outlines. The strip below offers three weights.</li>
+      <li><b>Notecard:</b> 2F, one call to a line. 2E's proportional rows are gone.</li>
+      <li><b>Tune box:</b> 3B, the moves under the staves, and the phrase letters beside them. "Waiting for the potatoes" was odd: it is now four 16-bit potatoes in the top-right, lit one by one as the band counts the dance in.</li>
+      <li><b>The |◀ rule</b> is <i>restart, or previous when within two beats</i> (no timed double-press). <b>|◀◀ goes to the potatoes</b>, not the whole line-up — a caller practising needs the count-in.</li>
+    </ul>
+    Mute stays a preference apart from pause (the tune's clock keeps running at gain 0), on its own key.
+  </div>
+  <p class="hint"><b>Glyph key.</b> <b>|◀◀</b> start of the dance (again: the previous dance) · <b>|◀</b> start of this move (again: the previous move) · <b>▶ / ▮▮</b> · <b>▶|</b> next move · <b>▶▶|</b> next dance. Keyboard: <kbd>space</kbd> play, <kbd>←</kbd>/<kbd>→</kbd> moves, <kbd>⇧←</kbd>/<kbd>⇧→</kbd> dances, <kbd>m</kbd> mute.</p>
+  <div class="controls" id="ctl">
+    <div class="grp"><button id="cPlay">▶ play</button><input type="range" id="cBeat" min="0" max="480" step="0.25" value="30"><span class="ro" id="cRead"></span></div>
+    <div class="grp"><span class="l">dance</span><span id="cDances"></span></div>
+    <div class="grp"><span class="l">glyph outline</span><button data-ol="none">none</button><button data-ol="faint" class="on">faint</button><button data-ol="ink">ink</button></div>
+    <div class="grp"><button id="cPot">→ the potatoes</button></div>
+    <div class="grp"><span class="l">tempo</span><input type="range" id="cTempo" min="96" max="124" value="112" style="width:90px"><span id="cTempoV">112</span></div>
+    <div class="grp"><span class="l">storage</span><span id="cStore"></span><button id="cClear">clear</button><button id="cReload">reload page</button></div>
+  </div>
+</header>
+
+<section id="s1">
+  <h2>1. The transport, in the strip under the hall</h2>
+  <p class="hint">The five glyphs on the wall under the canvas, centred, the 32 px mute top-right of the canvas. Ruled: 1F with outlines. The three samples are the outline weights the strip switches between; the phone shows the chosen one. The readout under the strip says what the last press did.</p>
+  <div class="row" id="row1"></div>
+</section>
+
+<section id="s2">
+  <h2>2. The notecard</h2>
+  <p class="hint">Ruled: 2F. White stock, faint rules, the phrase letter in the margin, one call to a line with its beat count faint before the ⓘ. Tap a call to go to its beginning; tap ⓘ to open the move (a popover here, a bottom sheet on the phone). Shown for all three dances so the "‖" line and the two-beat call are in view.</p>
+  <div class="row" id="row2"></div>
+</section>
+
+<section id="s3">
+  <h2>3. The tune, in its own box</h2>
+  <p class="hint">Ruled: 3B. Paper like the card, under it; the dropdown pins a tune for this dance. A stave is a phrase — eight bars, sixteen beats — with its letter at the left and the calls written under the bars they take. Click any bar: the evening goes to the start of the move that bar is in. Top-right, <b>the potatoes</b>: four pixel spuds, dim until the band counts the dance in, then lit one a beat. Press <b>→ the potatoes</b> in the strip (or |◀◀) and play to watch them.</p>
+  <div class="row" id="row3"></div>
+</section>
+
+<section id="s4">
+  <h2>4. Put together</h2>
+  <p class="hint">The ruled set: 1F outlined glyphs in the strip, the 2F notecard, the 3B tune box with the potatoes, the 32 px mute. Phone on the left (ⓘ opens a bottom sheet), laptop on the right (ⓘ opens a popover). The dance select, tempo and trails keep their row under the strip.</p>
+  <div class="row" id="row4"></div>
+</section>
+
+<div class="pop" id="pop" role="dialog" aria-modal="false">
+  <div class="grab"></div>
+  <div class="pop-head"><b id="popTitle"></b><span class="dim" id="popDim"></span><button class="x" id="popX" aria-label="Close">×</button></div>
+  <p class="pop-call" id="popCall"></p>
+  <div class="pop-params" id="popParams"></div>
+  <p class="pop-short" id="popShort"></p>
+  <details><summary>The long teach</summary><p id="popLong"></p></details>
+  <p class="pop-actions"><button class="jump" id="popJump">▶ Jump here</button><a id="popMoves" href="#">on the Moves page →</a><a id="popTraces" href="#">all views</a></p>
+</div>
+
+<script>
+/* ---------------- data: three real dances, the moves' own texts ---------------- */
+const FIG = {
+  'balance-and-swing': {title:'Balance and swing', short:'Take both hands with {pairs}, rock in and out, then swing without letting go.', long:'Take both hands with {pairs} and rock: two steps in toward them, two steps back. That is the balance, four beats. Without letting go of the hand you are already holding, close into a ballroom hold and buzz round for the rest of the phrase. Open out side by side, lark on the left.'},
+  'circle': {title:'Circle', short:'Take hands in a ring. Circle {places} to your {direction}.', long:'All four take hands in a ring, hands about waist height, and walk forward round to your {direction}, {places}. Keep the ring the same size the whole way and keep the hands joined.'},
+  'do-si-do': {title:'Do-si-do', short:'Pass right shoulders with {pairs}, slide back to back, then back up passing left shoulders, {amount}.', long:'Walk forward and pass right shoulders with {pairs}, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around: you face the same way for all eight beats. Go {amount}.'},
+  'long-lines': {title:'Long lines', short:'Take hands along your own line, walk four steps in, and four steps back out.', long:'Take hands all the way along your own line with the dancers beside you. Walk four steps into the set, keeping the line straight, and four steps back out. Only the bodies travel; the arms stay where they are.'},
+  'allemande': {title:'Allemande', short:'Join {hand} hands with {pairs}, forearms up, and walk round each other, {amount}.', long:'Join {hand} hands with {pairs} — forearms up, palms together, elbows bent — and walk forward round each other, keeping the joined hands over the one spot between you, {amount}. Look at each other the whole way; the free hand hangs at your side.'},
+  'robins-chain': {title:'Robins chain', short:'Robins pull by right hands in the middle, then join left hands as the lark backs his circle round to your right, facing in.', long:'Robins pull by right hands with the other robin in the middle, passing right shoulders. The lark you are coming to is already backing a small circle, centred halfway between his place and yours. Join him at the far side of it: left hands together, his right hand behind your back, yours on it too. Walk forward as he keeps backing, turning as one until you face out together, then in again, you on his right.'},
+  'star': {title:'Star', short:'Put your {hand} hand on the wrist of the dancer ahead of you and walk forward, {places}.', long:'All four put the {hand} hand on the wrist of the dancer ahead of you round the star, not in a pile in the middle. Keep your arm a little bent and walk forward round the center: {places}.'},
+  'swing': {title:'Swing', short:'Close into a ballroom hold with {pairs}, right hips together, and buzz round. Open out side by side.', long:"Step in to {pairs} and close into a ballroom hold, right hips together: the lark's right hand on the robin's back, his left in her right out to the side. Buzz round with your weight on the inside foot, leaning away from each other a little. Open out side by side, lark on the left."},
+  'promenade': {title:'Promenade', short:'Side by side, both hands joined, walk the two of you round the whole set.', long:'Stand beside the dancer named, the two of you looking the same way, and take both hands — left in left and right in right, so your arms cross in front and the right hands ride over the left. Now walk as one along the line you are standing in, round the whole set rather than across your own little circle of four.'},
+  'cast-back': {title:'Cast back', short:'Turn away from the middle and walk round the outside into the place behind you.', long:"On your own, turn away from the middle of the set and walk round the outside of your own line into the place one behind you, still looking the way you were looking. Nobody's hand, and nobody goes with you: whoever was in that place has moved on."},
+  'shoulder-round': {title:'Shoulder round', short:'Walk round {pairs} keeping your {hand} shoulder toward them, and keep looking at each other. No hands.', long:'Nobody takes hands for this one. Walk forward round {pairs} with your {hand} shoulder toward them, turning your body as you go so the two of you are looking at each other the whole way round — that is what makes it a shoulder round rather than a do-si-do. {amount}, and you finish where that leaves you.'},
+};
+const WORDS = {
+  pairs:{neighbors:'your neighbor',partners:'your partner',robins:'the other robin','number two':'the number two'},
+  hand:{R:'right',L:'left'},
+  amount:{'1':'once around','1.5':'once and a half','0.5':'halfway'},
+  places:{'3':'three quarters','4':'once around'},
+  direction:{left:'left',right:'right'},
+};
+const TUNES=[{slug:'the-kesh-jig',title:'The Kesh Jig',kind:'jig'},{slug:'soldiers-joy',title:"Soldier's Joy",kind:'reel'},{slug:'st-annes-reel',title:"St. Anne's Reel",kind:'reel'},{slug:'whiskey-before-breakfast',title:'Whiskey Before Breakfast',kind:'reel'},{slug:'red-haired-boy',title:'Red-Haired Boy',kind:'reel'}];
+const DANCES = [
+  {slug:'airpants', title:'Airpants', author:'Lisa Greenleaf', tune:'the-kesh-jig', phrases:[
+    {name:'A1', figures:[{id:'balance-and-swing',beats:16,call:'NEIGHBOR BALANCE AND SWING',params:{pairs:'neighbors'}}]},
+    {name:'A2', figures:[{id:'long-lines',beats:8,call:'LONG LINES FORWARD AND BACK',params:{}},{id:'allemande',beats:8,call:'ROBINS ALLEMANDE RIGHT ONE AND A HALF',params:{pairs:'robins',hand:'R',amount:'1.5'}}]},
+    {name:'B1', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]},
+    {name:'B2', figures:[{id:'circle',beats:6,call:'CIRCLE LEFT THREE QUARTERS',params:{direction:'left',places:'3'}},{id:'do-si-do',beats:10,call:'NEIGHBOR DO-SI-DO ONE AND A HALF',params:{pairs:'neighbors',amount:'1.5'}}]}]},
+  {slug:'the-baby-rose', title:'The Baby Rose', author:'David Kaynor', tune:'soldiers-joy', phrases:[
+    {name:'A1', figures:[{id:'balance-and-swing',beats:16,call:'NEIGHBOR BALANCE AND SWING',params:{pairs:'neighbors'}}]},
+    {name:'A2', figures:[{id:'circle',beats:8,call:'CIRCLE LEFT THREE QUARTERS',params:{direction:'left',places:'3'}},{id:'do-si-do',beats:8,call:'PARTNER DO-SI-DO',params:{pairs:'partners',amount:'1'}}]},
+    {name:'B1', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]},
+    {name:'B2', figures:[{id:'robins-chain',beats:8,call:'ROBINS CHAIN',params:{}},{id:'star',beats:8,call:'STAR LEFT ONCE',params:{hand:'L',places:'4'}}]}]},
+  {slug:'fatal-attraction', title:'Fatal Attraction', author:'Roger Auman', tune:'st-annes-reel', phrases:[
+    {name:'A1', figures:[{id:'robins-chain',beats:8,call:'ROBINS CHAIN TO YOUR NEIGHBOUR',params:{}},{id:'promenade',beats:8,call:'NEIGHBOUR PROMENADE COUNTERCLOCKWISE AROUND THE SET',params:{}}]},
+    {name:'A2', figures:[{id:'cast-back',beats:2,call:'ROBINS CAST BACK, LARKS GO FORWARD',params:{},with:['LARKS WALK FORWARD ONE PLACE']},{id:'shoulder-round',beats:6,call:'RIGHT SHOULDER ROUND WITH NUMBER TWO',params:{pairs:'number two',hand:'R',amount:'Once around'}},{id:'swing',beats:8,call:'SWING NUMBER TWO',params:{pairs:'number two'}}]},
+    {name:'B1', figures:[{id:'promenade',beats:8,call:'PROMENADE NUMBER TWO CLOCKWISE AROUND THE SET',params:{}},{id:'allemande',beats:8,call:'ROBINS ALLEMANDE RIGHT ONCE AND A HALF',params:{pairs:'robins',hand:'R',amount:'1.5'}}]},
+    {name:'B2', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]}]},
+];
+DANCES.forEach(d=>{ let s=0; d.moves=[]; d.phrases.forEach((p,pi)=>{ p.start=s; p.length=p.figures.reduce((a,f)=>a+f.beats,0); p.figures.forEach((f,fi)=>{ d.moves.push({pi,fi,phrase:p.name,start:s,beats:f.beats,fig:f,dance:d}); s+=f.beats; }); }); });
+
+const resolve=(text,params)=>text.replace(/\{(\w+)\}/g,(m,k)=>{ const v=params[k]; if(v===undefined) return k==='pairs'?'the dancer named':m; return (WORDS[k]&&WORDS[k][v])||v; });
+const paramChips=(m)=>{ const p=m.fig.params||{}; const out=[m.beats+' beats']; for(const k of Object.keys(p)){ out.push(k+': '+((WORDS[k]&&WORDS[k][p[k]])||p[k])); } return out; };
+
+/* ---------------- the evening's arithmetic (simplified from program.ts) ---------------- */
+const LINEUP=32, CYCLE=64, TIMES=2, DANCE=CYCLE*TIMES, ITEM=LINEUP+DANCE, POTATOES=4, THRESH=2;
+const N=DANCES.length;
+const danceAt=(item)=>DANCES[((item%N)+N)%N];
+function posAt(beat){
+  const item=Math.floor(beat/ITEM), into=beat-item*ITEM, dance=danceAt(item);
+  if(into<LINEUP){
+    const phase= into<8?'thanks': into<16?'announce': into<LINEUP-POTATOES?'walk':'potatoes';
+    return {item,dance,into,between:true,phase,timeThrough:0,cycleBeat:0,moves:dance.moves,moveIdx:-1,move:null};
+  }
+  const danceBeat=into-LINEUP, timeThrough=Math.floor(danceBeat/CYCLE), cycleBeat=danceBeat-timeThrough*CYCLE;
+  const moveIdx=dance.moves.findIndex(m=>cycleBeat>=m.start&&cycleBeat<m.start+m.beats);
+  return {item,dance,into,between:false,danceBeat,timeThrough,cycleBeat,moves:dance.moves,moveIdx,move:dance.moves[moveIdx]};
+}
+const statusOf=(p)=>{
+  if(!p.between) return `Time through ${p.timeThrough+1} of ${TIMES}`;
+  if(p.phase==='thanks') return `Thanks for ${danceAt(p.item-1).title}`;
+  if(p.phase==='announce') return `The caller announces ${p.dance.title}`;
+  if(p.phase==='walk') return `Lining up for ${p.dance.title}`;
+  return `Potatoes for ${p.dance.title}`;
+};
+const danceStart=(item)=> S.target==='potatoes' ? item*ITEM+LINEUP-POTATOES : item*ITEM;
+const moveAbs=(item,tt,m)=> item*ITEM+LINEUP+tt*CYCLE+m.start;
+const tuneOf=(dance)=> TUNES.find(t=>t.slug===(S.tunePin[dance.slug]||dance.tune))||TUNES[0];
+
+/* ---------------- state ---------------- */
+const STORE_KEY='hall-page-spike:muted';
+const S={beat:30, playing:false, tempo:112, trails:true, rule:'restart', target:'potatoes', muted:false, last:'', tunePin:{}, ol:'faint'};
+try{ S.muted = localStorage.getItem(STORE_KEY)==='true'; }catch(e){}
+const LIVE=[];
+
+function seek(b,label){ S.beat=Math.max(0,b); S.last=label||''; }
+function toggle(){ S.playing=!S.playing; }
+function setMuted(v){ S.muted=v; try{ localStorage.setItem(STORE_KEY,String(v)); }catch(e){} }
+
+function prevMove(force){
+  const p=posAt(S.beat);
+  if(p.between){
+    if(p.item===0) return seek(0,'|◀ → the start of the evening');
+    const pd=danceAt(p.item-1), m=pd.moves[pd.moves.length-1];
+    return seek(moveAbs(p.item-1,TIMES-1,m),`|◀ → previous move: ${pd.title} ${m.phrase} · ${m.fig.call} (time through ${TIMES})`);
+  }
+  const cur=moveAbs(p.item,p.timeThrough,p.move);
+  const mode = force || ((S.beat-cur)>=THRESH ? 'restart':'previous');
+  if(mode==='restart') return seek(cur,`|◀ → start of ${p.move.phrase} · ${p.move.fig.call}`);
+  let tt=p.timeThrough, mi=p.moveIdx-1;
+  if(mi<0){ if(tt>0){ tt--; mi=p.moves.length-1; } else return seek(danceStart(p.item),`|◀ → the start of ${p.dance.title} (${S.target})`); }
+  const m=p.moves[mi];
+  seek(moveAbs(p.item,tt,m),`|◀ → previous move: ${m.phrase} · ${m.fig.call}${tt!==p.timeThrough?' (time through '+(tt+1)+')':''}`);
+}
+function nextMove(){
+  const p=posAt(S.beat);
+  if(p.between){ const m=p.moves[0]; return seek(moveAbs(p.item,0,m),`▶| → ${p.dance.title} ${m.phrase} · ${m.fig.call}`); }
+  let tt=p.timeThrough, mi=p.moveIdx+1;
+  if(mi>=p.moves.length){ mi=0; tt++; if(tt>=TIMES){ const d=danceAt(p.item+1); return seek(danceStart(p.item+1),`▶| → next dance: ${d.title} (${S.target})`); } }
+  const m=p.moves[mi];
+  seek(moveAbs(p.item,tt,m),`▶| → ${m.phrase} · ${m.fig.call}${tt!==p.timeThrough?' (time through '+(tt+1)+')':''}`);
+}
+function prevDance(force){
+  const p=posAt(S.beat);
+  const start=danceStart(p.item);
+  const mode = force || ((S.beat-start)>=THRESH ? 'restart':'previous');
+  if(mode==='restart') return seek(start,`|◀◀ → the start of ${p.dance.title} (${S.target})`);
+  if(p.item===0) return seek(0,'|◀◀ → the start of the evening');
+  seek(danceStart(p.item-1),`|◀◀ → previous dance: ${danceAt(p.item-1).title}`);
+}
+function nextDance(){ const p=posAt(S.beat); seek(danceStart(p.item+1),`▶▶| → next dance: ${danceAt(p.item+1).title}`); }
+function pickDance(slug){
+  const p=posAt(S.beat); let item=p.item;
+  while(danceAt(item).slug!==slug) item++;
+  seek(danceStart(item),`dance select → ${danceAt(item).title} (${S.target}); mute stays ${S.muted?'muted':'on'}`);
+}
+function jumpTo(m,how){ const p=posAt(S.beat); seek(moveAbs(p.item,p.between?0:p.timeThrough,m),`${how||'card'} → ${m.phrase} · ${m.fig.call}`); }
+/* A bar of the tune → the move it is in, at this time through (move-level granularity). */
+function jumpToBar(bar){ const p=posAt(S.beat); const cb=bar*2; const m=p.moves.find(m=>cb>=m.start&&cb<m.start+m.beats)||p.moves[0]; jumpTo(m,`tune bar ${bar+1}`); }
+
+const armed={};
+function press(act){
+  const fn = act==='prevMove'?prevMove : act==='prevDance'?prevDance : null;
+  if(!fn) return act==='nextMove'?nextMove(): act==='nextDance'?nextDance(): toggle();
+  if(S.rule==='restart') return fn();
+  if(armed[act]){ clearTimeout(armed[act]); armed[act]=null; fn('previous'); }
+  else { armed[act]=setTimeout(()=>{ armed[act]=null; fn('restart'); },350); }
+}
+
+/* ---------------- pixel glyphs: one 11-row grid, six-column triangles, one-column bars ---------------- */
+const R=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}"${c?` class="${c}"`:''}/>`;
+const triL=(x,c)=>[0,1,2,3,4,5].map(i=>R(x+i,5-i,1,2*i+1,c)).join('');
+const triR=(x,c)=>[0,1,2,3,4,5].map(i=>R(x+i,i,1,11-2*i,c)).join('');
+const bar=(x,c)=>R(x,0,1,11,c);
+const svg=(w,inner)=>`<svg viewBox="-1 -1 ${w+2} 13"><g class="ol">${inner}</g><g class="fg">${inner}</g></svg>`;
+const G={
+  prevDance: svg(15, bar(0,'gold')+triL(2)+triL(9)),
+  prevMove:  svg(8,  bar(0,'gold')+triL(2)),
+  play:      svg(6,  triR(0)),
+  pause:     svg(6,  R(0,0,2,11)+R(4,0,2,11)),
+  nextMove:  svg(8,  triR(0)+bar(7,'gold')),
+  nextDance: svg(15, triR(0)+triR(7)+bar(14,'gold')),
+  speaker:()=>`<svg viewBox="0 0 9 6">${R(2,0,2,1)}${R(1,1,3,1)}${R(0,2,5,1)}${R(0,3,5,1)}${R(1,4,3,1)}${R(2,5,2,1)}<g class="waves">${R(6,2,1,2,'gold')}${R(7.5,1,1,4,'gold')}</g><g class="cross">${R(6,1,1,1)}${R(8,1,1,1)}${R(7,2,1,1)}${R(6,3,1,1)}${R(8,3,1,1)}</g></svg>`,
+};
+const POTATO=(()=>{ const rows=['...####...','..#oooo#..','.#oooooo#.','#ooo.oooo#','#oooooo.o#','.#o.oooo#.','..#oooo#..','...####...']; let out='';
+  rows.forEach((r,y)=>{ let x=0; while(x<r.length){ const c=r[x]; let w=1; while(r[x+w]===c) w++; if(c!==' '&&c!=='.'||(c==='.'&&x>0&&x+w<r.length&&r[x-1]!=='.'&&r[x+w]!=='.')){ const cls=c==='#'?'p-line':c==='o'?'p-body':'p-eye'; out+=`<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="1"/>`; } x+=w; } });
+  return `<svg viewBox="0 0 10 8" aria-hidden="true">${out}</svg>`; })();
+const INFO=`<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="5.3" y="5" width="1.4" height="4" fill="currentColor"/><rect x="5.3" y="2.7" width="1.4" height="1.4" fill="currentColor"/></svg>`;
+const el=(html)=>{ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; };
+
+/* ---------------- app chrome builders ---------------- */
+const tabbar=()=>el(`<nav class="tabs"><a class="on">Stage</a><a>Moves</a><a>Dances</a><a>Tunes</a><span class="badge"></span></nav>`);
+function pixbtn(act,cls){ const b=el(`<button class="pixbtn ${cls||''}" data-act="${act}" title="${act}"></button>`); b.innerHTML=G[act]||''; return b; }
+function playbtn(cls){ const b=pixbtn('toggle',cls); LIVE.push(()=>{ b.innerHTML=S.playing?G.pause:G.play; b.classList.toggle('play',!S.playing); b.title=S.playing?'Pause':'Play'; }); return b; }
+function mutebtn(){ const b=el(`<button class="pixbtn xs" data-act="mute" title="Mute the band"></button>`); b.innerHTML=G.speaker(); LIVE.push(()=>{ b.classList.toggle('muted',S.muted); b.title=S.muted?'Unmute the band':'Mute the band'; }); return b; }
+function transportButtons(cls){ const f=document.createDocumentFragment(); ['prevDance','prevMove'].forEach(a=>f.appendChild(pixbtn(a,cls))); f.appendChild(playbtn(cls)); ['nextMove','nextDance'].forEach(a=>f.appendChild(pixbtn(a,cls))); return f; }
+function toast(){ const t=el(`<div class="toast"></div>`); LIVE.push(()=>{ t.innerHTML=S.last?S.last.replace(/^(\S+)/,'<b>$1</b>'):'&nbsp;'; }); return t; }
+
+/** The strip: the canvas, the mute at its top-right, and the transport centred in the band under it. */
+function stage({zoom=1, face='chips'}={}){
+  const strip=el(`<div class="strip"><div class="canvaswrap ${zoom===2?'z2':''}"><img src="stage-1x.png" alt="the hall"></div></div>`);
+  const wrap=strip.firstChild;
+  const tr=el(`<div class="stage-tr"></div>`); tr.appendChild(mutebtn()); wrap.appendChild(tr);
+  const bar=el(`<div class="stagebar ${face==='bare'?'bare':''}"></div>`); bar.appendChild(transportButtons(face==='bare'?'bare':'')); strip.appendChild(bar);
+  return strip;
+}
+function ctlrow(){
+  const c=el(`<div class="ctl"></div>`);
+  const sel=el(`<select aria-label="Dance">${DANCES.map(d=>`<option value="${d.slug}">${d.title}</option>`).join('')}</select>`);
+  sel.addEventListener('change',()=>pickDance(sel.value));
+  LIVE.push(p=>{ if(sel.value!==p.dance.slug) sel.value=p.dance.slug; });
+  c.appendChild(sel);
+  const lab=el(`<label><input type="range" min="96" max="124" step="1" value="${S.tempo}"><span class="bpm">${S.tempo}</span></label>`);
+  const rng=lab.querySelector('input'), bpm=lab.querySelector('.bpm');
+  rng.addEventListener('input',()=>{ S.tempo=Number(rng.value); });
+  LIVE.push(()=>{ if(Number(rng.value)!==S.tempo) rng.value=S.tempo; bpm.textContent=S.tempo; });
+  c.appendChild(lab);
+  const tb=el(`<button class="tbtn on">trails</button>`); tb.addEventListener('click',()=>{ S.trails=!S.trails; }); LIVE.push(()=>tb.classList.toggle('on',S.trails)); c.appendChild(tb);
+  return c;
+}
+function statusLine(){ const s=el(`<p class="status"></p>`); LIVE.push(p=>{ s.textContent=statusOf(p); }); return s; }
+function danceLink(){ const s=el(`<p class="dancelink"><a href="#"></a></p>`); LIVE.push(p=>{ s.firstChild.textContent=`${p.dance.title}: the dance page`; s.firstChild.href=`#/dances/${p.dance.slug}`; }); return s; }
+
+/* ---------------- the notecard, two ways ---------------- */
+function notecard(variant,{pin}={}){
+  const c=el(`<div class="paper notecard ${variant==='list'?'nc-list':''}"><div class="nc-head"><span class="nc-title"></span><span class="nc-author"></span><span class="tt"></span></div><div class="nc-body"></div></div>`);
+  const [title,author,tt,body]=['.nc-title','.nc-author','.tt','.nc-body'].map(s=>c.querySelector(s));
+  let built=null, rows=[];
+  const build=(d)=>{ body.innerHTML=''; rows=d.phrases.map((ph,pi)=>{ const row=el(`<div class="nc-row"><div class="nc-lab">${ph.name}</div><div class="nc-track"></div></div>`); const track=row.querySelector('.nc-track');
+    ph.figures.forEach((f,fi)=>{ const m=d.moves.find(m=>m.pi===pi&&m.fi===fi);
+      const call=el(`<button class="nc-call" style="flex-grow:${f.beats}" title="Go to ${f.call}"><span class="nc-txt">${f.call}${(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('')}</span>${variant==='list'?`<span class="nc-beats">${f.beats}</span>`:''}<span class="info" role="button" title="About this move">${INFO}</span><i class="nc-prog"></i></button>`);
+      call.addEventListener('click',e=>{ if(e.target.closest('.info')){ e.stopPropagation(); openMove(m,call); } else jumpTo(m); }); track.appendChild(call); });
+    body.appendChild(row); return row; }); };
+  LIVE.push(p0=>{
+    const p = pin && p0.dance.slug!==pin ? posAt(LINEUP+24+3+ITEM*DANCES.findIndex(d=>d.slug===pin)) : p0;
+    if(built!==p.dance){ built=p.dance; title.textContent=p.dance.title; author.textContent=p.dance.author; build(p.dance); }
+    tt.textContent= p.between? '' : `${p.timeThrough+1} of ${TIMES}`;
+    rows.forEach((row,pi)=>{ const cur=!p.between&&p.move.pi===pi; row.classList.toggle('cur',cur);
+      [...row.querySelectorAll('.nc-call')].forEach((call,fi)=>{ const m=p.dance.moves.find(m=>m.pi===pi&&m.fi===fi); const on=cur&&p.move.fi===fi; call.classList.toggle('on',on); call.classList.toggle('done',!p.between&&!on&&(p.move.pi>pi||(p.move.pi===pi&&p.move.fi>fi))); if(on) call.querySelector('.nc-prog').style.width=((p.cycleBeat-m.start)/m.beats*100)+'%'; }); });
+  });
+  return c;
+}
+
+/* ---------------- the tune box ---------------- */
+/* A stand-in for abcjs: four staves of eight bars, note heads from a seeded pattern; each stave is one phrase. */
+function tuneSVG(tune,dance,curBar,withMoves){
+  let seed=tune.slug.length*7+tune.title.charCodeAt(0); const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+  const W=400, L=24, staveH=withMoves?44:34, top=10, bw=(W-L-8)/8;
+  let out=`<svg viewBox="0 0 ${W} ${top+4*staveH+2}" xmlns="http://www.w3.org/2000/svg">`;
+  out+=`<text x="${L}" y="4" class="mv" style="opacity:.55">${tune.kind}</text>`;
+  for(let s=0;s<4;s++){ const y=top+s*staveH; const ph=dance.phrases[s];
+    const phCur = ph && curBar>=0 && Math.floor(curBar/8)===s;
+    out+=`<text x="2" y="${y+11}" class="lab ${phCur?'cur':''}">${ph?ph.name:''}</text>`;
+    for(let l=0;l<5;l++) out+=`<line x1="${L}" x2="${W-8}" y1="${y+l*3}" y2="${y+l*3}" stroke="currentColor" stroke-width=".5" opacity=".6"/>`;
+    for(let b=0;b<8;b++){ const x=L+b*bw; const barIdx=s*8+b; const cls=barIdx===curBar?'cur':'';
+      out+=`<line x1="${x}" x2="${x}" y1="${y}" y2="${y+12}" stroke="currentColor" stroke-width=".7"/>`;
+      for(let n=0;n<4;n++){ const nx=x+6+n*(bw-10)/4; const ny=y-1+Math.floor(rnd()*9)*1.5; out+=`<ellipse class="${cls}" cx="${nx}" cy="${ny}" rx="2.1" ry="1.5" fill="currentColor"/><line class="${cls}" x1="${nx+2}" x2="${nx+2}" y1="${ny}" y2="${ny-8}" stroke="currentColor" stroke-width=".7"/>`; }
+      out+=`<rect class="hit" data-bar="${barIdx}" x="${x}" y="${y-10}" width="${bw}" height="${staveH-2}"/>`;
+    }
+    out+=`<line x1="${W-8}" x2="${W-8}" y1="${y}" y2="${y+12}" stroke="currentColor" stroke-width=".7"/>`;
+    if(withMoves && ph){ // the moves under the bars they take
+      const ty=y+23; let cursor=0;
+      ph.figures.forEach((f,fi)=>{ const x0=L+cursor/16*(W-L-8), w=f.beats/16*(W-L-8); cursor+=f.beats;
+        const m=dance.moves.find(m=>m.pi===s&&m.fi===fi); const on=curBar>=0 && curBar*2>=m.start && curBar*2<m.start+m.beats;
+        if(fi>0) out+=`<line class="mvtick" x1="${x0}" x2="${x0}" y1="${ty-6}" y2="${ty+1}"/>`;
+        const maxChars=Math.max(2,Math.floor(w/3.6)); const t=f.call.length>maxChars? f.call.slice(0,Math.max(1,maxChars-1))+'…':f.call;
+        out+=`<text x="${x0+(fi>0?2:0)}" y="${ty}" class="mv ${on?'cur':''}">${t}</text>`; });
+    }
+  }
+  return out+'</svg>';
+}
+function tunebox({moves=false,freeze}={}){
+  const c=el(`<div class="paper tunebox"><div class="tunebox-head"><span class="cap">The tune</span><select aria-label="Tune"></select><span class="spuds" title="The potatoes: the four beats the band counts the dance in with">${POTATO}${POTATO}${POTATO}${POTATO}</span></div><div class="notation"></div></div>`);
+  const sel=c.querySelector('select'), notn=c.querySelector('.notation'), spuds=[...c.querySelectorAll('.spuds svg')];
+  sel.innerHTML=TUNES.map(t=>`<option value="${t.slug}">${t.title}</option>`).join('');
+  let lastKey='';
+  sel.addEventListener('change',()=>{ const p=posAt(S.beat); S.tunePin[p.dance.slug]=sel.value; S.last=`tune select → ${TUNES.find(t=>t.slug===sel.value).title} for ${p.dance.title} (pins ?tune=)`; });
+  notn.addEventListener('click',e=>{ const h=e.target.closest('.hit'); if(h) jumpToBar(Number(h.dataset.bar)); });
+  LIVE.push(p0=>{ const p = freeze!==undefined ? posAt(freeze) : p0; const tune=tuneOf(p.dance); const bar=p.between?-1:Math.floor(p.cycleBeat/2);
+    if(sel.value!==tune.slug) sel.value=tune.slug;
+    const key=`${tune.slug}|${p.dance.slug}|${bar}`; if(key!==lastKey){ lastKey=key; notn.innerHTML=tuneSVG(tune,p.dance,bar,moves); }
+    const pot = p.between && p.phase==='potatoes' ? Math.floor(p.into-(LINEUP-POTATOES)) : -1;
+    spuds.forEach((s,i)=>{ s.classList.toggle('lit',i<=pot); s.classList.toggle('now',i===pot); }); });
+  return c;
+}
+
+/* ---------------- the popup ---------------- */
+const pop=document.getElementById('pop'); let popMove=null;
+function openMove(m,anchor){
+  popMove=m; const f=m.fig, fig=FIG[f.id]||{title:f.id,short:'',long:''};
+  document.getElementById('popTitle').textContent=fig.title;
+  document.getElementById('popDim').textContent=`${m.phrase} · beats ${m.start+1}–${m.start+m.beats}`;
+  document.getElementById('popCall').innerHTML=f.call+(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('');
+  document.getElementById('popParams').innerHTML=paramChips(m).map(t=>`<span>${t}</span>`).join('');
+  document.getElementById('popShort').textContent=resolve(fig.short,f.params||{});
+  document.getElementById('popLong').textContent=resolve(fig.long,f.params||{});
+  document.getElementById('popMoves').textContent=`${fig.title} on the Moves page →`; document.getElementById('popMoves').href=`#/moves/${f.id}`;
+  document.getElementById('popTraces').href=`#/moves/${f.id}/traces`;
+  pop.querySelector('details').open=false;
+  const phone=anchor.closest('.phone');
+  closePop();
+  if(phone){ pop.classList.add('sheet'); phone.appendChild(pop); phone.querySelector('.backdrop').classList.add('open'); }
+  else { pop.classList.add('popover'); document.body.appendChild(pop); const r=anchor.getBoundingClientRect(); const x=Math.min(window.scrollX+r.left, window.scrollX+document.documentElement.clientWidth-350); pop.style.left=x+'px'; pop.style.top=(window.scrollY+r.bottom+6)+'px'; }
+  pop.classList.add('open');
+}
+function closePop(){ pop.classList.remove('open','sheet','popover'); document.querySelectorAll('.backdrop.open').forEach(b=>b.classList.remove('open')); }
+document.getElementById('popX').addEventListener('click',closePop);
+document.getElementById('popJump').addEventListener('click',()=>{ if(popMove) jumpTo(popMove,'popup'); closePop(); });
+document.addEventListener('click',e=>{ if(e.target.closest('.backdrop')) closePop(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePop(); });
+
+/* ---------------- frames ---------------- */
+function phoneFrame(build){ const ph=el(`<div class="phone"><div class="scroll"></div><div class="backdrop"></div></div>`); const sc=ph.firstChild; sc.appendChild(tabbar()); build(sc); return ph; }
+function concept(label,text,frame){ const c=el(`<div class="concept"><h3>${label}</h3></div>`); c.appendChild(frame); c.appendChild(el(`<p>${text}</p>`)); return c; }
+function phonePage(sc,{face='chips',card='prop',moves=true}={}){
+  const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({face})); col.appendChild(toast()); col.appendChild(ctlrow()); sc.appendChild(col);
+  const a=el(`<div class="aside"></div>`); a.appendChild(notecard(card)); a.appendChild(tunebox({moves})); a.appendChild(danceLink()); a.appendChild(statusLine()); sc.appendChild(a);
+}
+
+/* Section 1 */
+const row1=document.getElementById('row1');
+{ const samples=el(`<div class="olrow"></div>`);
+  for(const ol of ['none','faint','ink']){ const s=el(`<div class="sample"><div class="band"></div><span class="mini">${ol}</span></div>`); s.querySelector('.band').appendChild(transportButtons('bare')); s.querySelector('.band').style.setProperty('--ol', ol==='none'?'transparent': ol==='faint'?'oklch(0.15 0.02 55 / .45)':'oklch(0.15 0.02 55 / .85)'); s.querySelector('.band').querySelectorAll('.pixbtn').forEach(b=>b.style.setProperty('--ol','inherit')); samples.appendChild(s); }
+  row1.appendChild(concept('1F · Outline weights','The same glyphs at none, faint (lean) and ink. The outline is one pixel unit, drawn dark so the glyph reads on the lit wall without a chip behind it.',samples)); }
+row1.appendChild(concept('1F · Bare glyphs on the wall <span class="lean">← ruled</span>','The pixels on the wall, a third larger than the chips were, play in the lit-board gold, the outline the strip picks. Quieter, more like a console; the hit areas are invisible but 52 × 44 px.',
+  phoneFrame(sc=>phonePage(sc,{face:'bare',card:'list'}))));
+
+/* Section 2 */
+const row2=document.getElementById('row2');
+row2.appendChild(concept('2F · One call to a line <span class="lean">← ruled</span>','Every call on its own line, its beat count faint before the ⓘ; the current call bold with the underline filling beneath it; the ones already danced fade. The card is as tall as the dance has calls.', notecard('list')));
+row2.appendChild(concept('2F · Fatal Attraction','The awkward cases: a two-beat call with a "‖" line under it, and calls long enough to wrap. Pinned to this dance; the others follow the strip.', notecard('list',{pin:'fatal-attraction'})));
+row2.appendChild(concept('2F · The Baby Rose','Pinned, for the third dance.', notecard('list',{pin:'the-baby-rose'})));
+
+/* Section 3 */
+const row3=document.getElementById('row3');
+row3.appendChild(concept('3B · The moves under the staves <span class="lean">← ruled</span>','A1 A2 B1 B2 at the left of the staves, the calls written small under the bars they take, ticks where one gives way to the next, the current one in the cursor\'s orange. A long call in a short move is trimmed with an ellipsis.', tunebox({moves:true})));
+row3.appendChild(concept('3B · The potatoes, counting in','The same box frozen four beats before the dance: three potatoes lit, the fourth about to. Nothing else in the box says "waiting" any more.', tunebox({moves:true,freeze:LINEUP-POTATOES+2.5})));
+
+/* Section 4 */
+const row4=document.getElementById('row4');
+row4.appendChild(concept('4A · Phone','Strip with the transport, then the settings row, the notecard, the tune box. Tap ⓘ: the move opens as a bottom sheet. Tap a call, or a bar of the tune: the evening goes there.',
+  phoneFrame(sc=>phonePage(sc,{face:'bare',card:'list',moves:true}))));
+{ const lap=el(`<div class="laptop"></div>`); lap.appendChild(tabbar()); const page=el(`<div class="page"><div class="left"></div><div class="right"></div></div>`); const L=page.querySelector('.left'), Rt=page.querySelector('.right');
+  L.appendChild(stage({zoom:2,face:'bare'})); L.appendChild(toast()); L.appendChild(ctlrow());
+  Rt.appendChild(notecard('list')); Rt.appendChild(tunebox({moves:true})); Rt.appendChild(danceLink()); Rt.appendChild(statusLine()); Rt.appendChild(el(`<p class="status">the new engine <a href="#">(old engine)</a></p>`));
+  lap.appendChild(page); lap.appendChild(el(`<footer style="display:flex;gap:16px;border-top:1px solid var(--border);padding:8px 16px 12px;font-size:12px;color:var(--muted-foreground)"><a href="#">Spikes</a><a href="#">The pair</a><span>AGPL-3.0-or-later. Dances are their choreographers’; tunes are traditional.</span></footer>`));
+  row4.appendChild(concept('4B · Laptop (1000)','The stage at 2× with the band under it, the notecard and the tune box beside. ⓘ opens a popover under the call.',lap)); }
+
+/* ---------------- the strip ---------------- */
+const cPlay=document.getElementById('cPlay'), cBeat=document.getElementById('cBeat'), cRead=document.getElementById('cRead'), cStore=document.getElementById('cStore');
+cPlay.addEventListener('click',toggle);
+cBeat.addEventListener('input',()=>{ S.beat=Number(cBeat.value); S.last='scrub'; });
+document.getElementById('cDances').append(...DANCES.map(d=>{ const b=el(`<button>${d.title}</button>`); b.addEventListener('click',()=>pickDance(d.slug)); LIVE.push(p=>b.classList.toggle('on',p.dance===d)); return b; }));
+document.body.dataset.ol=S.ol;
+document.querySelectorAll('#ctl [data-ol]').forEach(b=>b.addEventListener('click',()=>{ S.ol=b.dataset.ol; document.body.dataset.ol=S.ol; document.querySelectorAll('#ctl [data-ol]').forEach(x=>x.classList.toggle('on',x===b)); }));
+document.getElementById('cPot').addEventListener('click',()=>{ const p=posAt(S.beat); seek(danceStart(p.item)-0.5,'→ the potatoes'); });
+const cTempo=document.getElementById('cTempo'), cTempoV=document.getElementById('cTempoV'); cTempo.addEventListener('input',()=>{ S.tempo=Number(cTempo.value); }); LIVE.push(()=>{ cTempo.value=S.tempo; cTempoV.textContent=S.tempo; });
+document.getElementById('cClear').addEventListener('click',()=>{ try{ localStorage.removeItem(STORE_KEY);}catch(e){} S.muted=false; });
+document.getElementById('cReload').addEventListener('click',()=>location.reload());
+LIVE.push(p=>{ cPlay.textContent=S.playing?'▮▮ pause':'▶ play'; cPlay.classList.toggle('on',S.playing); if(document.activeElement!==cBeat) cBeat.value=S.beat; cRead.textContent=`beat ${S.beat.toFixed(0)} · ${p.dance.title} · ${p.between?p.phase:(p.move.phrase+' b'+(p.cycleBeat+1)+' · '+(p.timeThrough+1)+'/'+TIMES)}`; let v='(unset)'; try{ v=localStorage.getItem(STORE_KEY)??'(unset)'; }catch(e){} cStore.textContent=`muted=${v}`; });
+
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='mute') return setMuted(!S.muted); press(a); });
+document.addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')) return; if(e.key===' '){ e.preventDefault(); toggle(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); e.shiftKey?press('prevDance'):press('prevMove'); } else if(e.key==='ArrowRight'){ e.preventDefault(); e.shiftKey?press('nextDance'):press('nextMove'); } else if(e.key==='m'){ setMuted(!S.muted); } });
+
+/* ---------------- the clock ---------------- */
+let lastT=performance.now();
+function tick(t){ const dt=(t-lastT)/1000; lastT=t; if(S.playing) S.beat+=dt*S.tempo/60; const p=posAt(S.beat);
+  document.querySelectorAll('.pixbtn[data-act="prevMove"]').forEach(b=>b.classList.toggle('armed',!!armed.prevMove));
+  document.querySelectorAll('.pixbtn[data-act="prevDance"]').forEach(b=>b.classList.toggle('armed',!!armed.prevDance));
+  LIVE.forEach(f=>f(p)); requestAnimationFrame(tick); }
+LIVE.forEach(f=>f(posAt(S.beat)));
+requestAnimationFrame(tick);
+/* ?demo=popover | sheet | fatal — open the page in a given state, for screenshots and for the gate. */
+{ const q=new URLSearchParams(location.search).get('demo');
+  if(q){ S.beat=LINEUP+24+3; if(q==='fatal') pickDance('fatal-attraction'); LIVE.forEach(f=>f(posAt(S.beat)));
+    if(q==='popover'){ document.querySelector('#row2 .notecard').querySelectorAll('.info')[2].click(); document.getElementById('row2').scrollIntoView(); }
+    if(q==='sheet'){ const ph=document.querySelector('#row4 .phone'); ph.querySelector('.scroll').scrollTop=470; ph.querySelectorAll('.notecard .info')[4].click(); document.getElementById('row4').scrollIntoView(); }
+    if(q==='fatal'){ document.getElementById('row2').scrollIntoView(); }
+    if(q==='potatoes'){ seek(LINEUP-POTATOES+2.5,'→ the potatoes'); LIVE.forEach(f=>f(posAt(S.beat))); document.getElementById('row3').scrollIntoView(); } } }
+</script>
+</body>
+</html>

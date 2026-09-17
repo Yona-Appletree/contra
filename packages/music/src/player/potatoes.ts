@@ -43,6 +43,12 @@ export interface PotatoOptions {
   decaySeconds: number;
   /** Seed for the tiny amount of noise in the attack. */
   seed: number;
+  /**
+   * What {@link playPotatoes} connects its source to. Default `ctx.destination`.
+   * {@link createPlayer} passes its master gain, so the count-in is muted by the
+   * same control the tune is — nothing is heard through a muted hall.
+   */
+  destination?: AudioNode;
 }
 
 /** The families a potato can be played in; see {@link voiceOf}. */
@@ -125,7 +131,10 @@ export function renderPotatoes(
   return normalise(out, o.peak);
 }
 
-/** Play one set of potatoes on `ctx`, starting at `when` (default: now). */
+/**
+ * Play one set of potatoes on `ctx`, starting at `when` (default: now), into
+ * `options.destination` (default: `ctx.destination`).
+ */
 export function playPotatoes(
   ctx: AudioContext,
   when?: number,
@@ -138,7 +147,7 @@ export function playPotatoes(
   buffer.getChannelData(0).set(samples);
   const source = ctx.createBufferSource();
   source.buffer = buffer;
-  source.connect(ctx.destination);
+  source.connect(options.destination ?? ctx.destination);
   source.start(when ?? ctx.currentTime);
   return source;
 }

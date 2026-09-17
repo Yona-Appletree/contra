@@ -44,6 +44,13 @@ const SPIKES: SpikeEntry[] = [
     ruling:
       "Awaiting the gate: four ways to put the formation first — by shape, the figure in every shape, the dance as the example, shape × family facets.",
   },
+  {
+    slug: "hall-page",
+    name: "The Stage · transport, card, mute",
+    date: "2026-09-16",
+    ruling:
+      "Converged: the five transport glyphs outlined on the wall under the hall, a white notecard one call to a line, the tune in its own box with the moves under the staves and four potatoes counting in, a 32 px mute top-right.",
+  },
 ];
 
 /**

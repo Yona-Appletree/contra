@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { SpeakerGlyph } from "./SpeakerGlyph.js";
 
 /**
  * The play/pause control, an 8-bit speaker overlaid on a corner of the stage
@@ -12,6 +13,11 @@ import type { JSX } from "react";
  * the gold accent's sound waves. Tapping calls `onToggle`, which is the same
  * click handler the old text button used — the user gesture the browser's
  * autoplay policy needs is unchanged, only the button's face is new.
+ *
+ * P3 took the Stage's copy of this away (the transport under the hall is the
+ * play control now, and the mute chip at the stage's top-right is the other
+ * speaker) and the pixels moved into {@link SpeakerGlyph}; what is left here
+ * is the Tunes tab's per-tune play button, unchanged.
  */
 export function SpeakerButton({
   playing,
@@ -37,34 +43,7 @@ export function SpeakerButton({
       aria-pressed={playing}
       title={title}
     >
-      <svg viewBox="0 0 9 6" aria-hidden focusable="false">
-        {/* The speaker body: a box and a cone, both the ink colour, in
-            either state. */}
-        <g className="speaker-body">
-          <rect x="2" y="0" width="2" height="1" />
-          <rect x="1" y="1" width="3" height="1" />
-          <rect x="0" y="2" width="5" height="1" />
-          <rect x="0" y="3" width="5" height="1" />
-          <rect x="1" y="4" width="3" height="1" />
-          <rect x="2" y="5" width="2" height="1" />
-        </g>
-        {playing ? (
-          // Playing: two blocky waves off the cone, the gold accent.
-          <g className="speaker-waves">
-            <rect x="6" y="2" width="1" height="2" />
-            <rect x="7.5" y="1" width="1" height="4" />
-          </g>
-        ) : (
-          // Silent: a blocky × where the waves would be, the ink colour.
-          <g className="speaker-mute">
-            <rect x="6" y="1" width="1" height="1" />
-            <rect x="8" y="1" width="1" height="1" />
-            <rect x="7" y="2" width="1" height="1" />
-            <rect x="6" y="3" width="1" height="1" />
-            <rect x="8" y="3" width="1" height="1" />
-          </g>
-        )}
-      </svg>
+      <SpeakerGlyph waves={playing} />
     </button>
   );
 }

@@ -6,12 +6,16 @@ import { medleys } from "@caller/music";
 import { describe, expect, it } from "vitest";
 import {
   CYCLE_BEATS,
+  ITEM_BEATS,
   LINEUP_BEATS,
+  POTATO_BEATS,
   createDemoProgram,
   danceOrder,
+  danceStartBeat,
   isLabDance,
   lineUpStartBeat,
   positionAt,
+  potatoCount,
   shuffleMedleyAssignment,
 } from "./program.js";
 
@@ -340,5 +344,61 @@ describe("danceOrder and the two engines (M3)", () => {
     // Measured, not asserted at a round number: the swing's honest end is
     // 12.2 px from the station the coded swing walks back to.
     expect(worst).toBeGreaterThan(10);
+  });
+});
+
+describe("danceStartBeat: the potatoes, not the whole line-up", () => {
+  it("is four beats before the dance's own beat 0, for an unwrapped item index", () => {
+    expect(danceStartBeat(0)).toBe(-POTATO_BEATS);
+    expect(danceStartBeat(1)).toBe(ITEM_BEATS - POTATO_BEATS);
+    expect(danceStartBeat(2)).toBe(2 * ITEM_BEATS - POTATO_BEATS);
+  });
+
+  it("lands exactly POTATO_BEATS before positionAt reports dancing beat 0", () => {
+    const world = layoutHall({ lines: 2, couplesPerLine: [8, 7] });
+    const program = createDemoProgram(world, undefined, 7);
+    const at = danceStartBeat(1) + POTATO_BEATS;
+    const position = positionAt(program, at);
+    expect(position.index).toBe(1);
+    expect(position.danceBeat).toBe(0);
+  });
+});
+
+describe("potatoCount", () => {
+  const k = [0, 1, 2, -1];
+
+  it("lights potato j+1 at danceStartBeat(k) + j + 0.5, for j = 0..3", () => {
+    for (const index of k) {
+      for (let j = 0; j < 4; j++) {
+        const beat = danceStartBeat(index) + j + 0.5;
+        expect(potatoCount(beat), `k=${String(index)} j=${String(j)}`).toBe(j + 1);
+      }
+    }
+  });
+
+  it("is 0 just before the count-in starts, and 0 again once the dance itself begins", () => {
+    for (const index of k) {
+      expect(potatoCount(danceStartBeat(index) - 0.01), `k=${String(index)}`).toBe(0);
+      expect(potatoCount(index * ITEM_BEATS), `k=${String(index)}`).toBe(0);
+    }
+  });
+
+  it("is 0 anywhere in a dance, and anywhere in the thanks, announcement or walk", () => {
+    // Everything short of the count-in itself — the dance, then thanks,
+    // announcement, walk and the ring — is 0; the window is only the last
+    // POTATO_BEATS of the item.
+    for (let beat = 0; beat < ITEM_BEATS - POTATO_BEATS; beat += 3.7) {
+      expect(potatoCount(beat), `beat ${String(beat)}`).toBe(0);
+    }
+  });
+
+  it("holds over a real programme's totalBeats, not just small numbers", () => {
+    const world = layoutHall({ lines: 2, couplesPerLine: [8, 7] });
+    const program = createDemoProgram(world, undefined, 7);
+    for (let index = 0; index < program.dances.length; index++) {
+      for (let j = 0; j < 4; j++) {
+        expect(potatoCount(danceStartBeat(index) + j + 0.5)).toBe(j + 1);
+      }
+    }
   });
 });

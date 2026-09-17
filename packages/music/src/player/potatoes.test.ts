@@ -3,6 +3,7 @@ import {
   POTATO_DEFAULTS,
   keyOf,
   loudestVoice,
+  playPotatoes,
   potatoesFor,
   renderPotatoes,
   voiceOf,
@@ -252,4 +253,49 @@ describe("the loudest instrument plays them", () => {
       expect(peakOver(buffer, 0, 4 * (60 / BPM))).toBeCloseTo(POTATO_DEFAULTS.peak, 3);
     },
   );
+});
+
+/**
+ * A minimal fake `AudioContext` for {@link playPotatoes}: it does not make a
+ * sound, it only records what the source was connected to and when it started.
+ */
+function fakeContext() {
+  const connectedTo: unknown[] = [];
+  const started: number[] = [];
+  const source = {
+    buffer: null as unknown,
+    connect: (node: unknown): void => void connectedTo.push(node),
+    start: (when: number): void => void started.push(when),
+  };
+  const destination = { id: "destination" };
+  const ctx = {
+    currentTime: 3,
+    sampleRate: 8000,
+    destination,
+    createBuffer: (_channels: number, length: number) => ({
+      getChannelData: () => new Float32Array(length),
+    }),
+    createBufferSource: () => source,
+  };
+  return { ctx: ctx as unknown as AudioContext, connectedTo, started, destination };
+}
+
+describe("playPotatoes", () => {
+  it("connects to the context's destination by default", () => {
+    const fake = fakeContext();
+    playPotatoes(fake.ctx, 5, { bpm: BPM });
+    expect(fake.connectedTo).toEqual([fake.destination]);
+    expect(fake.started).toEqual([5]);
+  });
+
+  it("connects to `destination` when one is given: the player's master gain", () => {
+    // This is what makes the count-in obey the hall's mute (D4): the potatoes
+    // go through the same gain the tune does, rather than straight out.
+    const fake = fakeContext();
+    const master = { id: "master gain" };
+    playPotatoes(fake.ctx, undefined, { bpm: BPM, destination: master as unknown as AudioNode });
+    expect(fake.connectedTo).toEqual([master]);
+    // No `when`: the potatoes start now.
+    expect(fake.started).toEqual([3]);
+  });
 });
