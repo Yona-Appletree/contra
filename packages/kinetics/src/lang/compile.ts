@@ -53,10 +53,22 @@ export interface CompiledCall {
 /** Every dancer's script, compiled from the one dance they all share. */
 export interface CompiledSequence {
   dialect: string;
+  /** The first `card` the dance says, as its name. */
   title?: string;
   perDancer: Readonly<Record<DancerId, readonly CompiledCall[]>>;
   /** The seatings, in order: at beat 0, then after each `progress()`. */
   memberships: readonly Membership[];
+  /** `card` and `say` lines, at the beat each dancer reached them. */
+  annotations: readonly Annotation[];
+}
+
+/** A `card` or `say`, on the timeline: no beats, just a mark. */
+export interface Annotation {
+  kind: "card" | "say";
+  text: string;
+  beat: number;
+  dancer: DancerId;
+  span: Span;
 }
 
 /** Something the dance says that the compiler cannot make sense of. */
@@ -112,16 +124,21 @@ export function compile(input: CompileInput): {
       modules.set(item.name, item);
     }
   }
-  const dances = input.dance.items.filter((i): i is ModuleItem => i.kind === "dance");
+  // The entry is the named module, else the file's first module that is a
+  // dance: one with no `ir` line (a move) and at least one time statement.
+  const dances = input.dance.items.filter(
+    (i): i is ModuleItem => i.kind === "module" && !i.body.some((s) => s.kind === "ir"),
+  );
   const entry = input.entry === undefined ? dances[0] : dances.find((d) => d.name === input.entry);
   const memberships: Membership[] = [floor.initial];
   const perDancer: Record<DancerId, readonly CompiledCall[]> = {};
+  const annotations: Annotation[] = [];
   let title: string | undefined;
   if (entry === undefined) {
     report(
       input.entry === undefined ? "the file has no dance" : `the file has no dance ${input.entry}`,
     );
-    return { sequence: { dialect: floor.name, perDancer, memberships }, errors };
+    return { sequence: { dialect: floor.name, perDancer, memberships, annotations }, errors };
   }
 
   // The static half of the one-sigil rule: every $ the dance requires or
@@ -138,7 +155,10 @@ export function compile(input: CompileInput): {
     let membership = floor.initial;
     let membershipIndex = 0;
     let beat = 0;
-    const loops: { i: number; n: number }[] = [];
+    /** The enclosing loops, innermost last; the innermost is "the time through". */
+    const loops: { i: number; n: number; startBeat: number }[] = [];
+    /** The block a call with `{ … }` passed, for the callee's `children()`. */
+    const childrenStack: { body: readonly Stmt[]; env: Map<string, Value> }[] = [];
 
     const placeOfMe = (): Place | undefined => {
       const path = membership.placeOf.get(dancer);
@@ -147,13 +167,31 @@ export function compile(input: CompileInput): {
 
     /** `$name` for this dancer now, with the static check done once per name. */
     const dyn = (name: string, span: Span | undefined, reads: Record<string, string>): Value => {
-      if (name === "time" || name === "times") {
+      if (
+        name === "time" ||
+        name === "times" ||
+        name === "first-time" ||
+        name === "last-time" ||
+        name === "beat"
+      ) {
         const loop = loops[loops.length - 1];
         if (!loop) {
+          if (name === "beat") return { kind: "number", value: beat };
           report(`$${name} means nothing outside a repeat`, span);
           return NOBODY;
         }
-        return { kind: "number", value: name === "time" ? loop.i + 1 : loop.n };
+        switch (name) {
+          case "time":
+            return { kind: "number", value: loop.i + 1 };
+          case "times":
+            return { kind: "number", value: loop.n };
+          case "first-time":
+            return { kind: "bool", value: loop.i === 0 };
+          case "last-time":
+            return { kind: "bool", value: loop.i === loop.n - 1 };
+          default:
+            return { kind: "number", value: beat - loop.startBeat };
+        }
       }
       if (!known(name)) {
         report(`${floor.name} does not provide $${name}`, span);
@@ -202,9 +240,48 @@ export function compile(input: CompileInput): {
     ): void => {
       for (const stmt of stmts) {
         switch (stmt.kind) {
-          case "title":
-            title = stmt.text;
+          case "card":
+          case "say":
+            annotations.push({ kind: stmt.kind, text: stmt.text, beat, dancer, span: stmt.span });
+            if (stmt.kind === "card" && title === undefined) title = stmt.text;
             break;
+          case "place":
+          case "anchor":
+          case "group":
+          case "provide":
+          case "provide-fn":
+          case "dancers":
+          case "next":
+          case "seat":
+            // Space: nobody's pass read it. (Round 2 P2 makes the dance own its floor.)
+            break;
+          case "ir":
+            break;
+          case "children": {
+            const passed = childrenStack[childrenStack.length - 1];
+            if (passed === undefined) {
+              report("children() outside a module called with a block", stmt.span);
+              break;
+            }
+            childrenStack.pop();
+            walk(passed.body, passed.env, path, stack);
+            childrenStack.push(passed);
+            break;
+          }
+          case "assign":
+            report("reassignment ($x = …) is round 2's P2: not yet", stmt.span);
+            break;
+          case "assert": {
+            const reads: Record<string, string> = {};
+            const verdict = evaluate(stmt.condition, env, reads);
+            if (verdict !== undefined && !truthy(verdict)) {
+              report(
+                `assert failed${stmt.message === undefined ? "" : `: ${stmt.message}`} (beat ${String(beat)}, ${dancer})`,
+                stmt.span,
+              );
+            }
+            break;
+          }
           case "let": {
             const reads: Record<string, string> = {};
             const value = evaluate(stmt.value, env, reads);
@@ -218,6 +295,20 @@ export function compile(input: CompileInput): {
             walk(truthy(verdict) ? stmt.then : stmt.else, env, path, stack);
             break;
           }
+          case "match": {
+            const reads: Record<string, string> = {};
+            const subject = evaluate(stmt.subject, env, reads);
+            if (subject === undefined) break;
+            const arm =
+              stmt.arms.find(
+                (a) =>
+                  a.pattern !== undefined &&
+                  subject.kind === "member" &&
+                  subject.member === a.pattern,
+              ) ?? stmt.arms.find((a) => a.pattern === undefined);
+            if (arm) walk(arm.body, env, path, stack);
+            break;
+          }
           case "repeat": {
             const reads: Record<string, string> = {};
             const count = evaluate(stmt.count, env, reads);
@@ -227,9 +318,27 @@ export function compile(input: CompileInput): {
               break;
             }
             for (let i = 0; i < count.value; i += 1) {
-              loops.push({ i, n: count.value });
-              if (stmt.binder !== undefined) env.set(stmt.binder, { kind: "number", value: i });
+              loops.push({ i, n: count.value, startBeat: beat });
               walk(stmt.body, env, [...path, `repeat[${String(i)}]`], stack);
+              loops.pop();
+            }
+            break;
+          }
+          case "for": {
+            const reads: Record<string, string> = {};
+            const from = evaluate(stmt.from, env, reads);
+            const to = evaluate(stmt.to, env, reads);
+            if (from === undefined || to === undefined) break;
+            if (from.kind !== "number" || to.kind !== "number") {
+              report("for needs whole numbers", stmt.span);
+              break;
+            }
+            const end = stmt.inclusive ? to.value : to.value - 1;
+            const n = Math.max(0, end - from.value + 1);
+            for (let i = from.value; i <= end; i += 1) {
+              env.set(stmt.binder, { kind: "number", value: i });
+              loops.push({ i: i - from.value, n, startBeat: beat });
+              walk(stmt.body, env, [...path, `${stmt.binder}=${String(i)}`], stack);
               loops.pop();
             }
             break;
@@ -256,7 +365,9 @@ export function compile(input: CompileInput): {
               report(`unknown move ${stmt.name}`, stmt.span);
               break;
             }
-            if (module.kind === "dance") {
+            const isMove = module.body.some((s) => s.kind === "ir");
+            if (!isMove) {
+              // Another dance: inlined, with the caller's block as its children.
               if (stack.includes(stmt.name)) {
                 report(`${stmt.name} calls itself`, stmt.span);
                 break;
@@ -264,13 +375,12 @@ export function compile(input: CompileInput): {
               const inner = new Map<string, Value>();
               const reads: Record<string, string> = {};
               bindPlain(module, stmt.args, env, inner, reads, evaluate, report, stmt.span);
+              if (stmt.children) childrenStack.push({ body: stmt.children, env });
               walk(module.body, inner, [...path, stmt.name], [...stack, stmt.name]);
+              if (stmt.children) childrenStack.pop();
               break;
             }
-            if (module.kind !== "move") {
-              report(`${stmt.name} is a ${module.kind}, not a move`, stmt.span);
-              break;
-            }
+            if (stmt.children) report(`${stmt.name} is a move and takes no block`, stmt.span);
             const call = compileMove(module, stmt, env, path);
             if (call !== undefined) {
               calls.push(call);
@@ -278,8 +388,6 @@ export function compile(input: CompileInput): {
             }
             break;
           }
-          default:
-            report(`"${stmt.kind}" does not belong in a dance`, stmt.span);
         }
       }
     };
@@ -454,7 +562,7 @@ export function compile(input: CompileInput): {
     perDancer[dancer] = calls;
   }
 
-  const sequence: CompiledSequence = { dialect: floor.name, perDancer, memberships };
+  const sequence: CompiledSequence = { dialect: floor.name, perDancer, memberships, annotations };
   if (title !== undefined) sequence.title = title;
   return { sequence, errors };
 }

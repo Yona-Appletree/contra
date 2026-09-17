@@ -7,58 +7,58 @@ import type {
   Expr,
   File,
   Item,
+  MatchArm,
   ModuleItem,
-  ModuleKind,
   Param,
   Span,
   Stmt,
   Transform,
+  TransformOp,
 } from "./syntax.js";
-import { UNITS } from "./syntax.js";
+import { TRANSFORM_OPS, UNITS } from "./syntax.js";
 
 /**
- * Read a `.dance` file (P1 of the dance-language plan). Hand-written
- * recursive descent, as bite A's parser was; the grammar is the plan's:
+ * Read a `.dance` file (round 2). Hand-written recursive descent; the
+ * grammar is the plan's:
  *
  * ```text
  * file       := item*
  * item       := "enum" Type "{" Member {"," Member} [","] "}"
- *             | ("formation" | "move" | "dance") name "(" params ")" block
+ *             | "module" name "(" params ")" block
  * params     := [param {"," param} [","]]
  * param      := ["$"] name ":" Type ["=" expr]
  * block      := "{" stmt* "}"
  * stmt       := "place" name ["role" Member] ["at" transform+] ";"
  *             | "anchor" name [":" Type] "=" expr ";"
- *             | "group" [name "="] name "(" args ")" ["at" transform+] ";"
+ *             | "group" [name "="] name "(" args ")" ["at" transform+] (";" | block)
  *             | "provide" "$" name ":" Type "=" expr ";"
- *             | "next" "=" expr ";"
- *             | "seat" "=" expr ";"
- *             | "let" name "=" expr ";"
- *             | "title" String ";"
- *             | "ir" String ";"
- *             | "repeat" "(" [name "in"] expr ")" (block | stmt)
+ *             | "provide" name "(" params ")" block
+ *             | "dancers" ";"  |  "children" "(" ")" ";"
+ *             | "let" name "=" expr ";"  |  "$" name "=" expr ";"
+ *             | "assert" "(" expr ["," String] ")" ";"
+ *             | ("card" | "say" | "ir") String ";"
+ *             | "repeat" "(" expr ")" (block | stmt)
+ *             | "for" name "in" expr (".." | "..=") expr block
  *             | "if" "(" expr ")" block {"else" "if" "(" expr ")" block} ["else" block]
- *             | name "(" args ")" ";"
- * transform  := ("translate" | "rotate" | "mirror") "(" args ")"
+ *             | "match" "(" expr ")" "{" {arm [","]} "}"      arm := (Member | "_") "=>" (block | stmt)
+ *             | name "(" args ")" (";" | block)
+ *             | "next" "=" expr ";"  |  "seat" "=" expr ";"   (deprecated; P2 removes them)
+ * transform  := ("translate" | "rotate" | "mirror" | "fwd" | "back" | "left" | "right") "(" args ")"
  * args       := [arg {"," arg} [","]] ;  arg := [["$"] name "="] expr
  * expr       := or ; or := and {"or" and} ; and := not {"and" not}
  * not        := "not" not | cmp
  * cmp        := add [("is" | "==" | "!=" | "<" | "<=" | ">" | ">=") add]
- * add        := mul {("+" | "-") mul} ; mul := unary {("*" | "/") unary}
+ * add        := mul {("+" | "-") mul} ; mul := unary {("*" | "/" | "%") unary}
  * unary      := "-" unary | postfix ; postfix := primary {"." name}
  * primary    := Number [unit] | String | Member | Type "." Member | "$" name
  *             | name ["(" args ")"] | "me" | "nobody" | "(" expr ")"
  *             | "if" "(" expr ")" expr "else" expr
  * ```
  *
- * Statements end with `;` and blocks with `}`; newlines mean nothing (the
- * user: *"whitespace aware isn't good for diffs and agents and human
- * reading"*). `is` tests an enum value and its right side is a bare member,
- * typed from the left; that typing is the checker's, not the parser's.
- *
- * Syntax errors throw a `SyntaxError` with line and column; everything a
- * parsed file can still get wrong (an unknown module, a member of the wrong
- * enum) is the checker's and is data.
+ * One `module` keyword: what a statement emits, not where it sits, decides
+ * which pass reads it. Statements end with `;` and blocks with `}`;
+ * newlines mean nothing. `is` tests an enum value and its right side is a
+ * bare member, typed from the left; that typing is the checker's.
  */
 export function parse(source: string): File {
   const { tokens } = tokenize(source);
@@ -71,9 +71,8 @@ export function parseWithComments(source: string): { file: File; comments: Comme
   return { file: new Parser(tokens, source).file(), comments };
 }
 
-const MODULE_KINDS: readonly ModuleKind[] = ["formation", "move", "dance"];
-const TRANSFORMS = ["translate", "rotate", "mirror"] as const;
 const COMPARISONS: readonly BinaryOp[] = ["is", "==", "!=", "<", "<=", ">", ">="];
+const OLD_KEYWORDS = ["formation", "move", "dance"];
 
 class Parser {
   private pos = 0;
@@ -82,8 +81,6 @@ class Parser {
     private readonly tokens: readonly Token[],
     private readonly source: string,
   ) {}
-
-  // ---- the token stream ----------------------------------------------------
 
   private peek(ahead = 0): Token {
     return this.tokens[Math.min(this.pos + ahead, this.tokens.length - 1)] as Token;
@@ -145,7 +142,6 @@ class Parser {
     return this.take();
   }
 
-  /** The end of the token just consumed. */
   private lastEnd(): number {
     return (this.tokens[this.pos - 1] as Token | undefined)?.end ?? 0;
   }
@@ -165,12 +161,16 @@ class Parser {
   private item(): Item {
     const first = this.peek();
     if (this.isName("enum")) return this.enumItem();
-    if (first.kind === "name" && (MODULE_KINDS as readonly string[]).includes(first.text)) {
-      return this.moduleItem(first.text as ModuleKind);
+    if (this.isName("module")) return this.moduleItem();
+    if (first.kind === "name" && OLD_KEYWORDS.includes(first.text)) {
+      this.fail(
+        first,
+        `"${first.text}" is not a keyword any more: every module is "module" (round 2 of the dance language)`,
+      );
     }
     return this.fail(
       first,
-      `expected "enum", "formation", "move" or "dance" at the top of the file, found ${describe(first)}`,
+      `expected "enum" or "module" at the top of the file, found ${describe(first)}`,
     );
   }
 
@@ -189,12 +189,12 @@ class Parser {
     return { kind: "enum", name: name.text, members, span: this.spanFrom(first) };
   }
 
-  private moduleItem(kind: ModuleKind): ModuleItem {
+  private moduleItem(): ModuleItem {
     const first = this.take();
-    const name = this.expectName(`the ${kind}'s name`);
+    const name = this.expectName("the module's name");
     const params = this.params(name.text);
-    const body = this.block(`${kind} ${name.text}`);
-    return { kind, name: name.text, params, body, span: this.spanFrom(first) };
+    const body = this.block(`module ${name.text}`);
+    return { kind: "module", name: name.text, params, body, span: this.spanFrom(first) };
   }
 
   private params(owner: string): Param[] {
@@ -241,6 +241,7 @@ class Parser {
 
   private stmt(): Stmt {
     const first = this.peek();
+    if (first.kind === "dyn" && this.isPunct("=", 1)) return this.assignStmt();
     if (first.kind !== "name") {
       this.fail(first, `expected a statement, found ${describe(first)}`);
     }
@@ -254,22 +255,43 @@ class Parser {
         break;
       case "provide":
         return this.provideStmt();
-      case "next":
-        if (this.isPunct("=", 1)) return this.nextStmt();
+      case "dancers":
+        if (this.isPunct(";", 1)) {
+          this.take();
+          this.take();
+          return { kind: "dancers", span: this.spanFrom(first) };
+        }
         break;
+      case "children":
+        if (this.isPunct("(", 1)) {
+          this.take();
+          this.expectPunct("(", 'after "children"');
+          this.expectPunct(")", 'to close "children("');
+          this.expectPunct(";", 'after "children()"');
+          return { kind: "children", span: this.spanFrom(first) };
+        }
+        break;
+      case "next":
       case "seat":
-        if (this.isPunct("=", 1)) return this.seatStmt();
+        if (this.isPunct("=", 1)) return this.deprecatedStmt(first.text);
         break;
       case "let":
         return this.letStmt();
-      case "title":
-        return this.titleStmt();
+      case "assert":
+        return this.assertStmt();
+      case "card":
+      case "say":
       case "ir":
-        return this.irStmt();
+        return this.textStmt(first.text);
       case "repeat":
         return this.repeatStmt();
+      case "for":
+        return this.forStmt();
       case "if":
         return this.ifStmt();
+      case "match":
+        if (this.isPunct("(", 1)) return this.matchStmt();
+        break;
       default:
         break;
     }
@@ -293,69 +315,69 @@ class Parser {
   private anchorStmt(): Stmt {
     const first = this.take();
     const name = this.expectName("the anchor's name");
-    const stmt: Stmt = {
-      kind: "anchor",
-      name: name.text,
-      value: { kind: "nobody", span: this.spanFrom(first) },
-      span: this.spanFrom(first),
-    };
+    let type: string | undefined;
     if (this.isPunct(":")) {
       this.take();
-      stmt.type = this.expectCap("the anchor's type").text;
+      type = this.expectCap("the anchor's type").text;
     }
     this.expectPunct("=", `after "anchor ${name.text}"`);
-    stmt.value = this.expr();
+    const value = this.expr();
     this.expectPunct(";", `after "anchor ${name.text}"`);
-    stmt.span = this.spanFrom(first);
+    const stmt: Stmt = { kind: "anchor", name: name.text, value, span: this.spanFrom(first) };
+    if (type !== undefined) stmt.type = type;
     return stmt;
   }
 
   private groupStmt(): Stmt {
     const first = this.take();
     let name: string | undefined;
-    let module = this.expectName("a formation to make the group from").text;
+    let module = this.expectName("a module to make the group from").text;
     if (this.isPunct("=")) {
       this.take();
       name = module;
-      module = this.expectName("a formation to make the group from").text;
+      module = this.expectName("a module to make the group from").text;
     }
     const args = this.args(module);
     const at = this.transforms();
-    this.expectPunct(";", `after "group ${module}(…)"`);
     const stmt: Stmt = { kind: "group", module, args, at, span: this.spanFrom(first) };
     if (name !== undefined) stmt.name = name;
+    if (this.isPunct("{")) stmt.children = this.block(`"group ${module}(…)"`);
+    else this.expectPunct(";", `after "group ${module}(…)"`);
+    stmt.span = this.spanFrom(first);
     return stmt;
   }
 
   private provideStmt(): Stmt {
     const first = this.take();
-    const dyn = this.peek();
-    if (dyn.kind !== "dyn") {
-      this.fail(dyn, `expected a $variable after "provide", found ${describe(dyn)}`);
+    const next = this.peek();
+    if (next.kind === "name") {
+      // `provide progress() { … }`: a function, evaluated for one dancer.
+      this.take();
+      const params = this.params(`provide ${next.text}`);
+      const body = this.block(`"provide ${next.text}()"`);
+      return { kind: "provide-fn", name: next.text, params, body, span: this.spanFrom(first) };
+    }
+    if (next.kind !== "dyn") {
+      this.fail(
+        next,
+        `expected a $variable or a function name after "provide", found ${describe(next)}`,
+      );
     }
     this.take();
-    this.expectPunct(":", `after "provide $${dyn.text}" (a provide declares its type)`);
-    const type = this.expectCap(`the type of $${dyn.text}`).text;
-    this.expectPunct("=", `after "provide $${dyn.text}: ${type}"`);
+    this.expectPunct(":", `after "provide $${next.text}" (a provide declares its type)`);
+    const type = this.expectCap(`the type of $${next.text}`).text;
+    this.expectPunct("=", `after "provide $${next.text}: ${type}"`);
     const value = this.expr();
-    this.expectPunct(";", `after "provide $${dyn.text}"`);
-    return { kind: "provide", name: dyn.text, type, value, span: this.spanFrom(first) };
+    this.expectPunct(";", `after "provide $${next.text}"`);
+    return { kind: "provide", name: next.text, type, value, span: this.spanFrom(first) };
   }
 
-  private nextStmt(): Stmt {
+  private deprecatedStmt(word: "next" | "seat"): Stmt {
     const first = this.take();
-    this.expectPunct("=", 'after "next"');
+    this.expectPunct("=", `after "${word}"`);
     const value = this.expr();
-    this.expectPunct(";", 'after "next = …"');
-    return { kind: "next", value, span: this.spanFrom(first) };
-  }
-
-  private seatStmt(): Stmt {
-    const first = this.take();
-    this.expectPunct("=", 'after "seat"');
-    const value = this.expr();
-    this.expectPunct(";", 'after "seat = …"');
-    return { kind: "seat", value, span: this.spanFrom(first) };
+    this.expectPunct(";", `after "${word} = …"`);
+    return { kind: word, value, span: this.spanFrom(first) };
   }
 
   private letStmt(): Stmt {
@@ -367,34 +389,73 @@ class Parser {
     return { kind: "let", name: name.text, value, span: this.spanFrom(first) };
   }
 
-  private titleStmt(): Stmt {
+  private assignStmt(): Stmt {
     const first = this.take();
-    const text = this.expectString("the title");
-    this.expectPunct(";", 'after "title"');
-    return { kind: "title", text: text.text, span: this.spanFrom(first) };
+    this.expectPunct("=", `after "$${first.text}"`);
+    const value = this.expr();
+    this.expectPunct(";", `after "$${first.text} = …"`);
+    return { kind: "assign", name: first.text, value, span: this.spanFrom(first) };
   }
 
-  private irStmt(): Stmt {
+  private assertStmt(): Stmt {
     const first = this.take();
-    const id = this.expectString("the figure's id");
-    this.expectPunct(";", 'after "ir"');
-    return { kind: "ir", id: id.text, span: this.spanFrom(first) };
+    this.expectPunct("(", 'after "assert"');
+    const condition = this.expr();
+    let message: string | undefined;
+    if (this.isPunct(",")) {
+      this.take();
+      message = this.expectString("what the assert means").text;
+    }
+    this.expectPunct(")", 'to close "assert("');
+    this.expectPunct(";", 'after "assert(…)"');
+    const stmt: Stmt = { kind: "assert", condition, span: this.spanFrom(first) };
+    if (message !== undefined) stmt.message = message;
+    return stmt;
+  }
+
+  private textStmt(word: "card" | "say" | "ir"): Stmt {
+    const first = this.take();
+    const text = this.expectString(word === "ir" ? "the figure's id" : `what the ${word} says`);
+    this.expectPunct(";", `after "${word}"`);
+    return word === "ir"
+      ? { kind: "ir", id: text.text, span: this.spanFrom(first) }
+      : { kind: word, text: text.text, span: this.spanFrom(first) };
   }
 
   private repeatStmt(): Stmt {
     const first = this.take();
     this.expectPunct("(", 'after "repeat"');
-    let binder: string | undefined;
-    if (this.peek().kind === "name" && this.isName("in", 1)) {
-      binder = this.take().text;
-      this.take();
-    }
     const count = this.expr();
     this.expectPunct(")", 'to close "repeat("');
     const body = this.isPunct("{") ? this.block('"repeat"') : [this.stmt()];
-    const stmt: Stmt = { kind: "repeat", count, body, span: this.spanFrom(first) };
-    if (binder !== undefined) stmt.binder = binder;
-    return stmt;
+    return { kind: "repeat", count, body, span: this.spanFrom(first) };
+  }
+
+  private forStmt(): Stmt {
+    const first = this.take();
+    const binder = this.expectName("a name to count with");
+    this.expectKeyword("in");
+    const from = this.expr();
+    let inclusive = false;
+    if (this.isPunct("..=")) inclusive = true;
+    else if (!this.isPunct("..")) {
+      this.fail(
+        this.peek(),
+        `expected ".." or "..=" in the range of "for ${binder.text}", found ${describe(this.peek())}`,
+      );
+    }
+    this.take();
+    const to = this.expr();
+    const body = this.block(`"for ${binder.text}"`);
+    return {
+      kind: "for",
+      binder: binder.text,
+      from,
+      to,
+      inclusive,
+      body,
+      span: this.spanFrom(first),
+    };
   }
 
   private ifStmt(): Stmt {
@@ -411,6 +472,30 @@ class Parser {
     return { kind: "if", condition, then, else: otherwise, span: this.spanFrom(first) };
   }
 
+  private matchStmt(): Stmt {
+    const first = this.take();
+    this.expectPunct("(", 'after "match"');
+    const subject = this.expr();
+    this.expectPunct(")", 'to close "match ("');
+    this.expectPunct("{", 'to open "match"');
+    const arms: MatchArm[] = [];
+    while (!this.isPunct("}")) {
+      const armFirst = this.peek();
+      let pattern: string | undefined;
+      if (this.isPunct("_")) this.take();
+      else pattern = this.expectCap('a member to match, or "_"').text;
+      this.expectPunct("=>", `after the pattern ${pattern ?? "_"}`);
+      const body = this.isPunct("{") ? this.block(`the arm ${pattern ?? "_"}`) : [this.stmt()];
+      const arm: MatchArm = { body, span: this.spanFrom(armFirst) };
+      if (pattern !== undefined) arm.pattern = pattern;
+      arms.push(arm);
+      if (this.isPunct(",")) this.take();
+    }
+    this.expectPunct("}", 'to close "match"');
+    if (arms.length === 0) this.fail(first, "match has no arms");
+    return { kind: "match", subject, arms, span: this.spanFrom(first) };
+  }
+
   private callStmt(): Stmt {
     const first = this.take();
     if (!this.isPunct("(")) {
@@ -420,8 +505,11 @@ class Parser {
       );
     }
     const args = this.args(first.text);
-    this.expectPunct(";", `after "${first.text}(…)"`);
-    return { kind: "call", name: first.text, args, span: this.spanFrom(first) };
+    const stmt: Stmt = { kind: "call", name: first.text, args, span: this.spanFrom(first) };
+    if (this.isPunct("{")) stmt.children = this.block(`"${first.text}(…)"`);
+    else this.expectPunct(";", `after "${first.text}(…)"`);
+    stmt.span = this.spanFrom(first);
+    return stmt;
   }
 
   private transforms(): Transform[] {
@@ -430,22 +518,21 @@ class Parser {
     const list: Transform[] = [];
     while (
       this.peek().kind === "name" &&
-      (TRANSFORMS as readonly string[]).includes(this.peek().text)
+      (TRANSFORM_OPS as readonly string[]).includes(this.peek().text)
     ) {
       const first = this.take();
       const args = this.args(first.text);
-      list.push({ op: first.text as Transform["op"], args, span: this.spanFrom(first) });
+      list.push({ op: first.text as TransformOp, args, span: this.spanFrom(first) });
     }
     if (list.length === 0) {
       this.fail(
         this.peek(),
-        `expected translate, rotate or mirror after "at", found ${describe(this.peek())}`,
+        `expected a transform after "at" (${TRANSFORM_OPS.join(", ")}), found ${describe(this.peek())}`,
       );
     }
     return list;
   }
 
-  /** `(` already peeked: `[["$"] name "="] expr` list. */
   private args(owner: string): Arg[] {
     this.expectPunct("(", `after "${owner}"`);
     const args: Arg[] = [];
@@ -544,8 +631,8 @@ class Parser {
 
   private mul(): Expr {
     let left = this.unary();
-    while (this.isPunct("*") || this.isPunct("/")) {
-      const op = this.take().text as "*" | "/";
+    while (this.isPunct("*") || this.isPunct("/") || this.isPunct("%")) {
+      const op = this.take().text as "*" | "/" | "%";
       const right = this.unary();
       left = { kind: "binary", op, left, right, span: join(left.span, right.span) };
     }

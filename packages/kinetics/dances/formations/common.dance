@@ -3,10 +3,10 @@
 // shoulder on a becket line, 1.28 m across the set in an improper one. The
 // couple's own frame sits between them, facing the way they face.
 
-formation couple(spacing: Length = 0.8m) {
-  place lark role Lark at translate(y = -spacing / 2);
-  place robin role Robin at translate(y = spacing / 2);
-  anchor centre = midpoint(lark, robin);
+module couple(spacing: Length = 0.8m) {
+  place lark role Lark at left(spacing / 2);
+  place robin role Robin at right(spacing / 2);
+  anchor center = midpoint(lark, robin);
   provide $partner: Place = other(me);
   provide $role: Role = role(me);
 }

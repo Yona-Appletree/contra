@@ -3,24 +3,26 @@
 // right line; the twos face up, lark on the left. Couples 0.8 m apart along
 // the hall, the lines 1.28 m apart.
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
-  anchor across = line(through = centre, along = y);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
+  anchor across = line(through = center, along = Y);
   group ones = couple(spacing = 1.28m) at translate(y = -0.4m) rotate(90);
   group twos = couple(spacing = 1.28m) at translate(y = 0.4m) rotate(270);
   provide $neighbor: Place = opposite-role(other(me));
   provide $across: Place = across(me, across);
 }
 
-formation major-set(minor-sets: Int = 3) {
-  anchor down = direction(y);
-  repeat (i in 2 * minor-sets - 1) group minor-set() at translate(y = 0.8m * i);
+module major-set(minor-sets: Int = 3) {
+  anchor down = direction(Down);
+  for i in 0..2 * minor-sets - 1 {
+    group minor-set() at translate(y = 0.8m * i);
+  }
   group out-bottom = couple(spacing = 1.28m) at translate(y = 1.6m * minor-sets - 0.8m) rotate(270);
   group out-top = couple(spacing = 1.28m) at translate(y = -0.8m) rotate(90);
   seat = alternate(minor-set);
   next = duple-progression(along = down, out-top = out-bottom, out-bottom = out-top);
 }
 
-formation improper(minor-sets: Int = 3) {
+module improper(minor-sets: Int = 3) {
   group major-set(minor-sets = minor-sets);
 }

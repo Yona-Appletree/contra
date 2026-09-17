@@ -3,29 +3,36 @@ import { format } from "./format.js";
 
 const SCRAPPY = `enum   Role {Lark,Robin,}
 // a couple
-formation couple( ) {
+module couple( ) {
 place lark   role Lark;   // the lark
-  place robin role Robin at translate( y=0.4m ) ;
+  place robin role Robin at right( 0.4m ) ;
   provide $partner :Place= other( me ) ;
+  provide progress(){$minor-set=along($minor-set,Up) or out-top;}
   // trailing thought
 }
-dance d($partner:Place,beats:Beats=8){title "D";repeat(2){if($time==1){a();}else if($role is Robin){b(x=1+2*3,y=(1+2)*3);}else{c();}}
-repeat (i in 3) group minor-set() at translate(y = 1.6m*i);
+module d(beats:Beats=8){card "D";repeat(2){if($time==1){a();}else if($role is Robin){b(x=1+2*3,y=(1+2)*3);}else{c();}}
+for i in 0..3 { group minor-set() at translate(y = 1.6m*i); }
+match($role){Lark=>a(); Robin=>{b();c();} _=>d();}
+phrase(A1){swing($partner);}
+assert($beat==16,"A1");
 }
 `;
 
 const TIDY = `enum Role { Lark, Robin }
 
 // a couple
-formation couple() {
+module couple() {
   place lark role Lark; // the lark
-  place robin role Robin at translate(y = 0.4m);
+  place robin role Robin at right(0.4m);
   provide $partner: Place = other(me);
+  provide progress() {
+    $minor-set = along($minor-set, Up) or out-top;
+  }
   // trailing thought
 }
 
-dance d($partner: Place, beats: Beats = 8) {
-  title "D";
+module d(beats: Beats = 8) {
+  card "D";
   repeat (2) {
     if ($time == 1) {
       a();
@@ -35,7 +42,21 @@ dance d($partner: Place, beats: Beats = 8) {
       c();
     }
   }
-  repeat (i in 3) group minor-set() at translate(y = 1.6m * i);
+  for i in 0..3 {
+    group minor-set() at translate(y = 1.6m * i);
+  }
+  match ($role) {
+    Lark => a();
+    Robin => {
+      b();
+      c();
+    }
+    _ => d();
+  }
+  phrase(A1) {
+    swing($partner);
+  }
+  assert($beat == 16, "A1");
 }
 `;
 
@@ -51,7 +72,7 @@ describe("the formatter", () => {
 
   it("parenthesises only where the tree needs it", () => {
     const out = format(
-      "formation f() { let k = (1 + 2) * 3 - (4 - 5) + -(6) / 7; let n = not (a and b) or c; }",
+      "module f() { let k = (1 + 2) * 3 - (4 - 5) + -(6) / 7; let n = not (a and b) or c; }",
     );
     expect(out).toContain("let k = (1 + 2) * 3 - (4 - 5) + -6 / 7;");
     expect(out).toContain("let n = not (a and b) or c;");

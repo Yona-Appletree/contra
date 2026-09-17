@@ -1,24 +1,26 @@
 // Duple proper: improper's floor with every lark on the right line and every
 // robin on the left — the twos are improper's twos mirrored across the set.
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
-  anchor across = line(through = centre, along = y);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
+  anchor across = line(through = center, along = Y);
   group ones = couple(spacing = 1.28m) at translate(y = -0.4m) rotate(90);
-  group twos = couple(spacing = 1.28m) at translate(y = 0.4m) mirror(x) rotate(270);
+  group twos = couple(spacing = 1.28m) at translate(y = 0.4m) mirror(X) rotate(270);
   provide $neighbor: Place = same-role(other(me));
   provide $across: Place = across(me, across);
 }
 
-formation major-set(minor-sets: Int = 3) {
-  anchor down = direction(y);
-  repeat (i in 2 * minor-sets - 1) group minor-set() at translate(y = 0.8m * i);
-  group out-bottom = couple(spacing = 1.28m) at translate(y = 1.6m * minor-sets - 0.8m) mirror(x) rotate(270);
+module major-set(minor-sets: Int = 3) {
+  anchor down = direction(Down);
+  for i in 0..2 * minor-sets - 1 {
+    group minor-set() at translate(y = 0.8m * i);
+  }
+  group out-bottom = couple(spacing = 1.28m) at translate(y = 1.6m * minor-sets - 0.8m) mirror(X) rotate(270);
   group out-top = couple(spacing = 1.28m) at translate(y = -0.8m) rotate(90);
   seat = alternate(minor-set);
   next = duple-progression(along = down, out-top = out-bottom, out-bottom = out-top);
 }
 
-formation proper(minor-sets: Int = 3) {
+module proper(minor-sets: Int = 3) {
   group major-set(minor-sets = minor-sets);
 }

@@ -1,4 +1,4 @@
-import type { Expr } from "../lang/syntax.js";
+import type { Expr, Param, Stmt } from "../lang/syntax.js";
 import type { Frame } from "./Frame.js";
 import type { Env } from "./values.js";
 
@@ -25,6 +25,8 @@ export interface Group {
   anchors: Readonly<Record<string, Anchor>>;
   /** The `$` variables this group offers, as expressions to be evaluated with `me`. */
   provides: readonly Provide[];
+  /** The functions this group offers (`provide progress() { … }`), evaluated for one dancer (round 2, P2). */
+  functions: readonly ProvidedFn[];
   /** The progression, when this group declares one. */
   next?: Deferred;
   /** Which of its groups are occupied at beat 0, when this group says. */
@@ -56,6 +58,14 @@ export interface Provide {
   name: string;
   type: string;
   deferred: Deferred;
+}
+
+/** `provide progress() { … }`: a body of statements run in a dancer's context. */
+export interface ProvidedFn {
+  name: string;
+  params: readonly Param[];
+  body: readonly Stmt[];
+  env: Env;
 }
 
 /** An expression and the environment it was written in, to evaluate later. */

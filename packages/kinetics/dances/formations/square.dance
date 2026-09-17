@@ -1,11 +1,13 @@
-// A square: four couples about a centre, each facing in, the robin on the
+// A square: four couples about a center, each facing in, the robin on the
 // lark's right. Couple 1 has its back to the top of the hall; the couples
 // count clockwise from there, so the couple to a lark's left is the next
 // one. Nobody progresses.
 
-formation square() {
-  anchor centre = point(x = 0m, y = 0m);
-  repeat (i in 4) group couple() at rotate(90 * i + 90) translate(x = -1.6m);
+module square() {
+  anchor center = point(x = 0m, y = 0m);
+  for i in 0..4 {
+    group couple() at rotate(90 * i + 90) translate(x = -1.6m);
+  }
   provide $opposite: Place = same-role(child(index(me) + 2));
   provide $corner: Place = opposite-role(child(index(me) + (if (my-role() is Lark) 1 else 3)));
   seat = all(couple);

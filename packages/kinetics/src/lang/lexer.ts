@@ -65,8 +65,9 @@ export const syntaxError = (
   });
 
 /** Two-character operators first, so `<=` is not `<` then `=`. */
-const PUNCT2 = ["<=", ">=", "==", "!="];
-const PUNCT1 = "(){},;=.:+-*/<>";
+const PUNCT3 = ["..="];
+const PUNCT2 = ["<=", ">=", "==", "!=", "..", "=>"];
+const PUNCT1 = "(){},;=.:+-*/<>%_";
 
 const isLower = (c: string): boolean => c >= "a" && c <= "z";
 const isUpper = (c: string): boolean => c >= "A" && c <= "Z";
@@ -140,6 +141,7 @@ export function tokenize(source: string): Lexed {
     }
     if (isDigit(c)) {
       while (i < source.length && isDigit(at(i))) i += 1;
+      // `0.5` is a decimal; `0..n` is a range.
       if (at(i) === "." && isDigit(at(i + 1))) {
         i += 1;
         while (i < source.length && isDigit(at(i))) i += 1;
@@ -148,6 +150,12 @@ export function tokenize(source: string): Lexed {
       const unitStart = i;
       while (i < source.length && isLower(at(i))) i += 1;
       push("number", digits, start, startCol, source.slice(unitStart, i));
+      continue;
+    }
+    if (c === "_" && !isWordChar(at(i + 1))) {
+      // A lone `_`: the wildcard of a match.
+      i += 1;
+      push("punct", "_", start, startCol);
       continue;
     }
     if (isLower(c) || isUpper(c) || c === "_") {
@@ -163,6 +171,12 @@ export function tokenize(source: string): Lexed {
           start,
         );
       }
+      continue;
+    }
+    const three = source.slice(i, i + 3);
+    if (PUNCT3.includes(three)) {
+      i += 3;
+      push("punct", three, start, startCol);
       continue;
     }
     const two = source.slice(i, i + 2);

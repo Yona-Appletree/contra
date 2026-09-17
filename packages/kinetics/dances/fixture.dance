@@ -2,13 +2,13 @@
 // figures, one repeat — small enough to read in the debugger, big enough to
 // need every layer.
 
-dance fixture($partner: Place) {
+module fixture() {
   bow($partner);
   repeat (2) figure();
   bow($partner);
 }
 
-dance figure($partner: Place) {
+module figure() {
   do-si-do($partner);
   allemande($partner, Right);
 }

@@ -1,16 +1,15 @@
 /**
- * The syntax tree of a `.dance` file (P1 of the dance-language plan).
+ * The syntax tree of a `.dance` file (round 2 of the dance-language plan).
  *
- * One grammar, three kinds of module: a **formation** builds a tree of
- * groups, places and anchors in space; a **dance** sequences moves in time;
- * a **move** declares the `$` variables it needs and names the figure it is.
- * The user (2026-09-17): *"are there two languages? one for time-dependent
- * things, one for the structure?"* — no: one language, and what a module may
- * contain is decided by its keyword, which is what lets the parser say "a
- * formation cannot call a move" instead of finding out at run time.
+ * One kind of module. What a statement emits decides which pass reads it:
+ * the **space words** — `place`, `anchor`, `group`, `provide`, `dancers` —
+ * are read once, for nobody, to build the tree; everything else is read
+ * once per dancer, with a cursor, to build the timeline; `card` and `say`
+ * are annotations either may carry. The user (2026-09-17): *"any module
+ * can emit anything"*; the emissions are typed, the module is not.
  *
- * Every node carries a {@link Span}, so the debugger can light the statement
- * the bar is inside and an error can point at what caused it.
+ * Every node carries a {@link Span}, so the debugger can light the
+ * statement the bar is inside and a diagnostic can point at what caused it.
  */
 export interface Span {
   start: number;
@@ -34,11 +33,9 @@ export interface EnumItem {
   span: Span;
 }
 
-export type ModuleKind = "formation" | "move" | "dance";
-
-/** `formation minor-set(form: Form = Becket) { … }` */
+/** `module minor-set(form: Form = Becket) { … }` */
 export interface ModuleItem {
-  kind: ModuleKind;
+  kind: "module";
   name: string;
   params: readonly Param[];
   body: readonly Stmt[];
@@ -63,16 +60,35 @@ export type Stmt =
   | AnchorStmt
   | GroupStmt
   | ProvideStmt
+  | ProvideFnStmt
+  | DancersStmt
+  | ChildrenStmt
   | NextStmt
   | SeatStmt
   | LetStmt
-  | TitleStmt
+  | AssignStmt
+  | AssertStmt
+  | AnnotationStmt
   | IrStmt
   | RepeatStmt
+  | ForStmt
   | IfStmt
+  | MatchStmt
   | CallStmt;
 
-/** `place robin role Robin at translate(y = 0.6m);` */
+/** The statements the tree builder reads, for nobody. */
+export const SPACE_KINDS: readonly Stmt["kind"][] = [
+  "place",
+  "anchor",
+  "group",
+  "provide",
+  "provide-fn",
+  "dancers",
+  "next",
+  "seat",
+];
+
+/** `place robin role Robin at right(0.4m);` */
 export interface PlaceStmt {
   kind: "place";
   name: string;
@@ -81,7 +97,7 @@ export interface PlaceStmt {
   span: Span;
 }
 
-/** `anchor centre: Point = midpoint(lark, robin);` */
+/** `anchor center: Point = midpoint(lark, robin);` */
 export interface AnchorStmt {
   kind: "anchor";
   name: string;
@@ -90,13 +106,14 @@ export interface AnchorStmt {
   span: Span;
 }
 
-/** `group ones = couple() at translate(x = -0.5m);` — `name` is optional. */
+/** `group ones = couple() at left(0.64m);` — `name` optional; `children` when a block follows. */
 export interface GroupStmt {
   kind: "group";
   name?: string;
   module: string;
   args: readonly Arg[];
   at: readonly Transform[];
+  children?: readonly Stmt[];
   span: Span;
 }
 
@@ -109,14 +126,35 @@ export interface ProvideStmt {
   span: Span;
 }
 
-/** `next = duple-progression(up = up, out-top = out-top, out-bottom = out-bottom);` */
+/** `provide progress() { … }` — a function evaluated in a dancer's context. */
+export interface ProvideFnStmt {
+  kind: "provide-fn";
+  name: string;
+  params: readonly Param[];
+  body: readonly Stmt[];
+  span: Span;
+}
+
+/** `dancers;` — fill the places of the group this sits in. */
+export interface DancersStmt {
+  kind: "dancers";
+  span: Span;
+}
+
+/** `children();` — where a module's caller's block goes. */
+export interface ChildrenStmt {
+  kind: "children";
+  span: Span;
+}
+
+/** `next = …;` — deprecated in round 2 (P2 removes it). */
 export interface NextStmt {
   kind: "next";
   value: Expr;
   span: Span;
 }
 
-/** `seat = alternate(minor-set);` — which groups are filled at beat 0. */
+/** `seat = …;` — deprecated in round 2 (P2 removes it). */
 export interface SeatStmt {
   kind: "seat";
   value: Expr;
@@ -131,25 +169,51 @@ export interface LetStmt {
   span: Span;
 }
 
-/** `title "Butter";` — a dance's proper name is metadata, not its identifier. */
-export interface TitleStmt {
-  kind: "title";
+/** `$minor-set = along($minor-set, Up) or out-top;` — a reassignment event. */
+export interface AssignStmt {
+  kind: "assign";
+  name: string;
+  value: Expr;
+  span: Span;
+}
+
+/** `assert($beat == 16, "A1 is sixteen beats");` */
+export interface AssertStmt {
+  kind: "assert";
+  condition: Expr;
+  message?: string;
+  span: Span;
+}
+
+/** `card "Butter";`, `say "Circle left three quarters";` — annotations, no beats. */
+export interface AnnotationStmt {
+  kind: "card" | "say";
   text: string;
   span: Span;
 }
 
-/** `ir "swing";` — which figure IR a move is. */
+/** `ir "swing";` — which figure IR a move is (until moves are in the language). */
 export interface IrStmt {
   kind: "ir";
   id: string;
   span: Span;
 }
 
-/** `repeat (7) { … }`, `repeat (i in minor-sets) group minor-set() at …;` */
+/** `repeat (7) { … }` — sugar for a loop nobody indexes. */
 export interface RepeatStmt {
   kind: "repeat";
-  binder?: string;
   count: Expr;
+  body: readonly Stmt[];
+  span: Span;
+}
+
+/** `for i in 0..n { … }`, `0..=n` inclusive. */
+export interface ForStmt {
+  kind: "for";
+  binder: string;
+  from: Expr;
+  to: Expr;
+  inclusive: boolean;
   body: readonly Stmt[];
   span: Span;
 }
@@ -163,11 +227,27 @@ export interface IfStmt {
   span: Span;
 }
 
-/** `swing($partner, beats = 12);` */
+/** `match (phrase) { A1 => …, _ => … }` */
+export interface MatchStmt {
+  kind: "match";
+  subject: Expr;
+  arms: readonly MatchArm[];
+  span: Span;
+}
+
+export interface MatchArm {
+  /** An enum member, or `undefined` for `_`. */
+  pattern?: string;
+  body: readonly Stmt[];
+  span: Span;
+}
+
+/** `swing($partner, beats = 12);`, `contra-phrase(A1) { … }` */
 export interface CallStmt {
   kind: "call";
   name: string;
   args: readonly Arg[];
+  children?: readonly Stmt[];
   span: Span;
 }
 
@@ -179,12 +259,23 @@ export interface Arg {
   span: Span;
 }
 
-/** `translate(x = 1m, y = 2m)`, `rotate(90)`, `mirror(x)` */
+/** `translate(x = 1m, y = 2m)`, `rotate(90)`, `mirror(X)`, `fwd(d)`, `back(d)`, `left(d)`, `right(d)` */
 export interface Transform {
-  op: "translate" | "rotate" | "mirror";
+  op: TransformOp;
   args: readonly Arg[];
   span: Span;
 }
+
+export type TransformOp = "translate" | "rotate" | "mirror" | "fwd" | "back" | "left" | "right";
+export const TRANSFORM_OPS: readonly TransformOp[] = [
+  "translate",
+  "rotate",
+  "mirror",
+  "fwd",
+  "back",
+  "left",
+  "right",
+];
 
 export type Expr =
   | { kind: "number"; value: number; unit: string; span: Span }
@@ -193,12 +284,12 @@ export type Expr =
   | { kind: "member"; type?: string; member: string; span: Span }
   /** `$partner` */
   | { kind: "dyn"; name: string; span: Span }
-  /** `lark`, `minor-sets`, `x` */
+  /** `lark`, `minor-sets` */
   | { kind: "name"; name: string; span: Span }
   | { kind: "me"; span: Span }
   | { kind: "nobody"; span: Span }
   | { kind: "call"; name: string; args: readonly Arg[]; span: Span }
-  /** `$minor-set.centre` */
+  /** `$minor-set.center` */
   | { kind: "path"; of: Expr; name: string; span: Span }
   | { kind: "unary"; op: "-" | "not"; of: Expr; span: Span }
   | { kind: "binary"; op: BinaryOp; left: Expr; right: Expr; span: Span }
@@ -206,7 +297,7 @@ export type Expr =
   | { kind: "cond"; condition: Expr; then: Expr; else: Expr; span: Span };
 
 export type BinaryOp =
-  "or" | "and" | "is" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/";
+  "or" | "and" | "is" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/" | "%";
 
 /** The type names the language has without an enum declaring them. */
 export const BUILTIN_TYPES: readonly string[] = [

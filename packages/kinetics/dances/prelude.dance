@@ -3,5 +3,6 @@
 enum Role { Lark, Robin }
 enum Hand { Left, Right }
 enum Turn { Left, Right }
-enum Form { Proper, Improper, Becket, ReverseBecket }
-enum End { Top, Bottom }
+enum Axis { X, Y }
+enum Direction { Up, Down, Left, Right }
+enum Phrase { A1, A2, B1, B2 }

@@ -1,29 +1,31 @@
 // Four face four: lines of four — two couples side by side — facing lines of
 // four across the set, progressing like a becket a whole line at a time.
 
-formation four() {
+module four() {
   group a = couple() at translate(y = -0.8m);
   group b = couple() at translate(y = 0.8m);
 }
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
-  anchor across = line(through = centre, along = y);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
+  anchor across = line(through = center, along = Y);
   group ones = four() at translate(x = -0.64m);
   group twos = four() at translate(x = 0.64m) rotate(180);
   provide $neighbor: Place = opposite-role(other(me));
   provide $across: Place = across(me, across);
 }
 
-formation major-set(minor-sets: Int = 2) {
-  anchor up = direction(-y);
-  repeat (i in 2 * minor-sets - 1) group minor-set() at translate(y = 1.6m * i);
+module major-set(minor-sets: Int = 2) {
+  anchor up = direction(Up);
+  for i in 0..2 * minor-sets - 1 {
+    group minor-set() at translate(y = 1.6m * i);
+  }
   group out-top = four() at translate(x = 0.64m, y = -1.6m) rotate(180);
   group out-bottom = four() at translate(x = -0.64m, y = 3.2m * minor-sets - 1.6m);
   seat = alternate(minor-set);
   next = duple-progression(along = up, out-top = out-top, out-bottom = out-bottom);
 }
 
-formation four-face-four(minor-sets: Int = 2) {
+module four-face-four(minor-sets: Int = 2) {
   group major-set(minor-sets = minor-sets);
 }

@@ -12,7 +12,6 @@ export type {
   File as DanceFile,
   Item,
   ModuleItem,
-  ModuleKind,
   Param,
   Span as DanceSpan,
   Stmt as DanceStmt,

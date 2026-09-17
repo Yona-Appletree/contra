@@ -2,7 +2,7 @@ import type { Arg, Expr, File, ModuleItem, Span, Stmt, Transform } from "../lang
 import { UNITS } from "../lang/syntax.js";
 import type { Frame, Op } from "./Frame.js";
 import { IDENTITY, applyAll, distance, facingOf, norm, tidy, unit } from "./Frame.js";
-import type { Anchor, Group, Place, Provide } from "./Tree.js";
+import type { Anchor, Group, Place, Provide, ProvidedFn } from "./Tree.js";
 import { centreOf, isGroup, membersOf, placesOf } from "./Tree.js";
 import type { Env, Value } from "./values.js";
 import { NOBODY, bool, describe, isSomebody, len, num } from "./values.js";
@@ -67,7 +67,7 @@ export function buildFormation(
 ): Group {
   const module = mods.modules.get(name);
   if (module === undefined) throw evalError(`unknown formation ${name}`);
-  if (module.kind !== "formation") throw evalError(`${name} is a ${module.kind}, not a formation`);
+  if (module.kind !== "module") throw evalError(`${name} is not a module`);
   const named: Arg[] = Object.entries(args).map(([key, value]) => ({
     name: key,
     dynamic: false,
@@ -142,13 +142,12 @@ function evalModule(
   name: string,
   world: (local: Frame) => Frame,
 ): Group {
-  if (module.kind !== "formation")
-    throw evalError(`${module.name} is a ${module.kind}, not a formation`, module.span);
   const env = bindParams(mods, module, args, callerEnv, module.span);
   const places: Place[] = [];
   const children: Group[] = [];
   const anchors: Record<string, Anchor> = {};
   const provides: Provide[] = [];
+  const functions: ProvidedFn[] = [];
   const group: Group = {
     path,
     kind: module.name,
@@ -158,6 +157,7 @@ function evalModule(
     children,
     anchors,
     provides,
+    functions,
   };
   const ctx = (): Ctx => ({ mods, env, world });
   const walk = (stmts: readonly Stmt[]): void => {
@@ -221,21 +221,61 @@ function evalModule(
               stmt.span,
             );
           }
-          for (let i = 0; i < count.value; i += 1) {
-            if (stmt.binder !== undefined) env.set(stmt.binder, num(i));
+          for (let i = 0; i < count.value; i += 1) walk(stmt.body);
+          break;
+        }
+        case "for": {
+          const from = evalExpr(stmt.from, ctx());
+          const to = evalExpr(stmt.to, ctx());
+          if (from.kind !== "number" || to.kind !== "number")
+            throw evalError("for needs whole numbers", stmt.span);
+          const end = stmt.inclusive ? to.value : to.value - 1;
+          for (let i = from.value; i <= end; i += 1) {
+            env.set(stmt.binder, num(i));
             walk(stmt.body);
           }
           break;
         }
+        case "match": {
+          const subject = evalExpr(stmt.subject, ctx());
+          const arm =
+            stmt.arms.find(
+              (a) =>
+                a.pattern !== undefined &&
+                subject.kind === "member" &&
+                subject.member === a.pattern,
+            ) ?? stmt.arms.find((a) => a.pattern === undefined);
+          if (arm) walk(arm.body);
+          break;
+        }
+        case "provide-fn":
+          functions.push({
+            name: stmt.name,
+            params: stmt.params,
+            body: stmt.body,
+            env: new Map(env),
+          });
+          break;
+        case "dancers":
+          // Round 2 P2: fills this group's places. Until then the seating is `seat`'s.
+          break;
+        case "children":
+          // Round 2 P2.
+          break;
+        case "assign":
+        case "assert":
+        case "card":
+        case "say":
+        case "call":
+          // Time statements: nobody's pass leaves them for the dancers.
+          break;
         case "if": {
           const verdict = evalExpr(stmt.condition, ctx());
           walk(truthy(verdict) ? stmt.then : stmt.else);
           break;
         }
-        case "call":
-        case "title":
         case "ir":
-          throw evalError(`a formation cannot say "${stmt.kind}"`, stmt.span);
+          break;
       }
     }
   };
@@ -269,11 +309,27 @@ function ops(transforms: readonly Transform[], ctx: Ctx): Op[] {
         return { op: "rotate", deg: deg.value };
       }
       case "mirror": {
-        const axis = t.args[0]?.value;
-        if (axis?.kind !== "name" || (axis.name !== "x" && axis.name !== "y")) {
-          throw evalError("mirror takes an axis, x or y", t.span);
+        const axis = t.args[0] === undefined ? undefined : evalExpr(t.args[0].value, ctx);
+        if (axis?.kind !== "member" || (axis.member !== "X" && axis.member !== "Y")) {
+          throw evalError("mirror takes an Axis, X or Y", t.span);
         }
-        return { op: "mirror", axis: axis.name };
+        return { op: "mirror", axis: axis.member === "X" ? "x" : "y" };
+      }
+      case "fwd":
+      case "back":
+      case "left":
+      case "right": {
+        const first = t.args[0];
+        if (first === undefined) throw evalError(`${t.op} needs a length`, t.span);
+        const d = metres(evalExpr(first.value, ctx), t.span);
+        // In the frame's own terms: forward is local +x, right is local +y.
+        return t.op === "fwd"
+          ? { op: "translate", x: d, y: 0 }
+          : t.op === "back"
+            ? { op: "translate", x: -d, y: 0 }
+            : t.op === "right"
+              ? { op: "translate", x: 0, y: d }
+              : { op: "translate", x: 0, y: -d };
       }
     }
   });
@@ -366,8 +422,6 @@ export function evalExpr(e: Expr, ctx: Ctx): Value {
     case "name": {
       const bound = ctx.env.get(e.name);
       if (bound !== undefined) return bound;
-      if (e.name === "x") return { kind: "direction", frame: worldDirection(ctx, 0) };
-      if (e.name === "y") return { kind: "direction", frame: worldDirection(ctx, 90) };
       if (e.name === "pi") return num(Math.PI);
       if (e.name === "true") return bool(true);
       if (e.name === "false") return bool(false);
@@ -522,11 +576,27 @@ const pointOf = (v: Value, fn: string, span: Span): Frame => {
   throw evalError(`${fn} wants a point, not ${describe(v)}`, span);
 };
 
-const directionOf = (v: Value, fn: string, span: Span): number => {
+/** `Up`/`Down`/`Left`/`Right` and `X`/`Y` as local facings, screen terms (Up = −y). */
+const MEMBER_FACING: Readonly<Record<string, number>> = {
+  Right: 0,
+  X: 0,
+  Down: 90,
+  Y: 90,
+  Left: 180,
+  Up: 270,
+};
+
+const directionOf = (v: Value, fn: string, span: Span, ctx?: Ctx): number => {
   if (v.kind === "direction") return v.frame.facing;
   if (v.kind === "anchor" && (v.anchor.kind === "direction" || v.anchor.kind === "line"))
     return v.anchor.frame.facing;
-  throw evalError(`${fn} wants a direction, not ${describe(v)}`, span);
+  if (v.kind === "member" && v.member in MEMBER_FACING && ctx !== undefined) {
+    return worldDirection(ctx, MEMBER_FACING[v.member] as number).facing;
+  }
+  throw evalError(
+    `${fn} wants a direction (Up, Down, Left, Right, X, Y), not ${describe(v)}`,
+    span,
+  );
 };
 
 const placeValue = (p: Place | undefined): Value =>
@@ -575,7 +645,7 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
     case "line": {
       const a = argsOf(["through", "along"], args, span, ctx, name);
       const through = pointOf(need(a, "through", name, span), name, span);
-      const along = directionOf(need(a, "along", name, span), name, span);
+      const along = directionOf(need(a, "along", name, span), name, span, ctx);
       return {
         kind: "anchor",
         anchor: { kind: "line", frame: tidy({ x: through.x, y: through.y, facing: along }) },
@@ -585,7 +655,7 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
       const a = argsOf(["of"], args, span, ctx, name);
       const of = need(a, "of", name, span);
       const facing =
-        of.kind === "number" ? worldDirection(ctx, of.value).facing : directionOf(of, name, span);
+        of.kind === "number" ? worldDirection(ctx, of.value).facing : directionOf(of, name, span, ctx);
       return { kind: "anchor", anchor: { kind: "direction", frame: { x: 0, y: 0, facing } } };
     }
     case "centre": {
@@ -712,6 +782,7 @@ function callBuiltin(name: string, args: readonly Arg[], span: Span, ctx: Ctx): 
         children: [],
         anchors: {},
         provides: [],
+        functions: [],
       };
       formed.frame = centreOf(formed);
       return { kind: "group", group: formed };

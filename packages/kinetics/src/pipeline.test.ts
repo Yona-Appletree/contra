@@ -39,7 +39,7 @@ describe("run", () => {
   });
 
   it("stops at a syntax error with nothing after it", () => {
-    const result = run("dance d() { bow(", opts("pair"));
+    const result = run("module d() { bow(", opts("pair"));
     expect(result.parseError?.stage).toBe("parse");
     expect(result.program).toBeUndefined();
     expect(result.sequence).toBeUndefined();
@@ -50,7 +50,7 @@ describe("run", () => {
 
   it("reports what the checker minds, with a span, and still compiles the rest", () => {
     const result = run(
-      "dance d($partner: Place) { allemande($partner, Robin); bow($partner); }",
+      "module d() { allemande($partner, Robin); bow($partner); }",
       opts("pair"),
     );
     expect(result.errors.map((e) => `${e.stage}: ${e.message}`)).toContain(
@@ -61,13 +61,13 @@ describe("run", () => {
   });
 
   it("names a $ the floor does not provide", () => {
-    const result = run("dance d($neighbor: Place) { swing($neighbor); }", opts("pair"));
+    const result = run("module d() { swing($neighbor); }", opts("pair"));
     expect(result.errors.map((e) => e.message)).toContain("pair does not provide $neighbor");
   });
 
   it("reports an allemande with no beats to turn in and still schedules what it can", () => {
     const result = run(
-      "dance d($partner: Place) { allemande($partner, Right, beats = 2); }",
+      "module d() { allemande($partner, Right, beats = 2); }",
       opts("pair"),
     );
     expect(result.errors.length).toBeGreaterThan(0);

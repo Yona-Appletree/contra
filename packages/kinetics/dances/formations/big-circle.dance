@@ -3,18 +3,20 @@
 // the other way; nobody is ever out. The ring is sized so that couples are a
 // metre apart along it, which a small ring needs to leave room across.
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
   group ones = couple(spacing = 1.28m) at translate(y = -0.4m) rotate(90);
   group twos = couple(spacing = 1.28m) at translate(y = 0.4m) rotate(270);
   provide $neighbor: Place = opposite-role(other(me));
 }
 
-formation big-circle(minor-sets: Int = 6) {
-  anchor centre = point(x = 0m, y = 0m);
+module big-circle(minor-sets: Int = 6) {
+  anchor center = point(x = 0m, y = 0m);
   let n = 2 * minor-sets;
   let r = 1m * n / (2 * pi);
-  repeat (i in n) group minor-set() at rotate(360 / n * i) translate(x = r);
+  for i in 0..n {
+    group minor-set() at rotate(360 / n * i) translate(x = r);
+  }
   seat = alternate(minor-set);
-  next = circle-progression(around = centre);
+  next = circle-progression(around = center);
 }

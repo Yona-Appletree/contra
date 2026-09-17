@@ -24,6 +24,10 @@ export interface CheckOptions {
 
 /** The relation and geometry functions the tree evaluates (P2). */
 export const BUILTIN_FUNCTIONS: readonly string[] = [
+  "along",
+  "first",
+  "last",
+  "other-side",
   "other",
   "child",
   "index",
@@ -94,6 +98,9 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
   const dyn = new Map<string, string>(Object.entries(ctx.dynamics));
   dyn.set("time", "Int");
   dyn.set("times", "Int");
+  dyn.set("beat", "Int");
+  dyn.set("first-time", "Bool");
+  dyn.set("last-time", "Bool");
   for (const p of item.params) {
     (p.dynamic ? dyn : env).set(p.name, p.type);
     if (p.default) typeOf(p.default, p.type, { ...ctx, env, dyn });
@@ -113,11 +120,57 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
           env.set(stmt.name, stmt.type ?? typeOf(stmt.value, stmt.type, scope));
           break;
         case "group":
-          checkCall(stmt.module, stmt.args, stmt.span, scope, "formation");
+          checkCall(stmt.module, stmt.args, stmt.span, scope);
           checkTransforms(stmt.at, scope);
           if (stmt.name !== undefined) env.set(stmt.name, "Group");
           else env.set(stmt.module, "Group");
+          if (stmt.children) walk(stmt.children);
           break;
+        case "provide-fn": {
+          for (const p of stmt.params) env.set(p.name, p.type);
+          walk(stmt.body);
+          break;
+        }
+        case "dancers":
+        case "children":
+          break;
+        case "assign":
+          typeOf(stmt.value, scope.dyn.get(stmt.name), scope);
+          break;
+        case "assert":
+          condition(stmt.condition, scope);
+          break;
+        case "card":
+        case "say":
+          break;
+        case "for":
+          typeOf(stmt.from, "Int", scope);
+          typeOf(stmt.to, "Int", scope);
+          env.set(stmt.binder, "Int");
+          walk(stmt.body);
+          break;
+        case "match": {
+          const subject = infer(stmt.subject, undefined, scope);
+          const members = scope.enums.get(subject);
+          const seen = new Set<string>();
+          let wildcard = false;
+          for (const arm of stmt.arms) {
+            if (arm.pattern === undefined) wildcard = true;
+            else if (members !== undefined && !members.includes(arm.pattern)) {
+              ctx.errors.push({ message: `${arm.pattern} is not a ${subject}`, span: arm.span });
+            } else seen.add(arm.pattern);
+            walk(arm.body);
+          }
+          if (members !== undefined && !wildcard) {
+            const missing = members.filter((m) => !seen.has(m));
+            if (missing.length > 0)
+              ctx.errors.push({
+                message: `match does not cover ${missing.join(", ")}`,
+                span: stmt.span,
+              });
+          }
+          break;
+        }
         case "provide":
           typeOf(stmt.value, stmt.type, scope);
           dyn.set(stmt.name, stmt.type);
@@ -129,12 +182,10 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
         case "let":
           env.set(stmt.name, typeOf(stmt.value, undefined, scope));
           break;
-        case "title":
         case "ir":
           break;
         case "repeat":
           typeOf(stmt.count, "Int", scope);
-          if (stmt.binder !== undefined) env.set(stmt.binder, "Int");
           walk(stmt.body);
           break;
         case "if":
@@ -148,7 +199,8 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
               ctx.errors.push({ message: `${stmt.name}() takes no arguments`, span: stmt.span });
             break;
           }
-          checkCall(stmt.name, stmt.args, stmt.span, scope, "move");
+          checkCall(stmt.name, stmt.args, stmt.span, scope);
+          if (stmt.children) walk(stmt.children);
           break;
       }
     }
@@ -179,17 +231,19 @@ function checkTransforms(transforms: readonly Transform[], scope: Scope): void {
           scope.errors.push({ message: "rotate takes one angle in degrees", span: t.span });
         } else typeOf((t.args[0] as Arg).value, "Number", scope);
         break;
-      case "mirror": {
-        const axis = t.args[0]?.value;
-        if (
-          t.args.length !== 1 ||
-          axis?.kind !== "name" ||
-          (axis.name !== "x" && axis.name !== "y")
-        ) {
-          scope.errors.push({ message: "mirror takes an axis, x or y", span: t.span });
-        }
+      case "mirror":
+        if (t.args.length !== 1 || t.args[0]?.name !== undefined) {
+          scope.errors.push({ message: "mirror takes an Axis, X or Y", span: t.span });
+        } else typeOf((t.args[0] as Arg).value, "Axis", scope);
         break;
-      }
+      case "fwd":
+      case "back":
+      case "left":
+      case "right":
+        if (t.args.length !== 1 || t.args[0]?.name !== undefined) {
+          scope.errors.push({ message: `${t.op} takes one length`, span: t.span });
+        } else typeOf((t.args[0] as Arg).value, "Length", scope);
+        break;
     }
   }
 }
@@ -383,6 +437,7 @@ function infer(e: Expr, expected: string | undefined, scope: Scope): string {
       const right = infer(e.right, undefined, scope);
       if (left === "Length" || right === "Length") return "Length";
       if (left === "Int" && right === "Int" && e.op !== "/") return "Int";
+      if (e.op === "%") return "Int";
       if (left === UNKNOWN || right === UNKNOWN) return expected ?? UNKNOWN;
       return "Number";
     }

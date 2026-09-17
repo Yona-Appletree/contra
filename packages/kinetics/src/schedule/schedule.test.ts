@@ -119,7 +119,7 @@ describe("the fixture", () => {
 
 describe("errors", () => {
   it("reports an allemande once round in two beats as a rate violation", () => {
-    const s = run("dance d($partner: Place) { allemande($partner, Right, beats = 2); }");
+    const s = run("module d() { allemande($partner, Right, beats = 2); }");
     expect(s.errors.map((e) => e.kind)).toContain("RateTooHigh");
   });
   it("reports a timing violation when entry and exit leave no body", () => {
@@ -136,10 +136,10 @@ describe("errors", () => {
       },
     };
     const s = run(
-      "dance d($partner: Place) { bow($partner); tight($partner); }",
+      "module d() { bow($partner); tight($partner); }",
       "pair",
       { ...FIGURES, tight },
-      'move tight($partner: Place) { ir "tight"; }',
+      'module tight($partner: Place) { ir "tight"; }',
     );
     expect(s.errors.map((e) => e.kind)).toContain("TimingViolation");
   });
@@ -175,10 +175,10 @@ describe("nobody", () => {
       elide: "stretch",
     };
     const s = run(
-      "dance d($partner: Place) { shifty($partner); bow($partner); }",
+      "module d() { shifty($partner); bow($partner); }",
       "solo",
       { ...FIGURES, shifty },
-      'move shifty($partner: Place) { ir "shifty"; }',
+      'module shifty($partner: Place) { ir "shifty"; }',
     );
     expect(s.errors).toEqual([]);
     const calls = s.calls.lark ?? [];

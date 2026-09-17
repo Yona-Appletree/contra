@@ -1,8 +1,8 @@
 // The lark, alone: the end-effect proof. `$partner` is provided and is
 // nobody, so every move stands and an `if ($partner)` takes its else.
 
-formation solo() {
-  place lark role Lark at translate(x = -0.4m);
+module solo() {
+  place lark role Lark at back(0.4m);
   provide $partner: Place = other(me);
   provide $role: Role = role(me);
 }

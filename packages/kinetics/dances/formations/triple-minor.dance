@@ -4,8 +4,8 @@
 // every third is occupied; the ones' `$n1` and `$n2` are the couples below
 // them. The twos' and threes' progression here is an approximation (notes).
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
   group ones = couple(spacing = 1.28m) at translate(y = -0.8m) rotate(90);
   group twos = couple(spacing = 1.28m) at rotate(270);
   group threes = couple(spacing = 1.28m) at translate(y = 0.8m) rotate(270);
@@ -14,15 +14,17 @@ formation minor-set() {
   provide $neighbor: Place = $n1;
 }
 
-formation major-set(minor-sets: Int = 2) {
-  anchor down = direction(y);
-  repeat (i in 3 * minor-sets - 2) group minor-set() at translate(y = 0.8m * i);
+module major-set(minor-sets: Int = 2) {
+  anchor down = direction(Down);
+  for i in 0..3 * minor-sets - 2 {
+    group minor-set() at translate(y = 0.8m * i);
+  }
   group out-bottom = couple(spacing = 1.28m) at translate(y = 2.4m * minor-sets - 0.8m) rotate(270);
   group out-top = couple(spacing = 1.28m) at translate(y = -1.6m) rotate(90);
   seat = alternate(minor-set, every = 3);
   next = triple-progression(along = down, out-top = out-bottom, out-bottom = out-top);
 }
 
-formation triple-minor(minor-sets: Int = 2) {
+module triple-minor(minor-sets: Int = 2) {
   group major-set(minor-sets = minor-sets);
 }

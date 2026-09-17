@@ -89,7 +89,7 @@ class Printer {
       );
       return;
     }
-    const head = `${item.kind} ${item.name}(${item.params.map(param).join(", ")}) {`;
+    const head = `module ${item.name}(${item.params.map(param).join(", ")}) {`;
     this.block(head, item.body, "", item.span);
   }
 
@@ -115,15 +115,52 @@ class Printer {
       }
       case "group": {
         const name = stmt.name === undefined ? "" : `${stmt.name} = `;
-        this.line(
-          `group ${name}${stmt.module}(${args(stmt.args)})${at(stmt.at)};`,
-          indent,
-          stmt.span,
-        );
+        const head = `group ${name}${stmt.module}(${args(stmt.args)})${at(stmt.at)}`;
+        if (stmt.children === undefined) this.line(`${head};`, indent, stmt.span);
+        else this.block(`${head} {`, stmt.children, indent, stmt.span);
         return;
       }
       case "provide":
         this.line(`provide $${stmt.name}: ${stmt.type} = ${expr(stmt.value)};`, indent, stmt.span);
+        return;
+      case "provide-fn":
+        this.block(
+          `provide ${stmt.name}(${stmt.params.map(param).join(", ")}) {`,
+          stmt.body,
+          indent,
+          stmt.span,
+        );
+        return;
+      case "dancers":
+        this.line("dancers;", indent, stmt.span);
+        return;
+      case "children":
+        this.line("children();", indent, stmt.span);
+        return;
+      case "assign":
+        this.line(`$${stmt.name} = ${expr(stmt.value)};`, indent, stmt.span);
+        return;
+      case "assert":
+        this.line(
+          `assert(${expr(stmt.condition)}${stmt.message === undefined ? "" : `, "${stmt.message}"`});`,
+          indent,
+          stmt.span,
+        );
+        return;
+      case "card":
+      case "say":
+        this.line(`${stmt.kind} "${stmt.text}";`, indent, stmt.span);
+        return;
+      case "for":
+        this.block(
+          `for ${stmt.binder} in ${expr(stmt.from)}${stmt.inclusive ? "..=" : ".."}${expr(stmt.to)} {`,
+          stmt.body,
+          indent,
+          stmt.span,
+        );
+        return;
+      case "match":
+        this.matchStmt(stmt, indent);
         return;
       case "next":
         this.line(`next = ${expr(stmt.value)};`, indent, stmt.span);
@@ -134,18 +171,16 @@ class Printer {
       case "let":
         this.line(`let ${stmt.name} = ${expr(stmt.value)};`, indent, stmt.span);
         return;
-      case "title":
-        this.line(`title "${stmt.text}";`, indent, stmt.span);
-        return;
       case "ir":
         this.line(`ir "${stmt.id}";`, indent, stmt.span);
         return;
       case "call":
-        this.line(`${stmt.name}(${args(stmt.args)});`, indent, stmt.span);
+        if (stmt.children === undefined)
+          this.line(`${stmt.name}(${args(stmt.args)});`, indent, stmt.span);
+        else this.block(`${stmt.name}(${args(stmt.args)}) {`, stmt.children, indent, stmt.span);
         return;
       case "repeat": {
-        const binder = stmt.binder === undefined ? "" : `${stmt.binder} in `;
-        const head = `repeat (${binder}${expr(stmt.count)})`;
+        const head = `repeat (${expr(stmt.count)})`;
         const only = stmt.body[0];
         if (stmt.body.length === 1 && only !== undefined && isOneLiner(only)) {
           // `repeat (i in 3) group minor-set() at …;` stays on one line.
@@ -178,6 +213,26 @@ class Printer {
     }
     this.lines.push(`${indent}} else {`);
     for (const s of stmt.else) this.stmt(s, `${indent}  `);
+    this.rest(`${indent}  `, stmt.span.end);
+    this.lines.push(`${indent}}${this.trailing(stmt.span)}`);
+  }
+
+  /** `match (x) {` with one arm a line: `A1 => stmt,` or `A1 => {` … `},`. */
+  private matchStmt(stmt: Extract<Stmt, { kind: "match" }>, indent: string): void {
+    this.lines.push(`${indent}match (${expr(stmt.subject)}) {`);
+    for (const arm of stmt.arms) {
+      this.leading(arm.span, `${indent}  `);
+      const head = `${indent}  ${arm.pattern ?? "_"} =>`;
+      const only = arm.body[0];
+      if (arm.body.length === 1 && only !== undefined && isOneLiner(only)) {
+        this.lines.push(`${head} ${this.oneLine(only)}${this.trailing(arm.span)}`);
+        continue;
+      }
+      this.lines.push(`${head} {`);
+      for (const s of arm.body) this.stmt(s, `${indent}    `);
+      this.rest(`${indent}    `, arm.span.end);
+      this.lines.push(`${indent}  }`);
+    }
     this.rest(`${indent}  `, stmt.span.end);
     this.lines.push(`${indent}}${this.trailing(stmt.span)}`);
   }
@@ -227,6 +282,7 @@ const PRECEDENCE: Record<string, number> = {
   "-": 5,
   "*": 6,
   "/": 6,
+  "%": 6,
   neg: 7,
 };
 

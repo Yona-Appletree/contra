@@ -1,24 +1,26 @@
 // Reverse becket: becket's floor, progressing the other way — the ones go
 // down the hall to their right, the twos up it. The minor set is becket's.
 
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
-  anchor across = line(through = centre, along = y);
+module minor-set() {
+  anchor center = point(x = 0m, y = 0m);
+  anchor across = line(through = center, along = Y);
   group ones = couple() at translate(x = -0.64m);
   group twos = couple() at translate(x = 0.64m) rotate(180);
   provide $neighbor: Place = opposite-role(other(me));
   provide $across: Place = across(me, across);
 }
 
-formation major-set(minor-sets: Int = 3) {
-  anchor down = direction(y);
-  repeat (i in 2 * minor-sets - 1) group minor-set() at translate(y = 0.8m * i);
+module major-set(minor-sets: Int = 3) {
+  anchor down = direction(Down);
+  for i in 0..2 * minor-sets - 1 {
+    group minor-set() at translate(y = 0.8m * i);
+  }
   group out-bottom = couple() at translate(x = 0.64m, y = 1.6m * minor-sets - 0.8m) rotate(180);
   group out-top = couple() at translate(x = -0.64m, y = -0.8m);
   seat = alternate(minor-set);
   next = duple-progression(along = down, out-top = out-bottom, out-bottom = out-top);
 }
 
-formation reverse-becket(minor-sets: Int = 3) {
+module reverse-becket(minor-sets: Int = 3) {
   group major-set(minor-sets = minor-sets);
 }

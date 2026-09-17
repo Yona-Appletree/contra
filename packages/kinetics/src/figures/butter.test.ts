@@ -53,7 +53,7 @@ const proveDancers = (s: Schedule, dialect: Dialect, dancers: readonly string[])
 describe("Butter's figures alone, at floor level", () => {
   it("circle left three quarters: the four go round together, facing in, and prove", () => {
     const { s, dialect } = runProgram(
-      "dance d($minor-set: Group) { circle($minor-set, Left, places = 3, beats = 6); }",
+      "module d() { circle($minor-set, Left, places = 3, beats = 6); }",
     );
     const call = s.calls["3L"]![0]!;
     // The take costs the first beat (nothing before it to overlap), so three
@@ -65,7 +65,7 @@ describe("Butter's figures alone, at floor level", () => {
 
   it("swing: free turns land the couple beside each other facing home, lark on the left", () => {
     const { s } = runProgram(
-      "dance d($neighbor: Place) { swing($neighbor, beats = 12); long-lines($neighbor, beats = 8); }",
+      "module d() { swing($neighbor, beats = 12); long-lines($neighbor, beats = 8); }",
     );
     const swingCall = s.calls["3L"]![0]!;
     // Twelve beats from across the set: two to come together, two to open
@@ -81,7 +81,7 @@ describe("Butter's figures alone, at floor level", () => {
 
   it("long lines forward and back returns everyone to place", () => {
     const { s, dialect } = runProgram(
-      "dance d($partner: Place) { long-lines($partner, beats = 8); }",
+      "module d() { long-lines($partner, beats = 8); }",
     );
     const program = s.programs["3L"]!;
     const steps = program.slots.flatMap((slot) => slot.instrs.filter((i) => i.op === "step"));
@@ -90,7 +90,7 @@ describe("Butter's figures alone, at floor level", () => {
   });
 
   it("balance: a rock forward and back with both hands", () => {
-    const { s, dialect } = runProgram("dance d($partner: Place) { balance($partner); }");
+    const { s, dialect } = runProgram("module d() { balance($partner); }");
     proveDancers(s, dialect, MIDDLE);
   });
 
@@ -98,7 +98,7 @@ describe("Butter's figures alone, at floor level", () => {
     const floor = becket6();
     const dialect = treeDialect(floor);
     const { sequence, errors } = compileDance(
-      "dance d($partner: Place, $neighbor: Place) { progress(); shift($neighbor, Left); swing($neighbor, beats = 8); }",
+      "module d() { progress(); shift($neighbor, Left); swing($neighbor, beats = 8); }",
       floor,
     );
     expect(errors).toEqual([]);
@@ -125,7 +125,7 @@ describe("Butter's A1", () => {
   it("shift, circle, swing for the middle four: no errors, every effector proved", () => {
     const { s, dialect } = runProgram(
       [
-        "dance d($partner: Place, $neighbor: Place, $minor-set: Group) {",
+        "module d() {",
         "  shift($partner, Left);",
         "  circle($minor-set, Left, places = 3, beats = 6);",
         "  swing($neighbor, beats = 8);",

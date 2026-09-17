@@ -8,26 +8,47 @@
 // in for the two, keeping the sixty-four beats and bringing each couple
 // back together on the lark's side as the chain would.
 
-dance butter($partner: Place, $neighbor: Place, $minor-set: Group) {
-  title "Butter";
+module butter() {
+  card "Butter";
   repeat (7) {
-    if ($time != 1) {
+    if (not $first-time) {
       progress();
     }
     if ($neighbor) {
-      if ($time == 1) {
-        circle($minor-set, Left, places = 3, beats = 8);
-      } else {
-        shift($partner, Left);
-        circle($minor-set, Left, places = 3, beats = 6);
+      phrase(A1) {
+        if ($first-time) {
+          circle($minor-set, Left, places = 3, beats = 8);
+        } else {
+          shift($partner, Left);
+          circle($minor-set, Left, places = 3, beats = 6);
+        }
+        swing($neighbor, beats = 8);
       }
-      swing($neighbor, beats = 8);
-      long-lines($neighbor, beats = 8);
-      swing($partner, beats = 24);
-      balance($partner);
-      swing($partner, beats = 12);
+      phrase(A2) {
+        long-lines($neighbor, beats = 8);
+        swing($partner, beats = 8);
+      }
+      phrase(B1) {
+        swing($partner, beats = 16);
+      }
+      phrase(B2) {
+        balance($partner);
+        swing($partner, beats = 12);
+      }
     } else {
       wait-out($partner, beats = 64);
     }
   }
+}
+
+// A phrase of sixteen beats: asserts the cursor on the way in and out, and
+// says which one it is for the cards.
+module phrase(which: Phrase) {
+  match (which) {
+    A1 => assert($beat == 0, "A1 starts the time through");
+    A2 => assert($beat == 16, "A2 starts at beat 16");
+    B1 => assert($beat == 32, "B1 starts at beat 32");
+    B2 => assert($beat == 48, "B2 starts at beat 48");
+  }
+  children();
 }
