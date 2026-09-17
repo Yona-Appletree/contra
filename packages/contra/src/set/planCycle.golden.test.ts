@@ -4,6 +4,7 @@ import { DEMO_DANCES } from "../dances/index.js";
 import { LAB_RUN } from "../dances/danceLab.js";
 import { danceAlone, linesFor } from "../dances/oracle.js";
 import type { DanceGolden } from "./danceGolden.js";
+import { SAMPLED_AT } from "../library/figures/fixtureFile.js";
 import {
   danceGolden,
   danceGoldenKey,
@@ -51,7 +52,7 @@ const STEP: Beat = 1;
 
 const golden: DanceGolden = updatingDanceGolden()
   ? {
-      sampledAt: "3f44e4d (2026-09-17), whose tree is main 99ad224 plus one docs file",
+      sampledAt: SAMPLED_AT,
       step: STEP,
       until: UNTIL,
       runs: {},
