@@ -237,12 +237,7 @@ const WHOLE_PLACE_SLOP = 1e-9;
  * Form-neutral: a point between two places on a ring is a point, and nothing
  * here knows what form the ring is danced in.
  */
-export function ringEnd(
-  ring: Ring,
-  from: RingPlaces,
-  station: StationId,
-  places: number,
-): Vec2 {
+export function ringEnd(ring: Ring, from: RingPlaces, station: StationId, places: number): Vec2 {
   const way = Math.sign(places);
   const whole = way * Math.floor(Math.abs(places) + WHOLE_PLACE_SLOP);
   const reached = mustPlace(from, ringShift(ring, station, whole)).p;

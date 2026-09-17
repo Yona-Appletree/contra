@@ -20,8 +20,7 @@ const CORNERS: RingPlaces = {
 const IDS: StationId[] = ["a", "b", "c", "d"];
 const ring = ringOf(CORNERS, IDS, RING_NEIGHBOR_SPACING_PX);
 const at = (id: StationId): EndPose => CORNERS[id]!;
-const end = (station: StationId, places: number): Vec2 =>
-  ringEnd(ring, CORNERS, station, places);
+const end = (station: StationId, places: number): Vec2 => ringEnd(ring, CORNERS, station, places);
 
 describe("ringShift", () => {
   it("counts places round the ring the way its order runs", () => {
