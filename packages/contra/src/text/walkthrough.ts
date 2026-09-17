@@ -105,7 +105,17 @@ export function danceWalkthrough(dance: Dance, formation?: Formation): Walkthrou
       index: at.index,
       beats: callBeats(written.call),
       lines,
-      heading: lines.map((one) => one.heading).join(" while "),
+      // **A surviving flourish already says every branch** (P7, the PR body's
+      // own finding): both `while` calls in the corpus write a flourish that
+      // names both halves ("LARKS ALLEMANDE RIGHT ONCE, ROBINS LOOP RIGHT"),
+      // which is `lines[0].heading` already (`linesOf` reads `one.call` first).
+      // Joining every branch's own heading on top of that said the surviving
+      // branch twice — "…robins loop right while Robins loop right". Only a
+      // parent with no flourish of its own needs its branches spelled out.
+      heading:
+        written.call.call === undefined
+          ? lines.map((one) => one.heading).join(" while ")
+          : (lines[0]?.heading ?? ""),
       defaultLevel: lines.some((one) => one.defaultLevel === "line") ? "line" : "name",
       ...(hintAt(boundaries, at.index, reference) === undefined
         ? {}
