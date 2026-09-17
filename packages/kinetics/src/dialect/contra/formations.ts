@@ -99,6 +99,39 @@ export function seating(formation: ContraFormation, couples: number): Seating {
 const slotKey = (slot: Slot): string => `${String(slot.line)}:${String(slot.position)}`;
 
 /**
+ * The seating after one progression: every seat moves `step` positions the
+ * way its couple travels, and its place on the floor with it. Nobody is
+ * removed — a couple that has run off the end of the line simply has no one
+ * across, which is what the selectors answer; the wait-out is the language's
+ * (P11), not the seating's.
+ */
+export function progressSeating(current: Seating, step: number): Seating {
+  const seats = current.seats.map((seat) => {
+    const position = seat.position + step * seat.travel;
+    return { ...seat, position, p: placeOf(current.formation, seat.line, position) };
+  });
+  const byId = new Map(seats.map((seat) => [seat.id, seat]));
+  const bySlot = new Map(seats.map((seat) => [slotKey(seat), seat.id]));
+  return {
+    formation: current.formation,
+    couples: current.couples,
+    seats,
+    seatOf: (id) => byId.get(id),
+    at: (slot) => bySlot.get(slotKey(slot)),
+  };
+}
+
+/** Where a slot sits on the floor, in either formation: the line's x, and the position's y. */
+const placeOf = (formation: ContraFormation, line: 0 | 1, position: number): Vec2 => {
+  const x = line === 0 ? -LINE_X_PX : LINE_X_PX;
+  const y =
+    formation === "becket"
+      ? position * PLACE_PITCH_PX - PLACE_PITCH_PX / 2
+      : position * PLACE_PITCH_PX;
+  return [x, y];
+};
+
+/**
  * **Becket**: partners side by side on the same line, each couple facing the
  * couple across the set, and every dancer facing across rather than along the
  * hall.

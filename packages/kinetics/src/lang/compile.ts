@@ -91,9 +91,11 @@ export function compile(
   const definitions = new Map<string, DefineStmt>();
   collectDefinitions(program.statements, definitions, report);
 
-  const state = dialect.initial();
   const perDancer: Record<DancerId, readonly CompiledCall[]> = {};
   for (const dancer of dialect.dancers) {
+    // Each dancer walks the program from their own seat; a figure that
+    // progresses moves the seating for everything that follows it.
+    let state = dialect.initial();
     const bindings = new Map<string, Binding>();
     const calls: CompiledCall[] = [];
     let beat = 0;
@@ -178,6 +180,7 @@ export function compile(
             };
             if (ring) call.group = ring;
             calls.push(call);
+            if (figure.progresses && dialect.progress) state = dialect.progress(state);
             beat += beats;
             break;
           }

@@ -1,9 +1,15 @@
 import type { DancerId, Dialect, SetState } from "../Dialect.js";
 import { unknownSelector } from "../Dialect.js";
 import type { ContraFormation } from "./formations.js";
-import { roleOfId, seating } from "./formations.js";
+import type { Seating } from "./formations.js";
+import { progressSeating, roleOfId, seating } from "./formations.js";
 import { CONTRA_GROUPS, handsFour, isContraGroup } from "./groups.js";
-import { CONTRA_SELECTORS, isContraSelector, slotFor } from "./relations.js";
+import {
+  BECKET_PROGRESSION_STEP,
+  CONTRA_SELECTORS,
+  isContraSelector,
+  slotFor,
+} from "./relations.js";
 
 /**
  * The contra dialect: two long lines of N couples, roles lark and robin, and
@@ -31,6 +37,15 @@ import { CONTRA_SELECTORS, isContraSelector, slotFor } from "./relations.js";
  */
 export function contraDialect(options: ContraOptions): Dialect {
   const set = seating(options.formation, options.couples);
+  /** The seating a state carries, or the set's own at beat 0. */
+  const seatingOf = (state: SetState): Seating =>
+    state.seating !== undefined ? (state.seating as Seating) : set;
+  const stateOf = (seats: Seating): SetState => ({
+    dancers: Object.fromEntries(
+      seats.seats.map((seat) => [seat.id, { p: seat.p, facing: seat.facing }]),
+    ),
+    seating: seats,
+  });
   const dialect: Dialect = {
     id: `contra-${options.formation}`,
     dancers: set.seats.map((seat) => seat.id),
@@ -45,23 +60,24 @@ export function contraDialect(options: ContraOptions): Dialect {
         : roleOfId(dancer) === "lark"
           ? "left"
           : "right",
-    initial: (): SetState => ({
-      dancers: Object.fromEntries(
-        set.seats.map((seat) => [seat.id, { p: seat.p, facing: seat.facing }]),
-      ),
-    }),
-    select: (selector, from): DancerId | undefined => {
+    initial: (): SetState => stateOf(set),
+    select: (selector, from, state): DancerId | undefined => {
       if (!isContraSelector(selector)) throw unknownSelector(dialect, selector);
-      const seat = set.seatOf(from);
+      const seats = seatingOf(state);
+      const seat = seats.seatOf(from);
       if (seat === undefined) return undefined;
-      return set.at(slotFor(set.formation, selector, seat));
+      return seats.at(slotFor(seats.formation, selector, seat));
     },
     selectors: CONTRA_SELECTORS,
     groups: CONTRA_GROUPS,
-    group: (word, from): DancerId[] | undefined => {
+    group: (word, from, state): DancerId[] | undefined => {
       if (!isContraGroup(word)) throw unknownSelector(dialect, word);
-      return handsFour(set, from);
+      return handsFour(seatingOf(state), from);
     },
+    // One progression: every couple one position the way it travels (a
+    // becket's shift left is one dancer place, 20 px, on each line — the two
+    // lines moving opposite ways is what brings the next couple across).
+    progress: (state) => stateOf(progressSeating(seatingOf(state), BECKET_PROGRESSION_STEP)),
   };
   return dialect;
 }

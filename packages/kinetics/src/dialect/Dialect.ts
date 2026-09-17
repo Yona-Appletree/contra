@@ -43,6 +43,8 @@ export interface Dialect {
   select(selector: string, from: DancerId, state: SetState): DancerId | undefined;
   /** The words this dialect knows, for the error message. */
   selectors: readonly string[];
+  /** The seating after one progression (a figure with `progresses` has ended); the state is returned, never mutated. */
+  progress?(state: SetState): SetState;
   /**
    * The **group** words this dialect knows (`hands-four`), if any.
    *
@@ -78,6 +80,8 @@ export interface DancerState {
 /** Everyone, at one moment. */
 export interface SetState {
   dancers: Readonly<Record<DancerId, DancerState>>;
+  /** The dialect's own seating (who is on which slot), when it keeps one; opaque to everything but that dialect. */
+  seating?: unknown;
 }
 
 /** The error a dialect throws for a word it has not got. */

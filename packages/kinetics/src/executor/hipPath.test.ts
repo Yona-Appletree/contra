@@ -59,7 +59,9 @@ describe("hipPath", () => {
     const violations = proveMotion(asTrajectory(hipPath(walk(4, 15), T)));
     expect(violations.some((v) => v.point === "hip" && v.kind === "accel")).toBe(true);
     const worst = Math.max(...violations.filter((v) => v.kind === "accel").map((v) => v.value));
-    expect(worst).toBeGreaterThan(2.5 * capsAtTempo(T).hip.accelPxPerBeat2);
+    // Under the natural spline the peak is lower than Catmull-Rom's 3.3×
+    // (it spreads the start-up over the neighbouring beats) but still over.
+    expect(worst).toBeGreaterThan(capsAtTempo(T).hip.accelPxPerBeat2);
   });
 
   it("stands still where the dancer stands still on both sides", () => {

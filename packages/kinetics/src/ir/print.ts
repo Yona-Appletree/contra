@@ -167,6 +167,10 @@ const printOp = (op: IntrinsicOp): string => {
       return `lean ${num(op.deg)}°`;
     case "look":
       return `look ${op.at}`;
+    case "step":
+      return op.forwardPx >= 0
+        ? `step forward ${num(op.forwardPx)} px`
+        : `step back ${num(-op.forwardPx)} px`;
   }
 };
 

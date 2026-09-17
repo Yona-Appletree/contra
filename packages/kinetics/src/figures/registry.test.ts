@@ -30,11 +30,11 @@ describe("FIGURES", () => {
     expect(figureNamed(FIGURES, "toString")).toBeUndefined();
   });
 
-  it("starts every figure's parameters with its counterpart", () => {
+  it("starts every figure's parameters with its counterpart, or its group", () => {
     for (const figure of figures) {
-      expect(figure.params[0]?.kind, figure.id).toBe("dancer");
+      expect(["dancer", "group"], figure.id).toContain(figure.params[0]?.kind);
       expect(
-        figure.params.filter((spec) => spec.kind === "dancer"),
+        figure.params.filter((spec) => spec.kind === "dancer" || spec.kind === "group"),
         figure.id,
       ).toHaveLength(1);
     }
@@ -92,7 +92,9 @@ describe("FIGURES", () => {
     // for those moves." `elide: "stretch"` is the field D8 needs; no figure
     // tonight gives its beats away.
     for (const figure of figures) {
-      expect(figure.casts.partner, figure.id).toBe("stand");
+      // A figure that is the progression (a becket's shift) gives its beats
+      // away instead: with nobody to shift toward, the circle takes them (D8).
+      expect(figure.casts.partner, figure.id).toBe(figure.progresses ? "elide" : "stand");
       expect(figure.elide, figure.id).toBe("stretch");
     }
   });

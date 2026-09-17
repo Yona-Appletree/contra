@@ -8,6 +8,7 @@ import { resolveChoice, resolveNumber } from "../ir/Figure.js";
 import type { CompiledCall, CompiledSequence } from "../lang/compile.js";
 import type { Tempo } from "../units/Tempo.js";
 import { TAKE_BEATS } from "../units/limits.js";
+import { capsAtTempo } from "../units/caps.js";
 import type { ScheduleError, ScheduleWarning } from "./errors.js";
 import type { HoldNeed, SeamKind } from "./seams.js";
 import { holdNeeds } from "./seams.js";
@@ -88,6 +89,7 @@ interface Instance {
 
 export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Tempo): Schedule {
   const limits = limitsAtTempo(tempo);
+  const hipAccelCap = capsAtTempo(tempo).hip.accelPxPerBeat2;
   const errors: ScheduleError[] = [];
   const warnings: ScheduleWarning[] = [];
   const floor = initialFloor(dialect);
@@ -551,6 +553,25 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
                 });
                 continue;
               }
+              if (line.op.kind === "step") {
+                // A rock: a step along the facing, and the floor pose moves with it.
+                const me = poseOf(d);
+                const dir = dirOf(me.facing);
+                const to: Vec2 = [
+                  me.p[0] + dir[0] * line.op.forwardPx,
+                  me.p[1] + dir[1] * line.op.forwardPx,
+                ];
+                emitStep(
+                  d,
+                  span.from + line.beat,
+                  { to, facing: me.facing, pivot: 0, lengthPx: Math.abs(line.op.forwardPx) },
+                  call,
+                  "body",
+                  inst,
+                );
+                setPose(d, { p: to, facing: me.facing });
+                continue;
+              }
               const instr: Instr =
                 line.op.kind === "stand"
                   ? { op: "stand" }
@@ -586,22 +607,37 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     const sign = orbitSign(resolveChoice(w.sense, call0.params));
     const theta0 = new Map(dancers.map((d) => [d, bearing(axis, poseOf(d).p)]));
     const r = dist(axis, poseOf(dancers[0] as DancerId).p);
+    // The orbit's own cruise ramp: half a step to start from standing, half a
+    // step to stop; `progress[k]` is how far round the body is after step k.
+    // The rate cap is a cap on the **fastest step**, which with a ramp is a
+    // middle one, not on the average.
+    const lastWindow = from + n === inst.end - inst.exit || blend !== undefined;
+    // A spiral settles: the last beat of a swing is a landing, not a sprint,
+    // and the figure after it may well set off the other way.
+    const shares = fractionsFor(
+      dancers[0] as DancerId,
+      from,
+      n,
+      lastWindow && (blend !== undefined || stopsAfter(inst, dancers[0] as DancerId)),
+    );
+    const peakShare = Math.max(...shares);
+    const maxTurns = w.rateMaxTurnsPerBeat / peakShare;
     let turns: number;
     if (w.turns === "free") {
-      turns = freeTurns(inst, w, dancers, axis, sign, n);
+      turns = freeTurns(inst, w, dancers, axis, sign, n, maxTurns);
     } else {
       turns = resolveNumber(w.turns, call0.params);
     }
     let rate = turns / n;
-    if (rate > w.rateMaxTurnsPerBeat + 1e-9) {
+    if (turns > maxTurns + 1e-9) {
       errors.push({
         kind: "RateTooHigh",
-        message: `${inst.figure.id}: ${turns} turn(s) in ${n} beats is ${rate.toFixed(3)} turns/beat, over ${w.rateMaxTurnsPerBeat}`,
+        message: `${inst.figure.id}: ${turns} turn(s) in ${n} beats is ${(turns * peakShare).toFixed(3)} turns on its fastest beat, over ${w.rateMaxTurnsPerBeat}`,
         call: call0.id,
         span: call0.span,
       });
-      rate = w.rateMaxTurnsPerBeat;
-      turns = rate * n;
+      turns = maxTurns;
+      rate = turns / n;
     }
     inst.rate = rate;
     if (w.buzz) {
@@ -611,15 +647,6 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         emit(d, from + n - 1, 1, { op: "buzz", on: false }, call.id, "body", inst);
       }
     }
-    // The orbit's own cruise ramp: half a step to start from standing, half a
-    // step to stop; `progress[k]` is how far round the body is after step k.
-    const lastWindow = from + n === inst.end - inst.exit || blend !== undefined;
-    const shares = fractionsFor(
-      dancers[0] as DancerId,
-      from,
-      n,
-      lastWindow && !blend && stopsAfter(inst, dancers[0] as DancerId),
-    );
     const progress: number[] = [0];
     for (const f of shares) progress.push((progress[progress.length - 1] ?? 0) + f);
     const posAt = (d: DancerId, k: number): Vec2 => {
@@ -690,6 +717,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     axis: Vec2,
     sign: number,
     n: number,
+    maxTurns: number,
   ): number => {
     const d0 = dancers[0] as DancerId;
     const post = arrangementTarget(inst, d0, inst.figure.post.arrangement);
@@ -697,7 +725,6 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     const theta0 = bearing(axis, poseOf(d0).p);
     let fraction = (((thetaEnd - theta0) * sign) % 360) / 360;
     if (fraction < 0) fraction += 1;
-    const maxTurns = w.rateMaxTurnsPerBeat * n;
     const minTurns = (w.rateMinTurnsPerBeat ?? 0) * n;
     let turns = fraction;
     while (turns + 1 <= maxTurns + 1e-9) turns += 1;
@@ -750,7 +777,15 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     for (const d of inst.dancers) {
       const call = inst.calls.get(d) as CompiledCall;
       for (const need of holdNeeds(inst.figure.pre, call, d)) {
-        const pairKey = [need.dancer, need.with].sort().join("+") + ":" + need.hold;
+        const otherNeed = counterpartNeed(inst, need);
+        // One shared line per pair of hands: the same hold seen from the other
+        // side is the same seam, and a two-hand hold is two seams.
+        const pairKey =
+          [`${need.dancer}/${need.hand}`, `${otherNeed.dancer}/${otherNeed.hand}`]
+            .sort()
+            .join("+") +
+          ":" +
+          need.hold;
         if (done.has(pairKey)) continue;
         done.add(pairKey);
         const fd = floor[need.dancer];
@@ -762,7 +797,6 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           inst.notes.push(`${need.hold} with ${need.with} carried: already held`);
           continue;
         }
-        const otherNeed = counterpartNeed(inst, need);
         const reach = dist(fd.p, fo.p);
         if (reach > 2 * (ARM_REACH_PX - 4) + 1e-9 && inst.entry === 0) {
           errors.push({
@@ -888,6 +922,19 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     let need = 0;
     for (const d of inst.dancers)
       need = Math.max(need, beatsNeeded(poseOf(d), targets.get(d) as Pose, limits));
+    // A walk from standing to standing cannot cover as much in a beat as one
+    // step's length says: the hip's acceleration cap bounds it. Bang-bang from
+    // rest to rest covers `a · (n/2)²`, so `n ≥ 2 √(d / a)`.
+    // From standing, the same bound is the honest one whether or not the body
+    // then walks on: a body cannot be at walking speed a beat after standing.
+    const fromRest = inst.dancers.every((d) => !wasStepping(d, inst.start));
+    if (fromRest) {
+      for (const d of inst.dancers) {
+        const dPx = dist(poseOf(d).p, (targets.get(d) as Pose).p);
+        if (dPx > limits.tolerancePx)
+          need = Math.max(need, Math.ceil(2 * Math.sqrt(dPx / hipAccelCap)));
+      }
+    }
 
     // Back-chain: can the previous instance's body give up `need` beats for an exit?
     const prevs = [...new Set(inst.dancers.map((d) => neighbourOf(inst, d, -1)))];
@@ -1204,8 +1251,13 @@ function walkDirection(direction: "forward" | "back" | "left" | "right", facing:
 function counterpartNeed(inst: Instance, need: HoldNeed): HoldNeed {
   const call = inst.calls.get(need.with);
   if (call) {
-    const theirs = holdNeeds(inst.figure.pre, call, need.with).find((n) => n.with === need.dancer);
-    if (theirs) return theirs;
+    const theirs = holdNeeds(inst.figure.pre, call, need.with).filter(
+      (n) => n.with === need.dancer,
+    );
+    // Two hands joined (a two-hand hold): my right meets their left.
+    const opposite = theirs.find((n) => n.hand !== need.hand);
+    if (theirs.length > 1 && opposite) return opposite;
+    if (theirs[0]) return theirs[0];
   }
   return {
     dancer: need.with,

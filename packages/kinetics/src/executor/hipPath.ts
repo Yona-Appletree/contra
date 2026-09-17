@@ -8,7 +8,7 @@ import type { Tempo } from "../units/Tempo.js";
  * The hip and the facing, from one per-beat target each to a continuous
  * sampled path (DA10).
  *
- * A **C1 cubic Hermite** through the targets with Catmull-Rom tangents: the
+ * A **cubic Hermite** through the targets with natural-spline tangents (C2): the
  * hip is exactly on its target at every beat, and its velocity is continuous
  * across every beat boundary, so the seam between two figures is not a place
  * the motion can jump. The tangents are zero at the two ends and at any beat
@@ -86,33 +86,71 @@ export const hermite = (p0: number, p1: number, m0: number, m1: number, t: numbe
  * Catmull-Rom tangents, zeroed at the two ends and wherever `frozen` says the
  * dancer is standing still on both sides of a beat.
  */
+/**
+ * The tangents of the **natural cubic spline** through the values: the C2
+ * curve with zero second derivative at the ends, found by the tridiagonal
+ * solve `m[i-1] + 4 m[i] + m[i+1] = 3 (y[i+1] − y[i-1])`. It replaced
+ * Catmull-Rom's `(P[i+1] − P[i−1]) / 2` (C1 only) because the corners the
+ * scheduler cannot avoid — an entry walk turning into an orbit, a spiral
+ * landing and the next figure setting off the other way — overshot the hip's
+ * acceleration cap by a third under Catmull-Rom; the natural spline spreads
+ * the turn over the neighbouring beats instead. A beat the dancer stands
+ * still on both sides of keeps a zero tangent: a stop is a stop.
+ */
 const tangents = (values: readonly number[], frozen: readonly boolean[]): number[] => {
   const n = values.length;
   const out: number[] = new Array(n).fill(0);
-  for (let i = 1; i < n - 1; i++) {
-    out[i] = frozen[i] ? 0 : (values[i + 1]! - values[i - 1]!) / 2;
+  if (n < 2) return out;
+  if (n === 2) {
+    const m = values[1]! - values[0]!;
+    return [m, m];
   }
+  // Thomas algorithm on the natural-spline system.
+  const a: number[] = new Array(n).fill(1);
+  const b: number[] = new Array(n).fill(4);
+  const c: number[] = new Array(n).fill(1);
+  const r: number[] = new Array(n).fill(0);
+  b[0] = 2;
+  b[n - 1] = 2;
+  r[0] = 3 * (values[1]! - values[0]!);
+  r[n - 1] = 3 * (values[n - 1]! - values[n - 2]!);
+  for (let i = 1; i < n - 1; i++) r[i] = 3 * (values[i + 1]! - values[i - 1]!);
+  for (let i = 1; i < n; i++) {
+    const w = a[i]! / b[i - 1]!;
+    b[i] = b[i]! - w * c[i - 1]!;
+    r[i] = r[i]! - w * r[i - 1]!;
+  }
+  out[n - 1] = r[n - 1]! / b[n - 1]!;
+  for (let i = n - 2; i >= 0; i--) out[i] = (r[i]! - c[i]! * out[i + 1]!) / b[i]!;
+  for (let i = 0; i < n; i++) if (frozen[i]) out[i] = 0;
   return out;
 };
 
 /** Beats the dancer neither arrives at nor leaves: a genuine standstill. */
+/**
+ * Beats the dancer is standing on: no movement on **either** side. A beat a
+ * walk arrives at or leaves is included, so the curve into a stop ends with
+ * zero velocity and the standing span is flat — under a C2 spline a stop
+ * knot with a free tangent would let the hip drift past and come back.
+ */
 const still = (ps: readonly Vec2[]): boolean[] =>
   ps.map((p, i) => {
     const before = ps[i - 1];
     const after = ps[i + 1];
-    if (!before || !after) return false;
-    return (
-      Math.hypot(p[0] - before[0], p[1] - before[1]) < STILL_EPS &&
-      Math.hypot(after[0] - p[0], after[1] - p[1]) < STILL_EPS
-    );
+    const stillBefore =
+      before === undefined || Math.hypot(p[0] - before[0], p[1] - before[1]) < STILL_EPS;
+    const stillAfter =
+      after === undefined || Math.hypot(after[0] - p[0], after[1] - p[1]) < STILL_EPS;
+    return stillBefore || stillAfter;
   });
 
 const stillScalar = (vs: readonly number[]): boolean[] =>
   vs.map((v, i) => {
     const before = vs[i - 1];
     const after = vs[i + 1];
-    if (before === undefined || after === undefined) return false;
-    return Math.abs(v - before) < STILL_EPS && Math.abs(after - v) < STILL_EPS;
+    const stillBefore = before === undefined || Math.abs(v - before) < STILL_EPS;
+    const stillAfter = after === undefined || Math.abs(after - v) < STILL_EPS;
+    return stillBefore || stillAfter;
   });
 
 /**

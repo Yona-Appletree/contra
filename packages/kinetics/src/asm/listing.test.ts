@@ -21,10 +21,10 @@ describe("the listing", () => {
     expect(lines).toMatchSnapshot();
     expect(lines[0]).toBe("beat 0 · body · stand · look at robin · bow 25°");
     expect(lines).toContain(
-      "beat 10 · exit · step back and to the left 30 cm · turn an eighth left · look at robin · take right hands with robin — allemande-R",
+      "beat 10 · exit · step back and to the left 35 cm · turn an eighth left · look at robin · take right hands with robin — allemande-R",
     );
     expect(lines).toContain(
-      "beat 11 · exit · step forward and to the left 25 cm · turn an eighth left · look at robin",
+      "beat 11 · exit · step forward and to the left 15 cm · turn an eighth left · look at robin",
     );
     expect(lines.some((l) => l.startsWith("beat 18 · exit"))).toBe(true);
   });

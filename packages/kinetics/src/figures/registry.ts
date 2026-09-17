@@ -2,6 +2,11 @@ import type { FigureIR } from "../ir/Figure.js";
 import { allemande } from "./allemande.js";
 import { bow } from "./bow.js";
 import { doSiDo } from "./doSiDo.js";
+import { balance } from "./balance.js";
+import { circle } from "./circle.js";
+import { longLines } from "./longLines.js";
+import { shift } from "./shift.js";
+import { swing } from "./swing.js";
 
 /**
  * Every figure the compiler knows, by the name a call uses. A figure's `id`
@@ -9,13 +14,18 @@ import { doSiDo } from "./doSiDo.js";
  * this table has not got is a compile error with the call's span, never a
  * silent stand.
  *
- * Three tonight. Butter needs the rest (shift, circle, swing, long lines,
- * chain, hey, balance) and they arrive as more data, not more code.
+ * The pair's three, and Butter's at floor level (shift, circle, swing, long
+ * lines, balance; the chain and the hey follow) — more data, not more code.
  */
 export const FIGURES: FigureRegistry = {
   [bow.id]: bow,
   [doSiDo.id]: doSiDo,
   [allemande.id]: allemande,
+  [shift.id]: shift,
+  [circle.id]: circle,
+  [swing.id]: swing,
+  [longLines.id]: longLines,
+  [balance.id]: balance,
 };
 
 /** The figures a compile is run against. */

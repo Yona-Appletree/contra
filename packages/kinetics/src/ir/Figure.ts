@@ -51,6 +51,13 @@ export interface FigureIR {
    * because a figure whose `self` is absent is never scheduled at all.
    */
   casts: Readonly<Partial<Record<Role, CastRule>>>;
+  /**
+   * This figure **is** the progression: when it ends, every dancer's seating
+   * moves one place the way their couple travels, so the selects that follow
+   * name the new neighbours (a becket's shift left; a duple's pass through).
+   * The dialect owns what "one place" means.
+   */
+  progresses?: boolean;
 }
 
 /**
@@ -194,7 +201,11 @@ export interface IntrinsicLine {
  * scheduler cannot plan for it.
  */
 export type IntrinsicOp =
-  { kind: "stand" } | { kind: "lean"; deg: number } | { kind: "look"; at: LookTarget };
+  | { kind: "stand" }
+  | { kind: "lean"; deg: number }
+  | { kind: "look"; at: LookTarget }
+  /** A step of so many px along the facing (negative = back): a balance's rock. */
+  | { kind: "step"; forwardPx: number };
 
 /**
  * Where a head points. A target is resolved to a **point** — the counterpart's
@@ -223,8 +234,8 @@ export type Choice<T extends string> =
       cases?: Readonly<Record<string, T>>;
     };
 
-/** A number that may be taken from one of the call's parameters. */
-export type NumberValue = number | { param: string };
+/** A number that may be taken from one of the call's parameters, optionally scaled (`places / 4` turns). */
+export type NumberValue = number | { param: string; scale?: number };
 
 /** A call's resolved arguments, by parameter name. Dancers live in the cast. */
 export type Params = Readonly<Record<string, string | number>>;
@@ -250,7 +261,7 @@ export const resolveNumber = (value: NumberValue, params: Params): number => {
   if (typeof number !== "number") {
     throw new Error(`parameter "${value.param}" is not a number`);
   }
-  return number;
+  return number * (value.scale ?? 1);
 };
 
 /** The parameters a call gets when it says nothing: every declared default. */
