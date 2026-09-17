@@ -23,21 +23,6 @@ import { relationTo, sayWhoIsWhere } from "./seam.js";
  * people, one vocabulary.
  */
 
-/** How far two places may differ and still be the same place, px. */
-export const HOME_PX = 1.5;
-
-/**
- * Whether a dancer ends on the place they set off from.
- *
- * The place only, never the facing. A station's own `facing` is the formation's
- * progression axis — a duple improper one faces *down the hall* on paper — and
- * not where a dancer is looking, so a figure's first call in a dance starts
- * from that convention and ends facing across the set.
- */
-export function isHome(start: Place, end: Place): boolean {
-  return Math.hypot(end.across - start.across, end.along - start.along) <= HOME_PX;
-}
-
 /**
  * Where a figure leaves this group, as the hint under its teach.
  *

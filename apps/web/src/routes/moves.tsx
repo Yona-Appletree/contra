@@ -919,8 +919,11 @@ function DanceIndex({ entry }: { entry: MoveEntry }): JSX.Element | null {
  * sentence a caller would say, and the teach is behind a disclosure for
  * whoever wants it.
  *
- * `describe` is still the fallback for a figure with no text file. Nothing in
- * the library is in that state, and the line says so plainly if one ever is.
+ * **The old `FigureDef.describe` contract is gone** (M13, P7): every figure
+ * has a `data/figures/<id>.json` file now, so the only way this row falls
+ * back to a plain message is a call's own tuning resolving to `texts:
+ * undefined` — a `{who}` the vocabulary has no words for, say — and the line
+ * says so plainly rather than reading a field the library no longer carries.
  */
 function MoveText({
   call,
@@ -944,7 +947,7 @@ function MoveText({
     return (
       <p className="moves-row-describe">
         {label}
-        {call.describe ?? "No text: this figure has no data/figures file yet."}
+        No text: this call's own tuning has no words the vocabulary can say.
       </p>
     );
   }

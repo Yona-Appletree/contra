@@ -145,17 +145,6 @@ export interface GalleryCall {
   /** What the caller says for it — the dance's own words where a dance gave any. */
   call: string;
   /**
-   * What the dancers actually do, in the figure's own prose: `FigureDef.describe`,
-   * written by F3a. `undefined` only if a figure has none, which the registry
-   * test makes hard.
-   *
-   * The fallback now, not the text the row shows: W1 moved the prose into
-   * `data/figures/<id>.json` and {@link GalleryCall.texts} is what the page
-   * reads. It stays until the cleanup that removes `describe` from the figure
-   * contract altogether.
-   */
-  describe?: string;
-  /**
    * The figure's seven texts, resolved against **this** call's own parameters
    * and the dancer it names (`data/figures/<id>.json`).
    *
@@ -632,7 +621,17 @@ export function figureTile(
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
   const beats = variant?.beats ?? found?.call.beats ?? def.beats;
   const params = variant === undefined ? withoutFrom(found?.call.params) : { ...variant.params };
-  const callText = found?.call.call ?? def.call;
+  const who = variant === undefined ? found?.call.who : variant.who;
+  // **No reader of `FigureDef.call` left in this file** (M13, P7): a dance's
+  // own call is a flourish (kept), and where no dance calls this figure the
+  // fallback is the text layer's own longest form — the same computation the
+  // calling card and the note card read — rather than the coded definition's
+  // retired `call` string.
+  const callText =
+    found?.call.call ??
+    textsFor({ figure: id, beats, params, ...(who === undefined ? {} : { who }) })?.forms[0]
+      ?.text ??
+    id.toUpperCase();
   const notes: string[] = [...(variant?.notes ?? [])];
   if (engine !== asked) notes.push(FORCED_ENGINE_NOTE);
 
@@ -647,7 +646,6 @@ export function figureTile(
     return engineFigureTile(id, def, formation, beats, params, callText, found, engine);
   }
 
-  const who = variant === undefined ? found?.call.who : variant.who;
   const one: ContraCall = {
     figure: id,
     beats,
@@ -702,7 +700,7 @@ export function figureTile(
     kind: variant === undefined ? "figure" : "variant",
     key: variant?.key ?? id,
     title: variant?.title ?? id,
-    calls: [listed(run.calls[0]!, callText, run.group, def.describe, textWhoOf(id, who))],
+    calls: [listed(run.calls[0]!, callText, run.group, textWhoOf(id, who))],
     under: id,
     formation: formation.id,
     group: run.group,
@@ -847,7 +845,7 @@ function engineFigureTile(
     kind: "figure",
     key: id,
     title: id,
-    calls: [listed(calls[0]!, callText, group, def.describe)],
+    calls: [listed(calls[0]!, callText, group)],
     under: id,
     formation: formation.id,
     group,
@@ -957,8 +955,10 @@ export function seamTile(
     key,
     title: `${a.figure} → ${b.figure}`,
     calls: run.calls.map((c) => {
-      const def = registry.get(c.figure);
-      return listed(c, c.call ?? def.call, run.group, def.describe);
+      // No reader of `FigureDef.call` here either (M13, P7): the fallback is
+      // the text layer's own longest form, same as `figureTile`'s.
+      const callText = c.call ?? textsFor(c)?.forms[0]?.text ?? c.figure.toUpperCase();
+      return listed(c, callText, run.group);
     }),
     under: a.figure,
     formation: formation.id,
@@ -1486,7 +1486,6 @@ const listed = (
   call: FigureCall,
   text: string,
   group: Group,
-  describe?: string,
   /** Who the texts name, where the tile's own call does not say; see {@link textWhoOf}. */
   who?: FigureCall["who"],
 ): GalleryCall => {
@@ -1496,7 +1495,6 @@ const listed = (
     figure: call.figure,
     beats: call.beats,
     call: text,
-    ...(describe === undefined ? {} : { describe }),
     ...(texts === undefined ? {} : { texts }),
     ...(hint === undefined ? {} : { hint }),
     params: withoutFrom(call.params),

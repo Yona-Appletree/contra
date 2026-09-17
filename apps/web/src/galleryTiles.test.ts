@@ -142,9 +142,9 @@ describe("what a row reads off a tile (U2)", () => {
   // dancer's arms and all ~54 of them in one case share one vitest budget.
   test.each(tiles)("has the figure's own seven texts and six measured numbers: $key", (tile) => {
     for (const call of tile.calls) {
-      // M13: the row reads `data/figures/<id>.json`, resolved against this
-      // tile's own parameters and the dancer the call names; `describe` is only
-      // the fallback.
+      // M13, P7: the row reads `data/figures/<id>.json`, resolved against this
+      // tile's own parameters and the dancer the call names. `GalleryCall` no
+      // longer carries a `describe` fallback at all.
       const texts = call.texts;
       expect(texts, `${tile.key}: ${call.figure} has no texts`).toBeDefined();
       for (const text of [

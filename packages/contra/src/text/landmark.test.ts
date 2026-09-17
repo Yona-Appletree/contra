@@ -7,7 +7,7 @@ import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { probeGroup } from "../figures/testing.js";
 import { dataOnlyDefinitions } from "../library/figures/index.js";
 import { figureDefOf } from "./figureText.js";
-import { isHome, landmark } from "./landmark.js";
+import { landmark } from "./landmark.js";
 import type { Place } from "./seam.js";
 import { relationTo, sayWhoIsWhere } from "./seam.js";
 
@@ -51,13 +51,6 @@ describe("the vocabulary of relations", () => {
     );
   });
 
-  it("is home on the place alone, never on the facing", () => {
-    // A duple improper station faces down the hall on paper and every figure
-    // leaves its dancers facing across the set, so a facing test would call
-    // every opening long lines a journey.
-    expect(isHome(at(16, -10, 90), at(16, -10, 180))).toBe(true);
-    expect(isHome(at(16, -10), at(16, 10))).toBe(false);
-  });
 });
 
 describe("the landmark a figure ends on", () => {

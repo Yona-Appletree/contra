@@ -175,8 +175,7 @@ export function MoveTracesPage({
           )}
           <p className="text-sm" data-testid="move-traces-describe">
             {call.texts?.walkthrough.teach ??
-              call.describe ??
-              "No text: this figure has no data/figures file yet."}
+              "No text: this call's own tuning has no words the vocabulary can say."}
           </p>
           {call.hint === undefined ? null : (
             <p className="text-sm italic text-muted-foreground" data-testid="move-traces-hint">
