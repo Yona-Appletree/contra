@@ -19,11 +19,7 @@ export type Value =
   | { kind: "group"; group: Group }
   | { kind: "anchor"; anchor: Anchor }
   | { kind: "nobody" }
-  | { kind: "list"; items: readonly Value[] }
-  /** `duple-progression(…)` and the like: a plan for `next`, run by `progress`. */
-  | { kind: "progression"; name: string; args: Readonly<Record<string, Value>> }
-  /** `alternate(minor-set)`, `all(couple)`: which groups are seated at beat 0. */
-  | { kind: "seating"; name: string; args: Readonly<Record<string, Value>> };
+  | { kind: "list"; items: readonly Value[] };
 
 export type Env = ReadonlyMap<string, Value>;
 
@@ -57,10 +53,6 @@ export function describe(v: Value): string {
       return "nobody";
     case "list":
       return `[${v.items.map(describe).join(", ")}]`;
-    case "progression":
-      return `${v.name} progression`;
-    case "seating":
-      return `${v.name} seating`;
   }
 }
 
