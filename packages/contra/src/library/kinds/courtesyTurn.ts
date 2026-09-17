@@ -45,8 +45,8 @@ import type { ShapeInput } from "../interpret.js";
  * through's is the textbook **rigid** turn: the couple walks over, closes up
  * short of the far line, and the whole of it — both bodies *and* the line
  * between them — pivots a half about a point near the lark. The chain's is the
- * lark's own backward **orbit**, which the robin joins a quarter of the way
- * through, having pulled the other robin by in the middle.
+ * lark's own backward **orbit**, which the robin joins as it begins, having
+ * pulled the other robin by in the middle.
  *
  * Three things are true of both, and the geometry that makes them true lives in
  * `figures/courtesyTurn.ts` — where F7 through F13 proved it — rather than
@@ -240,12 +240,12 @@ function rigidTurn(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
  * **The chain**: the two robins pull by the right in the middle, and each joins
  * the backward orbit of the lark whose couple she is arriving at.
  *
- * The lark is moving from the first beat, not waiting on his place: he backs
- * round a small circle centred half a hold off his own place toward hers,
- * turning as he goes, so his back is always to that centre. She reaches him a
- * quarter of the way round it, at the far side of his circle, moving with the
- * orbit's own velocity so she joins it rather than being picked up standing
- * still.
+ * The lark waits on his place while the robins cross the set and then receives
+ * her (M10c): from the join he backs round a small circle centred half a hold
+ * off his own place toward hers, turning as he goes, so his back is always to
+ * that centre. She reaches him at the far side of that circle as it begins,
+ * moving with the orbit's own velocity so she joins it rather than being picked
+ * up standing still.
  *
  * Which lark is *her* lark is the couple she lands on, not the nearest one on
  * the floor: in duple improper the two robins stand on a diagonal, so the lark
@@ -258,6 +258,7 @@ function orbitChain(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
   const turnBeats = beats - pullBeats;
   const openBeats = Math.min(evalNumber(shape.openBeats, env), turnBeats / 2);
   const passPx = evalNumber(shape.passPx, env);
+  const larkLead = Math.min(Math.max(evalNumber(shape.larkLead, env), 0), pullBeats);
 
   const chaining = chainingDancers(shape, input);
   const [first, second] = chaining;
@@ -293,6 +294,9 @@ function orbitChain(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
       // between, exactly like a couple that spins, so it takes that rule.
       hold: stepInHold(ctx.spacing, pivot, pivots),
       joinBeat: pullBeats,
+      // M10c: `larkLead` is how long before the join his own turn begins, so
+      // that a chain's lark receives her rather than orbiting from beat zero.
+      turnFrom: Math.max(0, pullBeats - larkLead),
       passPx,
       beats,
       openBeats,
@@ -309,9 +313,8 @@ function orbitChain(shape: CourtesyTurnShape, input: ShapeInput): FigurePlan {
     const turning = turns.get(role);
     if (!turning) return start;
     if (t <= pullBeats) {
-      // An orbit turn is already moving both of them before the take — he is a
-      // quarter of the way round his circle and she has to arrive on it at its
-      // own speed — so it places them itself.
+      // An orbit turn places the approach itself: she has to arrive on his
+      // circle at its own speed, which a straight walk cannot do.
       const { approach } = turning.turn;
       if (approach) return approach(turning.mine, t);
       return start;

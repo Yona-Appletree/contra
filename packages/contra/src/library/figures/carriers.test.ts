@@ -406,15 +406,17 @@ describe("the robins chain as data", () => {
     {
       why:
         CRUISE_WHY +
-        ". The chain moves furthest of the nine, and deliberately: the lark's " +
-        "orbit now turns at a **constant rate** for the middle of the figure, " +
-        "so at the two-beat join he is about 77 degrees round instead of 56, " +
-        "which is the direction director debt 5 asked for. The robin is handed " +
-        "on to that orbit at its own analytic speed, so she still joins it " +
-        "rather than being picked up standing still",
-      position: 13.4947,
-      facing: 50.0745,
-      hand: 13.5385,
+        ". The chain used to move furthest of the nine — 13.4947 px, because the " +
+        "cruise carried the lark further round his orbit by the join than the " +
+        "coded twin's smoothstep did. **M10c closes almost all of that gap** " +
+        "(1.2260 px): the user's ruling of 2026-09-16 gives the pull by four " +
+        "beats of eight and the couple's turn the other four, and the lark's " +
+        "own turn now starts at the join in both figures, so there is no " +
+        "quarter-orbit for the two profiles to disagree over. What is left is " +
+        "the cruise against the smoothstep inside the turn itself",
+      position: 1.226,
+      facing: 12.24,
+      hand: 1.254,
       endPx: 0,
       endDeg: 0,
     },

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { angleDiff, dirOf, dist, rightOf } from "@caller/core";
 import { BECKET } from "../formation/becket.js";
-import { CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
+import {
+  CHAIN_JOIN_BEAT,
+  CHAIN_LARK_LEAD_BEATS,
+  CHAIN_PASS_PX,
+  robinsChain,
+} from "./robins-chain.js";
 import {
   figureMoves,
   figureProblems,
@@ -12,8 +17,14 @@ import {
 } from "./testing.js";
 
 describe("the chain's only regime, since A6", () => {
-  it("is the lark's orbit, joined a quarter of the way through", () => {
-    expect(CHAIN_JOIN_BEAT).toBe(2);
+  // **M10c**, on the user's ruling of 2026-09-16 — "in the chain the pull-by
+  // is still too fast and the turn too slow. it should be about 4 beats each".
+  // Four beats to pull by and cross, four for the courtesy turn, and the lark's
+  // own turn starts at the join rather than at beat one: he receives her.
+  it("is the lark's orbit, joined half way through", () => {
+    expect(CHAIN_JOIN_BEAT).toBe(4);
+    expect(CHAIN_LARK_LEAD_BEATS).toBe(0);
+    expect(robinsChain.defaults.larkLead).toBe(CHAIN_LARK_LEAD_BEATS);
     expect(robinsChain.defaults.joinBeat).toBe(CHAIN_JOIN_BEAT);
     expect(robinsChain.defaults.passPx).toBe(CHAIN_PASS_PX);
   });
@@ -97,13 +108,15 @@ describe("robins chain", () => {
       expect((d[0] * step[0] + d[1] * step[1]) / speed, `at beat ${t.toFixed(3)}`).toBeLessThan(0);
     }
 
-    // Out of the set at the half, back in at the end, both of them together.
+    // Out of the set half way through the **turn** — beat 6 of 8 since M10c,
+    // where it was beat 4 while the orbit still spanned the whole figure — and
+    // back in at the end, both of them together.
     // Read against his own starting facing rather than a number, so the probe
     // frame's tilt cannot make this a test of the transform.
     const facesIn = at("1L", 0).facing;
     for (const id of ["1L", "2R"]) {
       expect(
-        Math.abs(angleDiff(at(id, 4).facing, facesIn + 180)),
+        Math.abs(angleDiff(at(id, (CHAIN_JOIN_BEAT + 8) / 2).facing, facesIn + 180)),
         `${id} at the half`,
       ).toBeLessThan(1e-9);
       expect(Math.abs(angleDiff(at(id, 8).facing, facesIn)), `${id} at the end`).toBeLessThan(1e-9);

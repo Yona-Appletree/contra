@@ -268,6 +268,20 @@ function robinsChainChecks(params: CheckParams): FigureChecks {
   // the couple opens out over the last 1.5 beats — `CHAIN_JOIN_BEAT` and
   // `OPEN_BEATS` are `robins-chain.ts`'s own numbers for the shipped default.
   const rigid = win(CHAIN_JOIN_BEAT, 6.5);
+  /**
+   * The lark's own turn: from the join to the end of the figure.
+   *
+   * **M10c**, and it is the user's ruling of 2026-09-16 — "in the chain the
+   * pull-by is still too fast and the turn too slow. it should be about 4 beats
+   * each" — that moved it. The orbit used to span the whole eight beats, so
+   * every number below that was written as a beat of the *figure* (the couple
+   * facing out at beat 4, three samples of his circle spread over 0 to 8) is
+   * now a beat of his *turn*. None of the assertions changed; where they are
+   * read did.
+   */
+  const turn = win(CHAIN_JOIN_BEAT, beats);
+  /** Half way through that turn, which is where the couple faces out of the set. */
+  const facesOut = (CHAIN_JOIN_BEAT + beats) / 2;
   // Each lark's own circle centre, measured rather than recomputed from the
   // figure's own formula: `orbitTurn` puts it `hold / 2` off the lark's place
   // toward the robin's, not at the true midpoint of the two original places
@@ -275,25 +289,27 @@ function robinsChainChecks(params: CheckParams): FigureChecks {
   // circle instead of assuming the number. The lark's radius is constant for
   // the whole eight beats (only the robin's opens out), so any three distinct
   // samples of his own track determine it.
-  const centre1L = circumcentre(track, "1L", beats);
-  const centre2L = circumcentre(track, "2L", beats);
+  const centre1L = circumcentre(track, "1L", turn.from, turn.to);
+  const centre2L = circumcentre(track, "2L", turn.from, turn.to);
   const results = [
-    // The pull by crosses right shoulders near the set's own centre, close to
-    // beat 1 at the shipped join beat of 2.
+    // The pull by crosses right shoulders near the set's own centre, at some
+    // point in the four beats the robins have to cross it (M10c).
     passes(track, "1R", "2R", {
       within: CLOSE_PX,
       near: SET_CENTRE,
       nearPx: CENTRE_PX,
       shoulder: "R",
-      beatWindow: win(0, 2),
+      beatWindow: win(0, CHAIN_JOIN_BEAT),
     }),
-    // The lark is walking backward from the first sample: an orbit has no
-    // separate turn phase the way a rigid pivot does.
-    walksBackwardThroughout(track, "1L", win(0, 8)),
-    walksBackwardThroughout(track, "2L", win(0, 8)),
+    // The lark walks backward at every sample he moves on: an orbit has no
+    // separate turn phase the way a rigid pivot does. M10c: he receives her
+    // rather than orbiting from beat one, so the samples that count are his
+    // turn's.
+    walksBackwardThroughout(track, "1L", turn),
+    walksBackwardThroughout(track, "2L", turn),
     // He sweeps the whole circle once, about the point between the two places.
-    orbitsWholeTurn(track, "1L", centre1L, win(0, 8)),
-    orbitsWholeTurn(track, "2L", centre2L, win(0, 8)),
+    orbitsWholeTurn(track, "1L", centre1L, turn),
+    orbitsWholeTurn(track, "2L", centre2L, turn),
     // She joins his orbit at its antipode, at the join beat exactly.
     joinsAtAntipode(track, "1L", "2R", centre1L, CHAIN_JOIN_BEAT),
     joinsAtAntipode(track, "2L", "1R", centre2L, CHAIN_JOIN_BEAT),
@@ -309,11 +325,14 @@ function robinsChainChecks(params: CheckParams): FigureChecks {
     onHisRightThroughout(track, "2L", "1R", rigid),
     handsRideTheBodies(track, "1L", "2R", rigid),
     handsRideTheBodies(track, "2L", "1R", rigid),
-    // Both dancers of both couples face out of the set at the halfway point.
-    facesRelativeToCentre(track, "1L", 4, "out"),
-    facesRelativeToCentre(track, "2R", 4, "out"),
-    facesRelativeToCentre(track, "2L", 4, "out"),
-    facesRelativeToCentre(track, "1R", 4, "out"),
+    // Both dancers of both couples face out of the set half way through the
+    // turn — beat 6 of 8 since M10c, where it was beat 4 while the orbit still
+    // spanned the whole figure. A half turn from the take is a half turn from
+    // the take whenever the take is.
+    facesRelativeToCentre(track, "1L", facesOut, "out"),
+    facesRelativeToCentre(track, "2R", facesOut, "out"),
+    facesRelativeToCentre(track, "2L", facesOut, "out"),
+    facesRelativeToCentre(track, "1R", facesOut, "out"),
     // And both face in again at the end, the robin on the lark's right.
     endsBesideOnTheRight(track, "1L", "2R"),
     endsBesideOnTheRight(track, "2L", "1R"),
@@ -767,12 +786,20 @@ function circumcentreOf(a: Vec2, b: Vec2, c: Vec2): Vec2 {
  * {@link robinsChainChecks}'s own `centre1L`/`centre2L`. A circle needs three
  * points and the lark's radius is constant for the whole figure, so three
  * samples spread across the window pin it down exactly.
+ *
+ * **The window matters since M10c.** A chain's lark stands on his place while
+ * the robins pull by and turns over the last four beats, so three samples
+ * spread across the whole *figure* put two of them on the same stationary
+ * point, and three points that are not distinct have no circumcentre at all —
+ * the assertion read `NaN°` and passed vacuously. The window handed in is his
+ * own turn.
  */
-function circumcentre(track: Track, id: string, beats: Beat): Vec2 {
+function circumcentre(track: Track, id: string, from: Beat, to: Beat): Vec2 {
+  const span = to - from;
   return circumcentreOf(
-    track.pose(id, track.indexAt(0)).p,
-    track.pose(id, track.indexAt(beats / 3)).p,
-    track.pose(id, track.indexAt((2 * beats) / 3)).p,
+    track.pose(id, track.indexAt(from)).p,
+    track.pose(id, track.indexAt(from + span / 3)).p,
+    track.pose(id, track.indexAt(from + (2 * span) / 3)).p,
   );
 }
 
