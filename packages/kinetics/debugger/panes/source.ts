@@ -47,7 +47,10 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
     if (!view) return;
     text.readOnly = mode.value !== "dance";
     if (mode.value === "dance") text.value = view.run.source;
-    else if (mode.value === "everything") text.value = expandSource(view.run.source);
+    else if (mode.value.startsWith("file:")) {
+      const name = mode.value.slice(5);
+      text.value = filesFor(view.run.source).find(([n]) => n === name)?.[1] ?? "";
+    } else if (mode.value === "everything") text.value = expandSource(view.run.source);
     else
       text.value =
         view.run.floor === undefined
