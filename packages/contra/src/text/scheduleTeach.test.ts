@@ -110,6 +110,17 @@ describe("the hey's teach, generated", () => {
     expect(sentencesOf({ ricochet: "robins@2" })[1]).toBe(sentencesOf({})[1]);
   });
 
+  it("bounces where a written pass says so, the other legal spelling (P7)", () => {
+    // On the Prowl's B2, verbatim: `RR NL LR PL RR NL L! NL~`. Before P7 this
+    // spelling parsed fine (`L!` sets `PassToken.ricochet`) and produced an
+    // *ordinary* pass clause anyway, because only the `ricochet` parameter was
+    // read. The `ricochet` parameter and a written `!` are both legal and must
+    // read the same.
+    const written = { passes: "RR NL LR PL RR NL L! NL~" };
+    expect(sentencesOf(written)[1]).toContain("bounce back off");
+    expect(sentencesOf(written)[1]).not.toContain("larks by the right");
+  });
+
   it("stands one dancer out of a hey for three, and says so first", () => {
     const said = sentencesOf({ for: 3, idle: "2L" });
     expect(said[1]).toBe(

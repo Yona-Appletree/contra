@@ -113,7 +113,15 @@ function sentenceFor(
       clauses.push("loop around");
       continue;
     }
-    if (ricochets !== undefined && ricochets.role === role && ricochets.at === index + 1) {
+    // **Both ricochet spellings say the same thing** (P7, the PR body's own
+    // finding): the `ricochet` parameter (`"robins@2"`) and a pass written `!`
+    // in the list itself (`L!`, On the Prowl's B2) are both legal, and a written
+    // one was reaching this function without ever being read — the pass looked
+    // like an ordinary meeting and got an ordinary clause.
+    if (
+      token.ricochet === true ||
+      (ricochets !== undefined && ricochets.role === role && ricochets.at === index + 1)
+    ) {
       // The lane is the meeting's, not the word "middle": `ricochet: "robins@2"`
       // names a **pass of the list**, and the second pass of an ordinary hey is
       // at the lanes' edges.
