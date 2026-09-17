@@ -47,11 +47,25 @@ export interface RepeatStmt {
  */
 export interface IfStmt {
   kind: "if";
+  /** The bound name, for a `bound` condition; kept for the panes that light it. */
   name: string;
+  condition: Condition;
   then: readonly Stmt[];
   else: readonly Stmt[];
   span: Span;
 }
+
+/**
+ * What an `if` / `when` branches on (DA14, D7): a binding being somebody,
+ * the time through — `first-time`, `last-time` — or the negation of one of
+ * those. *"end effects are just conditionals on selects"*, and the first
+ * time through is a conditional on the loop.
+ */
+export type Condition =
+  | { kind: "bound"; name: string }
+  | { kind: "first-time" }
+  | { kind: "last-time" }
+  | { kind: "not"; of: Condition };
 
 /** `dance { … }` — a name for a run of statements, inlined where it is called. */
 export interface DefineStmt {
@@ -63,7 +77,10 @@ export interface DefineStmt {
 
 /** A positional argument: a bare word (a choice or a binding), or a number. */
 export type Arg =
-  { kind: "word"; value: string; span: Span } | { kind: "number"; value: number; span: Span };
+  | { kind: "word"; value: string; span: Span }
+  | { kind: "number"; value: number; span: Span }
+  /** A quoted string: a hey's pass list, `"WR;NL;MR;PL;WR;NL;MR"`. */
+  | { kind: "string"; value: string; span: Span };
 
 /** Where a node sits in the source: character offsets, and the 1-based line. */
 export interface Span {

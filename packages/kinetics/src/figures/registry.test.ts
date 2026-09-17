@@ -94,7 +94,7 @@ describe("FIGURES", () => {
     for (const figure of figures) {
       // A figure that is the progression (a becket's shift) gives its beats
       // away instead: with nobody to shift toward, the circle takes them (D8).
-      expect(figure.casts.partner, figure.id).toBe(figure.progresses ? "elide" : "stand");
+      expect(figure.casts.partner, figure.id).toBe(figure.id === "shift" ? "elide" : "stand");
       expect(figure.elide, figure.id).toBe("stretch");
     }
   });

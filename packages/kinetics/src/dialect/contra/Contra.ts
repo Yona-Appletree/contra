@@ -60,19 +60,32 @@ export function contraDialect(options: ContraOptions): Dialect {
         : roleOfId(dancer) === "lark"
           ? "left"
           : "right",
-    initial: (): SetState => stateOf(set),
+    // At rest a becket set is **aligned**: every couple faces a couple. The
+    // lattice's own beat 0 (Butter's `startPlaces`, half a place back) is one
+    // progression before that, so the rest seating is the lattice progressed
+    // once — and the first time through needs no shift.
+    initial: (): SetState =>
+      stateOf(options.formation === "becket" ? progressSeating(set, BECKET_PROGRESSION_STEP) : set),
     select: (selector, from, state): DancerId | undefined => {
       if (!isContraSelector(selector)) throw unknownSelector(dialect, selector);
       const seats = seatingOf(state);
       const seat = seats.seatOf(from);
       if (seat === undefined) return undefined;
-      return seats.at(slotFor(seats.formation, selector, seat));
+      // A couple waiting out at an end has its partner and nobody else.
+      if (seat.waiting && selector !== "self" && selector !== "partner") return undefined;
+      const found = seats.at(slotFor(seats.formation, selector, seat));
+      if (found !== undefined && seats.seatOf(found)?.waiting && selector !== "partner")
+        return undefined;
+      return found;
     },
     selectors: CONTRA_SELECTORS,
     groups: CONTRA_GROUPS,
     group: (word, from, state): DancerId[] | undefined => {
       if (!isContraGroup(word)) throw unknownSelector(dialect, word);
-      return handsFour(seatingOf(state), from);
+      const seats = seatingOf(state);
+      if (seats.seatOf(from)?.waiting) return undefined;
+      const four = handsFour(seats, from);
+      return four?.some((id) => seats.seatOf(id)?.waiting) ? undefined : four;
     },
     // One progression: every couple one position the way it travels (a
     // becket's shift left is one dancer place, 20 px, on each line — the two

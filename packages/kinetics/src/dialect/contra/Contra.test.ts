@@ -36,26 +36,37 @@ describe("the contra dialect", () => {
     ]);
   });
 
-  it("stands them where the formation says", () => {
+  it("stands them where the formation says, aligned at rest", () => {
+    // At rest a becket set is aligned — every couple faces a couple — which is
+    // the lattice's Butter start (half a place back) progressed once.
     const state = contraDialect({ formation: "becket", couples: 2 }).initial();
-    expect(state.dancers["1L"]).toEqual({ p: [-16, 10], facing: 0 });
-    expect(state.dancers["2R"]).toEqual({ p: [16, -30], facing: 180 });
+    expect(state.dancers["1L"]).toEqual({ p: [-16, -10], facing: 0 });
+    expect(state.dancers["1R"]).toEqual({ p: [-16, 10], facing: 0 });
+    expect(state.dancers["2L"]).toEqual({ p: [16, 10], facing: 180 });
+    expect(state.dancers["2R"]).toEqual({ p: [16, -10], facing: 180 });
   });
 
   it("resolves a selector from each dancer's own point of view", () => {
     const dialect = contraDialect({ formation: "becket", couples: 6 });
     const state = dialect.initial();
     expect(dialect.select("partner", "1L", state)).toBe("1R");
-    expect(dialect.select("neighbor", "1L", state)).toBe("4R");
-    expect(dialect.select("neighbor", "4R", state)).toBe("1L");
-    expect(dialect.select("neighbor", "2L", state)).toBeUndefined();
+    expect(dialect.select("neighbor", "1L", state)).toBe("2R");
+    expect(dialect.select("neighbor", "2R", state)).toBe("1L");
+    expect(dialect.select("neighbor", "2L", state)).toBe("1R");
+    // After a progression the couples at the two ends have nobody across.
+    const after = dialect.progress!(state);
+    expect(dialect.select("neighbor", "1L", after)).toBeUndefined();
+    expect(dialect.select("neighbor", "6R", after)).toBeUndefined();
+    expect(dialect.select("partner", "1L", after)).toBe("1R");
   });
 
   it("resolves a group the same way, and answers nobody at the end of a line", () => {
     const dialect = contraDialect({ formation: "becket", couples: 6 });
     const state = dialect.initial();
-    expect(dialect.group?.("hands-four", "1L", state)).toEqual(["1L", "4R", "4L", "1R"]);
-    expect(dialect.group?.("hands-four", "2L", state)).toBeUndefined();
+    expect(dialect.group?.("hands-four", "1L", state)).toEqual(["1L", "2R", "2L", "1R"]);
+    expect(dialect.group?.("hands-four", "2L", state)).toEqual(["2L", "1R", "1L", "2R"]);
+    const after = dialect.progress!(state);
+    expect(dialect.group?.("hands-four", "1L", after)).toBeUndefined();
   });
 
   it("says what it knows when asked for a word it has not got", () => {
@@ -93,26 +104,26 @@ describe("one program, every dancer's script", () => {
       Object.entries(sequence.perDancer).map(([id, calls]) => [id, calls[0]?.cast.partner]),
     );
     expect(partners).toEqual({
-      "1L": "4R",
-      "1R": "4L",
-      "2L": undefined,
-      "2R": undefined,
-      "3L": "6R",
-      "3R": "6L",
-      "4L": "1R",
-      "4R": "1L",
-      "5L": undefined,
-      "5R": undefined,
-      "6L": "3R",
-      "6R": "3L",
+      "1L": "2R",
+      "1R": "2L",
+      "2L": "1R",
+      "2R": "1L",
+      "3L": "4R",
+      "3R": "4L",
+      "4L": "3R",
+      "4R": "3L",
+      "5L": "6R",
+      "5R": "6L",
+      "6L": "5R",
+      "6R": "5L",
     });
   });
 
   it("keeps the beats of a dancer with nobody to dance them with", () => {
     // The user's ruling (DA14): a select that finds no-one is a stand, not a
     // skip, so an end couple's forty beats are still theirs.
-    const { sequence } = run(CONTRA_FIXTURE);
-    const calls = sequence.perDancer["2L"] ?? [];
+    const { sequence } = run("progress()\n" + CONTRA_FIXTURE);
+    const calls = sequence.perDancer["1L"] ?? [];
     expect(calls).toHaveLength(6);
     expect(calls.every((call) => call.cast.partner === undefined)).toBe(true);
     expect(calls.at(-1)?.end).toBe(40);
@@ -135,14 +146,15 @@ describe("a group binding", () => {
 
   it("branches on whether the dancer is in a hands four at all", () => {
     const source = [
+      "progress()",
       "four = select(hands-four)",
       "neighbor = select(neighbor)",
       "if (four) { bow(neighbor) } else { bow(neighbor); bow(neighbor) }",
     ].join("\n");
     const { sequence, errors } = run(source);
     expect(errors).toEqual([]);
-    expect(named(sequence.perDancer["1L"] ?? [])).toEqual(["bow"]);
-    expect(named(sequence.perDancer["2L"] ?? [])).toEqual(["bow", "bow"]);
+    expect(named(sequence.perDancer["2L"] ?? [])).toEqual(["bow"]);
+    expect(named(sequence.perDancer["1L"] ?? [])).toEqual(["bow", "bow"]);
   });
 
   it("is still an unknown selector to a dialect with no groups", () => {

@@ -43,6 +43,7 @@ export const swing: FigureIR = {
         side: "as-couple",
         spacingPx: 20,
         facing: "same",
+        centre: "left-seat",
       },
     ],
     holds: [],

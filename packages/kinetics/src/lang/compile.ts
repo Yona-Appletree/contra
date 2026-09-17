@@ -1,9 +1,9 @@
-import type { DancerId, Dialect } from "../dialect/Dialect.js";
+import type { DancerId, DancerState, Dialect } from "../dialect/Dialect.js";
 import type { FigureRegistry } from "../figures/registry.js";
 import { figureNamed } from "../figures/registry.js";
 import type { FigureIR, Params, Role } from "../ir/Figure.js";
 import { beatsOf, defaultParams } from "../ir/Figure.js";
-import type { CallStmt, DefineStmt, SourceProgram, Span, Stmt } from "./ast.js";
+import type { CallStmt, Condition, DefineStmt, SourceProgram, Span, Stmt } from "./ast.js";
 
 /**
  * One call in one dancer's script, with the beats it owns and the people it
@@ -31,6 +31,8 @@ export interface CompiledCall {
   cast: Readonly<Record<Role, DancerId | undefined>>;
   /** The whole group, in ring order from `self`, for a figure danced by a group. */
   group?: readonly DancerId[];
+  /** This dancer's seat once the call has ended — moved, when the figure progresses. */
+  seatAfter: DancerState;
 }
 
 /** Every dancer's script, compiled from the one program they all share. */
@@ -96,6 +98,38 @@ export function compile(
     // Each dancer walks the program from their own seat; a figure that
     // progresses moves the seating for everything that follows it.
     let state = dialect.initial();
+    /** The enclosing repeats, innermost last: what `first-time` and `last-time` mean here. */
+    const times: { i: number; n: number }[] = [];
+    const holds = (condition: Condition, span: Span): boolean | undefined => {
+      switch (condition.kind) {
+        case "bound":
+          if (!bindings.has(condition.name)) {
+            report(`${condition.name} is not bound`, span);
+            return undefined;
+          }
+          return isSomebody(bindings.get(condition.name));
+        case "first-time": {
+          const loop = times[times.length - 1];
+          if (!loop) {
+            report("first-time means nothing outside a repeat", span);
+            return undefined;
+          }
+          return loop.i === 0;
+        }
+        case "last-time": {
+          const loop = times[times.length - 1];
+          if (!loop) {
+            report("last-time means nothing outside a repeat", span);
+            return undefined;
+          }
+          return loop.i === loop.n - 1;
+        }
+        case "not": {
+          const inner = holds(condition.of, span);
+          return inner === undefined ? undefined : !inner;
+        }
+      }
+    };
     const bindings = new Map<string, Binding>();
     const calls: CompiledCall[] = [];
     let beat = 0;
@@ -120,23 +154,35 @@ export function compile(
               report(messageOf(error), stmt.span);
             }
             break;
-          case "if":
-            if (!bindings.has(stmt.name)) {
-              report(`${stmt.name} is not bound`, stmt.span);
-              break;
-            }
-            walk(isSomebody(bindings.get(stmt.name)) ? stmt.then : stmt.else, path, stack);
+          case "if": {
+            const verdict = holds(stmt.condition, stmt.span);
+            if (verdict === undefined) break;
+            walk(verdict ? stmt.then : stmt.else, path, stack);
             break;
+          }
           case "repeat":
             if (stmt.times < 0) {
               report(`repeat needs a count of 0 or more, not ${stmt.times}`, stmt.span);
               break;
             }
             for (let i = 0; i < stmt.times; i += 1) {
+              times.push({ i, n: stmt.times });
               walk(stmt.body, [...path, `repeat[${i}]`], stack);
+              times.pop();
             }
             break;
           case "call": {
+            // `progress()`: the set progresses — every dancer's seating moves
+            // one place the way their couple travels, and the selects that
+            // follow name the new neighbours. A statement, not a figure: it
+            // takes no beats, and every dancer says it at the same point of
+            // the program, so all of them see the same seating.
+            if (stmt.name === "progress") {
+              if (stmt.args.length > 0) report("progress() takes no arguments", stmt.span);
+              if (dialect.progress) state = dialect.progress(state);
+              else report(`${dialect.id} has no progression`, stmt.span);
+              break;
+            }
             const definition = definitions.get(stmt.name);
             if (definition !== undefined) {
               if (stack.includes(stmt.name)) {
@@ -168,6 +214,7 @@ export function compile(
               right: ring?.[3],
             };
             const call: CompiledCall = {
+              seatAfter: { p: [0, 0], facing: 0 },
               id: calls.length,
               figure,
               params: bound.params,
@@ -179,8 +226,9 @@ export function compile(
               cast,
             };
             if (ring) call.group = ring;
+            const seat = state.dancers[dancer];
+            call.seatAfter = seat ? { p: seat.p, facing: seat.facing } : { p: [0, 0], facing: 0 };
             calls.push(call);
-            if (figure.progresses && dialect.progress) state = dialect.progress(state);
             beat += beats;
             break;
           }
@@ -305,6 +353,15 @@ const bindArguments = (
       const roles = dialect.roleNames ?? [];
       if (arg.kind !== "word" || !roles.includes(arg.value)) {
         report(`${arg.value} is not a role in ${dialect.id}: ${roles.join(" | ")}`, arg.span);
+        ok = false;
+        return;
+      }
+      params[spec.name] = arg.value;
+      return;
+    }
+    if (spec.kind === "string") {
+      if (arg.kind !== "string") {
+        report(`${figure.id}'s ${spec.name} is a quoted string, not ${arg.value}`, arg.span);
         ok = false;
         return;
       }

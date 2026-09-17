@@ -1,4 +1,5 @@
 import type { DancerId } from "../src/dialect/Dialect.js";
+import type { Vec3 } from "../src/motion/Vec3.js";
 import type { Run } from "../src/pipeline.js";
 
 /**
@@ -36,6 +37,57 @@ export const colourOf = (run: Run, dancer: DancerId): string =>
   ROLE_COLOURS[run.dialect.roleOf(dancer)];
 
 export const skinOf = (run: Run, dancer: DancerId): string => SKIN[run.dialect.roleOf(dancer)];
+
+/**
+ * Where everybody stands at beat 0 — the **set**, not the travel.
+ *
+ * The camera frames this rather than the bounds of every hip over the whole
+ * run: seven times through a becket walks the whole hall, and a view scaled to
+ * fit that is a view of nothing.
+ */
+export const setPoints = (run: Run): Vec3[] =>
+  Object.values(run.dialect.initial().dancers).map((d) => ({ x: d.p[0], y: d.p[1], z: 0 }));
+
+/** The two long lines, as x, or nothing when the floor is not two lines. */
+export const linesOf = (run: Run): number[] => {
+  const xs = new Set<number>();
+  for (const d of Object.values(run.dialect.initial().dancers)) xs.add(Math.round(d.p[0]));
+  return xs.size === 2 ? [...xs].sort((a, b) => a - b) : [];
+};
+
+/**
+ * Whether this dancer is out at this beat: the scheduler made their call a
+ * stand for want of anybody to dance with, or the call is the wait-out itself.
+ */
+export const standingAt = (run: Run, dancer: DancerId, beat: number): boolean => {
+  const calls = run.schedule?.calls[dancer] ?? [];
+  const call = calls.find((c) => beat >= c.call.start && beat < c.call.end);
+  if (!call) return false;
+  return call.call.figure.id === "wait-out" || call.notes.some((note) => note.includes("nobody"));
+};
+
+/**
+ * How brightly a dancer is drawn: the picked one full, the rest behind them,
+ * and anybody standing out dimmer still.
+ */
+export const alphaOf = (
+  run: Run,
+  dancer: DancerId,
+  pick: ReadonlySet<DancerId>,
+  beat: number,
+): number => (pick.has(dancer) ? 1 : 0.42) * (standingAt(run, dancer, beat) ? 0.5 : 1);
+
+const hex = (colour: string, i: number): number => parseInt(colour.slice(1 + i * 2, 3 + i * 2), 16);
+
+/** `a` faded toward `b`: the pixel pane has no alpha, so it mixes with the floor instead. */
+export const mix = (a: string, b: string, k: number): string => {
+  if (a.length !== 7 || b.length !== 7) return a;
+  const channel = (i: number): string =>
+    Math.round(hex(a, i) * k + hex(b, i) * (1 - k))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(0)}${channel(1)}${channel(2)}`;
+};
 
 /** `document.createElement`, with a class and some text, in one line. */
 export const el = <K extends keyof HTMLElementTagNameMap>(

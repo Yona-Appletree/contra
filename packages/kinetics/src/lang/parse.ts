@@ -1,4 +1,4 @@
-import type { Arg, CallStmt, SourceProgram, Span, Stmt } from "./ast.js";
+import type { Arg, CallStmt, Condition, SourceProgram, Span, Stmt } from "./ast.js";
 
 /**
  * Read a program (DA6). Hand-written recursive descent over a hand-written
@@ -10,7 +10,8 @@ import type { Arg, CallStmt, SourceProgram, Span, Stmt } from "./ast.js";
  * statement := name "=" "select" "(" word ")"     // a binding
  *            | name "(" [ arg { "," arg } ] ")"   // a call
  *            | "repeat" "(" number ")" block
- *            | "if" "(" name ")" block [ "else" block ]
+ *            | ("if" | "when") "(" condition ")" block [ "else" block ]
+ * condition  := name | "not" condition | "first-time" | "last-time"
  *            | name block                         // a definition
  * block     := "{" statement* "}"
  * arg       := word | number
@@ -27,6 +28,14 @@ import type { Arg, CallStmt, SourceProgram, Span, Stmt } from "./ast.js";
  * program that parses can still fail to compile (an unknown figure, a word
  * that is not a choice), and those are data, not exceptions.
  */
+/** The bound name a condition tests, if it tests one. */
+const boundNameOf = (condition: Condition): string =>
+  condition.kind === "bound"
+    ? condition.name
+    : condition.kind === "not"
+      ? boundNameOf(condition.of)
+      : "";
+
 export function parse(source: string): SourceProgram {
   const tokens = tokenize(source);
   let pos = 0;
@@ -80,6 +89,8 @@ export function parse(source: string): SourceProgram {
         args.push({ kind: "word", value: token.text, span: span(token, token) });
       } else if (token.kind === "number") {
         args.push({ kind: "number", value: Number(token.text), span: span(token, token) });
+      } else if (token.kind === "string") {
+        args.push({ kind: "string", value: token.text, span: span(token, token) });
       } else {
         fail(token, `expected an argument to "${name.text}", found ${describe(token)}`);
       }
@@ -93,6 +104,15 @@ export function parse(source: string): SourceProgram {
   const parseCall = (name: Token): CallStmt => {
     const { args, close } = parseArgs(name);
     return { kind: "call", name: name.text, args, span: span(name, close) };
+  };
+
+  /** `name` | `not` condition | `first-time` | `last-time`. */
+  const parseCondition = (): Condition => {
+    const word = expectName("a condition: a bound name, first-time, last-time, or not …");
+    if (word.text === "not") return { kind: "not", of: parseCondition() };
+    if (word.text === "first-time") return { kind: "first-time" };
+    if (word.text === "last-time") return { kind: "last-time" };
+    return { kind: "bound", name: word.text };
   };
 
   const parseStmt = (): Stmt => {
@@ -112,12 +132,12 @@ export function parse(source: string): SourceProgram {
       return { kind: "repeat", times, body, span: { ...span(first, first), end: lastEnd() } };
     }
 
-    if (first.text === "if" && isPunct("(", 1)) {
+    if ((first.text === "if" || first.text === "when") && isPunct("(", 1)) {
       take();
-      expectPunct("(", 'after "if"');
-      const name = expectName('a bound name after "if("');
-      expectPunct(")", 'to close "if("');
-      const then = parseBlock('"if"');
+      expectPunct("(", `after "${first.text}"`);
+      const condition = parseCondition();
+      expectPunct(")", `to close "${first.text}("`);
+      const then = parseBlock(`"${first.text}"`);
       let otherwise: Stmt[] = [];
       if (peek().kind === "name" && peek().text === "else") {
         take();
@@ -125,7 +145,8 @@ export function parse(source: string): SourceProgram {
       }
       return {
         kind: "if",
-        name: name.text,
+        name: boundNameOf(condition),
+        condition,
         then,
         else: otherwise,
         span: { ...span(first, first), end: lastEnd() },
@@ -199,7 +220,7 @@ const parseError = (message: string, line: number, col: number, offset: number):
   });
 
 interface Token {
-  kind: "name" | "number" | "punct" | "end";
+  kind: "name" | "number" | "string" | "punct" | "end";
   text: string;
   start: number;
   end: number;
@@ -238,6 +259,31 @@ const tokenize = (source: string): Token[] => {
       continue;
     }
     if (c === " " || c === "\t" || c === "\r" || c === ";") {
+      i += 1;
+      continue;
+    }
+    if (c === '"') {
+      // A quoted string, to the next quote on the same line: a hey's pass list.
+      const start = i;
+      const startCol = col();
+      i += 1;
+      while (i < source.length && at(i) !== '"' && at(i) !== "\n") i += 1;
+      if (at(i) !== '"') {
+        throw parseError(
+          `a string opened at line ${line}, column ${startCol} has no closing quote`,
+          line,
+          startCol,
+          start,
+        );
+      }
+      tokens.push({
+        kind: "string",
+        text: source.slice(start + 1, i),
+        start,
+        end: i + 1,
+        line,
+        col: startCol,
+      });
       i += 1;
       continue;
     }

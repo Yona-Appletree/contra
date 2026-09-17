@@ -51,13 +51,6 @@ export interface FigureIR {
    * because a figure whose `self` is absent is never scheduled at all.
    */
   casts: Readonly<Partial<Record<Role, CastRule>>>;
-  /**
-   * This figure **is** the progression: when it ends, every dancer's seating
-   * moves one place the way their couple travels, so the selects that follow
-   * name the new neighbours (a becket's shift left; a duple's pass through).
-   * The dialect owns what "one place" means.
-   */
-  progresses?: boolean;
 }
 
 /**
@@ -89,7 +82,7 @@ export interface ParamSpec {
    * `role`: one of the dialect's role names, validated at compile time so the
    * figure file itself never spells a role (D16); `enum`; `number`.
    */
-  kind: "dancer" | "group" | "role" | "enum" | "number";
+  kind: "dancer" | "group" | "role" | "enum" | "number" | "string";
   /** The words an `enum` accepts, in the order an error message lists them. */
   choices?: readonly string[];
   /** Filled in when the call omits the argument. A `dancer` never has one. */
@@ -116,6 +109,13 @@ export type Arrangement =
       side: Hand | "as-couple";
       spacingPx: number;
       facing: "same";
+      /**
+       * Where the pair's centre sits: where they are (`here`, the default), or
+       * moved along the home facing onto the seat of whichever of the two
+       * stands on the left (`left-seat`) — a swing ends in the line, not
+       * wherever the hands happened to be taken.
+       */
+      centre?: "here" | "left-seat";
     };
 
 /**
@@ -164,6 +164,12 @@ export type Window =
   | ({ kind: "pass"; shoulder: "right" | "left" } & WindowCommon)
   /** Turn in place by so many degrees (+ = right). */
   | ({ kind: "pivot"; deg: number } & WindowCommon)
+  /**
+   * Walk to your own seat as the dialect has it after this call (`seatAfter`),
+   * facing home: the shift's slide along the line, and a crossing couple's
+   * walk to the other line's end. The seating is the truth the floor follows.
+   */
+  | ({ kind: "walk-to-seat" } & WindowCommon)
   | ({ kind: "stand" } & WindowCommon)
   | ({
       kind: "intrinsic";

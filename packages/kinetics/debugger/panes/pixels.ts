@@ -4,11 +4,22 @@ import { sampleAt } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
 import type { HandPlate } from "../../src/solver/solveBody.js";
 import { boundsOf } from "../project.js";
-import { colourOf, el, paneShell, skinOf, type Pane, type View } from "../view.js";
+import {
+  alphaOf,
+  colourOf,
+  el,
+  linesOf,
+  mix,
+  paneShell,
+  setPoints,
+  skinOf,
+  type Pane,
+  type View,
+} from "../view.js";
 
 const METRE_PX = 25;
-/** Six screen pixels to a world pixel, always: the pane scrolls rather than shrink one. */
-const ZOOM = 6;
+/** Six screen pixels to a world pixel for a short set, four for a long one — never a fraction of one. */
+const zoomFor = (couples: number): number => (couples <= 3 ? 6 : 4);
 
 /**
  * The floor from above, painted one world pixel at a time and then magnified
@@ -28,14 +39,16 @@ export function pixelsPane(): Pane {
   let beat = 0;
   let origin = { x: 0, y: 0 };
   let size = { w: 80, h: 80 };
+  let zoom = 6;
+  let lines: number[] = [];
 
   const draw = (): void => {
     const context = canvas.getContext("2d");
     if (!context || !view) return;
     canvas.width = size.w;
     canvas.height = size.h;
-    canvas.style.width = `${size.w * ZOOM}px`;
-    canvas.style.height = `${size.h * ZOOM}px`;
+    canvas.style.width = `${size.w * zoom}px`;
+    canvas.style.height = `${size.h * zoom}px`;
 
     const style = getComputedStyle(document.documentElement);
     const floor = style.getPropertyValue("--floor").trim() || "#c9a06a";
@@ -72,7 +85,14 @@ export function pixelsPane(): Pane {
       for (let x = origin.x; x < origin.x + size.w; x++) px(x, y, grid);
     }
 
-    const { run } = view;
+    // The two long lines, a shade off the floor: a guide, not a thing on it.
+    const guide = mix(floor, "#000000", 0.82);
+    for (const x of lines) {
+      for (let y = origin.y; y < origin.y + size.h; y++) px(x, y, guide);
+    }
+
+    const { run, pick } = view;
+    const picked = new Set(pick);
     const solved = run.solved;
     if (!solved) return;
 
@@ -96,8 +116,9 @@ export function pixelsPane(): Pane {
       const sr = p("shoulderR");
       const headPoint = p("head");
       if (!sl || !sr || !headPoint) continue;
-      const clothes = colourOf(run, dancer);
-      const skin = skinOf(run, dancer);
+      const alpha = alphaOf(run, dancer, picked, beat);
+      const clothes = mix(colourOf(run, dancer), floor, alpha);
+      const skin = mix(skinOf(run, dancer), floor, alpha);
 
       for (const foot of ["footL", "footR"]) {
         const f = p(foot);
@@ -131,11 +152,9 @@ export function pixelsPane(): Pane {
     el: section,
     setRun(next) {
       view = next;
-      const points: Vec3[] = [];
-      for (const dancer of next.run.dialect.dancers) {
-        for (const q of next.run.solved?.trajectories[dancer]?.points.hip ?? []) points.push(q);
-      }
-      const b = boundsOf(points, 16);
+      lines = linesOf(next.run);
+      zoom = zoomFor(next.run.dialect.dancers.length / 2);
+      const b = boundsOf(setPoints(next.run), 24);
       origin = { x: Math.floor(b.min.x), y: Math.floor(b.min.y) };
       size = {
         w: Math.max(Math.ceil(b.max.x) - origin.x, 24),

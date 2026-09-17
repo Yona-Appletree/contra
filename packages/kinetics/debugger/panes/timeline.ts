@@ -1,4 +1,5 @@
 import type { SeamKind } from "../../src/schedule/seams.js";
+import { TIME_THROUGH_BEATS } from "../presets.js";
 import { colourOf, paneShell, svg, type Pane, type View } from "../view.js";
 
 const ROW = 26;
@@ -38,26 +39,41 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
 
   const draw = (): void => {
     if (!view) return;
-    const { run } = view;
+    const { run, pick } = view;
     width = Math.max(body.clientWidth - 2, 160);
     plotW = Math.max(width - GUTTER - 6, 20);
     endBeat = Math.max(run.endBeat, 1);
-    const dancers = run.dialect.dancers;
+    const picked = new Set(pick);
+    // The one being followed rides at the top; the rest keep the set's order.
+    const dancers = [
+      ...run.dialect.dancers.filter((d) => picked.has(d)),
+      ...run.dialect.dancers.filter((d) => !picked.has(d)),
+    ];
     const height = RULER + dancers.length * ROW + 4;
     root.replaceChildren();
     root.setAttribute("width", String(width));
     root.setAttribute("height", String(height));
     root.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-    for (let beat = 0; beat <= endBeat; beat += 4) {
+    // A bar of ticks while the run is short, a phrase of them once it is long:
+    // the coarsest count that still leaves room to read the numbers.
+    const step = [4, 8, 16, 32, 64].find((s) => (s / endBeat) * plotW >= 30) ?? 64;
+    for (let beat = 0; beat <= endBeat; beat += step) {
       const x = beatToX(beat);
       root.append(svg("line", { x1: x, y1: RULER - 4, x2: x, y2: height, class: "grid" }));
       root.append(svg("text", { x: x + 2, y: RULER - 5, class: "tick" }, String(beat)));
     }
+    // Where one time through ends and the next begins.
+    for (let beat = TIME_THROUGH_BEATS; beat < endBeat; beat += TIME_THROUGH_BEATS) {
+      const x = beatToX(beat);
+      root.append(svg("line", { x1: x, y1: 0, x2: x, y2: height, class: "time-line" }));
+    }
 
     dancers.forEach((dancer, i) => {
       const top = RULER + i * ROW;
-      root.append(
+      const row = svg("g", { class: picked.has(dancer) ? "row" : "row aside" });
+      root.append(row);
+      row.append(
         svg("text", { x: 2, y: top + 15, class: "rowname", fill: colourOf(run, dancer) }, dancer),
       );
       const calls = run.schedule?.calls[dancer] ?? [];
@@ -91,12 +107,15 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
             class: "call-outline",
           }),
         );
-        group.append(
-          svg("text", { x: x0 + 4, y: top + ROW - 9, class: "call-name" }, call.call.figure.id),
-        );
+        // A name only where there is room for one; the tooltip always has it.
+        if (x1 - x0 > 26) {
+          group.append(
+            svg("text", { x: x0 + 4, y: top + ROW - 9, class: "call-name" }, call.call.figure.id),
+          );
+        }
         seam(group, call.seamIn, x0, top);
         seam(group, call.seamOut, x1, top);
-        root.append(group);
+        row.append(group);
       }
     });
 

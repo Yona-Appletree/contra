@@ -51,6 +51,12 @@ export interface Seat extends Slot {
   p: Vec2;
   /** Degrees, 0 = +x, increasing toward +y. */
   facing: number;
+  /**
+   * Standing out at an end: this couple has crossed to the other line's end
+   * and waits one time through before the next progression brings it in.
+   * Every selector but `self` and `partner` answers nobody for it.
+   */
+  waiting?: boolean;
 }
 
 /** Everybody seated, with the two lookups a selector needs. */
@@ -106,20 +112,80 @@ const slotKey = (slot: Slot): string => `${String(slot.line)}:${String(slot.posi
  * (P11), not the seating's.
  */
 export function progressSeating(current: Seating, step: number): Seating {
-  const seats = current.seats.map((seat) => {
-    const position = seat.position + step * seat.travel;
-    return { ...seat, position, p: placeOf(current.formation, seat.line, position) };
+  const moved = current.seats.map((seat) => ({
+    ...seat,
+    waiting: false,
+    position: seat.position + step * seat.travel,
+  }));
+  const onLine = (line: 0 | 1): number[] =>
+    moved.filter((seat) => seat.line === line && !seat.waiting).map((seat) => seat.position);
+  const seats = moved.map((seat) => {
+    if (seat.waiting) return seat;
+    // Off the end: nobody on the other line at your positions any more.
+    const others = onLine(seat.line === 0 ? 1 : 0);
+    const off = !others.includes(seat.position);
+    if (!off) return seat;
+    return crossOver(current, seat, moved);
   });
-  const byId = new Map(seats.map((seat) => [seat.id, seat]));
-  const bySlot = new Map(seats.map((seat) => [slotKey(seat), seat.id]));
+  const withPlaces = seats.map((seat) => ({
+    ...seat,
+    p: placeOf(current.formation, seat.line, seat.position),
+  }));
+  const byId = new Map(withPlaces.map((seat) => [seat.id, seat]));
+  const bySlot = new Map(withPlaces.map((seat) => [slotKey(seat), seat.id]));
   return {
     formation: current.formation,
     couples: current.couples,
-    seats,
+    seats: withPlaces,
     seatOf: (id) => byId.get(id),
     at: (slot) => bySlot.get(slotKey(slot)),
   };
 }
+
+/**
+ * The becket end, one way of dancing it (**Q1 is the user's**; this is the
+ * default until they rule): a couple that would progress off the end of its
+ * line crosses straight to the other line's same end and **waits one time
+ * through** (`waiting`), standing; the progression after that brings it in.
+ *
+ * Where exactly: the two lines flow opposite ways, so a couple waiting at the
+ * end is closed on by the other line's end couple at two positions a
+ * progression. After the next progression our lark must share a position
+ * with one of that line's robins (that is what "across" is on this lattice):
+ * their robins sit at `r` now and at `r ∓ 1` then, we sit at `x` now and
+ * `x ± 1` then, so `x = r ∓ 2` with `r` the robin position at the end we
+ * crossed at. The robin takes the lattice's order for that line (line 0:
+ * the lark's position + 1; line 1: − 1), which is the lark keeping the robin
+ * on the right once the couple has turned to face the other way.
+ */
+function crossOver(current: Seating, seat: Seat, moved: readonly Seat[]): Seat {
+  const line: 0 | 1 = seat.line === 0 ? 1 : 0;
+  const travel: 1 | -1 = seat.travel === 1 ? -1 : 1;
+  // The line we came off, its robins still in the set, at the end we left.
+  const robinsHere = moved
+    .filter((s) => s.line === seat.line && s.role === "robin" && s.couple !== seat.couple)
+    .map((s) => s.position);
+  // Our old travel is `seat.travel`; we left at the end it points to.
+  const step = BECKET_STEP;
+  const flow = step * seat.travel; // which way positions on our old line move
+  // With no other couple on the line (a set of two couples) there is nothing
+  // to place against: hold the position and cross where you are.
+  const r =
+    robinsHere.length === 0
+      ? seat.position - 2 * flow
+      : flow < 0
+        ? Math.min(...robinsHere)
+        : Math.max(...robinsHere);
+  // After the next progression that robin is at r + flow and we are at x − flow.
+  const larkPosition = r + 2 * flow;
+  const robinPosition = line === 0 ? larkPosition + 1 : larkPosition - 1;
+  const position = seat.role === "lark" ? larkPosition : robinPosition;
+  void current;
+  return { ...seat, line, travel, position, facing: line === 0 ? 0 : 180, waiting: true };
+}
+
+/** One becket progression in lattice positions per unit of travel; `relations.ts`'s `BECKET_PROGRESSION_STEP`. */
+const BECKET_STEP = -1;
 
 /** Where a slot sits on the floor, in either formation: the line's x, and the position's y. */
 const placeOf = (formation: ContraFormation, line: 0 | 1, position: number): Vec2 => {

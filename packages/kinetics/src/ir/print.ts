@@ -118,6 +118,8 @@ const printWindow = (window: Window, params: Params): string[] => {
       return [row("body", `${who}pass ${window.shoulder} shoulders${share}`)];
     case "pivot":
       return [row("body", `${who}turn ${num(window.deg)}°${share}`)];
+    case "walk-to-seat":
+      return [row("body", `${who}walk to your seat${share}`)];
     case "orbit": {
       const turns = window.turns === "free" ? "free" : num(resolveNumber(window.turns, params));
       const sense = resolveChoice(window.sense, params).replace(/-/g, " ");

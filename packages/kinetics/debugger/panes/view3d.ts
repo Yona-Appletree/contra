@@ -2,7 +2,17 @@ import type { DancerId } from "../../src/dialect/Dialect.js";
 import { sampleAt } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
 import { boundsOf, centreOf, project, type Camera } from "../project.js";
-import { colourOf, el, paneShell, skinOf, type Pane, type View } from "../view.js";
+import {
+  alphaOf,
+  colourOf,
+  el,
+  linesOf,
+  paneShell,
+  setPoints,
+  skinOf,
+  type Pane,
+  type View,
+} from "../view.js";
 
 const METRE_PX = 25;
 
@@ -23,6 +33,7 @@ export function view3dPane(): Pane {
   let view: View | undefined;
   let centre: Vec3 = { x: 0, y: 0, z: 20 };
   let radius = 40;
+  let lines: number[] = [];
   let beat = 0;
 
   const draw = (): void => {
@@ -73,7 +84,13 @@ export function view3dPane(): Pane {
       line({ x: from, y, z: 0 }, { x: to, y, z: 0 }, "#3c3128");
     }
 
-    const { run } = view;
+    // The two long lines, where the set stands.
+    for (const x of lines) {
+      line({ x, y: centre.y - radius, z: 0 }, { x, y: centre.y + radius, z: 0 }, "#5b4a3a", 1.2);
+    }
+
+    const { run, pick } = view;
+    const picked = new Set(pick);
     const solved = run.solved;
     if (!solved) return;
     const order: { dancer: DancerId; depth: number }[] = [];
@@ -98,6 +115,8 @@ export function view3dPane(): Pane {
       const neck: Vec3 = { x: (sl.x + sr.x) / 2, y: (sl.y + sr.y) / 2, z: (sl.z + sr.z) / 2 };
       const colour = colourOf(run, dancer);
       const skin = skinOf(run, dancer);
+      const alpha = alphaOf(run, dancer, picked, beat);
+      context.globalAlpha = alpha;
 
       const bones: [Vec3 | undefined, Vec3 | undefined][] = [
         [hip, neck],
@@ -139,7 +158,7 @@ export function view3dPane(): Pane {
           add(plate.p, add(scale(u, s), scale(v, -s))),
         ];
         context.fillStyle = skin;
-        context.globalAlpha = plate.contact === "free" ? 0.55 : 1;
+        context.globalAlpha = alpha * (plate.contact === "free" ? 0.55 : 1);
         context.beginPath();
         corners.forEach((c, k) => {
           if (k === 0) context.moveTo(...at(c));
@@ -147,13 +166,14 @@ export function view3dPane(): Pane {
         });
         context.closePath();
         context.fill();
-        context.globalAlpha = 1;
+        context.globalAlpha = alpha;
       }
 
       for (const name of ["footL", "footR", "hip"]) {
         const q = p(name);
         if (q) dot(context, at(q), colour, 2.5 * cam.scale);
       }
+      context.globalAlpha = 1;
     }
   };
 
@@ -165,11 +185,8 @@ export function view3dPane(): Pane {
     el: section,
     setRun(next) {
       view = next;
-      const points: Vec3[] = [];
-      for (const dancer of next.run.dialect.dancers) {
-        for (const p of next.run.solved?.trajectories[dancer]?.points.hip ?? []) points.push(p);
-      }
-      const b = boundsOf(points, 14);
+      lines = linesOf(next.run);
+      const b = boundsOf(setPoints(next.run), 14);
       b.max.z = Math.max(b.max.z, 45);
       centre = centreOf(b);
       radius = Math.max(

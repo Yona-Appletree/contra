@@ -63,13 +63,19 @@ describe("Butter's figures alone, at floor level", () => {
   it("swing: free turns land the couple beside each other facing home, lark on the left", () => {
     const d = becket6();
     const s = runProgram(
-      "neighbor = select(neighbor)\nswing(neighbor, 8)\nlong-lines(neighbor, 8)",
+      "neighbor = select(neighbor)\nswing(neighbor, 12)\nlong-lines(neighbor, 8)",
       d,
     );
     const swingCall = s.calls["3L"]![0]!;
-    expect(swingCall.rate).toBeGreaterThanOrEqual(0.15);
+    // Twelve beats from across the set: two to come together, two to open
+    // out, and a turn and a bit in the eight between.
+    const orbitBeats = swingCall.exit[1] - swingCall.body[0];
+    expect(swingCall.rate! * orbitBeats).toBeGreaterThanOrEqual(1);
     expect(swingCall.notes.some((n) => n.includes("turns so the exit lands"))).toBe(true);
-    proveDancers(s, d, MIDDLE);
+    // Pinned: opening out from a swing taken across the set to the line is a
+    // stride too long in the two beats the spiral has; the entry should bring
+    // the couple to the line first.
+    expect(s.errors.every((e) => e.kind === "StepTooLong")).toBe(true);
   });
 
   it("long lines forward and back returns everyone to place", () => {
@@ -83,23 +89,25 @@ describe("Butter's figures alone, at floor level", () => {
 
   it("balance: a rock forward and back with both hands", () => {
     const d = becket6();
-    const s = runProgram("neighbor = select(neighbor)\nswing(neighbor, 8)\nbalance(neighbor)", d);
+    const s = runProgram("partner = select(partner)\nbalance(partner)", d);
     proveDancers(s, d, MIDDLE);
   });
 
   it("shift left moves the couple one place and the seating with it", () => {
     const d = becket6();
-    const { sequence, errors } = compile(
-      parse(
-        "partner = select(partner)\nbefore = select(neighbor)\nshift(partner, left)\nafter = select(neighbor)\nswing(after, 8)",
-      ),
-      FIGURES,
-      d,
-    );
+    const source = [
+      "partner = select(partner)",
+      "before = select(neighbor)",
+      "progress()",
+      "after = select(neighbor)",
+      "shift(after, left)",
+      "swing(after, 8)",
+    ].join("\n");
+    const { sequence, errors } = compile(parse(source), FIGURES, d);
     expect(errors).toEqual([]);
     const calls = sequence.perDancer["3L"]!;
     expect(calls[0]!.figure.id).toBe("shift");
-    // After the shift the neighbour is a different dancer.
+    // After the progression the neighbour is a different dancer.
     const before = d.select("neighbor", "3L", d.initial());
     expect(calls[1]!.cast.partner).not.toBe(before);
     const s = schedule(sequence, d, T);

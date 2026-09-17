@@ -276,6 +276,15 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     w: Extract<Window, { kind: "orbit" }>,
     dancers: DancerId[],
   ): number => {
+    // A ring runs where the dancers already stand (their mean distance from
+    // the centroid), no tighter than the IR's radius and no wider than hands
+    // can join across: a hands four circles from its seats rather than
+    // walking in to a drawn circle first.
+    if (w.axis === "centroid") {
+      const axis = centroid(dancers.map((d) => poseOf(d).p));
+      const mean = dancers.reduce((sum, d) => sum + dist(axis, poseOf(d).p), 0) / dancers.length;
+      return Math.min(Math.max(mean, w.radiusPx), RING_MAX_RADIUS_PX);
+    }
     if (w.axis !== "midpoint" || dancers.length !== 2) return w.radiusPx;
     const apart = inst.figure.pre.arrangement.find((c) => c.kind === "apart" && c.who === "self");
     if (apart && apart.kind === "apart") {
@@ -372,10 +381,20 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         if (!other) continue;
         const side = clause.side === "as-couple" ? dialect.sideOf?.(d, other) : clause.side;
         if (!side) continue;
-        const mid = midpoint(me.p, poseOf(other).p);
+        let mid = midpoint(me.p, poseOf(other).p);
         const f = clauses.some((c) => c.kind === "facing" && c.toward === "home")
           ? homeFacing(d)
           : facing;
+        if (clause.centre === "left-seat") {
+          // Move the centre along the home facing onto the left-hand dancer's seat line.
+          const leftOne = side === "left" ? d : other;
+          const seat = inst.calls.get(leftOne)?.seatAfter.p;
+          if (seat) {
+            const along = dirOf(f);
+            const t = (seat[0] - mid[0]) * along[0] + (seat[1] - mid[1]) * along[1];
+            mid = [mid[0] + along[0] * t, mid[1] + along[1] * t];
+          }
+        }
         const lateral = side === "left" ? leftOf(f) : rightOf(f);
         p = [
           mid[0] + lateral[0] * (clause.spacingPx / 2),
@@ -397,6 +416,12 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   interface ExitBlend {
     beats: number;
     targets: Map<DancerId, Pose>;
+    /**
+     * Whether the orbit keeps turning through its last beats: yes when the
+     * next figure orbits too (a do-si-do flowing into an allemande), no when
+     * it walks or stands (a swing opening out into the line).
+     */
+    keepTurning: boolean;
   }
 
   const emitBody = (
@@ -506,6 +531,41 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
               prev = { p, facing };
             }
             setPose(d, prev);
+          }
+          break;
+        case "walk-to-seat":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            const me = poseOf(d);
+            const target: Pose = { p: call.seatAfter.p, facing: homeFacing(d) };
+            const lastWindow = span.to === to;
+            const steps =
+              planSteps(
+                me,
+                target,
+                n,
+                limits,
+                fractionsFor(d, span.from, n, !lastWindow || stopsAfter(inst, d)),
+              ) ?? [];
+            if (
+              steps.length === 0 &&
+              (dist(me.p, target.p) > limits.tolerancePx ||
+                Math.abs(angleDiff(me.facing, target.facing)) > limits.toleranceDeg)
+            ) {
+              errors.push({
+                kind: "StepTooLong",
+                message: `${d}: ${inst.figure.id} walks ${(dist(me.p, target.p) * tempo.cmPerPx).toFixed(0)} cm to its seat in ${n} beats`,
+                call: call.id,
+                dancer: d,
+                beat: span.from,
+                span: call.span,
+              });
+            }
+            steps.forEach((step, k) => {
+              emitStep(d, span.from + k, step, call, "body", inst);
+              emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
+            });
+            if (steps.length > 0) setPose(d, target);
           }
           break;
         case "pivot":
@@ -620,7 +680,13 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       n,
       lastWindow && (blend !== undefined || stopsAfter(inst, dancers[0] as DancerId)),
     );
-    const peakShare = Math.max(...shares);
+    const freeze = blend !== undefined && !blend.keepTurning;
+    const orbitSteps = freeze ? Math.max(1, n - blend.beats) : n;
+    // Frozen, the orbit's own steps ramp down before the spiral takes over.
+    const orbitShares = freeze
+      ? fractionsFor(dancers[0] as DancerId, from, orbitSteps, true)
+      : shares;
+    const peakShare = Math.max(...orbitShares);
     const maxTurns = w.rateMaxTurnsPerBeat / peakShare;
     let turns: number;
     if (w.turns === "free") {
@@ -647,8 +713,14 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         emit(d, from + n - 1, 1, { op: "buzz", on: false }, call.id, "body", inst);
       }
     }
+    // With an exit blend the turns complete over the first `n − k` steps and
+    // the last `k` are the spiral alone: the swing opens out, it does not go
+    // on turning at a growing radius (a 27 px chord at 19 px out).
     const progress: number[] = [0];
-    for (const f of shares) progress.push((progress[progress.length - 1] ?? 0) + f);
+    for (let k = 0; k < n; k++) {
+      const f = k < orbitSteps ? (orbitShares[k] ?? 0) : 0;
+      progress.push(Math.min(1, (progress[progress.length - 1] ?? 0) + f));
+    }
     const posAt = (d: DancerId, k: number): Vec2 => {
       const theta = (theta0.get(d) ?? 0) + sign * 360 * turns * (progress[k] ?? 1);
       return [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
@@ -682,7 +754,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           const thetaEnd = (theta0.get(d) ?? 0) + sign * 360 * turns;
           const thetaT = thetaEnd + angleDiff(thetaEnd, bearing(axis, target.p));
           const rK = r + (rT - r) * sBlend;
-          const thetaK = theta + (thetaT - thetaEnd) * sBlend;
+          const thetaK = (freeze ? thetaEnd : theta) + (thetaT - thetaEnd) * sBlend;
           p = [axis[0] + rK * dirOf(thetaK)[0], axis[1] + rK * dirOf(thetaK)[1]];
           if (i >= blend.beats) p = target.p;
           spiralFacing ??= prev.facing;
@@ -777,6 +849,17 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     for (const d of inst.dancers) {
       const call = inst.calls.get(d) as CompiledCall;
       for (const need of holdNeeds(inst.figure.pre, call, d)) {
+        if (!inst.calls.has(need.with)) {
+          errors.push({
+            kind: "Unplannable",
+            message: `${d}: ${need.with} is not dancing this ${inst.figure.id} at beat ${inst.start}`,
+            call: call.id,
+            dancer: d,
+            beat: inst.start,
+            span: call.span,
+          });
+          continue;
+        }
         const otherNeed = counterpartNeed(inst, need);
         // One shared line per pair of hands: the same hold seen from the other
         // side is the same seam, and a two-hand hold is two seams.
@@ -918,7 +1001,30 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       !inst.nobody && ["orbit", "walk"].includes(inst.figure.windows[0]?.kind ?? "");
     if (inst.nobody) inst.notes.push(`nobody to ${inst.figure.id} with: stand`);
 
-    let targets = bodyTargets(inst);
+    // Back-chain: can the previous instance's body give up `need` beats for an exit?
+    const prevs = [...new Set(inst.dancers.map((d) => neighbourOf(inst, d, -1)))];
+    const prev = prevs.length === 1 ? prevs[0] : undefined;
+    const prevShared =
+      prev !== undefined &&
+      prev.end === inst.start &&
+      prev.dancers.length === inst.dancers.length &&
+      inst.dancers.every((d) => prev.dancers.includes(d));
+
+    // Where this figure wants to start. When the previous figure can be
+    // re-planned, its **soft end** — where its own `post` would put everyone,
+    // a swing's "beside your partner in the line" — is the ground this
+    // figure's `pre` is laid on, so the exit delivers both at once; the
+    // `pre` alone would leave the couple wherever the orbit stopped.
+    let targets: Map<DancerId, Pose>;
+    if (prevShared && prev.replannable) {
+      const bodyEnd = new Map<DancerId, Pose>(prev.dancers.map((d) => [d, poseOf(d)]));
+      for (const d of prev.dancers)
+        setPose(d, arrangementTarget(prev, d, prev.figure.post.arrangement));
+      targets = bodyTargets(inst);
+      for (const d of prev.dancers) setPose(d, bodyEnd.get(d) as Pose);
+    } else {
+      targets = bodyTargets(inst);
+    }
     let need = 0;
     for (const d of inst.dancers)
       need = Math.max(need, beatsNeeded(poseOf(d), targets.get(d) as Pose, limits));
@@ -935,15 +1041,18 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           need = Math.max(need, Math.ceil(2 * Math.sqrt(dPx / hipAccelCap)));
       }
     }
+    // With the cruise ramp the first step is a half one, so the others are
+    // longer than an even share: add beats until the longest fits.
+    for (const d of inst.dancers) {
+      const dPx = dist(poseOf(d).p, (targets.get(d) as Pose).p);
+      if (dPx <= limits.tolerancePx) continue;
+      for (let guard = 0; guard < 8; guard++) {
+        const shares = fractionsFor(d, inst.start, Math.max(need, 1), false);
+        if (Math.max(...shares) * dPx <= limits.maxStepPx + 1e-9) break;
+        need = Math.max(need, 1) + 1;
+      }
+    }
 
-    // Back-chain: can the previous instance's body give up `need` beats for an exit?
-    const prevs = [...new Set(inst.dancers.map((d) => neighbourOf(inst, d, -1)))];
-    const prev = prevs.length === 1 ? prevs[0] : undefined;
-    const prevShared =
-      prev !== undefined &&
-      prev.end === inst.start &&
-      prev.dancers.length === inst.dancers.length &&
-      inst.dancers.every((d) => prev.dancers.includes(d));
     if (need > 0 && prevShared && prev.replannable) {
       const prevKind = prev.figure.windows[prev.figure.windows.length - 1]?.kind;
       // A spiral over one beat is a corner; over two it is a curve. Give an
@@ -957,7 +1066,11 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         if (prevKind === "orbit") {
           // An orbit spirals out over its last k beats to where this figure
           // starts: the exit is inside the body's motion, not a walk after it.
-          emitBody(prev, prev.start + prev.entry, prev.end, prev.bodyStart, { beats: k, targets });
+          emitBody(prev, prev.start + prev.entry, prev.end, prev.bodyStart, {
+            beats: k,
+            targets,
+            keepTurning: inst.figure.windows[0]?.kind === "orbit",
+          });
           const landed = prev.dancers.every(
             (d) => beatsNeeded(poseOf(d), targets.get(d) as Pose, limits) === 0,
           );
@@ -1089,6 +1202,9 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
 
 /** How far a passing dancer veers off the straight line, px. */
 const PASS_VEER_PX = 3;
+
+/** The widest a ring may be: neighbours 14 √2 ≈ 20 px apart, hands meeting 10 px from each hip. */
+const RING_MAX_RADIUS_PX = 14;
 
 /** The fewest beats an orbit spirals out over, when its body can spare them. */
 const SPIRAL_MIN_BEATS = 2;

@@ -7,6 +7,7 @@ import { circle } from "./circle.js";
 import { longLines } from "./longLines.js";
 import { shift } from "./shift.js";
 import { swing } from "./swing.js";
+import { waitOut } from "./waitOut.js";
 
 /**
  * Every figure the compiler knows, by the name a call uses. A figure's `id`
@@ -26,6 +27,7 @@ export const FIGURES: FigureRegistry = {
   [swing.id]: swing,
   [longLines.id]: longLines,
   [balance.id]: balance,
+  [waitOut.id]: waitOut,
 };
 
 /** The figures a compile is run against. */

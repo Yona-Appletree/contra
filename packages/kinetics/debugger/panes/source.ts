@@ -25,13 +25,16 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
 
   let view: View | undefined;
   let shown: CompiledCall | undefined;
+  /** A fresh run redraws even when there is still no call — a program that does not parse has none. */
+  let stale = true;
 
   const draw = (beat: number): void => {
     if (!view) return;
     const dancer = view.pick[0];
     const calls = dancer === undefined ? [] : (view.run.sequence?.perDancer[dancer] ?? []);
     const call = calls.find((c) => beat >= c.start && beat < c.end) ?? calls[calls.length - 1];
-    if (call === shown) return;
+    if (!stale && call === shown) return;
+    stale = false;
     shown = call;
     crumb.textContent =
       call === undefined ? "—" : `${call.path}  ·  ${call.start}–${call.end}  ·  ${dancer}`;
@@ -46,6 +49,7 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
         text.value = next.run.source;
       }
       shown = undefined;
+      stale = true;
     },
     setBeat: draw,
   };
