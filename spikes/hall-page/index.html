@@ -504,9 +504,9 @@ function danceLink(){ const s=el(`<p class="dancelink"><a href="#"></a></p>`); L
 
 /* 1D: the ruler under the stage */
 function rulerBar(){
-  const wrap=el(`<div class="rulerbar"><div class="ruler"></div><div class="transport"><span class="tt" style="flex:1"></span><span class="gap"></span></div></div>`);
-  const ruler=wrap.querySelector('.ruler'), tr=wrap.querySelector('.transport'), tt=tr.querySelector('.tt');
-  const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px'; btns.appendChild(transportButtons('sm')); tr.appendChild(btns); tr.appendChild(el(`<span class="gap"></span>`));
+  const wrap=el(`<div class="rulerbar"><div class="ruler"></div><div class="transport" style="padding:0;justify-content:center"></div><span class="tt" style="text-align:center"></span></div>`);
+  const ruler=wrap.querySelector('.ruler'), tr=wrap.querySelector('.transport'), tt=wrap.querySelector('.tt');
+  tr.appendChild(transportButtons('sm'));
   let built=null, segs=[];
   const ph=el(`<div class="rph"></div>`);
   ruler.addEventListener('click',e=>{ const r=ruler.getBoundingClientRect(); const f=(e.clientX-r.left)/r.width; const p=posAt(S.beat); const cb=Math.floor(f*CYCLE); const m=p.moves.find(m=>cb>=m.start&&cb<m.start+m.beats)||p.moves[0]; seek(moveAbs(p.item,p.between?0:p.timeThrough,m),`ruler → ${m.phrase} · ${m.fig.call}`); });
