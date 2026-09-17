@@ -20,6 +20,32 @@ export type { CompileError, CompiledCall, CompiledSequence } from "./lang/compil
 export { compile } from "./lang/compile.js";
 export { FIXTURE_PROGRAM } from "./lang/fixture.js";
 
+// the .dance language (the dance-language plan, P1): one grammar for
+// formations, moves and dances, with its formatter, linter and checker
+export type {
+  Arg as DanceArg,
+  BinaryOp,
+  EnumItem,
+  Expr,
+  File as DanceFile,
+  Item,
+  ModuleItem,
+  ModuleKind,
+  Param,
+  Span as DanceSpan,
+  Stmt as DanceStmt,
+  Transform,
+} from "./lang/syntax.js";
+export { BUILTIN_TYPES, UNITS } from "./lang/syntax.js";
+export type { Comment, SyntaxError, Token } from "./lang/lexer.js";
+export { isSyntaxError, tokenize } from "./lang/lexer.js";
+export { parse as parseDance, parseWithComments } from "./lang/parser.js";
+export { format, printFile } from "./lang/format.js";
+export type { LintIssue, LintOptions } from "./lang/lint.js";
+export { lint } from "./lang/lint.js";
+export type { CheckError, CheckOptions } from "./lang/check.js";
+export { BUILTIN_FUNCTIONS, BUILTIN_STATEMENTS, check } from "./lang/check.js";
+
 // the IR: a figure as timed constraints
 export type {
   Arrangement,
