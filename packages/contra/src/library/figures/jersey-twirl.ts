@@ -1,96 +1,106 @@
-import type { AngleExpr, FigureDefinition } from "../FigureDefinition.js";
-import { MINOR_SET_ROLES } from "./carriers.js";
+import type { FigureDefinition } from "../FigureDefinition.js";
+import { TWIRL_DEFAULTS, californiaTwirlDefinition } from "./california-twirl.js";
 
 /**
- * **Jersey twirl** (M9): the same trade of places a California twirl is, danced
- * with the dancer beside you and turning the *other* one under the arch.
+ * **Jersey twirl**: the California twirl, danced from the mirror start.
  *
- * The Set Monster's B1 ends with it — *"(4) In long lines, go forward (facing
- * out) / (4) N4 neighbor Jersey twirl"* — which is the figure's own job in every
- * dance that calls one: a line that has walked forward is facing out of the
- * set, and the twirl trades the pair and brings them back facing in.
+ * The user, who had asked for this one to be looked up:
  *
- * ## It has no predecessor, so here is the floor description it is written from
+ * > "ok, I am 90% confident that its a California twirl with reversed hands.
+ * > So normally, the larks right and robin's left are joined (this makes sense
+ * > -- if the lark is on the left, robin on the right, its what's called the
+ * > convenient hand -- lark right & robin right). a jersey twirl for the
+ * > opposite case, when the robin is on the left and the lark on the right --
+ * > the convenient hands are reversed. robin right lark left. its quite rare
+ * > but comes up occasionally. I think I've danced one single dance this year
+ * > with it and it was very confusing."
  *
- * Two dancers stand side by side facing the same way. They join their inside
- * hands and raise them; one walks forward and round the outside while the other
- * turns under the arch; they end having traded places and facing back the way
- * they came. Four beats, hands joined the whole way, nobody letting go.
+ * So it is **not** a mirror of the *motion*, which is what the M9 figure this
+ * replaces was — `direction: -1` and inside hands, a California twirl run
+ * backwards, which is exactly what the user saw on the Moves page: *"maybe a
+ * backwards california twirl? but these people are just orbiting about their
+ * hands"*. It is the California twirl's own motion from the mirror **start**:
  *
- * **(unsure), and there are three marks, not one:**
+ * | | who stands on the left | the convenient hands |
+ * | --- | --- | --- |
+ * | California twirl | the lark | his right in her left |
+ * | Jersey twirl | the robin | her right in his left |
  *
- * - **Which of the two turns under.** A California twirl turns the dancer on
- *   the **right** under and walks the other round; this turns the dancer on the
- *   **left** under, which is the only difference any caller I can find states
- *   between the two figures, and it is why this is `direction: -1` where
- *   `california-twirl` is `direction: 1`. The two places the pair ends on are
- *   the same either way round — it is half a turn about the point between them —
- *   so a hall that has it the other way round dances the same four beats with
- *   the mirror-image arc.
- * - **Whom you dance it with.** The transcript names a **neighbour** (The Set
- *   Monster's is `N4`), and `pairs` still defaults to `partners`, because the
- *   default has to be a pairing the figure can actually be danced by: a twirl
- *   joins **inside hands**, which only two dancers standing side by side have,
- *   and in both contra formations the pairing that stands side by side is the
- *   one `california-twirl` also uses. Written with `neighbors` in duple
- *   improper the figure refuses itself by name — *"1L and 2R are not standing
- *   side by side, so they have no inside hands"* — which is the library saying
- *   the same thing. A call that means somebody else writes the relation, and
- *   what it gets is whatever that relation names where the dancers are.
- * - **Which hands.** Written as the inside hands, the way the California twirl
- *   is, because the pair is side by side and that is the only hand that reaches.
+ * Read the two rows together and the rule underneath them is one sentence: the
+ * hands that reach are **the left-hand dancer's right in the right-hand
+ * dancer's left**. Which pair of hands that is depends on nothing but who is
+ * standing where, and that is the whole of what tells the two figures apart —
+ * which is why this file is `california-twirl.ts`'s definition with two
+ * defaults changed and no geometry of its own:
  *
- * Marked here in the doc comment and not in the texts: `figureText.test.ts`'s
- * voice rule bans the brackets and the word from a walkthrough, and M5 and M7
- * put their own `(unsure)` marks in exactly this place.
+ * - **`hand: "left-in-right"`.** The word names the raiser's hand first, so
+ *   this is the lark's **left** in the robin's **right** — "robin right lark
+ *   left", in the user's words.
+ * - **`direction: -1`.** Mirror the start and the arc mirrors with it: the
+ *   raiser still walks *forward* round the outside and the dancer under the
+ *   arch still turns inside him, which from the other side of the couple is the
+ *   other way round the floor. The two places the pair ends on are the same
+ *   either way — it is half a turn about the point between them — so what
+ *   `direction` changes is the shape of the four beats and not the outcome.
+ *
+ * Everything else — the close to `closePx`, the duck, the arch held over the
+ * head of the dancer walking under it, the ends — is the California twirl's,
+ * by the same object, so the two cannot drift apart.
+ *
+ * **(unsure): who raises and who goes under.** The user's description names the
+ * hands and says nothing about the roles, so the California twirl's are kept —
+ * `raises: "lark"`, the robin under — because "with reversed hands" most
+ * plainly means the hands and only the hands. If a Jersey twirl also swaps
+ * those, it is `raises: "robin"` and this definition already says it.
+ *
+ * ## The start it is called from, and what the library measures
+ *
+ * The figure's precondition is the left-hand column of that table: the robin
+ * standing on the lark's left, the two of them side by side. **Measured, it is
+ * met nowhere in this library's own places** — see `jersey-twirl.test.ts`,
+ * which pins the measurement:
+ *
+ * - **Duple improper.** Partners stand across the set facing the same way, and
+ *   from either lark the robin is on his **right** (`1L`→`1R` and `2L`→`2R`
+ *   both). That is the California start.
+ * - **Becket.** Partners stand side by side facing across, and again the robin
+ *   is on the lark's **right**, in both couples.
+ * - **The Set Monster**, the one dance in the record that calls this figure
+ *   (B1: *"(4) In long lines, go forward (facing out) / (4) N4 neighbor Jersey
+ *   twirl"*), does not dance it at all. `pairs: "N4"` reaches this figure as
+ *   the **word** — a `pairs` parameter is only resolved into station pairs for
+ *   a definition whose `actors` is `"pairs"`, and a twirl's is `"all"` — so
+ *   `pairsOf` finds no pair inside the hands-four, nobody has a mate, and every
+ *   dancer in every instance moves **0.00 px** through the four beats at every
+ *   checked line length. The dance's oracle numbers therefore cannot move when
+ *   this figure's geometry does, and they did not.
+ *
+ * A start that never occurs is not a reason to write the figure differently: it
+ * is what makes the figure rare, which is what the user says about it. What it
+ * does mean is that the tile draws the twirl from where a hands-four actually
+ * stands, so the two named hands there are the couple's **outside** hands and
+ * the picture is the honest one of a Jersey twirl called at a moment that does
+ * not call for it. Refusing to draw at all was considered and not done: the
+ * library's own rule since M8b is that a dancer standing somewhere a figure did
+ * not expect is a *measurement* (`kinds/holds.ts`, `noInsideHands`), the reach
+ * oracle is what reports it, and a figure whose precondition holds nowhere in
+ * the library would refuse on its own review tile — which is the one piece of
+ * evidence the user judges it by.
  */
-
-/** Half a turn, the way `direction` says. */
-const HALF: AngleExpr = { number: "mul", of: [180, { param: "direction" }] };
-
-/** Jersey twirl, as a figure definition. */
 export const jerseyTwirlDefinition: FigureDefinition = {
+  ...californiaTwirlDefinition,
   id: "jersey-twirl",
   call: "JERSEY TWIRL",
   describe:
-    "Take inside hands with the dancer beside you and raise them. One of you walks forward and round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: this turns the dancer on the left under, which is the one thing that tells a Jersey twirl from a California twirl.)",
-  lead: 4,
-  nominalBeats: 4,
-  roles: MINOR_SET_ROLES,
-  actors: "all",
-  anchor: "hands-four",
-  params: { kind: "canonical", defaults: { pairs: "partners", holdDrop: 0, direction: -1 } },
-  shape: {
-    kind: "path",
-    pairing: { kind: "param", param: "pairs" },
-    track: {
-      // Their place, facing back the way you came.
-      ends: {
-        p: { point: "start", role: { role: "mate" } },
-        facing: {
-          angle: "sum",
-          of: [{ angle: "facingOf", role: { role: "self" }, at: "start" }, HALF],
-        },
-      },
-      curve: { kind: "arc", sweep: HALF },
-      facing: { kind: "withArc" },
-      idleHands: { kind: "down" },
+    "A California twirl from the other way round. The robin is on the lark's left and the lark on her right, so the hands that reach are reversed: her right in his left, and the lark puts it up. Come together, the robin walks under the arch while the lark walks round the outside of her, and the two of you come out on each other's places facing back the way you came. Four beats, the hand held the whole way through. It is a rare call, and the pair has to be standing that way round for it.",
+  params: {
+    kind: "canonical",
+    defaults: {
+      ...TWIRL_DEFAULTS,
+      /** Her right in his left: the convenient hands from the mirror start. */
+      hand: "left-in-right",
+      /** The mirror start turns the mirror way round the floor. */
+      direction: -1,
     },
-    idle: { idleHands: { kind: "down" }, amp: 0 },
   },
-  holds: [
-    {
-      // The arch: both inside hands on one floor point over the pair's centre.
-      kind: "mate",
-      side: { nearest: { role: "mate" }, facing: "start" },
-      point: { kind: "joinPoint" },
-      drop: { param: "holdDrop" },
-      window: { kind: "holdWindow", take: 1, release: 1 },
-    },
-  ],
-  ends: "relative",
-  timing: { stretch: "distance", profile: "smooth" },
-  // The two places a twirl ends on are the same either way round; the arc
-  // between them is the mirror image, which is `direction`.
-  symmetry: { mirror: { kind: "parameters", signs: ["direction"] } },
 };

@@ -86,6 +86,47 @@ const DUCK: NumberExpr = {
   else: { number: "mul", of: [{ param: "duckPx" }, -1] },
 };
 
+/**
+ * **The twirl's own parameters**, shared by the two twirls in the library.
+ *
+ * A Jersey twirl is this figure danced from the mirror start, which is a
+ * different `hand` and a different `direction` and **nothing else** — so
+ * `jersey-twirl.ts` spreads this rather than restating eight numbers that would
+ * then be free to drift apart. Every value here is the California twirl's; the
+ * two the twin overrides are the two the user's description names.
+ */
+export const TWIRL_DEFAULTS = {
+  pairs: "partners",
+  holdDrop: 0,
+  direction: 1,
+  /** Whose hand goes up; the other one walks under it. */
+  raises: "lark",
+  /**
+   * Which pair of hands, **the raiser's named first**: `"right-in-left"` is
+   * his right in her left, which is the inside hand of a couple standing
+   * the way a contra couple stands — the robin on the lark's right — and so
+   * the default. `"left-in-right"` is the other hold, the outside hands,
+   * which a call coming out of a circle or a promenade may want — and, from
+   * the mirror start, the Jersey twirl's own convenient hands.
+   */
+  hand: "right-in-left",
+  /**
+   * How close the two of them come to turn, px.
+   *
+   * Twelve rather than a hold spacing's fourteen, and the two px are the
+   * pair turning beside them: a hands-four's two couples turn about centres
+   * one place pitch — 20 px — apart, so the gap between the two outermost
+   * dancers as they pass is `20 − closePx`, and AC6 asks for eight.
+   */
+  closePx: 12,
+  /** How long the closing in and the opening out each take, beats. */
+  closeBeats: 1,
+  /** How far inside the turn the dancer under the arch goes, px. */
+  duckPx: 2,
+  /** How far back from their head, toward the raiser, the arch sits, px. */
+  archBackPx: 1.5,
+} as const;
+
 /** California twirl, as a figure definition. */
 export const californiaTwirlDefinition: FigureDefinition = {
   id: "california-twirl",
@@ -97,39 +138,7 @@ export const californiaTwirlDefinition: FigureDefinition = {
   roles: MINOR_SET_ROLES,
   actors: "all",
   anchor: "hands-four",
-  params: {
-    kind: "canonical",
-    defaults: {
-      pairs: "partners",
-      holdDrop: 0,
-      direction: 1,
-      /** Whose hand goes up; the other one walks under it. */
-      raises: "lark",
-      /**
-       * Which pair of hands, **the raiser's named first**: `"right-in-left"` is
-       * his right in her left, which is the inside hand of a couple standing
-       * the way a contra couple stands — the robin on the lark's right — and so
-       * the default. `"left-in-right"` is the other hold, the outside hands,
-       * which a call coming out of a circle or a promenade may want.
-       */
-      hand: "right-in-left",
-      /**
-       * How close the two of them come to turn, px.
-       *
-       * Twelve rather than a hold spacing's fourteen, and the two px are the
-       * pair turning beside them: a hands-four's two couples turn about centres
-       * one place pitch — 20 px — apart, so the gap between the two outermost
-       * dancers as they pass is `20 − closePx`, and AC6 asks for eight.
-       */
-      closePx: 12,
-      /** How long the closing in and the opening out each take, beats. */
-      closeBeats: 1,
-      /** How far inside the turn the dancer under the arch goes, px. */
-      duckPx: 2,
-      /** How far back from their head, toward the raiser, the arch sits, px. */
-      archBackPx: 1.5,
-    },
-  },
+  params: { kind: "canonical", defaults: { ...TWIRL_DEFAULTS } },
   shape: {
     kind: "path",
     pairing: { kind: "param", param: "pairs" },

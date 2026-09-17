@@ -153,7 +153,7 @@ it, so every number is the figure's own and no seam is folded in.
 | `long-lines` | 21.1 | 37.4 | 8.27 | 10.5 | 3.4 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `roll-away` | 26.6 | 78.0 | 8.06 | 21.2 | 11.9 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
 | `california-twirl` | 27.7 | 66.0 | 4.47 | 21.7 | 18.5 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
-| `jersey-twirl` | 29.2 | 66.0 | 4.47 | 21.7 | 18.5 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 2.000 |
+| `jersey-twirl` | 50.1 | 45.8 | 2.04 | 21.7 | 12.8 | 1.06 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 3.656 |
 | `right-and-left-through` | 34.0 | 75.1 | 7.33 | 20.2 | 13.1 | 1.06 | 1.20 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 3.813 |
 | `circle` | 17.2 | 22.3 | 1.44 | 3.8 | 16.7 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
 | `balance-ring` | 17.5 | 21.2 | 1.61 | 12.5 | 8.3 | 1.00 | 1.08 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
@@ -435,7 +435,7 @@ Take right hands with the dancer you are facing and balance: step in toward them
 
 ### `jersey-twirl` — JERSEY TWIRL
 
-Take inside hands with the dancer beside you and raise them. One of you walks forward and round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: this turns the dancer on the left under, which is the one thing that tells a Jersey twirl from a California twirl.)
+A California twirl from the other way round. The robin is on the lark's left and the lark on her right, so the hands that reach are reversed: her right in his left, and the lark puts it up. Come together, the robin walks under the arch while the lark walks round the outside of her, and the two of you come out on each other's places facing back the way you came. Four beats, the hand held the whole way through. It is a rare call, and the pair has to be standing that way round for it.
 
 ### `lead-down` — LEAD DOWN THE CENTRE
 
