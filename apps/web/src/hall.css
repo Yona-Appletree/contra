@@ -1078,18 +1078,32 @@
 }
 
 /* The dance's own calls, in order, with the one happening now lit. */
-.dance-lab-ruler {
-  display: flex;
-  gap: 0.25rem;
-  overflow-x: auto;
-  margin: 0;
-  padding: 0 0 0.25rem;
-  list-style: none;
+/*
+ * The dance lab's card: the Stage's own note card, one call per line so a
+ * reader can click the call they mean, and the boundary button under the
+ * phrases where the Stage's card puts the tune.
+ */
+.dance-lab-card {
+  max-width: 36rem;
+}
+
+.dance-lab-card .caller-music-card-figures {
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.dance-lab-card .caller-music-card-figure {
+  cursor: pointer;
+}
+
+.dance-lab-card .caller-music-card-figure:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
 }
 
 .dance-lab-call {
-  display: flex;
-  flex: none;
+  display: inline-flex;
   align-items: baseline;
   gap: 0.3125rem;
   border: 1px solid var(--border);
@@ -1104,17 +1118,6 @@
   border-color: currentcolor;
   color: var(--foreground);
   font-weight: 600;
-}
-
-.dance-lab-call-phrase {
-  font-size: 0.625rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.dance-lab-call-beats {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.6;
 }
 
 .dance-lab-boundary {
