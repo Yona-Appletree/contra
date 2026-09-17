@@ -25,9 +25,10 @@ describe("the lead", () => {
     // **A deviation from the plan's A22**, recorded here rather than in prose:
     // it expected every definition to carry `lead: 4`. The merged library's
     // short figures carry two — a pull-by, a loop, a cast back, a bend the line,
-    // a turn as couples, a turn alone, Fatal Attraction's own go-forward — and
-    // those are the figures whose own call is two beats long. The window is
-    // about how far ahead a **caller** speaks, which is one number.
+    // a turn as couples, a turn alone, Fatal Attraction's own go-forward, the
+    // corpus's own `custom` line — and those are the figures whose own call is
+    // two beats long. The window is about how far ahead a **caller** speaks,
+    // which is one number.
     expect(LEAD_BEATS).toBe(4);
     const leads = new Set(DATA_DEFINITIONS.map((def) => def.lead));
     expect([...leads].sort((a, b) => Number(a) - Number(b))).toEqual([2, 4]);
@@ -35,6 +36,7 @@ describe("the lead", () => {
     expect(short.sort()).toEqual([
       "bend-the-line",
       "cast-back",
+      "custom",
       "fatal-attraction/go-forward",
       "loop",
       "pull-by",

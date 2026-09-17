@@ -29,5 +29,43 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # The private derived corpus (`docs/corpus-derived.md`, and the permission
+      # ADR of 2026-09-13): `packages/contra/src/corpus/corpusSuite.test.ts`
+      # imports and plans every dance of the hand set when it is readable, and
+      # skips with a message when it is not. So this is **optional**, and the
+      # workflow is green either way:
+      #
+      # - the secret is mapped into `env` because `if:` cannot read the `secrets`
+      #   context at all, and an unset secret is the empty string;
+      # - a fork's pull request has no secret, so both steps are skipped and the
+      #   suite skips with it;
+      # - `actions/checkout` refuses to write above `$GITHUB_WORKSPACE`, so the
+      #   corpus lands *inside* the checkout rather than beside it and
+      #   `CONTRA_DATA` is exported to say where. `.gitignore` keeps it out of
+      #   `prettier --check .`, and `turbo.json`'s `test` task declares
+      #   `CONTRA_DATA` in its `env` — turbo passes a task only the variables it
+      #   names, so without that line the suite would skip here with the corpus
+      #   sitting beside it.
+      #
+      # The owner must create the secret for any of this to run: a fine-grained
+      # personal access token with **Contents: read** on
+      # `Yona-Appletree/contra-data`, saved on this repository as
+      # `CONTRA_DATA_TOKEN`.
+      - name: Check out the private corpus
+        env:
+          CONTRA_DATA_TOKEN: ${{ secrets.CONTRA_DATA_TOKEN }}
+        if: env.CONTRA_DATA_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: Yona-Appletree/contra-data
+          token: ${{ secrets.CONTRA_DATA_TOKEN }}
+          path: contra-data
+
+      - name: Point the corpus suite at it
+        env:
+          CONTRA_DATA_TOKEN: ${{ secrets.CONTRA_DATA_TOKEN }}
+        if: env.CONTRA_DATA_TOKEN != ''
+        run: echo "CONTRA_DATA=$GITHUB_WORKSPACE/contra-data" >> "$GITHUB_ENV"
+
       - name: Validate
         run: pnpm validate

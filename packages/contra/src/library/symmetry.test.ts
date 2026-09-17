@@ -334,6 +334,10 @@ describe("symmetry as a transform", () => {
       "cast-back",
       "cast-off",
       "circulate",
+      // The corpus's own: `custom` is a figure for **one** too — one instance
+      // per dancer, standing still — so this harness, which plans a whole minor
+      // set at once, is not where it is checked. `figures/custom.test.ts` is.
+      "custom",
       "fatal-attraction/go-forward",
       "go-down-outside",
       "go-up-outside",
