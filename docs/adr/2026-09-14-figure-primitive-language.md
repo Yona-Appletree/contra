@@ -3,6 +3,16 @@
 Date: 2026-09-14
 Status: accepted
 
+**Superseded in part by
+[2026-09-15-figure-model-set-state-and-resolution.md](./2026-09-15-figure-model-set-state-and-resolution.md).**
+The calculus stands and is what `packages/contra/src/library/expr.ts` runs.
+What moved is what its leaves name: this ADR wrote them against the
+**stations** of a hands-four, and the figure model re-targeted them on to a
+figure's own **figure-roles**, because a figure resolution mints one instance
+per pair has two roles and no stations. The `figures/specs/` directory this
+ADR named is gone; a definition lives in `packages/contra/src/library/figures/`
+and the coded figures it was to be compared against were deleted in M11.
+
 ## Context
 
 Vision D4 asks for three layers and one language: the dance record (already

@@ -27,9 +27,9 @@ import { relationTo, sayWhoIsWhere } from "./seam.js";
  * Where a figure leaves this group, as the hint under its teach.
  *
  * `undefined` when the group is not a minor set of four — a couple waiting out
- * at the end of the line has no neighbour to be beside — and when the four
- * disagree about something finer than their roles, which is not a sentence a
- * caller says.
+ * at the end of the line has no neighbour to be beside — when the figure cannot
+ * be planned over four dancers at all, and when the four disagree about
+ * something finer than their roles, none of which is a sentence a caller says.
  */
 export function landmark(
   def: AnyFigureDef,
@@ -113,7 +113,16 @@ export function placesOf(
 ): { start: Record<StationId, Place>; end: Record<StationId, Place> } | undefined {
   if (group.stations.length !== 4) return undefined;
   const from = (params as { from?: Spots }).from ?? {};
-  const ends = def.ends(group, params);
+  // **A figure that refuses the four has no landmark.** One minted per dancer,
+  // or danced by a whole line, cannot be planned over a hands-four at all and
+  // says so by name; that is not a sentence a caller says, which is the same
+  // answer as the four disagreeing.
+  let ends;
+  try {
+    ends = def.ends(group, params);
+  } catch {
+    return undefined;
+  }
   const start: Record<StationId, Place> = {};
   const end: Record<StationId, Place> = {};
   for (const station of group.stations) {

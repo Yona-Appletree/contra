@@ -81,15 +81,6 @@ describe("the interpreter refuses what it cannot draw", () => {
   // case — is held by `kinds/index.ts`'s exhaustive `switch`, which fails the
   // build instead of a test, and by the actors and anchor rules below.
 
-  it("will not interpret a legacy shape, which is the coded figure itself", () => {
-    const bridged: FigureDefinition = {
-      ...swingDefinition,
-      id: "bridged",
-      shape: { kind: "legacy", figure: "swing" },
-    };
-    expect(() => interpretDefinition(bridged)).toThrow(/use `figureFor` with a registry/);
-  });
-
   // **Nothing is owed here any more.** M2 refused `"each"` and the two
   // parameterised anchors by name with `(M7)` in the message; M7 built all
   // three, so what were refusals are claims. The contract that an unbuilt kind

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { allemande } from "../../figures/allemande.js";
 import type { CompareCase } from "../compareFigures.js";
 import { DD21_TOLERANCE } from "../compareFigures.js";
 import { allemandeDefinition } from "./allemande.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { gathererGolden, worstOf } from "./gatherers.js";
 
 /**
@@ -35,7 +35,10 @@ const CASES: readonly CompareCase[] = [
   },
 ];
 
-const GOLDEN = gathererGolden(allemande, allemandeDefinition, CASES);
+/** The coded figure this definition replaced, as M11 recorded it. */
+const CODED = fixtureOf("allemande");
+
+const GOLDEN = gathererGolden(CODED, allemandeDefinition, CASES);
 
 describe("the allemande as data", () => {
   it("is data: it survives a round trip through JSON", () => {
@@ -43,13 +46,13 @@ describe("the allemande as data", () => {
   });
 
   it("keeps the coded allemande's call, count and lead", () => {
-    expect(allemandeDefinition.call).toBe(allemande.call);
-    expect(allemandeDefinition.lead).toBe(allemande.lead);
-    expect(allemandeDefinition.nominalBeats).toBe(allemande.beats);
+    expect(allemandeDefinition.call).toBe(CODED.call);
+    expect(allemandeDefinition.lead).toBe(CODED.lead);
+    expect(allemandeDefinition.nominalBeats).toBe(CODED.beats);
   });
 
   it("no longer takes `endHalf`, because it no longer guesses", () => {
-    expect(allemande.defaults).toHaveProperty("endHalf");
+    expect(CODED.defaults).toHaveProperty("endHalf");
     expect(allemandeDefinition.params).toEqual({
       kind: "canonical",
       defaults: { pairs: "neighbors", hand: "L", amount: 1, inward: 45, holdDrop: 2 },

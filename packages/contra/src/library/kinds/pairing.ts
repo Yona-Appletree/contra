@@ -1,5 +1,5 @@
+import { dirOf, leftOf, sub } from "@caller/core";
 import type { StationId } from "@caller/choreo";
-import { aheadPairs, facingPairs } from "../../figures/pass-through.js";
 import type { Pairing } from "../../figures/pairing.js";
 import { pairsOf } from "../../figures/pairing.js";
 import { centreOf, type PlanContext } from "../../figures/ContraFigure.js";
@@ -100,6 +100,86 @@ function lineMates(ctx: PlanContext): Record<StationId, StationId> {
     const side = across(id);
     const mate = ctx.ids.find((other) => other !== id && across(other) * side > 0);
     if (mate !== undefined) out[id] = mate;
+  }
+  return out;
+}
+
+/**
+ * Who each dancer passes: the dancer on the other side of the set (`'across'`)
+ * or the one up or down the line (`'along'`), by which way they lie from each
+ * other on the floor.
+ */
+export function facingPairs(
+  ctx: PlanContext,
+  direction: "across" | "along",
+  partial = false,
+): Record<StationId, StationId> {
+  const centre = centreOf(ctx.ids.map((id) => ctx.spot(id)));
+  const axis = direction === "across" ? 0 : 1;
+  const other = axis === 0 ? 1 : 0;
+  const out: Record<StationId, StationId> = {};
+  for (const id of ctx.ids) {
+    const self = ctx.spot(id).p;
+    let best: StationId | undefined;
+    let bestGap = Infinity;
+    for (const candidate of ctx.ids) {
+      if (candidate === id) continue;
+      const p = ctx.spot(candidate).p;
+      // Opposite along the chosen axis, and as close as possible on the other.
+      if ((p[axis] - centre[axis]) * (self[axis] - centre[axis]) >= 0) continue;
+      const gap = Math.abs(p[other] - self[other]);
+      if (gap < bestGap) {
+        bestGap = gap;
+        best = candidate;
+      }
+    }
+    // **A pairing may leave somebody out** (`kinds/pairing.ts`'s own promise,
+    // and M8b's ruling on the line mates): two dancers a call names who are not
+    // on opposite sides of the set are not a pass, and standing them still is a
+    // measurement the collision and coverage oracles can report where a stack
+    // trace is not. Jeremy Corners' second pass is where it was measured — the
+    // neighbour swing that ends its first pass leaves the twos side by side on
+    // one line at four couples and up, so "twos pass through across" names a
+    // pair with nobody across. The **coded** figure keeps the throw, because it
+    // is handed the whole hands-four and a hands-four always has an opposite.
+    if (best === undefined) {
+      if (partial) continue;
+      throw new Error(`pass-through: nobody opposite "${id}"`);
+    }
+    out[id] = best;
+  }
+  return out;
+}
+
+/**
+ * Who is straight in front of each dancer: the one they would walk into.
+ *
+ * `facingPairs` asks which way the set lies; this asks which way the *dancers*
+ * are looking, which is what a caller means by "pass the one you are facing".
+ * In duple improper the ones face the twos along the line, so `1L`'s is `2R`,
+ * 20 px straight ahead of him; in becket everyone faces across, so it is the
+ * dancer opposite. Nobody behind you counts, however near.
+ */
+export function aheadPairs(ctx: PlanContext): Record<StationId, StationId> {
+  const out: Record<StationId, StationId> = {};
+  for (const id of ctx.ids) {
+    const self = ctx.spot(id);
+    const ahead = dirOf(self.facing);
+    const beside = leftOf(self.facing);
+    let best: StationId | undefined;
+    let bestOff = Infinity;
+    for (const candidate of ctx.ids) {
+      if (candidate === id) continue;
+      const to = sub(ctx.spot(candidate).p, self.p);
+      if (to[0] * ahead[0] + to[1] * ahead[1] <= 0) continue;
+      const off = Math.abs(to[0] * beside[0] + to[1] * beside[1]);
+      if (off < bestOff) {
+        bestOff = off;
+        best = candidate;
+      }
+    }
+    if (best === undefined) throw new Error(`nobody in front of "${id}"`);
+    out[id] = best;
   }
   return out;
 }

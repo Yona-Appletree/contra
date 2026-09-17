@@ -19,7 +19,7 @@ import type {
   Spots,
 } from "../../figures/ContraFigure.js";
 import { joinedHands, midpoint, takeAndRelease } from "../../figures/ContraFigure.js";
-import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balanceRock } from "../../pair/balance.js";
+import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balanceRock } from "./rock.js";
 import { alongSet, otherLine, slotOfRole, slotPoint } from "../../set/shape.js";
 import type { SlotView } from "../../set/shape.js";
 import type { FigureRole, HoldSpec, WaveShape } from "../FigureDefinition.js";

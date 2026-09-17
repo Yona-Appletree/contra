@@ -141,7 +141,13 @@ describe("figureAssertionGroups", () => {
   it("finds the figure's own group and any seam group naming it", () => {
     const groups = figureAssertionGroups("swing").map((g) => g.key);
     expect(groups).toContain("swing");
-    expect(groups).toContain("balance → swing");
+    // The machinery that finds a **seam** group by the ids in its key is kept
+    // and is still exercised by `balance-and-swing`; the one seam check there
+    // was, "balance → swing", went with the coded layer in M11 (see
+    // `figureChecks.ts`), so nothing spans two calls to find today.
+    expect(figureAssertionGroups("balance-and-swing").map((g) => g.key)).toContain(
+      "balance-and-swing",
+    );
   });
 
   it("is empty for an id no check writes about", () => {

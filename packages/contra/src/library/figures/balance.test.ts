@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { balance } from "../../figures/balance.js";
 import type { CompareCase } from "../compareFigures.js";
 import { DD21_TOLERANCE } from "../compareFigures.js";
 import { balanceDefinition } from "./balance.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { gathererGolden, worstOf } from "./gatherers.js";
 
 /**
@@ -25,7 +25,10 @@ const CASES: readonly CompareCase[] = [
   { params: { pairs: "neighbors", rock: 2, holdDrop: 3, stackPx: 0 } },
 ];
 
-const GOLDEN = gathererGolden(balance, balanceDefinition, CASES);
+/** The coded figure this definition replaced, as M11 recorded it. */
+const CODED = fixtureOf("balance");
+
+const GOLDEN = gathererGolden(CODED, balanceDefinition, CASES);
 
 describe("the balance as data", () => {
   it("is data: it survives a round trip through JSON", () => {
@@ -33,11 +36,11 @@ describe("the balance as data", () => {
   });
 
   it("keeps the coded balance's call, count, lead and defaults", () => {
-    expect(balanceDefinition.call).toBe(balance.call);
-    expect(balanceDefinition.lead).toBe(balance.lead);
-    expect(balanceDefinition.nominalBeats).toBe(balance.beats);
+    expect(balanceDefinition.call).toBe(CODED.call);
+    expect(balanceDefinition.lead).toBe(CODED.lead);
+    expect(balanceDefinition.nominalBeats).toBe(CODED.beats);
     // The coded figure's own defaults, minus the two the chain threads.
-    const coded = { ...(balance.defaults as Record<string, unknown>) };
+    const coded = { ...(CODED.defaults as Record<string, unknown>) };
     delete coded["from"];
     delete coded["carried"];
     expect(balanceDefinition.params).toEqual({ kind: "canonical", defaults: coded });

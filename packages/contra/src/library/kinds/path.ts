@@ -11,6 +11,7 @@ import {
   ramp,
   smooth,
   sub,
+  trapezoid,
 } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type {
@@ -29,9 +30,8 @@ import {
   polar,
   takeAndRelease,
 } from "../../figures/ContraFigure.js";
-import { stepped } from "../../figures/slide-left.js";
-import { placeHalf } from "../../figures/swing.js";
-import { trapezoid } from "../../pair/trapezoid.js";
+import { placeHalf } from "./openOut.js";
+
 import type {
   CrossingTrack,
   FigureRole,
@@ -617,4 +617,20 @@ function ellipseAt(pair: Ellipse, start: Vec2, t: Beat, beats: Beat): Vec2 {
   const c = Math.cos(swung) * along;
   const s = Math.sin(swung) * pair.pass;
   return [pair.centre[0] + u[0] * c - u[1] * s, pair.centre[1] + u[1] * c + u[0] * s];
+}
+
+/**
+ * `[0, 1]` covered in `steps` equal eased steps rather than one.
+ *
+ * Each step is the same {@link smooth} the engine's own `walkStep` uses, so a
+ * one-step slide is exactly what this figure did before, and an `n`-step slide
+ * has the same top speed — `smooth`'s peak is `1.5 ×` the average either way —
+ * but reaches it `n` times instead of once. The value is continuous, monotone,
+ * and exactly `0` and `1` at the ends, so nothing about where the figure leaves
+ * anybody changes.
+ */
+export function stepped(x: number, steps: number): number {
+  const t = clamp01(x);
+  const i = Math.min(steps - 1, Math.floor(t * steps));
+  return mix(i / steps, (i + 1) / steps, smooth(t * steps - i));
 }

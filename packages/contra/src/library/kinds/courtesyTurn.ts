@@ -29,7 +29,7 @@ import {
   orbitTurn,
   stepInHold,
 } from "../../figures/courtesyTurn.js";
-import { aheadPairs } from "../../figures/pass-through.js";
+import { aheadPairs } from "./pairing.js";
 import type { Pairing } from "../../figures/pairing.js";
 import { pairsOf } from "../../figures/pairing.js";
 import type { CourtesyTurnShape, FigureRole, HoldSpec } from "../FigureDefinition.js";

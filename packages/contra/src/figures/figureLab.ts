@@ -14,20 +14,13 @@ import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
 import { createContraRegistry } from "./registry.js";
-import { interpretDefinition } from "../library/interpret.js";
 
 import type { FigureDefinition, HoldSpec, SideRule } from "../library/FigureDefinition.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { DEMO_DANCES } from "../dances/index.js";
-import {
-  CLOSURE_PX,
-  COLLISION_PX,
-  danceAlone,
-  linesFor,
-  oraclesFor,
-  threadsOnTheOldPath,
-} from "../dances/oracle.js";
+import { CLOSURE_PX, COLLISION_PX, danceAlone, linesFor, oraclesFor } from "../dances/oracle.js";
 import { LAB_RUN } from "../dances/danceLab.js";
+import { figureOnFour } from "./onFour.js";
 import type { DanceOracles } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
 import { isBecket } from "../dances/formations.js";
@@ -75,7 +68,15 @@ export function figureAloneRow(
   kind: "duple" | "becket",
   overrides: CheckOverrides = {},
 ): MotionStats | undefined {
-  const registry = createContraRegistry([], overrides);
+  // **The figure as a hands-four can plan it** (M11): `poseAt` samples the
+  // figure the *registry* holds, and the registry holds what a dance resolves —
+  // which for a figure minted one instance per pair is written for two roles
+  // and refuses four. `figureOnFour` mints the pairs a hands-four implies, and
+  // seeding it into this run's own registry is what makes the timeline sample
+  // the same figure the row is about.
+  const alone = figureOnFour(id);
+  if (alone === undefined) return undefined;
+  const registry = createContraRegistry([alone as AnyFigureDef], overrides);
   if (!registry.has(id)) return undefined;
   const def = registry.get(id);
   const group = aloneGroup(kind);
@@ -143,11 +144,7 @@ export function figurePaceRows(
   const registry = createContraRegistry([], overrides);
   if (!registry.has(id)) return [];
   const group = aloneGroup(kind);
-  const written = definitionOf(id);
-  const interpreted =
-    written && written.shape.kind !== "legacy"
-      ? (interpretDefinition(written) as unknown as AnyFigureDef)
-      : undefined;
+  const interpreted = figureOnFour(id) as AnyFigureDef | undefined;
   const plans = (def: AnyFigureDef): boolean => {
     try {
       def.sample(group, group.stations[0]!.id, 0, withDefaults(def, {}, def.beats));
@@ -156,9 +153,13 @@ export function figurePaceRows(
       return false;
     }
   };
-  const from: PaceRow["from"] =
-    interpreted !== undefined && plans(interpreted) ? "definition" : "registry";
-  const def = from === "definition" ? interpreted! : registry.get(id);
+  // **A figure a hands-four cannot plan has no pace rows** (M11). One that
+  // reads the lattice — a circulate, a long wave — or is minted per dancer
+  // needs a real set under it, and `figureOnFour` is what says so; before M11
+  // the coded twin answered for every id that had one and the rest threw here.
+  if (interpreted === undefined || !plans(interpreted)) return [];
+  const from: PaceRow["from"] = "definition";
+  const def = interpreted;
   const params = withDefaults(def, {}, def.beats);
   const step = 1 / 32;
   const window = Math.round(1 / step);
@@ -236,10 +237,11 @@ export function figureSeamRows(
   for (const dance of dances) {
     const couples = danceCouples(dance);
     const until = danceBeats(dance) + WRAP_BUFFER;
-    // On the engine that can dance it; see `threadsOnTheOldPath`. Every dance
+    // On the engine the dance ships on, which since M11 is the only one there
+    // is; see `reportMotion.ts`. Every dance
     // written before M5 threads on the decider's own planner and is measured
     // there, as every number in this lab always has been.
-    const run = threadsOnTheOldPath(dance) ? {} : LAB_RUN;
+    const run = LAB_RUN;
     const decider = danceAlone(dance, couples, until, overrides, run);
     const report = motionReport(decider.timeline(), until, { bounds: CONTRA_MOTION_BOUNDS });
     for (const row of report.seams) {
@@ -325,13 +327,7 @@ export function figureOracles(
       dance: dance.slug,
       couples,
       until,
-      oracles: oraclesFor(
-        dance,
-        couples,
-        until,
-        overrides,
-        threadsOnTheOldPath(dance) ? {} : LAB_RUN,
-      ),
+      oracles: oraclesFor(dance, couples, until, overrides, LAB_RUN),
     };
   });
 }
@@ -505,15 +501,6 @@ const mark = (good: boolean): string => (good ? "pass" : "FAIL");
  */
 function definitionSection(id: string, definition: FigureDefinition | undefined): string[] {
   if (!definition) return [`## 0. Definition`, "", `_the library has no \`${id}\`._`, ""];
-  if (definition.shape.kind === "legacy") {
-    return [
-      `## 0. Definition`,
-      "",
-      `\`${id}\` is still a **coded** figure, reached through the legacy bridge. ` +
-        `Everything below measures that figure; M4 and M5 are what empty the bridge.`,
-      "",
-    ];
-  }
   return [
     `## 0. Definition`,
     "",

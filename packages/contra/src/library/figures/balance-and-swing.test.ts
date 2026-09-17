@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { balanceAndSwing } from "../../figures/balance-and-swing.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
 import { probeGroup } from "../../figures/testing.js";
 import { createGroup, withDefaults } from "@caller/choreo";
@@ -7,6 +6,7 @@ import type { CompareCase } from "../compareFigures.js";
 import { DD21_TOLERANCE } from "../compareFigures.js";
 import { interpretDefinition } from "../interpret.js";
 import { balanceAndSwingDefinition } from "./balance-and-swing.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { gathererGolden, worstOf } from "./gatherers.js";
 
 /**
@@ -34,7 +34,10 @@ const CASES: readonly CompareCase[] = [
   { params: { pairs: "partners", turns: 3, handOffset: 3 }, allowed: ["feet"] },
 ];
 
-const GOLDEN = gathererGolden(balanceAndSwing, balanceAndSwingDefinition, CASES);
+/** The coded figure this definition replaced, as M11 recorded it. */
+const CODED = fixtureOf("balance-and-swing");
+
+const GOLDEN = gathererGolden(CODED, balanceAndSwingDefinition, CASES);
 
 describe("balance and swing as data", () => {
   it("is data: it survives a round trip through JSON", () => {
@@ -44,9 +47,9 @@ describe("balance and swing as data", () => {
   });
 
   it("keeps the coded figure's call, count and lead", () => {
-    expect(balanceAndSwingDefinition.call).toBe(balanceAndSwing.call);
-    expect(balanceAndSwingDefinition.lead).toBe(balanceAndSwing.lead);
-    expect(balanceAndSwingDefinition.nominalBeats).toBe(balanceAndSwing.beats);
+    expect(balanceAndSwingDefinition.call).toBe(CODED.call);
+    expect(balanceAndSwingDefinition.lead).toBe(CODED.lead);
+    expect(balanceAndSwingDefinition.nominalBeats).toBe(CODED.beats);
   });
 
   it("is a sequence of the rock and the orbit the other two definitions are", () => {

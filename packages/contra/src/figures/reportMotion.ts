@@ -17,10 +17,12 @@ import {
 } from "./motionBounds.js";
 import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
-import { CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
+import { createContraRegistry } from "./registry.js";
 import { DEMO_DANCES } from "../dances/index.js";
-import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
-import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
+import { danceAlone, linesFor } from "../dances/oracle.js";
+import { dataOnlyFigureIds } from "../library/figures/index.js";
+import type { AnyFigureDef } from "@caller/choreo";
+import { figureOnFour } from "./onFour.js";
 import { LAB_RUN } from "../dances/danceLab.js";
 import { isBecket } from "../dances/formations.js";
 
@@ -184,14 +186,15 @@ function dancesSection(): string[] {
   let overall: MotionStats | undefined;
   for (const dance of DEMO_DANCES) {
     const couples = linesFor(dance).includes(6) && isBecket(dance) ? 6 : 4;
-    // On the engine that can dance it, which for every dance written before M5
-    // is the decider's own — the two differ by up to 1.16 px at the ends of a
-    // line (M3's cycle-start switch), and switching them all over is a rewrite
-    // of this whole report rather than a milestone's business. On the Prowl
-    // calls a figure for two with no coded twin and the old planner refuses it
-    // by name, so it is run on the contra planner and says so below.
-    const run = threadsOnTheOldPath(dance) ? {} : LAB_RUN;
-    const decider = danceAlone(dance, couples, REPORT_BEATS, {}, run);
+    // **On the engine the dance ships on**, which since M11 is the only one
+    // there is. This report used to measure every dance written before M5 on
+    // the decider's own planner and the rest on the contra planner, because the
+    // two differed by up to 1.16 px at the ends of a line (M3's cycle-start
+    // switch) and switching them all over was a rewrite rather than a
+    // milestone's business. The coded layer the old planner needed is deleted,
+    // so the whole table is the shipped path now — which is what it should
+    // always have been measuring.
+    const decider = danceAlone(dance, couples, REPORT_BEATS, {}, LAB_RUN);
     const report = motionReport(decider.timeline(), REPORT_BEATS, {
       bounds: CONTRA_MOTION_BOUNDS,
     });
@@ -244,13 +247,16 @@ function figuresSection(): string[] {
  * those a figure-alone row.
  */
 export function figureAloneRows(): MotionStats[] {
-  const registry = createContraRegistry();
   const rows: MotionStats[] = [];
-  const alone = [
-    ...CONTRA_FIGURE_IDS,
-    ...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined),
-  ];
-  for (const id of alone) {
+  for (const id of dataOnlyFigureIds()) {
+    // **Whatever a hands-four can plan** (M11). It used to be the coded
+    // figures plus the data-only ones a bare template could plan; the coded
+    // ones are gone and `figureOnFour` is the one predicate left — it mints the
+    // pair instances a minor set implies, so the swing and its kind keep the
+    // row their coded twins used to give them.
+    const alone = figureOnFour(id);
+    if (alone === undefined) continue;
+    const registry = createContraRegistry([alone as AnyFigureDef]);
     const def = registry.get(id);
     const group = checkGroup();
     const timeline = createTimeline(registry);

@@ -43,11 +43,12 @@ export type ContraWaitOutParams = Omit<WaitOutParams, "crossTo"> & {
    *   just danced there, which had not moved yet. That is the `collision
    *   0.000 px` at beat 64 that M9b measured on Are You 'Most Done? and The
    *   Set Monster at every checked length.
-   * - A time through that restarts from the formation's **first places**
-   *   (`legacyCyclePlanner`, and `defaultCyclePlanner` — today's shipped path
-   *   and AC1's baseline) teleports every dancer on to their new place at the
-   *   boundary, so the waiting couple has to be on its own or the seam is a
-   *   shift wide. `sequence.test.ts`'s becket closure is what says so.
+   * - A time through that restarts from the formation's **first places** — the
+   *   planners M11 deleted, and what AC1 was measured against — teleports every
+   *   dancer on to their new place at the boundary, so the waiting couple has
+   *   to be on its own or the seam is a shift wide. The becket closure of the
+   *   two synthetic sequences said so, and they went with the coded layer too;
+   *   `dances.test.ts`'s becket dances say it now.
    *
    * So the planner that knows which of the two it is sets this, and a dance
    * never writes it.

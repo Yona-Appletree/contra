@@ -1,16 +1,16 @@
 import type { Beat, Hand, Vec2 } from "@caller/core";
-import { addScaled, dirOf, dist, norm, ramp, shouldersAt, sub } from "@caller/core";
+import { addScaled, dirOf, dist, handDown, norm, ramp, shouldersAt, sub } from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type { HandJoin, HoldWindow, LocalHand, Spot } from "../../figures/ContraFigure.js";
 import {
+  bearing,
   holdWindow,
   isHeld,
   joinPoint,
   joinedHands,
   midpoint,
 } from "../../figures/ContraFigure.js";
-import { wristPoint } from "../../figures/star.js";
-import { handDown } from "../../pair/PairFrame.js";
+
 import type {
   HoldSpec,
   IdleHands,
@@ -509,4 +509,75 @@ export function endsOfHold(
     return { mine: hold.join.bSide, other: hold.join.a, theirs: hold.join.aSide };
   }
   return undefined;
+}
+
+/**
+ * **How far down the arm of the dancer ahead the grip sits**, as a fraction of
+ * it: `0` is their giving shoulder and `1` is their own hand.
+ *
+ * The user, on the Moves page (FR-A1):
+ *
+ * > "almost right, but you put your hand on the wrist, not the shoulder, of the
+ * > person in front of you."
+ *
+ * They were reading the picture exactly right. The old point was a fixed
+ * `FOREARM_PX` — 7.5 px — out from the ring's centre along the bearing of the
+ * dancer ahead, and a four-person star's ring is 12 px across, which puts every
+ * dancer's giving shoulder **6.51 px** from that same centre on that same
+ * bearing. The hand landed 0.99 px outside the next dancer's shoulder: on it.
+ *
+ * {@link wristPoint} replaces the radius with a fraction of their arm, which is
+ * what the sentence actually says, and the fraction is the one dial the figure
+ * has. **It cannot be taken all the way to the wrist, and the reason is
+ * measured rather than argued.** Solve the chain — my hand `t` of the way from
+ * their shoulder to their hand, their hand `t` of the way to the next one's,
+ * all the way round a ring of `n` — and the hands land on a ring of radius
+ * `s(1−t)/|1 − t·e^{iφ}|`, which for a four-star (`s = 6.51`, `φ = 90°`) is
+ * 4.4 px at `t = 0.3`, 2.9 px at `t = 0.5` and **1.0 px at `t = 0.8`**, where a
+ * wrist really is. A true wrist chain in a 12 px ring *is* the pile in the
+ * middle the user calls awkward — the two sentences cannot both hold while the
+ * ring is that tight, and the ring's radius is `ringOf`'s footprint clamp,
+ * which is the circle's and not this figure's.
+ *
+ * So `0.5` — half way down their forearm, as near the wrist as the star's own
+ * ring allows without collapsing the four hands into one point. It puts the
+ * grip 2.91 px from the centre, 4.1 px from the next dancer's shoulder and 4.1
+ * px from their hand, with the giver's own arm at 48% of its reach: bent, as
+ * the user asks, and nowhere near their shoulder.
+ */
+export const WRIST_ALONG = 0.5;
+
+/**
+ * **The wrist of the dancer ahead**: {@link WRIST_ALONG} of the way from their
+ * giving shoulder to their own hand, solved in closed form.
+ *
+ * Their hand is not known when this runs — it is this same point, one place
+ * round — so the chain is solved rather than sampled. Writing the grip as a
+ * complex number `z` about the ring's centre, and the next dancer's hand as the
+ * same `z` turned by the angle `φ` between two places:
+ *
+ * ```
+ * z = (1 − t)·S + t·z·e^{iφ}   ⟹   z = (1 − t)·S / (1 − t·e^{iφ})
+ * ```
+ *
+ * where `S` is their giving shoulder relative to the centre. At `t = 0` that is
+ * their shoulder exactly and at `t → 1` it is the centre, so the fraction is a
+ * dial from "on their shoulder" to "in a pile in the middle" and every value
+ * between is a real point on a real arm.
+ */
+export function wristPoint(
+  centre: Vec2,
+  me: Vec2,
+  aheadShoulder: Vec2,
+  ahead: Vec2,
+  along: number,
+): Vec2 {
+  const phi = ((bearing(centre, ahead) - bearing(centre, me)) * Math.PI) / 180;
+  const nx = (1 - along) * (aheadShoulder[0] - centre[0]);
+  const ny = (1 - along) * (aheadShoulder[1] - centre[1]);
+  const dx = 1 - along * Math.cos(phi);
+  const dy = -along * Math.sin(phi);
+  const den = dx * dx + dy * dy;
+  if (den === 0) return centre;
+  return [centre[0] + (nx * dx + ny * dy) / den, centre[1] + (ny * dx - nx * dy) / den];
 }

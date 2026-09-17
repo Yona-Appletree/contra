@@ -1,18 +1,40 @@
 import { BUZZ_STEPS_PER_BEAT, SHOULDER_WIDTH_PX } from "@caller/core";
 import { CLEARANCE_PX } from "../../figures/ContraFigure.js";
-import {
-  BACK_HAND_DROP_PX,
-  BACK_HAND_FORWARD_PX,
-  BACK_HAND_RIGHT_PX,
-  SHOULDER_HAND_INSET_PX,
-  SWING_BODY_TURN_DEG,
-  SWING_FLARE_PX,
-  SWING_HAND_DROP_PX,
-  SWING_LATERAL_PX,
-  SWING_LEAN_PX,
-  SWING_RADIUS_PX,
-} from "../../pair/swing.js";
 import type { FigureDefinition, OrbitPairShape } from "../FigureDefinition.js";
+
+/**
+ * **The swing's geometry**, the numbers AC3 protects (DD21, DD13).
+ *
+ * They were written in `pair/swing.ts`, the two-dancer engine behind the pair
+ * page, and both swings — that one and this — read them so that the migration
+ * could be held to the last pixel. M11 deleted the pair engine; the numbers
+ * stay here, where the only swing left is.
+ */
+/** How far each dancer stands from the centre while turning. */
+export const SWING_RADIUS_PX = 5;
+
+/** How far each dancer sits to the side of the turning axis — the ballroom offset. */
+export const SWING_LATERAL_PX = 3.5;
+
+/** How far each body turns out of the line of the turn as the hold is taken. */
+export const SWING_BODY_TURN_DEG = 30;
+
+/** The outstretched joined hands sit just below shoulder height. */
+export const SWING_HAND_DROP_PX = 1;
+
+/** The free hand on the partner's back: body-local forward, right, and drop. */
+export const BACK_HAND_FORWARD_PX = -1.5;
+export const BACK_HAND_RIGHT_PX = -2.5;
+export const BACK_HAND_DROP_PX = 1;
+
+/** The other free hand, on the partner's shoulder. */
+export const SHOULDER_HAND_INSET_PX = 0.5;
+
+/** How far the bodies lean into the turn, in px. */
+export const SWING_LEAN_PX = 0.6;
+
+/** Extra skirt radius at full turning speed, in px. */
+export const SWING_FLARE_PX = 2.6;
 
 /**
  * **Swing**, as data: take a ballroom hold, buzz round, and open out with the

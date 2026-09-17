@@ -28,7 +28,7 @@ import {
   polar,
   takeAndRelease,
 } from "../../figures/ContraFigure.js";
-import { endFacingOf } from "../../figures/swing.js";
+import { endFacingOf } from "./openOut.js";
 import type {
   BodyStage,
   FigureRole,

@@ -392,7 +392,13 @@ it is the first, where the last figure left every dancer, and a `mintGroup`
 that registers a group on the timeline — to the cycle's `CycleEmission`s, in
 the order they are to be added, plus the hall as it stands afterwards. Left
 out, it is `defaultCyclePlanner`, which is the two-pass emission half of
-`emitCycle` exactly as described above, lifted out whole. Everything else
+`emitCycle` exactly as described above, lifted out whole — a placeholder-figure
+path that hands a figure the four dancers of a hands-four and asks where it
+leaves them. **Nothing in `@caller/contra` runs on it since M11**: a contra
+figure a resolution mints one instance per pair is written for two roles and
+refuses four by name, and `danceAlone` now passes `contraCyclePlanner` by
+default. It stays because it is the seam'''s own default and what a form with no
+planner of its own gets, and because `square.test.ts` runs on it. Everything else
 stays the decider's: `emitFigure`, `standingAt`, the utterances, and the whole
 between-dances interval. Nothing in the seam is form-specific — a planner that
 wants relations, slots or a lattice brings them itself, which is how

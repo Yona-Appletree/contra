@@ -1,6 +1,6 @@
 import type { Side } from "@caller/choreo";
 import { CLEARANCE_PX } from "../../figures/ContraFigure.js";
-import { TURN_RADIUS_PX } from "../../pair/allemande.js";
+import { TURN_RADIUS_PX } from "./allemande.js";
 import type {
   FigureDefinition,
   FigureRole,
