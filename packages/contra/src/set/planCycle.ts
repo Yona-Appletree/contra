@@ -99,8 +99,8 @@ import { modelFromSet } from "./SetModel.js";
  * what `chainCalls` does (it restarts from `danceStart(spec)` for every cycle),
  * and it is therefore what AC1 has to compare against: the two differ by the
  * dance's own closure error, which is allowed to be 0.01 px and would swamp
- * AC1's 1e-9. {@link legacyCyclePlanner}, the all-bridged planner every test of
- * the hub itself names, keeps it.
+ * AC1's 1e-9. The all-bridged planner every test of the hub named kept it, and
+ * went with the bridge in M11; nothing asks for `"first-places"` now.
  *
  * Either way `standingAt` is also read for what the decider reads it for: the
  * `origins` of the dancers a `who` left standing.
@@ -114,10 +114,11 @@ export interface ContraCyclePlannerOptions {
   /**
    * The figure definitions to resolve against.
    *
-   * Left out, `contraLibrary`: every coded contra figure in the call's own
-   * registry bridged, with the five migrated **definitions** replacing their own
-   * bridges. Pass `legacyLibrary(registry)` for the all-bridged library M1
-   * proved pose-identical, which is what `planCycle.golden.test.ts` does.
+   * Left out, `contraLibrary`: every contra figure, as data, at whatever
+   * tuning the call's own registry was built with. It used to mean "every coded
+   * figure bridged, with the migrated definitions replacing their own bridges",
+   * and it shrank by one figure per migration until M11 deleted the last of
+   * them.
    */
   library?: Library;
   /**
