@@ -94,7 +94,7 @@ describe("chaining a dance", () => {
     expect(spotError(ends["1L"]!, stationSpot(DUPLE_IMPROPER, "2R"))).toBeLessThan(1e-9);
   });
 
-  it("threads nothing through a figure with no coded twin, rather than refusing", () => {
+  it("threads nothing through a figure a hands-four cannot plan, rather than refusing", () => {
     // Since M6 a dance may call a figure that is only a `FigureDefinition`, or
     // one a later milestone still owes. Neither has a hands-four template to
     // walk, and the chain is dead weight on the new path anyway — `planCycle`
@@ -102,9 +102,9 @@ describe("chaining a dance", () => {
     // the call is still in the threaded dance.
     const { calls, ends } = chainCalls(DUPLE_IMPROPER, [
       { figure: "walk-to-station", beats: 8 },
-      { figure: "pull-by", beats: 2, params: { pairs: "neighbors" } },
+      { figure: "grand-right-and-left", beats: 2, params: { pairs: "neighbors" } },
     ]);
-    expect(calls.map((c) => c.figure)).toEqual(["walk-to-station", "pull-by"]);
+    expect(calls.map((c) => c.figure)).toEqual(["walk-to-station", "grand-right-and-left"]);
     for (const station of DUPLE_IMPROPER.group(4)) {
       expect(spotError(ends[station.id]!, stationSpot(DUPLE_IMPROPER, station.id))).toBeLessThan(
         1e-9,

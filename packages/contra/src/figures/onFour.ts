@@ -2,6 +2,8 @@ import type { Beat } from "@caller/core";
 import type { StationId } from "@caller/choreo";
 import type { Vec2 } from "@caller/core";
 import type {
+  Carried,
+  CarriedHands,
   ContraFigure,
   ContraParams,
   FigurePlan,
@@ -128,13 +130,13 @@ function planPairs(
       start[roles[i]!] = ctx.spot(id);
     });
     const sub = planContext(stations, ctx.roleSet, ctx.spacing, start);
-    const plan = inner.plan(sub, params);
     const byStation: Record<StationId, StationId> = {};
     const byRole: Record<StationId, StationId> = {};
     pair.forEach((id, i) => {
       byStation[id] = roles[i]!;
       byRole[roles[i]!] = id;
     });
+    const plan = inner.plan(sub, { ...params, carried: carriedFor(params.carried, byStation) });
     return { ids: pair, byStation, byRole, plan };
   });
 
@@ -175,6 +177,40 @@ function planPairs(
       );
     },
   };
+}
+
+/**
+ * The carried holds this pair brings in and takes out, under the pair's own
+ * figure-roles.
+ *
+ * `chainCalls` works out which hands cross a call boundary and names them by
+ * the **hands-four's** stations, because that is the template it threads on; an
+ * instance knows its dancers by its own figure-roles. Without the rename the
+ * hold is there and nobody claims it, and a balance flows into a swing having
+ * let go — which is the one thing the seam check exists to catch.
+ */
+function carriedFor(
+  carried: Carried | undefined,
+  byStation: Record<StationId, StationId>,
+): Carried | undefined {
+  if (carried === undefined) return undefined;
+  const out: Carried = { in: {}, out: {} };
+  for (const way of ["in", "out"] as const) {
+    for (const [station, hands] of Object.entries(carried[way])) {
+      const role = byStation[station];
+      if (role === undefined) continue;
+      const held: CarriedHands = {};
+      for (const side of ["L", "R"] as const) {
+        const join = hands[side];
+        if (join === undefined) continue;
+        const other = byStation[join.with];
+        if (other === undefined) continue;
+        held[side] = { with: other, side: join.side };
+      }
+      if (held.L !== undefined || held.R !== undefined) out[way][role] = held;
+    }
+  }
+  return out;
 }
 
 /** A dancer the pairing left out, on their own spot with their hands down. */

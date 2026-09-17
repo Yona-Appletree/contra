@@ -1,9 +1,4 @@
-import {
-  HAND_HANG_SWING_PX,
-  dist,
-  drawnArms,
-  handDown,
-} from "@caller/core";
+import { HAND_HANG_SWING_PX, dist, drawnArms, handDown } from "@caller/core";
 import { describe, expect, it } from "vitest";
 import {
   CONTRA_EVENNESS,
@@ -161,6 +156,15 @@ describe("the derived motion bounds", () => {
         "bend-the-line",
         "down-the-hall",
         "interrupted-square-through",
+        // **Two nobody had measured before** (M11). A couple leading down the
+        // hall is minted one instance per couple, so the hands-four template
+        // refused it and the ranking never held a row for it; the coded layer
+        // had no twin to answer either. `figureOnFour` plans it pair by pair
+        // now, and what it measures is that a lead down walks out over its
+        // first half and turns in place over its second — which is what the
+        // figure is, and is why the two of them are here and not a regression.
+        "lead-down",
+        "lead-up",
         // M10c: the robin crosses the set in the first half and turns and opens
         // out in the second, which is what four beats each *is*.
         "robins-chain",

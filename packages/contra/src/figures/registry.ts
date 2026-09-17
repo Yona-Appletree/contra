@@ -45,19 +45,40 @@ export function createContraRegistry(
   extra: readonly AnyFigureDef[] = [],
   overrides: FigureDefaultsOverride = {},
 ): FigureRegistry {
-  const figures =
+  const definitions =
     Object.keys(overrides).length === 0
+      ? DATA_DEFINITIONS
+      : DATA_DEFINITIONS.map((def) => overridden(def, overrides));
+  const figures =
+    definitions === DATA_DEFINITIONS
       ? contraDataFigures()
-      : DATA_DEFINITIONS.map(
-          (def) => interpretDefinition(overridden(def, overrides)) as unknown as AnyFigureDef,
-        );
-  return createFigureRegistry([
+      : definitions.map((def) => interpretDefinition(def) as unknown as AnyFigureDef);
+  const registry = createFigureRegistry([
     ...figures,
     waitOut as AnyFigureDef,
     WALK_TO_STATION as AnyFigureDef,
     ...extra,
   ]);
+  BUILT_FROM.set(registry, definitions);
+  return registry;
 }
+
+/**
+ * The definitions each registry was built from, so a planner given the registry
+ * resolves against **the same** figures the timeline will sample.
+ *
+ * `poseAt` looks a figure up by id in the registry and the planner resolves a
+ * call in its library, so the two have to agree — and with an `overrides` map
+ * they only agree if the library is built from the overridden definitions too.
+ * The coded layer made this invisible: the override reached the coded figure in
+ * the registry and the planner bridged the registry itself. See
+ * {@link contraLibrary}, which reads this.
+ */
+const BUILT_FROM = new WeakMap<FigureRegistry, readonly FigureDefinition[]>();
+
+/** The definitions a registry was built from; the library's own by default. */
+export const definitionsBehind = (registry: FigureRegistry): readonly FigureDefinition[] =>
+  BUILT_FROM.get(registry) ?? DATA_DEFINITIONS;
 
 /** One definition with its declared defaults overridden, or the definition itself. */
 function overridden(def: FigureDefinition, overrides: FigureDefaultsOverride): FigureDefinition {

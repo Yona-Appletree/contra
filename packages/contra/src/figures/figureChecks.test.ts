@@ -38,7 +38,12 @@ describe("the figure checks", () => {
       "petronella",
       "balance",
       "swing",
-      "balance → swing",
+      // **"balance → swing" is not here since M11.** It was the one check that
+      // spanned two calls, and it spanned them on a hands-four threaded by
+      // `chainCalls` — which is how the coded layer danced and is not how
+      // anything dances now. `figureChecks.ts` says so where the check was, and
+      // `balance-and-swing` (one figure, one call) still holds the joined point
+      // continuous, which is the user's own complaint.
     ]) {
       expect(keys).toContain(id);
     }

@@ -2,6 +2,7 @@ import type { AnyFigureDef, FigureRegistry } from "@caller/choreo";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { createLibrary, type Library } from "../Library.js";
 import { interpretDefinition } from "../interpret.js";
+import { definitionsBehind } from "../../figures/registry.js";
 import { allemandeDefinition } from "./allemande.js";
 import { balanceDefinition } from "./balance.js";
 import { balanceRingDefinition } from "./balance-ring.js";
@@ -323,12 +324,13 @@ export const contraDataFigures = (): AnyFigureDef[] =>
  *
  * It used to be "every coded figure bridged, with the migrated definitions
  * replacing their own bridges", and it shrank by one figure per migration until
- * M11 deleted the last of them. The `registry` argument is kept because the
- * planner's seam passes one and a later library may again want to be built
- * against what a registry holds.
+ * M11 deleted the last of them. What the `registry` still decides is the
+ * **tuning**: a registry built with a `FigureDefaultsOverride` was built from
+ * overridden definitions, and the planner has to resolve against those same
+ * ones or it would plan a figure at one tuning and sample it at another.
  */
-export function contraLibrary(_registry: FigureRegistry): Library {
-  return createLibrary(DATA_DEFINITIONS);
+export function contraLibrary(registry: FigureRegistry): Library {
+  return createLibrary(definitionsBehind(registry));
 }
 
 export { allemandeDefinition } from "./allemande.js";

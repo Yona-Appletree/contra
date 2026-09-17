@@ -14,7 +14,6 @@ import { CHECK_FRAME, checkGroup, figureChecks } from "./figureChecks.js";
 import { isKnownWrong } from "./knownWrong.js";
 import { CONTRA_MOTION_BOUNDS } from "./motionBounds.js";
 import { createContraRegistry } from "./registry.js";
-import { interpretDefinition } from "../library/interpret.js";
 
 import type { FigureDefinition, HoldSpec, SideRule } from "../library/FigureDefinition.js";
 import { contraLibrary } from "../library/figures/index.js";
@@ -144,7 +143,6 @@ export function figurePaceRows(
   const registry = createContraRegistry([], overrides);
   if (!registry.has(id)) return [];
   const group = aloneGroup(kind);
-  const written = definitionOf(id);
   const interpreted = figureOnFour(id) as AnyFigureDef | undefined;
   const plans = (def: AnyFigureDef): boolean => {
     try {

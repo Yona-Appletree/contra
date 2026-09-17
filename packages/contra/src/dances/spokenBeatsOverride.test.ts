@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraDance } from "../figures/chain.js";
 import { createContraRegistry } from "../figures/registry.js";
+import { contraCyclePlanner } from "../set/planCycle.js";
 
 /**
  * `ContraCall.spokenBeats` (a dance's own override of the rhythm estimate) has
@@ -47,6 +48,9 @@ describe("a dance's own spokenBeats reaches the decider", () => {
       registry,
       hall,
       createLibrary([dance], [DUPLE_IMPROPER]),
+      // **The contra planner**, because there is no other one since M11; see
+      // `oracle.ts`'s `DanceRunOptions`.
+      { cycle: contraCyclePlanner },
     );
     decider.advance(16);
     const said = decider.timeline().utterances();

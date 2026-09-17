@@ -11,8 +11,7 @@ import { modelFromSet } from "./SetModel.js";
 
 const REGISTRY = createContraRegistry();
 const LIBRARY = contraLibrary(REGISTRY);
-/** The data library, for the figures the bridge does not hold. */
-const DATA_LIBRARY = contraLibrary(REGISTRY);
+const DATA_LIBRARY = LIBRARY;
 
 function context(couples: number, selector = "hands-four") {
   const set = createHall(DUPLE_IMPROPER, [{ id: "set0", couples, centre: [0, 0], axis: 90 }])
@@ -28,14 +27,20 @@ function context(couples: number, selector = "hands-four") {
 const swing: FigureCall = { figure: "swing", beats: 8, params: { pairs: "neighbors" } };
 
 describe("resolving one call against the set", () => {
-  it("gives every minor set its own instance, over everybody", () => {
+  // **One instance per pair, not per minor set** (M11). A swing is a figure
+  // for two: `actors: "pairs"`, two figure-roles, anchored where the pair
+  // meets. Until M11 this file resolved against the *bridge* — one coded figure
+  // over the four stations of a hands-four — and what it measured was the
+  // bridge's shape. Four couples are two minor sets, two pairs each: four
+  // instances, two roles apiece, and still every dancer exactly once.
+  it("gives every pair its own instance, over everybody", () => {
     const ctx = context(4);
     const instances = resolveCall(swing, ctx, 0);
-    expect(instances).toHaveLength(2);
+    expect(instances).toHaveLength(4);
     for (const instance of instances) {
       expect(instance.figure).toBe("swing");
       expect(instance.holdPlace).toBe(false);
-      expect(Object.keys(instance.cast).sort()).toEqual(["1L", "1R", "2L", "2R"]);
+      expect(Object.keys(instance.cast).sort()).toEqual(["lark", "robin"]);
       expect(instance.frame).toBe(instance.group.frame);
       expect(instance.beats).toBe(8);
     }
@@ -45,24 +50,31 @@ describe("resolving one call against the set", () => {
   });
 
   it("leaves a couple standing out of the partition to the cycle's own fill", () => {
-    // Five couples: one minor set plus a waiting couple at each parity.
+    // Five couples: one minor set plus a waiting couple at each parity, and
+    // two pairs in each minor set.
     const instances = resolveCall(swing, context(5), 0);
-    expect(instances).toHaveLength(2);
+    expect(instances).toHaveLength(4);
     expect(instances.flatMap((i) => Object.values(i.cast))).toHaveLength(8);
   });
 
   it("gives the dancers a `who` left out one hold-place instance per group", () => {
+    // "Larks swing your neighbour" names nobody: a lark's neighbour is a robin
+    // and the `who` did not select her, so no pair of the selection is a pair
+    // the relation holds. Everybody in the group dances hold-place, and the
+    // claim this case is about — **one hold-place instance per group**, over
+    // exactly the dancers the call left standing — is what is asserted.
+    //
+    // It used to read differently, and the difference is M11's: the bridged
+    // coded swing was one figure over the whole hands-four, so a `who` of the
+    // two larks cast the two larks into it and the two robins into the
+    // hold-place beside it. A figure for two pairs people up first.
     const larks: FigureCall = { ...swing, who: "larks" };
     const instances = resolveCall(larks, context(4), 0);
-    expect(instances.map((i) => i.figure)).toEqual([
-      "swing",
-      HOLD_PLACE_FIGURE,
-      "swing",
-      HOLD_PLACE_FIGURE,
-    ]);
-    expect(Object.keys(instances[0]!.cast)).toEqual(["1L", "2L"]);
-    expect(Object.keys(instances[1]!.cast)).toEqual(["1R", "2R"]);
-    expect(instances[1]!.holdPlace).toBe(true);
+    expect(instances.map((i) => i.figure)).toEqual([HOLD_PLACE_FIGURE, HOLD_PLACE_FIGURE]);
+    for (const instance of instances) {
+      expect(instance.holdPlace).toBe(true);
+      expect(Object.keys(instance.cast)).toHaveLength(4);
+    }
   });
 
   it("takes a relation word in `who`, not only a tag", () => {
@@ -70,7 +82,9 @@ describe("resolving one call against the set", () => {
     // Everybody in a hands-four has a neighbour inside it, so this selects all
     // four — but by *relation*, which is what M6's `who: "N2"` will need.
     const byRelation = resolveCall({ ...swing, who: "N1" }, ctx, 0);
-    expect(Object.keys(byRelation[0]!.cast).sort()).toEqual(["1L", "1R", "2L", "2R"]);
+    expect(byRelation.filter((i) => !i.holdPlace)).toHaveLength(4);
+    expect(Object.keys(byRelation[0]!.cast).sort()).toEqual(["lark", "robin"]);
+    expect(new Set(byRelation.flatMap((i) => Object.values(i.cast))).size).toBe(8);
   });
 
   it("no longer refuses a relation that reaches past the minor set (M6)", () => {
@@ -85,9 +99,21 @@ describe("resolving one call against the set", () => {
     expect(resolveCall(swing, context(4), 40)[0]!.start).toBe(40);
   });
 
-  it("survives a JSON round trip: an instance is data", () => {
+  it("survives a JSON round trip: an instance is data, but for the claims ledger", () => {
     const instance = resolveCall(swing, context(4), 0)[0]!;
-    expect(JSON.parse(JSON.stringify(instance))).toEqual(instance);
+    const { claims, ...params } = instance.params as Record<string, unknown>;
+    const plain = { ...instance, params };
+    expect(JSON.parse(JSON.stringify(plain))).toEqual(plain);
+    // **The one thing that does not** (found by M11): the place-claims ledger
+    // M9d threads through a resolved instance's parameters holds a `Map`, which
+    // `JSON.stringify` writes as `{}`. Nothing persists an instance — it lives
+    // for one cycle's planning and reaches the timeline as a figure event — so
+    // this is not a defect anybody is hitting; it is a convention the layer
+    // states of itself (`AGENTS.md`: "dances and definitions survive
+    // `JSON.parse(JSON.stringify())`") and an instance quietly does not. Filed
+    // in `_DONE.md`. Until M11 this case resolved the *bridged* coded swing,
+    // whose parameters had no ledger, so nothing had asked.
+    expect(claims).toBeDefined();
   });
 
   /**

@@ -13,11 +13,7 @@ import {
 import { contraDance } from "../figures/chain.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { contraDataFigures } from "../library/figures/index.js";
-import {
-  PROGRESSES_PARAM,
-  REBIND_PARAM,
-  contraCyclePlanner,
-} from "./planCycle.js";
+import { PROGRESSES_PARAM, REBIND_PARAM, contraCyclePlanner } from "./planCycle.js";
 
 /**
  * What the contra planner claims beyond AC1's poses: that the **chain is off

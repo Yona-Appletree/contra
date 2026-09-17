@@ -8,7 +8,6 @@ import { HallPage } from "./routes/hall.js";
 import { hashRoute } from "./routes/hashRoute.js";
 import { SeamLabPage } from "./routes/lab.js";
 import { MovesPage } from "./routes/moves.js";
-import { PairPage } from "./routes/pair.js";
 import { SpikesPage } from "./routes/spikes.js";
 import { MoveTracesPage, TracesPage } from "./routes/traces.js";
 import { TunePage, TunesPage } from "./routes/tunes.js";
@@ -29,13 +28,11 @@ export function App() {
     return <FramePage params={route.params} />;
   }
 
-  // The pair page, gate G1's artifact, moved off the front page by M9. Hidden
-  // from the tabs, still linkable.
-  if (route.path === "/pair") {
-    // Keyed on the query, so navigating between `#/pair?...` URLs starts the
-    // page again rather than keeping the previous zoom, beat and strip.
-    return <PairPage key={route.params.toString()} params={route.params} />;
-  }
+  // **The pair page is gone** (M11). It was gate G1's artifact — the
+  // two-dancer engine in `@caller/contra`'s `pair/`, which the user ruled
+  // could go with the rest of the coded layer — and `#/pair` now falls through
+  // to the default route. The hall's footer still links to it; that line is in
+  // `hall.tsx`, which the user is rewriting in #95, and is theirs to drop.
 
   // `#/spikes` (M10 P5, DD7): the repo's visual spikes, one link each. Hidden
   // from the tabs, reachable from the footer and by URL, like `/pair` above.

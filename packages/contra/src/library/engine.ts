@@ -1,7 +1,7 @@
 import type { AnyFigureDef, FigureRegistry } from "@caller/choreo";
 import type { FigureDefaultsOverride } from "../figures/registry.js";
 import { createContraRegistry } from "../figures/registry.js";
-import { contraDataFigures, contraLibrary } from "./figures/index.js";
+import { contraLibrary } from "./figures/index.js";
 import type { Library } from "./Library.js";
 
 /**
@@ -16,15 +16,17 @@ import type { Library } from "./Library.js";
  * timeline sampled the coded one.
  *
  * This is the one call that builds a consistent pair, so nothing has to
- * remember both halves. In M2 the app still runs the default planner and the
- * plain `createContraRegistry()`; `pnpm dance` and the per-figure goldens are
- * what run on this, and M3 is where the Stage gains the choice.
+ * remember both halves. Since M11 it is also the only pair there is — the
+ * coded registry the other half of the choice named is deleted — and what it
+ * still carries is the `overrides`: a registry built with them was built from
+ * overridden **definitions**, and `contraLibrary` gives the planner those same
+ * ones, so the two halves are one tuning.
  */
 export function contraDataEngine(
   extra: readonly AnyFigureDef[] = [],
   overrides: FigureDefaultsOverride = {},
 ): { registry: FigureRegistry; library: Library } {
-  const registry = createContraRegistry([...contraDataFigures(), ...extra], overrides);
+  const registry = createContraRegistry(extra, overrides);
   return { registry, library: contraLibrary(registry) };
 }
 

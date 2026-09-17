@@ -146,7 +146,6 @@ export function createContraCyclePlanner(options: ContraCyclePlannerOptions = {}
  */
 export const contraCyclePlanner: CyclePlanner = createContraCyclePlanner();
 
-
 /** A half-open run of beats, measured from the start of a time through. */
 type Span = readonly [Beat, Beat];
 

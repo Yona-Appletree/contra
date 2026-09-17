@@ -12,8 +12,8 @@ import type {
   TeachEdit,
 } from "@caller/choreo";
 import { HANDS_FOUR_GROUP, resolveSelector, validateDance, withDefaults } from "@caller/choreo";
-import type { Carried, ContraFigure, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
-import { contraFigureOf } from "./registry.js";
+import type { Carried, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
+
 import { figureOnFour } from "./onFour.js";
 
 /**

@@ -36,7 +36,6 @@ export const SWING_LEAN_PX = 0.6;
 /** Extra skirt radius at full turning speed, in px. */
 export const SWING_FLARE_PX = 2.6;
 
-
 /**
  * **Swing**, as data: take a ballroom hold, buzz round, and open out with the
  * robin on the right of the lark, facing `endFacing`.

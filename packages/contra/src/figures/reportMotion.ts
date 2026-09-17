@@ -246,9 +246,7 @@ function figuresSection(): string[] {
 export function figureAloneRows(): MotionStats[] {
   const registry = createContraRegistry();
   const rows: MotionStats[] = [];
-  const alone = [
-    ...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined),
-  ];
+  const alone = [...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined)];
   for (const id of alone) {
     const def = registry.get(id);
     const group = checkGroup();

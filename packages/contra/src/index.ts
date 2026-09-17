@@ -81,10 +81,7 @@ export { CONTRA_SET_RULES, setRulesFor, setRulesOf } from "./set/SetRules.js";
 export type { FigureInstance, ResolveContext } from "./set/resolve.js";
 export { HOLD_PLACE_FIGURE, resolveActors, resolveCall } from "./set/resolve.js";
 export type { ContraCyclePlannerOptions } from "./set/planCycle.js";
-export {
-  contraCyclePlanner,
-  createContraCyclePlanner,
-} from "./set/planCycle.js";
+export { contraCyclePlanner, createContraCyclePlanner } from "./set/planCycle.js";
 
 export type {
   ActorRule,
@@ -282,6 +279,8 @@ export {
   BECKET_RIGHT_LATTICE,
   BECKET_RIGHT_RELATIONS,
 } from "./formation/becketRight.js";
+
+export * from "./figures/index.js";
 
 export {
   ALL_DANCES,

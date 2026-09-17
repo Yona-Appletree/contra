@@ -2,6 +2,7 @@ import { createHall, createLibrary, createScriptDecider } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { BECKET } from "../formation/becket.js";
 import { createContraRegistry } from "../figures/registry.js";
+import { contraCyclePlanner } from "../set/planCycle.js";
 import { danceBySlug } from "./index.js";
 
 /**
@@ -25,6 +26,11 @@ describe("overlapping calls: the earliest-started utterance is the one the bubbl
       registry,
       hall,
       createLibrary([dance], [BECKET]),
+      // **The contra planner**, because there is no other one since M11: the
+      // decider's own hands the four dancers of a hands-four to a figure and
+      // asks where it leaves them, which a figure minted per pair refuses by
+      // name. Nothing here is about geometry; it is about what is said.
+      { cycle: contraCyclePlanner },
     );
     decider.advance(8);
     const said = decider.timeline().utterances();

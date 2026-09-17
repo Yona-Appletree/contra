@@ -18,7 +18,6 @@ import { MINOR_SET_ROLES } from "./carriers.js";
  */
 export const STEP_BEATS: Beat = 1;
 
-
 /**
  * **Slide left**, as data: the whole line sashays one place — half a couple's width — along to
  * its own left.

@@ -1,8 +1,5 @@
 import type { Beat, PoseSample, Side, Vec2 } from "@caller/core";
-import {
-  armShortfall,
-  dist,
-} from "@caller/core";
+import { armShortfall, dist } from "@caller/core";
 import type { Formation, Frame, Group, StationId } from "@caller/choreo";
 import { createGroup, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot, Spots } from "./ContraFigure.js";

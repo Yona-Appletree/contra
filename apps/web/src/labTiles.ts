@@ -44,15 +44,12 @@ export interface LabTreatment {
 
 /** The two treatments, in the order the lab lays them out. */
 export const LAB_TREATMENTS: readonly LabTreatment[] = [
-  {
-    letter: "A",
-    engine: "old",
-    name: "today",
-    thesis:
-      "The coded figures. Every figure ends on the formation's own stations, so the pair walks " +
-      "back to their two slots and turns to face whatever the next figure wants, however the " +
-      "figure before it left them.",
-  },
+  // **Treatment A is gone** (M11). It was "today": the coded figures on
+  // `?engine=old`, every figure ending on the formation's own stations. The
+  // user ruled the coded layer could go, so there is nothing to put beside B
+  // any more and the lab shows the treatment that ships. What the page was for
+  // — G1's "is the honest-ends treatment the right look?" — is closed: the user
+  // answered yes at G1 on 2026-09-15.
   {
     letter: "B",
     engine: "new",

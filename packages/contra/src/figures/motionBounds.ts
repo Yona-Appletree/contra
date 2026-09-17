@@ -1,14 +1,8 @@
 import type { Beat, Hand, Side, Vec2 } from "@caller/core";
-import {
-  HAND_HANG_DROP_PX,
-  HAND_HANG_SWING_PX,
-  dist,
-  drawnArms,
-  handDown,
-} from "@caller/core";
+import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms, handDown } from "@caller/core";
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { figureOnFour } from "./onFour.js";
-import { interpretDefinition } from "../library/interpret.js";
+
 import type { MotionBounds } from "@caller/choreo";
 import { STILL_BODY_PX, STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot } from "./ContraFigure.js";

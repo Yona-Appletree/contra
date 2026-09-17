@@ -185,7 +185,12 @@ export function interpretDefinition(def: FigureDefinition): ContraFigure<Interpr
  * The one place `planCycle` asks "what do I actually sample", so that the
  * bridge going empty is a change to this function and to nothing else.
  */
-export function figureFor(def: FigureDefinition, _registry: FigureRegistry): ContraFigure {
+export function figureFor(def: FigureDefinition, registry: FigureRegistry): ContraFigure {
+  // The registry was how a `{ kind: "legacy" }` shape reached the coded figure
+  // it stood for. There is no such shape since M11, so every definition is
+  // interpreted; the argument stays because `planCycle` and `compareFigures`
+  // both hand one over and a later shape may again need what a registry holds.
+  void registry;
   return interpretDefinition(def) as unknown as ContraFigure;
 }
 
