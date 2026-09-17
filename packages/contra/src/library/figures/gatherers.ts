@@ -2,9 +2,15 @@ import type { Formation } from "@caller/choreo";
 import { BECKET } from "../../formation/becket.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
 import type { ContraFigure } from "../../figures/ContraFigure.js";
-import type { CompareCase, CompareResult } from "../compareFigures.js";
+import type {
+  CompareCase,
+  CompareOptions,
+  CompareResult,
+  CompareTolerance,
+} from "../compareFigures.js";
 import { compareFigures } from "../compareFigures.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
+import { SAMPLED_AT, fixtureFor } from "./fixtureFile.js";
 
 /**
  * **The gate DD21 asks each migrated gatherer to pass**, as one call.
@@ -48,20 +54,26 @@ export function gathererGolden(
   coded: ContraFigure,
   definition: FigureDefinition,
   cases: readonly CompareCase[],
+  tolerance?: CompareTolerance,
 ): GathererGolden {
+  const stations: CompareOptions = {
+    cases,
+    formations: GATHERER_FORMATIONS,
+    ...(tolerance === undefined ? {} : { tolerance }),
+  };
+  const displaced: CompareOptions = {
+    cases: cases.map((test) => ({
+      ...test,
+      from: "displaced" as const,
+      allowed: [...(test.allowed ?? []), "ends" as const, "path" as const],
+    })),
+    formations: GATHERER_FORMATIONS,
+    ...(tolerance === undefined ? {} : { tolerance }),
+  };
+  const fixture = fixtureFor(coded, [stations, displaced], SAMPLED_AT);
   return {
-    stations: compareFigures(coded, definition, {
-      cases,
-      formations: GATHERER_FORMATIONS,
-    }),
-    displaced: compareFigures(coded, definition, {
-      cases: cases.map((test) => ({
-        ...test,
-        from: "displaced" as const,
-        allowed: [...(test.allowed ?? []), "ends" as const, "path" as const],
-      })),
-      formations: GATHERER_FORMATIONS,
-    }),
+    stations: compareFigures(fixture, definition, stations),
+    displaced: compareFigures(fixture, definition, displaced),
   };
 }
 

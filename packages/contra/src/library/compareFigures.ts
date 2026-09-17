@@ -1,9 +1,19 @@
 import type { Beat, Hand, PoseSample, Vec2 } from "@caller/core";
 import { angleDiff, dist } from "@caller/core";
-import type { DancerId, EndPose, Formation, Group, GroupPlan, StationId } from "@caller/choreo";
+import type {
+  DancerId,
+  EndPose,
+  Formation,
+  Group,
+  GroupPlan,
+  SetState,
+  StationId,
+} from "@caller/choreo";
 import { createGroup, createHall, frameAngle, framePoint, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot, Spots } from "../figures/ContraFigure.js";
 import { PROBE_STEP } from "../figures/testing.js";
+import type { FigureFixture } from "./figureFixture.js";
+import { endOfRow, poseOfRow, runOf } from "./figureFixture.js";
 import { homeOf, modelFromSet } from "../set/SetModel.js";
 import { resolveCall } from "../set/resolve.js";
 import type { FigureDefinition } from "./FigureDefinition.js";
@@ -48,6 +58,21 @@ export interface CompareTolerance {
 
 /** DD21's numbers, and this milestone's default. */
 export const DD21_TOLERANCE: CompareTolerance = { px: 0.01, deg: 0.1 };
+
+/**
+ * **DD13: the swing's geometry, at the number the user gave at G1.**
+ *
+ * AC3 protects the swing's geometry as a golden rather than as code, and the
+ * user was asked how tightly. DD21 had proposed 0.01 px and 0.1°; the user:
+ * *"seems kinda intense. maybe like 1px?"* — so 1 px, and 1° as the director's
+ * matching extension of that ruling to the facings.
+ *
+ * It is a **ceiling, not a target**: the data swing measured under 1e-13 px
+ * against the coded swing it replaced, and the recorded fixture is that same
+ * figure. What the looser number buys is room for the swing to be rewritten
+ * without a pixel of geometry moving being called a failure.
+ */
+export const DD13_SWING_TOLERANCE: CompareTolerance = { px: 1, deg: 1 };
 
 /**
  * One thing a case is allowed to differ in.
@@ -149,45 +174,61 @@ export interface CompareResult {
   problems: string[];
 }
 
-/** Every case of every formation, measured. */
+/** Every case of every formation, measured against the recorded coded figure. */
 export function compareFigures(
-  coded: ContraFigure,
+  fixture: FigureFixture,
   definition: FigureDefinition,
   options: CompareOptions,
 ): CompareResult[] {
   const tolerance = options.tolerance ?? DD21_TOLERANCE;
   const out: CompareResult[] = [];
   for (const formation of options.formations) {
-    for (const test of options.cases) {
-      if (test.formations && !test.formations.includes(formation)) continue;
-      out.push(compareOne(coded, definition, formation, test, tolerance, options));
-    }
+    options.cases.forEach((test, index) => {
+      if (test.formations && !test.formations.includes(formation)) return;
+      out.push(compareOne(fixture, definition, formation, test, index, tolerance, options));
+    });
   }
   return out;
 }
 
 /** A comparison set: four couples, on a frame that is deliberately not the identity. */
-const COMPARE_CENTRE: Vec2 = [17, -23];
-const COMPARE_AXIS = 37;
+export const COMPARE_CENTRE: Vec2 = [17, -23];
+export const COMPARE_AXIS = 37;
+
+/** The set both halves of a comparison are danced in, and its dancing group. */
+export function comparisonSet(
+  formation: Formation,
+  couples: number,
+  centre: Vec2,
+  axis: number,
+): { set: SetState; plan: GroupPlan } {
+  const hall = createHall(formation, [{ id: "cmp", couples, centre, axis }]);
+  const set = hall.sets[0]!;
+  const plan = formation.groupsFor("hands-four", set).find((g) => g.kind === "set");
+  if (!plan) throw new Error(`${formation.id} has no dancing group to compare in`);
+  return { set, plan };
+}
 
 function compareOne(
-  coded: ContraFigure,
+  fixture: FigureFixture,
   definition: FigureDefinition,
   formation: Formation,
   test: CompareCase,
+  index: number,
   tolerance: CompareTolerance,
   options: CompareOptions,
 ): CompareResult {
   const params = { ...test.params };
   const from = test.from ?? "stations";
   const allowed = new Set(test.allowed ?? []);
-  const beats = options.beats ?? coded.beats;
-  const hall = createHall(formation, [
-    { id: "cmp", couples: options.couples ?? 4, centre: COMPARE_CENTRE, axis: COMPARE_AXIS },
-  ]);
-  const set = hall.sets[0]!;
-  const plan = formation.groupsFor("hands-four", set).find((g) => g.kind === "set");
-  if (!plan) throw new Error(`${formation.id} has no dancing group to compare in`);
+  const beats = options.beats ?? fixture.beats;
+  const recorded = runOf(fixture, formation.id, from, index);
+  const { set, plan } = comparisonSet(
+    formation,
+    options.couples ?? 4,
+    COMPARE_CENTRE,
+    COMPARE_AXIS,
+  );
 
   // Where everybody starts, frame-local, and the same places in world px for
   // the set model — so the two paths genuinely begin from one arrangement.
@@ -208,11 +249,6 @@ function compareOne(
       facing: frameAngle(plan.frame, place.facing),
     });
   }
-
-  // The coded figure, on the formation's own group.
-  const codedGroup = createGroup(plan, formation.roleSet);
-  const codedParams = withDefaults(coded, { ...(test.coded ?? params), from: places }, beats);
-  const codedEnds = coded.ends(codedGroup, codedParams);
 
   // The definition, resolved the way a dance resolves it.
   const model = modelFromSet(formation, set, standing);
@@ -284,9 +320,19 @@ function compareOne(
     const here = dancing.get(dancer);
     if (!here) continue;
 
+    const rows = recorded.samples[station.id];
+    if (rows === undefined) {
+      throw new Error(`${fixture.figure}: the fixture has no samples for station ${station.id}`);
+    }
     for (let i = 0; i <= steps; i++) {
       const t = i * PROBE_STEP;
-      const want = coded.sample(codedGroup, station.id, t, codedParams);
+      const row = rows[i];
+      if (row === undefined) {
+        throw new Error(
+          `${fixture.figure}: the fixture stops at ${String((rows.length - 1) * PROBE_STEP)} beats and the test asks for ${String(t)}`,
+        );
+      }
+      const want = poseOfRow(row);
       const got = here.fig.sample(here.group, here.role, t, here.params);
       compareSample(
         result,
@@ -300,7 +346,8 @@ function compareOne(
       result.samples++;
     }
 
-    const wantEnd = codedEnds[station.id];
+    const endRow = recorded.ends[station.id];
+    const wantEnd = endRow === undefined ? undefined : endOfRow(endRow);
     const gotEnd = here.fig.ends(here.group, here.params)[here.role];
     if (wantEnd && gotEnd) {
       result.endPx = Math.max(result.endPx, dist(wantEnd.p, gotEnd.p));
@@ -411,7 +458,7 @@ const handWord = (hand: Hand | "down"): string => (hand === "down" ? "down" : "p
  * because a gatherer that only works from a symmetric arrangement has not been
  * tested at all.
  */
-function displace(id: StationId, p: Vec2, facing: number): Spot {
+export function displace(id: StationId, p: Vec2, facing: number): Spot {
   let hash = 0;
   for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 97;
   const dx = ((hash % 7) - 3) * 0.9;

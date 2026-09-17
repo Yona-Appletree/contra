@@ -2,8 +2,9 @@ import type { Formation } from "@caller/choreo";
 import { BECKET } from "../../formation/becket.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
 import type { ContraFigure } from "../../figures/ContraFigure.js";
-import type { CompareCase, CompareResult } from "../compareFigures.js";
+import type { CompareCase, CompareOptions, CompareResult } from "../compareFigures.js";
 import { compareFigures } from "../compareFigures.js";
+import { SAMPLED_AT, fixtureFor } from "./fixtureFile.js";
 import type { FigureDefinition, FigureRole } from "../FigureDefinition.js";
 
 /**
@@ -70,12 +71,15 @@ export function carrierGolden(
   cases: readonly CompareCase[],
   formations: readonly Formation[] = CARRIER_FORMATIONS,
 ): CarrierGolden {
+  const stations: CompareOptions = { cases, formations };
+  const displaced: CompareOptions = {
+    cases: cases.map((test) => ({ ...test, from: "displaced" as const })),
+    formations,
+  };
+  const fixture = fixtureFor(coded, [stations, displaced], SAMPLED_AT);
   return {
-    stations: compareFigures(coded, definition, { cases, formations }),
-    displaced: compareFigures(coded, definition, {
-      cases: cases.map((test) => ({ ...test, from: "displaced" as const })),
-      formations,
-    }),
+    stations: compareFigures(fixture, definition, stations),
+    displaced: compareFigures(fixture, definition, displaced),
   };
 }
 
