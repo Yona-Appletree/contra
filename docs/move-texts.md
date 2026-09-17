@@ -1,174 +1,345 @@
-# The four texts every move is written in
+# How the moves are written: the voice rules
 
-Every figure in the registry has a file at `data/figures/<id>.json` holding
-four texts: a **short walkthrough**, a **long walkthrough**, a **short call**
-and a **long call**. They are plain JSON, hand-editable without a build, and
-they are the words the app shows. `FigureDef.describe` is only the fallback
-for a figure with no file, and the next cleanup removes it.
+These are the rules for every piece of text in the app that a dancer or a
+caller reads: the name of a move, the sentence that teaches it, the words a
+caller says over the band, and the sentences the app writes itself about
+where you are. They are written for callers to read and correct. Where a rule
+has an example, the example is the standard; if a rule and its example
+disagree, the example wins.
 
-This page is the rule book for whoever writes the next one.
+Drafted 2026-09-14 from Yona's rulings; to be refined with Lindsey and Koren.
+The file format the rules are written into is the last section, "The file";
+`packages/contra/src/text/figureText.test.ts` enforces every rule above that a
+machine can check, over both the written texts and the texts resolved against
+every dance in the programme.
 
-## Why they are written and not generated
+## 1. Speak from where the dancer stands
 
-The user, who calls:
+Every sentence is something you do, hold, see, or feel from your own spot in
+the set: your hands, your facing, who you see, who you hold.
 
-> "the moves all have a lot of ai generated text description. it feels very
-> ai-generated. what we're going to want is a few descriptions for each move,
-> and we really want them not to sound like ai slop. the two main ones are the
-> short and long walkthrough texts, and the short and long calls. long
-> walkthrough can be used as description, too, probably."
+Never describe the set from above. "The whole line slides left" is the view
+from the balcony, and nobody on the floor can check it.
 
-and, as the standard to write to, a hey:
+> Take hands in long lines up and down the set. Larks facing in, robins
+> facing out. Your partner is in your right hand.
 
-> "note where you are standing. you will return here after walking across the
-> set. robins start by passing right shoulders in the middle, neighbors by the
-> left on the outside, loop around, partner by the left on the outside,
-> neighbor by the right in the center, face your partner on your side"
+A formation, a hold, a wave: all described the same way. The hold, the facing
+for each role, and who is in which hand. The opening of a becket dance:
 
-and a circle left:
+> Take hands four from the top, then circle one place to the left. This is a
+> becket dance, your partner is beside you. You will progress to the left.
 
-> "take hands in a ring. circle three places to your left. you should be across
-> the set from your partner, next to your neighbor"
+## 2. Say what to do, never what to avoid
 
-Read those twice before writing anything. Everything below is those two
-sentences, generalised.
+No negatives. "Nobody takes hands", "without turning", "it is a sidestep, not
+a walk round" all tell the dancer what is wrong instead of what is right.
 
-## The four rules of a walkthrough
+Instead of:
 
-In this order, and all four in a long one:
+> The whole line slides half a couple's width along to its own left, so you
+> find yourselves facing a new couple. It is a sidestep, not a walk round.
 
-1. **With whom** — "do-si-do your neighbor". `{pairs}`, `{couples}`,
-   `{chains}`, `{roller}`, or the ring, or the line.
-2. **Which side** — "pass by the right shoulder". `{hand}`, or the shoulder
-   written out.
-3. **How far** — "once, and a half". `{amount}`, `{places}`, or the beats.
-4. **Where you end** — the landmark. **You do not write this one**: the long
-   walkthrough ends in `{where}` and the engine fills it (see below).
+say:
 
-A short walkthrough may squeeze 3 and 4 into one clause, or leave 4 out; a long
-one states all four.
+> Look on your left diagonal and identify your new neighbors. Slide left one
+> place along the set until you are across from them.
 
-## The voice
+## 3. The three things a walkthrough says, in order
 
-- Second person, imperative, present tense. Every sentence is something a
-  dancer **does** or **notices**.
-- No sentence explains why, praises the figure, or describes how it looks from
-  above.
-- No adjectives about the figure — "graceful", "flowing", "elegant". No hedges
-  — "usually", "typically", "in most halls". No parentheses. No "note that". No
-  `(unsure: …)`: an uncertain sentence is a sentence to cut.
-- Contra vocabulary as callers use it: robins, larks, neighbor, partner,
-  shadow, set, line, across, up, down, right and left shoulder, hands four,
-  home.
-- **American spelling** in the texts — center, neighbor, toward — because the
-  corpus is American. (Code comments stay British, like the rest of the
-  repository.)
+1. **With whom.** "Do-si-do your neighbor."
+2. **Which side.** "Pass by the right shoulder." "Take left hands."
+3. **How far.** "Once and a half." "Three places."
 
-### Lengths
+Where you end is never written. The app works it out from the simulation
+and adds it after the move, in the dance where the move is danced, because
+the same circle left three places leaves you somewhere different in every
+dance. See section 8.
 
-| Text              | Budget         | Shape                                                  |
-| ----------------- | -------------- | ------------------------------------------------------ |
-| short walkthrough | under 25 words | one or two sentences                                   |
-| long walkthrough  | under 80 words | the full teach; the user's hey above is the length     |
-| short call        | 1–4 words      | what a caller drops mid-phrase: "HEY", "LONG LINES"    |
-| long call         | under 9 words  | the full first-time call: "CIRCLE LEFT THREE QUARTERS" |
+## 4. Second person, imperative, present tense
 
-The budget is on the **written** text — what you see in the file, a `{slot}`
-counting as the one word it becomes — not on the resolved text, because the
-landmark is not yours to shorten. `packages/contra/src/text/figureText.test.ts`
-enforces every line of this section that a machine can.
+"Take hands." "Walk forward." "Look across the set." Every sentence is an
+instruction or a thing to notice. No sentence explains why a move exists,
+says how it looks, or praises it.
 
-Calls are written in capitals, because that is how the caller's bubble draws
-them, and hold letters, digits, spaces and the hyphen of `DO-SI-DO` and nothing
-else. A `{slot}` inside a call is written in lowercase and shouted when it is
-filled in.
+No adjectives about the move: graceful, flowing, elegant. No hedges: usually,
+typically, in most halls. No parentheses. No "note that". If a sentence is
+uncertain, cut it.
 
-## Slots: the text depends on who is where
+## 5. The words
 
-A text is a template over the figure's own parameters. `{pairs}` in a
-do-si-do's text is "your neighbor" in one dance and "your partner" in the next,
-which is the whole reason these are not four fixed strings.
+- **Roles:** robins and larks. Never a gendered word or pronoun for a role.
+  Not "his left in her right"; "the lark's left hand in the robin's right",
+  or "your left hand in theirs".
+- **People:** partner, neighbor, shadow. "The other robin", "the other
+  lark" for the two of a role.
+- **Turns for two:** "once around", "once and a half", "twice around". Never
+  "one and a half".
+- **Round a ring:** places, where a place is a quarter of the ring. "Circle
+  left three places." Never "three quarters".
+- **Along a line:** places, where a place is one dancer's spot. A becket
+  slide left is "one place", half a couple's width (FR-C2, DD54). Never "one
+  couple's width" or "two places" — that was the shift before FR-C2 halved
+  it.
+- **Places in the set:** across the set, beside you, along your own line, on
+  the left diagonal, on the right diagonal, up the hall, down the hall, home.
+- **Hands:** "in your right hand", "in your left hand". "Take hands four."
+- **Turn and circle:** "turn" is on the spot, a change of facing: "turn to
+  face your partner", "turn around". Moving round the ring is "circle":
+  "circle one place to the left". Never "turn one place", which sounds like
+  turning in place.
+- American spelling: neighbor, center, toward.
 
-**A slot names a parameter the figure declares**, and one the vocabulary has
-words for. Anything else fails at load, by name. The vocabulary, in
-`figureText.ts`:
+## 5a. Words callers use that dancers never hear
 
-| Slot                   | Values                                                | In a call        | In a walkthrough            |
-| ---------------------- | ----------------------------------------------------- | ---------------- | --------------------------- |
-| `{pairs}`, `{couples}` | `partners`                                            | `PARTNER`        | your partner                |
-|                        | `neighbors`                                           | `NEIGHBOR`       | your neighbor               |
-|                        | the two robins written out                            | `ROBINS`         | the other robin             |
-|                        | the two larks written out                             | `LARKS`          | the other lark              |
-| `{hand}`               | `R` / `L`                                             | `RIGHT` / `LEFT` | right / left                |
-| `{amount}`             | `0.5`, `1`, `1.5`, `2`                                | `ONE AND A HALF` | once and a half             |
-| `{places}`             | `1`, `2`, `3`, `4` quarters of a ring                 | `THREE QUARTERS` | three places                |
-| `{direction}`          | `left`/`right`, `across`/`along`, `1`/`-1`            | `LEFT`           | left                        |
-| `{chains}`, `{roller}` | `lark` / `robin`                                      | `ROBINS`         | the robins / the robin      |
-| `{hold}`               | `two`, `one`, `ring`, `none`, `wrist`, `hands-across` | —                | both hands, a wrist hold, … |
-| `{start}`              | `robins-right` / `larks-left`                         | —                | the robins, by the right    |
-| `{where}`              | —                                                     | —                | the landmark, below         |
+Callers have a vocabulary for talking to each other that is never said to
+the hall: improper, duple, becket as a bare label, minor set, hands-four as
+a noun, progression. The texts here are said to dancers, so they describe
+what the dancer does instead. The opening of a duple improper dance:
 
-A call and a teach are different English — "NEIGHBOR SWING" against "swing your
-neighbor" — so one slot writes both, and the dance card and the walkthrough
-cannot drift apart.
+> Take hands four from the top. Larks on the left, robins on the right,
+> facing up and down the set.
 
-A walkthrough may open on a slot; the loader capitalises the first letter of
-the resolved text, so write the slot's words in the case they take in the
-middle of a sentence.
+and, as the app's hint under it: "Your partner is across from you. You are
+facing your direction of progression."
 
-## Variants: when a slot is not enough
+The full list of caller-only words is to be spelled out; this section is
+the place for it.
 
-A hey with the larks starting is a **different sentence**, not the same
-sentence with one word changed. For that, a variant:
+## 6. The calls
+
+What the caller says over the band, in capitals, said in rhythm. Every move
+has three forms, and each form has a length in beats:
+
+| beats | example                             |
+| ----- | ----------------------------------- |
+| 4     | WITH YOUR PARTNER BALANCE AND SWING |
+| 2     | BALANCE AND SWING                   |
+| 1     | SWING                               |
+
+| 4 | ROBINS CHAIN TO YOUR PARTNER |
+| 2 | ROBINS CHAIN |
+| 1 | CHAIN |
+
+The 4-beat form and the move's name in a walkthrough are coloured by part:
+who, what, which way, how far. The short forms are plain.
+
+The first time through a dance the caller says the long form. Later times
+get shorter, down to one word or nothing. The words a caller can fit before
+a move are limited by the move before it: a two-beat slide leaves room for
+two beats of words, so short moves get called together ("SHIFT LEFT, CIRCLE
+LEFT THREE PLACES").
+
+Written down, that is three rules and `packages/contra/src/text/callScript.ts`
+is all three. The **window** is how many beats of silence the call before this
+one leaves — at most the four a caller speaks ahead by. The **budget** is how
+many beats of words a time through still gets: four, then two, then two, then
+one, unless the dance says otherwise (`callBudgets`). The form said is the
+longest that fits in both; where the window is shorter than a whole sentence and
+the budget is not, the call is said in the same breath as the one before it,
+inside its own phrase. Two figures danced **at once** are one call, their forms
+of the same length joined by `WHILE` — "ALLEMANDE RIGHT WHILE ROBINS LOOP" — and
+as long to say as both of them.
+
+## 7. The levels
+
+A move in a dance walkthrough is shown at one of two levels:
+
+1. **The name.** "Neighbor balance and swing."
+2. **The mechanics**, one sentence under the name, with where you end.
+   "Take both hands, rock in and out, then swing."
+
+Every move has a default level. Common easy moves show the name alone.
+Unusual moves (contra corners, a slice, a hey in a new hall) open at the
+mechanics. One "more" switches between them, and "show" opens the move
+itself: start position, the animation, end position, and the **full
+teach**, the whole thing in a caller's words.
+
+The full teach for a hey, which is the standard for length and tone:
+
+> Note where you are standing. You will return here after walking across the
+> set. Robins start by passing right shoulders in the middle, neighbors by
+> the left on the outside, loop around, partner by the left on the outside,
+> neighbor by the right in the center, face your partner on your side.
+
+## 8. Where you are: the sentences the app writes
+
+After a move the app says where you are, worked out from the simulation.
+Two short sentences, one for your neighbor and one for your partner, each
+"who is where":
+
+> Your neighbor is beside you. Your partner is across from you.
+
+The places: beside you, across from you, on your left diagonal, on your
+right diagonal, along your line, behind you, in your right hand, in your
+left hand.
+
+Shown with the mechanics line and the full teach, under "more"; a move
+shown by its name alone shows no hint.
+
+Said only when something changed: if the next move is with the person you
+just danced with, nothing is said. When the two roles are in different
+places, the sentence splits by role: "Robins: your partner is across from
+you. Larks: your partner is beside you."
+
+Before a move that takes you to new people, the sentence names them first:
+"Your new neighbors are on your left diagonal." Then the move.
+
+## 9. Lengths
+
+| text               | budget                                      |
+| ------------------ | ------------------------------------------- |
+| the mechanics line | one sentence, under 25 words                |
+| the full teach     | under 80 words; the hey above is the length |
+| 4-beat call        | under 9 words                               |
+| 1-beat call        | one or two words                            |
+
+## To refine with Lindsey and Koren
+
+- When is the where-you-are sentence unwelcome? The rule now is "only when
+  something changed". Is that too often, or not often enough?
+- The one-beat call forms. "BALANCE" for a balance and swing, "LINES" for
+  long lines, "THROUGH" for a pass through: which of these does a caller
+  actually say?
+- Whether to speak in hands ("your partner is in your right hand") whenever
+  the dancers are holding on, or only for waves and lines.
+- Which moves open at the mechanics line by default.
+- Any word above that is not what a caller says.
+
+---
+
+## The file
+
+One file per figure the library holds, at `data/figures/<id>.json`, plus the
+two the engine supplies (`wait-out`, `walk-to-station`). A **dance-local**
+figure's texts live in its own dance file, under the definition's `texts` key,
+so that promoting the figure is a copy of one thing rather than of two.
 
 ```json
-"variants": {
-  "start=lark": { "walkthrough": { "short": "…", "long": "…" } },
-  "amount=0.5": { "call": { "short": "HALF A HEY" } }
+{
+  "id": "do-si-do",
+  "description": "Two dancers walk round each other back to back and return to place.",
+  "defaultLevel": "name",
+  "walkthrough": {
+    "line": "Pass right shoulders with {who}, slide back to back, and back up passing left shoulders, {amount}.",
+    "teach": "Walk forward and pass right shoulders with {who}, … Go {amount}."
+  },
+  "call": {
+    "4": "{who} DO-SI-DO {amount}",
+    "2": "{who} DO-SI-DO",
+    "1": "DO-SI-DO"
+  },
+  "variants": {
+    "amount=1": { "call": { "4": "{who} DO-SI-DO" } },
+    "who=robins": { "walkthrough": { "line": "…", "teach": "…" } }
+  }
 }
 ```
 
-Keyed `"<param>=<value>"`, any subset of the shape, applied **in the order they
-are written**, each overriding what came before. A pairing value is written by
-its name — `pairs=robins`, `pairs=neighbors` — not as the station ids.
+- **`description`** — one sentence, third person, under 20 words, no "you" or
+  "your". What the figure is, for the Moves page's own line.
+- **`defaultLevel`** — `"name"` or `"line"`: whether a dance walkthrough opens
+  this figure's entry on its name alone or on its mechanics line. Common easy
+  figures open on the name; unusual ones open on the line.
+- **`walkthrough.line`** — the mechanics, one sentence, under 25 words (§7's
+  level 2).
+- **`walkthrough.teach`** — the full teach, under 80 words (§7's "show").
+- **`call`** — keyed by how many **beats** the form takes to say. Every file
+  writes `"4"`, `"2"` and `"1"`; a caller may add others. Capitals, digits,
+  spaces and the hyphen of `DO-SI-DO`; lowercase only inside a `{slot}`. Every
+  form is at most 9 words and the `"1"` form is one or two.
+- **`variants`** — `"<param>=<value>"`, applied in the order they are written,
+  each overriding the last, any subset of the shape above. `<param>` is a
+  shorthand parameter the figure's `FigureDefinition` declares, or `who` / `to`.
 
-The order rule is also this mechanism's limit: two parameters that vary the
-prose independently cannot both be honoured for the same call. `hey` is the
-only figure where that bites, and no dance calls the combination — see the W1
-report.
+### The slots
 
-## The landmark: the one sentence nobody writes
+A text is a template. `{slot}` names a **shorthand parameter of the figure's
+definition**, or one of the two things a _call_ carries rather than the figure:
 
-The user's circle left ends "you should be across the set from your partner,
-next to your neighbor". That is not a fact about the figure; it is a fact about
-the figure **in this dance**. The same circle left three quarters leaves a
-becket dancer across the set from their partner and a duple improper dancer
-beside them.
+| slot                                                                     | what it is                                                               | call                                                                                                                  | prose                                                                                                                                               |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{who}`                                                                  | the dancer this call names — its pairing parameter, or its role selector | `PARTNER`, `NEIGHBOR`, `NEXT NEIGHBOR`, `PREVIOUS NEIGHBOR`, `SHADOW`, `OPPOSITE`, `NUMBER THREE`; `ROBINS` / `LARKS` | your partner, your neighbor, your next neighbor, your previous neighbor, your shadow, your opposite, number three; the other robin / the other lark |
+| `{to}`                                                                   | the dancer a chain lands you with, derived from the resolution           | as `{who}`                                                                                                            | as `{who}`                                                                                                                                          |
+| `{hand}`, `{by}`, `{firstHand}`, `{secondHand}`                          | a hand or a shoulder                                                     | `RIGHT` / `LEFT`                                                                                                      | right / left                                                                                                                                        |
+| `{amount}`                                                               | how far round a turn goes                                                | `HALF WAY`, `ONCE`, **`ONCE AND A HALF`**, `TWICE`, a quarter, a third                                                | half way round, once around, once and a half, twice around                                                                                          |
+| `{places}`                                                               | how far round a ring, a place being a quarter of it                      | `ONE PLACE`, `HALF WAY`, **`THREE PLACES`**, `ONCE`                                                                   | one place, half way round, three places, all the way round                                                                                          |
+| `{direction}`                                                            | which way                                                                | `LEFT` / `RIGHT` / `ACROSS` / `ALONG` / `CLOCKWISE`                                                                   | the same words                                                                                                                                      |
+| `{hold}`                                                                 | what is held                                                             | both hands, one hand, hands round the ring, a wrist hold, hands across                                                |                                                                                                                                                     |
+| `{chains}`, `{start}`, `{centre}`, `{facesIn}`, `{roller}`, `{leadRole}` | a role                                                                   | `ROBINS` / `LARKS`                                                                                                    | the robins / the robin                                                                                                                              |
 
-So it is generated. `landmark()` in `packages/contra/src/text/landmark.ts`
-reads `FigureDef.ends` — the very end places the decider chains the next figure
-on to — turns them into the set's own axes, and says where you are:
+`relationWords.ts` is the one table for "who", in both registers, and nothing
+else in the app has a second one: the call form, the walkthrough and the hint
+all name a dancer through it. A relation it has no words for fails **at load**,
+by name — a `{slot}` showing on the page is worse than a page that refused to
+build. The slots W1 wrote and this milestone retired — `{where}`, `{pairs}`,
+`{couples}` — fail at load too, with the name of what replaced them.
 
-- **Home**: "You are back where you started", plus who you ended up looking at
-  when it is squarely your partner or your neighbor.
-- **Moved**: "You should be _R_ your partner, _R_ your neighbor", where each
-  _R_ is one of four relations — **across the set from**, **next to**, **on the
-  diagonal from**, **along the line from**.
-- **Split by role**, when the figure leaves the two roles in different places
-  (a chain, an allemande for the robins alone): "Larks, you …; Robins, you …".
-- Nothing at all, when the group is not a minor set of four. A figure danced
-  outside one — `wait-out` — must not use `{where}`.
+### A schedule figure's teach is generated
 
-Two clauses, never three: the relations already imply which way you are facing,
-and the user's own example stops at two.
+The hey is a **list**, and a caller teaching one reads the dancer's own meetings
+out in order. There are more heys a caller can ask for — half a hey, by the
+left, a ricochet on one pass, a hey for three, a diagonal hey, a hey that ends
+short — than anybody will ever write teach texts for, so the hey's teach is not
+written. `data/figures/hey.json` keeps the **opening sentence** ("Note where you
+are standing. You will return here after walking across the set.") and
+`packages/contra/src/text/scheduleTeach.ts` reads the rest off the pass list,
+which is the schedule written down.
 
-## Where the texts show up
+One clause per meeting, in the dancer's own order:
 
-- **Moves row** (`#/moves`): the short walkthrough, the long one behind
-  "teach", the two calls as `SHORT · LONG`.
-- **Per-move traces** (`#/moves/<id>/traces`): the long walkthrough at the top.
-- **Dance card**: the dance's own `call` where it writes one — which is what
-  the caller's bubble says, and they must match — and the resolved **long**
-  call where it does not.
-- The caller's bubble itself is untouched: it says `call.call ?? def.call`, and
-  every demo dance writes its own.
+| the meeting                            | the clause                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| the first, for the role that steps off | "Robins start by passing right shoulders in the middle"                     |
+| the first, for the other role          | "Larks, you start by looping at the end"                                    |
+| with your own role                     | "the other robin by the right in the middle"                                |
+| with a relation                        | "neighbor by the left on the outside", "partner by the left on the outside" |
+| one you are round the end for          | "loop around"                                                               |
+| a ricochet                             | "bounce back off neighbor on the outside"                                   |
+| the end of a whole weave               | "face your partner on your side"                                            |
+| the end of a part of one               | "and stop when everybody has crossed the set"                               |
+| a list that ends short (`~`)           | "and stop beside your neighbor, facing them"                                |
+
+Whether a meeting is **in the middle** or **on the outside** is read off _who_ it
+is with — your own role is a centre pass and a relation is at the lanes' edges —
+rather than off its place in the list. One sentence per role, the starting role's
+first; a hey for three adds the sentence for the dancer standing out. Where the
+two role sentences will not fit the teach budget between them, the second is
+dropped from the walkthrough and kept for the figure's own page.
+
+### Editing a dance's walkthrough
+
+A caller who wants a different sentence for **one dance** does not edit the
+generated text — there is none on disk to edit, and there could not be: the
+moment a walkthrough is stored, re-encoding the dance or correcting a figure's
+words stops reaching it. Instead the dance file writes a `teach` block, keyed by
+where in the record the edit goes:
+
+```json
+"teach": {
+  "A1/slide-left": { "before": "Look on your left diagonal first." },
+  "A2/robins-chain": { "replace": "Chain across to your partner." },
+  "B1/balance-ring/2": { "after": "Same again." },
+  "A2/loop": { "replace": "Small loop, on the spot." },
+  "opening": { "replace": "…" },
+  "wrap": { "after": "…" }
+}
+```
+
+`<phrase>/<figure>` names the first call of that figure in that phrase; `/2`
+names the second; a concurrent branch is named by its own figure name in the
+same phrase; `opening` and `wrap` are the two dance-level sentences. `before` and
+`after` are paragraphs round the entry, in the caller's own words — the voice
+rules above are about the **language** and do not run over them. `replace` takes
+the place of the mechanics line. A key that names nothing **warns** at load and
+the rest of the dance loads, because a dance is re-encoded from time to time and
+a stale key must not take it off the programme. See `docs/dance-record.md`.
+
+### Where you end is not written
+
+`{where}` is gone. The written language stops at **how far** (§3); where the
+figure leaves you is generated at the seam from the engine's own honest ends
+and rendered beside the text, never baked into it, because the same circle left
+three places leaves a becket dancer and a duple dancer in different places. The
+relation table for those sentences is `packages/contra/src/text/seam.ts` and
+nothing else.

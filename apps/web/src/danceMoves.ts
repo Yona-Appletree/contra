@@ -1,12 +1,13 @@
-import type { Dance } from "@caller/choreo";
-import { callBeats, withDefaults } from "@caller/choreo";
-import { createContraRegistry, resolveFigureCall } from "@caller/contra";
+import type { Dance, Selector } from "@caller/choreo";
+import { callBeats } from "@caller/choreo";
+import { FULL_CALL_BUDGET, WHILE, callTexts } from "@caller/contra";
+import { NOTE_CARD_BUDGET } from "./danceCard.js";
 
 /**
  * One figure of a dance, read as the transport, the notecard, the tune box and
  * the move popup all need it — the shared primitive `danceCard.ts`'s narrower
- * `CardFigure` cannot be, because those three surfaces need the figure id and
- * its parameters (for the popup's chips and walkthrough) as well as the words.
+ * `CardFigure` cannot be, because those surfaces need the figure id and its
+ * parameters (for the popup's chips and walkthrough) as well as the words.
  */
 export interface DanceMove {
   /** 0-based across the whole dance, in call order. */
@@ -22,10 +23,19 @@ export interface DanceMove {
   /** The figure id, e.g. `"allemande"`. */
   figure: string;
   params: object | undefined;
-  /** The dance's own call, or the resolved long call — as {@link fallbackCall} decides. */
+  /** Who the call is aimed at, as the record wrote it. */
+  who: Selector | undefined;
+  /**
+   * What the notecard prints for this move: the caller's words at the card's
+   * own register, {@link NOTE_CARD_BUDGET} beats of them (M13, D31).
+   */
   call: string;
-  /** The `‖` branches' calls, in the order written. */
+  /** The `‖` branches at the same register, in the order written. */
   with: readonly string[];
+  /** The whole sentence, {@link FULL_CALL_BUDGET} beats: what the popup quotes. */
+  fullCall: string;
+  /** The `‖` branches of the whole sentence. */
+  fullWith: readonly string[];
 }
 
 /** One dance's moves, phrase by phrase and flat. */
@@ -43,14 +53,16 @@ export interface DanceMoves {
  * carrying its own start beat, its figure and params, and the words a caller
  * would say for it.
  *
- * Built fresh from the dance's own `FigureCall`s rather than derived from
- * `cardDance` — that function answers a narrower question (`CardPhrase`s for
- * `@caller/music`'s `Card`) and drops the figure id and params the popup and
- * the transport's labels need. The two share the one thing they must agree
- * on, the resolved call text, through {@link fallbackCall}.
+ * **The words are the caller's own** (M13, AC3): `callTexts` is the same fitting
+ * rule the bubble reads along a time through, asked here for one register down
+ * the record, so the notecard and the bubble cannot disagree about a figure.
+ * `cardDance` (the Dances tab's static card) asks the same function at the same
+ * budget; this table exists because that card drops the figure id, the params
+ * and the start beat that the transport, the popup and the tune box need.
  */
 export function danceMoves(dance: Dance): DanceMoves {
-  const registry = createContraRegistry();
+  const said = callTexts(dance, NOTE_CARD_BUDGET);
+  const whole = callTexts(dance, FULL_CALL_BUDGET);
   const phrases: { name: string; moves: DanceMove[] }[] = [];
   const moves: DanceMove[] = [];
   let start = 0;
@@ -59,6 +71,8 @@ export function danceMoves(dance: Dance): DanceMoves {
     const phraseMoves: DanceMove[] = [];
     for (const [figureIndex, call] of phrase.figures.entries()) {
       const beats = callBeats(call);
+      const [short, ...shortWith] = branches(said[index]?.text ?? "");
+      const [full, ...fullWith] = branches(whole[index]?.text ?? "");
       const move: DanceMove = {
         index,
         phrase: phrase.name,
@@ -68,11 +82,11 @@ export function danceMoves(dance: Dance): DanceMoves {
         beats,
         figure: call.figure,
         params: call.params,
-        call: call.call ?? fallbackCall(registry, call),
-        with: (call.while ?? []).map(
-          (branch) =>
-            branch.call ?? fallbackCall(registry, { ...branch, beats: branch.beats ?? call.beats }),
-        ),
+        who: call.who,
+        call: short ?? "",
+        with: shortWith,
+        fullCall: full ?? "",
+        fullWith,
       };
       moves.push(move);
       phraseMoves.push(move);
@@ -91,19 +105,8 @@ export function moveAt(moves: DanceMoves, cycleBeat: number): DanceMove | undefi
 }
 
 /**
- * The move's own long call, resolved, or the figure contract's terse one.
- *
- * Lifted out of `danceCard.ts` (which this module's caller once duplicated) so
- * the card and the moves table can never drift on what a dance that writes no
- * call of its own is heard to say — see that file's doc comment for why the
- * *long* call, and not the short one, is the fallback.
+ * A concurrent call's joined text — `callTexts` writes the branches after the
+ * call with WHILE between them — split back into one line per branch: the call
+ * first, then each `‖` line on its own, as the notecard prints them (M8).
  */
-export function fallbackCall(
-  registry: ReturnType<typeof createContraRegistry>,
-  call: { figure: string; beats: number; params?: object },
-): string {
-  const def = registry.get(call.figure);
-  return (
-    resolveFigureCall(call.figure, withDefaults(def, call.params, call.beats))?.long ?? def.call
-  );
-}
+const branches = (text: string): string[] => text.split(` ${WHILE} `);

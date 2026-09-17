@@ -4,16 +4,194 @@
   "author": "Cary Ravitz",
   "formation": "duple-improper",
   "status": "lab",
-  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so \u2014 and **until M8b the file loader dropped `progression` on the floor**, so every measurement of this dance before now was of a dance progressing both roles one place. It is read now, and the robins really do travel three places: at six couples `c0/robin` ends the time through 60 px along the set and `c0/lark` 20, which is \"M1, W3\". **B2's `who` stays `N1`, and the reason is the rebind.** B1's second roll-away carries `rebind: { partner: \"shadow\" }`, so by B2 your partner *is* your shadow and \"you, your partner, your shadow and their partner\" is three names for two people \u2014 the ring comes out degenerate and `relationRings` skips it. Read with the lattice partner instead it is four dancers strung along one line 60 px apart, which is not a circle. The four that really stand in a rectangle, and the four that hold your shadow, are you, your partner, your **neighbour** and their partner: `relationRing.test.ts` asserts that every dancer's own shadow is in their ring and that the gaps are 20, 20, 32, 32, 38, 38. So `N1` is the relation that *cuts* the set into the dance's own fours and \"[with shadow]\" is the transcript describing whom you find yourself circling with, which is M7's own reading of Whoosh's `circulate ... [with N2]`. The plain hands-four is not an option: it circles the original minor set and nobody circles with their shadow. **The ends are settled** (DD30): a waiting couple's `wait-out` now starts from where the dance really left those two dancers rather than teleporting them on to the waiting places, so the four end dancers who stand through B2's last thirteen beats no longer jump 32 px (the robins) and 37.7359 px (the larks) at the cycle boundary. Closure is **0.0000 px at every checked length**, where it was 37.7359 at five and six couples. **Two couples at two couples** (M9c): a waiting couple now takes the end of its hold it is actually standing at, rather than the end its station names, so the two dancers no longer walk through each other on the way in - and **at two couples the dance is green**, `collision 9.000 px` where it was 6.008. **Still owed, one thing, measured: `collision 0.000 px` at 3, 4, 5 and 6 couples**, at **beat 80**, the end of the second time through's A1. The progression re-pairs the set, A1's balance and swing resolves as two instances over one hands-four, and `resolve.ts`'s `homesOf` hands both of them the **same** pool of four home places: `placePairFor` then picks, per instance, with no knowledge of the other, and two of the four places are taken twice while two are left empty (`c0/lark ~ c1/robin` on one point). A swing settles on \"the nearest two places that suit\", which is right, and nothing de-conflicts the choice across instances, which is not. That is one mechanism and it is the same one Are You 'Most Done? is waiting for at its odd and long lengths. **M9g: the same measurement, and it is not the ledger either.** At four couples, beat 64, the `progressed` report is per dancer: the two wait groups are **0.0000 px** and the `p1` minor set's two couples are each **20.0000 px** out, on each other's places along the set - `c0/lark` wants `(16, 20)` and stands on `(16, 40)`, `c3/lark` wants `(-16, 40)` and stands on `(-16, 20)`. The per-role progression (larks one place, robins three) re-pairs the set every time through and the last figure, B2's `shoulder-round` with N2, does not leave the two couples the way round the shift names them. The `collision 2.5062 px` at beat 66.75 is downstream of exactly that: the waiting couple `w3` is `c0/robin` + `c2/lark`, and `c0/robin`'s body is a whole couple place up its own line from its wait station, so the straight walk in to the hold at `(-7, 60)` cuts through the minor set below (M9f measured the route via the station and lost two green lengths; not rebuilt here). Not promoted, and the one measured thing is `progressed` - 0.0000 at two and three couples, 20.0000 at four and five, 51.2250 at six.",
+  "notes": "The Caller's Box 219, permission: full. The dance M6's per-role progression exists for: the larks progress one place and the robins three, so the shadow the second roll-away leaves you beside is your new partner. `progression` and the second roll-away's `rebind` are what say so \u2014 and **until M8b the file loader dropped `progression` on the floor**, so every measurement of this dance before now was of a dance progressing both roles one place. It is read now, and the robins really do travel three places: at six couples `c0/robin` ends the time through 60 px along the set and `c0/lark` 20, which is \"M1, W3\". **B2's `who` stays `N1`, and the reason is the rebind.** B1's second roll-away carries `rebind: { partner: \"shadow\" }`, so by B2 your partner *is* your shadow and \"you, your partner, your shadow and their partner\" is three names for two people \u2014 the ring comes out degenerate and `relationRings` skips it. Read with the lattice partner instead it is four dancers strung along one line 60 px apart, which is not a circle. The four that really stand in a rectangle, and the four that hold your shadow, are you, your partner, your **neighbour** and their partner: `relationRing.test.ts` asserts that every dancer's own shadow is in their ring and that the gaps are 20, 20, 32, 32, 38, 38. So `N1` is the relation that *cuts* the set into the dance's own fours and \"[with shadow]\" is the transcript describing whom you find yourself circling with, which is M7's own reading of Whoosh's `circulate ... [with N2]`. The plain hands-four is not an option: it circles the original minor set and nobody circles with their shadow. **The ends are settled** (DD30): a waiting couple's `wait-out` now starts from where the dance really left those two dancers rather than teleporting them on to the waiting places, so the four end dancers who stand through B2's last thirteen beats no longer jump 32 px (the robins) and 37.7359 px (the larks) at the cycle boundary. Closure is **0.0000 px at every checked length**, where it was 37.7359 at five and six couples. **Two couples at two couples** (M9c): a waiting couple now takes the end of its hold it is actually standing at, rather than the end its station names, so the two dancers no longer walk through each other on the way in - and **at two couples the dance is green**, `collision 9.000 px` where it was 6.008. **Still owed, one thing, measured: `collision 0.000 px` at 3, 4, 5 and 6 couples**, at **beat 80**, the end of the second time through's A1. The progression re-pairs the set, A1's balance and swing resolves as two instances over one hands-four, and `resolve.ts`'s `homesOf` hands both of them the **same** pool of four home places: `placePairFor` then picks, per instance, with no knowledge of the other, and two of the four places are taken twice while two are left empty (`c0/lark ~ c1/robin` on one point). A swing settles on \"the nearest two places that suit\", which is right, and nothing de-conflicts the choice across instances, which is not. That is one mechanism and it is the same one Are You 'Most Done? is waiting for at its odd and long lengths. **M9g: the same measurement, and it is not the ledger either.** At four couples, beat 64, the `progressed` report is per dancer: the two wait groups are **0.0000 px** and the `p1` minor set's two couples are each **20.0000 px** out, on each other's places along the set - `c0/lark` wants `(16, 20)` and stands on `(16, 40)`, `c3/lark` wants `(-16, 40)` and stands on `(-16, 20)`. The per-role progression (larks one place, robins three) re-pairs the set every time through and the last figure, B2's `shoulder-round` with N2, does not leave the two couples the way round the shift names them. The `collision 2.5062 px` at beat 66.75 is downstream of exactly that: the waiting couple `w3` is `c0/robin` + `c2/lark`, and `c0/robin`'s body is a whole couple place up its own line from its wait station, so the straight walk in to the hold at `(-7, 60)` cuts through the minor set below (M9f measured the route via the station and lost two green lengths; not rebuilt here). Not promoted, and the one measured thing is `progressed` - 0.0000 at two and three couples, 20.0000 at four and five, 51.2250 at six. **B1 is long lines again (2026-09-16).** The transcript's B1 is *\u201cIn long lines, go forward and back while partner roll away\u201d* and the record wrote a bare `roll-away` for each half, so the words said long lines and the figure never formed them. **`while` cannot say it**: its branches must be over *disjoint* dancers (`resolve.ts`: \u201ca `while`'s branches must be over disjoint dancers\u201d) and the walk and the roll are danced by the same people. So each half is one figure \u2014 the dance-local `contrablend/long-lines-roll-away` (D10) \u2014 four steps in and four steps back out, the walk back being the roll: its `ends` is the other dancer's place in the line, its curve is the roll away's own bow with the roller's sign, and its spin is the roll away's own, inward, nose to nose first. **It is a figure for two** (`actors: \"pairs\"`) rather than for the hands-four, and that is what the second half needs: your shadow stands in the *next* minor set, so a hands-four instance drops the pair \u2014 when this was written the old second roll-away therefore moved nobody at all, measurably \u2014 at six couples `c0/robin` stood on `(16, 20)` at beat 40 and on `(16, 20)` at beat 48. **DD73 (#91) fixed that silence itself**, a day later and underneath this branch: `reachingPairsOf` now makes a `pairs` word that leaves the four a lane call for an `actors: \"all\"` figure too, so the bare roll away travels its 20 px on `main` as well. It does not make the figure for two unnecessary: in the lane an `actors: \"all\"` instance is **one pair**, so a hands-four anchor would centre on the line it is standing in and the across-the-set axis it exists for would be gone. Cut into pairs from the start, `pairs: \"shadow\"` reaches past the four and the call is resolved in the lane exactly as B2's circle already is (`a=c0/robin b=c2/lark`). **Measured at six couples**: after the first half every dancer is one place along their own line, **20.0000 px**, and after the second two, **40.0000 px** \u2014 all but the four at the ends of the two lines, who have no shadow and take only the first. **The numbers, against the base this sits on** (DD73 already in): `closure` **0.0000 px at every checked length**, `progressed` **0.0000, 0.0000, 0.0000, 0.0000, 40.0000** and `collision` **9.000, 8.576, 1.890, 0.000, 2.462` \u2014 every one of them the same number the bare roll away measures on that base, because DD73 had already bought the travel. **One number moves, and it moves the wrong way**: `reach` at five couples, **0.0000 \u2192 7.2101 px short**, at beat 105, `c1/robin`'s left hand. That is the second time through's B1, where this note's own last paragraph records the set starting out of square: with the seating scrambled the `shadow` relation pairs two dancers *across* the set, a long line cannot be walked in that, and the hands this figure joins along the line \u2014 which the bare roll away does not join \u2014 cannot reach 32 px. Nothing was tuned to hide it. Against the base before DD73 the same five rows read `progressed` 0.0000, 0.0000, 20.0000, 20.0000, 51.2250 and `collision` 9.000, 8.576, 2.506, 2.506, 8.559. Nothing else in the corpus moved: every other dance's oracle rows are byte-identical across this change. One honest caveat, written down rather than left to be found: the figure reads *forward* off the way the dancers are already standing (`facingOf` self at start), because two dancers side by side on one line have no across-the-set axis of their own to read \u2014 a hands-four does, which is what `long-lines` uses its anchor for. In B1 that is exactly right: A2's partner swing ends *facing across*. Out of that context it is not the move, so the figure's own Moves tile \u2014 danced over a bare minor set with the default `pairs: \"partners\"`, who stand *across* the set at rest \u2014 shows two dancers walking toward each other rather than two lines walking in. That is the reason it is a dance-local figure (D10) and not a library one: promoting it wants the across-the-set axis read off the lattice instead.",
   "source": {
     "callersBoxId": 219,
     "url": "https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=219",
     "permission": "full",
     "transcript": "A1  (4) Neighbor balance  (12) Neighbor swing\nA2  (6) Circle left 3/4  (10) Partner swing\nB1  (8) In long lines, go forward and back while partner roll away (W roll L, M side-step R)  (8) In long lines, go forward and back while shadow roll away (W roll L, M side-step R) (new partner)\nB2  (6) Circle right 3/4 [with shadow]; turn alone  (10) N2 neighbor right shoulder round 1 & 1/2; face N3"
   },
-  "progression": {
-    "lark": 1,
-    "robin": 3
+  "progression": { "lark": 1, "robin": 3 },
+  "figures": {
+    "long-lines-roll-away": {
+      "call": "LONG LINES FORWARD AND BACK ROLL AWAY",
+      "describe": "Take hands along your own line with the dancer beside you and walk four steps into the set. Walk four steps back out, and on the way back the roller rolls across in front of the other, turning inward, nose to nose first, while the other side-steps behind into the place they came out of. You come out of the line one dancing place along it from where you went in, still facing across, and the line is the same line.",
+      "lead": 4,
+      "nominalBeats": 8,
+      "roles": ["a", "b"],
+      "actors": "pairs",
+      "anchor": "meet",
+      "params": {
+        "kind": "canonical",
+        "defaults": {
+          "pairs": "partners",
+          "roller": "robin",
+          "forwardPx": 9,
+          "holdDrop": 8,
+          "stackPx": 1,
+          "bowPx": 4.5,
+          "spins": 1,
+          "rollHoldDrop": 6
+        }
+      },
+      "shape": {
+        "kind": "sequence",
+        "parts": [
+          {
+            "beats": { "share": 0.5 },
+            "shape": {
+              "kind": "path",
+              "pairing": { "kind": "opposite", "axis": "along" },
+              "track": {
+                "ends": {
+                  "p": {
+                    "point": "offset",
+                    "from": { "point": "start", "role": { "role": "self" } },
+                    "along": { "angle": "facingOf", "role": { "role": "self" }, "at": "start" },
+                    "distance": { "param": "forwardPx" }
+                  },
+                  "facing": { "angle": "facingOf", "role": { "role": "self" }, "at": "start" }
+                },
+                "curve": { "kind": "bowed", "bow": 0, "sign": 1 },
+                "facing": { "kind": "settle", "beats": 1 },
+                "idleHands": { "kind": "down" }
+              },
+              "idle": { "idleHands": { "kind": "down" }, "amp": 0 }
+            },
+            "holds": [
+              {
+                "kind": "mate",
+                "side": { "nearest": { "role": "shift", "places": 1 }, "facing": "end" },
+                "point": { "kind": "joinPoint" },
+                "drop": { "param": "holdDrop" },
+                "stackPx": { "param": "stackPx" },
+                "window": { "kind": "holdWindow", "take": 1, "release": 1 }
+              },
+              {
+                "kind": "solo",
+                "role": "each",
+                "side": { "furthest": { "role": "shift", "places": 1 }, "facing": "end" },
+                "point": { "kind": "beyond", "of": { "role": "shift", "places": 1 } },
+                "drop": { "param": "holdDrop" },
+                "window": { "kind": "holdWindow", "take": 1, "release": 1 }
+              }
+            ]
+          },
+          {
+            "beats": "rest",
+            "shape": {
+              "kind": "path",
+              "pairing": { "kind": "opposite", "axis": "along" },
+              "track": {
+                "ends": {
+                  "p": {
+                    "point": "offset",
+                    "from": { "point": "start", "role": { "role": "shift", "places": 1 } },
+                    "along": { "angle": "facingOf", "role": { "role": "self" }, "at": "start" },
+                    "distance": { "number": "mul", "of": [-1, { "param": "forwardPx" }] }
+                  },
+                  "facing": { "angle": "facingOf", "role": { "role": "self" }, "at": "start" }
+                },
+                "curve": {
+                  "kind": "bowed",
+                  "bow": { "param": "bowPx" },
+                  "sign": { "number": "ifRole", "role": "roller", "then": 1, "else": -1 }
+                },
+                "facing": {
+                  "kind": "held",
+                  "spin": {
+                    "turns": { "param": "spins" },
+                    "who": { "role": "roller" },
+                    "from": 0.8,
+                    "toward": { "role": "shift", "places": 1 }
+                  }
+                },
+                "idleHands": { "kind": "down" },
+                "flare": { "number": "ifRole", "role": "roller", "then": 2.2, "else": 0 }
+              },
+              "idle": { "idleHands": { "kind": "down" }, "amp": 0 }
+            },
+            "holds": [
+              {
+                "kind": "mate",
+                "side": { "nearest": { "role": "shift", "places": 1 }, "facing": "start" },
+                "point": { "kind": "midpoint" },
+                "drop": { "param": "rollHoldDrop" },
+                "window": {
+                  "kind": "ramps",
+                  "takeFrom": 0,
+                  "takeTo": 0.6,
+                  "releaseFrom": {
+                    "number": "min",
+                    "of": [
+                      1.2,
+                      { "number": "mul", "of": [{ "number": "beats" }, 0.3333333333333333] }
+                    ]
+                  },
+                  "releaseTo": {
+                    "number": "min",
+                    "of": [2, { "number": "mul", "of": [{ "number": "beats" }, 0.5] }]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "holds": [
+        {
+          "kind": "mate",
+          "side": { "nearest": { "role": "shift", "places": 1 }, "facing": "end" },
+          "point": { "kind": "joinPoint" },
+          "drop": { "param": "holdDrop" },
+          "stackPx": { "param": "stackPx" },
+          "window": { "kind": "holdWindow", "take": 1, "release": 1 }
+        },
+        {
+          "kind": "solo",
+          "role": "each",
+          "side": { "furthest": { "role": "shift", "places": 1 }, "facing": "end" },
+          "point": { "kind": "beyond", "of": { "role": "shift", "places": 1 } },
+          "drop": { "param": "holdDrop" },
+          "window": { "kind": "holdWindow", "take": 1, "release": 1 }
+        },
+        {
+          "kind": "mate",
+          "side": { "nearest": { "role": "shift", "places": 1 }, "facing": "start" },
+          "point": { "kind": "midpoint" },
+          "drop": { "param": "rollHoldDrop" },
+          "window": {
+            "kind": "ramps",
+            "takeFrom": 0,
+            "takeTo": 0.6,
+            "releaseFrom": {
+              "number": "min",
+              "of": [1.2, { "number": "mul", "of": [{ "number": "beats" }, 0.3333333333333333] }]
+            },
+            "releaseTo": {
+              "number": "min",
+              "of": [2, { "number": "mul", "of": [{ "number": "beats" }, 0.5] }]
+            }
+          }
+        }
+      ],
+      "ends": "relative",
+      "timing": { "stretch": "pace", "profile": "cruise" },
+      "symmetry": { "mirror": { "kind": "parameters" }, "roles": ["roller"] },
+      "texts": {
+        "description": "Two lines walk forward and back, and on the way back each pair trades places along the line.",
+        "defaultLevel": "line",
+        "walkthrough": {
+          "line": "Take hands along your own line, walk four steps in, and roll away with {who} as you walk back out.",
+          "teach": "Take hands along your own line with the dancer beside you and walk four steps into the set. Walk four steps back out, and as you go, {roller} rolls across in front of the other, turning in toward them so the two go nose to nose first, and coming all the way round on the way; the other slides sideways into the place they came from. The two of you have traded places along the line."
+        },
+        "call": {
+          "1": "LINES ROLL",
+          "2": "LONG LINES AND ROLL",
+          "4": "LONG LINES FORWARD AND BACK ROLL AWAY"
+        }
+      }
+    }
   },
   "phrases": [
     {
@@ -22,61 +200,31 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": {
-            "pairs": "neighbors",
-            "balanceBeats": 4,
-            "endFacing": "across"
-          },
-          "call": "NEIGHBOUR BALANCE AND SWING"
+          "params": { "pairs": "neighbors", "balanceBeats": 4, "endFacing": "across" }
         }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": {
-            "direction": "left",
-            "places": 3
-          },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "swing",
-          "beats": 10,
-          "params": {
-            "pairs": "partners",
-            "endFacing": "across"
-          },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
+        { "figure": "swing", "beats": 10, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     },
     {
       "name": "B1",
       "figures": [
         {
-          "figure": "roll-away",
+          "figure": "contrablend/long-lines-roll-away",
           "beats": 8,
-          "params": {
-            "pairs": "partners",
-            "roller": "robin"
-          },
-          "call": "LONG LINES FORWARD AND BACK, ROLL AWAY YOUR PARTNER"
+          "params": { "pairs": "partners", "roller": "robin" },
+          "call": "LONG LINES FORWARD AND BACK, ROLL AWAY YOUR PARTNER ON THE WAY BACK"
         },
         {
-          "figure": "roll-away",
+          "figure": "contrablend/long-lines-roll-away",
           "beats": 8,
-          "params": {
-            "pairs": "shadow",
-            "roller": "robin",
-            "rebind": {
-              "partner": "shadow"
-            }
-          },
-          "call": "AGAIN, ROLL AWAY YOUR SHADOW; NEW PARTNER"
+          "params": { "pairs": "shadow", "roller": "robin", "rebind": { "partner": "shadow" } },
+          "call": "AGAIN, AND ROLL AWAY YOUR SHADOW; NEW PARTNER"
         }
       ]
     },
@@ -87,25 +235,14 @@
           "figure": "circle",
           "beats": 3,
           "who": "N1",
-          "params": {
-            "direction": "right",
-            "places": 3
-          },
+          "params": { "direction": "right", "places": 3 },
           "call": "CIRCLE RIGHT THREE QUARTERS WITH YOUR SHADOW"
         },
-        {
-          "figure": "turn-alone",
-          "beats": 3,
-          "call": "TURN ALONE"
-        },
+        { "figure": "turn-alone", "beats": 3 },
         {
           "figure": "shoulder-round",
           "beats": 10,
-          "params": {
-            "pairs": "N2",
-            "hand": "R",
-            "amount": 1.5
-          },
+          "params": { "pairs": "N2", "hand": "R", "amount": 1.5 },
           "call": "RIGHT SHOULDER ROUND NUMBER TWO, ONCE AND A HALF"
         }
       ]

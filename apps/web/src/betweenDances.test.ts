@@ -168,12 +168,12 @@ describe("what the caller says between two dances", () => {
   });
 
   it("gives a becket hall the user's own three sentences over the walk and the ring", () => {
-    // The direction is derived, not typed: `MOVE ONE PLACE TO YOUR LEFT`
+    // The direction is derived, not typed: `CIRCLE ONE PLACE TO YOUR LEFT`
     // because Butter's becket progresses left. A right-progressing becket says
     // RIGHT — see `@caller/contra`'s `lineUpShift.test.ts`.
     const said = saidOver(undefined, WALK, POTATOES);
     expect(said.map((u) => u.text)).toEqual([...becketHandsFourCalls("left")]);
-    expect(said[0]!.text).toBe("MOVE ONE PLACE TO YOUR LEFT");
+    expect(said[0]!.text).toBe("CIRCLE ONE PLACE TO YOUR LEFT");
     expect(said[0]!.start).toBe(WALK);
     expect(said[said.length - 1]!.end).toBe(POTATOES);
   });

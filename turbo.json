@@ -7,7 +7,9 @@
     },
     "lint": {},
     "typecheck": {},
-    "test": {},
+    "test": {
+      "env": ["CONTRA_DATA"]
+    },
     "test:golden": {
       "dependsOn": ["build"]
     },

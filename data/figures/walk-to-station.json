@@ -1,11 +1,14 @@
 {
   "id": "walk-to-station",
+  "description": "A dancer walks to the place the next figure wants them on.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Walk to the place the next figure wants you on and stand there.",
-    "long": "Nothing is called here. Walk to the place the next figure wants you on, bowing a little to one side so two dancers swapping places pass shoulder to shoulder, and stand still once you are there. Told to go nowhere, you stay where you are."
+    "line": "Walk to the place the next figure wants you on and stand there.",
+    "teach": "Walk to the place the next figure wants you on, bowing a little to one side so two dancers swapping places pass shoulder to shoulder, and stand still once you are there. Where the next figure wants you on the place you already hold, you stay where you are."
   },
   "call": {
-    "short": "TAKE YOUR PLACES",
-    "long": "WALK TO YOUR PLACE"
+    "1": "PLACES",
+    "2": "TAKE YOUR PLACES",
+    "4": "WALK TO YOUR PLACE"
   }
 }

@@ -119,6 +119,50 @@ ContraDB's signals standing in for the Caller's Box `Permission` field:
   seen this proposed and not decided it. Until ruled, nothing derived from
   the ContraDB cache is published either.
 
+## Amendment, 2026-09-16 (evening): four tiers, and a notification rather than a request
+
+The cache moved to a private repository (`../contra-data`, symlinked as
+`data/local/`), and the engine now needs structured, tagged, testable data
+derived from it (`docs/corpus-derived.md`). The user's ruling of this
+evening, reasoned in the session's research report, is that **exposure and
+social meaning are different questions**: a public repository is indexed and
+scraped and must be assumed copied, so obscurity justifies nothing; but the
+community norm The Caller's Box encodes is about the product surface, and a
+directory of attributed test fixtures inside a simulator's repository is not
+the same product as a searchable dance database, even when the bytes overlap.
+Three facts make an opt-out arrangement reasonable: the site offers a
+"Download as JSON" button on every dance page, so per-dance machine export
+is a use it invites; every `Permission: full` dance is already shown to
+anyone; and the site's front page credits two third-party tools built on the
+data.
+
+**Decision: four tiers replace the binary published/unpublished.**
+
+| tier        | what                                                                                                                                           | where                     | rule                                                                                                                                                                                 |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **raw**     | the bytes the sites sent                                                                                                                       | `contra-data/corpus-raw/` | never leaves the private repository                                                                                                                                                  |
+| **derived** | normalised records, clusters, the tagged index, the `suite` set                                                                                | `contra-data/derived/`    | private; the public repository's CI reads it through a read-only token so the suite runs on every push; tests skip with a count when it is absent                                    |
+| **fixture** | the derived records of the `hand` set only (about forty dances), each `Permission: full`, each carrying its id, URL, permission and fetch date | `data/corpus/fixtures/`   | public; never rendered, searched or indexed by the site; pruned by the monthly derive run when a dance leaves `full`; removed the same day on any request from the site or an author |
+| **shipped** | encoded dances the app renders                                                                                                                 | `data/dances/`            | unchanged: `Permission: full` **and** per-dance clearance (DD31)                                                                                                                     |
+
+The index and the set files (ids, titles, authors, counts, tags, tiers,
+status, a reason line) are facts of the kind `data/corpus/portland-programs.json`
+already publishes and may be copied to the public repository whole. No
+figure text reaches the public repository except through the fixture tier.
+
+**Notification, not permission.** The maintainers of both sites are told, in
+one email each, what is fetched, what is derived, what the fixture tier holds
+and how it is pruned, and that the deployed site shows only cleared dances,
+with an invitation to object. Drafts are in the planning notes
+(`2026-09-16-corpus-notification-emails.md`). The fixture tier is created
+after a courtesy wait of about a week from sending, whether or not a reply
+arrives; an objection is acted on the day it comes. The DD31 clearance rule
+for the shipped tier is not relaxed by this amendment.
+
+The one line that does not move: **the deployed site never becomes a place to
+look up a dance that has not been cleared.** That is the surface the norm is
+about, and the strict rule stays there.
+
 ## Consequences
 
 - `data/corpus/portland-programs.json` is regenerable by anyone with their

@@ -78,7 +78,14 @@ describe("the derived motion bounds", () => {
       const over = derived.travel.ranking
         .filter((row) => row.travelPx > CONTRA_MOTION_BOUNDS.travelPx)
         .map((row) => row.id);
-      expect(over).toEqual(["bend-the-line"]);
+      // M10c puts the chain here, and the number is reported rather than
+      // tolerated: the user ruled the pull by to four beats, which leaves the
+      // couple a whole turn in the other four, so the robin opens out on to a
+      // place a set width away off an orbit running at twice its old rate.
+      // 24.4946 px/beat run alone in a duple improper four, against the swing's
+      // own 15.5463 guarded at 1.5. In a dance it is 13.5-16.3 and under the
+      // bound; `the-set-monster` is the one dance over it, at 24.5.
+      expect(over).toEqual(["bend-the-line", "robins-chain"]);
     });
 
     it("measures the cruise: the nine switched figures travel no faster than before", () => {
@@ -93,10 +100,12 @@ describe("the derived motion bounds", () => {
       expect(by("pass-through")).toBeLessThan(11.8952);
       expect(by("roll-away")).toBeLessThan(11.8678);
       expect(by("long-lines")).toBeCloseTo(3, 3);
-      // M10b took the chain back down: 19.7104 before the opening out became a
-      // chord, and 19.1282 after. It is still the figure that went *up* against
-      // its pre-cruise 18.3288, which is the constant-rate orbit and is ruled.
-      expect(by("robins-chain")).toBeCloseTo(19.1282, 3);
+      // The chain is the one that keeps going up, and every step of it is a
+      // ruling: 18.3288 before the cruise, 19.7104 on it, 19.1282 once M10b made
+      // the opening out a chord, and **24.4946** since M10c gave the pull by
+      // four beats — which leaves the couple its whole turn in the other four,
+      // at twice the orbit rate her opening out rides.
+      expect(by("robins-chain")).toBeCloseTo(24.4946, 3);
     });
   });
 
@@ -135,7 +144,10 @@ describe("the derived motion bounds", () => {
       const roles = derived.evenness.ranking
         .filter((row) => row.roleSpread > CONTRA_MOTION_BOUNDS.spread)
         .map((row) => row.id);
-      expect(roles).toEqual(["bend-the-line", "robins-chain"]);
+      // M10c swaps the order: the chain's robin walks the same ground in the
+      // same eight beats, but her lark now spends his in four, so his mean over
+      // the figure is what it was and hers is not.
+      expect(roles).toEqual(["robins-chain", "bend-the-line"]);
       const halves = derived.evenness.ranking
         .filter((row) => row.partSpread > CONTRA_MOTION_BOUNDS.spread)
         .map((row) => row.id)
@@ -145,6 +157,9 @@ describe("the derived motion bounds", () => {
         "bend-the-line",
         "down-the-hall",
         "interrupted-square-through",
+        // M10c: the robin crosses the set in the first half and turns and opens
+        // out in the second, which is what four beats each *is*.
+        "robins-chain",
         "up-the-hall",
       ]);
     });

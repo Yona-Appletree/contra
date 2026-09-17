@@ -16,6 +16,7 @@ import { BECKET_RIGHT } from "../formation/becketRight.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { PROPER } from "../formation/proper.js";
 import { createContraRegistry } from "../figures/registry.js";
+import { callTexts } from "../text/callScript.js";
 import { DEMO_DANCES, DEMO_DANCE_SLUGS, danceBySlug } from "./index.js";
 import { LAB_RUN } from "./danceLab.js";
 import { CLOSURE_PX, COLLISION_PX, linesFor, oraclesFor } from "./oracle.js";
@@ -64,12 +65,16 @@ describe("the demo dance registry", () => {
       expect(() => validateDance(dance)).not.toThrow();
     });
 
-    it(`${dance.slug}: every figure has call text the caller can say`, () => {
-      for (const phrase of dance.phrases) {
-        for (const figure of phrase.figures) {
-          expect(figure.call, `${dance.slug} ${phrase.name} ${figure.figure}`).toBeTruthy();
-          expect(figure.call).toBe(figure.call?.toUpperCase());
-        }
+    it(`${dance.slug}: what a figure says the caller can say`, () => {
+      // **A `call` in a dance file is a flourish now** (M13, A7): what the
+      // caller says is derived from the figure's own forms, and a record that
+      // writes one anyway is saying something no form can. What every call must
+      // still have is *something* to say — `callTexts` at the card's own
+      // register — and it must be in the bubble's own capitals.
+      const said = callTexts(dance, 4);
+      for (const [i, text] of said.entries()) {
+        expect(text.text, `${dance.slug} call ${String(i)}`).toBeTruthy();
+        expect(text.text, `${dance.slug} call ${String(i)}`).toBe(text.text.toUpperCase());
       }
     });
 

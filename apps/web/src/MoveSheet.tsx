@@ -1,4 +1,3 @@
-import type { Dance } from "@caller/choreo";
 import type { JSX } from "react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -21,12 +20,10 @@ import type { DanceMove } from "./danceMoves.js";
  */
 export function MoveSheet({
   move,
-  dance,
   onJump,
   onClose,
 }: {
   move: DanceMove;
-  dance: Dance;
   onJump(): void;
   onClose(): void;
 }): JSX.Element | null {
@@ -78,7 +75,7 @@ export function MoveSheet({
         >
           &times;
         </button>
-        <MoveDetail move={move} dance={dance} onJump={onJump} />
+        <MoveDetail move={move} onJump={onJump} />
       </div>
     </>,
     document.body,

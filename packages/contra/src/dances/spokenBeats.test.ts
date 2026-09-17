@@ -1,5 +1,6 @@
 import { spokenBeats } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
+import { callTexts } from "../text/callScript.js";
 import { DEMO_DANCES } from "./index.js";
 
 /**
@@ -9,21 +10,28 @@ import { DEMO_DANCES } from "./index.js";
  * One case per dance, each asserting every one of its figures' beats and
  * printing them in the failure message — so a `pnpm --filter @caller/contra
  * test` run makes the whole table visible, which is what the milestone's
- * report is built from. Every dance writes its own call text (`dances.test.ts`
- * already checks every figure has one), so this reads `figure.call` directly
- * rather than going through the registry's own default.
+ * report is built from.
+ *
+ * **The words are the caller's own, derived** (M13): a dance file's `call` is a
+ * flourish now and most figures write none, so the estimate is applied to what
+ * the caller actually says — `callTexts` at the card's own 4-beat register.
  */
 describe("spokenBeats over the ten demo dances' own calls", () => {
   for (const dance of DEMO_DANCES) {
     it(`${dance.slug}: every call gets a beat count of at least one`, () => {
+      const said = callTexts(dance, 4);
+      let index = 0;
       const calls = dance.phrases.flatMap((phrase) =>
-        phrase.figures.map((figure) => ({
-          phrase: phrase.name,
-          figure: figure.figure,
-          call: figure.call!,
-          figureBeats: figure.beats,
-          spoken: spokenBeats(figure.call!),
-        })),
+        phrase.figures.map((figure) => {
+          const text = said[index++]!.text;
+          return {
+            phrase: phrase.name,
+            figure: figure.figure,
+            call: text,
+            figureBeats: figure.beats,
+            spoken: spokenBeats(text),
+          };
+        }),
       );
       const table = calls
         .map(

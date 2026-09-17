@@ -1,15 +1,9 @@
-import type { Dance } from "@caller/choreo";
-import {
-  contraDataFigures,
-  createContraRegistry,
-  formationFor,
-  probeGroup,
-  renderSlot,
-} from "@caller/contra";
+import type { FigureCall } from "@caller/choreo";
+import type { FigureTexts } from "@caller/contra";
+import { callWho, relationWords, renderSlot, resolveFigureText, whoOf } from "@caller/contra";
 import type { JSX } from "react";
 import { useMemo } from "react";
 import type { DanceMove } from "./danceMoves.js";
-import { textsFor } from "./danceWalkthrough.js";
 import { paramValueText } from "./moveParams.js";
 
 /**
@@ -27,8 +21,8 @@ import { paramValueText } from "./moveParams.js";
  * its backdrop and its ×, the popover owns its outline, and neither owns a
  * word of the content.
  */
-export function MoveDetail({ move, dance, onJump }: MoveDetailProps): JSX.Element {
-  const texts = useMemo(() => walkthroughOf(move, dance), [move, dance]);
+export function MoveDetail({ move, onJump }: MoveDetailProps): JSX.Element {
+  const texts = useMemo(() => walkthroughOf(move), [move]);
   const title = figureTitle(move.figure);
   return (
     <div className="move-detail" data-testid="hall-move-detail" data-figure={move.figure}>
@@ -40,8 +34,8 @@ export function MoveDetail({ move, dance, onJump }: MoveDetailProps): JSX.Elemen
         </span>
       </div>
       <p className="pop-call">
-        {move.call}
-        {move.with.map((line) => (
+        {move.fullCall}
+        {move.fullWith.map((line) => (
           <span key={line} className="with">
             {line}
           </span>
@@ -56,10 +50,10 @@ export function MoveDetail({ move, dance, onJump }: MoveDetailProps): JSX.Elemen
         <p className="pop-short">No text for this move yet.</p>
       ) : (
         <>
-          <p className="pop-short">{texts.walkthrough.short}</p>
+          <p className="pop-short">{texts.walkthrough.line}</p>
           <details>
             <summary>The long teach</summary>
-            <p>{texts.walkthrough.long}</p>
+            <p>{texts.walkthrough.teach}</p>
           </details>
         </>
       )}
@@ -76,8 +70,6 @@ export function MoveDetail({ move, dance, onJump }: MoveDetailProps): JSX.Elemen
 
 export interface MoveDetailProps {
   move: DanceMove;
-  /** For the walkthrough's group, which is the dance's own formation. */
-  dance: Dance;
   /** "▶ Jump here": seeks as a tap on the call does, and closes the popup. */
   onJump(): void;
 }
@@ -120,29 +112,50 @@ export function paramChips(move: DanceMove): string[] {
   const chips = [`${String(move.beats)} beats`];
   for (const [key, value] of Object.entries(params)) {
     if (THREADED.has(key)) continue;
-    chips.push(`${key}: ${renderSlot(key, value, "prose") ?? paramValueText(value)}`);
+    chips.push(
+      `${key}: ${renderSlot(key, value, "prose") ?? whoWords(value) ?? paramValueText(value)}`,
+    );
   }
   return chips;
+}
+
+/**
+ * A pairing or a role, in the caller's words — `[["1R", "2R"]]` is "the robins",
+ * `"neighbors"` is "your neighbor" — through M13's own relation vocabulary,
+ * which is what the walkthroughs themselves are resolved with.
+ */
+function whoWords(value: unknown): string | undefined {
+  const who = whoOf(value);
+  return who === undefined ? undefined : relationWords(who, "prose");
 }
 
 /** Parameters a dance record never writes: the loader threads them on. */
 const THREADED = new Set(["from", "carried"]);
 
 /**
- * This move's walkthrough, resolved against its own parameters, or `undefined`.
+ * This move's texts, resolved against its own parameters and the dancer it
+ * names, or `undefined`.
  *
- * The registry and the probe group are exactly what the dance page's own
- * walkthrough uses (`danceWalkthrough.ts`): the interpreted definitions in the
- * registry, because a programme dance calls figures that are data and have no
- * coded twin, and a plain four-station group in the dance's own formation,
- * because the `{where}` landmark reads the four canonical stations off it.
+ * The same call the Moves page makes for a row (`galleryTiles.ts`, M13):
+ * `resolveFigureText` fills the figure's own defaults in and throws by name on
+ * a slot it has no words for — right for the dance page, wrong for a popup that
+ * should still open on the rest of the move — so the throw is caught and the
+ * popup says it has no text.
  */
-function walkthroughOf(move: DanceMove, dance: Dance): ReturnType<typeof textsFor> {
-  const registry = createContraRegistry(contraDataFigures());
-  const group = probeGroup(formationFor(dance), 4);
-  return textsFor(registry, group, {
+function walkthroughOf(move: DanceMove): FigureTexts | undefined {
+  const call: FigureCall = {
     figure: move.figure,
     beats: move.beats,
     ...(move.params === undefined ? {} : { params: move.params }),
-  });
+    ...(move.who === undefined ? {} : { who: move.who }),
+  };
+  try {
+    return resolveFigureText(
+      move.figure,
+      { ...(move.params ?? {}), beats: move.beats },
+      { who: callWho(call) },
+    );
+  } catch {
+    return undefined;
+  }
 }

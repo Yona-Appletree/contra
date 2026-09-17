@@ -136,7 +136,7 @@ describe("transport targets land where their labels say", () => {
     expect(position.dance.slug).toBe("airpants");
     expect(position.danceBeat).toBe(16);
     expect(target.label).toContain("A2");
-    expect(target.label).toContain("LONG LINES FORWARD AND BACK");
+    expect(target.label).toContain("LONG LINES");
   });
 
   it("nextDance's target is the next dance's own beat 0, four beats after where it lands", () => {

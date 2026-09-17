@@ -14,44 +14,33 @@
     {
       "name": "A1",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
+        { "figure": "long-lines", "beats": 8 },
         {
           "figure": "allemande",
           "beats": 8,
-          "params": { "pairs": [["1R", "2R"]], "hand": "L", "amount": 1.5 },
-          "call": "ROBINS ALLEMANDE LEFT ONE AND A HALF"
+          "params": { "pairs": [["1R", "2R"]], "hand": "L", "amount": 1.5 }
         }
       ]
     },
-    {
-      "name": "A2",
-      "figures": [{ "figure": "hey", "beats": 16, "call": "FULL HEY FOR FOUR" }]
-    },
+    { "name": "A2", "figures": [{ "figure": "hey", "beats": 16, "call": "FULL HEY FOR FOUR" }] },
     {
       "name": "B1",
       "figures": [
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "B2",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": { "direction": "left", "places": 3 },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
         {
           "figure": "swing",
           "beats": 10,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR SWING"
+          "params": { "pairs": "neighbors", "endFacing": "across" }
         }
       ]
     }

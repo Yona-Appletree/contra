@@ -1,18 +1,14 @@
 {
   "id": "mad-robin",
+  "description": "Two dancers orbit sideways round the dancer beside them, looking across the set.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Look across the set and keep looking: circle round {pairs}, beside you, without turning your body.",
-    "long": "Look straight across the set at the dancer opposite you, and keep looking at them for the whole figure — that is the mad robin. Now circle round {pairs}, who is standing beside you, the way a do-si-do goes: forward and past them on one side, sideways along the line, back behind them on the other. Your body never turns. It is a sideways do-si-do, danced looking across the set. Nobody takes hands. {where}"
+    "line": "Look at {who} across the set and keep looking. Travel sideways round the dancer beside you.",
+    "teach": "You are facing {who} across the set, and you keep looking at them for the whole figure. The two of you travel sideways round the dancer standing beside you, one of you passing in front of them and the other behind, and come back to your own places. Callers often call it a sideways do-si-do danced while you look across the set. Your hands stay at your sides."
   },
   "call": {
-    "short": "MAD ROBIN",
-    "long": "MAD ROBIN AROUND {pairs}"
-  },
-  "variants": {
-    "amount=1": {
-      "walkthrough": {
-        "short": "Circle all the way round {pairs} without turning your body, still looking across the set, and come back to your own place."
-      }
-    }
+    "4": "{who} MAD ROBIN",
+    "2": "MAD ROBIN",
+    "1": "MAD ROBIN"
   }
 }

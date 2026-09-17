@@ -4,8 +4,9 @@ import { DEMO_DANCES, danceBySlug, danceResolution, labCouples } from "@caller/c
 import { Card } from "@caller/music";
 import type { JSX } from "react";
 import { useMemo } from "react";
+import { CallingCard } from "../cards/CallingCard.js";
+import { WalkthroughCard } from "../cards/WalkthroughCard.js";
 import { cardDance } from "../danceCard.js";
-import { danceWalkthrough } from "../danceWalkthrough.js";
 import { formationSummary } from "../formationSummary.js";
 import { isLabDance } from "../program.js";
 import { DanceTraces } from "../traces/DanceTraces.js";
@@ -69,14 +70,13 @@ export function DancesPage(): JSX.Element {
  *
  * The user, looking at the front page on a phone: "where did those diagrams
  * come from on the front-page? … I think they go on the dance page, which
- * should be linked from the main page." This is that page: the head, the
- * static calling card, the shapes (T2's traces, with T4's plot/march/seismo
- * switch and T6's along-hall wrap — `?view=` and `?wrap=0` both reach
- * `DanceTraces` through this page's own `params`), and — where the text layer
- * makes it cheap — the walkthrough, the dance's own figures in order with the
- * long teach each resolves to (W1's `resolveFigureText`, `landmark()` filling
- * `{where}` from `ends()`). "Play on the Stage" links to the Stage's own
- * singular route, top and bottom.
+ * should be linked from the main page." This is that page: the head, the two
+ * cards — what the caller says at every register (`CallingCard`) and the dance
+ * as a caller would teach it (`WalkthroughCard`) — the shapes (T2's traces,
+ * with T4's plot/march/seismo switch and T6's along-hall wrap; `?view=` and
+ * `?wrap=0` both reach `DanceTraces` through this page's own `params`), and how
+ * the dance resolves. "Play on the Stage" links to the Stage's own singular
+ * route, top and bottom.
  */
 export function DancePage({
   slug,
@@ -97,7 +97,6 @@ export function DancePage({
     );
   }
 
-  const walkthrough = danceWalkthrough(dance);
   const playHref = `#/dance/${dance.slug}`;
 
   return (
@@ -132,11 +131,15 @@ export function DancePage({
           {dance.notes === undefined ? null : <p>{dance.notes}</p>}
         </header>
 
-        {/* The calling card: the same `Card` the Stage uses, static — beat 0,
-            no live call. */}
-        <div data-testid="dance-page-card">
-          <Card dance={cardDance(dance)} beat={0} />
-        </div>
+        {/*
+         * **The two cards** (M13): what a caller says for this dance at every
+         * register, and the dance as a caller would teach it. Both are computed
+         * from the record and the figure texts — nothing about either is stored
+         * — and both read the same `callScript`/`danceWalkthrough` the Stage's
+         * own bubble and note card do.
+         */}
+        <CallingCard dance={dance} />
+        <WalkthroughCard dance={dance} />
 
         <section className="flex flex-col gap-1" data-testid="dance-page-shapes">
           <h2 className="text-sm font-semibold">The shapes</h2>
@@ -150,29 +153,6 @@ export function DancePage({
             all views, full width &rarr;
           </a>
         </section>
-
-        {/*
-         * The walkthrough (U3's addendum, the vision's first "walkthrough
-         * card"): the dance's own figures in order, each with its long teach.
-         * Left out — never a placeholder — for a dance where some call's
-         * texts do not resolve, which `danceWalkthrough` already drops
-         * silently; none of the ten demo dances does.
-         */}
-        {walkthrough.length === 0 ? null : (
-          <section className="flex flex-col gap-1" data-testid="dance-page-walkthrough-section">
-            <h2 className="text-sm font-semibold">The walkthrough</h2>
-            <ol className="dance-page-walkthrough" data-testid="dance-page-walkthrough">
-              {walkthrough.map((step, i) => (
-                <li key={i} className="dance-page-step">
-                  <p className="dance-page-step-head">
-                    {step.phrase} &middot; {step.call}
-                  </p>
-                  <p>{step.text}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
 
         <Resolution dance={dance} />
       </div>

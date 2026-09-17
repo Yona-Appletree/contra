@@ -13,3 +13,9 @@ playwright-report/
 # See data/README.md.
 data/local
 data/**/*.csv
+
+# The private derived corpus, when it is checked out inside this one rather than
+# beside it. CI does exactly that (`ci.yml` clones `contra-data` here and points
+# `CONTRA_DATA` at it, because `actions/checkout` will not write above the
+# workspace), and it must not reach `prettier --check .` or `git status`.
+/contra-data/

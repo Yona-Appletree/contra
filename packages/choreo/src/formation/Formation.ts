@@ -233,6 +233,23 @@ export interface Formation {
    * dance this is.
    */
   handsFourCalls?: (shift: LineUpShift) => readonly string[];
+  /**
+   * **How a walkthrough of a dance in this formation opens**, given the shift
+   * the formation's own progression asks for.
+   *
+   * The words the hall *reads* at the top of a walkthrough card, beside the
+   * words it *hears* in {@link handsFourCalls} — and they belong to the
+   * formation for the same reason those do: "hands four from the top" leaves a
+   * becket hall facing the wrong way, and no layer above the formation knows
+   * that. The two are drawn from one vocabulary on purpose (D25), so what a
+   * dancer reads on the page and what the caller says over the band are the
+   * same sentences.
+   *
+   * `line` is said to the dancers; `hint` is the app's own note under it, in
+   * the same "who is where" shape the seam hints use. Left out, a walkthrough
+   * opens straight on its first figure.
+   */
+  walkthroughOpening?: (shift: LineUpShift) => { line: string; hint?: string };
   /** The layout of a group of `n` dancers, in frame-local px. */
   group(n: number): Station[];
   /**

@@ -36,7 +36,8 @@ export interface RobinsChainParams extends ContraParams {
    * regime the chain has** (A6): the lark orbits a whole turn backwards over
    * the figure's eight beats, and the pull by is the robins' walk on to the far
    * side of that orbit — so the join *is* the pull by, and there is no separate
-   * `pullBeats`. The user's own number is 2, a quarter of the way through.
+   * `pullBeats`. M10c makes it **half the figure** on the user's own ruling;
+   * {@link CHAIN_JOIN_BEAT} has the count and what had to move for it.
    *
    * F9's four earlier candidates — the rigid turn at two pivots, and the two
    * couple-spins — are gone with `CHAIN_CANDIDATES`, `?chain=` and
@@ -54,6 +55,16 @@ export interface RobinsChainParams extends ContraParams {
    * {@link CHAIN_PASS_PX} is the smallest that keeps it at AC6's torso floor.
    */
   passPx: number;
+  /**
+   * How long before the join the lark's own turn begins, beats.
+   *
+   * M10c. `0` is a lark who stands on his place until she reaches him and then
+   * spends his whole turn with her; the figure's own default is
+   * {@link CHAIN_LARK_LEAD_BEATS}, which has him moving to receive her rather
+   * than waiting dead still. Above {@link RobinsChainParams.joinBeat} it is the
+   * whole figure, which is the orbit as it ran before M10c.
+   */
+  larkLead: Beat;
 }
 
 /**
@@ -80,14 +91,56 @@ export interface RobinsChainParams extends ContraParams {
 export const CHAIN_PASS_PX = CLEARANCE_PX / 2;
 
 /**
- * Which beat of the orbit chain the robin joins the lark on: **2**, the user's
- * own number — "the robins pull by to join the larks 1/4 of the way through.
- * (2 beats)".
+ * Which beat of the orbit chain the robin joins the lark on: **4** of eight —
+ * half the figure to pull by and cross, half to turn.
  *
- * F10 measured 2, 2.5 and 3 and the table is in its report. 2 is the earliest
- * take and the fastest robin; it is also the one the user said.
+ * The user, F10, describing what he had just watched: "the robins pull by to
+ * join the larks 1/4 of the way through. (2 beats)". The user again on
+ * 2026-09-16, watching it danced: *"in the chain the pull-by is still too fast
+ * and the turn too slow. it should be about 4 beats each."* This is that
+ * ruling, and it is the count every caller teaches: four to chain across, four
+ * to courtesy turn.
+ *
+ * **What had to change for the number to be free.** While the lark's orbit
+ * spanned the whole figure, moving the join dragged the robin's take round his
+ * circle with it — she arrives at the circle's *antipode*, so a later join is a
+ * take further round and further back out of the set. M10c measured the ladder:
+ * twice how near her undipped walk comes to the middle of the set was 8.477 px
+ * at two beats, 10.643 at 2.5, 13.716 at three and **14.050 at 3.05**, against
+ * the library's own `HOLD_SPACING_PX` of 14 — so past three beats the two
+ * robins stopped passing at all, and at four the right hands the figure still
+ * joined were 32 px apart and `reach` failed by 3.1817 px in every
+ * chain-calling dance.
+ *
+ * {@link CHAIN_LARK_LEAD_BEATS} is what took that wall away: his turn starts
+ * when she is nearly there rather than at beat zero, so her take is the near
+ * side of his circle — deep in the set, where a right-shoulder pull by reaches
+ * it — whatever beat she arrives on. The join beat and the take stopped being
+ * the same lever.
  */
-export const CHAIN_JOIN_BEAT: Beat = 2;
+export const CHAIN_JOIN_BEAT: Beat = 4;
+
+/**
+ * How long before the join the lark's own turn begins, beats: **1**.
+ *
+ * A chain's lark does not orbit from the first beat — he **receives** her. The
+ * robins have the middle of the set to themselves while they pull by and cross
+ * it, and he comes to meet the one arriving at his couple over the last beat of
+ * it, so that the pair is already moving together when the hands close.
+ *
+ * The sentence this replaces — "the lark is moving from the first beat, not
+ * waiting on his place" — was the coded figure's reading of an eight-beat
+ * orbit, not something the user said; what he described was one whole turn
+ * inside eight beats and the robins joining it part way through, which is what
+ * this still is.
+ *
+ * **One and not zero, measured.** M10c compared a lark who stands dead still
+ * through the pull by against one who has already begun, on the evenness of his
+ * own per-beat speeds, which is the user's standing criterion ("people try to
+ * move at a constant speed throughout the moves for the most part"); the
+ * numbers and the whole ladder are in the milestone's report.
+ */
+export const CHAIN_LARK_LEAD_BEATS: Beat = 0;
 
 /**
  * Robins chain: the two robins pull by the right in the middle, and each joins
@@ -98,11 +151,16 @@ export const CHAIN_JOIN_BEAT: Beat = 2;
  * robins pull by to join the larks 1/4 of the way through. (2 beats) they both
  * finish the orbit."
  *
- * So the lark is moving from the first beat, not waiting on his place: he backs
- * round a small circle centred halfway between his own place and the place
- * beside him — one hold across — turning as he goes, so his back is always to
- * that centre. The robin coming to him pulls by the other robin with right
- * hands in the middle of the set, passing right shoulders, and arrives on the
+ * **M10c: four beats to pull by, four to turn** — the user's ruling of
+ * 2026-09-16, and the count every caller teaches. The robins have the middle of
+ * the set to themselves while they cross it, and the lark **receives** the one
+ * arriving at his couple: he stands on his place while they pull by and comes
+ * to meet her over the last beat of it
+ * ({@link CHAIN_LARK_LEAD_BEATS}), backing round a small circle centred halfway
+ * between his own place and the place beside him — one hold across — turning as
+ * he goes, so his back is always to that centre. He then spends the whole of
+ * that turn with her. The robin coming to him pulls by the other robin with
+ * right hands in the middle of the set, passing right shoulders, and arrives on the
  * far side of his circle — its **antipode** — at the join beat, moving with the
  * orbit's own velocity so she joins it rather than being picked up standing
  * still. From there the pair is rigid about that same centre: her left hand in
@@ -132,7 +190,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at is already moving: from the first beat he backs round a small circle centred halfway between his own place and the place beside him, one hold across. She reaches him a quarter of the way round it, at the far side of his circle, and takes it up with him — her left hand in his left, her own right hand behind her own back and his right hand on it — walking forward as he keeps walking backward, both of them turning about that same centre. They face directly out of the set together at the halfway point and back in at the end, with the robin now on the lark's right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops.)",
+    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set: four beats to chain across, four to turn. The lark of the couple each robin is arriving at waits on his own place while they cross, and receives her: from the halfway point he backs a whole turn round a small circle centred halfway between his own place and the place beside him, one hold across. She reaches him at the far side of that circle just as it begins, and takes it up with him — her left hand in his left, her own right hand behind her own back and his right hand on it — walking forward as he walks backward, both of them turning about that same centre. They face directly out of the set together half way through the turn and back in at the end, with the robin now on the lark's right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops.)",
   lead: 4,
   beats: 8,
   defaults: {
@@ -142,6 +200,7 @@ export const robinsChain = contraFigure<RobinsChainParams>({
     stackPx: 1,
     joinBeat: CHAIN_JOIN_BEAT,
     passPx: CHAIN_PASS_PX,
+    larkLead: CHAIN_LARK_LEAD_BEATS,
   },
 
   plan(ctx: PlanContext, params: RobinsChainParams): FigurePlan {
@@ -238,6 +297,8 @@ export const robinsChain = contraFigure<RobinsChainParams>({
         // between, exactly like a couple that spins, so it takes that rule.
         hold: stepInHold(ctx.spacing, pivot, pivots),
         joinBeat: pullBeats,
+        // M10c: his turn starts when she has all but arrived, not at beat zero.
+        turnFrom: Math.max(0, pullBeats - params.larkLead),
         passPx: params.passPx,
         beats,
         openBeats,
@@ -253,9 +314,8 @@ export const robinsChain = contraFigure<RobinsChainParams>({
       const turning = turns[station];
       if (!turning) return start;
       if (t <= pullBeats) {
-        // An orbit turn is already moving both of them before the take — he is
-        // a quarter of the way round his circle and she has to arrive on it at
-        // its own speed — so it places them itself. Since A6 that is the only
+        // An orbit turn places the approach itself: she has to arrive on his
+        // circle at its own speed, which a straight walk cannot do. Since A6 that is the only
         // regime this figure has, and `approach` is therefore always there.
         const { approach } = turning.turn;
         if (!approach) throw new Error(`robins-chain: an orbit turn must place its own approach`);
@@ -374,14 +434,19 @@ const OPEN_BEATS: Beat = 1.5;
 const TAKE_BEATS: Beat = 1;
 
 /**
- * The pull by the two hand windows above are written in beats of: the figure's
- * own `pullBeats` default.
+ * The pull by the two hand windows above are written in beats of: **the rigid
+ * turn's own four and a half**, which is F9's pull by and not this figure's.
  *
  * Both windows scale with the pull by's actual length, so a chain whose pull by
- * is two beats rather than four and a half takes and lets go proportionally
- * rather than running off the end of it. At the default the scale is exactly 1
- * — `4.5 / 4.5` is 1 to the last bit — so this changes no number of the four
- * candidates that came before F10.
+ * is three beats rather than four and a half takes and lets go proportionally
+ * rather than running off the end of it.
+ *
+ * The sentence that used to stand here — "at the default the scale is exactly
+ * 1, `4.5 / 4.5` is 1 to the last bit" — is **withdrawn** (M10c): it was true
+ * of F9's rigid turn and stopped being true the moment F13 made the orbit the
+ * default, because an orbit chain's pull by is {@link CHAIN_JOIN_BEAT} beats
+ * and the scale is that over this. It is `3 / 4.5` now and was `2 / 4.5`
+ * before.
  */
 const PULL_WINDOW_BEATS: Beat = 4.5;
 

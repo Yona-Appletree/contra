@@ -71,6 +71,7 @@ export {
   joinPoint,
   mustPlace,
   polar,
+  ringEnd,
   ringHands,
   ringOf,
   ringOrder,
@@ -101,6 +102,7 @@ export type {
   PhraseName,
   Program,
   ProgramItem,
+  TeachEdit,
   Selector,
 } from "./dance/Dance.js";
 export {
@@ -128,6 +130,7 @@ export type {
   CyclePlanner,
   Decider,
   ScriptDeciderOptions,
+  SpokenCallEvent,
   ScriptPosition,
 } from "./decider/Decider.js";
 export {

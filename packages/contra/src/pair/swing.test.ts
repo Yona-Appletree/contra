@@ -78,45 +78,55 @@ describe("swing", () => {
   });
 
   /**
-   * Gate G1's allemande criterion — the joined arm at least 30° forward of the
-   * shoulder line — applied to the swing hold's outstretched arms, which the
-   * milestone asks for as a measurement rather than a change.
+   * **Gate G1's allemande criterion, which the swing hold now passes too** —
+   * the joined arm at least 30° forward of the shoulder line: "The torso should
+   * be rotated towards the other person so the arm is angled _forward_ not back.
+   * As drawn it would be _very_ uncomfy."
    *
-   * **It does not pass, and at this hold it cannot.** The lark's outstretched
-   * arm is 76° forward; the robin's runs 1.3° *behind* its shoulder line. The
-   * reason is geometry, not tuning: the two hands are one shared floor point
-   * (AC2), and for that point to be 30° forward of both joined shoulders the
-   * line between those shoulders would have to lie within 60° of each dancer's
-   * facing. Writing `e` for that line and `u` for the lark's facing, the two
-   * cone conditions add to `e · u ≥ |e| / 2`; here `e · u` is 4.56 px against
-   * `|e| / 2` of 5.98, so no point satisfies both. The joined shoulders sit
-   * 67.6° off the facing because each body turns `SWING_BODY_TURN_DEG` = 30°
-   * out of the line of the turn — a gate-3 tuning. Reported, not changed: the
-   * user passed the swing and raised the allemande.
+   * It used to fail here, and the failure was written down as geometry rather
+   * than tuning: the lark's outstretched arm was 76° forward and the robin's ran
+   * 1.3° *behind* her own shoulder line, because the two hands are one shared
+   * floor point (AC2) and the line between the two joined shoulders sat 67.6°
+   * off each facing. What was not noticed is **why** it sat there: each body was
+   * turning `SWING_BODY_TURN_DEG` out of the *axis of the turn* when the 30° is
+   * meant to be measured from the *line between the two dancers*, and the
+   * ballroom offset puts that line `SWING_HOLD_BEARING_DEG` round from the axis.
+   * The two offsets added, the partner ended up 65° round instead of 30°, the
+   * pair stood shoulder to shoulder rather than chest to chest — and the robin's
+   * joined hand landed behind her own shoulder, where no arm can go.
+   *
+   * Measured from the line between the bodies, both arms are forward: the lark's
+   * 67° and the robin's 34°, and the cone condition the old comment proved
+   * impossible — `e · u ≥ |e| / 2` for the line `e` between the joined shoulders
+   * and the lark's facing `u` — now holds with room to spare.
    */
-  it("measures the swing hold's forward angle, which fails the allemande's bar", () => {
-    let larkBest = -Infinity;
+  it("holds the joined hands forward of both shoulder lines (gate G1)", () => {
+    let larkWorst = Infinity;
     let robinWorst = Infinity;
     for (let n = 8; n <= (swing.beats - 1.4) * 8; n++) {
       const t = n / 8;
       const { lark, robin } = at(t);
       const l = handForwardAngle(lark, "L");
       const r = handForwardAngle(robin, "R");
-      if (l !== null) larkBest = Math.max(larkBest, l);
+      if (l !== null) larkWorst = Math.min(larkWorst, l);
       if (r !== null) robinWorst = Math.min(robinWorst, r);
+      // The hands on the partner's back and shoulder are forward as well.
+      for (const forward of [handForwardAngle(lark, "R"), handForwardAngle(robin, "L")]) {
+        if (forward !== null) expect(forward).toBeGreaterThan(30);
+      }
     }
-    expect(larkBest).toBeCloseTo(76.0, 0);
-    expect(robinWorst).toBeCloseTo(-1.3, 1);
-    expect(robinWorst).toBeLessThan(30);
+    expect(larkWorst).toBeCloseTo(67.0, 0);
+    expect(robinWorst).toBeCloseTo(34.0, 0);
+    expect(robinWorst).toBeGreaterThan(30);
 
-    // The arithmetic behind "cannot": the joined shoulders, and the lark's
-    // facing, at the middle of the hold.
+    // The arithmetic the old comment called impossible: the joined shoulders,
+    // and the lark's facing, at the middle of the hold.
     const { lark, robin } = at(4);
     const ls = shouldersAt(lark.p, lark.facing).L;
     const rs = shouldersAt(robin.p, robin.facing).R;
     const e: Vec2 = [rs[0] - ls[0], rs[1] - ls[1]];
     const u = dirOf(lark.facing);
-    expect(dot(e, u)).toBeLessThan(Math.hypot(e[0], e[1]) / 2);
+    expect(dot(e, u)).toBeGreaterThan(Math.hypot(e[0], e[1]) / 2);
     expect(SWING_BODY_TURN_DEG).toBe(30);
   });
 

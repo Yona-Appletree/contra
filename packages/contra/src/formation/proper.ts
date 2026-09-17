@@ -100,6 +100,22 @@ export const PROPER_LINE_UP_CALLS: readonly string[] = [
   "NOBODY CROSSES OVER: STAY ON YOUR OWN SIDE",
 ];
 
+/**
+ * How a proper dance's walkthrough opens — a draft for the gate (A27).
+ *
+ * The same shape as the other two: the hold, then where each role stands, then
+ * which way each of them looks. "Stay on your own side" is what a caller
+ * actually says and is the one thing a proper dance has to establish, so it is
+ * said as a thing to do — you keep your own side — rather than as a thing to
+ * avoid.
+ */
+export const properWalkthroughOpening = (): { line: string; hint?: string } => ({
+  line:
+    "Take hands four from the top. Larks in one line, robins in the other, " +
+    "facing your partner across the set. Keep your own side all the way through.",
+  hint: "Your partner is across from you. Your neighbor is beside you.",
+});
+
 const dancerOn = (couple: CoupleState, role: string): DancerId => {
   const dancer = couple.dancers[role];
   if (dancer === undefined) throw new Error(`couple "${couple.id}" has no ${role}`);
@@ -124,6 +140,7 @@ export const PROPER: Formation = {
   id: "proper",
   roleSet: CONTRA_ROLES,
   lineUpCalls: PROPER_LINE_UP_CALLS,
+  walkthroughOpening: properWalkthroughOpening,
   hallPitch: PLACE_PITCH_PX * 2,
 
   group(n: number): Station[] {

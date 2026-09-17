@@ -1,126 +1,35 @@
-import type { Angle } from "@caller/core";
-import { angleDiff } from "@caller/core";
 import type { AnyFigureDef, FigureParams, Group, RoleName, StationId } from "@caller/choreo";
 import { localAngle, localPoint } from "@caller/choreo";
 import type { Spots } from "../figures/ContraFigure.js";
 import { NEIGHBORS, PARTNERS } from "../figures/pairing.js";
+import type { Place } from "./seam.js";
+import { relationTo, sayWhoIsWhere } from "./seam.js";
 
 /**
- * The last sentence of a long walkthrough, worked out from the engine instead
- * of written: where the figure leaves you, in the words a caller uses.
+ * **Where a figure leaves you, said about the figure rather than about a
+ * dance**: the Moves page's own hint.
  *
- * The user's own example, for a circle left three quarters, ends "you should be
- * across the set from your partner, next to your neighbor". That is not a fact
- * about the *figure*; it is a fact about the figure **in this dance**. The same
- * circle left three quarters leaves a becket dancer across the set from their
- * partner and a duple improper dancer beside them. So the written text carries
- * the doing and ends in a `{where}` slot, and this fills it from
- * `FigureDef.ends` — the very end places the decider chains the next figure on
- * to. Nothing here is written per figure: a figure the library gains next month
- * gets its landmark for nothing.
+ * The same sentence the seam says, in the same words, over one figure's own
+ * boundary pair rather than over a dance's (A3). `seam.ts` owns the vocabulary
+ * and the thresholds; this is the one place that asks a `FigureDef` where it
+ * leaves the four dancers of a hands-four, which is the question the Moves
+ * gallery can ask and a dance's planner answers differently.
  *
- * It lives beside the figures rather than in the web app because it is the seed
- * of the generated **dance** walkthrough, which is a `@caller/contra` question.
+ * W1's two other branches are gone. "You are back where you started" was a
+ * fact about the figure's own `from`, which on the Moves page is the formation's
+ * stations and in a dance is wherever the dance had got to, so the same figure
+ * said two different things for no reason a reader could see; and "facing your
+ * partner" said again what "across from you" already said. Two sentences, two
+ * people, one vocabulary.
  */
 
-/** How far two places may differ and still be the same place, px. */
-const HOME_PX = 1.5;
-
 /**
- * How near your own facing another dancer has to be for you to be facing them,
- * degrees.
- *
- * Half of the 90° between "across the set" and "along the line", less a little:
- * a dancer facing across the set at their partner is never within 40° of the
- * one beside them, and a swing that opens out a few degrees off square is still
- * facing whoever it opened out toward.
- */
-const FACING_DEG = 40;
-
-/**
- * How close across the set two dancers stand to be in one line, px.
- *
- * The lines are `ACROSS_PX` — 32 px — apart, so a third of that separates "the
- * same line" from "the other one" with room to spare either way. Generous on
- * purpose: a swing opens out a px or two off the exact stations and a caller
- * still says "on your own side".
- */
-const SAME_LINE_PX = 11;
-
-/** How close along the set two dancers stand to be level with each other, px. */
-const SAME_ROW_PX = 11;
-
-/** No further along your own line than this and a caller says "next to", px. */
-const NEXT_TO_PX = 30;
-
-/** One dancer's place when the figure is over, in the set's own axes. */
-export interface Place {
-  /** Across the set: one sign is one line, the other sign the other. */
-  across: number;
-  /** Along the set: up and down the hall. */
-  along: number;
-  /** Which way they face, in the set's axes; 90° is down the hall. */
-  facing: Angle;
-}
-
-/**
- * How one dancer stands to another, in the words a caller uses.
- *
- * Four of them and no more. This is the whole vocabulary a landmark is built
- * from, so a sentence that reads wrong is a rule to change here, not prose to
- * rewrite in nineteen files.
- */
-export type Relation =
-  "across the set from" | "next to" | "on the diagonal from" | "along the line from";
-
-/** Where `them` stands, seen from `me`. */
-export function relationOf(me: Place, them: Place): Relation {
-  const across = Math.abs(them.across - me.across);
-  const along = Math.abs(them.along - me.along);
-  if (across <= SAME_LINE_PX) return along <= NEXT_TO_PX ? "next to" : "along the line from";
-  return along <= SAME_ROW_PX ? "across the set from" : "on the diagonal from";
-}
-
-/**
- * Whether a dancer ends on the place they set off from.
- *
- * The place only, never the facing. A station's own `facing` is the formation's
- * progression axis — a duple improper one faces *down the hall* on paper — and
- * not where a dancer is looking, so a figure's first call in a dance starts
- * from that convention and ends facing across the set. Counting that as "you
- * have moved" would call every opening long lines a journey. Which way you end
- * up looking is said by {@link facingClause} instead, in the words a caller
- * uses for it.
- */
-export function isHome(start: Place, end: Place): boolean {
-  return Math.hypot(end.across - start.across, end.along - start.along) <= HOME_PX;
-}
-
-/** Who this dancer has ended up looking at, if it is squarely one of the two. */
-export function facingClause(
-  me: Place,
-  partner: Place | undefined,
-  neighbor: Place | undefined,
-): string | undefined {
-  let best: { who: string; off: number } | undefined;
-  for (const [who, them] of [
-    ["partner", partner],
-    ["neighbor", neighbor],
-  ] as const) {
-    if (them === undefined) continue;
-    const bearing = (Math.atan2(them.along - me.along, them.across - me.across) * 180) / Math.PI;
-    const off = Math.abs(angleDiff(me.facing, bearing));
-    if (off <= FACING_DEG && (best === undefined || off < best.off)) best = { who, off };
-  }
-  return best === undefined ? undefined : `facing your ${best.who}`;
-}
-
-/**
- * Where a figure leaves this group, as the sentence that ends its walkthrough.
+ * Where a figure leaves this group, as the hint under its teach.
  *
  * `undefined` when the group is not a minor set of four — a couple waiting out
- * at the end of the line has no neighbour to be next to — in which case that
- * figure's text must not use `{where}` at all.
+ * at the end of the line has no neighbour to be beside — and when the four
+ * disagree about something finer than their roles, which is not a sentence a
+ * caller says.
  */
 export function landmark(
   def: AnyFigureDef,
@@ -130,96 +39,50 @@ export function landmark(
   const places = placesOf(def, params, group);
   if (places === undefined) return undefined;
 
-  const stands = new Map<StationId, Stand>();
+  const said = new Map<StationId, string>();
   for (const station of group.stations) {
-    const stand = standFor(station.id, places);
-    if (stand === undefined) return undefined;
-    stands.set(station.id, stand);
+    const one = sentenceFor(station.id, places.end);
+    if (one === undefined) return undefined;
+    said.set(station.id, one);
   }
 
-  const all = [...stands.values()];
-  const whole = agreed(all);
-  if (whole !== undefined) return `You ${whole}.`;
+  const all = [...said.values()];
+  const distinct = new Set(all);
+  if (distinct.size === 1) return [...distinct][0]!;
 
   // The figures that leave the two roles in different places — a chain, an
-  // allemande for the robins alone — are taught that way too: "larks, you are
-  // home; robins, you have traded". Anything finer than by role is not a
-  // sentence a caller says, so the landmark stands down rather than invent one.
-  const byRole = new Map<RoleName, Stand[]>();
+  // allemande for the robins alone — are taught that way too. Anything finer
+  // than by role is not a sentence a caller says, so the hint stands down
+  // rather than invent one.
+  const byRole = new Map<RoleName, Set<string>>();
   for (const station of group.stations) {
-    byRole.set(station.role, [...(byRole.get(station.role) ?? []), stands.get(station.id)!]);
+    const held = byRole.get(station.role) ?? new Set<string>();
+    held.add(said.get(station.id)!);
+    byRole.set(station.role, held);
   }
-  const said: string[] = [];
-  for (const [role, held] of byRole) {
-    const one = agreed(held);
-    if (one === undefined) return undefined;
-    said.push(`${role === "lark" ? "Larks" : "Robins"}, you ${one}`);
+  const parts: string[] = [];
+  for (const [role, texts] of byRole) {
+    if (texts.size !== 1) return undefined;
+    parts.push(`${role === "lark" ? "Larks" : "Robins"}: ${[...texts][0]!}`);
   }
-  return `${said.join("; ")}.`;
+  return parts.join(" ");
 }
 
-/** What one dancer's landmark says, before it is compared with anybody else's. */
-interface Stand {
-  /** Home, or where their partner and neighbour are: the part that matters. */
-  where: string;
-  /** Who they ended up looking at, when it is squarely one of the two. */
-  looking: string | undefined;
-}
-
-/**
- * The one thing these dancers all say, or `undefined` if they do not agree.
- *
- * Which way you are looking is the part most likely to differ by a station —
- * two dancers of a star open out on different bearings — and it is also the
- * least of what the sentence is for. So a disagreement about the facing drops
- * the facing; only a disagreement about the *place* stops the sentence.
- */
-function agreed(stands: readonly Stand[]): string | undefined {
-  const wheres = new Set(stands.map((s) => s.where));
-  if (wheres.size !== 1) return undefined;
-  const where = [...wheres][0]!;
-  const looks = new Set(stands.map((s) => s.looking));
-  const look = looks.size === 1 ? [...looks][0] : undefined;
-  return look === undefined ? where : `${where}, ${look}`;
-}
-
-/** One dancer's landmark: home, or where their partner and neighbour are. */
-function standFor(
-  station: StationId,
-  places: { start: Record<StationId, Place>; end: Record<StationId, Place> },
-): Stand | undefined {
-  const me = places.end[station];
-  const was = places.start[station];
-  if (me === undefined || was === undefined) return undefined;
-
-  const partner = placeOf(places.end, PARTNERS, station);
-  const neighbor = placeOf(places.end, NEIGHBORS, station);
-  if (partner === undefined || neighbor === undefined) return undefined;
-
-  // Two clauses, never three. "Across the set from your partner, next to your
-  // neighbor" is the user's own standard and it already implies the way you are
-  // looking; adding "facing your partner" to it says the same thing twice. Home
-  // is the case that needs it — "you are back where you started" says nothing
-  // at all about which way you ended up — and it is exactly where the user's
-  // hey example puts it: "face your partner on your side".
-  if (!isHome(was, me)) {
-    const where = `should be ${relationOf(me, partner)} your partner, ${relationOf(me, neighbor)} your neighbor`;
-    return { where, looking: undefined };
+/** What one dancer's hint says: their partner, then their neighbour. */
+function sentenceFor(station: StationId, end: Record<StationId, Place>): string | undefined {
+  const me = end[station];
+  if (me === undefined) return undefined;
+  const sentences: string[] = [];
+  for (const [words, pairs] of [
+    ["your partner", PARTNERS],
+    ["your neighbor", NEIGHBORS],
+  ] as const) {
+    const other = partnerIn(pairs, station);
+    const them = other === undefined ? undefined : end[other];
+    if (them === undefined) return undefined;
+    sentences.push(sayWhoIsWhere(relationTo(me, them), words));
   }
-  return {
-    where: "are back where you started",
-    looking: facingClause(me, partner, neighbor),
-  };
-}
-
-/** The end place of whoever this station pairs with under `pairs`. */
-function placeOf(
-  end: Record<StationId, Place>,
-  pairs: readonly (readonly [StationId, StationId])[],
-  station: StationId,
-): Place | undefined {
-  const other = partnerIn(pairs, station);
-  return other === undefined ? undefined : end[other];
+  return sentences.join(" ");
 }
 
 /** Who this station pairs with, or `undefined` if the pairing leaves them out. */
@@ -243,7 +106,7 @@ function partnerIn(
  * are the figure's own `from`, which is where the figure before it left people;
  * without one, the group's stations.
  */
-function placesOf(
+export function placesOf(
   def: AnyFigureDef,
   params: FigureParams,
   group: Group,

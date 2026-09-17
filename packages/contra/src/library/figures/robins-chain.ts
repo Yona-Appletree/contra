@@ -1,4 +1,8 @@
-import { CHAIN_JOIN_BEAT, CHAIN_PASS_PX } from "../../figures/robins-chain.js";
+import {
+  CHAIN_JOIN_BEAT,
+  CHAIN_LARK_LEAD_BEATS,
+  CHAIN_PASS_PX,
+} from "../../figures/robins-chain.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
 
@@ -21,6 +25,14 @@ const OPEN_BEATS = 1.5;
  * robins pull by to join the larks 1/4 of the way through. (2 beats) they both
  * finish the orbit."
  *
+ * **M10c left the join where it is**, against the user's later ruling — "in the
+ * chain the pull-by is still too fast and the turn too slow. it should be about
+ * 4 beats each". Three walls stand in the way of every value between two beats
+ * and four, and all three of their numbers are on `CHAIN_JOIN_BEAT`: this
+ * figure's own pull-by hand is what the library's motion bounds are derived
+ * from, the `elbowPerHand` ratio rises as the take slows, and past 3.05 beats
+ * the two robins stop passing at all.
+ *
  * **A6: the orbit is the only regime the chain ships.** F13 made it the
  * default and kept F9's four earlier candidates reachable behind `?chain=` for
  * comparison; M4 takes them away, with `CHAIN_CANDIDATES`, `?chain=` and
@@ -32,7 +44,7 @@ export const robinsChainDefinition: FigureDefinition = {
   id: "robins-chain",
   call: "ROBINS CHAIN",
   describe:
-    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set. The lark of the couple each robin is arriving at is already moving: from the first beat he backs round a small circle centred halfway between his own place and the place beside him, one hold across. She reaches him a quarter of the way round it, at the far side of his circle, and takes it up with him — her left hand in his left, her own right hand behind her own back and his right hand on it — walking forward as he keeps walking backward, both of them turning about that same centre. They face directly out of the set together at the halfway point and back in at the end, with the robin now on the lark's right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops.)",
+    "The two robins take right hands in the middle and pull by, passing right shoulders, and carry on across the set: four beats to chain across, four to turn. The lark of the couple each robin is arriving at waits on his own place while they cross, and receives her: from the halfway point he backs a whole turn round a small circle centred halfway between his own place and the place beside him, one hold across. She reaches him at the far side of that circle just as it begins, and takes it up with him — her left hand in his left, her own right hand behind her own back and his right hand on it — walking forward as he walks backward, both of them turning about that same centre. They face directly out of the set together half way through the turn and back in at the end, with the robin now on the lark's right, and the couple opens out on to the two places. He ends where he started, facing the way he already faced: the whole effect of a chain is that the robins have traded and each couple has a new robin. (unsure: a lark can twirl her under his hand instead, and this only scoops.)",
   lead: 4,
   nominalBeats: 8,
   roles: MINOR_SET_ROLES,
@@ -46,6 +58,7 @@ export const robinsChainDefinition: FigureDefinition = {
       stackPx: 1,
       joinBeat: CHAIN_JOIN_BEAT,
       passPx: CHAIN_PASS_PX,
+      larkLead: CHAIN_LARK_LEAD_BEATS,
     },
   },
   shape: {
@@ -66,7 +79,9 @@ export const robinsChainDefinition: FigureDefinition = {
     passPx: { param: "passPx" },
     openBeats: OPEN_BEATS,
     closeBeats: 0,
-    larkLead: 0,
+    // M10c: how long before the join his own turn begins. He receives her; he
+    // does not orbit from the first beat.
+    larkLead: { param: "larkLead" },
     backHands: true,
     hands: {
       drop: { param: "holdDrop" },

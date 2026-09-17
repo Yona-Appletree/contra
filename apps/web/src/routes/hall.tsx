@@ -1,6 +1,6 @@
 import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
-import type { Dance, DancerId } from "@caller/choreo";
+import type { DancerId } from "@caller/choreo";
 import { DEMO_DANCES } from "@caller/contra";
 import type { BlitCtx2D, HallWorld, Person, Renderer } from "@caller/hall";
 import {
@@ -741,7 +741,6 @@ export function HallPage({
         >
           <PopoverMoveDetail
             move={move}
-            dance={position.dance}
             onJump={() => {
               seekMove(move);
             }}
@@ -761,7 +760,7 @@ export function HallPage({
           <InfoIcon />
         </button>
       ),
-    [wide, position.dance, seekMove],
+    [wide, seekMove],
   );
   // The sheet's move, re-read off the current dance every render: a dance
   // change while a sheet is open would otherwise leave last dance's move on it.
@@ -1123,7 +1122,6 @@ export function HallPage({
       {wide || sheetMove === undefined ? null : (
         <MoveSheet
           move={sheetMove}
-          dance={position.dance}
           onClose={closeMove}
           onJump={() => {
             seekMove(sheetMove);
@@ -1142,20 +1140,11 @@ export function HallPage({
  * this is a component rather than a callback the page could have built: the
  * hook has to run under the panel's context provider.
  */
-function PopoverMoveDetail({
-  move,
-  dance,
-  onJump,
-}: {
-  move: DanceMove;
-  dance: Dance;
-  onJump: () => void;
-}): JSX.Element {
+function PopoverMoveDetail({ move, onJump }: { move: DanceMove; onJump: () => void }): JSX.Element {
   const close = usePopoverClose();
   return (
     <MoveDetail
       move={move}
-      dance={dance}
       onJump={() => {
         onJump();
         close();

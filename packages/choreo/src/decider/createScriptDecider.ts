@@ -34,6 +34,7 @@ import type {
   CyclePlanner,
   Decider,
   ScriptDeciderOptions,
+  SpokenCallEvent,
   ScriptPosition,
 } from "./Decider.js";
 import { SCRIPT_DECIDER_DEFAULTS, danceOf, formationOf } from "./Decider.js";
@@ -226,7 +227,6 @@ export function createScriptDecider(
   const emitCycle = (into: TimelineEvent[], dance: Dance, first: boolean): Beat => {
     const cycle = danceBeats(dance);
     const start = at.beat;
-    const schedule = danceSchedule(dance);
 
     // The figures of one time through, through the seam: the planner decides
     // *what dances*, the decider emits it, says the calls, and keeps everything
@@ -274,18 +274,50 @@ export function createScriptDecider(
     // otherwise end the utterance at or before beat 0 — a zero- or
     // negative-length window nobody ever hears, on the very first call of the
     // evening.
-    for (const { call, start: offset } of schedule) {
-      const def = registry.get(call.figure);
-      const text = call.call ?? def.call;
-      const lead = first && offset === 0 ? opts.firstCallLeadBeats : def.lead;
-      const uttStart = Math.max(opts.startBeat, start + offset - lead);
-      const spoken = call.spokenBeats ?? def.spokenBeats ?? spokenBeats(text);
-      say(into, text, uttStart, uttStart + spoken + opts.utteranceTailBeats);
+    //
+    // **What the caller says is a form's business** since M13, and reaches here
+    // as a list of plain events (`callsFor`): a call said at whatever length
+    // there is room for, two short figures called in one breath, two figures
+    // danced at once said as one. The default below is what this loop always
+    // did — one utterance per written call, the dance's own words or the
+    // figure's — and is what every test of a bare decider still runs on.
+    for (const event of opts.callsFor?.(dance, at.timeThrough + 1) ?? defaultCalls(dance)) {
+      const lead =
+        first && event.offset === 0 ? opts.firstCallLeadBeats : leadIn(dance, event.offset);
+      const uttStart = Math.max(opts.startBeat, start + event.offset - lead);
+      const spoken = event.beats ?? spokenBeats(event.text);
+      say(into, event.text, uttStart, uttStart + spoken + opts.utteranceTailBeats);
     }
 
     at.beat = start + cycle;
     state = planned.next;
     return cycle;
+  };
+
+  /** What this loop said before `callsFor` existed: one utterance per call. */
+  const defaultCalls = (dance: Dance): SpokenCallEvent[] =>
+    danceSchedule(dance).map(({ call, start: offset }) => {
+      const def = registry.get(call.figure);
+      const text = call.call ?? def.call;
+      return {
+        offset,
+        text,
+        beats: call.spokenBeats ?? def.spokenBeats ?? spokenBeats(text),
+      };
+    });
+
+  /**
+   * How far ahead the call starting on this beat is said.
+   *
+   * The figure's own `lead`, exactly as before — an utterance that covers two
+   * figures is led by the first of them, which is the one whose beat it is said
+   * before. A beat no call starts on gets the first call's, which is the only
+   * other beat anything is ever said on.
+   */
+  const leadIn = (dance: Dance, offset: Beat): Beat => {
+    const schedule = danceSchedule(dance);
+    const here = schedule.find((each) => each.start === offset) ?? schedule[0];
+    return here === undefined ? 0 : registry.get(here.call.figure).lead;
   };
 
   /**

@@ -808,10 +808,11 @@ export interface PathSpin {
  *   its own inverse, so where the hands close is the pair of end places
  *   reflected through the pivot, and the figure walks its dancers there.
  * - **`"orbit"`** — the chain's, F13's candidate 5 and the user's own account
- *   of the figure: the lark is walking backward from beat one round a small
- *   circle, the robin pulls by the other robin in the middle and joins that
- *   circle a quarter of the way through, and the two of them finish it
- *   together.
+ *   of the figure: the lark backs a small circle a whole turn round, the robin
+ *   pulls by the other robin in the middle and joins that circle, and the two
+ *   of them finish it together. `larkLead` says how long before she arrives he
+ *   begins; at the chain's own `0` he waits on his place while the robins cross
+ *   and spends the whole turn with her, which is M10c's four beats each.
  *
  * **Only these two ship** (A6). The three tunings of the rigid turn that F9
  * kept behind `?chain=` — the pivot at the lark, and the two couple-spins — are
@@ -839,7 +840,15 @@ export interface CourtesyTurnShape {
   openBeats: NumberExpr;
   /** Beats spent closing up on to the hold, after a pass through. Rigid only. */
   closeBeats: NumberExpr;
-  /** How long before the hands close the lark is standing on his take, beats. */
+  /**
+   * How long before the hands close the lark is already moving, beats.
+   *
+   * A rigid turn does not read it — its lark stands on his take until the
+   * couple closes up. An **orbit** does (M10c): it is how long before the join
+   * the lark's own turn begins, so that a chain's lark receives the robin
+   * crossing to him instead of orbiting from the first beat. `0` is a lark who
+   * waits on his place for the whole pull by.
+   */
   larkLead: NumberExpr;
   /** Whether the couple's two right hands go to the robin's back. */
   backHands: BoolExpr;

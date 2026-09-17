@@ -271,9 +271,17 @@ export function resolveCall(
       const extra: Record<string, unknown> = { ...params };
       if (needsPlaces(def, params)) extra["homes"] = homesOf(ctx, plan);
       if (def.shape.kind !== "legacy") extra["slots"] = slotViewFor(ctx, plan.frame, cast);
+      // **The `pairs` word, as this instance's own roles** (DD73). See
+      // {@link castPairsOf}: in a minor set it is the identity for the two
+      // words `pairsOf` already read, and an answer for every other one.
+      const paired = castPairsOf(def, params, cast, ctx);
+      if (paired !== undefined) extra["pairs"] = paired;
       instances.push({
         figure: call.figure,
-        params: needsPlaces(def, params) || def.shape.kind !== "legacy" ? extra : params,
+        params:
+          paired !== undefined || needsPlaces(def, params) || def.shape.kind !== "legacy"
+            ? extra
+            : params,
         cast,
         group: castGroup(plan, cast, call.figure, stations),
         frame: plan.frame,
@@ -568,6 +576,11 @@ function laneFor(
         relationLeavesTheFour(parseRelation(call.who));
   if (def.actors === "ring" || def.actors === "all") {
     if (reaches) return { among, plan: plan() };
+    // **A figure for the whole four still pairs its dancers up** (DD73), and
+    // when that pairing reaches past the four it is a lane call like any other.
+    // See {@link reachingPairsOf}.
+    const reaching = reachingPairsOf(def, params, ctx, among);
+    if (reaching !== undefined) return { among, plan: plan(), pairs: reaching };
     // **Measured, like the pairing below.** A figure for four whose `who` names
     // a relation is cut into rings (`relationRings`), and the lane is used only
     // when one of those rings really does span two minor sets. Contrablend's B2
@@ -592,6 +605,107 @@ function laneFor(
   const inFours = pairs.every(([a, b]) => sameFour(ctx, a, b));
   if (inFours && !reaches) return undefined;
   return { among, plan: plan(), pairs };
+}
+
+/**
+ * **The pairs an `actors: "all"` figure's `pairs` word names, when they reach
+ * past the four** — and `undefined` when they do not, or when there is no word.
+ *
+ * DD73. A figure for the whole minor set can still pair its dancers up: a
+ * twirl, a do-si-do, a roll away and a mad robin all declare
+ * `pairing: { kind: "param", param: "pairs" }` and are `actors: "all"`. Until
+ * this ruling resolution never read that parameter for them — {@link laneFor}
+ * only looked at it under `actors: "pairs"` — so the **word** reached the
+ * figure, where `pairsOf` understands exactly two of them (`"partners"` and
+ * `"neighbors"`) and silently returns nothing for every other one. Three
+ * dances in the record were standing through a call because of it: The Set
+ * Monster's `jersey-twirl` with `"N4"`, Whoosh's `do-si-do` with `"N2"` and
+ * Contrablend's `roll-away` with `"shadow"`, every dancer measured at
+ * **0.00 px** through the whole call.
+ *
+ * Two halves fix it and this is the first: a pairing that leaves the four
+ * makes the call a **lane** call, exactly as it does for `actors: "pairs"`, so
+ * both dancers of a pair are in one instance. The second is
+ * {@link castPairsOf}, which turns the word into this instance's own roles.
+ *
+ * A pairing that stays inside the four returns `undefined` on purpose: the four
+ * is enough, the old path keeps the old frame and the old group ids, and every
+ * call written `"partners"` or `"neighbors"` resolves exactly as it did.
+ */
+function reachingPairsOf(
+  def: FigureDefinition,
+  params: Record<string, unknown>,
+  ctx: ResolveContext,
+  among: ReadonlySet<DancerId>,
+): Array<[DancerId, DancerId]> | undefined {
+  if (def.actors !== "all") return undefined;
+  const rel = pairsRelation(params);
+  if (rel === undefined) return undefined;
+  const pairs = relatedPairs(ctx.model, rel, among);
+  if (pairs.length === 0) return undefined;
+  return pairs.every(([a, b]) => sameFour(ctx, a, b)) ? undefined : pairs;
+}
+
+/**
+ * The relation an instance's `pairs` parameter names, or `undefined` when it
+ * names station pairs outright or is not there at all.
+ *
+ * The directional refusal is {@link laneFor}'s own, word for word: a relation
+ * that does not point back at you selects actors and cannot pair a set up.
+ */
+function pairsRelation(params: Record<string, unknown>): Relation | undefined {
+  const word = params["pairs"];
+  if (typeof word !== "string" || !isRelationWord(word)) return undefined;
+  const rel = parseRelation(word);
+  if (!isSymmetricRelation(rel)) {
+    throw new Error(`"${word}" is directional and cannot pair a set up; it selects actors`);
+  }
+  return rel;
+}
+
+/**
+ * **One instance's `pairs`, as its own figure-roles** (DD73) — the second half
+ * of {@link reachingPairsOf}.
+ *
+ * A definition's `pairing: { kind: "param" }` reads `params.pairs` through
+ * `pairsOf`, which knows `"partners"`, `"neighbors"` and an explicit list of
+ * station pairs and nothing else. So resolution hands the figure the list: who
+ * each of *this instance's* dancers is dancing with, named by the role they
+ * were cast into, read off the live set through the same relation table
+ * `actors: "pairs"` figures are cut up by.
+ *
+ * In a minor set this is the identity for the two words `pairsOf` already
+ * understood — `"partners"` comes back `[["1L","1R"],["2L","2R"]]` — and it is
+ * an answer rather than silence for every other one. In the lane, where an
+ * instance is one pair, it is that pair's two roles.
+ *
+ * A dancer the relation leaves out is left out, which is M6's end-of-set rule:
+ * the figure stands them still and the end-effects table says who.
+ */
+function castPairsOf(
+  def: FigureDefinition,
+  params: Record<string, unknown>,
+  cast: Record<FigureRole, DancerId>,
+  ctx: ResolveContext,
+): FigureRole[][] | undefined {
+  if (def.actors !== "all") return undefined;
+  const rel = pairsRelation(params);
+  if (rel === undefined) return undefined;
+  const table = setRulesOf(ctx.formation.id).relations;
+  const roleOf = new Map<DancerId, FigureRole>();
+  for (const [role, dancer] of Object.entries(cast)) roleOf.set(dancer, role);
+  const done = new Set<FigureRole>();
+  const out: FigureRole[][] = [];
+  for (const [role, dancer] of Object.entries(cast)) {
+    if (done.has(role)) continue;
+    const other = relate(ctx.model, table, dancer, rel);
+    const otherRole = other === undefined ? undefined : roleOf.get(other);
+    if (otherRole === undefined || otherRole === role || done.has(otherRole)) continue;
+    done.add(role);
+    done.add(otherRole);
+    out.push([role, otherRole]);
+  }
+  return out;
 }
 
 /** Whether these two dancers are in the same `kind: "set"` group of this partition. */
@@ -1035,10 +1149,19 @@ function dataInstance(
   // called `places` — a circle's is how many quarters of the ring it walks —
   // and the two would share one name in one object.
   const homes: Vec2[] = needsPlaces(def, params) ? homesOf(ctx, plan) : [];
+  // **The `pairs` word, as this instance's own roles** (DD73) — in the lane an
+  // `actors: "all"` instance is one pair, and these are its two roles.
+  const paired = castPairsOf(def, params, cast, ctx);
 
   return {
     figure: call.figure,
-    params: { ...params, homes, nearby: [], slots: slotViewFor(ctx, plan.frame, cast) },
+    params: {
+      ...params,
+      ...(paired === undefined ? {} : { pairs: paired }),
+      homes,
+      nearby: [],
+      slots: slotViewFor(ctx, plan.frame, cast),
+    },
     cast,
     group: {
       id: `${plan.id}/${def.id}/${stations.join("-")}`,

@@ -26,12 +26,12 @@ describe("captionsFor", () => {
     const captions = captionsFor(airpants.phrases, REEL, null);
     expect(captions).toHaveLength(6);
     expect(captions.map((c) => c.text)).toEqual([
-      "NEIGHBOR BALANCE AND SWING",
-      "LONG LINES FORWARD AND BACK",
-      "ROBINS ALLEMANDE RIGHT ONE AND A HALF",
-      "PARTNER BALANCE AND SWING",
-      "CIRCLE LEFT THREE QUARTERS",
-      "NEIGHBOR DO-SI-DO ONE AND A HALF",
+      "BALANCE AND SWING",
+      "LONG LINES",
+      "ALLEMANDE RIGHT",
+      "BALANCE AND SWING",
+      "CIRCLE LEFT",
+      "NEIGHBOR DO-SI-DO",
     ]);
   });
 
@@ -53,14 +53,14 @@ describe("captionsFor", () => {
   it("marks exactly the current move, by its index across the whole dance", () => {
     const captions = captionsFor(airpants.phrases, REEL, 5);
     expect(captions.filter((c) => c.current === true).map((c) => c.text)).toEqual([
-      "NEIGHBOR DO-SI-DO ONE AND A HALF",
+      "NEIGHBOR DO-SI-DO",
     ]);
     expect(captionsFor(airpants.phrases, REEL, null).filter((c) => c.current === true)).toEqual([]);
   });
 
   it("gives Fatal Attraction's two-beat cast back a single bar", () => {
     const captions = captionsFor(danceMoves(danceBySlug("fatal-attraction")).phrases, REEL, null);
-    const cast = captions.find((c) => c.text.startsWith("ROBINS CAST BACK"));
+    const cast = captions.find((c) => c.text.startsWith("CAST BACK"));
     expect(cast).toMatchObject({ line: 1, fromBar: 0, bars: 1 });
     // The six-beat right-shoulder round after it picks up where it left off.
     expect(captions.find((c) => c.text.startsWith("RIGHT SHOULDER"))).toMatchObject({

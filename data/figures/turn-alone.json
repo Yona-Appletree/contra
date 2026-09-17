@@ -1,11 +1,14 @@
 {
   "id": "turn-alone",
+  "description": "One dancer turns on the spot to face back the way they came.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Turn round on the spot by yourself, so you end facing back the way you came.",
-    "long": "No hand, nobody to walk around. Turn on the spot where you are standing until you are facing back the way you came, and stop there. Your partner is doing the same thing beside you, and the two of you are still side by side when it is done."
+    "line": "Turn round on the spot by yourself to face back the way you came.",
+    "teach": "Turn on the spot where you are standing until you are facing back the way you came, and stop there. Your hands stay at your sides. Your partner is doing the same thing beside you, and the two of you are still side by side when it is done."
   },
   "call": {
-    "short": "TURN ALONE",
-    "long": "TURN ALONE"
+    "1": "TURN",
+    "2": "TURN ALONE",
+    "4": "TURN ALONE AND FACE BACK"
   }
 }

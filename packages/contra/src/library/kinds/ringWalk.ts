@@ -81,6 +81,16 @@ export function planRingWalk(
 
   const ends: Spots = {};
   for (const role of ctx.ids) {
+    // **The end is a station**, which is exact for the twenty-four ring-walk
+    // calls in the corpus that ask for a whole number of places and a rounding
+    // for the twenty-fifth: Are You 'Most Done?'s star left seven eighths asks
+    // for 3.5 places, the walk turns its honest −315°, and the step out spends
+    // its beat and a half walking the last 45° back on to a station.
+    //
+    // `@caller/choreo`'s `ringEnd` is the honest answer to the same question and
+    // is **deliberately not called here** — see its doc comment for the ruling
+    // and the numbers: a dancer left half a place short is a dancer the set
+    // model cannot seat, because a seat is measured off the body.
     const p = ctx.spot(ringShift(ring, role, sign * places)).p;
     ends[role] = {
       p,

@@ -27,6 +27,28 @@ export const REST_ON_ARM_PX = 1.6;
  */
 export const REST_OFF_HAND_PX = 2;
 
+/**
+ * How far from the **shoulder** end of an arm a resting hand has to be: 2 px,
+ * the same hand's radius at the other end of the same bone.
+ *
+ * The rule is "a hand drawn on the *length* of an arm", and an arm's length
+ * starts at the shoulder — a hand *at* the shoulder is on the dancer's body,
+ * not on their arm, and says nothing about which of two forearms is on top.
+ * FR-C1 excluded the far end of the bone and not the near one, and **the swing
+ * is what that costs**: the ballroom hold puts the robin's left hand on the
+ * lark's shoulder point, 0.58 px from it — 0.58 px from his right arm's bone
+ * too, because that bone begins there — so every swing reads as a wrist grip.
+ * While the pair's other hands are joined the join rule owns them and nothing
+ * shows; at the take and at the open-out, when the joined hand has been let go,
+ * it flips the robin's arms over the lark's for the beat and a half the hold is
+ * being taken or released, which is the one thing about the robin's left arm
+ * that changed in the swing after the user passed it (FR-D2).
+ *
+ * The star it was written for is untouched: its hand sits at the **elbow** of
+ * the arm it holds, half a bone — 3.7 px — from that arm's shoulder.
+ */
+export const REST_OFF_SHOULDER_PX = 2;
+
 /** The little of a dancer {@link sceneOrder} needs. */
 export interface OrderedDancer {
   id: string;
@@ -151,8 +173,9 @@ export function sceneOrder(
 
 /**
  * Whether this hand is drawn on the length of that arm: within
- * {@link REST_ON_ARM_PX} of either bone, and more than
- * {@link REST_OFF_HAND_PX} from the arm's own hand.
+ * {@link REST_ON_ARM_PX} of either bone, and clear of **both** ends of it —
+ * more than {@link REST_OFF_HAND_PX} from the arm's own hand and more than
+ * {@link REST_OFF_SHOULDER_PX} from its shoulder.
  *
  * **The wrist star is what this is for.** Its hold has no shared hand point —
  * everybody's hand is half way down the giving arm of the dancer ahead of them
@@ -161,9 +184,16 @@ export function sceneOrder(
  * Measured on the figure itself: a star dancer's hand is **0.78 px** from the
  * arm it is holding and **3.26 px** from the next nearest arm, steady through
  * the whole turn, so 1.6 px names the grip and nothing else.
+ *
+ * Both ends are excluded because neither is the arm's *length*: a hand at the
+ * far end is a join in the making (FR-C1), and a hand at the shoulder is on the
+ * dancer's body — which is what a ballroom hold is, and what FR-D2 found this
+ * rule mistaking for a wrist grip in every swing.
  */
 export function restsOnArm(hand: Vec2, arm: Arm3dSolution): boolean {
   if (Math.hypot(hand[0] - arm.hand[0], hand[1] - arm.hand[1]) <= REST_OFF_HAND_PX) return false;
+  if (Math.hypot(hand[0] - arm.shoulder[0], hand[1] - arm.shoulder[1]) <= REST_OFF_SHOULDER_PX)
+    return false;
   const upper = distanceToSegment(hand, arm.shoulder, arm.elbow);
   const fore = distanceToSegment(hand, arm.elbow, arm.hand);
   return Math.min(upper, fore) <= REST_ON_ARM_PX;

@@ -38,6 +38,7 @@ import { turnAloneDefinition } from "./turn-alone.js";
 import { turnAsCouplesDefinition } from "./turn-as-couples.js";
 import { turnContraCornersDefinition } from "./turn-contra-corners.js";
 import { castBackDefinition } from "./cast-back.js";
+import { customDefinition } from "./custom.js";
 import { promenadeDefinition } from "./promenade.js";
 import { balanceWaveOfFourDefinition } from "./balance-wave-of-four.js";
 import { jerseyTwirlDefinition } from "./jersey-twirl.js";
@@ -175,6 +176,18 @@ export const BANNER_DEFINITIONS: readonly FigureDefinition[] = [
 ];
 
 /**
+ * **The corpus's own**: the figure an unencoded call is written as.
+ *
+ * A list of one, and a list of its own because what it shares with nothing else
+ * is its purpose: `custom` is not a contra move, it is the record saying *this
+ * line has not been encoded yet*. `corpus/importCallersBox.ts` turns every line
+ * of a Caller's Box transcript into one, which is how 12,000 derived records
+ * load, plan and keep their phrase arithmetic before anybody has written a
+ * figure for a single one of them. See `custom.ts`.
+ */
+export const CORPUS_DEFINITIONS: readonly FigureDefinition[] = [customDefinition];
+
+/**
  * Every figure the library holds as data, the dance files' own **local**
  * figures last (D10, M8).
  *
@@ -192,6 +205,7 @@ export const DATA_DEFINITIONS: readonly FigureDefinition[] = [
   ...SHAPE_DEFINITIONS,
   ...RECORD_DEFINITIONS,
   ...BANNER_DEFINITIONS,
+  ...CORPUS_DEFINITIONS,
   ...localFigureDefinitions(),
 ];
 
@@ -371,3 +385,4 @@ export { loopDefinition } from "./loop.js";
 export { jerseyTwirlDefinition } from "./jersey-twirl.js";
 export { squareThroughDefinition, squareThroughPass } from "./square-through.js";
 export { interruptedSquareThroughDefinition } from "./interrupted-square-through.js";
+export { customDefinition } from "./custom.js";

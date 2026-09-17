@@ -24,9 +24,13 @@ describe("danceMoves", () => {
       [3, 0],
       [3, 1],
     ]);
-    // The dance's own call text wins — every Airpants figure writes one.
-    expect(moves.moves[0]!.call).toBe("NEIGHBOR BALANCE AND SWING");
-    expect(moves.moves[1]!.call).toBe("LONG LINES FORWARD AND BACK");
+    // The caller's own words at the notecard's register (M13, D31): two
+    // beats of them, which is what a card glanced at while the band plays
+    // wants — and the whole sentence beside them for the popup to quote.
+    expect(moves.moves[0]!.call).toBe("BALANCE AND SWING");
+    expect(moves.moves[0]!.fullCall).toBe("WITH YOUR NEIGHBOR BALANCE AND SWING");
+    expect(moves.moves[1]!.call).toBe("LONG LINES");
+    expect(moves.moves[1]!.fullCall).toBe("LONG LINES FORWARD AND BACK");
     // No dance in the demo corpus has a `while` branch on Airpants — every move's
     // `with` is empty, not merely absent, so a reader never has to check for it.
     for (const move of moves.moves) expect(move.with).toEqual([]);
@@ -58,7 +62,10 @@ describe("danceMoves", () => {
     // The branch wrote no call of its own, so it falls back to the dance-local
     // figure's own resolved text, in the same voice as every other fallback.
     expect(castBack.with[0]).toBe(castBack.with[0]!.toUpperCase());
-    expect(castBack.call).toBe("ROBINS CAST BACK, LARKS GO FORWARD");
+    expect(castBack.call).toBe("CAST BACK");
+    expect(castBack.with).toEqual(["GO FORWARD"]);
+    // The whole sentence is the dance's own flourish, written as one line.
+    expect(castBack.fullCall).toBe("ROBINS CAST BACK, LARKS GO FORWARD");
   });
 });
 
