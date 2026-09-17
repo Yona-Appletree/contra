@@ -234,6 +234,12 @@ section[data-pane="source"] > .body {
   overflow: auto;
   font-size: 11px;
   line-height: 1.35;
+  max-height: 40%;
+  flex: none;
+}
+.crumb,
+.bindings {
+  flex: none;
 }
 
 /* ---- timeline ----------------------------------------------------------- */

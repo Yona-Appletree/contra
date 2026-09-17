@@ -34,7 +34,19 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
   text.spellcheck = false;
   const crumb = el("div", "crumb");
   const bindings = el("div", "bindings");
+  // The figure's IR under the text is a lot of static lines; it is there on
+  // request ("ir"), so the code box keeps the room.
   const ir = el("pre", "ir");
+  ir.hidden = true;
+  const irToggle = el("input", "toggle");
+  irToggle.type = "checkbox";
+  irToggle.title = "the figure IR of the call under the bar";
+  const irLabel = el("label", "toggle-label", "ir ");
+  irLabel.append(irToggle);
+  irToggle.addEventListener("change", () => {
+    ir.hidden = !irToggle.checked;
+  });
+  head.append(irLabel);
   body.append(text, crumb, bindings, ir);
 
   let timer = 0;
