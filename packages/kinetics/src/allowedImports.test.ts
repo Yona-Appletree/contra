@@ -1,0 +1,87 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+/**
+ * The package's own import rule, which `scripts/check-deps.mjs` cannot see:
+ * `@caller/core` is the only workspace package this one may import, and of it
+ * only the geometry, time and rendering-contract pieces. The kinematics under
+ * `core/src/kinematics/` are what engine 3 replaces; importing one of their
+ * names would be engine 2 leaking in.
+ */
+const ENGINE_2_NAMES = [
+  "solveArm",
+  "solveArm3d",
+  "planarReach",
+  "POLE_OUTWARD",
+  "drawnArms",
+  "elbowPole",
+  "hangingHand",
+  "resolveHand",
+  "handDown",
+  "stackJoined",
+  "easeSeam",
+  "seamProgress",
+  "quietMotion",
+  "lerpFeet",
+  "swingFeet",
+  "plantedGait",
+  "plantAt",
+  "memoPlants",
+  "footRest",
+  "trapezoid",
+  "cruiseRamp",
+  "profileSpeed",
+  "armShortfall",
+  "PoseSample",
+  "lerpHand",
+  "shoulders",
+  "shouldersAt",
+];
+
+const ALLOWED_BARE = new Set(["@caller/core", "vitest", "vite", "vitest/config"]);
+
+const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "dist" || entry.name === "node_modules") continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(full));
+    else if (/\.(ts|tsx|mts)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+const IMPORT_RE =
+  /^\s*(?:import|export)\s+(?:type\s+)?(\{[^}]*\}|[^'"]*?)\s*from\s+['"]([^'"]+)['"]/gm;
+
+describe("allowed imports", () => {
+  const files = [...walk(join(packageRoot, "src")), ...walk(join(packageRoot, "debugger"))];
+
+  it("scans something", () => {
+    expect(files.length).toBeGreaterThan(0);
+  });
+
+  for (const file of files) {
+    const rel = relative(packageRoot, file);
+    it(rel, () => {
+      const source = readFileSync(file, "utf8");
+      for (const m of source.matchAll(IMPORT_RE)) {
+        const names = m[1] ?? "";
+        const spec = m[2] ?? "";
+        if (spec.startsWith(".")) continue;
+        if (spec.startsWith("node:")) continue;
+        expect(ALLOWED_BARE.has(spec), `${rel} imports "${spec}"`).toBe(true);
+        if (spec === "@caller/core") {
+          for (const name of ENGINE_2_NAMES) {
+            const used = new RegExp(`\\b${name}\\b`).test(names);
+            expect(used, `${rel} imports engine 2's ${name} from @caller/core`).toBe(false);
+          }
+        }
+      }
+    });
+  }
+});

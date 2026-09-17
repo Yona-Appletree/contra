@@ -1,0 +1,76 @@
+:root {
+  --bg: #141110;
+  --panel: #1e1917;
+  --panel2: #272019;
+  --ink: #ebdfcd;
+  --muted: #a8977f;
+  --accent: #e7b96b;
+  --line: #3c3128;
+  --floor: #c9a06a;
+  --lark: #e0a32e;
+  --robin: #c8362f;
+  --bad: #e07a7a;
+  --good: #9fd08a;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    13px/1.4 ui-monospace,
+    Menlo,
+    monospace;
+  overflow: hidden;
+}
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  height: 100%;
+  padding: 6px;
+}
+.transport {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+section[data-pane] {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+section[data-pane] > h2 {
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+section[data-pane] > .body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 8px;
+}
