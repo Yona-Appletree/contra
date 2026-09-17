@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Stage · transport, card, tune, mute</title>
+<title>The Stage · transport, notecard, tune, mute</title>
 <style>
 /*
  * The app's own palette, verbatim from packages/ui-design/src/theme.css, plus
@@ -100,7 +100,7 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
 .pixbtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid color-mix(in oklab,var(--foreground) 35%,transparent);border-radius:2px;background:color-mix(in oklab,black 55%,transparent);cursor:pointer;padding:0;color:var(--foreground);position:relative}
 .pixbtn:active{background:color-mix(in oklab,black 75%,transparent)}
 .pixbtn svg{height:27px;width:auto;shape-rendering:crispEdges;fill:var(--foreground)}
-.pixbtn .gold{fill:var(--primary)}
+.pixbtn .fg .gold{fill:var(--primary)}
 .pixbtn.play{border-color:var(--primary)}
 .pixbtn.play svg{fill:var(--primary)}
 .pixbtn.xs{width:32px;height:32px}
@@ -110,9 +110,25 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
 .pixbtn.armed::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;background:var(--primary)}
 /* 1F: no chip, just the glyph on the wall, bigger. */
 .pixbtn.bare{width:52px;height:44px;border:none;background:transparent}
-.pixbtn.bare svg{height:33px;fill:var(--foreground)}
-.pixbtn.bare.play svg{fill:var(--primary)}
+.pixbtn.bare svg{height:39px;fill:var(--foreground)}
+.pixbtn.bare.play svg .fg{fill:var(--primary)}
 .pixbtn.bare:active svg{opacity:.6}
+/* Round 3: a light outline round each glyph. The `.ol` layer is the same rects
+   stroked two units wide and drawn first, so only the outer unit shows. */
+.pixbtn svg .ol rect{fill:none;stroke:var(--ol,transparent);stroke-width:2}
+body[data-ol="none"] .pixbtn.bare{--ol:transparent}
+body[data-ol="faint"] .pixbtn.bare{--ol:oklch(0.15 0.02 55 / .45)}
+body[data-ol="ink"] .pixbtn.bare{--ol:oklch(0.15 0.02 55 / .85)}
+.olrow{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.olrow .sample{display:flex;flex-direction:column;gap:4px;align-items:center}
+.olrow .sample .band{display:flex;gap:2px;padding:6px 8px;background:var(--wall-top);border-radius:4px}
+/* The potatoes: four pixel spuds top-right of the tune box, lit one by one as the band counts the dance in. */
+.spuds{margin-left:auto;display:flex;gap:4px;align-items:center}
+.spuds svg{width:22px;height:auto;shape-rendering:crispEdges;opacity:.28;transition:opacity 80ms}
+.spuds svg.lit{opacity:1}
+.spuds svg.now{transform:scale(1.18)}
+.spuds .p-line{fill:#4a2f1a}.spuds .p-body{fill:#c08a48}.spuds .p-eye{fill:#7a5028}
+.spuds svg.lit .p-body{fill:var(--primary)}
 
 .toast{font:11px ui-monospace,Menlo,monospace;color:var(--muted-foreground);padding:0 8px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .laptop .toast{padding:0}
@@ -186,15 +202,15 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
  * moves are written lightly under the bars they take.
  */
 .tunebox-head{display:flex;align-items:center;gap:.5rem;padding:.45rem .75rem .35rem;border-bottom:1px solid color-mix(in oklab,var(--card-foreground) 14%,transparent)}
-.tunebox-head .cap{font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;opacity:.55}
-.tunebox select{height:26px;background:var(--card);color:var(--card-foreground);border-color:color-mix(in oklab,var(--card-foreground) 25%,transparent);max-width:60%}
+.tunebox-head .cap{font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;opacity:.55;white-space:nowrap}
+.tunebox select{height:26px;background:var(--card);color:var(--card-foreground);border-color:color-mix(in oklab,var(--card-foreground) 25%,transparent);min-width:0;flex:0 1 auto;max-width:50%}
 .tunebox-head .tt{margin-left:auto;font-size:.6875rem;opacity:.55;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tunebox .notation{padding:.35rem .5rem .4rem}
 .tunebox .notation svg{display:block;width:100%;height:auto}
 .tunebox .notation .cur{fill:var(--cursor);stroke:var(--cursor)}
 .tunebox .notation .hit{fill:transparent;cursor:pointer}
 .tunebox .notation .hit:hover{fill:color-mix(in oklab,currentColor 6%,transparent)}
-.tunebox .notation .lab{font:600 8px system-ui,sans-serif;fill:currentColor;opacity:.5}
+.tunebox .notation .lab{font:600 9px system-ui,sans-serif;fill:currentColor;opacity:.55}
 .tunebox .notation .lab.cur{opacity:1}
 .tunebox .notation .mv{font:7px system-ui,sans-serif;fill:currentColor;opacity:.5;letter-spacing:.02em}
 .tunebox .notation .mv.cur{opacity:1;font-weight:600;fill:var(--cursor)}
@@ -231,8 +247,8 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
 </head>
 <body>
 <header>
-  <h1>The Stage · transport, card, tune, mute</h1>
-  <p class="hint">UX spike for the front page, 2026-09-16, <b>round 2</b>. Everything below runs on one clock: press play anywhere and every frame moves together. The hall is a still of the real canvas (the caller's bubble left off it); the tune is a stand-in for abcjs. Open with <code>?demo=popover</code>, <code>?demo=sheet</code> or <code>?demo=fatal</code> to land in a state.</p>
+  <h1>The Stage · transport, notecard, tune, mute</h1>
+  <p class="hint">UX spike for the front page, 2026-09-16, <b>round 3 — converged</b>. Everything below runs on one clock: press play anywhere and every frame moves together. The hall is a still of the real canvas (the caller's bubble left off it); the tune is a stand-in for abcjs. Open with <code>?demo=popover</code>, <code>?demo=sheet</code> or <code>?demo=fatal</code> to land in a state.</p>
   <div class="pushback"><b>Round 1 rulings (Yona, 2026-09-16):</b>
     <ul>
       <li><b>Transport:</b> none of the four. It belongs in the sim's 16-bit area, <i>below the hall</i>, with the controls centred. The play triangle's extra pixel at the point looked odd — gone; every glyph now sits on one 11-row grid at the same pixel size.</li>
@@ -240,14 +256,21 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
       <li><b>The tune is not part of the card.</b> A separate box, with a dropdown to change the tune; clicking into the music seeks there too, at move granularity; and the move — or at least A1 A2 B1 B2 — shown lightly under the music to tie it to the dance.</li>
       <li><b>Mute:</b> good; the smaller 32 px chip is fine.</li>
     </ul>
-    <b>Still standing from round 1, wired into the strip:</b> the |◀ rule (restart, or previous when within two beats — pressing twice quickly then also goes back) versus a timed double-press; and whether |◀◀ lands on the potatoes or the whole line-up. Mute stays a preference apart from pause (the tune's clock keeps running at gain 0), on its own key.
+    <b>Round 2 rulings (Yona, 2026-09-16):</b>
+    <ul>
+      <li><b>Transport:</b> 1F, the bare glyphs on the wall — with light outlines. The strip below offers three weights.</li>
+      <li><b>Notecard:</b> 2F, one call to a line. 2E's proportional rows are gone.</li>
+      <li><b>Tune box:</b> 3B, the moves under the staves, and the phrase letters beside them. "Waiting for the potatoes" was odd: it is now four 16-bit potatoes in the top-right, lit one by one as the band counts the dance in.</li>
+      <li><b>The |◀ rule</b> is <i>restart, or previous when within two beats</i> (no timed double-press). <b>|◀◀ goes to the potatoes</b>, not the whole line-up — a caller practising needs the count-in.</li>
+    </ul>
+    Mute stays a preference apart from pause (the tune's clock keeps running at gain 0), on its own key.
   </div>
   <p class="hint"><b>Glyph key.</b> <b>|◀◀</b> start of the dance (again: the previous dance) · <b>|◀</b> start of this move (again: the previous move) · <b>▶ / ▮▮</b> · <b>▶|</b> next move · <b>▶▶|</b> next dance. Keyboard: <kbd>space</kbd> play, <kbd>←</kbd>/<kbd>→</kbd> moves, <kbd>⇧←</kbd>/<kbd>⇧→</kbd> dances, <kbd>m</kbd> mute.</p>
   <div class="controls" id="ctl">
     <div class="grp"><button id="cPlay">▶ play</button><input type="range" id="cBeat" min="0" max="480" step="0.25" value="30"><span class="ro" id="cRead"></span></div>
     <div class="grp"><span class="l">dance</span><span id="cDances"></span></div>
-    <div class="grp"><span class="l">|◀ rule</span><button data-k="rule" data-v="restart" class="on">restart, or previous near the start</button><button data-k="rule" data-v="double">timed double-press</button></div>
-    <div class="grp"><span class="l">|◀◀ goes to</span><button data-k="target" data-v="potatoes" class="on">the potatoes</button><button data-k="target" data-v="lineup">the line-up</button></div>
+    <div class="grp"><span class="l">glyph outline</span><button data-ol="none">none</button><button data-ol="faint" class="on">faint</button><button data-ol="ink">ink</button></div>
+    <div class="grp"><button id="cPot">→ the potatoes</button></div>
     <div class="grp"><span class="l">tempo</span><input type="range" id="cTempo" min="96" max="124" value="112" style="width:90px"><span id="cTempoV">112</span></div>
     <div class="grp"><span class="l">storage</span><span id="cStore"></span><button id="cClear">clear</button><button id="cReload">reload page</button></div>
   </div>
@@ -255,25 +278,25 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border
 
 <section id="s1">
   <h2>1. The transport, in the strip under the hall</h2>
-  <p class="hint">The five controls live in the stage's own band, centred under the canvas, on the wall colour. Two faces: <b>E</b> the dark chips the mute already uses; <b>F</b> bare glyphs on the wall, a shade larger, like a game's HUD. The 32 px mute sits top-right of the canvas in both. The readout under each strip says what the last press did.</p>
+  <p class="hint">The five glyphs on the wall under the canvas, centred, the 32 px mute top-right of the canvas. Ruled: 1F with outlines. The three samples are the outline weights the strip switches between; the phone shows the chosen one. The readout under the strip says what the last press did.</p>
   <div class="row" id="row1"></div>
 </section>
 
 <section id="s2">
   <h2>2. The notecard</h2>
-  <p class="hint">White stock, faint rules, the phrase letter in the margin, the info icon at the end of every call; tap a call to go to its beginning, tap ⓘ to open the move. <b>E</b> keeps 2D's idea — a call is as wide as it is long, so a phrase row reads as its sixteen beats, with a hairline where one call becomes the next and a two-pixel underline filling under the current one. <b>F</b> is one call to a line, beats faint at the right. Pick <b>Fatal Attraction</b> in the strip to see a two-beat call and a "‖" line in each.</p>
+  <p class="hint">Ruled: 2F. White stock, faint rules, the phrase letter in the margin, one call to a line with its beat count faint before the ⓘ. Tap a call to go to its beginning; tap ⓘ to open the move (a popover here, a bottom sheet on the phone). Shown for all three dances so the "‖" line and the two-beat call are in view.</p>
   <div class="row" id="row2"></div>
 </section>
 
 <section id="s3">
   <h2>3. The tune, in its own box</h2>
-  <p class="hint">Paper like the card, under it. The dropdown pins a tune for this dance (U4 took the selector out of the control bar; it comes back here, on the thing it changes). A stave is a phrase: eight bars, sixteen beats. <b>A</b> puts the phrase letter at the left of each stave; <b>B</b> also writes the moves lightly under the bars they take. Click any bar: the evening goes to the start of the move that bar is in.</p>
+  <p class="hint">Ruled: 3B. Paper like the card, under it; the dropdown pins a tune for this dance. A stave is a phrase — eight bars, sixteen beats — with its letter at the left and the calls written under the bars they take. Click any bar: the evening goes to the start of the move that bar is in. Top-right, <b>the potatoes</b>: four pixel spuds, dim until the band counts the dance in, then lit one a beat. Press <b>→ the potatoes</b> in the strip (or |◀◀) and play to watch them.</p>
   <div class="row" id="row3"></div>
 </section>
 
 <section id="s4">
   <h2>4. Put together</h2>
-  <p class="hint"><span class="lean">My lean</span>: 1E chips in the strip, 2E the proportional notecard, 3B the tune box with the moves under the staves, the 32 px mute. Phone on the left (ⓘ opens a bottom sheet), laptop on the right (ⓘ opens a popover). The dance select, tempo and trails keep their row under the strip.</p>
+  <p class="hint">The ruled set: 1F outlined glyphs in the strip, the 2F notecard, the 3B tune box with the potatoes, the 32 px mute. Phone on the left (ⓘ opens a bottom sheet), laptop on the right (ⓘ opens a popover). The dance select, tempo and trails keep their row under the strip.</p>
   <div class="row" id="row4"></div>
 </section>
 
@@ -359,7 +382,7 @@ const tuneOf=(dance)=> TUNES.find(t=>t.slug===(S.tunePin[dance.slug]||dance.tune
 
 /* ---------------- state ---------------- */
 const STORE_KEY='hall-page-spike:muted';
-const S={beat:30, playing:false, tempo:112, trails:true, rule:'restart', target:'potatoes', muted:false, last:'', tunePin:{}};
+const S={beat:30, playing:false, tempo:112, trails:true, rule:'restart', target:'potatoes', muted:false, last:'', tunePin:{}, ol:'faint'};
 try{ S.muted = localStorage.getItem(STORE_KEY)==='true'; }catch(e){}
 const LIVE=[];
 
@@ -422,7 +445,7 @@ const R=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}"${c?` cl
 const triL=(x,c)=>[0,1,2,3,4,5].map(i=>R(x+i,5-i,1,2*i+1,c)).join('');
 const triR=(x,c)=>[0,1,2,3,4,5].map(i=>R(x+i,i,1,11-2*i,c)).join('');
 const bar=(x,c)=>R(x,0,1,11,c);
-const svg=(w,inner)=>`<svg viewBox="0 0 ${w} 11">${inner}</svg>`;
+const svg=(w,inner)=>`<svg viewBox="-1 -1 ${w+2} 13"><g class="ol">${inner}</g><g class="fg">${inner}</g></svg>`;
 const G={
   prevDance: svg(15, bar(0,'gold')+triL(2)+triL(9)),
   prevMove:  svg(8,  bar(0,'gold')+triL(2)),
@@ -432,6 +455,9 @@ const G={
   nextDance: svg(15, triR(0)+triR(7)+bar(14,'gold')),
   speaker:()=>`<svg viewBox="0 0 9 6">${R(2,0,2,1)}${R(1,1,3,1)}${R(0,2,5,1)}${R(0,3,5,1)}${R(1,4,3,1)}${R(2,5,2,1)}<g class="waves">${R(6,2,1,2,'gold')}${R(7.5,1,1,4,'gold')}</g><g class="cross">${R(6,1,1,1)}${R(8,1,1,1)}${R(7,2,1,1)}${R(6,3,1,1)}${R(8,3,1,1)}</g></svg>`,
 };
+const POTATO=(()=>{ const rows=['...####...','..#oooo#..','.#oooooo#.','#ooo.oooo#','#oooooo.o#','.#o.oooo#.','..#oooo#..','...####...']; let out='';
+  rows.forEach((r,y)=>{ let x=0; while(x<r.length){ const c=r[x]; let w=1; while(r[x+w]===c) w++; if(c!==' '&&c!=='.'||(c==='.'&&x>0&&x+w<r.length&&r[x-1]!=='.'&&r[x+w]!=='.')){ const cls=c==='#'?'p-line':c==='o'?'p-body':'p-eye'; out+=`<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="1"/>`; } x+=w; } });
+  return `<svg viewBox="0 0 10 8" aria-hidden="true">${out}</svg>`; })();
 const INFO=`<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="5.3" y="5" width="1.4" height="4" fill="currentColor"/><rect x="5.3" y="2.7" width="1.4" height="1.4" fill="currentColor"/></svg>`;
 const el=(html)=>{ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; };
 
@@ -469,7 +495,7 @@ function statusLine(){ const s=el(`<p class="status"></p>`); LIVE.push(p=>{ s.te
 function danceLink(){ const s=el(`<p class="dancelink"><a href="#"></a></p>`); LIVE.push(p=>{ s.firstChild.textContent=`${p.dance.title}: the dance page`; s.firstChild.href=`#/dances/${p.dance.slug}`; }); return s; }
 
 /* ---------------- the notecard, two ways ---------------- */
-function notecard(variant){
+function notecard(variant,{pin}={}){
   const c=el(`<div class="paper notecard ${variant==='list'?'nc-list':''}"><div class="nc-head"><span class="nc-title"></span><span class="nc-author"></span><span class="tt"></span></div><div class="nc-body"></div></div>`);
   const [title,author,tt,body]=['.nc-title','.nc-author','.tt','.nc-body'].map(s=>c.querySelector(s));
   let built=null, rows=[];
@@ -478,7 +504,8 @@ function notecard(variant){
       const call=el(`<button class="nc-call" style="flex-grow:${f.beats}" title="Go to ${f.call}"><span class="nc-txt">${f.call}${(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('')}</span>${variant==='list'?`<span class="nc-beats">${f.beats}</span>`:''}<span class="info" role="button" title="About this move">${INFO}</span><i class="nc-prog"></i></button>`);
       call.addEventListener('click',e=>{ if(e.target.closest('.info')){ e.stopPropagation(); openMove(m,call); } else jumpTo(m); }); track.appendChild(call); });
     body.appendChild(row); return row; }); };
-  LIVE.push(p=>{
+  LIVE.push(p0=>{
+    const p = pin && p0.dance.slug!==pin ? posAt(LINEUP+24+3+ITEM*DANCES.findIndex(d=>d.slug===pin)) : p0;
     if(built!==p.dance){ built=p.dance; title.textContent=p.dance.title; author.textContent=p.dance.author; build(p.dance); }
     tt.textContent= p.between? '' : `${p.timeThrough+1} of ${TIMES}`;
     rows.forEach((row,pi)=>{ const cur=!p.between&&p.move.pi===pi; row.classList.toggle('cur',cur);
@@ -515,17 +542,18 @@ function tuneSVG(tune,dance,curBar,withMoves){
   }
   return out+'</svg>';
 }
-function tunebox({moves=false}={}){
-  const c=el(`<div class="paper tunebox"><div class="tunebox-head"><span class="cap">The tune</span><select aria-label="Tune"></select><span class="tt"></span></div><div class="notation"></div></div>`);
-  const sel=c.querySelector('select'), tt=c.querySelector('.tt'), notn=c.querySelector('.notation');
+function tunebox({moves=false,freeze}={}){
+  const c=el(`<div class="paper tunebox"><div class="tunebox-head"><span class="cap">The tune</span><select aria-label="Tune"></select><span class="spuds" title="The potatoes: the four beats the band counts the dance in with">${POTATO}${POTATO}${POTATO}${POTATO}</span></div><div class="notation"></div></div>`);
+  const sel=c.querySelector('select'), notn=c.querySelector('.notation'), spuds=[...c.querySelectorAll('.spuds svg')];
   sel.innerHTML=TUNES.map(t=>`<option value="${t.slug}">${t.title}</option>`).join('');
   let lastKey='';
   sel.addEventListener('change',()=>{ const p=posAt(S.beat); S.tunePin[p.dance.slug]=sel.value; S.last=`tune select → ${TUNES.find(t=>t.slug===sel.value).title} for ${p.dance.title} (pins ?tune=)`; });
   notn.addEventListener('click',e=>{ const h=e.target.closest('.hit'); if(h) jumpToBar(Number(h.dataset.bar)); });
-  LIVE.push(p=>{ const tune=tuneOf(p.dance); const bar=p.between?-1:Math.floor(p.cycleBeat/2);
+  LIVE.push(p0=>{ const p = freeze!==undefined ? posAt(freeze) : p0; const tune=tuneOf(p.dance); const bar=p.between?-1:Math.floor(p.cycleBeat/2);
     if(sel.value!==tune.slug) sel.value=tune.slug;
     const key=`${tune.slug}|${p.dance.slug}|${bar}`; if(key!==lastKey){ lastKey=key; notn.innerHTML=tuneSVG(tune,p.dance,bar,moves); }
-    tt.textContent= p.between? 'waiting for the potatoes' : `bar ${bar+1} · ${p.move.phrase}`; });
+    const pot = p.between && p.phase==='potatoes' ? Math.floor(p.into-(LINEUP-POTATOES)) : -1;
+    spuds.forEach((s,i)=>{ s.classList.toggle('lit',i<=pot); s.classList.toggle('now',i===pot); }); });
   return c;
 }
 
@@ -564,28 +592,30 @@ function phonePage(sc,{face='chips',card='prop',moves=true}={}){
 
 /* Section 1 */
 const row1=document.getElementById('row1');
-row1.appendChild(concept('1E · Chips in the strip <span class="lean">← lean</span>','The five dark chips centred in the band under the canvas, the same face as the mute. The band is part of the sim: wall colour, pixel glyphs, no paper.',
-  phoneFrame(sc=>phonePage(sc,{face:'chips'}))));
-row1.appendChild(concept('1F · Bare glyphs on the wall','No chip behind the glyphs — just the pixels on the wall, a third larger, play in the lit-board gold. Quieter, more like a console; the hit areas are invisible.',
-  phoneFrame(sc=>phonePage(sc,{face:'bare'}))));
+{ const samples=el(`<div class="olrow"></div>`);
+  for(const ol of ['none','faint','ink']){ const s=el(`<div class="sample"><div class="band"></div><span class="mini">${ol}</span></div>`); s.querySelector('.band').appendChild(transportButtons('bare')); s.querySelector('.band').style.setProperty('--ol', ol==='none'?'transparent': ol==='faint'?'oklch(0.15 0.02 55 / .45)':'oklch(0.15 0.02 55 / .85)'); s.querySelector('.band').querySelectorAll('.pixbtn').forEach(b=>b.style.setProperty('--ol','inherit')); samples.appendChild(s); }
+  row1.appendChild(concept('1F · Outline weights','The same glyphs at none, faint (lean) and ink. The outline is one pixel unit, drawn dark so the glyph reads on the lit wall without a chip behind it.',samples)); }
+row1.appendChild(concept('1F · Bare glyphs on the wall <span class="lean">← ruled</span>','The pixels on the wall, a third larger than the chips were, play in the lit-board gold, the outline the strip picks. Quieter, more like a console; the hit areas are invisible but 52 × 44 px.',
+  phoneFrame(sc=>phonePage(sc,{face:'bare',card:'list'}))));
 
 /* Section 2 */
 const row2=document.getElementById('row2');
-row2.appendChild(concept('2E · Proportional <span class="lean">← lean</span>','Each phrase row is its sixteen beats; a call takes its share of the width, a hairline between calls. The current call is bold with a two-pixel underline that fills as it plays; the ones already danced fade. A two-beat call wraps into a narrow column.', notecard('prop')));
-row2.appendChild(concept('2F · One call to a line','The same card read as a list: every call on its own line, its beat count faint before the ⓘ. Nothing wraps into a corner, and the card is as tall as the dance has calls.', notecard('list')));
+row2.appendChild(concept('2F · One call to a line <span class="lean">← ruled</span>','Every call on its own line, its beat count faint before the ⓘ; the current call bold with the underline filling beneath it; the ones already danced fade. The card is as tall as the dance has calls.', notecard('list')));
+row2.appendChild(concept('2F · Fatal Attraction','The awkward cases: a two-beat call with a "‖" line under it, and calls long enough to wrap. Pinned to this dance; the others follow the strip.', notecard('list',{pin:'fatal-attraction'})));
+row2.appendChild(concept('2F · The Baby Rose','Pinned, for the third dance.', notecard('list',{pin:'the-baby-rose'})));
 
 /* Section 3 */
 const row3=document.getElementById('row3');
-row3.appendChild(concept('3A · Phrase letters at the staves','A1 A2 B1 B2 down the left of the four staves: enough to say which line of the tune goes with which line of the card. Click a bar to go to the start of the move it is in.', tunebox({moves:false})));
-row3.appendChild(concept('3B · The moves under the staves <span class="lean">← lean</span>','The calls written small under the bars they take, ticks where one gives way to the next, the current one in the cursor\'s orange. The tune reads as the dance\'s clock; a long call in a short move is trimmed with an ellipsis.', tunebox({moves:true})));
+row3.appendChild(concept('3B · The moves under the staves <span class="lean">← ruled</span>','A1 A2 B1 B2 at the left of the staves, the calls written small under the bars they take, ticks where one gives way to the next, the current one in the cursor\'s orange. A long call in a short move is trimmed with an ellipsis.', tunebox({moves:true})));
+row3.appendChild(concept('3B · The potatoes, counting in','The same box frozen four beats before the dance: three potatoes lit, the fourth about to. Nothing else in the box says "waiting" any more.', tunebox({moves:true,freeze:LINEUP-POTATOES+2.5})));
 
 /* Section 4 */
 const row4=document.getElementById('row4');
 row4.appendChild(concept('4A · Phone','Strip with the transport, then the settings row, the notecard, the tune box. Tap ⓘ: the move opens as a bottom sheet. Tap a call, or a bar of the tune: the evening goes there.',
-  phoneFrame(sc=>phonePage(sc,{face:'chips',card:'prop',moves:true}))));
+  phoneFrame(sc=>phonePage(sc,{face:'bare',card:'list',moves:true}))));
 { const lap=el(`<div class="laptop"></div>`); lap.appendChild(tabbar()); const page=el(`<div class="page"><div class="left"></div><div class="right"></div></div>`); const L=page.querySelector('.left'), Rt=page.querySelector('.right');
-  L.appendChild(stage({zoom:2,face:'chips'})); L.appendChild(toast()); L.appendChild(ctlrow());
-  Rt.appendChild(notecard('prop')); Rt.appendChild(tunebox({moves:true})); Rt.appendChild(danceLink()); Rt.appendChild(statusLine()); Rt.appendChild(el(`<p class="status">the new engine <a href="#">(old engine)</a></p>`));
+  L.appendChild(stage({zoom:2,face:'bare'})); L.appendChild(toast()); L.appendChild(ctlrow());
+  Rt.appendChild(notecard('list')); Rt.appendChild(tunebox({moves:true})); Rt.appendChild(danceLink()); Rt.appendChild(statusLine()); Rt.appendChild(el(`<p class="status">the new engine <a href="#">(old engine)</a></p>`));
   lap.appendChild(page); lap.appendChild(el(`<footer style="display:flex;gap:16px;border-top:1px solid var(--border);padding:8px 16px 12px;font-size:12px;color:var(--muted-foreground)"><a href="#">Spikes</a><a href="#">The pair</a><span>AGPL-3.0-or-later. Dances are their choreographers’; tunes are traditional.</span></footer>`));
   row4.appendChild(concept('4B · Laptop (1000)','The stage at 2× with the band under it, the notecard and the tune box beside. ⓘ opens a popover under the call.',lap)); }
 
@@ -594,7 +624,9 @@ const cPlay=document.getElementById('cPlay'), cBeat=document.getElementById('cBe
 cPlay.addEventListener('click',toggle);
 cBeat.addEventListener('input',()=>{ S.beat=Number(cBeat.value); S.last='scrub'; });
 document.getElementById('cDances').append(...DANCES.map(d=>{ const b=el(`<button>${d.title}</button>`); b.addEventListener('click',()=>pickDance(d.slug)); LIVE.push(p=>b.classList.toggle('on',p.dance===d)); return b; }));
-document.querySelectorAll('#ctl [data-k]').forEach(b=>b.addEventListener('click',()=>{ S[b.dataset.k]=b.dataset.v; document.querySelectorAll(`#ctl [data-k="${b.dataset.k}"]`).forEach(x=>x.classList.toggle('on',x===b)); }));
+document.body.dataset.ol=S.ol;
+document.querySelectorAll('#ctl [data-ol]').forEach(b=>b.addEventListener('click',()=>{ S.ol=b.dataset.ol; document.body.dataset.ol=S.ol; document.querySelectorAll('#ctl [data-ol]').forEach(x=>x.classList.toggle('on',x===b)); }));
+document.getElementById('cPot').addEventListener('click',()=>{ const p=posAt(S.beat); seek(danceStart(p.item)-0.5,'→ the potatoes'); });
 const cTempo=document.getElementById('cTempo'), cTempoV=document.getElementById('cTempoV'); cTempo.addEventListener('input',()=>{ S.tempo=Number(cTempo.value); }); LIVE.push(()=>{ cTempo.value=S.tempo; cTempoV.textContent=S.tempo; });
 document.getElementById('cClear').addEventListener('click',()=>{ try{ localStorage.removeItem(STORE_KEY);}catch(e){} S.muted=false; });
 document.getElementById('cReload').addEventListener('click',()=>location.reload());
@@ -614,9 +646,10 @@ requestAnimationFrame(tick);
 /* ?demo=popover | sheet | fatal — open the page in a given state, for screenshots and for the gate. */
 { const q=new URLSearchParams(location.search).get('demo');
   if(q){ S.beat=LINEUP+24+3; if(q==='fatal') pickDance('fatal-attraction'); LIVE.forEach(f=>f(posAt(S.beat)));
-    if(q==='popover'){ document.querySelectorAll('#row2 .notecard .info')[2].click(); document.getElementById('row2').scrollIntoView(); }
+    if(q==='popover'){ document.querySelector('#row2 .notecard').querySelectorAll('.info')[2].click(); document.getElementById('row2').scrollIntoView(); }
     if(q==='sheet'){ const ph=document.querySelector('#row4 .phone'); ph.querySelector('.scroll').scrollTop=470; ph.querySelectorAll('.notecard .info')[4].click(); document.getElementById('row4').scrollIntoView(); }
-    if(q==='fatal'){ document.getElementById('row2').scrollIntoView(); } } }
+    if(q==='fatal'){ document.getElementById('row2').scrollIntoView(); }
+    if(q==='potatoes'){ seek(LINEUP-POTATOES+2.5,'→ the potatoes'); LIVE.forEach(f=>f(posAt(S.beat))); document.getElementById('row3').scrollIntoView(); } } }
 </script>
 </body>
 </html>
