@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../../scripts/dev-serve.mjs web",
     "build": "vite build && node scripts/copy-spikes.mjs",
     "preview": "vite preview",
     "lint": "eslint .",

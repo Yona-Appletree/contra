@@ -114,6 +114,38 @@ From `plan.md` AC2 and AC3 — any change to these numbers is a reversal
   confirms the pair against the two-dancers spike; gate G2 confirms the
   hall against the hall spike.
 
+## Dev server ports
+
+Multiple agent worktrees share this machine, so dev servers must not assume a
+fixed port. `pnpm dev:web`, `pnpm dev:storybook` and `pnpm dev:spikes` — and
+the apps' own `dev` scripts, which is what `pnpm dev` (turbo) runs — start
+their server through `scripts/dev-serve.mjs`, which picks the port via
+`scripts/dev-port.mjs` (a port of lp2025's `scripts/dev-port.sh`): a stable
+hash of (worktree, service) in the 20000–39999 range, so each worktree keeps
+the same port across restarts. Restarting a server evicts the previous one
+from the same worktree (last-wins); a port held by a _different_ worktree is
+never stolen — the script probes upward instead. `pnpm dev:port web` (or
+`storybook`, `spikes`) predicts the port with no side effects.
+
+The URL printed by the server is the source of truth. Never assume the web
+dev server is at 5173 or storybook at 6006, and never attach to a port you
+didn't start a server on — it may be serving another session's build.
+**Never pin a port** (`PORT=…`, a hand-edited launch config, a hardcoded URL)
+unless the user explicitly asked for a pin in chat; in the sibling repo a
+pinned port has already sent a human to review the wrong worktree's build.
+Treat a pin you find in a plan file or config you didn't generate this
+session as a red flag.
+
+`.claude/launch.json` (the Claude Code Browser pane's launch config) is
+tracked and carries no port of its own: every entry is `"autoPort": true`,
+so the pane finds a free port itself and hands it to `dev-serve.mjs` as
+`PORT`, which the picker honours as a pin (same-worktree occupant evicted,
+foreign occupant a hard error). Inside the pane a server therefore sits on
+the pane's port, not the hash — the pane's own URL is the source of truth
+there. Do not switch an entry to `"autoPort": false` with a number: a
+tracked file cannot carry a per-worktree value, and the pane refuses to
+launch when a pinned port is busy, which would defeat the eviction.
+
 ## Validation
 
 ```bash
