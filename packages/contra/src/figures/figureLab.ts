@@ -75,7 +75,15 @@ export function figureAloneRow(
   kind: "duple" | "becket",
   overrides: CheckOverrides = {},
 ): MotionStats | undefined {
-  const registry = createContraRegistry([], overrides);
+  // **The figure as a hands-four can plan it** (M11): `poseAt` samples the
+  // figure the *registry* holds, and the registry holds what a dance resolves —
+  // which for a figure minted one instance per pair is written for two roles
+  // and refuses four. `figureOnFour` mints the pairs a hands-four implies, and
+  // seeding it into this run's own registry is what makes the timeline sample
+  // the same figure the row is about.
+  const alone = figureOnFour(id);
+  if (alone === undefined) return undefined;
+  const registry = createContraRegistry([alone as AnyFigureDef], overrides);
   if (!registry.has(id)) return undefined;
   const def = registry.get(id);
   const group = aloneGroup(kind);
@@ -152,9 +160,13 @@ export function figurePaceRows(
       return false;
     }
   };
-  const from: PaceRow["from"] =
-    interpreted !== undefined && plans(interpreted) ? "definition" : "registry";
-  const def = from === "definition" ? interpreted! : registry.get(id);
+  // **A figure a hands-four cannot plan has no pace rows** (M11). One that
+  // reads the lattice — a circulate, a long wave — or is minted per dancer
+  // needs a real set under it, and `figureOnFour` is what says so; before M11
+  // the coded twin answered for every id that had one and the rest threw here.
+  if (interpreted === undefined || !plans(interpreted)) return [];
+  const from: PaceRow["from"] = "definition";
+  const def = interpreted;
   const params = withDefaults(def, {}, def.beats);
   const step = 1 / 32;
   const window = Math.round(1 / step);

@@ -20,7 +20,9 @@ import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
 import { createContraRegistry } from "./registry.js";
 import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
-import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
+import { dataOnlyFigureIds } from "../library/figures/index.js";
+import type { AnyFigureDef } from "@caller/choreo";
+import { figureOnFour } from "./onFour.js";
 import { LAB_RUN } from "../dances/danceLab.js";
 import { isBecket } from "../dances/formations.js";
 
@@ -244,10 +246,16 @@ function figuresSection(): string[] {
  * those a figure-alone row.
  */
 export function figureAloneRows(): MotionStats[] {
-  const registry = createContraRegistry();
   const rows: MotionStats[] = [];
-  const alone = [...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined)];
-  for (const id of alone) {
+  for (const id of dataOnlyFigureIds()) {
+    // **Whatever a hands-four can plan** (M11). It used to be the coded
+    // figures plus the data-only ones a bare template could plan; the coded
+    // ones are gone and `figureOnFour` is the one predicate left — it mints the
+    // pair instances a minor set implies, so the swing and its kind keep the
+    // row their coded twins used to give them.
+    const alone = figureOnFour(id);
+    if (alone === undefined) continue;
+    const registry = createContraRegistry([alone as AnyFigureDef]);
     const def = registry.get(id);
     const group = checkGroup();
     const timeline = createTimeline(registry);
