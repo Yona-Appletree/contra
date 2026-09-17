@@ -1,8 +1,15 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { loadLibrary, loadMoves, resolveFormation, standardFloor } from "./dances/load.js";
+import {
+  loadLibrary,
+  loadMoves,
+  readDance,
+  resolveFormation,
+  standardFloor,
+} from "./dances/load.js";
 import { renderJson, renderText } from "./diagnostics/render.js";
 import { format } from "./lang/format.js";
+import { printTree } from "./tree/print.js";
 import { lint } from "./lang/lint.js";
 import { parse } from "./lang/parser.js";
 import { run } from "./pipeline.js";
@@ -46,6 +53,26 @@ export function cli(argv: readonly string[]): CliResult {
         code: issues.length ? 1 : 0,
       };
     }
+    case "expand":
+      return { output: expand(text), code: 0 };
+    case "tree": {
+      const minorSets = flags.get("minor-sets");
+      const dynamics: Record<string, number> = {};
+      if (minorSets !== undefined) dynamics["minor-sets"] = Number(minorSets);
+      const result = run(text, {
+        moves: loadMoves(),
+        library: loadLibrary(),
+        resolve: resolveFormation,
+        dynamics,
+      });
+      if (result.floor === undefined) {
+        return {
+          output: result.diagnostics.map((d) => `${d.code}: ${d.message}`).join("\n") + "\n",
+          code: 1,
+        };
+      }
+      return { output: printTree(result.floor.root, result.floor.dancers), code: 0 };
+    }
     case "check": {
       const floorArg = flags.get("floor");
       const minorSets = flags.get("minor-sets");
@@ -78,9 +105,27 @@ export function cli(argv: readonly string[]): CliResult {
 }
 
 const USAGE = `dance check <file.dance> [--floor <name>[:<size>] | --minor-sets <n>] [--json | --brief] [--bpm <n>]
+dance tree <file.dance> [--minor-sets <n>]     the evaluated initial tree, with the seating
+dance expand <file.dance>                      the dance with every file it depends on, in read order
 dance format <file.dance>
 dance lint <file.dance>
 `;
+
+/** The dance with the prelude, the couple, the formations it names and the moves, in the order they are read. */
+export function expand(text: string): string {
+  const parts: [string, string][] = [
+    ["prelude.dance", readDance("prelude.dance")],
+    ["formations/common.dance", readDance("formations/common.dance")],
+  ];
+  for (const m of text.matchAll(/\bgroup\s+([a-z][a-z0-9-]*)\s*\(/g)) {
+    const name = m[1] as string;
+    if (name === "couple" || parts.some(([p]) => p === `formations/${name}.dance`)) continue;
+    const file = resolveFormation(name);
+    if (file !== undefined) parts.push([`formations/${name}.dance`, file.source]);
+  }
+  parts.push(["moves.dance", readDance("moves.dance")], ["the dance", text]);
+  return parts.map(([name, body]) => `// ===== ${name} =====\n${body.trimEnd()}\n`).join("\n");
+}
 
 const parseFlags = (args: readonly string[]): Map<string, string> => {
   const flags = new Map<string, string>();

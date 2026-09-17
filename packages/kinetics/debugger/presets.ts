@@ -99,3 +99,35 @@ export const timeLabel = (beat: number): string => {
   const phrase = PHRASES[Math.floor((beat % TIME_THROUGH_BEATS) / 16)] ?? "A1";
   return `time ${String(time)} · ${phrase} · beat ${beat.toFixed(2)}`;
 };
+
+/**
+ * Every file a dance reads, in the order it is read: the prelude, the couple,
+ * the formations it names (`group becket(…)` → `formations/becket.dance`),
+ * the moves, then the dance itself — so "where does becket come from" is a
+ * pick in the source pane.
+ */
+export function filesFor(source: string): [name: string, text: string][] {
+  const parts: [string, string][] = [
+    ["prelude.dance", PRELUDE],
+    ["formations/common.dance", COMMON],
+  ];
+  for (const m of source.matchAll(/\bgroup\s+([a-z][a-z0-9-]*)\s*\(/g)) {
+    const name = m[1] as string;
+    const found = FILES[`../dances/formations/${name}.dance`];
+    if (
+      name === "couple" ||
+      found === undefined ||
+      parts.some(([p]) => p === `formations/${name}.dance`)
+    )
+      continue;
+    parts.push([`formations/${name}.dance`, found]);
+  }
+  parts.push(["moves.dance", text("moves.dance")]);
+  return parts;
+}
+
+/** The dance with every file it reads, in one text. */
+export const expandSource = (source: string): string =>
+  [...filesFor(source), ["the dance", source] as [string, string]]
+    .map(([name, body]) => `// ===== ${name} =====\n${body.trimEnd()}\n`)
+    .join("\n");

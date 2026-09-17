@@ -392,6 +392,7 @@ section[data-pane="layout"] > .body {
   align-items: center;
   gap: 4px;
 }
+section[data-pane="source"] > h2 .pick,
 section[data-pane="layout"] > h2 .pick,
 section[data-pane="layout"] > h2 .size {
   background: var(--panel2);

@@ -79,6 +79,16 @@ describe("dance check", () => {
     expect(code).toBe(parsed.errors > 0 ? 1 : 0);
   });
 
+  it("prints the evaluated tree and the expansion", () => {
+    const tree = cli(["tree", `${DANCES_DIR}butter.dance`, "--minor-sets", "1"]);
+    expect(tree.code).toBe(0);
+    expect(tree.output).toContain("place lark Lark @ (-0.64, -0.4) 0° ← 1L");
+    expect(tree.output).toContain("provide progress() { … }");
+    const expanded = cli(["expand", `${DANCES_DIR}butter.dance`]);
+    expect(expanded.output).toContain("// ===== formations/becket.dance =====");
+    expect(expanded.output).toContain("// ===== moves.dance =====");
+  });
+
   it("formats and lints a file", () => {
     expect(cli(["format", `${DANCES_DIR}butter.dance`]).output).toBe(readDance("butter.dance"));
     expect(cli(["lint", `${DANCES_DIR}butter.dance`]).code).toBe(0);
