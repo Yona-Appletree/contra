@@ -1,9 +1,9 @@
 import type { Vec2 } from "@caller/core";
-import { ARM_REACH_PX, angleDiff, dirOf, dist } from "@caller/core";
+import { ARM_REACH_PX, angleDiff, dirOf, dist, leftOf, rightOf } from "@caller/core";
 import type { Foot, Instr, LookAt, Slot, WindowName } from "../asm/Instruction.js";
 import type { Program } from "../asm/Program.js";
 import type { DancerId, Dialect } from "../dialect/Dialect.js";
-import type { FigureIR, LookTarget, Window } from "../ir/Figure.js";
+import type { FigureIR, LookTarget, Role, Window } from "../ir/Figure.js";
 import { resolveChoice, resolveNumber } from "../ir/Figure.js";
 import type { CompiledCall, CompiledSequence } from "../lang/compile.js";
 import type { Tempo } from "../units/Tempo.js";
@@ -11,9 +11,9 @@ import { TAKE_BEATS } from "../units/limits.js";
 import type { ScheduleError, ScheduleWarning } from "./errors.js";
 import type { HoldNeed, SeamKind } from "./seams.js";
 import { holdNeeds } from "./seams.js";
-import type { DancerFloor, Floor, Pose } from "./state.js";
+import type { Floor, Pose } from "./state.js";
 import { bearing, handState, initialFloor, midpoint, sameHold, setHand } from "./state.js";
-import type { PlannedStep } from "./steps.js";
+import type { PlannedStep, PxLimits } from "./steps.js";
 import { beatsNeeded, limitsAtTempo, planSteps } from "./steps.js";
 
 /**
@@ -34,6 +34,10 @@ import { beatsNeeded, limitsAtTempo, planSteps } from "./steps.js";
  * from the next figure's `pre` (D12): when the previous figure's body can be
  * re-planned, its last beats walk to where the next figure starts, and the
  * next figure's entry is zero.
+ *
+ * A figure is planned as an **instance**: the dancers it casts together (a
+ * pair, or a ring of four) over one span, so both sides of a hold and every
+ * point of a ring come from one piece of geometry.
  */
 export interface ScheduledCall {
   dancer: DancerId;
@@ -59,11 +63,6 @@ export interface Schedule {
   endBeat: number;
 }
 
-/**
- * One figure instance: one figure danced by the dancers it casts together,
- * over one span. In the pair every call is an instance of two; a solo call
- * is an instance of one.
- */
 interface Instance {
   key: string;
   figure: FigureIR;
@@ -71,7 +70,6 @@ interface Instance {
   end: number;
   dancers: DancerId[];
   calls: Map<DancerId, CompiledCall>;
-  /** Filled in as the instance is planned. */
   entry: number;
   exit: number;
   rate?: number;
@@ -80,11 +78,12 @@ interface Instance {
   seamOut: SeamKind;
   /** Slot keys this instance's body and exit emitted, so a re-plan can retract them. */
   emitted: Map<DancerId, string[]>;
-  /** Where each dancer stands when the body starts (after the entry) and ends (before the exit). */
   bodyStart: Map<DancerId, Pose>;
   bodyEnd: Map<DancerId, Pose>;
   /** Whether the body can be re-planned over fewer beats to make room for an exit. */
   replannable: boolean;
+  /** Somebody this figure needs is missing: the dancer stands. */
+  nobody: boolean;
 }
 
 export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Tempo): Schedule {
@@ -95,20 +94,20 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   const slots = new Map<DancerId, Map<string, Slot>>();
   for (const d of dialect.dancers) slots.set(d, new Map());
 
-  const perDancer = elide(sequence, warnings);
+  const perDancer = elide(sequence);
   const instances = groupInstances(perDancer);
   const byCall = new Map<string, Instance>();
   for (const inst of instances) {
     for (const [d, c] of inst.calls) byCall.set(`${d}:${c.id}`, inst);
   }
-  const previousOf = (inst: Instance, d: DancerId): Instance | undefined => {
+  const neighbourOf = (inst: Instance, d: DancerId, offset: -1 | 1): Instance | undefined => {
     const list = perDancer[d] ?? [];
     const i = list.findIndex((c) => c === inst.calls.get(d));
-    const prev = list[i - 1];
-    return prev ? byCall.get(`${d}:${prev.id}`) : undefined;
+    const other = list[i + offset];
+    return other ? byCall.get(`${d}:${other.id}`) : undefined;
   };
 
-  // ---- slot helpers ---------------------------------------------------------
+  // ---- slots ----------------------------------------------------------------
 
   const slotKey = (beat: number, half: 0 | 1): string => `${beat}:${half}`;
   const emit = (
@@ -124,18 +123,13 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     if (!map) throw new Error(`unknown dancer ${d}`);
     const key = slotKey(beat, half);
     const existing = map.get(key);
-    if (existing) {
-      map.set(key, { ...existing, instrs: [...existing.instrs, instr] });
-    } else {
-      map.set(key, { beat, half, instrs: [instr], call, window });
-      inst?.emitted.get(d)?.push(key);
-    }
-    if (inst && existing) inst.emitted.get(d)?.push(key);
+    if (existing) map.set(key, { ...existing, instrs: [...existing.instrs, instr] });
+    else map.set(key, { beat, half, instrs: [instr], call, window });
+    inst?.emitted.get(d)?.push(key);
   };
   const retract = (inst: Instance, d: DancerId): void => {
     const map = slots.get(d);
-    const keys = inst.emitted.get(d) ?? [];
-    for (const key of keys) map?.delete(key);
+    for (const key of inst.emitted.get(d) ?? []) map?.delete(key);
     inst.emitted.set(d, []);
   };
   const emitStep = (
@@ -165,20 +159,19 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         beat,
       });
     }
-    if (
-      Math.abs(step.pivot) > limits.maxPivotSteppingDeg + 1e-9 &&
-      step.lengthPx > limits.tolerancePx
-    ) {
+    const stepping = step.lengthPx > limits.tolerancePx;
+    const pivotCap = stepping ? limits.maxPivotSteppingDeg : limits.maxPivotStandingDeg;
+    if (Math.abs(step.pivot) > pivotCap + 1e-9) {
       errors.push({
         kind: "PivotTooLarge",
-        message: `${d}: a ${Math.abs(step.pivot).toFixed(0)}° turn while stepping at beat ${beat}`,
+        message: `${d}: a ${Math.abs(step.pivot).toFixed(0)}° turn ${stepping ? "while stepping" : "standing"} at beat ${beat} in ${call.figure.id}`,
         call: call.id,
         dancer: d,
         beat,
         span: call.span,
       });
     }
-    if (step.lengthPx > limits.tolerancePx) {
+    if (stepping) {
       emit(d, beat, 0, { op: "step", foot: "R", to: step.to, lengthCm }, call.id, window, inst);
     } else {
       emit(d, beat, 0, { op: "stand" }, call.id, window, inst);
@@ -206,204 +199,429 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     );
   };
 
-  // ---- targets ----------------------------------------------------------------
+  // ---- geometry ---------------------------------------------------------------
+
+  const poseOf = (d: DancerId): Pose => {
+    const f = floor[d];
+    if (!f) throw new Error(`dancer ${d} is not on the floor`);
+    return { p: f.p, facing: f.facing };
+  };
+  const setPose = (d: DancerId, pose: Pose): void => {
+    const f = floor[d];
+    if (!f) throw new Error(`dancer ${d} is not on the floor`);
+    f.p = pose.p;
+    f.facing = pose.facing;
+  };
+  const homeFacing = (d: DancerId): number => dialect.homeFacing?.(d) ?? poseOf(d).facing;
+  const castOf = (inst: Instance, d: DancerId, role: Role): DancerId | undefined =>
+    role === "self" ? d : inst.calls.get(d)?.cast[role];
+
+  /** The windows of a body and the beats each gets, in order. */
+  const windowSpans = (
+    inst: Instance,
+    from: number,
+    to: number,
+  ): { window: Window; from: number; to: number }[] => {
+    const windows = inst.figure.windows;
+    const n = to - from;
+    if (windows.length === 0 || n <= 0) return [];
+    const shares = windows.map((w) => w.beats ?? 1);
+    const total = shares.reduce((a, b) => a + b, 0);
+    const spans: { window: Window; from: number; to: number }[] = [];
+    let at = from;
+    windows.forEach((window, i) => {
+      const last = i === windows.length - 1;
+      const beats = last ? to - at : Math.round((n * (shares[i] ?? 1)) / total);
+      spans.push({ window, from: at, to: at + beats });
+      at += beats;
+    });
+    return spans;
+  };
+
+  /** The circle an orbit body runs on: the IR's radius, kept inside the `pre`'s spacing for a midpoint orbit. */
+  const orbitRadius = (
+    inst: Instance,
+    w: Extract<Window, { kind: "orbit" }>,
+    dancers: DancerId[],
+  ): number => {
+    if (w.axis !== "midpoint" || dancers.length !== 2) return w.radiusPx;
+    const apart = inst.figure.pre.arrangement.find((c) => c.kind === "apart" && c.who === "self");
+    if (apart && apart.kind === "apart") {
+      const [a, b] = dancers as [DancerId, DancerId];
+      const half = dist(poseOf(a).p, poseOf(b).p) / 2;
+      return Math.min(Math.max(half, apart.minPx / 2), apart.maxPx / 2);
+    }
+    return w.radiusPx;
+  };
 
   /**
    * Where each dancer stands and faces when the instance's body starts,
    * from the floor as it is now: an orbit's points on its circle, or the
-   * `pre` arrangement for a standing or intrinsic body.
+   * `pre` arrangement for any other body.
    */
   const bodyTargets = (inst: Instance): Map<DancerId, Pose> => {
     const targets = new Map<DancerId, Pose>();
-    const window = inst.figure.windows[0];
-    if (inst.dancers.length === 2 && window?.kind === "orbit") {
-      const [a, b] = inst.dancers as [DancerId, DancerId];
-      const fa = floor[a];
-      const fb = floor[b];
-      if (!fa || !fb) throw new Error("dancer missing from floor");
-      const callA = inst.calls.get(a);
-      if (!callA) throw new Error("call missing");
-      const axis = midpoint(fa.p, fb.p);
-      const r = orbitRadius(inst.figure, window, fa, fb);
-      const thetaA = bearing(axis, fa.p);
-      const sense = resolveChoice(window.sense, callA.params);
-      const sign = sense === "partner-on-right" ? 1 : -1;
-      const poseOn = (theta: number, current: DancerFloor, other: Vec2): Pose => {
-        const p: Vec2 = [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
-        const facing = window.facing === "tangent" ? theta + 90 * sign : bearing(p, other);
-        void current;
-        return { p, facing };
-      };
-      const pa = poseOn(thetaA, fa, fb.p);
-      const pb = poseOn(thetaA + 180, fb, fa.p);
-      // With the facing fixed each faces where the other will stand.
-      if (window.facing === "fixed") {
-        pa.facing = bearing(pa.p, pb.p);
-        pb.facing = bearing(pb.p, pa.p);
-      }
-      targets.set(a, pa);
-      targets.set(b, pb);
-      return targets;
-    }
-    // Standing, intrinsic, or solo: the `pre` arrangement from where they are.
-    for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
-      const fd = floor[d];
-      if (!call || !fd) throw new Error("dancer missing");
-      const partner = call.cast.partner;
-      const fp = partner ? floor[partner] : undefined;
-      let p = fd.p;
-      let facing = fd.facing;
-      for (const clause of inst.figure.pre.arrangement) {
-        if (clause.who !== "self" || !fp) continue;
-        if (clause.kind === "facing") facing = bearing(fd.p, fp.p);
-        if (clause.kind === "apart") {
-          const d0 = dist(fd.p, fp.p);
-          const want = Math.min(Math.max(d0, clause.minPx), clause.maxPx);
-          if (Math.abs(want - d0) > 1e-9 && d0 > 1e-9) {
-            // Both move symmetrically along their line.
-            const mid = midpoint(fd.p, fp.p);
-            const dir = dirOf(bearing(mid, fd.p));
-            p = [mid[0] + dir[0] * (want / 2), mid[1] + dir[1] * (want / 2)];
-          }
+    const first = inst.figure.windows[0];
+    const orbit = first?.kind === "orbit" ? first : undefined;
+    if (orbit && !inst.nobody) {
+      const dancers = orbit.who
+        ? inst.dancers.filter((d) => roleMatches(inst, d, orbit.who))
+        : inst.dancers;
+      if (dancers.length >= 2) {
+        const axis = centroid(dancers.map((d) => poseOf(d).p));
+        const call0 = inst.calls.get(dancers[0] as DancerId) as CompiledCall;
+        const sign = orbitSign(resolveChoice(orbit.sense, call0.params));
+        const r = orbitRadius(inst, orbit, dancers);
+
+        // Even the ring out from the first dancer's bearing, in ring order.
+        const theta0 = bearing(axis, poseOf(dancers[0] as DancerId).p);
+        const ordered = ringOrder(inst, dancers, axis);
+        ordered.forEach((d, i) => {
+          const theta = theta0 + (sign * 360 * i) / ordered.length;
+          const p: Vec2 = [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
+          targets.set(d, {
+            p,
+            facing: orbitFacing(orbit, theta, sign, poseOf(d).facing, () => {
+              const partner = castOf(inst, d, "partner");
+              return partner ? bearing(p, poseOf(partner).p) : poseOf(d).facing;
+            }),
+          });
+        });
+        // With the facing fixed each faces where the other will stand (a do-si-do).
+        if (orbit.facing === "fixed" && ordered.length === 2) {
+          const [a, b] = ordered as [DancerId, DancerId];
+          const ta = targets.get(a) as Pose;
+          const tb = targets.get(b) as Pose;
+          ta.facing = bearing(ta.p, tb.p);
+          tb.facing = bearing(tb.p, ta.p);
         }
+        for (const d of inst.dancers) if (!targets.has(d)) targets.set(d, poseOf(d));
+        return targets;
       }
-      targets.set(d, { p, facing });
     }
+    for (const d of inst.dancers)
+      targets.set(d, arrangementTarget(inst, d, inst.figure.pre.arrangement));
     return targets;
   };
 
-  // ---- the body ------------------------------------------------------------
+  /** A pose satisfying an arrangement's clauses for `self`, from where they stand. */
+  const arrangementTarget = (
+    inst: Instance,
+    d: DancerId,
+    clauses: readonly FigureIR["pre"]["arrangement"][number][],
+  ): Pose => {
+    const me = poseOf(d);
+    let p = me.p;
+    let facing = me.facing;
+    if (inst.nobody) return me;
+    for (const clause of clauses) {
+      if (clause.who !== "self") continue;
+      if (clause.kind === "facing") {
+        if (clause.toward === "home") facing = homeFacing(d);
+        else {
+          const other = castOf(inst, d, clause.toward);
+          if (other) facing = bearing(p, poseOf(other).p);
+        }
+      }
+      if (clause.kind === "apart") {
+        const other = castOf(inst, d, clause.from);
+        if (!other) continue;
+        const op = poseOf(other).p;
+        const d0 = dist(me.p, op);
+        const want = Math.min(Math.max(d0, clause.minPx), clause.maxPx);
+        if (Math.abs(want - d0) > 1e-9 && d0 > 1e-9) {
+          const mid = midpoint(me.p, op);
+          const dir = dirOf(bearing(mid, me.p));
+          p = [mid[0] + dir[0] * (want / 2), mid[1] + dir[1] * (want / 2)];
+        }
+      }
+      if (clause.kind === "beside") {
+        const other = castOf(inst, d, clause.of);
+        if (!other) continue;
+        const side = clause.side === "as-couple" ? dialect.sideOf?.(d, other) : clause.side;
+        if (!side) continue;
+        const mid = midpoint(me.p, poseOf(other).p);
+        const f = clauses.some((c) => c.kind === "facing" && c.toward === "home")
+          ? homeFacing(d)
+          : facing;
+        const lateral = side === "left" ? leftOf(f) : rightOf(f);
+        p = [
+          mid[0] + lateral[0] * (clause.spacingPx / 2),
+          mid[1] + lateral[1] * (clause.spacingPx / 2),
+        ];
+        facing = f;
+      }
+    }
+    return { p, facing };
+  };
 
-  /** Emit the body over `[from, to)` from the targets; returns where it ends. */
+  // ---- the body ----------------------------------------------------------------
+
   const emitBody = (inst: Instance, from: number, to: number, start: Map<DancerId, Pose>): void => {
-    const n = to - from;
-    const window = inst.figure.windows[0];
     inst.bodyEnd = new Map();
-    for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
-      const s = start.get(d);
-      if (!call || !s) throw new Error("dancer missing");
-      const fd = floor[d];
-      if (!fd) throw new Error("dancer missing");
-      fd.p = s.p;
-      fd.facing = s.facing;
-    }
-    if (n <= 0) {
-      for (const d of inst.dancers) {
-        const s = start.get(d);
-        if (s) inst.bodyEnd.set(d, { p: s.p, facing: s.facing });
-      }
-      return;
-    }
-    if (inst.dancers.length === 2 && window?.kind === "orbit" && inst.replannable) {
-      const [a, b] = inst.dancers as [DancerId, DancerId];
-      const callA = inst.calls.get(a);
-      const sa = start.get(a);
-      const sb = start.get(b);
-      if (!callA || !sa || !sb) throw new Error("dancer missing");
-      const axis = midpoint(sa.p, sb.p);
-      const r = dist(axis, sa.p);
-      const turns = resolveNumber(window.turns, callA.params);
-      const sense = resolveChoice(window.sense, callA.params);
-      const sign = sense === "partner-on-right" ? 1 : -1;
-      let rate = turns / n;
-      if (rate > window.rateMaxTurnsPerBeat + 1e-9) {
-        errors.push({
-          kind: "RateTooHigh",
-          message: `${inst.figure.id}: ${turns} turn(s) in ${n} beats is ${rate.toFixed(3)} turns/beat, over ${window.rateMaxTurnsPerBeat}`,
-          call: callA.id,
-          span: callA.span,
-        });
-        rate = window.rateMaxTurnsPerBeat;
-      }
-      inst.rate = rate;
-      const theta0 = { [a]: bearing(axis, sa.p), [b]: bearing(axis, sb.p) };
-      const facing0 = { [a]: sa.facing, [b]: sb.facing };
-      for (const d of [a, b]) {
-        const call = inst.calls.get(d);
-        if (!call) throw new Error("call missing");
-        const other = d === a ? b : a;
-        let prevP: Vec2 = (start.get(d) as Pose).p;
-        let prevFacing = facing0[d] ?? 0;
-        for (let k = 1; k <= n; k++) {
-          const theta = (theta0[d] ?? 0) + sign * 360 * rate * k;
-          const thetaOther = (theta0[other] ?? 0) + sign * 360 * rate * k;
-          const p: Vec2 = [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
-          const pOther: Vec2 = [
-            axis[0] + r * dirOf(thetaOther)[0],
-            axis[1] + r * dirOf(thetaOther)[1],
-          ];
-          // `fixed` keeps the facing the body started with (a do-si-do goes
-          // round back to back); `tangent` follows the arc (an allemande).
-          const facing = window.facing === "tangent" ? theta + 90 * sign : (facing0[d] ?? 0);
-          void pOther;
-          const step: PlannedStep = {
-            to: p,
-            facing,
-            pivot: angleDiff(prevFacing, facing),
-            lengthPx: dist(prevP, p),
-          };
-          const beat = from + k - 1;
-          emitStep(d, beat, step, call, "body", inst);
-          emitLook(d, beat, inst, call, "body", k - 1);
-          prevP = p;
-          prevFacing = facing;
-        }
-        inst.bodyEnd.set(d, { p: prevP, facing: prevFacing });
-        const fd = floor[d];
-        if (fd) {
-          fd.p = prevP;
-          fd.facing = prevFacing;
+    for (const d of inst.dancers) setPose(d, start.get(d) as Pose);
+    if (to - from <= 0 || inst.nobody) {
+      if (inst.nobody) {
+        for (const d of inst.dancers) {
+          const call = inst.calls.get(d) as CompiledCall;
+          for (let beat = from; beat < to; beat++) {
+            emit(d, beat, 0, { op: "stand" }, call.id, "body", inst);
+            emitLook(d, beat, inst, call, "body", beat - from);
+          }
         }
       }
+      for (const d of inst.dancers) inst.bodyEnd.set(d, poseOf(d));
       return;
     }
-    // Standing, intrinsic, or a body the planner cannot walk: stand in place.
-    for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
-      const s = start.get(d);
-      if (!call || !s) throw new Error("dancer missing");
-      if (window?.kind === "intrinsic") {
-        for (const line of window.lines) {
-          if (line.who !== "self") continue;
-          if (line.beat >= n) {
-            warnings.push({
-              kind: "IntrinsicTruncated",
-              message: `${inst.figure.id}: an authored line at beat ${line.beat} falls outside its ${n} beats`,
-              call: call.id,
-              dancer: d,
-              beat: from + line.beat,
+    for (const span of windowSpans(inst, from, to)) {
+      const n = span.to - span.from;
+      if (n <= 0) continue;
+      const w = span.window;
+      const dancers = w.who
+        ? inst.dancers.filter((d) => roleMatches(inst, d, w.who))
+        : inst.dancers;
+      const idle = inst.dancers.filter((d) => !dancers.includes(d));
+      // A dancer no window names in this span stands and looks.
+      for (const d of idle) {
+        const call = inst.calls.get(d) as CompiledCall;
+        for (let k = 0; k < n; k++) {
+          const key = slotKey(span.from + k, 0);
+          if (slots.get(d)?.get(key)) continue;
+          emit(d, span.from + k, 0, { op: "stand" }, call.id, "body", inst);
+          emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
+        }
+      }
+      switch (w.kind) {
+        case "orbit":
+          emitOrbit(inst, w, span.from, n, dancers, from);
+          break;
+        case "walk":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            const me = poseOf(d);
+            const dir = walkDirection(w.direction, me.facing);
+            const target: Pose = {
+              p: [me.p[0] + dir[0] * w.distancePx, me.p[1] + dir[1] * w.distancePx],
+              facing: me.facing,
+            };
+            const steps = planSteps(me, target, n, limits) ?? [];
+            if (steps.length === 0 && dist(me.p, target.p) > limits.tolerancePx) {
+              errors.push({
+                kind: "StepTooLong",
+                message: `${d}: ${inst.figure.id} walks ${(w.distancePx * tempo.cmPerPx).toFixed(0)} cm in ${n} beats`,
+                call: call.id,
+                dancer: d,
+                beat: span.from,
+                span: call.span,
+              });
+            }
+            steps.forEach((step, k) => {
+              emitStep(d, span.from + k, step, call, "body", inst);
+              emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
             });
-            continue;
+            setPose(d, target);
           }
-          const instr: Instr =
-            line.op.kind === "stand"
-              ? { op: "stand" }
-              : line.op.kind === "lean"
-                ? { op: "lean", deg: line.op.deg }
-                : { op: "look", at: resolveLook(line.op.at, call, d, floor) };
-          emit(d, from + line.beat, line.half, instr, call.id, "body", inst);
-        }
-        // Beats the intrinsic says nothing about still stand and look.
-        for (let k = 0; k < n; k++) {
-          const has = slots.get(d)?.get(slotKey(from + k, 0));
-          if (!has) {
-            emit(d, from + k, 0, { op: "stand" }, call.id, "body", inst);
-            emitLook(d, from + k, inst, call, "body", k);
+          break;
+        case "pass":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            const other = castOf(inst, d, "partner");
+            if (!other) continue;
+            const me = poseOf(d);
+            const dest = (start.get(other) ?? poseOf(other)).p;
+            // A dancer crossing to where the other stood, veering to their own
+            // left to pass right shoulders (right to pass left).
+            const veer =
+              w.shoulder === "right" ? leftOf(bearing(me.p, dest)) : rightOf(bearing(me.p, dest));
+            const heading = bearing(me.p, dest);
+            let prev: Pose = me;
+            for (let k = 1; k <= n; k++) {
+              const t = k / n;
+              const along: Vec2 = [
+                me.p[0] + (dest[0] - me.p[0]) * t,
+                me.p[1] + (dest[1] - me.p[1]) * t,
+              ];
+              const bow = PASS_VEER_PX * Math.sin(Math.PI * t);
+              const p: Vec2 = [along[0] + veer[0] * bow, along[1] + veer[1] * bow];
+              const facing = k === n ? heading : bearing(prev.p, p);
+              const step: PlannedStep = {
+                to: p,
+                facing,
+                pivot: angleDiff(prev.facing, facing),
+                lengthPx: dist(prev.p, p),
+              };
+              emitStep(d, span.from + k - 1, step, call, "body", inst);
+              emitLook(d, span.from + k - 1, inst, call, "body", span.from + k - 1 - from);
+              prev = { p, facing };
+            }
+            setPose(d, prev);
           }
-        }
-      } else {
-        for (let k = 0; k < n; k++) {
-          emit(d, from + k, 0, { op: "stand" }, call.id, "body", inst);
-          emitLook(d, from + k, inst, call, "body", k);
-        }
+          break;
+        case "pivot":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            const me = poseOf(d);
+            let facing = me.facing;
+            for (let k = 0; k < n; k++) {
+              const pivot = w.deg / n;
+              facing += pivot;
+              emitStep(
+                d,
+                span.from + k,
+                { to: me.p, facing, pivot, lengthPx: 0 },
+                call,
+                "body",
+                inst,
+              );
+              emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
+            }
+            setPose(d, { p: me.p, facing });
+          }
+          break;
+        case "stand":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            for (let k = 0; k < n; k++) {
+              emit(d, span.from + k, 0, { op: "stand" }, call.id, "body", inst);
+              emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
+            }
+          }
+          break;
+        case "intrinsic":
+          for (const d of dancers) {
+            const call = inst.calls.get(d) as CompiledCall;
+            for (const line of w.lines) {
+              if (!roleMatches(inst, d, line.who)) continue;
+              if (line.beat >= n) {
+                warnings.push({
+                  kind: "IntrinsicTruncated",
+                  message: `${inst.figure.id}: an authored line at beat ${line.beat} falls outside its ${n} beats`,
+                  call: call.id,
+                  dancer: d,
+                  beat: span.from + line.beat,
+                });
+                continue;
+              }
+              const instr: Instr =
+                line.op.kind === "stand"
+                  ? { op: "stand" }
+                  : line.op.kind === "lean"
+                    ? { op: "lean", deg: line.op.deg }
+                    : { op: "look", at: resolveLook(line.op.at, call, d, floor) };
+              emit(d, span.from + line.beat, line.half, instr, call.id, "body", inst);
+            }
+            for (let k = 0; k < n; k++) {
+              if (slots.get(d)?.get(slotKey(span.from + k, 0))) continue;
+              emit(d, span.from + k, 0, { op: "stand" }, call.id, "body", inst);
+              emitLook(d, span.from + k, inst, call, "body", span.from + k - from);
+            }
+          }
+          break;
       }
-      inst.bodyEnd.set(d, { p: s.p, facing: s.facing });
+    }
+    for (const d of inst.dancers) inst.bodyEnd.set(d, poseOf(d));
+  };
+
+  const emitOrbit = (
+    inst: Instance,
+    w: Extract<Window, { kind: "orbit" }>,
+    from: number,
+    n: number,
+    dancers: DancerId[],
+    bodyFrom: number,
+  ): void => {
+    if (dancers.length < 2) return;
+    const axis = centroid(dancers.map((d) => poseOf(d).p));
+    const call0 = inst.calls.get(dancers[0] as DancerId) as CompiledCall;
+    const sign = orbitSign(resolveChoice(w.sense, call0.params));
+    const theta0 = new Map(dancers.map((d) => [d, bearing(axis, poseOf(d).p)]));
+    const r = dist(axis, poseOf(dancers[0] as DancerId).p);
+    let turns: number;
+    if (w.turns === "free") {
+      turns = freeTurns(inst, w, dancers, axis, sign, n);
+    } else {
+      turns = resolveNumber(w.turns, call0.params);
+    }
+    let rate = turns / n;
+    if (rate > w.rateMaxTurnsPerBeat + 1e-9) {
+      errors.push({
+        kind: "RateTooHigh",
+        message: `${inst.figure.id}: ${turns} turn(s) in ${n} beats is ${rate.toFixed(3)} turns/beat, over ${w.rateMaxTurnsPerBeat}`,
+        call: call0.id,
+        span: call0.span,
+      });
+      rate = w.rateMaxTurnsPerBeat;
+    }
+    inst.rate = rate;
+    if (w.buzz) {
+      for (const d of dancers) {
+        const call = inst.calls.get(d) as CompiledCall;
+        emit(d, from, 0, { op: "buzz", on: true }, call.id, "body", inst);
+        emit(d, from + n - 1, 1, { op: "buzz", on: false }, call.id, "body", inst);
+      }
+    }
+    const posAt = (d: DancerId, k: number): Vec2 => {
+      const theta = (theta0.get(d) ?? 0) + sign * 360 * rate * k;
+      return [axis[0] + r * dirOf(theta)[0], axis[1] + r * dirOf(theta)[1]];
+    };
+    for (const d of dancers) {
+      const call = inst.calls.get(d) as CompiledCall;
+      const startFacing = poseOf(d).facing;
+      let prev: Pose = poseOf(d);
+      for (let k = 1; k <= n; k++) {
+        const theta = (theta0.get(d) ?? 0) + sign * 360 * rate * k;
+        const p = posAt(d, k);
+        const facing = orbitFacing(w, theta, sign, startFacing, () => {
+          const partner = castOf(inst, d, "partner");
+          return partner && dancers.includes(partner) ? bearing(p, posAt(partner, k)) : startFacing;
+        });
+        const step: PlannedStep = {
+          to: p,
+          facing,
+          pivot: angleDiff(prev.facing, facing),
+          lengthPx: dist(prev.p, p),
+        };
+        emitStep(d, from + k - 1, step, call, "body", inst);
+        emitLook(d, from + k - 1, inst, call, "body", from + k - 1 - bodyFrom);
+        prev = { p, facing };
+      }
+      setPose(d, prev);
     }
   };
 
-  // ---- the walk (entry or exit) ------------------------------------------------
+  /**
+   * How far a `free` orbit goes: enough turns that the body ends where the
+   * `post` arrangement wants everyone, as many times round as the rate
+   * allows. The swing's canonical case: the couple comes out beside each other
+   * facing home, however many times they went round.
+   */
+  const freeTurns = (
+    inst: Instance,
+    w: Extract<Window, { kind: "orbit" }>,
+    dancers: DancerId[],
+    axis: Vec2,
+    sign: number,
+    n: number,
+  ): number => {
+    const d0 = dancers[0] as DancerId;
+    const post = arrangementTarget(inst, d0, inst.figure.post.arrangement);
+    const thetaEnd = bearing(axis, post.p);
+    const theta0 = bearing(axis, poseOf(d0).p);
+    let fraction = (((thetaEnd - theta0) * sign) % 360) / 360;
+    if (fraction < 0) fraction += 1;
+    const maxTurns = w.rateMaxTurnsPerBeat * n;
+    const minTurns = (w.rateMinTurnsPerBeat ?? 0) * n;
+    let turns = fraction;
+    while (turns + 1 <= maxTurns + 1e-9) turns += 1;
+    if (turns < minTurns)
+      inst.notes.push(
+        `orbit: only ${turns.toFixed(2)} turns fit, under the ${minTurns.toFixed(2)} wanted`,
+      );
+    inst.notes.push(`orbit: ${turns.toFixed(2)} turns so the exit lands on the post`);
+    return turns;
+  };
+
+  // ---- walks (entry and exit) --------------------------------------------------
 
   const emitWalk = (
     inst: Instance,
@@ -415,10 +633,9 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   ): boolean => {
     let ok = true;
     for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
-      const a = poses.get(d);
-      const t = targets.get(d);
-      if (!call || !a || !t) throw new Error("dancer missing");
+      const call = inst.calls.get(d) as CompiledCall;
+      const a = poses.get(d) as Pose;
+      const t = targets.get(d) as Pose;
       const steps = planSteps(a, t, beats, limits);
       if (!steps) {
         ok = false;
@@ -428,24 +645,18 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         emitStep(d, from + i, step, call, window, inst);
         emitLook(d, from + i, inst, call, window, window === "entry" ? 0 : Infinity);
       });
-      const fd = floor[d];
-      if (fd) {
-        fd.p = t.p;
-        fd.facing = t.facing;
-      }
+      setPose(d, t);
     }
     return ok;
   };
 
-  // ---- the seams -----------------------------------------------------------------
+  // ---- the seams ------------------------------------------------------------------
 
-  /** The hands `inst` needs at its start, and how each is got. */
-  const takeHands = (inst: Instance, previous: Map<DancerId, Instance | undefined>): SeamKind => {
+  const takeHands = (inst: Instance): SeamKind => {
     let seam: SeamKind = "none";
     const done = new Set<string>();
     for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
-      if (!call) continue;
+      const call = inst.calls.get(d) as CompiledCall;
       for (const need of holdNeeds(inst.figure.pre, call, d)) {
         const pairKey = [need.dancer, need.with].sort().join("+") + ":" + need.hold;
         if (done.has(pairKey)) continue;
@@ -471,8 +682,8 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
             span: call.span,
           });
         }
-        const prev = previous.get(need.dancer);
-        const prevOther = previous.get(need.with);
+        const prev = neighbourOf(inst, need.dancer, -1);
+        const prevOther = neighbourOf(inst, need.with, -1);
         // The take ramps over TAKE_BEATS and lands on the beat the body needs
         // it, so it starts that many beats back — inside the previous figure
         // when both dancers' hands are free there for that long.
@@ -538,15 +749,14 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     return seam;
   };
 
-  /** Release what `inst`'s post frees, given what the next instance wants. */
-  const dropHands = (inst: Instance, nextOf: Map<DancerId, Instance | undefined>): SeamKind => {
+  const dropHands = (inst: Instance): SeamKind => {
     let seam: SeamKind = "none";
     for (const d of inst.dancers) {
-      const call = inst.calls.get(d);
+      const call = inst.calls.get(d) as CompiledCall;
       const fd = floor[d];
-      if (!call || !fd) continue;
+      if (!fd) continue;
       const keeps = holdNeeds(inst.figure.post, call, d);
-      const next = nextOf.get(d);
+      const next = neighbourOf(inst, d, 1);
       const nextCall = next?.calls.get(d);
       const nextNeeds = next && nextCall ? holdNeeds(next.figure.pre, nextCall, d) : [];
       for (const hand of ["right", "left"] as const) {
@@ -574,36 +784,21 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     return seam;
   };
 
-  // ---- the main loop -------------------------------------------------------------
+  // ---- the main loop ---------------------------------------------------------------
 
   for (const inst of instances) {
-    const previous = new Map<DancerId, Instance | undefined>();
-    for (const d of inst.dancers) previous.set(d, previousOf(inst, d));
     inst.emitted = new Map(inst.dancers.map((d) => [d, []]));
-    inst.bodyEnd = new Map();
+    inst.replannable =
+      !inst.nobody && ["orbit", "walk"].includes(inst.figure.windows[0]?.kind ?? "");
+    if (inst.nobody) inst.notes.push(`nobody to ${inst.figure.id} with: stand`);
 
-    const nobody = inst.dancers.some((d) => inst.calls.get(d)?.cast.partner === undefined);
-    inst.replannable = !nobody && inst.figure.windows[0]?.kind === "orbit";
-
-    if (nobody) {
-      inst.notes.push(`nobody to ${inst.figure.id} with: stand`);
-    }
-
-    // Where the body wants to start, from the floor as the previous figures left it.
-    const targets = bodyTargets(inst);
-    const poses = new Map<DancerId, Pose>(
-      inst.dancers.map((d) => [
-        d,
-        { p: (floor[d] as DancerFloor).p, facing: (floor[d] as DancerFloor).facing },
-      ]),
-    );
+    let targets = bodyTargets(inst);
     let need = 0;
-    for (const d of inst.dancers) {
-      need = Math.max(need, beatsNeeded(poses.get(d) as Pose, targets.get(d) as Pose, limits));
-    }
+    for (const d of inst.dancers)
+      need = Math.max(need, beatsNeeded(poseOf(d), targets.get(d) as Pose, limits));
 
     // Back-chain: can the previous instance's body give up `need` beats for an exit?
-    const prevs = [...new Set(inst.dancers.map((d) => previous.get(d)))];
+    const prevs = [...new Set(inst.dancers.map((d) => neighbourOf(inst, d, -1)))];
     const prev = prevs.length === 1 ? prevs[0] : undefined;
     const prevShared =
       prev !== undefined &&
@@ -612,26 +807,22 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       inst.dancers.every((d) => prev.dancers.includes(d));
     if (need > 0 && prevShared && prev.replannable) {
       let k = need;
-      const minBody = prev.figure.beats.min;
       let done = false;
       for (let attempt = 0; attempt < 4 && !done; attempt++) {
         const bodyBeats = prev.end - prev.start - prev.entry - k;
-        if (bodyBeats < minBody) break;
-        // Retract the previous body and exit, then re-plan the body shorter.
+        if (bodyBeats < prev.figure.beats.min) break;
         for (const d of prev.dancers) retract(prev, d);
-        const prevStart = new Map<DancerId, Pose>();
-        for (const d of prev.dancers) prevStart.set(d, prev.bodyStart.get(d) as Pose);
-        emitBody(prev, prev.start + prev.entry, prev.end - k, prevStart);
-        const fromPoses = new Map<DancerId, Pose>();
-        for (const d of prev.dancers) fromPoses.set(d, prev.bodyEnd.get(d) as Pose);
+        emitBody(prev, prev.start + prev.entry, prev.end - k, prev.bodyStart);
+        const fromPoses = new Map<DancerId, Pose>(
+          prev.dancers.map((d) => [d, prev.bodyEnd.get(d) as Pose]),
+        );
         const newTargets = bodyTargets(inst);
         let k2 = 0;
-        for (const d of inst.dancers) {
+        for (const d of inst.dancers)
           k2 = Math.max(
             k2,
             beatsNeeded(fromPoses.get(d) as Pose, newTargets.get(d) as Pose, limits),
           );
-        }
         if (k2 > k) {
           k = k2;
           continue;
@@ -641,42 +832,37 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         prev.notes.push(
           `exit: ${k} beat${k === 1 ? "" : "s"} re-planned to land where ${inst.figure.id} starts`,
         );
-        for (const [d, t] of newTargets) targets.set(d, t);
+        targets = newTargets;
         need = 0;
         done = true;
       }
       if (!done) {
-        // Restore the previous body at full length: this instance pays its own entry.
         for (const d of prev.dancers) retract(prev, d);
-        const prevStart = new Map<DancerId, Pose>();
-        for (const d of prev.dancers) prevStart.set(d, prev.bodyStart.get(d) as Pose);
-        emitBody(prev, prev.start + prev.entry, prev.end, prevStart);
+        emitBody(prev, prev.start + prev.entry, prev.end, prev.bodyStart);
+        prev.exit = 0;
+        targets = bodyTargets(inst);
+        need = 0;
+        for (const d of inst.dancers)
+          need = Math.max(need, beatsNeeded(poseOf(d), targets.get(d) as Pose, limits));
         inst.notes.push(
           `${prev.figure.id} could not give up its beats; this figure pays its entry`,
         );
       }
     }
 
-    // This instance's own entry.
     inst.entry = need;
     if (need > 0) {
-      const fromPoses = new Map<DancerId, Pose>();
-      for (const d of inst.dancers)
-        fromPoses.set(d, {
-          p: (floor[d] as DancerFloor).p,
-          facing: (floor[d] as DancerFloor).facing,
-        });
+      const fromPoses = new Map<DancerId, Pose>(inst.dancers.map((d) => [d, poseOf(d)]));
       emitWalk(inst, inst.start, need, fromPoses, targets, "entry");
       inst.notes.push(`entry: ${need} beat${need === 1 ? "" : "s"} to reach the body's start`);
-    } else if (!nobody) {
+    } else if (!inst.nobody) {
       inst.notes.push(`entry: 0 — already where the body starts`);
     }
-    inst.seamIn = nobody ? "none" : takeHands(inst, previous);
+    inst.seamIn = inst.nobody ? "none" : takeHands(inst);
 
-    // The body, over what is left.
     const bodyStart = inst.start + inst.entry;
     const bodyBeats = inst.end - bodyStart;
-    if (!nobody && bodyBeats < inst.figure.beats.min) {
+    if (!inst.nobody && bodyBeats < inst.figure.beats.min) {
       const call = inst.calls.get(inst.dancers[0] as DancerId) as CompiledCall;
       errors.push({
         kind: "TimingViolation",
@@ -689,19 +875,10 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     inst.bodyStart = new Map(targets);
     emitBody(inst, bodyStart, inst.end, targets);
     inst.exit = 0;
-
-    // Releases, given what comes next.
-    const nextOf = new Map<DancerId, Instance | undefined>();
-    for (const d of inst.dancers) {
-      const list = perDancer[d] ?? [];
-      const i = list.findIndex((c) => c === inst.calls.get(d));
-      const nxt = list[i + 1];
-      nextOf.set(d, nxt ? byCall.get(`${d}:${nxt.id}`) : undefined);
-    }
-    inst.seamOut = nobody ? "none" : dropHands(inst, nextOf);
+    inst.seamOut = inst.nobody ? "none" : dropHands(inst);
   }
 
-  // ---- assemble ---------------------------------------------------------------------
+  // ---- assemble ------------------------------------------------------------------------
 
   const programs: Record<DancerId, Program> = {};
   const calls: Record<DancerId, ScheduledCall[]> = {};
@@ -746,31 +923,29 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   return { calls, programs, errors, warnings, endBeat };
 }
 
-// ---- helpers ------------------------------------------------------------------------
+// ---- helpers ------------------------------------------------------------------------------
+
+/** How far a passing dancer veers off the straight line, px. */
+const PASS_VEER_PX = 3;
 
 /**
  * Elision (D8, DA14): a call whose counterpart is nobody and whose figure says
  * `casts.partner: "elide"` is removed and its beats go to the next call
- * (`stretch`) or become a stand (`wait`). Returns each dancer's call list with
- * the spans rewritten.
+ * (`stretch`) or become a stand (`wait`, kept as a call the scheduler stands).
  */
-function elide(
-  sequence: CompiledSequence,
-  warnings: ScheduleWarning[],
-): Record<DancerId, CompiledCall[]> {
+function elide(sequence: CompiledSequence): Record<DancerId, CompiledCall[]> {
   const out: Record<DancerId, CompiledCall[]> = {};
   for (const [d, list] of Object.entries(sequence.perDancer)) {
     const kept: CompiledCall[] = [];
     let carry = 0;
     for (const call of list) {
-      const nobody = call.cast.partner === undefined;
-      const rule = call.figure.casts.partner;
-      if (nobody && rule === "elide") {
-        if (call.figure.elide === "stretch") {
-          carry += call.beats;
-          continue;
-        }
-        // "wait": keep the call; the scheduler stands it (nobody → stand).
+      if (
+        isNobody(call) &&
+        call.figure.casts.partner === "elide" &&
+        call.figure.elide === "stretch"
+      ) {
+        carry += call.beats;
+        continue;
       }
       if (carry > 0) {
         kept.push({ ...call, start: call.start - carry, beats: call.beats + carry });
@@ -783,13 +958,19 @@ function elide(
       const last = kept[kept.length - 1];
       if (last)
         kept[kept.length - 1] = { ...last, end: last.end + carry, beats: last.beats + carry };
-      else
-        warnings.push({ kind: "IntrinsicTruncated", message: `${d}: every call elided`, call: -1 });
     }
     out[d] = kept;
   }
-  void warnings;
   return out;
+}
+
+/** Whether a call is missing the counterpart or group its figure needs. */
+function isNobody(call: CompiledCall): boolean {
+  const wantsDancer = call.figure.params.some((p) => p.kind === "dancer");
+  const wantsGroup = call.figure.params.some((p) => p.kind === "group");
+  return (
+    (wantsDancer && call.cast.partner === undefined) || (wantsGroup && call.group === undefined)
+  );
 }
 
 /** Group each dancer's calls into figure instances: same figure, same span, cast together. */
@@ -797,7 +978,12 @@ function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[]
   const byKey = new Map<string, Instance>();
   for (const [d, list] of Object.entries(perDancer)) {
     for (const call of list) {
-      const members = call.cast.partner ? [d, call.cast.partner].sort() : [d];
+      const nobody = isNobody(call);
+      const members = nobody
+        ? [d]
+        : call.group
+          ? [...call.group].sort()
+          : [d, call.cast.partner as DancerId].sort();
       const key = `${call.figure.id}@${call.start}-${call.end}:${members.join("+")}`;
       let inst = byKey.get(key);
       if (!inst) {
@@ -814,9 +1000,10 @@ function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[]
           seamIn: "none",
           seamOut: "none",
           emitted: new Map(),
-          bodyEnd: new Map(),
           bodyStart: new Map(),
+          bodyEnd: new Map(),
           replannable: false,
+          nobody,
         };
         byKey.set(key, inst);
       }
@@ -827,20 +1014,68 @@ function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[]
   return [...byKey.values()].sort((a, b) => a.start - b.start || a.key.localeCompare(b.key));
 }
 
-/** The circle an orbit body runs on: the IR's radius, kept inside the `pre`'s spacing. */
-function orbitRadius(
-  figure: FigureIR,
-  window: Extract<Window, { kind: "orbit" }>,
-  a: Pose,
-  b: Pose,
+function roleMatches(inst: Instance, d: DancerId, role: Role | undefined): boolean {
+  if (role === undefined || role === "self") return true;
+  // A role-scoped window (`who: "partner"`) means "the dancer cast as that
+  // role from the first dancer's point of view" — used by figures whose two
+  // roles do different things. Tonight's figures use `who` only with `self`.
+  const first = inst.dancers[0] as DancerId;
+  return inst.calls.get(first)?.cast[role] === d;
+}
+
+const centroid = (points: Vec2[]): Vec2 => {
+  const sum = points.reduce<[number, number]>((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);
+  return [sum[0] / points.length, sum[1] / points.length];
+};
+
+const orbitSign = (sense: string): number =>
+  sense === "partner-on-right" || sense === "left" ? 1 : -1;
+
+/**
+ * The facing along an orbit at angle `theta` from the axis. Screen y is down,
+ * so with `sign` +1 (the angle increasing) the tangent is `theta + 90°` and the
+ * axis — and a counterpart across it — is on the dancer's right.
+ */
+function orbitFacing(
+  w: Extract<Window, { kind: "orbit" }>,
+  theta: number,
+  sign: number,
+  fixed: number,
+  partner: () => number,
 ): number {
-  const apart = figure.pre.arrangement.find((c) => c.kind === "apart" && c.who === "self");
-  if (window.axis === "hands") return window.radiusPx;
-  if (apart && apart.kind === "apart") {
-    const half = dist(a.p, b.p) / 2;
-    return Math.min(Math.max(half, apart.minPx / 2), apart.maxPx / 2);
+  switch (w.facing) {
+    case "tangent":
+      return theta + 90 * sign;
+    case "inward":
+      return theta + 180;
+    case "partner":
+      return partner();
+    case "fixed":
+      return fixed;
   }
-  return window.radiusPx;
+}
+
+/** The dancers of a ring in ring order: as the group lists them, else by bearing. */
+function ringOrder(inst: Instance, dancers: DancerId[], axis: Vec2): DancerId[] {
+  const first = dancers[0] as DancerId;
+  const group = inst.calls.get(first)?.group;
+  if (group && group.length === dancers.length && group.every((d) => dancers.includes(d)))
+    return [...group];
+  void axis;
+  return dancers;
+}
+
+function walkDirection(direction: "forward" | "back" | "left" | "right", facing: number): Vec2 {
+  switch (direction) {
+    case "forward":
+      return dirOf(facing);
+    case "back":
+      return dirOf(facing + 180);
+    case "left":
+      return leftOf(facing);
+    case "right":
+      return rightOf(facing);
+  }
 }
 
 function counterpartNeed(inst: Instance, need: HoldNeed): HoldNeed {
@@ -849,7 +1084,12 @@ function counterpartNeed(inst: Instance, need: HoldNeed): HoldNeed {
     const theirs = holdNeeds(inst.figure.pre, call, need.with).find((n) => n.with === need.dancer);
     if (theirs) return theirs;
   }
-  return { dancer: need.with, hand: need.hand, hold: need.hold, with: need.dancer };
+  return {
+    dancer: need.with,
+    hand: need.hand === "right" ? "left" : "right",
+    hold: need.hold,
+    with: need.dancer,
+  };
 }
 
 function lookAt(
@@ -875,3 +1115,5 @@ function resolveLook(target: LookTarget, call: CompiledCall, d: DancerId, floor:
   if (target === "down") return "down";
   return { deg: floor[d]?.facing ?? 0 };
 }
+
+export type { PxLimits };

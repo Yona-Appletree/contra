@@ -29,6 +29,8 @@ export interface CompiledCall {
    * — the select found no-one — and the scheduler makes that a stand (DA14).
    */
   cast: Readonly<Record<Role, DancerId | undefined>>;
+  /** The whole group, in ring order from `self`, for a figure danced by a group. */
+  group?: readonly DancerId[];
 }
 
 /** Every dancer's script, compiled from the one program they all share. */
@@ -150,10 +152,20 @@ export function compile(
               report(`unknown figure ${stmt.name}`, stmt.span);
               break;
             }
-            const bound = bindArguments(figure, stmt, bindings, report);
+            const bound = bindArguments(figure, stmt, bindings, report, dialect);
             if (bound === undefined) break;
             const beats = beatsOf(figure, bound.params);
-            calls.push({
+            // A group is in ring order from `self`: left neighbour, opposite,
+            // right neighbour (left = toward your left when facing the centre).
+            const ring = bound.group;
+            const cast: Record<Role, DancerId | undefined> = {
+              self: dancer,
+              partner: bound.partner,
+              left: ring?.[1],
+              opposite: ring?.[2],
+              right: ring?.[3],
+            };
+            const call: CompiledCall = {
               id: calls.length,
               figure,
               params: bound.params,
@@ -162,8 +174,10 @@ export function compile(
               end: beat + beats,
               path: [...path, stmt.name].join("/"),
               span: stmt.span,
-              cast: { self: dancer, partner: bound.partner },
-            });
+              cast,
+            };
+            if (ring) call.group = ring;
+            calls.push(call);
             beat += beats;
             break;
           }
@@ -215,9 +229,11 @@ const bindArguments = (
   stmt: CallStmt,
   bindings: ReadonlyMap<string, Binding>,
   report: (message: string, span?: Span) => void,
-): { params: Params; partner: DancerId | undefined } | undefined => {
+  dialect: Dialect,
+): { params: Params; partner: DancerId | undefined; group?: readonly DancerId[] } | undefined => {
   const params: Record<string, string | number> = { ...defaultParams(figure) };
   let partner: DancerId | undefined;
+  let group: readonly DancerId[] | undefined;
   let ok = true;
 
   if (stmt.args.length > figure.params.length) {
@@ -255,11 +271,41 @@ const bindArguments = (
       }
       return;
     }
+    if (spec.kind === "group") {
+      if (arg === undefined) {
+        report(`${figure.id} needs a group to ${figure.id} with`, stmt.span);
+        ok = false;
+      } else if (arg.kind !== "word" || !bindings.has(arg.value)) {
+        report(`${arg.value} is not bound`, arg.span);
+        ok = false;
+      } else {
+        const bound = bindings.get(arg.value);
+        if (typeof bound === "string") {
+          report(`${arg.value} is one dancer, and ${figure.id} takes a group`, arg.span);
+          ok = false;
+        } else {
+          // Nobody (a dancer at the end of a line is in no group) is allowed:
+          // the cast has no partner and the scheduler stands the dancer.
+          group = bound;
+        }
+      }
+      return;
+    }
     if (arg === undefined) {
       if (spec.default === undefined) {
         report(`${figure.id} needs a ${spec.name}: ${choices || "a number"}`, stmt.span);
         ok = false;
       }
+      return;
+    }
+    if (spec.kind === "role") {
+      const roles = dialect.roleNames ?? [];
+      if (arg.kind !== "word" || !roles.includes(arg.value)) {
+        report(`${arg.value} is not a role in ${dialect.id}: ${roles.join(" | ")}`, arg.span);
+        ok = false;
+        return;
+      }
+      params[spec.name] = arg.value;
       return;
     }
     if (spec.kind === "enum") {
@@ -279,7 +325,7 @@ const bindArguments = (
     params[spec.name] = arg.value;
   });
 
-  return ok ? { params, partner } : undefined;
+  return ok ? (group ? { params, partner, group } : { params, partner }) : undefined;
 };
 
 /** Whether a `select` found anybody: a dancer, or a group that exists. */

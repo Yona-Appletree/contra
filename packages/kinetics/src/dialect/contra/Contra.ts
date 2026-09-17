@@ -35,6 +35,16 @@ export function contraDialect(options: ContraOptions): Dialect {
     id: `contra-${options.formation}`,
     dancers: set.seats.map((seat) => seat.id),
     roleOf: roleOfId,
+    roleNames: ["larks", "robins"],
+    // Every place in a contra line faces across; `home` is that facing.
+    homeFacing: (dancer) => set.seatOf(dancer)?.facing ?? 0,
+    // As a couple facing across, the lark stands on the robin's left.
+    sideOf: (dancer, other) =>
+      roleOfId(dancer) === roleOfId(other)
+        ? undefined
+        : roleOfId(dancer) === "lark"
+          ? "left"
+          : "right",
     initial: (): SetState => ({
       dancers: Object.fromEntries(
         set.seats.map((seat) => [seat.id, { p: seat.p, facing: seat.facing }]),

@@ -107,28 +107,37 @@ const printHold = (hold: HoldRef, params: Params): string[] => {
 };
 
 const printWindow = (window: Window, params: Params): string[] => {
+  const who = window.who ? `${window.who}: ` : "";
+  const share = window.beats !== undefined ? ` · ${num(window.beats)} beats` : "";
   switch (window.kind) {
     case "stand":
-      return [row("body", "stand")];
+      return [row("body", `${who}stand${share}`)];
+    case "walk":
+      return [row("body", `${who}walk ${window.direction} ${num(window.distancePx)} px${share}`)];
+    case "pass":
+      return [row("body", `${who}pass ${window.shoulder} shoulders${share}`)];
+    case "pivot":
+      return [row("body", `${who}turn ${num(window.deg)}°${share}`)];
     case "orbit": {
-      const turns = resolveNumber(window.turns, params);
+      const turns = window.turns === "free" ? "free" : num(resolveNumber(window.turns, params));
       const sense = resolveChoice(window.sense, params).replace(/-/g, " ");
       return [
         row(
           "body",
           [
-            `orbit ${window.axis}`,
-            `${num(turns)} ${turns === 1 ? "turn" : "turns"}`,
+            `${who}orbit ${window.axis}`,
+            `${turns} ${turns === "1" ? "turn" : "turns"}`,
             sense,
             `facing ${window.facing}`,
             `r ${num(window.radiusPx)} px`,
             `≤ ${num(window.rateMaxTurnsPerBeat)} turn/beat`,
-          ].join(" · "),
+            ...(window.buzz ? ["buzz"] : []),
+          ].join(" · ") + share,
         ),
       ];
     }
     case "intrinsic":
-      return [row("body", "intrinsic"), ...printIntrinsic(window.lines)];
+      return [row("body", `${who}intrinsic${share}`), ...printIntrinsic(window.lines)];
   }
 };
 

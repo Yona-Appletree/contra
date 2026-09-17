@@ -28,6 +28,12 @@ export interface Dialect {
   /** Everyone on the floor, in the order the debugger lists them. */
   dancers: readonly DancerId[];
   roleOf(dancer: DancerId): "lark" | "robin";
+  /** The role words a program may say (a figure's `role` parameter is checked against them). */
+  roleNames?: readonly string[];
+  /** The facing a dancer's own place has in this dialect — `home` in an arrangement (across, in a contra line). */
+  homeFacing?(dancer: DancerId): number;
+  /** Which side of `other` this dancer stands on when the two stand as a couple facing home; undefined when they are not a couple. */
+  sideOf?(dancer: DancerId, other: DancerId): "left" | "right" | undefined;
   /** Where everyone stands at beat 0. */
   initial(): SetState;
   /**

@@ -53,8 +53,13 @@ export interface FigureIR {
   casts: Readonly<Partial<Record<Role, CastRule>>>;
 }
 
-/** The two roles a figure knows. Dialects cast dancers into them (D16). */
-export type Role = "self" | "partner";
+/**
+ * The roles a figure knows. Dialects cast dancers into them (D16). `partner`
+ * is the counterpart a call names; for a figure danced by a group, `left`,
+ * `right` and `opposite` are the ring neighbours in the group's order (left =
+ * toward your left when facing the group's centre).
+ */
+export type Role = "self" | "partner" | "left" | "right" | "opposite";
 
 /** What `self` does when the keyed role is nobody. */
 export type CastRule = "elide" | "stand" | "walk-on";
@@ -72,7 +77,12 @@ export interface FigureBeats {
 /** One positional parameter of a call. */
 export interface ParamSpec {
   name: string;
-  kind: "dancer" | "enum" | "number";
+  /**
+   * `dancer`: a bound counterpart; `group`: a bound group (a ring of four);
+   * `role`: one of the dialect's role names, validated at compile time so the
+   * figure file itself never spells a role (D16); `enum`; `number`.
+   */
+  kind: "dancer" | "group" | "role" | "enum" | "number";
   /** The words an `enum` accepts, in the order an error message lists them. */
   choices?: readonly string[];
   /** Filled in when the call omits the argument. A `dancer` never has one. */
@@ -88,13 +98,15 @@ export interface Contract {
 
 /** One clause of an arrangement, from `who`'s point of view. */
 export type Arrangement =
-  | { kind: "facing"; who: Role; toward: Role }
+  /** `home` is the facing the dialect's seating gives this dancer's place (across, in a contra line). */
+  | { kind: "facing"; who: Role; toward: Role | "home" }
   | { kind: "apart"; who: Role; from: Role; minPx: number; maxPx: number }
   | {
       kind: "beside";
       who: Role;
       of: Role;
-      side: Hand;
+      /** `as-couple`: the side the dialect says this dancer takes when the two stand as a couple. */
+      side: Hand | "as-couple";
       spacingPx: number;
       facing: "same";
     };
@@ -109,33 +121,60 @@ export interface HoldRef {
   with: Role;
 }
 
-/** The body of a figure over the beats the scheduler leaves it. */
+/**
+ * The body of a figure over the beats the scheduler leaves it. A figure with
+ * several windows runs them in order, each taking its `beats` share of the
+ * body (equal shares when none says). A window with `who` is danced by that
+ * role only; the other roles get the window that names them, or stand.
+ */
 export type Window =
-  | {
+  | ({
       kind: "orbit";
-      /** The point both dancers travel around. */
-      axis: "midpoint" | "hands";
-      turns: NumberValue;
-      /** Which shoulder leads: the side the counterpart is on. */
+      /** The point everyone travels around: the two dancers' midpoint, the joined hands, or the group's centroid. */
+      axis: "midpoint" | "hands" | "centroid";
+      /** How far round; `free` lets the scheduler choose so the exit lands on the `post`. */
+      turns: NumberValue | "free";
+      /** Which way round: the side the counterpart is on, or the ring's own left/right. */
       sense: Choice<OrbitSense>;
-      /** `fixed` keeps the facing it started with; `tangent` follows the arc. */
-      facing: "fixed" | "tangent";
+      /** `fixed` keeps the facing it started with; `tangent` follows the arc; `inward` faces the axis; `partner` faces the counterpart. */
+      facing: "fixed" | "tangent" | "inward" | "partner";
       /** Distance from the axis, in world px. */
       radiusPx: number;
       /** Above this the scheduler reports a rate violation, not a fast dancer. */
       rateMaxTurnsPerBeat: number;
-    }
-  | { kind: "stand" }
-  | {
+      /** Below this a `free` orbit will not go. */
+      rateMinTurnsPerBeat?: number;
+      /** Two steps a beat (a swing). */
+      buzz?: boolean;
+    } & WindowCommon)
+  /** Walk a distance in a direction relative to the facing, facing unchanged. */
+  | ({
+      kind: "walk";
+      direction: "forward" | "back" | "left" | "right";
+      distancePx: number;
+    } & WindowCommon)
+  /** Cross paths with the counterpart, passing by the named shoulder, to where they stood. */
+  | ({ kind: "pass"; shoulder: "right" | "left" } & WindowCommon)
+  /** Turn in place by so many degrees (+ = right). */
+  | ({ kind: "pivot"; deg: number } & WindowCommon)
+  | ({ kind: "stand" } & WindowCommon)
+  | ({
       kind: "intrinsic";
       /**
        * Authored assembly (D14): a balance or a bow *is* its assembly, written
        * once at the bottom level rather than generated from constraints.
        */
       lines: readonly IntrinsicLine[];
-    };
+    } & WindowCommon);
 
-export type OrbitSense = "partner-on-right" | "partner-on-left";
+export interface WindowCommon {
+  /** This window's share of the body, in nominal beats. */
+  beats?: number;
+  /** The role this window is for; every role when omitted. */
+  who?: Role;
+}
+
+export type OrbitSense = "partner-on-right" | "partner-on-left" | "left" | "right";
 
 /** One authored assembly line of an intrinsic figure. */
 export interface IntrinsicLine {

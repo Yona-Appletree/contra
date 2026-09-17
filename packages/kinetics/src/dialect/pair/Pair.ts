@@ -17,6 +17,9 @@ export const PAIR: Dialect = {
   id: "pair",
   dancers: ["lark", "robin"],
   roleOf: (dancer) => (dancer === "lark" ? "lark" : "robin"),
+  roleNames: ["larks", "robins"],
+  homeFacing: (dancer) => (dancer === "lark" ? 0 : 180),
+  sideOf: (dancer) => (dancer === "lark" ? "left" : "right"),
   initial: (): SetState => ({
     dancers: {
       lark: { p: [-10, 0], facing: 0 },

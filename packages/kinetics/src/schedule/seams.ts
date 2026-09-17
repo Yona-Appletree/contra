@@ -25,7 +25,7 @@ export interface HoldNeed {
 export const holdNeeds = (contract: Contract, call: CompiledCall, dancer: DancerId): HoldNeed[] => {
   const needs: HoldNeed[] = [];
   for (const ref of contract.holds) {
-    const withId = ref.with === "self" ? dancer : call.cast.partner;
+    const withId = ref.with === "self" ? dancer : call.cast[ref.with];
     if (withId === undefined) continue;
     needs.push({
       dancer,
