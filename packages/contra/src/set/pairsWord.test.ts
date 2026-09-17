@@ -76,12 +76,34 @@ describe("a `pairs` relation word on a figure for the whole four", () => {
 
   /**
    * Whoosh's B2 *"(8) N2 neighbor do-si-do"*, the second dance the same defect
-   * was standing through, and Contrablend's B1 *"roll away your shadow"*, the
-   * third.
+   * was standing through.
+   *
+   * Contrablend's B1 *"roll away your shadow"* was the third, and it is **no
+   * longer on this path**: the record now calls
+   * `contrablend/long-lines-roll-away` there, which is a figure for two
+   * (`actors: "pairs"`), so its `"shadow"` reaches the lane through `laneFor`'s
+   * own `pairs` branch rather than through `reachingPairsOf`. The travel is
+   * asserted below in its own words, because it is a different sentence about a
+   * different mechanism and reading it here would claim coverage DD73 no longer
+   * has from this dance.
    */
-  it("names somebody for the other two calls the record writes one on", () => {
+  it("names somebody for the other call the record writes one on", () => {
     expect(travelOf("whoosh", 6, "do-si-do")).toBeGreaterThan(10);
-    expect(travelOf("contrablend", 6, "roll-away")).toBeGreaterThan(10);
+  });
+
+  /**
+   * Contrablend's B1, where the record's own figure for two takes the shadow
+   * half into the lane: the robin walks into the line and out again a whole
+   * dancing place along it, which is more than the 9 px of the walk alone.
+   */
+  it("carries Contrablend's shadow half, as a figure for two", () => {
+    expect(travelOf("contrablend", 6, "contrablend/long-lines-roll-away")).toBeGreaterThan(10);
+    const pairs = instancesOf("contrablend", 6, "contrablend/long-lines-roll-away", 40);
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const instance of pairs) {
+      expect(instance.group).toContain("/lane/");
+      expect(instance.cast.length).toBe(2);
+    }
   });
 
   /**
