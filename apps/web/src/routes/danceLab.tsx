@@ -4,7 +4,9 @@ import type { Dance, DancerId } from "@caller/choreo";
 import { danceSchedule } from "@caller/choreo";
 import type { Renderer } from "@caller/hall";
 import { FONT, GLYPH_H, createRenderer, drawText } from "@caller/hall";
+import { Card } from "@caller/music";
 import type { JSX } from "react";
+import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CandidateColumn, CandidateMeasure, DanceCandidateTile } from "../danceCandidates.js";
 import {
@@ -15,6 +17,7 @@ import {
   danceLabSection,
   measureCandidate,
 } from "../danceCandidates.js";
+import { cardDance } from "../danceCard.js";
 import { FLOOR_COLOUR } from "../galleryTiles.js";
 import { hallFrame } from "../hallFrame.js";
 
@@ -300,7 +303,7 @@ function DanceLab({ slug, params }: { slug: string; params: URLSearchParams }): 
         </label>
       </div>
 
-      <CallRuler
+      <CallCard
         dance={section.columns[0]!.dance}
         beat={local}
         boundaryAt={tiles[0]?.boundaryAt ?? 0}
@@ -491,14 +494,21 @@ function dotTitle(line: number, at: CandidateMeasure | undefined): string {
 }
 
 /**
- * The dance's own calls along the bottom of the control bar, with the one
- * happening now lit and the cycle boundary marked.
+ * The dance's own card under the control bar — the same `Card` the Stage puts
+ * beside the hall, read at the lab's beat, so the call being watched is the
+ * bold line and the phrase's fill bar says how far through it the tiles are.
  *
- * A whole time through is sixty-four beats or a hundred and twenty-eight, and
- * the question is *which call* carries the travel — so a reader needs to be able
- * to see which call they are watching, and to jump to the one a reading claims.
+ * It used to be a ruler of figure ids in a line ("A1 allemande 8"), and the
+ * user's own words on it were that it was missing so much detail and did not
+ * match the dance at all — the caller's words ("BALANCE THE WAVE OF FOUR,
+ * ROBINS BY THE RIGHT, NEIGHBOUR BY THE LEFT") are what say what the dance
+ * is, and the card is the thing that already prints them. Here it prints
+ * **one call per line** (`.dance-lab-card`), because the question the page
+ * asks is *which call* carries the travel and a reader jumps to it by
+ * clicking its line. The boundary — the beat the next time through starts —
+ * is a button under the phrases, where the Stage's card puts the tune.
  */
-function CallRuler({
+function CallCard({
   dance,
   beat,
   boundaryAt,
@@ -510,29 +520,27 @@ function CallRuler({
   onJump: (to: Beat) => void;
 }): JSX.Element {
   const steps = useMemo(() => danceSchedule(dance), [dance]);
+  const card = useMemo(() => cardDance(dance), [dance]);
+  // A click on a call's line jumps to its start. The card draws the lines
+  // and knows nothing of beats to jump to, so the line is found by its phrase
+  // and its place in it — the two coordinates a phrase list has — and looked
+  // up in the schedule.
+  const jumpTo = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      const line = target.closest<HTMLElement>(".caller-music-card-figure");
+      const row = line?.closest<HTMLElement>("[data-phrase]");
+      if (line === null || line === undefined || row === null || row === undefined) return;
+      const phrase = row.dataset["phrase"];
+      const index = Array.from(row.querySelectorAll(".caller-music-card-figure")).indexOf(line);
+      const step = steps.filter((s) => s.phrase === phrase)[index];
+      if (step !== undefined) onJump(step.start);
+    },
+    [steps, onJump],
+  );
   return (
-    <ol className="dance-lab-ruler" data-testid="dance-lab-ruler">
-      {steps.map((step) => {
-        const next = step.start + step.call.beats;
-        const now = beat >= step.start && beat < next;
-        return (
-          <li key={`${step.phrase}-${String(step.start)}`}>
-            <button
-              type="button"
-              onClick={() => onJump(step.start)}
-              aria-current={now ? "true" : undefined}
-              className={`dance-lab-call ${now ? "dance-lab-call-now" : ""}`}
-              data-figure={step.call.figure}
-              data-start={String(step.start)}
-            >
-              <span className="dance-lab-call-phrase">{step.phrase}</span>
-              {step.call.figure}
-              <span className="dance-lab-call-beats">{String(step.call.beats)}</span>
-            </button>
-          </li>
-        );
-      })}
-      <li>
+    <div className="dance-lab-card" data-testid="dance-lab-ruler" onClick={jumpTo}>
+      <Card dance={card} beat={beat}>
         <button
           type="button"
           onClick={() => onJump(boundaryAt)}
@@ -540,9 +548,10 @@ function CallRuler({
           data-testid="dance-lab-boundary"
         >
           the boundary, beat {String(boundaryAt)}
+          {beat >= boundaryAt ? " — the next time through" : ""}
         </button>
-      </li>
-    </ol>
+      </Card>
+    </div>
   );
 }
 
