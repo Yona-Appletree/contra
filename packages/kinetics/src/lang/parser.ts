@@ -32,6 +32,7 @@ import { UNITS } from "./syntax.js";
  *             | "group" [name "="] name "(" args ")" ["at" transform+] ";"
  *             | "provide" "$" name ":" Type "=" expr ";"
  *             | "next" "=" expr ";"
+ *             | "seat" "=" expr ";"
  *             | "let" name "=" expr ";"
  *             | "title" String ";"
  *             | "ir" String ";"
@@ -256,6 +257,9 @@ class Parser {
       case "next":
         if (this.isPunct("=", 1)) return this.nextStmt();
         break;
+      case "seat":
+        if (this.isPunct("=", 1)) return this.seatStmt();
+        break;
       case "let":
         return this.letStmt();
       case "title":
@@ -344,6 +348,14 @@ class Parser {
     const value = this.expr();
     this.expectPunct(";", 'after "next = …"');
     return { kind: "next", value, span: this.spanFrom(first) };
+  }
+
+  private seatStmt(): Stmt {
+    const first = this.take();
+    this.expectPunct("=", 'after "seat"');
+    const value = this.expr();
+    this.expectPunct(";", 'after "seat = …"');
+    return { kind: "seat", value, span: this.spanFrom(first) };
   }
 
   private letStmt(): Stmt {

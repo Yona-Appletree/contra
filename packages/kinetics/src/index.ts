@@ -46,6 +46,20 @@ export { lint } from "./lang/lint.js";
 export type { CheckError, CheckOptions } from "./lang/check.js";
 export { BUILTIN_FUNCTIONS, BUILTIN_STATEMENTS, check } from "./lang/check.js";
 
+// the tree (P2): a formation evaluated into groups, places and anchors in
+// metres; who stands where; `$name` for one dancer
+export type { Frame, Op } from "./tree/Frame.js";
+export { apply, applyAll, compose, distance, norm } from "./tree/Frame.js";
+export type { Anchor, Deferred, Group, Place, Provide } from "./tree/Tree.js";
+export { centreOf, chainTo, groupsOf, placeAt, placesOf } from "./tree/Tree.js";
+export type { Env, Value } from "./tree/values.js";
+export type { EvalError, Modules } from "./tree/evaluate.js";
+export { buildFormation, collect, evalExpr, isEvalError } from "./tree/evaluate.js";
+export type { Membership } from "./tree/membership.js";
+export { membership, progress, seatAll } from "./tree/membership.js";
+export type { Resolved } from "./tree/relations.js";
+export { providedNames, resolve } from "./tree/relations.js";
+
 // the IR: a figure as timed constraints
 export type {
   Arrangement,

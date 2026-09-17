@@ -64,6 +64,7 @@ export type Stmt =
   | GroupStmt
   | ProvideStmt
   | NextStmt
+  | SeatStmt
   | LetStmt
   | TitleStmt
   | IrStmt
@@ -111,6 +112,13 @@ export interface ProvideStmt {
 /** `next = duple-progression(up = up, out-top = out-top, out-bottom = out-bottom);` */
 export interface NextStmt {
   kind: "next";
+  value: Expr;
+  span: Span;
+}
+
+/** `seat = alternate(minor-set);` — which groups are filled at beat 0. */
+export interface SeatStmt {
+  kind: "seat";
   value: Expr;
   span: Span;
 }

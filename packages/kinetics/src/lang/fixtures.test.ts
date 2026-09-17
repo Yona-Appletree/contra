@@ -37,10 +37,13 @@ describe("every .dance file in the repo", () => {
     });
   }
 
-  it("the formations check against the prelude", () => {
-    const formations = files
-      .filter((p) => p.includes("/formations/"))
-      .map((p) => parse(readFileSync(p, "utf8")));
-    expect(check([prelude, ...formations]).map((e) => e.message)).toEqual([]);
-  });
+  for (const path of files.filter(
+    (p) => p.includes("/formations/") && !p.endsWith("common.dance"),
+  )) {
+    it(`${path.slice(DANCES.length)} checks against the prelude and the couple`, () => {
+      const common = parse(readFileSync(join(DANCES, "formations/common.dance"), "utf8"));
+      const file = parse(readFileSync(path, "utf8"));
+      expect(check([prelude, common, file]).map((e) => e.message)).toEqual([]);
+    });
+  }
 });

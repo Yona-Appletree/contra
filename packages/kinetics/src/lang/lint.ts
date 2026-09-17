@@ -36,7 +36,7 @@ export function lint(file: File, options: LintOptions = {}): LintIssue[] {
   return issues;
 }
 
-const FORMATION_ONLY = new Set(["place", "anchor", "group", "provide", "next"]);
+const FORMATION_ONLY = new Set(["place", "anchor", "group", "provide", "next", "seat"]);
 const DANCE_ONLY = new Set(["call", "title", "let", "repeat", "if"]);
 
 function lintModule(
@@ -101,6 +101,7 @@ function lintModule(
           readExpr(stmt.value, reads, dynReads);
           break;
         case "next":
+        case "seat":
           readExpr(stmt.value, reads, dynReads);
           break;
         case "let":

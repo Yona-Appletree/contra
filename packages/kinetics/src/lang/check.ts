@@ -42,6 +42,9 @@ export const BUILTIN_FUNCTIONS: readonly string[] = [
   "triple-progression",
   "circle-progression",
   "none",
+  "alternate",
+  "all",
+  "my-role",
 ];
 
 /** The statement a dance may say that is not a module: `progress()`. */
@@ -120,6 +123,7 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
           dyn.set(stmt.name, stmt.type);
           break;
         case "next":
+        case "seat":
           typeOf(stmt.value, undefined, scope);
           break;
         case "let":

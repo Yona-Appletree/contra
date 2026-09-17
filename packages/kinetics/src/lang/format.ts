@@ -128,6 +128,9 @@ class Printer {
       case "next":
         this.line(`next = ${expr(stmt.value)};`, indent, stmt.span);
         return;
+      case "seat":
+        this.line(`seat = ${expr(stmt.value)};`, indent, stmt.span);
+        return;
       case "let":
         this.line(`let ${stmt.name} = ${expr(stmt.value)};`, indent, stmt.span);
         return;
