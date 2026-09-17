@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CompareCase } from "../compareFigures.js";
+import type { CompareCase, CompareTolerance } from "../compareFigures.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { CARRIER_DEFINITIONS } from "./index.js";
 import type { FigureFixture } from "../figureFixture.js";
@@ -69,6 +69,25 @@ interface Moved {
   endDeg: number;
 }
 
+/**
+ * **"The same figure" against a recorded fixture** (DD90): 1e-9 px and 1e-9°,
+ * which is the plan's own AC1 tolerance.
+ *
+ * It was `toBe(0)` — bit-for-bit — and that was a fair thing to assert while
+ * the coded figure was *computed*, because both halves of the comparison were
+ * computed on the same machine by the same libm in the same run. M11 recorded
+ * the coded figures instead, so the comparison now crosses machines: CI's
+ * runner reproduces the do-si-do's pose to **7.3e-15** of the number this
+ * repository's fixture holds, not to the bit. That is float arithmetic, not a
+ * figure moving.
+ *
+ * 1e-9 and no looser. Nothing here is rounded for the same reason: rounding the
+ * fixtures to four decimal places would put 7e-5 of error in — ten orders of
+ * magnitude above the noise this tolerance is for — and the tolerance would
+ * stop meaning anything.
+ */
+const EXACT: CompareTolerance = { px: 1e-9, deg: 1e-9 };
+
 /** What M10 did to the nine figures it put on the cruise; see {@link Moved.why}. */
 const CRUISE_WHY =
   "M10: the definition rides the **cruise** — a constant-speed trapezoid with ramps of min(1 beat, leg / 4) — where the coded figure still eases on one smoothstep over the whole leg. Peak-over-average speed falls from 1.50x to 1.33x. The two figures start together, finish together and take the same hands on the same beats — both end numbers are exactly zero — and differ only in where along the same path a dancer is at a given beat";
@@ -132,14 +151,14 @@ function carrier(
 
   const claim = moved
     ? `has moved exactly this far from the coded figure — ${moved.why}`
-    : "is the coded figure to the last pixel, wherever the dancers start";
+    : `is the coded figure to ${String(EXACT.px)} px, wherever the dancers start`;
   it(claim, () => {
     const worst = worstOf(all);
     expect(worst.samples).toBeGreaterThan(least);
     if (!moved) {
-      expect(worst.position).toBe(0);
-      expect(worst.facing).toBe(0);
-      expect(worst.hand).toBe(0);
+      expect(worst.position).toBeLessThan(EXACT.px);
+      expect(worst.facing).toBeLessThan(EXACT.deg);
+      expect(worst.hand).toBeLessThan(EXACT.px);
       return;
     }
     expect(worst.position).toBeCloseTo(moved.position, 2);

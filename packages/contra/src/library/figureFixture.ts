@@ -23,6 +23,15 @@ import type { StationId } from "@caller/choreo";
  * golden**: these files are written once and are not rewritten without a gate.
  * There is deliberately no code left that can rewrite them — the recorder went
  * with the figures it recorded.
+ *
+ * **They hold full float precision, unrounded**, and the tolerance the tests
+ * assert is 1e-9 px and 1e-9° (DD90). The two are one decision: a recorded
+ * golden is compared on a machine other than the one that wrote it, and a CI
+ * runner reproduces a pose to some 7e-15 of the committed number rather than to
+ * the bit — so the assertion cannot be bit-for-bit, and the file must not add
+ * error of its own. Rounding to four decimal places would put 7e-5 in, ten
+ * orders of magnitude above the noise, and the tolerance would stop meaning
+ * anything.
  */
 export interface FigureFixture {
   /** The coded figure's id. */

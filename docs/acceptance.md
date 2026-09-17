@@ -239,7 +239,7 @@ built on, and it was true every day the two paths both existed.
 is now the **deletion's own proof that nothing moved**. Every demo dance, at
 every line length its formation is checked at, every dancer, on every beat of
 two times through, compared against the poses the same code produced at
-`3f44e4d` — the last commit that still held the coded layer — at **1e-9 px and
+`d834697` — the last commit that still held the coded layer — at **1e-9 px and
 1e-9°**, with `timeline.dancers()` asserted in its own order. **87 cases, 0
 diff.** `packages/contra/src/set/danceGolden.ts` says why at length.
 
@@ -264,7 +264,7 @@ to correct.
 ## AC3 (figure model) — every migrated figure matches its coded predecessor
 
 **Every per-figure golden passes, against a recorded fixture rather than a live
-coded figure.** Each coded figure was sampled once at `3f44e4d`, before the
+coded figure.** Each coded figure was sampled once at `d834697`, before the
 deletion — every parameter case, both formations, from the stations and
 displaced, every station, at every 1/8 beat, at full float precision — and
 committed as `packages/contra/src/library/figures/fixtures/<id>.json`. Sixteen
@@ -284,9 +284,13 @@ figures it recorded.
   `pass-through`, `petronella`, `california-twirl`, `right-and-left-through`,
   `robins-chain`, `roll-away`, `slide-left`) — no allowed difference in either
   half, and nine of them declare exactly how far M10's cruise moved them
-  (position 3.0278 px, facing 12.24°, both **ends exactly 0**). Two agree with
-  their predecessor to the **last bit**: `expect(worst.position).toBe(0)`, which
-  is why the fixtures are not rounded.
+  (position 3.0278 px, facing 12.24°, both **ends exactly 0**). The two M10 left off
+  the cruise — **the do-si-do and slide left** — agree with their predecessor to
+  **1e-9 px and 1e-9°**, which is AC1's own tolerance (DD90: the assertion was bit-for-bit until the predecessor
+  became a _recorded_ fixture and the comparison started crossing machines — the
+  CI runner reproduces the do-si-do's pose to 7.3e-15 of the committed number).
+  The fixtures are still unrounded: rounding them to four decimal places would
+  put 7e-5 of error in, ten orders of magnitude above that noise.
 - **The hey** has been held to a frozen weave since M5, when its own coded twin
   was deleted: `library/figures/heyWeaveGolden.ts`, every dancer's place and
   facing at every half beat, measured against the live coded figure at

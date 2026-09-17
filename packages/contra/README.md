@@ -501,9 +501,14 @@ The eleven M4 migrated are the **carriers** — they leave people wherever their
 own shape put them, where the five M2 migrated are **gatherers** and settle on
 to the formation's own places. That decides the gate each passes: a gatherer is
 allowed to differ from the figure it replaced once the dancers are off their
-places, and a carrier is not. All eleven agree with their coded predecessors
-**exactly** — 0 px, 0°, 0 px of hand, from the stations and displaced alike;
-see `src/library/figures/carriers.test.ts`.
+places, and a carrier is not. Nine of the eleven declare exactly how far M10's
+cruise moved them and are held to that; the two M10 left off it — **the
+do-si-do and slide left** — are still the coded figure, from the stations and
+displaced alike, to **1e-9 px and 1e-9°**, which is the plan's own AC1
+tolerance. That assertion was bit-for-bit until DD90: the predecessor is a
+**recorded** fixture now, so the comparison crosses machines, and the CI runner
+reproduces the do-si-do's pose to 7.3e-15 of the number this repository holds
+rather than to the last bit. See `src/library/figures/carriers.test.ts`.
 
 A `pairs` (or `couples`) parameter names who dances with whom: `"partners"` is
 `1L`–`1R` and `2L`–`2R`, `"neighbors"` is `1L`–`2R` and `1R`–`2L`, and a dance
