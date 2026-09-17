@@ -616,8 +616,14 @@ export function deriveBounds(step = DERIVE_STEP): {
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
   handSpeedPx: 76.4688,
-  elbowSpeedPx: 201.967,
-  elbowPerHand: 10.1458,
+  // FR-D2b: 201.967 before the hanging elbow pole; see `CONTRA_TAKE_MOTION`.
+  elbowSpeedPx: 223.2355,
+  // FR-D2b: 10.1458 before the hanging elbow pole; the ratio the take produces
+  // went 3.3819 -> 3.7381 and the guard is three times it. Every figure in the
+  // library still passes against the new number **and against the old one** -
+  // nothing in the programme is between the two, and the worst in it went down
+  // (the swing, 8.39x -> 7.78x).
+  elbowPerHand: 11.2142,
   heightRatePx: 65.165,
   dipPx: 3.6,
   // M10, R6: 1.5 × the swing's own orbit; see `CONTRA_TRAVEL_MOTION`.
@@ -739,10 +745,16 @@ export const CONTRA_TAKE_MOTION = {
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
   handSpeed: 25.4896,
-  elbowSpeed: 67.3223,
+  // FR-D2b: 67.3223 before the hanging elbow pole. The take begins from a hand
+  // hanging at `HAND_HANG_DROP_PX`, so its first beats are inside the new drop
+  // band and the elbow crosses it as the hand comes up — six px of drop, and
+  // this is the whole of what it costs.
+  elbowSpeed: 74.4118,
   heightRate: 21.7217,
-  elbowPerHand: 2.6412,
-  elbowRatio: 3.3819,
+  // FR-D2b: 2.6412 before the hanging elbow pole.
+  elbowPerHand: 2.9193,
+  // FR-D2b: 3.3819 before the hanging elbow pole.
+  elbowRatio: 3.7381,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

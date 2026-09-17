@@ -53,14 +53,12 @@ export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
       "one to 0.01 px from the stations and reproduces this take with it. It is a " +
       "motion-profile row, not a figure-model row, and M10 is what owns it.",
   },
-  {
-    dance: "*",
-    key: "swing",
-    metric: "elbowSpeed",
-    reason:
-      "The same take as the row above, measured as a speed rather than a ratio. " +
-      "M10, for the same reason.",
-  },
+  // **`swing elbowSpeed` is gone** (FR-D2b). It was the row above measured as a
+  // speed rather than a ratio, and the hanging elbow pole takes it away: the
+  // swing's open-out lowers a hand from shoulder height to a hang, and with the
+  // elbow now staying in the arm's own vertical plane instead of being pushed
+  // sideways out of it, the fastest that take moves the elbow inside a dance
+  // falls under the guard. The ratio row above is still needed.
   {
     dance: "*",
     key: "pull-by",
