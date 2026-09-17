@@ -66,8 +66,12 @@ transport.append(playButton, range, readout, times, presetSelect, sizeSelect);
 
 const chips = el("div", "chips");
 const strip = el("div", "complaints");
+// The trace panel keeps its grid row even when empty: hiding it would drop
+// the first row of panes into its place and push the sim off the page.
 const tracePanel = el("div", "trace");
-tracePanel.hidden = true;
+const TRACE_EMPTY =
+  "click a diagnostic above: the bar goes to its beat, the dancer is followed, and its trace shows here";
+tracePanel.append(el("div", "trace-empty", TRACE_EMPTY));
 app.append(transport, chips, strip, tracePanel);
 
 // ---- the panes -------------------------------------------------------------
@@ -174,7 +178,7 @@ const drawComplaints = (of: Run): void => {
     "bad",
     list.some((c) => c.bad),
   );
-  tracePanel.hidden = true;
+  tracePanel.replaceChildren(el("div", "trace-empty", TRACE_EMPTY));
   if (list.length === 0) {
     strip.append(el("div", "line", summaryOf(of)));
     return;
@@ -199,9 +203,7 @@ const drawComplaints = (of: Run): void => {
         drawChips(of, of.dialect.dancers);
         redraw();
       }
-      tracePanel.replaceChildren();
-      tracePanel.hidden = false;
-      tracePanel.append(el("div", "trace-head", `${c.tag} · ${c.message}`));
+      tracePanel.replaceChildren(el("div", "trace-head", `${c.tag} · ${c.message}`));
       for (const f of d.trace) {
         const row = el("div", "trace-fact");
         row.append(
