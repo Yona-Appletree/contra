@@ -6,6 +6,7 @@ import { groupsOf, placesOf } from "../../src/tree/Tree.js";
 import { buildFormation, collect } from "../../src/tree/evaluate.js";
 import { seatAll } from "../../src/tree/membership.js";
 import { num } from "../../src/tree/values.js";
+import { OTHER_KIND, colourOfKind, hull } from "../groups.js";
 import { ROLE_COLOURS, el, paneShell, svg, type Pane } from "../view.js";
 
 /**
@@ -37,18 +38,6 @@ const FORMATIONS = Object.keys(FILES)
   .filter((n) => n !== "common")
   .sort();
 const COMMON = FILES["../../dances/formations/common.dance"] as string;
-
-/** One hue per kind of group; a kind not listed gets the last. */
-const KIND_COLOURS: Record<string, string> = {
-  couple: "#e7b96b",
-  "minor-set": "#7fb3d5",
-  "major-set": "#9fd08a",
-  four: "#c9a0dc",
-  square: "#9fd08a",
-  "big-circle": "#9fd08a",
-};
-const OTHER_KIND = "#a8977f";
-const colourOfKind = (kind: string): string => KIND_COLOURS[kind] ?? OTHER_KIND;
 
 const PAD_M = 0.22;
 const PLACE_R_M = 0.16;
@@ -256,41 +245,4 @@ function anchorMark(
   }
   g.append(svg("title", {}, `${kind} ${name} · ${group.path}`));
   return g;
-}
-
-/** Andrew's monotone chain: the convex hull, counter-clockwise; a single point or pair comes back as is. */
-function hull(points: readonly [number, number][]): [number, number][] {
-  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  if (pts.length < 3) return pts;
-  const cross = (o: [number, number], a: [number, number], b: [number, number]): number =>
-    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lower: [number, number][] = [];
-  for (const p of pts) {
-    while (
-      lower.length >= 2 &&
-      cross(
-        lower[lower.length - 2] as [number, number],
-        lower[lower.length - 1] as [number, number],
-        p,
-      ) <= 0
-    )
-      lower.pop();
-    lower.push(p);
-  }
-  const upper: [number, number][] = [];
-  for (const p of [...pts].reverse()) {
-    while (
-      upper.length >= 2 &&
-      cross(
-        upper[upper.length - 2] as [number, number],
-        upper[upper.length - 1] as [number, number],
-        p,
-      ) <= 0
-    )
-      upper.pop();
-    upper.push(p);
-  }
-  lower.pop();
-  upper.pop();
-  return [...lower, ...upper];
 }

@@ -3,6 +3,7 @@ import type { DancerId } from "../../src/dialect/Dialect.js";
 import { sampleAt } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
 import type { HandPlate } from "../../src/solver/solveBody.js";
+import { boxesAt, membershipAt, padHull } from "../groups.js";
 import { boundsOf } from "../project.js";
 import {
   alphaOf,
@@ -31,9 +32,16 @@ const zoomFor = (couples: number): number => (couples <= 3 ? 6 : 4);
  * rendering contract's robin-on-top made visible.
  */
 export function pixelsPane(): Pane {
-  const { section, body } = paneShell("pixels");
+  const { section, head, body } = paneShell("pixels");
   const canvas = el("canvas", "pixels");
   body.append(canvas);
+  const boxesToggle = el("input", "toggle");
+  boxesToggle.type = "checkbox";
+  boxesToggle.checked = true;
+  boxesToggle.title = "groups";
+  const boxesLabel = el("label", "toggle-label", "groups ");
+  boxesLabel.append(boxesToggle);
+  head.append(boxesLabel);
 
   let view: View | undefined;
   let beat = 0;
@@ -94,6 +102,22 @@ export function pixelsPane(): Pane {
 
     const { run, pick } = view;
     const picked = new Set(pick);
+
+    // The groups everybody is in at this seating, as boxes on the floor (P5):
+    // the followed dancer's own brighter than the rest.
+    if (boxesToggle.checked) {
+      const membership = membershipAt(run, beat);
+      const followed = pick.length === run.dialect.dancers.length ? [] : pick;
+      for (const box of membership === undefined ? [] : boxesAt(run, membership, followed)) {
+        const pts = padHull(box.hullPx, 4);
+        const colour = mix(box.colour, floor, box.mine ? 0.75 : 0.3);
+        pts.forEach((a, i) => {
+          const b = pts[(i + 1) % pts.length] as [number, number];
+          line({ x: a[0], y: a[1], z: 0 }, { x: b[0], y: b[1], z: 0 }, colour);
+        });
+      }
+    }
+
     const solved = run.solved;
     if (!solved) return;
 
@@ -148,6 +172,7 @@ export function pixelsPane(): Pane {
   };
 
   new ResizeObserver(draw).observe(body);
+  boxesToggle.addEventListener("change", draw);
 
   return {
     el: section,

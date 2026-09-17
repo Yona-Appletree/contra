@@ -1,4 +1,5 @@
 import type { SeamKind } from "../../src/schedule/seams.js";
+import { SET_COLOURS, minorSetIndex } from "../groups.js";
 import { TIME_THROUGH_BEATS } from "../presets.js";
 import { colourOf, paneShell, svg, type Pane, type View } from "../view.js";
 
@@ -77,6 +78,23 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
         svg("text", { x: 2, y: top + 15, class: "rowname", fill: colourOf(run, dancer) }, dancer),
       );
       const calls = run.schedule?.calls[dancer] ?? [];
+      // The membership lane: which minor set this dancer is in during each
+      // call, by colour; out at an end is hatched. A progression is where
+      // the colour changes.
+      for (const call of calls) {
+        const membership = run.sequence?.memberships[call.call.membership];
+        const set = membership === undefined ? -1 : minorSetIndex(run, membership, dancer);
+        const lane = svg("rect", {
+          x: beatToX(call.call.start),
+          y: top + 1,
+          width: Math.max(beatToX(call.call.end) - beatToX(call.call.start), 1),
+          height: ROW - 4,
+          class: set < 0 ? "lane out" : "lane",
+          fill: set < 0 ? "none" : (SET_COLOURS[set % SET_COLOURS.length] as string),
+        });
+        lane.append(svg("title", {}, set < 0 ? "out at an end" : `minor set ${String(set + 1)}`));
+        row.append(lane);
+      }
       for (const call of calls) {
         const x0 = beatToX(call.call.start);
         const x1 = beatToX(call.call.end);

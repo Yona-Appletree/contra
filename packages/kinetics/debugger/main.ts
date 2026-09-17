@@ -8,6 +8,7 @@ import { listingPane } from "./panes/listing.js";
 import { pixelsPane } from "./panes/pixels.js";
 import { sourcePane } from "./panes/source.js";
 import { timelinePane } from "./panes/timeline.js";
+import { treePane } from "./panes/tree.js";
 import { view3dPane } from "./panes/view3d.js";
 import {
   FORMATIONS,
@@ -87,6 +88,7 @@ const panes: Pane[] = [
   view3dPane(),
   graphsPane(),
   pixelsPane(),
+  treePane(),
 ];
 for (const pane of panes) app.append(pane.el);
 

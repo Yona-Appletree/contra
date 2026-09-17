@@ -14,8 +14,9 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
   const text = el("textarea", "source-text");
   text.spellcheck = false;
   const crumb = el("div", "crumb");
+  const bindings = el("div", "bindings");
   const ir = el("pre", "ir");
-  body.append(text, crumb, ir);
+  body.append(text, crumb, bindings, ir);
 
   let timer = 0;
   text.addEventListener("input", () => {
@@ -38,6 +39,13 @@ export function sourcePane(onEdit: (text: string) => void): Pane {
     shown = call;
     crumb.textContent =
       call === undefined ? "—" : `${call.path}  ·  ${call.start}–${call.end}  ·  ${dancer}`;
+    // What each $ the call read resolved to, for this dancer, at this seating.
+    bindings.textContent =
+      call === undefined
+        ? ""
+        : Object.entries(call.bindings)
+            .map(([name, who]) => `$${name} = ${who}`)
+            .join("   ");
     ir.textContent = call === undefined ? "" : printFigure(call.figure, call.params);
   };
 
