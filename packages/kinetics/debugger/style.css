@@ -7,6 +7,7 @@
   --accent: #e7b96b;
   --line: #3c3128;
   --floor: #c9a06a;
+  --floor-grid: #b78d5b;
   --lark: #e0a32e;
   --robin: #c8362f;
   --bad: #e07a7a;
@@ -59,6 +60,9 @@ section[data-pane] {
   overflow: hidden;
 }
 section[data-pane] > h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   padding: 3px 8px;
   font-size: 11px;
@@ -73,4 +77,230 @@ section[data-pane] > .body {
   min-height: 0;
   overflow: auto;
   padding: 6px 8px;
+}
+
+/* ---- the transport strip ------------------------------------------------ */
+
+.transport button.play {
+  width: 30px;
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 0;
+  cursor: pointer;
+  font: inherit;
+}
+.transport .scrub {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.transport .beat {
+  width: 48px;
+  text-align: right;
+  color: var(--accent);
+}
+.transport .pick {
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  padding: 2px 4px;
+}
+.transport .complaints {
+  flex: 2;
+  min-width: 0;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.transport .complaints.bad {
+  color: var(--bad);
+}
+
+/* ---- a pane's own controls ---------------------------------------------- */
+
+section[data-pane] > h2 .pane-name {
+  flex: 1;
+}
+.slider {
+  width: 64px;
+  accent-color: var(--accent);
+}
+
+/* ---- source ------------------------------------------------------------- */
+
+section[data-pane="source"] > .body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 6px;
+}
+.source-text {
+  flex: 1;
+  min-height: 110px;
+  resize: none;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 5px 6px;
+  font: inherit;
+  tab-size: 2;
+}
+.crumb {
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ir {
+  margin: 0;
+  color: var(--muted);
+  white-space: pre;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* ---- timeline ----------------------------------------------------------- */
+
+.timeline {
+  display: block;
+  cursor: col-resize;
+  user-select: none;
+}
+.timeline .grid {
+  stroke: var(--line);
+}
+.timeline .tick,
+.timeline .rowname,
+.timeline .call-name {
+  font-size: 9px;
+  fill: var(--muted);
+}
+.timeline .rowname {
+  font-size: 10px;
+}
+.timeline .call-name {
+  fill: var(--ink);
+}
+.timeline .w-body {
+  fill: var(--accent);
+  opacity: 0.22;
+}
+.timeline .w-edge {
+  fill: var(--panel2);
+}
+.timeline .call-outline {
+  fill: none;
+  stroke: var(--line);
+}
+.timeline .seam {
+  font-size: 11px;
+  fill: var(--accent);
+}
+.timeline .seam-overlap {
+  stroke: var(--accent);
+  stroke-dasharray: 1 2;
+}
+.timeline .cursor,
+.strip .cursor {
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.75;
+}
+
+/* ---- listing ------------------------------------------------------------ */
+
+.listing .line {
+  display: flex;
+  gap: 6px;
+  padding: 0 2px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.listing .line.lit {
+  background: var(--panel2);
+  color: var(--ink);
+}
+.listing .who {
+  width: 34px;
+  flex: none;
+}
+
+/* ---- 3d ----------------------------------------------------------------- */
+
+section[data-pane="3d"] > .body {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+section[data-pane="pixels"] > .body {
+  padding: 0;
+}
+.view3d {
+  display: block;
+}
+
+/* ---- graphs ------------------------------------------------------------- */
+
+section[data-pane="graphs"] > .body {
+  padding: 2px 0 6px;
+}
+.strip {
+  display: block;
+}
+.strip .band {
+  fill: var(--panel2);
+  opacity: 0.55;
+}
+.strip .axis {
+  stroke: var(--line);
+}
+.strip .cap {
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+  opacity: 0.8;
+}
+.strip .line {
+  fill: none;
+}
+.strip .line.speed {
+  stroke-width: 1.2;
+}
+.strip .line.accel {
+  stroke-width: 1;
+  opacity: 0.35;
+}
+.strip .dot {
+  fill: var(--bad);
+}
+.strip .strip-name {
+  font-size: 10px;
+  fill: var(--ink);
+}
+.strip .strip-tag {
+  font-size: 9px;
+  fill: var(--muted);
+}
+.strip .strip-cap {
+  font-size: 9px;
+  fill: var(--muted);
+  opacity: 0.6;
+}
+.empty {
+  color: var(--muted);
+  padding: 6px 8px;
+}
+
+/* ---- pixels ------------------------------------------------------------- */
+
+.pixels {
+  display: block;
+  margin: auto;
+  image-rendering: pixelated;
 }

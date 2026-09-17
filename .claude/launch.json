@@ -18,6 +18,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@caller/web", "dev", "--", "--port", "5173", "--strictPort"],
       "port": 5173
+    },
+    {
+      "name": "kinetics-debugger",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@caller/kinetics", "dev"],
+      "port": 5177
     }
   ]
 }
