@@ -301,17 +301,37 @@ describe("a call that carries the progression", () => {
      * the honest record. DD43's ruling does not rest on it alone: the test
      * below — which counts who is standing out when the cast-back is danced —
      * still separates them structurally, without an oracle.
+     *
+     * Split one case per reading (CI hygiene, 2026-09-16): both readings over
+     * all eight becket lengths used to sit in one `it`, which put sixteen
+     * independent `danceAlone` + three-oracle runs behind a single 60 s vitest
+     * budget — cheap alone (~7 s total for both readings) but the one case CI
+     * clocked at 61.5/62.3 s under turbo contention, twice, on branches that
+     * never touched this file. The per-length cost is flat (~0.5-0.8 s each,
+     * not quadratic in line length — collision's dancer-pair loop is cheap
+     * arithmetic; the poseAt sampling it and reach share is the real cost, and
+     * that is linear in dancer count), so there was no single expensive length
+     * to trim and no oracle here the assertion doesn't need. What there was is
+     * two independent halves sharing one clock: each reading is a separate
+     * question ("start" closes; "end" is pinned) with no data in common, so
+     * each now gets its own `it` and its own 60 s budget, and vitest schedules
+     * them separately instead of summing them into one.
      */
-    it("is what Fatal Attraction writes, and both readings now close", () => {
+    it("is what Fatal Attraction writes: the start reading closes", () => {
       for (const couples of linesFor(FATAL)) {
         const start = oraclesFor(FATAL, couples, 128, {}, RUN);
-        const end = oraclesFor(atTheEnd(FATAL), couples, 128, {}, RUN);
         expect(start.closurePx, `${String(couples)} couples, at the start`).toBeLessThan(
           CLOSURE_PX,
         );
-        // Pinned rather than dropped: if the "at the end" reading ever stops
-        // closing again, that is a fact about the chain or the progression and
-        // this is where it shows up.
+      }
+    });
+
+    it("is what Fatal Attraction writes: the end reading is pinned, closing too", () => {
+      // Pinned rather than dropped: if the "at the end" reading ever stops
+      // closing again, that is a fact about the chain or the progression and
+      // this is where it shows up.
+      for (const couples of linesFor(FATAL)) {
+        const end = oraclesFor(atTheEnd(FATAL), couples, 128, {}, RUN);
         expect(end.closurePx, `${String(couples)} couples, at the end`).toBeLessThan(CLOSURE_PX);
       }
     });
