@@ -12,9 +12,9 @@ import type {
   TeachEdit,
 } from "@caller/choreo";
 import { HANDS_FOUR_GROUP, resolveSelector, validateDance, withDefaults } from "@caller/choreo";
-import type { Carried, ContraFigure, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
-import { contraFigureOf } from "./registry.js";
-import { templateFigureOf } from "../library/figures/index.js";
+import type { Carried, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
+
+import { figureOnFour } from "./onFour.js";
 
 /**
  * One call of a dance, before the places are threaded through it.
@@ -168,18 +168,18 @@ export function chainCalls(
   const ending: HandJoin[][] = [];
   const middle: HandJoin[][] = [];
   for (const call of calls) {
-    const def = (contraFigureOf(call.figure) ??
-      (templateFigureOf(call.figure) as ContraFigure | undefined)) as ContraFigure | undefined;
+    const def = figureOnFour(call.figure);
     if (!def || call.while !== undefined || reachesPastTheFour(call)) {
       // **A call the hands-four template cannot answer threads nothing.**
       //
-      // Two of them since M6. One is a figure with no coded twin: a
-      // `FigureDefinition` such as `pull-by`, or a figure a later milestone
-      // still owes such as `shoulder-round`. The other is a call that reaches
+      // One is a figure a hands-four cannot plan: a `FigureDefinition` that
+      // resolution mints per pair or per dancer — a pull by, a shoulder round,
+      // and since M11 the five gatherers too, whose coded twins were written
+      // for four stations and are gone. The other is a call that reaches
       // **past the minor set** — "allemande N4", "roll away your shadow" — which
-      // a four-station template has no dancer for at all, and which the coded
-      // figure's own pairing would throw on at *load* time, taking the whole
-      // package's import down with it.
+      // a four-station template has no dancer for at all, and which the
+      // pairing would throw on at *load* time, taking the whole package's
+      // import down with it.
       //
       // The chain is dead weight on the new path either way: `planCycle` strips
       // `from` and `carried` back out and derives both from set state. So the
@@ -188,26 +188,29 @@ export function chainCalls(
       // and says so where it tries. The ten demo dances name nothing of the
       // kind, and AC1's golden — which compares the new path against this
       // threading — is what proves they still thread exactly as they did.
-      out.push({
-        figure: call.figure,
-        beats: call.beats,
-        params: { ...(call.params ?? {}), from: places },
-        ...(call.who === undefined ? {} : { who: call.who }),
-        ...(call.group === undefined ? {} : { group: call.group }),
-        ...(call.call === undefined ? {} : { call: call.call }),
-        ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
-        // Branches keep their own parameters exactly as written: no `from`,
-        // because the whole point of a concurrent call is that there is no one
-        // running set of places for the template to hand on.
-        ...(call.while === undefined ? {} : { while: call.while }),
-      });
+      out.push(carriedThrough(call, places));
       ending.push([]);
       middle.push([]);
       continue;
     }
     const from = places;
     const params = withDefaults<ContraParams>(def, { ...(call.params ?? {}), from }, call.beats);
-    const ends = def.moves(params, stations, spacing);
+    // **A figure that refuses this call is a call the template cannot answer**,
+    // and is carried through exactly as the branch above carries one it can see
+    // is beyond it. `reachesPastTheFour` catches the relations by their
+    // spelling; this catches the ones a *figure* refuses — since M11 a `pairs`
+    // word no minor-set table holds reaches the definition rather than a coded
+    // figure that quietly did something with it — at load time, where a throw
+    // would take the whole package's import down.
+    let ends: Spots;
+    try {
+      ends = def.moves(params, stations, spacing);
+    } catch {
+      out.push(carriedThrough(call, places));
+      ending.push([]);
+      middle.push([]);
+      continue;
+    }
     const selected = resolveSelector(call.who, formation, call.group ?? HANDS_FOUR_GROUP, stations);
     const next: Spots = { ...places };
     for (const id of selected) {
@@ -242,6 +245,22 @@ export function chainCalls(
  * relation table, because the table lives in `set/` and this module is the
  * *load*-time half that `set/` is built to replace.
  */
+function carriedThrough(call: ContraCall, places: Spots): FigureCall {
+  return {
+    figure: call.figure,
+    beats: call.beats,
+    params: { ...(call.params ?? {}), from: places },
+    ...(call.who === undefined ? {} : { who: call.who }),
+    ...(call.group === undefined ? {} : { group: call.group }),
+    ...(call.call === undefined ? {} : { call: call.call }),
+    ...(call.spokenBeats === undefined ? {} : { spokenBeats: call.spokenBeats }),
+    // Branches keep their own parameters exactly as written: no `from`, because
+    // the whole point of a concurrent call is that there is no one running set
+    // of places for the template to hand on.
+    ...(call.while === undefined ? {} : { while: call.while }),
+  };
+}
+
 function reachesPastTheFour(call: ContraCall): boolean {
   const params = call.params as Record<string, unknown> | undefined;
   for (const value of [call.who, params?.["pairs"]]) {

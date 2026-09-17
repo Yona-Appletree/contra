@@ -10,3 +10,12 @@ pnpm-lock.yaml
 # writer script to a fixed convention, not prettier's — regenerate it with
 # the script, don't reformat it.
 docs/motion-report.md
+
+# Recorded goldens, written once by the code that recorded them and never by
+# hand: the coded figures M11 deleted, sampled case by case and beat by beat
+# (`library/figures/fixtures/`), and the demo dances' own poses at the commit
+# the deletion was made from (`set/goldens/`). They are compact on purpose —
+# expanded they are two and a half times the size for no reader's benefit, and
+# a golden is read by a diff.
+packages/contra/src/library/figures/fixtures/
+packages/contra/src/set/goldens/

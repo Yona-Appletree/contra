@@ -1,19 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ContraFigure } from "../../figures/ContraFigure.js";
-import { californiaTwirl } from "../../figures/california-twirl.js";
-import { circle } from "../../figures/circle.js";
-import { doSiDo } from "../../figures/do-si-do.js";
-import { longLines } from "../../figures/long-lines.js";
-import { passThrough } from "../../figures/pass-through.js";
-import { petronella } from "../../figures/petronella.js";
-import { rightAndLeftThrough } from "../../figures/right-and-left-through.js";
-import { robinsChain } from "../../figures/robins-chain.js";
-import { rollAway } from "../../figures/roll-away.js";
-import { slideLeft } from "../../figures/slide-left.js";
-import { star } from "../../figures/star.js";
-import type { CompareCase } from "../compareFigures.js";
+import type { CompareCase, CompareTolerance } from "../compareFigures.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { CARRIER_DEFINITIONS } from "./index.js";
+import type { FigureFixture } from "../figureFixture.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { bothWays, carrierGolden, worstOf } from "./carriers.js";
 
 /**
@@ -79,13 +69,32 @@ interface Moved {
   endDeg: number;
 }
 
+/**
+ * **"The same figure" against a recorded fixture** (DD90): 1e-9 px and 1e-9°,
+ * which is the plan's own AC1 tolerance.
+ *
+ * It was `toBe(0)` — bit-for-bit — and that was a fair thing to assert while
+ * the coded figure was *computed*, because both halves of the comparison were
+ * computed on the same machine by the same libm in the same run. M11 recorded
+ * the coded figures instead, so the comparison now crosses machines: CI's
+ * runner reproduces the do-si-do's pose to **7.3e-15** of the number this
+ * repository's fixture holds, not to the bit. That is float arithmetic, not a
+ * figure moving.
+ *
+ * 1e-9 and no looser. Nothing here is rounded for the same reason: rounding the
+ * fixtures to four decimal places would put 7e-5 of error in — ten orders of
+ * magnitude above the noise this tolerance is for — and the tolerance would
+ * stop meaning anything.
+ */
+const EXACT: CompareTolerance = { px: 1e-9, deg: 1e-9 };
+
 /** What M10 did to the nine figures it put on the cruise; see {@link Moved.why}. */
 const CRUISE_WHY =
   "M10: the definition rides the **cruise** — a constant-speed trapezoid with ramps of min(1 beat, leg / 4) — where the coded figure still eases on one smoothstep over the whole leg. Peak-over-average speed falls from 1.50x to 1.33x. The two figures start together, finish together and take the same hands on the same beats — both end numbers are exactly zero — and differ only in where along the same path a dancer is at a given beat";
 
 /** One figure's whole gate: the four claims, then its own cases. */
 function carrier(
-  coded: ContraFigure,
+  coded: FigureFixture,
   definition: FigureDefinition,
   cases: readonly CompareCase[],
   least: number,
@@ -111,9 +120,7 @@ function carrier(
     expect(definition.call).toBe(coded.call);
     expect(definition.lead).toBe(coded.lead);
     expect(definition.nominalBeats).toBe(coded.beats);
-    const defaults = { ...(coded.defaults as Record<string, unknown>) };
-    delete defaults["from"];
-    delete defaults["carried"];
+    const defaults = { ...coded.defaults };
     // **Every coded default, with its coded value** — and a definition is
     // allowed to have *more* of them (M8). The star's `amount` is the first: a
     // caller says "star left 7/8" and the coded figure has no word for it, so a
@@ -144,14 +151,14 @@ function carrier(
 
   const claim = moved
     ? `has moved exactly this far from the coded figure — ${moved.why}`
-    : "is the coded figure to the last pixel, wherever the dancers start";
+    : `is the coded figure to ${String(EXACT.px)} px, wherever the dancers start`;
   it(claim, () => {
     const worst = worstOf(all);
     expect(worst.samples).toBeGreaterThan(least);
     if (!moved) {
-      expect(worst.position).toBe(0);
-      expect(worst.facing).toBe(0);
-      expect(worst.hand).toBe(0);
+      expect(worst.position).toBeLessThan(EXACT.px);
+      expect(worst.facing).toBeLessThan(EXACT.deg);
+      expect(worst.hand).toBeLessThan(EXACT.px);
       return;
     }
     expect(worst.position).toBeCloseTo(moved.position, 2);
@@ -164,7 +171,7 @@ function carrier(
 
 describe("the circle as data", () => {
   carrier(
-    circle,
+    fixtureOf("circle"),
     findDefinition("circle"),
     [
       { params: {} },
@@ -186,7 +193,7 @@ describe("the circle as data", () => {
 
 describe("the star as data", () => {
   carrier(
-    star,
+    fixtureOf("star"),
     findDefinition("star"),
     [
       { params: {} },
@@ -212,7 +219,7 @@ describe("the star as data", () => {
 
 describe("long lines as data", () => {
   carrier(
-    longLines,
+    fixtureOf("long-lines"),
     findDefinition("long-lines"),
     [{ params: {} }, { params: { forwardPx: 6 } }, { params: { holdDrop: 4, stackPx: 0 } }],
     3000,
@@ -233,7 +240,7 @@ describe("long lines as data", () => {
 
 describe("the do-si-do as data", () => {
   carrier(
-    doSiDo,
+    fixtureOf("do-si-do"),
     findDefinition("do-si-do"),
     [
       { params: {} },
@@ -252,7 +259,7 @@ describe("the do-si-do as data", () => {
 
 describe("the pass through as data", () => {
   carrier(
-    passThrough,
+    fixtureOf("pass-through"),
     findDefinition("pass-through"),
     [{ params: {} }, { params: { direction: "along" } }, { params: { bowPx: 0 } }],
     1500,
@@ -269,7 +276,7 @@ describe("the pass through as data", () => {
 
 describe("the petronella as data", () => {
   carrier(
-    petronella,
+    fixtureOf("petronella"),
     findDefinition("petronella"),
     [{ params: {} }, { params: { places: 2 } }, { params: { spins: 2 } }, { params: { bowPx: 0 } }],
     2000,
@@ -289,7 +296,7 @@ describe("the petronella as data", () => {
 
 describe("the slide left as data", () => {
   carrier(
-    slideLeft,
+    fixtureOf("slide-left"),
     findDefinition("slide-left"),
     [{ params: {} }, { params: { direction: -1 } }, { params: { alongPx: 10 } }],
     1500,
@@ -298,7 +305,7 @@ describe("the slide left as data", () => {
 
 describe("the roll away as data", () => {
   carrier(
-    rollAway,
+    fixtureOf("roll-away"),
     findDefinition("roll-away"),
     [
       { params: {} },
@@ -335,7 +342,7 @@ describe("the roll away as data", () => {
 
 describe("the california twirl as data", () => {
   carrier(
-    californiaTwirl,
+    fixtureOf("california-twirl"),
     findDefinition("california-twirl"),
     [
       { params: {} },
@@ -371,7 +378,7 @@ describe("the california twirl as data", () => {
 
 describe("right and left through as data", () => {
   carrier(
-    rightAndLeftThrough,
+    fixtureOf("right-and-left-through"),
     findDefinition("right-and-left-through"),
     [
       { params: {} },
@@ -394,7 +401,7 @@ describe("right and left through as data", () => {
 
 describe("the robins chain as data", () => {
   carrier(
-    robinsChain,
+    fixtureOf("robins-chain"),
     findDefinition("robins-chain"),
     [
       { params: {} },

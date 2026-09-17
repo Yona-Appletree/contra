@@ -1418,13 +1418,14 @@ function engineHalves(
   engine: EngineChoice,
   overrides: FigureDefaultsOverride,
 ): { registry: FigureRegistry; library?: Library } {
-  const key = `${engine}|${JSON.stringify(overrides)}`;
+  // **One engine since M11.** `engine` is still threaded through this file
+  // because the tiles, the seams and the lab all carry which one they were
+  // asked for; what it no longer selects is a *path*, because the coded figure
+  // registry and `defaultCyclePlanner` it named are deleted.
+  const key = `new|${JSON.stringify(overrides)}`;
   let halves = engineCache.get(key);
   if (halves === undefined) {
-    halves =
-      engine === "new"
-        ? contraDataEngine([], overrides)
-        : { registry: createContraRegistry([], overrides) };
+    halves = contraDataEngine([], overrides);
     engineCache.set(key, halves);
   }
   return halves;

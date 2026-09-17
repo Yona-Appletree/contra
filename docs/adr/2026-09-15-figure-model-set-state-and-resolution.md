@@ -1,13 +1,27 @@
 # The figure model: set state and resolution as the hub
 
 Date: 2026-09-15
-Status: proposed
+Status: accepted
 
-Accepted at gate G1 (after M3 of the figure-model plan), where the user judges
-the honest-ends treatment on the Stage and answers the four questions in that
-plan's §Gates. Until then this ADR records the decision as taken and the
-reversal it makes, so that the milestones building on it are not building on an
-undeclared change.
+**Accepted at gate G1, 2026-09-15 02:35**, on the user's answers to the four
+questions in the figure-model plan's §Gates: Butter on the Stage looks the
+same everywhere but the two gatherer seams; the honest-ends treatment is the
+right look ("this looks fine but they look identical to me, honestly — which
+is fine for now, though at some point we may want to improve the
+transitions"); the swing's geometry is the right thing to protect as a golden,
+at **1 px** rather than 0.01 ("seems kinda intense. maybe like 1px?"); and the
+reversal below is accepted.
+
+**The coded layer was deleted on 2026-09-16/17 (M11)**, on the user's own
+ruling: _"yes, you can delete the old code, please do, it'll live on in git."_
+What this ADR proposed as a layer to be built beside the seventeen coded
+figures is now the only layer there is — the legacy bridge is gone with them,
+`createContraRegistry` builds from the library, and `docs/figure-layer-retirement.md`
+is the map of what each coded module became. The per-figure goldens the
+migration was measured by survive as **recorded fixtures**: each coded figure
+was sampled once before the deletion — every case, both formations, from the
+stations and displaced, at every 1/8 beat — and the definitions are held to
+those files at the tolerances stated below.
 
 ## Context
 

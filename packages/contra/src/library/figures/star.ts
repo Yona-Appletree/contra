@@ -1,5 +1,5 @@
 import type { NumberExpr, FigureDefinition, SoloHold } from "../FigureDefinition.js";
-import { WRIST_ALONG } from "../../figures/star.js";
+import { WRIST_ALONG } from "../kinds/holds.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
 import { CIRCLE_IN_BEATS, CIRCLE_OUT_BEATS, CIRCLE_TAKE_BEATS } from "./circle.js";
 

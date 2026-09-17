@@ -1,14 +1,14 @@
 import type { Beat, Hand, Side, Vec2 } from "@caller/core";
-import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/core";
+import { HAND_HANG_DROP_PX, HAND_HANG_SWING_PX, dist, drawnArms, handDown } from "@caller/core";
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
-import { interpretDefinition } from "../library/interpret.js";
+import { figureOnFour } from "./onFour.js";
+
 import type { MotionBounds } from "@caller/choreo";
 import { STILL_BODY_PX, STILL_HAND_PX, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot } from "./ContraFigure.js";
 import { holdWindow, takeAndRelease } from "./ContraFigure.js";
-import { CONTRA_FIGURES, CONTRA_FIGURE_IDS } from "./registry.js";
+
 import { probeGroup } from "./testing.js";
-import { handDown } from "../pair/PairFrame.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { PROPER } from "../formation/proper.js";
 import { BECKET } from "../formation/becket.js";
@@ -92,8 +92,9 @@ export interface TakeExtremes {
 export function takeExtremes(step: Beat = DERIVE_STEP): TakeExtremes {
   const group = probeGroup(DUPLE_IMPROPER, 4, DUPLE_IMPROPER_FRAME);
   const found: TakeExtremes = { floorPx: 0, floorAt: "", drop: Infinity, dropAt: "" };
-  for (const id of CONTRA_FIGURE_IDS) {
-    const def = CONTRA_FIGURES[id] as unknown as ContraFigure<ContraParams>;
+  for (const id of travelFigureIds()) {
+    const def = travelFigureOf(id);
+    if (def === undefined) continue;
     const params = withDefaults(def, {}, def.beats);
     const steps = Math.round(def.beats / step);
     for (const station of group.stations) {
@@ -228,32 +229,23 @@ export function deriveTravel(step: Beat = DERIVE_STEP): TravelMotion {
   };
 }
 
-/** Every figure the travel derivation ranks: the registry's, in its own order. */
+/** Every figure the travel derivation ranks: the library's, in its own order. */
 function travelFigureIds(): readonly string[] {
-  return [...CONTRA_FIGURE_IDS, ...DATA_DEFINITIONS.map((def) => def.id)].filter(
-    (id, at, all) => all.indexOf(id) === at,
-  );
+  return DATA_DEFINITIONS.map((def) => def.id);
 }
 
 /**
- * The figure behind an id: **the definition** where there is one, the coded
- * figure otherwise.
+ * The figure behind an id: the definition, planned over a hands-four.
  *
- * The definition first, and that matters here: the nine figures M10 put on the
- * cruise travel at a different sustained speed from their coded twins, and what
- * the oracle measures in a dance is the definition, because the engine has run
- * on it since M3. The coded twin is the fallback for the two ids that have one
- * and no definition, and for the swing, whose `meet` anchor cannot be planned
- * over a whole minor set standing alone. DD21 pins the two together to 0.01 px
- * from the stations, so the swing's own orbit is the same orbit either way.
+ * Before M11 this fell back to the **coded twin** for the swing and its kind,
+ * whose `meet` anchor a four-station context refuses by name. `figureOnFour`
+ * is what answers for them now — it mints the pair instances a hands-four
+ * implies — and a figure that needs more of the set than a minor set holds has
+ * no figure-alone row and is measured in a dance instead.
  */
 function travelFigureOf(id: string): ContraFigure<ContraParams> | undefined {
-  const written = DATA_DEFINITIONS.find((def) => def.id === id);
-  const coded = (CONTRA_FIGURES as Record<string, ContraFigure>)[id] as
-    ContraFigure<ContraParams> | undefined;
-  if (written === undefined || written.shape.kind === "legacy") return coded;
-  const interpreted = interpretDefinition(written) as unknown as ContraFigure<ContraParams>;
-  return plansAlone(interpreted) ? interpreted : coded;
+  const figure = figureOnFour(id);
+  return figure !== undefined && plansAlone(figure) ? figure : undefined;
 }
 
 /** Whether a figure can be planned over a whole minor set standing alone. */

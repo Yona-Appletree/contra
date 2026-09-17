@@ -20,7 +20,7 @@ import {
 import type { RoleName, RoleSet, StationId } from "@caller/choreo";
 import type { Spot } from "./ContraFigure.js";
 import { bearing, midpoint, orbitRadius, polar } from "./ContraFigure.js";
-import { BACK_HAND_DROP_PX, BACK_HAND_FORWARD_PX } from "../pair/swing.js";
+import { BACK_HAND_DROP_PX, BACK_HAND_FORWARD_PX } from "../library/figures/swing.js";
 
 /**
  * The courtesy turn: the couple stands side by side facing **out**, robin on

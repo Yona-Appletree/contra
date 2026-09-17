@@ -1,7 +1,7 @@
 import type { Beat } from "@caller/core";
 import type { AnyFigureDef, RoleName } from "@caller/choreo";
 import { WALK_TO_STATION } from "@caller/choreo";
-import { contraFigureOf } from "../figures/registry.js";
+import { figureOnFour } from "../figures/onFour.js";
 import { waitOut } from "../figures/wait-out.js";
 import type { FigureDefinition } from "../library/FigureDefinition.js";
 import { DATA_DEFINITIONS } from "../library/figures/index.js";
@@ -824,11 +824,18 @@ function pairingWords(value: unknown, register: Register): string | undefined {
 export function figureDefOf(id: string): AnyFigureDef | undefined {
   if (id === waitOut.id) return waitOut as AnyFigureDef;
   if (id === WALK_TO_STATION.id) return WALK_TO_STATION as AnyFigureDef;
-  const coded = contraFigureOf(id) as AnyFigureDef | undefined;
-  if (coded) return coded;
-  // **A figure that is data with no coded twin**: its parameters, its beats and
-  // its call text live on the `FigureDefinition`, and the interpreter is what
-  // turns those into the `AnyFigureDef` a text is checked and resolved against.
+  // **Planned over a hands-four where it can be**, because a landmark is read
+  // off a figure's ends over the four dancers of a minor set. Until M11 the
+  // coded twin answered that for the figures resolution mints per pair;
+  // `figureOnFour` is what answers for them now.
+  const onFour = figureOnFour(id) as AnyFigureDef | undefined;
+  if (onFour) return onFour;
+  // **A figure a hands-four cannot plan at all** — one minted per dancer, or
+  // danced by a whole line. Its parameters, its beats and its call text still
+  // live on the `FigureDefinition`, and the interpreter is what turns those
+  // into the `AnyFigureDef` a text is checked and resolved against; what it
+  // cannot answer is where it leaves the four, and `landmark` says so by
+  // returning nothing rather than by throwing.
   const definition = DATA_DEFINITIONS.find((def) => def.id === id);
   return definition === undefined
     ? undefined

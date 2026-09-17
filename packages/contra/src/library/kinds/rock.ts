@@ -1,5 +1,5 @@
 import type { Beat, Hand, Side, Vec2 } from "@caller/core";
-import { addScaled, angleLerp, dirOf, lerp, ramp } from "@caller/core";
+import { addScaled, angleLerp, dirOf, lerp, ramp, smooth } from "@caller/core";
 import type {
   FigurePlan,
   LocalHand,
@@ -16,7 +16,6 @@ import {
   takeAndRelease,
 } from "../../figures/ContraFigure.js";
 import { ringFor, ringHands } from "../../figures/ring.js";
-import { BALANCE_BACK_RATIO, BALANCE_LEAN_CAP, balanceRock } from "../../pair/balance.js";
 import type { FigureRole, HoldSpec, RockShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
 import { evalBool, evalNumber } from "../expr.js";
@@ -24,6 +23,31 @@ import { type ShapeInput } from "../interpret.js";
 import type { ActivePairHold } from "./holds.js";
 import { activeHolds, endsOfHold, joinsHeldAt } from "./holds.js";
 import { settleOnPlaces } from "./places.js";
+
+/**
+ * The back rock is a little longer than the forward one, as in the spike
+ * (1.4 : 1.3).
+ *
+ * This and the two below came out of `pair/balance.ts` when M11 deleted the
+ * two-dancer engine: they are the shape of a balance, and the rock kind is the
+ * only thing left that dances one.
+ */
+export const BALANCE_BACK_RATIO = 1.4 / 1.3;
+
+/** The most the torso and head lean, in px, however big the rock is. */
+export const BALANCE_LEAN_CAP = 1.0;
+
+/**
+ * The rock itself, -1 to 1: forward over the first beat and a bit, back over
+ * the third, level again at the end. Ported beat for beat from the spike.
+ */
+export function balanceRock(t: Beat): number {
+  if (t < 0.7) return smooth(t / 0.7);
+  if (t < 1.7) return 1;
+  if (t < 2.6) return 1 - 2 * smooth((t - 1.7) / 0.9);
+  if (t < 3.5) return -1;
+  return -1 + smooth((t - 3.5) / 0.5);
+}
 
 /**
  * **The rock**: a pair or a ring closes up, rocks forward and rocks back.

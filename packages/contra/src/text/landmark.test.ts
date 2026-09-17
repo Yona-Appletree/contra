@@ -5,8 +5,8 @@ import { formationFor } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { probeGroup } from "../figures/testing.js";
-import { dataOnlyDefinitions } from "../library/figures/index.js";
-import { figureDefOf } from "./figureText.js";
+import { figureOnFour } from "../figures/onFour.js";
+import { definitionOf, figureDefOf } from "./figureText.js";
 import { landmark } from "./landmark.js";
 import type { Place } from "./seam.js";
 import { relationTo, sayWhoIsWhere } from "./seam.js";
@@ -114,29 +114,33 @@ describe("every figure the demo dances call has a landmark", () => {
    * The figures a landmark can be asked of at all.
    *
    * `landmark` plans a figure over the **four** dancers of a hands-four group
-   * and reads its ends, which is a question only a figure resolution hands the
-   * whole four can answer. A figure minted **per pair** (`anchor: "meet"`, a
-   * cast off's named pivot) or **per dancer** (`actors: "each"`) refuses four
-   * roles by name. Every such figure had a coded twin to answer for it — and
-   * the coded figure is what `figureDefOf` hands back — until M5, whose
-   * shoulder round is a figure for two with only a definition; M7 adds seven
-   * more, and M7b's two dances add four (a pull-by and a grand right and left
-   * are M6's own travellers, and a long wave and a circulate are danced by a
-   * whole **line**, which is further from a hands-four still). None of them uses
-   * `{where}` in its texts, so nothing asks for a landmark it cannot give, and
-   * each ends its walkthrough on a sentence of its own.
+   * and reads its ends, and what it says is one sentence about *the four*:
+   * "your partner is beside you, your neighbour across". Two things rule a
+   * figure out. It may not be plannable over a hands-four at all — minted per
+   * dancer, declaring a cast that reaches past the minor set, or danced by a
+   * whole **line** — which is what `figureOnFour` answers. Or it may be a
+   * figure for **two**, which leaves the other two of the four exactly where
+   * they were and so has no sentence about the four to say: until M11 its coded
+   * twin planned all four and answered anyway, and the twin is gone.
+   *
+   * None of the ones left out uses `{where}` in its texts, so nothing asks for
+   * a landmark it cannot give, and each ends its walkthrough on a sentence of
+   * its own.
    */
   const asked = [...seen.keys()].filter((id) => {
-    const def = dataOnlyDefinitions().find((each) => each.id === id);
-    if (def === undefined) return true;
-    // **A figure that declares its own cast** cannot answer either (FR-B1):
-    // turn contra corners is danced by six and a hands-four has four.
-    if (def.cast !== undefined) return false;
-    return def.actors === "all" || def.actors === "ring";
+    if (figureOnFour(id) === undefined) return false;
+    const def = definitionOf(id);
+    return def === undefined || def.actors === "all" || def.actors === "ring";
   });
 
   it("asks every figure the demo calls but the ones minted per pair, per dancer or per line", () => {
     expect([...seen.keys()].filter((id) => !asked.includes(id)).sort()).toEqual([
+      // The three M11 added, and they are all one thing: a figure for **two**.
+      // Their coded twins planned the whole hands-four and answered for them;
+      // the definitions mint one instance per pair and leave the other two of
+      // the four standing, which is no sentence about the four.
+      "allemande",
+      "balance-and-swing",
       "balance-wave",
       "cast-off",
       "circulate",
@@ -147,6 +151,7 @@ describe("every figure the demo dances call has a landmark", () => {
       "lead-up",
       "pull-by",
       "shoulder-round",
+      "swing",
       "turn-alone",
       "turn-as-couples",
       // Six dancers, not four: the corners are in the couples above and below

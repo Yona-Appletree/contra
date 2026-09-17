@@ -311,24 +311,22 @@ describe("danceOrder and the two engines (M3)", () => {
     expect(isLabDance("contrablend")).toBe(true);
   });
 
-  it("builds a programme that dances on either engine", () => {
-    for (const engine of ["new", "old"] as const) {
-      const program = createDemoProgram(world, "butter", 7, {}, engine);
-      expect(program.dances[0]!.slug, engine).toBe("butter");
-      expect(program.decider.covered(), engine).toBeGreaterThanOrEqual(CYCLE_BEATS);
-    }
-  });
-
-  /*
-   * The point of `?engine=`: the two paths are different dancing, not two
-   * spellings of one. Jubilation's hey into the swing is the one seam in the
-   * demo corpus where they differ — every other dance is identical to 1e-14 px
-   * — so it is the case that would catch the toggle silently doing nothing.
+  /**
+   * **One engine since M11**, and `?engine=old` is a link that still opens.
+   *
+   * The two paths really were different dancing: Jubilation's hey into the
+   * swing was the one seam in the demo corpus where they differed — the data
+   * swing's honest end is 12.2 px from the station the coded swing walked back
+   * to, and every other dance was identical to 1e-14 px. The user ruled the
+   * coded layer could go, so what a stale `?engine=old` link now gets is the
+   * dancing that ships, which is what `engineFromQuery` promises.
    */
-  it("really dances Jubilation's hey into the swing differently on the new engine", () => {
+  it("builds the same programme whichever engine is asked for", () => {
     const [neu, old] = (["new", "old"] as const).map((engine) =>
       createDemoProgram(world, "jubilation", 7, {}, engine),
     );
+    expect(neu!.dances[0]!.slug).toBe("jubilation");
+    expect(neu!.decider.covered()).toBeGreaterThanOrEqual(CYCLE_BEATS);
     let worst = 0;
     for (let beat = 0; beat <= CYCLE_BEATS; beat += 0.25) {
       for (const who of neu!.timeline.dancers()) {
@@ -337,8 +335,6 @@ describe("danceOrder and the two engines (M3)", () => {
         worst = Math.max(worst, Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1]));
       }
     }
-    // Measured, not asserted at a round number: the swing's honest end is
-    // 12.2 px from the station the coded swing walks back to.
-    expect(worst).toBeGreaterThan(10);
+    expect(worst).toBe(0);
   });
 });

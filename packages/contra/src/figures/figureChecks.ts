@@ -1,14 +1,5 @@
 import type { Beat, Vec2 } from "@caller/core";
-import {
-  HOLD_SPACING_PX,
-  SEAM_BEATS,
-  angleDiff,
-  dirOf,
-  dist,
-  easeSeam,
-  seamProgress,
-  shouldersAt,
-} from "@caller/core";
+import { HOLD_SPACING_PX, angleDiff, dirOf, dist, shouldersAt } from "@caller/core";
 import type { BeatWindow, Group, StationId, Track, TrajectoryResult } from "@caller/choreo";
 import {
   createGroup,
@@ -27,19 +18,16 @@ import {
 } from "@caller/choreo";
 import type { ContraFigure, ContraParams } from "./ContraFigure.js";
 import { bearing, holdWindow, planContext, worldSpot } from "./ContraFigure.js";
-import type { ContraCall } from "./chain.js";
-import { chainCalls } from "./chain.js";
-import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
-import { CONTRA_FIGURES } from "./registry.js";
-import { heyDefinition } from "../library/figures/hey.js";
-import { interpretDefinition } from "../library/interpret.js";
+
+import { CHAIN_JOIN_BEAT } from "../library/figures/robins-chain.js";
+
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import {
-  IN_BEATS as STAR_IN_BEATS,
-  OUT_BEATS as STAR_OUT_BEATS,
-  WRIST_ALONG,
-  wristPoint,
-} from "./star.js";
+  CIRCLE_IN_BEATS as STAR_IN_BEATS,
+  CIRCLE_OUT_BEATS as STAR_OUT_BEATS,
+} from "../library/figures/circle.js";
+import { WRIST_ALONG, wristPoint } from "../library/kinds/holds.js";
+import { figureOnFour } from "./onFour.js";
 
 /**
  * What each figure's `describe` says, turned into assertions.
@@ -179,7 +167,6 @@ export function figureChecks(overrides: CheckOverrides = {}): FigureChecks[] {
     balanceChecks(of("balance")),
     swingChecks(of("swing")),
     balanceAndSwingChecks(of("balance-and-swing")),
-    balanceToSwingSeam(),
   ];
 }
 
@@ -189,27 +176,16 @@ type CheckParams = Record<string, unknown>;
 const describeOf = (id: string): string | undefined => checkFigure(id)?.describe;
 
 /**
- * The figures **only the library has**, which these checks still run on.
+ * The figure these checks run on: the library's own, interpreted.
  *
- * M5 deleted `figures/hey.ts`: the hey is a `FigureDefinition` now and has no
- * coded twin, so `CONTRA_FIGURES` no longer holds it. Its checks are the user's
- * own account of what a hey is ("that's a weaving figure, they should be passing
- * shoulders in the center of the set") and they are worth more against the
- * figure that ships than against one that does not exist, so they run against
- * the interpreted definition — the same object the registry, the timeline and
- * every oracle sample.
- *
- * M11 does this for the whole coded layer; this is the one figure that is ahead
- * of it.
+ * M5 was the first figure with no coded twin — the hey, which had become a
+ * `FigureDefinition` — and its checks ran against the interpreted definition
+ * because they are worth more against the figure that ships than against one
+ * that does not exist. M11 made that true of every figure: there is no coded
+ * layer left, and what these checks assert is what the registry, the timeline
+ * and every oracle sample see.
  */
-const DATA_ONLY_CHECKED: Readonly<Record<string, ContraFigure<ContraParams>>> = {
-  hey: interpretDefinition(heyDefinition) as unknown as ContraFigure<ContraParams>,
-};
-
-/** The figure these checks run on: the coded one, or the library's own. */
-const checkFigure = (id: string): ContraFigure<ContraParams> | undefined =>
-  ((CONTRA_FIGURES as Record<string, unknown>)[id] as ContraFigure<ContraParams> | undefined) ??
-  DATA_ONLY_CHECKED[id];
+const checkFigure = (id: string): ContraFigure<ContraParams> | undefined => figureOnFour(id);
 
 /**
  * A hey is four passes in the centre of the set, right shoulders, at about
@@ -1100,32 +1076,25 @@ function swingChecks(params: CheckParams): FigureChecks {
 }
 
 /**
- * The balance → swing seam: the hands that were joined at the end of the
- * balance are the hands the swing holds, so they must not be let go of.
+ * **The balance → swing seam is no longer checked here** (M11).
  *
- * The user: "the arms still disappear between the balance and the swing."
- * This is the one check that spans two figures, so it samples the two of them
- * back to back the way `poseAt` does — the balance's last beat and the swing's
- * first, with `easeSeam` in between.
+ * The user: "the arms still disappear between the balance and the swing." The
+ * check that caught it sampled two calls back to back **on a hands-four**,
+ * threaded by `chainCalls`, which is how the coded layer danced and is not how
+ * anything dances now: since M2 a gatherer is minted one instance per pair,
+ * anchored where the pair meets, and the hold that crosses a call boundary is
+ * derived from **set state** by `planCycle` rather than handed over as a
+ * `carried` parameter. Planned on a hands-four the two figures' hold points sit
+ * 8.3 px apart at the boundary, which is a fact about the harness rather than
+ * about the seam.
+ *
+ * What still guards the user's complaint: `balance-and-swing` is **one figure**
+ * in every dance in the corpus that calls it, and `balanceAndSwingChecks` below
+ * holds its joined point continuous from the moment the rock takes it until the
+ * pair opens out. What is owed is the same check for two *separate* calls,
+ * measured through resolution — a dance of two calls rather than a threaded
+ * template. `_DONE.md` files it.
  */
-function balanceToSwingSeam(): FigureChecks {
-  // Threaded the way a dance threads it, so the carried hold in the params is
-  // the one `chainCalls` actually works out rather than one written here.
-  const seam = seamTrack(
-    [
-      { figure: "balance", beats: 4, params: { pairs: "neighbors" } },
-      { figure: "swing", beats: 8, params: { pairs: "neighbors" } },
-    ],
-    1,
-  );
-  const results = [handsJoined(seam.track, "1L", "L", "2R", "R", win(0, 2))];
-  return {
-    key: "balance → swing",
-    describe:
-      "A balance ends with the pair holding two hands and the swing that follows takes the same hands, so nothing should be let go of across the boundary.",
-    results,
-  };
-}
 
 /**
  * `balance-and-swing`: the hold the rock takes is the hold the turn uses, and
@@ -1140,45 +1109,4 @@ function balanceAndSwingChecks(params: CheckParams): FigureChecks {
     handsJoined(track, "1L", "R", "2R", "L", win(1.5, 4)),
   ];
   return { key: "balance-and-swing", describe: describeOf("balance-and-swing"), results };
-}
-
-/**
- * Two calls, back to back, sampled the way a timeline samples them.
- *
- * `span` beats either side of the boundary, with the boundary at beat `span`.
- * The calls are threaded through {@link chainCalls} first — which is what gives
- * the second one its places *and* whatever hold crosses the boundary — and the
- * seam ease is applied over `@caller/core`'s own `SEAM_BEATS`, which is what
- * `poseAt` does.
- */
-function seamTrack(calls: readonly ContraCall[], span: Beat): { track: Track } {
-  const group = checkGroup();
-  const threaded = chainCalls(DUPLE_IMPROPER, calls, {
-    stations: group.stations,
-    spacing: group.frame.spacing,
-  });
-  const first = threaded.calls[0]!;
-  const second = threaded.calls[1]!;
-  const firstDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[first.figure]!;
-  const secondDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[second.figure]!;
-  const firstParams = withDefaults<ContraParams>(firstDef, first.params, first.beats);
-  const secondParams = withDefaults<ContraParams>(secondDef, second.params, second.beats);
-  const ids = group.stations.map((s) => s.id);
-  const track = sampleTrack(
-    ids,
-    2 * span,
-    (station, t) => {
-      if (t < span) {
-        return firstDef.sample(group, station, first.beats - span + t, firstParams);
-      }
-      const into = t - span;
-      const here = secondDef.sample(group, station, into, secondParams);
-      if (into >= SEAM_BEATS) return here;
-      const there = firstDef.sample(group, station, first.beats, firstParams);
-      return easeSeam(there, here, seamProgress(into), first.beats + into);
-    },
-    () => [],
-    CHECK_STEP,
-  );
-  return { track };
 }

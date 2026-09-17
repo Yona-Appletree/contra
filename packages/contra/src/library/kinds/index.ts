@@ -67,10 +67,6 @@ export function planShape(
       return planUnit(shape, holds, input);
     case "wave":
       return planWave(shape, holds, input);
-    case "legacy":
-      throw new Error(
-        `a legacy shape is the coded figure "${shape.figure}"; the interpreter does not draw it`,
-      );
   }
 }
 

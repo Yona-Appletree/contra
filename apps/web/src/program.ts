@@ -18,7 +18,6 @@ import {
   callScript,
   contraDataEngine,
   createContraCyclePlanner,
-  createContraRegistry,
   danceOwes,
 } from "@caller/contra";
 import type { HallWorld } from "@caller/hall";
@@ -535,16 +534,15 @@ const DOWN_THE_HALL = 90;
  * ones. Nothing in the app drives it today — it is the registry's own seam, for
  * a caller comparing one figure's tuning against another's.
  *
- * `engine` is `?engine=new|old`'s route in, and it is **two halves, both of
- * which have to agree**. The new engine is the contra `CyclePlanner` *and* a
- * registry holding the five migrated figures as interpreted definitions:
- * `poseAt` resolves a figure by id in the **registry**, not in the planner's
- * emission, so planning against the data swing while the timeline sampled the
- * coded one would silently draw the wrong figure. `contraDataEngine()` builds
- * the consistent pair and `createContraCyclePlanner({ library })` is given that
- * pair's own library, so the planner is not rebuilding it at the top of every
- * time through. `old` is the plain coded registry with no planner at all, which
- * is `defaultCyclePlanner` — the path every golden before M3 was taken against.
+ * `engine` was `?engine=new|old`'s route in and **selects nothing since M11**:
+ * the old engine was the coded figure registry with `defaultCyclePlanner` over
+ * it, and the user ruled the coded layer could go. What is left is the pair
+ * `contraDataEngine()` builds — the contra `CyclePlanner` *and* a registry
+ * holding the same interpreted definitions, because `poseAt` resolves a figure
+ * by id in the **registry**, not in the planner's emission, so planning against
+ * one figure while the timeline sampled another would silently draw the wrong
+ * thing. The parameter stays so that a caller may still say which engine it
+ * meant; the answer is the same either way.
  */
 export function createDemoProgram(
   world: HallWorld,
@@ -573,10 +571,10 @@ export function createDemoProgram(
     world,
     world.sets.map((s) => s.couples),
   );
-  const engineHalves =
-    engine === "new"
-      ? contraDataEngine([], figureOverrides)
-      : { registry: createContraRegistry([], figureOverrides), library: undefined };
+  // `engine` names which engine the page asked for and both answers are the
+  // same one since M11; it is read here so the parameter is not a lie.
+  void engine;
+  const engineHalves = contraDataEngine([], figureOverrides);
   const decider = createScriptDecider(
     program,
     engineHalves.registry,

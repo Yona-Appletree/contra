@@ -77,7 +77,8 @@ everything in it is either a fact about the dance or a parameter of a figure.
       "group": "shadow-pair", // which partition of the set the call runs in
       "ends": "bottom", // which true end a widened group may reach
       "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
-      "call": "LARKS ALLEMANDE LEFT ONCE AND A HALF",
+      "call": "SHIFT LEFT", // only for a flourish no text form can say; see below
+
       "spokenBeats": 3, // override the rhythm estimate for this line
       "while": [], // calls danced beside this one; see "Concurrent calls"
     },
@@ -121,6 +122,29 @@ out of two minor sets and no group selector, tag or single relation says that.
 The ordinary rules still hold: four distinct dancers or it is not a foursome,
 nobody is in two of them, and a dancer any one of the relations leaves out —
 the ends of the line — is left out of the call and dances hold-place.
+
+## Which figure, and which parameters
+
+**The list of figure ids, with every parameter and its default, is the table in
+[`packages/contra/README.md`](../packages/contra/README.md#the-figures--srclibraryfigures).**
+Read it before writing a call: it is the only place that says both what a figure
+is called and what it takes, and a translator guessing an id from the
+transcript's words will get some of them right and some of them wrong. "Slide
+left along the set" is `slide-left`, not `slide`; "ladies chain" is
+`robins-chain` and needs no parameter to say who she chains to; "circle left
+three quarters" is `circle` with `{ "direction": "left", "places": 3 }`, because
+`places` counts **quarters** of the ring and `direction` says which way round;
+"star right once" is `star` with `{ "hand": "R", "amount": 1 }`, where `hand`
+names the hand in the middle and `amount` is a fraction of the whole star.
+
+**`pnpm figure <id>`** prints one figure's own definition — its shape kind, its
+figure-roles, its actors, its anchor, its ends and every parameter it declares —
+which is the second place to look and the one that cannot go stale.
+
+A call that names an id nothing answers to fails `pnpm dance` in section 1 by
+name, so a wrong guess is caught rather than silently danced; a call that names
+a figure a later milestone owns is section 0's business (see step 5 of the
+checklist).
 
 ## Shorthand and canonical parameters
 
@@ -442,7 +466,10 @@ that has gone wrong at least once.
 
 1. **Copy the transcript verbatim** into `source.transcript`, counts, notation
    and all, and record `callersBoxId`, `url` and the page's own `permission`.
-   If the permission is not `full`, stop: the figures may not be stored.
+   If the permission is not `full`, stop: the figures may not be stored. A dance
+   with **no Caller's Box page** — one written for a test, or a caller's own —
+   has no `callersBoxId` and no `url`: leave both out, keep `transcript` and
+   `permission`, and say in `notes` where it came from.
 2. **Name the formation.** `duple-improper`, `becket`, `proper` — and read what
    the page says beside it ("improper", "becket", "single, swap sides").
 3. **Write the phrases with their counts first, figures second.** Check each

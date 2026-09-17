@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
-import { swing } from "../../figures/swing.js";
 import type { CompareCase } from "../compareFigures.js";
-import { DD21_TOLERANCE } from "../compareFigures.js";
+import { DD13_SWING_TOLERANCE } from "../compareFigures.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { gathererGolden, worstOf } from "./gatherers.js";
 import { swingDefinition } from "./swing.js";
 
@@ -22,8 +22,11 @@ import { swingDefinition } from "./swing.js";
  * the body turns over it, swinging through in the last half beat — and the
  * coded swing it is compared against still slides them on a body-local sine,
  * because the coded layer is deliberately not retrofitted (M11 deletes it).
- * Everything DD21 is actually about is unchanged and still asserted to 0.01 px:
- * the turn rate, the 30° body turn, the hand offsets and the end spacing. The
+ * Everything DD21 is actually about is unchanged and still asserted: the turn
+ * rate, the 30° body turn, the hand offsets and the end spacing — at DD13's
+ * 1 px and 1° since M11 (the user at G1: "seems kinda intense. maybe like
+ * 1px?"), against the coded swing **as recorded** rather than as run, because
+ * M11 deleted it. The measured worst is far under that ceiling. The
  * buzz step itself is unchanged — the fade into it is the same `lerpFeet` — so
  * the two agree again as soon as the buzz has taken the feet over.
  */
@@ -46,7 +49,10 @@ const CASES: readonly CompareCase[] = [
   },
 ];
 
-const GOLDEN = gathererGolden(swing, swingDefinition, CASES);
+/** The coded figure this definition replaced, as M11 recorded it. */
+const CODED = fixtureOf("swing");
+
+const GOLDEN = gathererGolden(CODED, swingDefinition, CASES, DD13_SWING_TOLERANCE);
 
 describe("the swing as data", () => {
   it("is data: it survives a round trip through JSON", () => {
@@ -54,14 +60,14 @@ describe("the swing as data", () => {
   });
 
   it("keeps the coded swing's call, count and lead", () => {
-    expect(swingDefinition.call).toBe(swing.call);
-    expect(swingDefinition.lead).toBe(swing.lead);
-    expect(swingDefinition.nominalBeats).toBe(swing.beats);
-    expect(swingDefinition.id).toBe(swing.id);
+    expect(swingDefinition.call).toBe(CODED.call);
+    expect(swingDefinition.lead).toBe(CODED.lead);
+    expect(swingDefinition.nominalBeats).toBe(CODED.beats);
+    expect(swingDefinition.id).toBe(CODED.figure);
   });
 
   it("no longer takes `endHalf`, because it no longer guesses (AC2)", () => {
-    expect(swing.defaults).toHaveProperty("endHalf");
+    expect(CODED.defaults).toHaveProperty("endHalf");
     expect(swingDefinition.params).toEqual({
       kind: "canonical",
       defaults: { pairs: "neighbors", turns: 2, handOffset: 5, endFacing: "across" },
@@ -76,12 +82,12 @@ describe("the swing as data", () => {
     });
   }
 
-  it(`agrees with the coded swing from the stations to ${String(DD21_TOLERANCE.px)} px and ${String(DD21_TOLERANCE.deg)}°`, () => {
+  it(`agrees with the coded swing from the stations to ${String(DD13_SWING_TOLERANCE.px)} px and ${String(DD13_SWING_TOLERANCE.deg)}°`, () => {
     const worst = worstOf(GOLDEN.stations);
     expect(worst.samples).toBeGreaterThan(2000);
-    expect(worst.position).toBeLessThan(DD21_TOLERANCE.px);
-    expect(worst.facing).toBeLessThan(DD21_TOLERANCE.deg);
-    expect(worst.hand).toBeLessThan(DD21_TOLERANCE.px);
+    expect(worst.position).toBeLessThan(DD13_SWING_TOLERANCE.px);
+    expect(worst.facing).toBeLessThan(DD13_SWING_TOLERANCE.deg);
+    expect(worst.hand).toBeLessThan(DD13_SWING_TOLERANCE.px);
   });
 
   it("settles on the formation's own places even when the figure before did not", () => {
@@ -93,6 +99,6 @@ describe("the swing as data", () => {
     expect(worst.home).toBeLessThan(1e-9);
     // And it really was a different figure: if the displaced run matched the
     // coded one everywhere, the honest end would not be doing anything.
-    expect(worst.position).toBeGreaterThan(DD21_TOLERANCE.px);
+    expect(worst.position).toBeGreaterThan(DD13_SWING_TOLERANCE.px);
   });
 });

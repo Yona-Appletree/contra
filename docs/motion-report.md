@@ -103,16 +103,16 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 
 | what | hand px/beat | elbow px/beat | elbow/hand | height px/beat | travel px/beat | roles × | halves × | flips | jump px | NaN | dip px | worst hand at |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `wait-out` | 53.6 | 61.9 | 2.50 | 6.7 | 15.3 | 1.09 | **17.39** | 122 | 1.00 | 0 | 2.26 | `set0/c5/lark` L at beat 65.719 |
+| `wait-out` | 53.6 | 60.7 | 1.97 | 6.7 | 15.3 | 1.09 | **17.39** | 122 | 1.00 | 0 | 1.20 | `set0/c5/lark` L at beat 65.719 |
 | `pull-by` | 46.7 | 168.2 | **44.61** | 43.9 | 15.0 | 1.00 | 1.00 | 28 | 0.47 | 0 | 1.20 | `set0/c0/lark` R at beat 126.719 |
 | `grand-right-and-left` | 49.1 | 168.2 | **44.61** | 43.9 | 15.0 | **2.00** | **3.00** | 28 | 1.12 | 0 | 1.45 | `set0/c3/lark` L at beat 64.656 |
 | `turn-as-couples` | 52.4 | 170.0 | 5.51 | 24.3 | 15.1 | 1.00 | 1.00 | 18 | 0.70 | 0 | **14.21** | `set0/c1/robin` L at beat 22.219 |
 | `turn-alone` | 47.4 | 47.8 | 1.78 | 24.3 | 2.3 | — | — | 6 | 0.22 | 0 | **14.21** | `set0/c2/lark` R at beat 20.219 |
 | `lead-up` | 22.2 | 26.9 | 1.35 | 11.5 | 6.1 | 1.00 | **2.86** | 6 | 0.11 | 0 | **14.18** | `set0/c0/robin` R at beat 24.344 |
-| `circle` | 28.6 | 31.5 | 3.49 | 8.0 | **27.2** | 1.00 | 1.00 | 46 | 0.13 | 0 | **13.50** | `set0/c2/lark` L at beat 51.000 |
+| `circle` | 25.5 | 28.0 | 3.49 | 8.0 | **25.1** | 1.00 | 1.00 | 46 | 0.13 | 0 | **13.50** | `set0/c3/lark` R at beat 5.406 |
 | `bend-the-line` | 33.3 | 28.8 | 4.29 | 9.7 | 13.4 | 1.20 | — | 0 | 0.00 | 0 | **12.93** | `set0/c0/lark` R at beat 31.625 |
 | `star` | 40.6 | 52.4 | 2.58 | 12.1 | **25.1** | 1.07 | 1.23 | 92 | 0.23 | 0 | **8.27** | `set0/c3/robin` R at beat 59.031 |
-| `allemande` | 67.4 | 69.9 | 6.21 | 23.4 | **33.9** | 1.00 | **1.80** | 180 | 0.70 | 0 | **7.86** | `set0/c0/lark` R at beat 14.438 |
+| `allemande` | 67.4 | 69.9 | 6.21 | 23.4 | **33.9** | 1.00 | **1.80** | 84 | 0.70 | 0 | **7.86** | `set0/c0/lark` R at beat 14.438 |
 
 ### The ten worst seams
 
@@ -120,14 +120,14 @@ Each dance run alone by the script decider for two times through (beats 0–128)
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | `bend-the-line → circle` | 12.6 | 10.6 | 0.85 | 3.0 | 13.5 | — | — | 6 | 0.13 | 0 | **13.50** | `set0/c2/robin` R at beat 32.344 |
 | `long-lines → star` | 26.6 | 27.8 | 1.43 | 7.2 | 1.8 | — | — | 0 | 0.00 | 0 | **8.27** | `set0/c3/lark` L at beat 56.375 |
-| `long-lines → allemande` | 17.1 | 16.0 | 1.40 | 0.6 | 2.5 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c1/lark` L at beat 56.375 |
-| `long-lines → robins-chain` | 16.4 | 15.6 | 1.05 | 0.6 | 2.0 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` R at beat 56.375 |
-| `long-lines → swing` | 59.5 | 138.9 | 6.62 | 25.6 | 2.7 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
-| `star → balance-and-swing` | 57.9 | 195.3 | **19.44** | 7.9 | 5.8 | — | — | 32 | 0.12 | 0 | 0.84 | `set0/c3/lark` R at beat 64.156 |
-| `allemande → balance-and-swing` | 55.3 | 110.3 | **15.46** | 7.9 | 10.0 | — | — | 66 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 64.156 |
-| `allemande → allemande` | 15.1 | 18.2 | 1.54 | 0.0 | 10.0 | — | — | 12 | 0.09 | 0 | 0.92 | `set0/c2/robin` R at beat 24.375 |
+| `long-lines → allemande` | 17.1 | 16.0 | 1.40 | 0.6 | 2.6 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c2/lark` L at beat 24.375 |
+| `long-lines → robins-chain` | 16.4 | 15.6 | 1.05 | 0.6 | 2.0 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c0/robin` R at beat 56.375 |
+| `long-lines → swing` | 63.4 | 64.9 | 2.95 | 25.6 | 2.8 | — | — | 0 | 0.00 | 0 | **7.86** | `set0/c1/robin` L at beat 8.344 |
+| `allemande → allemande` | 14.9 | 13.6 | 1.54 | 0.0 | 10.0 | — | — | 6 | 0.09 | 0 | 0.92 | `set0/c0/lark` L at beat 24.375 |
+| `allemande → balance-and-swing` | 25.5 | 37.5 | 1.84 | 7.9 | 10.0 | — | — | 22 | 0.14 | 0 | 0.00 | `set0/c0/lark` L at beat 96.344 |
 | `allemande → balance-wave` | 30.2 | 41.5 | 1.79 | 22.0 | 10.8 | — | — | 4 | 0.11 | 0 | 0.00 | `set0/c3/robin` L at beat 16.344 |
-| `allemande → hey` | 34.0 | 29.9 | 2.64 | 0.0 | 10.0 | — | — | 30 | 0.12 | 0 | 1.49 | `set0/c0/lark` R at beat 32.313 |
+| `allemande → hey` | 34.0 | 29.9 | 2.64 | 0.0 | 10.0 | — | — | 18 | 0.12 | 0 | 1.49 | `set0/c0/lark` R at beat 32.313 |
+| `allemande → swing` | 48.4 | 102.8 | 3.59 | 23.8 | 11.1 | — | — | 32 | 0.14 | 0 | 0.00 | `set0/c3/lark` R at beat 52.344 |
 
 Over all ten dances: 1,114,112 measurements, 1182 hand-state flips, **0 of them not a finite number**.
 
@@ -141,28 +141,37 @@ it, so every number is the figure's own and no seam is folded in.
 | `interrupted-square-through` | 68.0 | 108.0 | **28.65** | 37.3 | 22.8 | 1.00 | **7.21** | 12 | 0.12 | 0 | 1.20 | `2L` L at beat 6.281 |
 | `bend-the-line` | 41.7 | 220.6 | **28.79** | 9.7 | **28.9** | **1.96** | **2.58** | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.375 |
 | `square-through` | 68.0 | 108.0 | **28.65** | 37.3 | 22.8 | 1.00 | 1.48 | 8 | 0.15 | 0 | 1.20 | `2L` L at beat 2.281 |
-| `robins-chain` | 37.7 | 80.6 | 10.40 | 22.8 | **24.2** | **2.13** | **2.34** | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.094 |
+| `roll-away` | 29.2 | 91.9 | **24.37** | 21.2 | 11.0 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 2.000 |
+| `pull-by` | 31.2 | 73.3 | **19.44** | 31.2 | 15.0 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` R at beat 1.750 |
+| `robins-chain` | 37.7 | 80.6 | 10.40 | 22.8 | **24.5** | **2.13** | **2.34** | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 1.094 |
 | `balance` | 11.8 | 15.9 | 1.56 | 9.9 | 3.8 | 1.00 | **1.71** | 0 | 0.00 | 0 | 0.00 | `2R` L at beat 0.469 |
-| `swing` | 28.7 | 47.3 | **11.94** | 21.7 | 15.5 | 1.00 | 1.22 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 0.344 |
+| `lead-down` | 43.6 | 138.8 | 9.62 | 9.7 | 9.0 | 1.00 | **1.70** | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 0.500 |
+| `lead-up` | 43.6 | 138.8 | 9.62 | 9.7 | 9.0 | 1.00 | **1.70** | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
 | `down-the-hall` | 26.5 | 61.5 | 3.54 | 6.5 | 11.5 | 1.09 | **1.70** | 0 | 0.00 | 0 | 1.20 | `1R` R at beat 0.563 |
 | `up-the-hall` | 26.5 | 61.5 | 3.54 | 6.5 | 11.5 | 1.09 | **1.70** | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 0.563 |
 | `single-file-promenade` | 11.1 | 9.8 | 1.57 | 0.0 | 6.0 | 1.60 | 1.01 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 6.500 |
-| `balance-and-swing` | 24.8 | 42.3 | 2.99 | 15.5 | 9.7 | 1.00 | 1.57 | 0 | 0.00 | 0 | 1.47 | `2R` R at beat 15.438 |
-| `petronella` | 24.7 | 26.8 | 1.86 | 0.0 | 14.4 | 1.55 | 1.00 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.781 |
-| `star` | 35.7 | 43.0 | 2.57 | 12.1 | 22.3 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 3.563 |
-| `california-twirl` | 27.7 | 66.9 | 4.54 | 21.7 | 18.5 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 1.563 |
+| `balance-and-swing` | 24.7 | 29.9 | 2.30 | 15.5 | 9.7 | 1.00 | 1.57 | 0 | 0.00 | 0 | 1.47 | `1L` L at beat 15.500 |
+| `petronella` | 22.4 | 24.0 | 1.87 | 0.0 | 13.2 | 1.55 | 1.00 | 0 | 0.00 | 0 | 0.00 | `2L` L at beat 1.688 |
+| `star` | 31.4 | 43.0 | 2.57 | 12.1 | 18.8 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 2.531 |
+| `turn-as-couples` | 23.4 | 28.6 | 4.32 | 0.0 | 18.6 | 1.00 | 1.19 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 0.656 |
+| `swing` | 30.3 | 46.3 | 8.84 | 21.7 | 15.5 | 1.00 | 1.22 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.375 |
 | `right-and-left-through` | 34.0 | 55.9 | 7.33 | 20.2 | 13.1 | 1.06 | 1.20 | 0 | 0.00 | 0 | 0.00 | `1L` R at beat 3.813 |
-| `circle` | 17.2 | 26.0 | 2.76 | 3.8 | 16.7 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `1L` L at beat 4.031 |
-| `roll-away` | 26.6 | 71.8 | 7.84 | 21.2 | 11.9 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 2.719 |
 | `balance-ring` | 17.5 | 35.5 | 2.08 | 12.5 | 8.3 | 1.00 | 1.08 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 3.531 |
 | `allemande` | 22.2 | 30.1 | 2.45 | 23.4 | 10.1 | 1.00 | 1.07 | 0 | 0.00 | 0 | 1.20 | `1R` L at beat 7.563 |
+| `california-twirl` | 35.2 | 66.2 | 5.30 | 21.7 | 12.8 | 1.06 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` R at beat 0.344 |
 | `jersey-twirl` | 50.1 | 45.8 | 2.04 | 21.7 | 12.8 | 1.06 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 3.656 |
+| `shoulder-round` | 16.5 | 20.8 | 1.59 | 0.0 | 6.2 | 1.00 | 1.06 | 0 | 0.00 | 0 | 1.20 | `1L` R at beat 0.469 |
 | `hey` | 22.0 | 26.3 | 2.31 | 0.0 | 10.6 | 1.00 | 1.06 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.750 |
+| `loop` | 27.3 | 27.1 | 1.47 | 0.0 | 11.5 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `2R` L at beat 1.563 |
+| `circle` | 15.0 | 26.0 | 2.76 | 3.8 | 14.1 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `2R` R at beat 7.500 |
 | `do-si-do` | 12.5 | 10.8 | 1.44 | 0.0 | 8.6 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `2L` L at beat 6.000 |
 | `mad-robin` | 17.9 | 17.7 | 1.78 | 0.0 | 5.9 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `2L` R at beat 0.531 |
-| `long-lines` | 21.1 | 33.7 | 6.07 | 10.5 | 3.4 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
-| `pass-through` | 23.0 | 22.5 | 1.59 | 0.0 | 11.9 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
+| `pass-through` | 23.2 | 22.8 | 1.55 | 0.0 | 11.1 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.563 |
+| `contrablend/long-lines-roll-away` | 18.7 | 20.7 | 1.35 | 0.0 | 3.3 | 1.00 | — | 0 | 0.00 | 0 | 0.00 | `1R` R at beat 6.531 |
+| `long-lines` | 21.0 | 33.8 | 5.98 | 10.5 | 3.0 | 1.00 | 1.00 | 0 | 0.00 | 0 | 0.00 | `1R` L at beat 0.344 |
 | `slide-left` | 8.4 | 8.0 | 1.15 | 0.0 | 5.0 | 1.00 | 1.00 | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 0.500 |
+| `turn-alone` | 10.0 | 9.0 | 1.78 | 0.0 | 0.0 | — | — | 0 | 0.00 | 0 | 1.20 | `2R` R at beat 2.500 |
+| `custom` | 3.7 | 2.1 | 0.55 | 0.0 | 0.0 | — | — | 0 | 0.00 | 0 | 1.20 | `1L` L at beat 5.531 |
 
 ## Known wrong
 
@@ -215,7 +224,7 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 | pass | 1R faces out of the set at beat 6 | facing 10.00 px out of the set |
 | pass | 2R ends on 1L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
 | pass | 1R ends on 2L's right, both facing in | she is on his right, both facing 10.00 px toward the middle of the set |
-| pass | nobody comes within 8 px of anybody from beat 4 to 8 | the closest anybody gets is 1L and 2R at 11.290 px |
+| pass | nobody comes within 8 px of anybody from beat 4 to 8 | the closest anybody gets is 1L and 2R at 11.170 px |
 | pass | 1R's R stays joined to 2R's R from beat 1.53125 to 2.125 | never more than 0.0000 px apart |
 | pass | 1R ends on 2R | they end 0.0000 px away |
 | pass | 2R ends on 1R | they end 0.0000 px away |
@@ -340,14 +349,6 @@ fails, so a fix has to delete its row. Nothing is skipped; nothing was loosened.
 | pass | 1L's L stays joined to 2R's R from beat 1.40625 to 14.59375 | never more than 0.0000 px apart |
 | pass | 1L's R stays joined to 2R's L from beat 1.5 to 4 | never more than 0.0000 px apart |
 
-### `balance → swing`
-
-> A balance ends with the pair holding two hands and the swing that follows takes the same hands, so nothing should be let go of across the boundary.
-
-| | assertion | evidence |
-| --- | --- | --- |
-| pass | 1L's L stays joined to 2R's R from beat 0 to 2 | never more than 0.0000 px apart |
-
 ## What every figure says it does
 
 These are the specifications the assertions above are written against. Anything
@@ -383,7 +384,7 @@ The two ends of your line of four walk forward and the two in the middle back up
 
 ### `california-twirl` — CALIFORNIA TWIRL
 
-Take inside hands with your partner and raise them, then walk forward: one of you walks round the outside while the other turns under the arch, so the two of you trade places and end facing back the way you came. Four beats, hands joined the whole way through. (unsure: which of the two turns under varies from hall to hall; this turns the robin under.)
+Join one hand with your partner — the lark's right in the robin's left, or the other way about — and the lark puts it up. Come together, the robin walks under the arch while the lark walks round the outside of her, and the two of you come out on each other's places facing back the way you came. It works from side by side, from face to face, or from wherever a circle left you. Four beats, the hand held the whole way through.
 
 ### `cast-back` — CAST BACK
 
@@ -404,6 +405,10 @@ From long wavy lines up and down the set, everybody moves one place round the bo
 ### `contrablend/long-lines-roll-away` — LONG LINES FORWARD AND BACK ROLL AWAY
 
 Take hands along your own line with the dancer beside you and walk four steps into the set. Walk four steps back out, and on the way back the roller rolls across in front of the other, turning inward, nose to nose first, while the other side-steps behind into the place they came out of. You come out of the line one dancing place along it from where you went in, still facing across, and the line is the same line.
+
+### `custom` — CUSTOM
+
+A call this library has no figure for yet. The dancers stand where they are for as long as it lasts, and the caller's own words are printed instead — the line is quoted from the dance's own source, count and all.
 
 ### `do-si-do` — DO-SI-DO
 
@@ -487,7 +492,7 @@ The two robins take right hands in the middle and pull by, passing right shoulde
 
 ### `roll-away` — ROLL AWAY WITH A HALF SASHAY
 
-Take your partner's near hand. The robin rolls across in front of the lark, turning once round as she goes, while the lark slides sideways into the place she came out of. You have traded places and you are both still facing the way you were. Four beats, hands joined through the roll.
+Take your partner's near hand. The robin rolls across in front of the lark, turning inward — nose to nose with him first, then on round once — while the lark slides sideways into the place she came out of. You have traded places and you are both still facing the way you were. Four beats, hands joined through the roll.
 
 ### `shoulder-round` — RIGHT SHOULDER ROUND
 

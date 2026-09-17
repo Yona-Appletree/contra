@@ -81,11 +81,7 @@ export { CONTRA_SET_RULES, setRulesFor, setRulesOf } from "./set/SetRules.js";
 export type { FigureInstance, ResolveContext } from "./set/resolve.js";
 export { HOLD_PLACE_FIGURE, resolveActors, resolveCall } from "./set/resolve.js";
 export type { ContraCyclePlannerOptions } from "./set/planCycle.js";
-export {
-  contraCyclePlanner,
-  createContraCyclePlanner,
-  legacyCyclePlanner,
-} from "./set/planCycle.js";
+export { contraCyclePlanner, createContraCyclePlanner } from "./set/planCycle.js";
 
 export type {
   ActorRule,
@@ -107,7 +103,6 @@ export type {
   HoldWindowSpec,
   IdleHands,
   IdleTrack,
-  LegacyShape,
   MateHold,
   OrbitEnds,
   OrbitMotion,
@@ -278,14 +273,6 @@ export {
   twoHandRock,
   worstOf,
 } from "./library/figures/index.js";
-export {
-  LEGACY_ROLES,
-  isContraFigure,
-  isLegacyRole,
-  legacyDefinition,
-  legacyFigureOf,
-  legacyLibrary,
-} from "./library/legacy.js";
 
 export {
   BECKET_RIGHT,
@@ -294,7 +281,6 @@ export {
 } from "./formation/becketRight.js";
 
 export * from "./figures/index.js";
-export * from "./pair/index.js";
 
 export {
   ALL_DANCES,
