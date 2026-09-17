@@ -1,11 +1,14 @@
 {
   "id": "square-through",
+  "description": "Two hands with two different dancers, pulling by each one in turn.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Right hand to the one you face and pull by, left hand to the next one and pull by.",
-    "long": "Give your right hand to the dancer you are facing and pull by, going straight past them. Give your left hand to the dancer you are facing now and pull by again. Two hands with two different people, and you end facing out of where you started; nobody turns round on the way."
+    "line": "Right hand to the one you face and pull by, left to the next one and pull by.",
+    "teach": "Give your {firstHand} hand to the dancer you are facing and pull by, going straight past them. Give your {secondHand} hand to the dancer you are facing now and pull by again. Two hands with two different people, and you end facing out of where you started."
   },
   "call": {
-    "short": "SQUARE THROUGH",
-    "long": "SQUARE THROUGH TWO HANDS"
+    "1": "SQUARE",
+    "2": "SQUARE THROUGH",
+    "4": "SQUARE THROUGH TWO HANDS"
   }
 }

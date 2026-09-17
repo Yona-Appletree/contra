@@ -1,11 +1,14 @@
 {
   "id": "go-up-outside",
+  "description": "One dancer walks back up the outside of the set into their own place.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Turn round and walk back up the outside of the set into your own place.",
-    "long": "Turn where you are and walk back up the outside of the set, stepping into the line as you reach your own place. You end where you were standing before you left it, facing the way you were facing then."
+    "line": "Turn round and walk back up the outside of the set into your own place.",
+    "teach": "Turn where you are and walk back up the outside of the set, stepping into the line as you reach your own place. You end where you were standing before you left it, facing the way you were facing then."
   },
   "call": {
-    "short": "UP THE OUTSIDE",
-    "long": "COME BACK UP THE OUTSIDE"
+    "1": "OUTSIDE",
+    "2": "UP THE OUTSIDE",
+    "4": "COME BACK UP THE OUTSIDE"
   }
 }

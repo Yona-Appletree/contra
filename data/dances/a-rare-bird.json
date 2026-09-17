@@ -58,38 +58,22 @@
         {
           "figure": "swing",
           "beats": 12,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOUR SWING"
+          "params": { "pairs": "neighbors", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "B1",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 6,
-          "params": { "direction": "left", "places": 3 },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "swing",
-          "beats": 10,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "circle", "beats": 6, "params": { "direction": "left", "places": 3 } },
+        { "figure": "swing", "beats": 10, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     },
     {
       "name": "B2",
       "figures": [
-        { "figure": "long-lines", "beats": 8, "call": "LONG LINES FORWARD AND BACK" },
-        {
-          "figure": "star",
-          "beats": 6,
-          "params": { "hand": "L", "places": 3 },
-          "call": "STAR LEFT THREE QUARTERS"
-        },
+        { "figure": "long-lines", "beats": 8 },
+        { "figure": "star", "beats": 6, "params": { "hand": "L", "places": 3 } },
         {
           "figure": "pull-by",
           "beats": 2,

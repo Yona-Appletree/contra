@@ -1,11 +1,14 @@
 {
   "id": "bend-the-line",
+  "description": "A line of four folds round into a ring of four.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "The ends of your line walk forward and the middles back up, so the line bends into a ring.",
-    "long": "Keep the hands you have. The two dancers on the ends of the line walk forward and the two in the middle back up, and the line folds round into a ring of four with everybody looking at everybody else. You end on the set's own four places, ready for whatever the caller does with the ring."
+    "line": "The ends of your line walk forward and the middles back up, into a ring.",
+    "teach": "Keep the hands you have. The two dancers on the ends of the line walk forward and the two in the middle back up, and the line folds round into a ring of four with everybody looking at everybody else. You end on the set's own four places, ready for whatever the caller does with the ring."
   },
   "call": {
-    "short": "BEND THE LINE",
-    "long": "BEND THE LINE INTO A RING"
+    "1": "BEND",
+    "2": "BEND THE LINE",
+    "4": "BEND THE LINE INTO A RING"
   }
 }

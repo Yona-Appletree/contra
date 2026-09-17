@@ -17,8 +17,7 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR BALANCE AND SWING"
+          "params": { "pairs": "neighbors", "endFacing": "across" }
         }
       ]
     },
@@ -28,36 +27,25 @@
         {
           "figure": "allemande",
           "beats": 8,
-          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 },
-          "call": "LARKS ALLEMANDE LEFT ONE AND A HALF"
+          "params": { "pairs": [["1L", "2L"]], "hand": "L", "amount": 1.5 }
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "partners", "endFacing": "across" } }
       ]
     },
     {
       "name": "B1",
       "figures": [
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" },
-        { "figure": "balance-ring", "beats": 4, "call": "BALANCE THE RING" },
-        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN" }
+        { "figure": "robins-chain", "beats": 8 },
+        { "figure": "balance-ring", "beats": 4 },
+        { "figure": "petronella", "beats": 4 }
       ]
     },
     {
       "name": "B2",
       "figures": [
-        { "figure": "balance-ring", "beats": 4, "call": "BALANCE THE RING" },
-        { "figure": "petronella", "beats": 4, "call": "PETRONELLA TURN" },
-        {
-          "figure": "star",
-          "beats": 8,
-          "params": { "hand": "L", "places": 4 },
-          "call": "STAR LEFT ONCE"
-        }
+        { "figure": "balance-ring", "beats": 4 },
+        { "figure": "petronella", "beats": 4 },
+        { "figure": "star", "beats": 8, "params": { "hand": "L", "places": 4 } }
       ]
     }
   ]

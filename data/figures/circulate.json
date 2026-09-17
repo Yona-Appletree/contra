@@ -1,11 +1,21 @@
 {
   "id": "circulate",
+  "description": "Everybody in a wave moves one place along it at the same time.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Everybody moves one place along the box at the same time.",
-    "long": "The larks walk straight across the set, passing right shoulders, and land one place along. The robins loop out of their own line and back into it, one place along, going round to the {hand}. Everybody moves at once and everybody ends in the wave they started in, with different dancers beside them."
+    "line": "Everybody moves one place along the box at the same time.",
+    "teach": "The larks walk straight across the set, passing right shoulders, and land one place along. The robins loop out of their own line and back into it one place along, going round to the {hand}. Everybody moves at once, and you end in the wave you started in with different dancers beside you."
   },
   "call": {
-    "short": "CIRCULATE",
-    "long": "CIRCULATE ONE PLACE ALONG"
+    "1": "CIRCULATE",
+    "2": "CIRCULATE",
+    "4": "CIRCULATE ONE PLACE ALONG"
+  },
+  "variants": {
+    "facesIn=robin": {
+      "walkthrough": {
+        "teach": "The robins walk straight across the set, passing right shoulders, and land one place along. The larks loop out of their own line and back into it one place along, going round to the {hand}. Everybody moves at once, and you end in the wave you started in with different dancers beside you."
+      }
+    }
   }
 }

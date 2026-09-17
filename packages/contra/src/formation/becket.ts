@@ -177,10 +177,34 @@ export const BECKET_LINE_UP_CALLS: readonly string[] = HANDS_FOUR_CALLS;
 export const becketHandsFourCalls = (shift: LineUpShift): readonly string[] => {
   if (shift === null) return [];
   return [
-    `MOVE ONE PLACE TO YOUR ${shift === "left" ? "LEFT" : "RIGHT"}`,
+    // **"Circle", not "move"** (D25): "turn one place" sounds like turning on
+    // the spot, and so does moving one place with no word for how. Travelling
+    // round a ring is circling, which is the user's own word and the one the
+    // walkthrough card's opening says too.
+    `CIRCLE ONE PLACE TO YOUR ${shift === "left" ? "LEFT" : "RIGHT"}`,
     "THIS IS A BECKET DANCE",
-    "YOUR PARTNER IS ON THE SIDE OF THE SET WITH YOU",
+    "YOUR PARTNER IS BESIDE YOU",
   ];
+};
+
+/**
+ * How a becket dance's walkthrough opens — the user's own sentence, word for
+ * word (D25):
+ *
+ * > "Take hands four from the top, then circle one place to the left. This is a
+ * > becket dance, your partner is beside you. You will progress to the left."
+ *
+ * No hint under it: the sentence already says where your partner is, and the
+ * app repeating it would be saying the same thing twice.
+ */
+export const becketWalkthroughOpening = (shift: LineUpShift): { line: string; hint?: string } => {
+  const way = shift === "right" ? "right" : "left";
+  return {
+    line:
+      `Take hands four from the top, then circle one place to the ${way}. ` +
+      `This is a becket dance, your partner is beside you. ` +
+      `You will progress to the ${way}.`,
+  };
 };
 
 /** Facing across the set, in frame-local degrees; the `+1` line faces this way. */
@@ -542,6 +566,7 @@ export function becketFormation(id: string, step: 1 | -1): Formation {
     roleSet: CONTRA_ROLES,
     lineUpCalls: BECKET_LINE_UP_CALLS,
     handsFourCalls: becketHandsFourCalls,
+    walkthroughOpening: becketWalkthroughOpening,
     // A minor set's two couples share one place; the slide moves a couple
     // exactly one place, `COUPLE_PITCH_PX`, so that is the along-hall period
     // (T6) — unlike duple improper, whose minor set spans two places.

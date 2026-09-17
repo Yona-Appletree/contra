@@ -83,11 +83,7 @@
           "figure": "balance-and-swing",
           "beats": 16,
           "who": "ones",
-          "params": {
-            "pairs": "partners",
-            "balanceBeats": 4,
-            "endFacing": "down"
-          },
+          "params": { "pairs": "partners", "balanceBeats": 4, "endFacing": "down" },
           "call": "ONES BALANCE AND SWING, FACE DOWN"
         }
       ]
@@ -95,29 +91,15 @@
     {
       "name": "B2",
       "figures": [
-        {
-          "figure": "balance-ring",
-          "beats": 4,
-          "call": "BALANCE THE RING"
-        },
+        { "figure": "balance-ring", "beats": 4 },
         {
           "figure": "single-file-promenade",
           "beats": 4,
           "who": ["1L", "2L", "2R"],
-          "params": {
-            "direction": "clockwise",
-            "amount": 0.3333333333333333
-          },
+          "params": { "direction": "clockwise", "amount": 0.3333333333333333 },
           "call": "LARK ONE AND THE TWOS, SINGLE FILE PROMENADE CLOCKWISE A THIRD"
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": {
-            "pairs": "neighbors"
-          },
-          "call": "NEIGHBOUR SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors" } }
       ]
     },
     {
@@ -190,11 +172,7 @@
           "figure": "balance-and-swing",
           "beats": 16,
           "who": "twos",
-          "params": {
-            "pairs": "partners",
-            "balanceBeats": 4,
-            "endFacing": "down"
-          },
+          "params": { "pairs": "partners", "balanceBeats": 4, "endFacing": "down" },
           "call": "TWOS BALANCE AND SWING, FACE DOWN"
         }
       ]
@@ -202,29 +180,15 @@
     {
       "name": "2B2",
       "figures": [
-        {
-          "figure": "balance-ring",
-          "beats": 4,
-          "call": "BALANCE THE RING"
-        },
+        { "figure": "balance-ring", "beats": 4 },
         {
           "figure": "single-file-promenade",
           "beats": 4,
           "who": ["2L", "1L", "1R"],
-          "params": {
-            "direction": "clockwise",
-            "amount": 0.3333333333333333
-          },
+          "params": { "direction": "clockwise", "amount": 0.3333333333333333 },
           "call": "LARK TWO AND THE ONES, SINGLE FILE PROMENADE CLOCKWISE A THIRD"
         },
-        {
-          "figure": "swing",
-          "beats": 8,
-          "params": {
-            "pairs": "neighbors"
-          },
-          "call": "NEIGHBOUR SWING"
-        }
+        { "figure": "swing", "beats": 8, "params": { "pairs": "neighbors" } }
       ]
     }
   ]

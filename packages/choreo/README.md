@@ -91,6 +91,8 @@ interface Formation {
   id;
   roleSet: RoleSet;
   lineUpCalls?: readonly string[];
+  handsFourCalls?: (shift: LineUpShift) => readonly string[];
+  walkthroughOpening?: (shift: LineUpShift) => { line: string; hint?: string };
   group(n: number): Station[];
   groupFor(selector: GroupSelector): Station[];
   progression: Progression;
@@ -99,6 +101,23 @@ interface Formation {
   tags(selector: GroupSelector): Record<string, StationId[]>;
 }
 ```
+
+**What the caller says is the form's business** (M13). The script decider takes
+an optional `callsFor(dance, timeThrough)` and says whatever list of
+`{ offset, text, beats? }` events it hands back, `offset` being the beat of the
+time through the utterance is said before and the lead applied to it exactly as
+it is to a call's own start. Left out, the decider does what it always did: one
+utterance per written call, the dance's own words or the figure's. `@caller/contra`
+supplies one that shortens a call as the hall learns the dance and says two short
+figures in one breath; none of that arithmetic is here, and none of it could be —
+the hook carries beats and text and never a relation or a figure-role.
+
+**A formation supplies its own words**, heard and read. `lineUpCalls` and
+`handsFourCalls` are what the caller says to get a hall standing in it (a
+becket hall hears a third sentence after it has hands); `walkthroughOpening` is
+the sentence a **walkthrough card** opens on, plus the app's own note under it.
+The two are drawn from one vocabulary on purpose, so what a dancer reads and
+what the hall hears are the same sentences.
 
 **Groups are formed per figure call, by a selector.** `groupsFor` is asked
 once for every call in a dance, not once per time through, and a call says

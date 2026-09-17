@@ -1,11 +1,14 @@
 {
   "id": "long-lines",
+  "description": "Two lines of dancers join hands, walk forward together and walk back.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Take hands along your own line, walk four steps in, and four steps back out.",
-    "long": "Take hands all the way along your own line with the dancers beside you. Walk four steps into the set, keeping the line straight, and four steps back out. Only the bodies travel; the arms stay where they are. {where}"
+    "line": "Take hands in long lines up and down the set, walk four steps in, and four steps back.",
+    "teach": "Take hands in long lines up and down the set with the dancers beside you. Walk four steps into the set, keeping the line straight, and four steps back out. Only the bodies travel; the arms stay where they are."
   },
   "call": {
-    "short": "LONG LINES",
-    "long": "LONG LINES FORWARD AND BACK"
+    "1": "LINES",
+    "2": "LONG LINES",
+    "4": "LONG LINES FORWARD AND BACK"
   }
 }

@@ -101,6 +101,7 @@ export type {
   PhraseName,
   Program,
   ProgramItem,
+  TeachEdit,
   Selector,
 } from "./dance/Dance.js";
 export {
@@ -128,6 +129,7 @@ export type {
   CyclePlanner,
   Decider,
   ScriptDeciderOptions,
+  SpokenCallEvent,
   ScriptPosition,
 } from "./decider/Decider.js";
 export {

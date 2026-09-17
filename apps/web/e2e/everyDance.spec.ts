@@ -34,10 +34,12 @@ for (const slug of SLUGS) {
     await expect(page.getByTestId("dance-page-resolution-error")).toHaveCount(0);
     await expect(page.getByTestId("dance-page-lab")).toHaveCount(LAB.has(slug) ? 1 : 0);
 
-    // 2. The card, which is the surface that flattens the phrases.
-    await expect(
-      page.getByTestId("dance-page").locator(".caller-music-card-phrase"),
-    ).not.toHaveCount(0);
+    // 2. The two cards, which are the surfaces that flatten the phrases: one
+    //    row per written call on the calling card, one entry per call on the
+    //    walkthrough (M13 replaced U3's static music card with both).
+    await expect(page.getByTestId("calling-card-row")).not.toHaveCount(0);
+    await expect(page.getByTestId("walkthrough-entry")).not.toHaveCount(0);
+    await expect(page.getByTestId("walkthrough-wrap")).toBeVisible();
 
     // 3. The Stage, which is the planner drawing it.
     await page.goto(`#/dance/${slug}?beat=0`);

@@ -329,6 +329,7 @@ export {
   type EndEffectRow,
   type ResolutionRow,
   danceFromFile,
+  DANCE_FILES,
   type DanceFile,
   type DanceFileSource,
   CONTRA_FORMATIONS,
