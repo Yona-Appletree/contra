@@ -5,10 +5,15 @@ import { describe, expect, it } from "vitest";
 
 /**
  * The package's own import rule, which `scripts/check-deps.mjs` cannot see:
- * `@caller/core` is the only workspace package this one may import, and of it
- * only the geometry, time and rendering-contract pieces. The kinematics under
- * `core/src/kinematics/` are what engine 3 replaces; importing one of their
- * names would be engine 2 leaking in.
+ * `@caller/core` and `@caller/hall` are the workspace packages this one may
+ * import, and of `core` only the geometry, time and rendering-contract
+ * pieces. The kinematics under `core/src/kinematics/` are what engine 3
+ * replaces; importing one of their names would be engine 2 leaking in.
+ *
+ * The one exception is the debugger's pixels pane, which draws with the
+ * hall's own passes (the dance-language plan, P6) and so has to hand the
+ * hall its own types — `PoseSample`, `ArmPair` — as **types only**, built
+ * from this engine's solved points. The engine itself never sees them.
  */
 const ENGINE_2_NAMES = [
   "solveArm",
@@ -40,7 +45,12 @@ const ENGINE_2_NAMES = [
   "shouldersAt",
 ];
 
-const ALLOWED_BARE = new Set(["@caller/core", "vitest", "vite", "vitest/config"]);
+const ALLOWED_BARE = new Set(["@caller/core", "@caller/hall", "vitest", "vite", "vitest/config"]);
+
+/** The hall's types the pixels pane must speak, and nothing else may. */
+const HALL_TYPES_ONLY: Readonly<Record<string, readonly string[]>> = {
+  "debugger/panes/pixels.ts": ["PoseSample", "ArmPair"],
+};
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -77,6 +87,11 @@ describe("allowed imports", () => {
         expect(ALLOWED_BARE.has(spec), `${rel} imports "${spec}"`).toBe(true);
         if (spec === "@caller/core") {
           for (const name of ENGINE_2_NAMES) {
+            if (
+              (HALL_TYPES_ONLY[rel] ?? []).includes(name) &&
+              /^\s*(?:import|export)\s+type\s/.test(m[0])
+            )
+              continue;
             const used = new RegExp(`\\b${name}\\b`).test(names);
             expect(used, `${rel} imports engine 2's ${name} from @caller/core`).toBe(false);
           }
