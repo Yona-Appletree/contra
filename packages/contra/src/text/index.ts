@@ -43,7 +43,12 @@ export {
 export type { WhoWord } from "./relationWords.js";
 export { relationWords, whoKey, whoOf } from "./relationWords.js";
 
-export { HOME_PX, isHome, landmark, placesOf } from "./landmark.js";
+// `placesOf` stays internal to `landmark.ts` (P7): its own name collides with
+// `set/shape.ts`'s unrelated `placesOf` at the package root, so a public
+// re-export here was already unreachable through `@caller/contra`'s own
+// barrel, and `HOME_PX`/`isHome` had no caller left after P2 replaced the "you
+// are back where you started" branch with the seam's own two sentences.
+export { landmark } from "./landmark.js";
 
 export type { Hint, Need, Place, SeamRelation, SeamSide } from "./seam.js";
 export {
@@ -69,6 +74,7 @@ export { DANCE_LEVEL_KEYS, applyTeach, checkDanceTeach, teachKey } from "./teach
 export type { CallPolicy, CallingCardCell, CallingCardRow, SpokenCall } from "./callScript.js";
 export {
   DEFAULT_CALL_POLICY,
+  FULL_CALL_BUDGET,
   LEAD_BEATS,
   WHILE,
   budgetFor,

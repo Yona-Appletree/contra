@@ -33,9 +33,12 @@ describe("the calling card", () => {
     expect((html.match(/data-testid="calling-card-row"/g) ?? []).length).toBe(
       butter.phrases.flatMap((phrase) => phrase.figures).length,
     );
-    expect(words(html)).toContain("first time");
-    expect(words(html)).toContain("2nd and 3rd");
-    expect(words(html)).toContain("later");
+    // Two columns, by register (P7, DD67, the user's gate edit on #72): the
+    // 4-beat call and the 2-beat call — not one per time through.
+    expect(words(html)).toContain("4-beat call");
+    expect(words(html)).toContain("2-beat call");
+    expect(words(html)).not.toContain("first time");
+    expect(words(html)).not.toContain("later");
   });
 
   it("says Butter's first two figures in one breath, with a dash on the covered row", () => {
@@ -130,7 +133,12 @@ describe("the walkthrough card", () => {
     expect(said).toContain('data-while="1"');
     expect(said).toContain('data-figure="cast-back"');
     expect(said).toContain("&amp;branch=1");
-    expect(words(said)).toContain(" while ");
+    // The heading is the record's own flourish, which already says both
+    // halves — "Robins cast back, larks go forward" — and does not also join
+    // each branch's own form on top of it (P7): before the fix this read
+    // "…larks go forward while Larks go forward".
+    expect(words(said)).toContain("Robins cast back, larks go forward");
+    expect(words(said)).not.toContain("go forward while");
   });
 });
 

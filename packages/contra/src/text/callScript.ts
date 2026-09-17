@@ -44,10 +44,16 @@ export interface CallPolicy {
 }
 
 /**
+ * The whole sentence's own register — the first time through's budget, and the
+ * calling card's first column (P7, DD67): the user's "4-beat call".
+ */
+export const FULL_CALL_BUDGET: Beat = 4;
+
+/**
  * The first time through gets the whole sentence, the next two get the middle
  * form, and after that a word (vision §3).
  */
-export const DEFAULT_CALL_POLICY: CallPolicy = { budgets: [4, 2, 2, 1] };
+export const DEFAULT_CALL_POLICY: CallPolicy = { budgets: [FULL_CALL_BUDGET, 2, 2, 1] };
 
 export type { CallToken, CallTokenKind };
 

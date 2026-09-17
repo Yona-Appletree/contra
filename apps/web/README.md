@@ -132,11 +132,12 @@ their own and are reached by URL or by a link on the page above them.
   `pnpm dance <slug>` prints, from the same function.
 
   The **calling card** (`dance-page-calling-card`) is what a caller says for
-  this dance at every register: one row per written call, one column per time
-  through — the whole sentence the first time, the middle form for the next
-  two, a word after that. Only the first column is coloured, by part (who /
-  what / which way / how far, D26; `cards/callColours.ts`), and the short forms
-  are plain ink (D32).
+  this dance, one row per written call, **one column per register** (P7,
+  DD67 — the user's own gate edit, "we just need two columns, 4-beat call and
+  2-beat call"): the whole sentence, then the short form the note card also
+  uses (`NOTE_CARD_BUDGET`). Only the first column is coloured, by part (who /
+  what / which way / how far, D26; `cards/callColours.ts`), and the second is
+  plain ink (D32).
 
   The **walkthrough card** (`dance-page-walkthrough`) is the dance as a caller
   would teach it: the formation's own opening, one `walkthrough-entry` per call

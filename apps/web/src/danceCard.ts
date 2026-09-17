@@ -74,8 +74,14 @@ const branchTexts = (text: string): string[] => text.split(" WHILE ").slice(1);
  * **Two** (D31, A6). The user, on the spike's third card form: "we shouldn't
  * color code the short calls" — the note card is the one a caller glances at
  * while the band plays, and a glance wants "PARTNER SWING", not "SWING YOUR
- * PARTNER". G1's fifth question is whether that is right or whether the card
- * should show the 4-beat form after all; one constant is the whole of that
- * change.
+ * PARTNER".
+ *
+ * **G1's fifth question is closed** (P7, DD67): the calling card's own two
+ * columns are "the 4-beat call and the 2-beat call", the user's words on #72
+ * verbatim, so the note card's short form and the calling card's second column
+ * are the same register on purpose — `CallingCard.tsx` imports this constant
+ * rather than writing `2` again — and there is no separate budget knob to
+ * reconcile. This constant is unchanged; only the calling card's own columns
+ * moved.
  */
 export const NOTE_CARD_BUDGET = 2;
