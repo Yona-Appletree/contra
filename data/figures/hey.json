@@ -14,7 +14,7 @@
   "variants": {
     "start=lark": {
       "walkthrough": {
-        "line": "Weave the figure of eight across the set, the larks starting by the left, and come back here."
+        "line": "Weave the figure of eight across the set, the larks starting by the right, and come back here."
       }
     },
     "amount=0.5": {
