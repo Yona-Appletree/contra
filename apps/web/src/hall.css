@@ -872,11 +872,12 @@
 }
 
 /*
- * **The calling card** (scheme C): one row per call, one column per register.
+ * **The calling card** (scheme C): one row per call, one column per register
+ * (P7, DD67 — the 4-beat call and the 2-beat call, not one per time through).
  *
- * At 390 px the three call columns are what has to give, so the table scrolls
- * inside its own box rather than pushing the page sideways — a phone that
- * scrolls horizontally has lost the walkthrough under it.
+ * At 390 px the phrase and beats columns are what has to give, so the table
+ * scrolls inside its own box rather than pushing the page sideways — a phone
+ * that scrolls horizontally has lost the walkthrough under it.
  */
 .calling-card-scroll {
   overflow-x: auto;
