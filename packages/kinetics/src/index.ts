@@ -169,6 +169,12 @@ export { TORSO_RISE_PX, shoulderPoint, solveBodies } from "./solver/solveBody.js
 export type { Executed, ExecutionViolation } from "./executor/execute.js";
 export { execute } from "./executor/execute.js";
 
+// diagnostics (round 2, P3): one shape for every layer, with a trace
+export type { Diagnostic, Fact, Source, Stage } from "./diagnostics/Diagnostic.js";
+export { CODES, explain } from "./diagnostics/codes.js";
+export { collectDiagnostics, traceAt } from "./diagnostics/collect.js";
+export { lineAt, renderJson, renderText } from "./diagnostics/render.js";
+
 // the whole stack as one call, and the page that shows it (P7)
 export type { Run, RunError, RunOptions, RunWarning } from "./pipeline.js";
 export { run } from "./pipeline.js";

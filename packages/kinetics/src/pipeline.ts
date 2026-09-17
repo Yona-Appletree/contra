@@ -7,6 +7,8 @@ import { execute } from "./executor/execute.js";
 import { FIGURES } from "./figures/registry.js";
 import type { FigureRegistry } from "./figures/registry.js";
 import { check } from "./lang/check.js";
+import type { Diagnostic } from "./diagnostics/Diagnostic.js";
+import { collectDiagnostics } from "./diagnostics/collect.js";
 import type { CompileInput, CompiledSequence } from "./lang/compile.js";
 import { compile } from "./lang/compile.js";
 import { isSyntaxError } from "./lang/lexer.js";
@@ -36,6 +38,12 @@ import { tempo } from "./units/Tempo.js";
  * sets (`$minor-sets`). A dance that says nothing runs on `floor`.
  */
 export function run(source: string, opts: RunOptions): Run {
+  const done = stages(source, opts);
+  return { ...done, diagnostics: collectDiagnostics({ ...done, diagnostics: [] }) };
+}
+
+/** Every stage, with `diagnostics` left for `run` to collect from the whole. */
+function stages(source: string, opts: RunOptions): Omit<Run, "diagnostics"> {
   const { moves } = opts;
   const t = opts.bpm === undefined ? tempo() : tempo(opts.bpm);
   const errors: RunError[] = [];
@@ -60,7 +68,7 @@ export function run(source: string, opts: RunOptions): Run {
     roleOf: () => "lark",
     initial: () => ({ dancers: {} }),
   };
-  const empty = (floor: Floor | undefined): Run => ({
+  const empty = (floor: Floor | undefined): Omit<Run, "diagnostics"> => ({
     source,
     ...(floor === undefined ? {} : { floor }),
     dialect: floor === undefined ? nobody : treeDialect(floor),
@@ -154,7 +162,7 @@ export function run(source: string, opts: RunOptions): Run {
     listings[dancer] = program2 ? listing(program2, dialect, sequence) : [];
   }
 
-  const base: Run = {
+  const base: Omit<Run, "diagnostics"> = {
     source,
     floor,
     dialect,
@@ -225,6 +233,8 @@ export interface Run {
   warnings: readonly RunWarning[];
   listings: Readonly<Record<DancerId, readonly ListingLine[]>>;
   endBeat: number;
+  /** Every complaint, from every layer, with its trace — what the CLI prints and the debugger's strip lists. */
+  diagnostics: readonly Diagnostic[];
 }
 
 /**
