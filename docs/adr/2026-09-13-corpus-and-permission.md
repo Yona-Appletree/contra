@@ -86,6 +86,39 @@ the ten-then-twelve dances' own page-by-page check to describe.
 crawler honors ibiblio's `robots.txt` `Crawl-delay: 2` as a floor) — the two
 documents agree as of this amendment.
 
+## Amendment, 2026-09-16: ContraDB
+
+A second crawler (`scripts/corpus/crawl-contradb.mjs`, described in
+`docs/corpus-crawl.md` under "ContraDB") now caches ContraDB's public
+dances under `data/local/`, for the per-figure progression mark The
+Caller's Box lacks. The user's ruling: "proceed with a gentle scrape, same
+rules as caller's box." The footing: an email to the site's live contact
+address on 2026-06-01, unanswered by 2026-09-16, and the user's standing
+"forgiveness over permission unless it's likely to cause them pain" rule.
+
+**What is fetched** is decided by ContraDB's own signals, not ours: only
+dances in its "everywhere" publish tier. Sketchbook (draft) dances, which
+the site marks `noindex`, are listed in the manifest but never fetched;
+private dances are never seen.
+
+**What may be published** keeps the shape of the DD31 rule, with
+ContraDB's signals standing in for the Caller's Box `Permission` field:
+
+- A dance's figure text from a ContraDB page is publishable only if it is
+  in the "everywhere" tier, **and** its choreographer's consent on
+  ContraDB's `/choreographers` table is not "never", **and** the user
+  clears it per dance. Necessary, never sufficient, exactly as before.
+- A dance that is in the Caller's Box cache as non-`"full"` stays
+  unpublished under DD31 even if ContraDB shows it readable — that ruling
+  already anticipated this exact overlap ("many of those dances _are_ on
+  contradb in a readable form") and chose caution.
+- **Open, not yet ruled:** whether the _derived_ progression fact (which
+  figure, and at which beat, a dance progresses after, together with its
+  formation) may be published as a fact about a dance, the way the
+  Portland features column is — without the figure text. The user has
+  seen this proposed and not decided it. Until ruled, nothing derived from
+  the ContraDB cache is published either.
+
 ## Consequences
 
 - `data/corpus/portland-programs.json` is regenerable by anyone with their

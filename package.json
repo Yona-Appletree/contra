@@ -24,7 +24,8 @@
     "dance": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/danceLab.mjs",
     "strips": "node apps/web/scripts/strips.mjs",
     "check:deps": "node scripts/check-deps.mjs",
-    "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs"
+    "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs",
+    "corpus:crawl:contradb": "node scripts/corpus/crawl-contradb.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

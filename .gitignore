@@ -11,5 +11,5 @@ playwright-report/
 
 # Corpus source data: read-only inputs to scripts/corpus/*, never committed.
 # See data/README.md.
-data/local/
+data/local
 data/**/*.csv
