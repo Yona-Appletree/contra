@@ -130,11 +130,26 @@ export const CHAIN_PASS_PX = CLEARANCE_PX / 2;
  * his one whole turn evenly — which is the user's own "constant speed
  * throughout" — so at the midpoint of the figure he is exactly half way round
  * his circle, and she joins at that circle's *antipode*, which at a half turn
- * is **his own starting place**. In both formations his place lies on her own
- * line, so her walk to it runs straight along it and the two robins' paths
- * become parallel. The alternative — he waits and starts later — makes his
- * slower half zero px and his `partSpread` unbounded, which is the column M10b
- * added to catch exactly that.
+ * is **his own starting place**. That makes the two robins' walks parallel: in
+ * a duple improper four she walks the 20 px to it along her own line and never
+ * crosses the set at all, and in becket she crosses it on a track 20 px from
+ * the other robin's, which is why there is nothing left to pull by.
+ *
+ * **The one arrangement that does give the user four and four**, measured, is
+ * the other half of M10c's brief: the lark **waits on his place and spends his
+ * whole turn over the last four beats**. The pull by survives (the robins pass
+ * at 8.500 px in becket), every programme dance keeps its `closure`, `reach`,
+ * `collision` and `progressed` at every length, and seven of the eight motion
+ * columns improve — `hand` 52.8 → 37.5, `elbow` 143.9 → 74.2, `elbowPerHand`
+ * 8.17 → 7.41, `height` 45.4 → 22.8, `travel` 21.9 → 16.3, `halves` 1.84 →
+ * 1.11, with `roleSpread` the one that worsens, 1.94 → 2.23. It is **not**
+ * taken here, for three reasons that are the user's own words rather than an
+ * oracle's: he told us "the larks orbit backwards 1 full turn ... from the
+ * first beat", a lark who stands still for four of eight beats is the opposite
+ * of "constant speed throughout the moves", and the couple stops facing out of
+ * the set at the half — four of this figure's own assertions fail, because at
+ * beat 4 they now face in and do not face out until beat 6. Wall 1 stands over
+ * it either way: the reach becomes 17.0152 px and `handSpeedPx` 76.4688.
  */
 export const CHAIN_JOIN_BEAT: Beat = 2;
 
