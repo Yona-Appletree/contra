@@ -164,21 +164,33 @@ function halfExtent(values: readonly number[]): number {
  * Positive is the way {@link Ring.order} runs, which is the way a circle left
  * travels.
  *
- * **A station is a whole number of places round**, so a fraction has to be
- * rounded to one — and the rounding is done about zero rather than upward,
- * because a ring turned back is a ring turned forward in a mirror. `Math.round`
- * alone is sign-asymmetric (`Math.round(3.5)` is 4 and `Math.round(-3.5)` is
- * −3), which left a star **left** seven eighths and a star **right** seven
- * eighths a different number of places round, against the star definition's own
- * declared mirror symmetry. Where a walk does not need a station at all, ask
- * {@link ringEnd} instead: it keeps the fraction.
+ * **A station is a whole number of places round**, and the rounding here is
+ * `Math.round`, which is sign-**asymmetric**: `Math.round(3.5)` is 4 and
+ * `Math.round(-3.5)` is −3. So a star *left* seven eighths (−3.5 places) ends
+ * three places round and a star *right* seven eighths ends four, against the
+ * star definition's own declared mirror symmetry — and that is a real
+ * asymmetry, not a convention.
+ *
+ * **It is load-bearing, and deliberately left alone** (2026-09-16). Exactly one
+ * call in the corpus asks a ring walk for a fraction of a place — Are You 'Most
+ * Done?'s star left 7/8 — and everything downstream of it is calibrated on the
+ * `−3` this rounding gives: the set model re-seats every dancer on the lattice
+ * place their body is nearest ({@link https://github.com/Yona-Appletree/contra}
+ * `set/resolve.ts`'s `standingModel`), B1's diagonal hey reads its lane and its
+ * two lines off the same bodies, and a dancer the hey leaves on hold place
+ * slides with the line their body says they are on. Rounding −3.5 the other way
+ * moves that dance's progression by a whole couple width — measured at every
+ * checked length: `progressed` 0.0000 → 32.0000 px at four, six, eight, ten and
+ * twelve couples and 37.7359 px (= `hypot(32, 20)`) at five, seven and nine,
+ * with `reach` 0.0000 → 2.2805 px and `collision` 9.192 → 0.000 px at the odd
+ * lengths. Whoever symmetrises this owes that dance a new downstream; see
+ * {@link ringEnd}, which is the other half of the same question.
  */
 export function ringShift(ring: Ring, station: StationId, places: number): StationId {
   const n = ring.order.length;
   const at = ring.order.indexOf(station);
   if (at < 0) throw new Error(`station "${station}" is not on this ring`);
-  const whole = Math.sign(places) * Math.round(Math.abs(places));
-  const id = ring.order[(((at + whole) % n) + n) % n];
+  const id = ring.order[(((at + Math.round(places)) % n) + n) % n];
   if (id === undefined) throw new Error(`ring has no place for "${station}"`);
   return id;
 }
@@ -197,15 +209,30 @@ const WHOLE_PLACE_SLOP = 1e-9;
  * A whole number of places is somebody's own place, which is what a ring figure
  * has always ended on: `from[ringShift(ring, station, places)]`, to the bit. A
  * *fraction* of a place is the point that far along the last run, between the
- * place the dancer has reached and the one they are heading for — because a
- * caller who asks for seven eighths of a star asks for it **precisely so that
- * it leaves you half a place short**, and that half place is what puts the next
- * call on the diagonal. Rounding it away made every dancer about-face and walk
- * an eighth of the ring back on to a station in the last beat and a half of the
- * figure, which is the slide the user saw in Are You 'Most Done?'s A2.
+ * place the dancer has reached and the one they are heading for — the same rule
+ * the chain travel already uses for its own fractional place: the whole runs,
+ * then part of one more. It is sign-symmetric by construction, so a ring turned
+ * back lands in the mirror of the same ring turned forward.
  *
- * The same rule the chain travel already used for its own fractional place: the
- * whole runs, then part of one more.
+ * Why it matters: a caller who asks for seven eighths of a star asks for it
+ * **precisely so that it leaves you half a place short**. {@link ringShift}
+ * rounds that half place away, so the walk turns its honest seven eighths and
+ * then, over the step out, every dancer about-faces and walks an eighth of the
+ * ring back on to a station — 16.12 px in a beat and a half at 11.39 px/beat
+ * with a 179.3° heading reversal, where an honest step-out is 7.67 px on a
+ * curve. That is the slide the user saw in Are You 'Most Done?'s A2.
+ *
+ * **Not yet wired into the ring walk, and this is a ruling and not an
+ * oversight** (2026-09-16). Ending that star honestly leaves all four dancers
+ * of a minor set on the midpoints of its own sides — two of them between the
+ * set's two lines — and the engine has no way to hold a dancer between two
+ * places from one call to the next: seats are measured off the body
+ * (`set/resolve.ts`'s `standingModel`), and so are the next call's lane, its two
+ * lines and the slide of a dancer left on hold place. Measured with this
+ * function wired in, that dance goes `progressed` 0.0000 → 32.0000 px and
+ * `collision` 9.192 → 0.000 px, and B1's hey leaves nobody on a lattice place.
+ * The half place a 7/8 ring walk leaves is real; what is missing is a seat that
+ * can be half way between two of them, or a next call told to absorb it.
  *
  * Form-neutral: a point between two places on a ring is a point, and nothing
  * here knows what form the ring is danced in.
