@@ -5,6 +5,7 @@ import { createGroup, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot, Spots } from "./ContraFigure.js";
 import { planContext, worldSpot } from "./ContraFigure.js";
 import { armShortfall } from "../pair/armShortfall.js";
+import { handBehindShoulder } from "../pair/forwardAngle.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 
 /**
@@ -35,6 +36,9 @@ export interface FigureProbe {
   /** The closest two torso centres came, px. AC6 wants more than 8. */
   minDistance: number;
   worstPair?: { a: StationId; b: StationId; t: Beat };
+  /** The longest a working hand was held behind its own shoulder line, beats. */
+  maxHeldBehind: Beat;
+  worstBehind?: { station: StationId; side: Side; from: Beat; until: Beat };
   /** How many samples were taken. */
   samples: number;
 }
@@ -78,8 +82,12 @@ export function probeFigure<P extends ContraParams>(
     maxEndError: 0,
     maxStartError: 0,
     minDistance: Infinity,
+    maxHeldBehind: 0,
     samples: 0,
   };
+
+  /** Where each hand's current run of being held behind its shoulder began. */
+  const behindSince = new Map<string, Beat>();
 
   const steps = Math.round(beats / PROBE_STEP);
   for (let i = 0; i <= steps; i++) {
@@ -96,6 +104,17 @@ export function probeFigure<P extends ContraParams>(
         if (short[side] > probe.maxShort) {
           probe.maxShort = short[side];
           probe.worstShort = { station: id, t, side };
+        }
+        const key = `${id}${side}`;
+        if (!handBehindShoulder(pose, side)) {
+          behindSince.delete(key);
+          continue;
+        }
+        const from = behindSince.get(key) ?? t;
+        behindSince.set(key, from);
+        if (t - from > probe.maxHeldBehind) {
+          probe.maxHeldBehind = t - from;
+          probe.worstBehind = { station: id, side, from, until: t };
         }
       }
     }
@@ -177,10 +196,33 @@ export interface FigureLimits {
   seam: number;
   /** AC6: no two torso centres closer than this, contacts aside. */
   distance: number;
+  /**
+   * How long a working hand may be held behind its own shoulder line, beats.
+   *
+   * An arm can pull toward something in front of the shoulder and push away
+   * from it; it can do neither to something behind the shoulder line, which is
+   * gate G1's allemande ruling ("the arm is angled _forward_ not back … it
+   * would be _very_ uncomfy"). A hand still **passes** behind — a pull-by's
+   * does, and so does the hand a courtesy turn takes round a back — so this is
+   * a bound on how long a figure leaves one there, not on whether it happens.
+   *
+   * Four beats is half a phrase, and the figure library's own worst is 3.1: the
+   * hand `robins-chain` carries round the courtesy turn. The swing used to hold
+   * one there for its whole six turning beats, and for ten inside a
+   * `balance-and-swing` — the robin's joined hand landed behind her own
+   * shoulder, which is what this number exists to stop coming back.
+   */
+  heldBehind: Beat;
 }
 
 /** The limits every figure is held to unless its own test says otherwise. */
-export const FIGURE_LIMITS: FigureLimits = { short: 0, joinGap: 0.1, seam: 0.01, distance: 8 };
+export const FIGURE_LIMITS: FigureLimits = {
+  short: 0,
+  joinGap: 0.1,
+  seam: 0.01,
+  distance: 8,
+  heldBehind: 4,
+};
 
 /**
  * Everything wrong with a figure, as sentences; empty is the figure passing.
@@ -213,6 +255,11 @@ export function figureProblems(probe: FigureProbe, limits: Partial<FigureLimits>
   if (probe.minDistance <= want.distance) {
     problems.push(
       `two dancers come ${probe.minDistance.toFixed(3)} px apart at ${where(probe.worstPair)}`,
+    );
+  }
+  if (probe.maxHeldBehind > want.heldBehind) {
+    problems.push(
+      `a hand is held ${probe.maxHeldBehind.toFixed(3)} beats behind its own shoulder at ${where(probe.worstBehind)}`,
     );
   }
   return problems;

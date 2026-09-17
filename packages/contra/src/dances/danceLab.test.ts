@@ -306,8 +306,8 @@ describe("the motion allowlist", () => {
   });
 
   it("matches a figure's own row and every seam it is half of", () => {
-    expect(motionAllowance("butter", "swing", "elbowPerHand")).toBeDefined();
-    expect(motionAllowance("butter", "circle → swing", "elbowPerHand")).toBeDefined();
-    expect(motionAllowance("butter", "circle", "elbowPerHand")).toBeUndefined();
+    expect(motionAllowance("butter", "circle", "travel")).toBeDefined();
+    expect(motionAllowance("butter", "circle → swing", "travel")).toBeDefined();
+    expect(motionAllowance("butter", "swing", "travel")).toBeUndefined();
   });
 });

@@ -40,25 +40,22 @@ export interface MotionAllowance {
 
 /** Every allowance, by dance. */
 export const MOTION_ALLOWLIST: readonly MotionAllowance[] = [
-  {
-    dance: "*",
-    key: "swing",
-    metric: "elbowPerHand",
-    reason:
-      "The swing's elbow swings hard under a nearly still hand at the take " +
-      "(docs/motion-report.md: 11.94× run alone and 12.04× inside a dance, " +
-      "against a bound of 8.06). M1 expected M2 to " +
-      "take this row away with the rewrite; it did not, and could not: DD21 " +
-      "protects the swing's *geometry*, so the data swing reproduces the coded " +
-      "one to 0.01 px from the stations and reproduces this take with it. It is a " +
-      "motion-profile row, not a figure-model row, and M10 is what owns it.",
-  },
-  // **`swing elbowSpeed` is gone** (FR-D2b). It was the row above measured as a
-  // speed rather than a ratio, and the hanging elbow pole takes it away: the
-  // swing's open-out lowers a hand from shoulder height to a hang, and with the
-  // elbow now staying in the arm's own vertical plane instead of being pushed
-  // sideways out of it, the fastest that take moves the elbow inside a dance
-  // falls under the guard. The ratio row above is still needed.
+  // **Both of the swing's rows are gone.** `swing elbowSpeed` went at FR-D2b,
+  // to the hanging elbow pole: the swing's open-out lowers a hand from shoulder
+  // height to a hang, and with the elbow staying in the arm's own vertical plane
+  // instead of being pushed sideways out of it, the fastest that take moves the
+  // elbow inside a dance falls under the guard.
+  //
+  // `swing elbowPerHand` — the same take measured as a ratio, 11.94× run alone
+  // against a bound of 8.06 — went with the hold itself. The robin's joined arm
+  // used to land *behind* her own shoulder, so as the hold was taken her elbow
+  // whipped round under a hand that had barely moved. The cause was the body
+  // turn being measured from the axis of the turn rather than from the line
+  // between the two dancers (`pair/swing.ts`, `SWING_HOLD_BEARING_DEG`); with
+  // the hold squared up both arms come forward into it and the ratio falls under
+  // the bound on its own. M1 expected M2's rewrite to take this row away and it
+  // could not, because DD21 protects the swing's geometry — so the geometry is
+  // what had to change.
   {
     dance: "*",
     key: "pull-by",
