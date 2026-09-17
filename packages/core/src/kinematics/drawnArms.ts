@@ -162,17 +162,79 @@ export function elbowPole(shoulder: Vec2, hand: Hand, side: Side, facing: Angle)
   const dx = hand.p[0] - shoulder[0];
   const dy = hand.p[1] - shoulder[1];
   const planar = Math.hypot(dx, dy);
-  const tuck = (1 - smooth(planar / ELBOW_TUCK_PLANAR_PX)) * smooth(hand.drop / ELBOW_TUCK_DROP_PX);
   let px = outward[0];
   let py = outward[1];
+  const hang = hangFraction(planar, hand.drop);
+  if (hang > 0) {
+    // Hung: the part of the pole that points **across** the arm goes, and what
+    // is left points along it. The pole is then in the arm's own vertical plane
+    // and so is the elbow. What is left is not shortened — the cap below is
+    // what holds it short of the amount that would cancel the elbow's bow, and
+    // so keeps the elbow under the shoulder-hand line rather than out past it.
+    //
+    // Taking the across-part away rather than swinging the pole round to the
+    // arm is what keeps this continuous: the arm's floor direction is an axis,
+    // not an arrow — a pole along it and one against it leave the elbow in the
+    // same place — and only this form gives the same answer for both.
+    const ux = dx / planar;
+    const uy = dy / planar;
+    const along = px * ux + py * uy;
+    px = mix(px, along * ux, hang);
+    py = mix(py, along * uy, hang);
+  }
+  const tuck = (1 - smooth(planar / ELBOW_TUCK_PLANAR_PX)) * smooth(hand.drop / ELBOW_TUCK_DROP_PX);
   if (tuck > 0) {
     // Straight back, splayed a little to this dancer's own side.
     const splay = side === "L" ? ELBOW_TUCK_SPLAY_DEG : -ELBOW_TUCK_SPLAY_DEG;
     const back = dirOf(facing + 180 + splay);
-    px = mix(outward[0], back[0], tuck);
-    py = mix(outward[1], back[1], tuck);
+    px = mix(px, back[0], tuck);
+    py = mix(py, back[1], tuck);
   }
   return capAlongArm(px, py, dx, dy, planar, hand.drop);
+}
+
+/**
+ * How much of the sideways pole an arm that **hangs from its hand** gives up:
+ * none while it reaches, all of it once the hand is well below the shoulder.
+ *
+ * The sideways pole answers one question — which side does the elbow bow to —
+ * and that question only exists for an arm that **reaches**. An arm hanging from
+ * a hand below it has its answer already: the elbow hangs under the shoulder and
+ * the forearm goes on out to the hand, which is how anybody holding hands in a
+ * ring stands. An overhead view can see nothing of that except the one thing the
+ * sideways pole does to it, which is push the elbow out of the arm's own
+ * vertical plane — and that is the whole of what the elbow draws.
+ *
+ * The gate is the **tuck's own two questions, asked the other way round**: while
+ * the hand is below the shoulder the pole is never winged out to the side — with
+ * the hand *under* the dancer, inside {@link ELBOW_TUCK_PLANAR_PX}, it is the
+ * tuck, swung back behind them; with the hand *out* past that, it is hung. The
+ * drop runs from {@link ELBOW_TUCK_DROP_PX}, where the tuck reaches full
+ * strength, to twice it, which is as far down as a hand ever goes without
+ * hanging. Every reach and every take is above that and is untouched, to the last
+ * decimal place.
+ *
+ * **The band is wide on purpose.** The oracle measures the elbow the renderer
+ * draws, so a rule that changes over a couple of px of drop moves the elbow
+ * while the hand's floor point stands still, which is precisely what
+ * `elbowPerHand` is there to catch. Six px of drop is a swing's whole open-out
+ * — the elbow crosses it at about 4 px/beat, and the worst `elbowPerHand` in
+ * the programme goes **down**, from 8.39× to 7.78× on the swing.
+ *
+ * **A ring of joined hands is what this is for** (FR-D2b). Everybody's hands
+ * hang from their neighbours' (`ringHangDrop`, FR-A2) — measured on the circle,
+ * 4.4 px out and 13.5 px down, a 72° hang — and the hand sits a little *inside*
+ * the shoulder, toward the middle of the ring. With the sideways pole the elbow
+ * swings 1.7–3.1 px **out** of the ring: eight spikes round a ring of four,
+ * which is the "weird pollen" the user has been asking about. Hung, the elbow
+ * lands within 0.4 px of straight under its own shoulder, with no offset at all
+ * out of the arm's vertical plane, and the ring draws round.
+ */
+function hangFraction(planar: number, drop: number): number {
+  if (drop <= ELBOW_TUCK_DROP_PX || planar <= 0) return 0;
+  return (
+    smooth(planar / ELBOW_TUCK_PLANAR_PX) * smooth(drop / ELBOW_TUCK_DROP_PX - 1)
+  );
 }
 
 /**
