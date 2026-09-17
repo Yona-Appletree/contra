@@ -4,7 +4,7 @@ import { dirOf } from "../geometry/Angle.js";
 import { dist } from "../geometry/Vec2.js";
 import type { PoseSample } from "./PoseSample.js";
 import { shouldersAt } from "./shoulders.js";
-import { POLE_OUTWARD, solveArm } from "./Arm.js";
+import { POLE_OUTWARD, solveArm, solveArm3d } from "./Arm.js";
 import {
   ELBOW_POLE_ALONG_FRACTION,
   ELBOW_POLE_ALONG_PLANAR_PX,
@@ -95,6 +95,42 @@ describe("the elbow pole", () => {
       previous = pole;
     }
     expect(ELBOW_TUCK_PLANAR_PX).toBeGreaterThan(0);
+  });
+
+  it("hangs a ring hold's elbow under the shoulder instead of out of the ring", () => {
+    // **The circle** (FR-D2b). A ring of joined hands hangs them — measured on
+    // the figure, 4.4 px out along the ring and 13.5 px down, with the hand
+    // 1.5 px *inside* the shoulder — and the user's rule for it is that the
+    // elbows go downwards, not out: "a smooth circle with maybe just a hair of
+    // bumpyness". Everybody faces the middle, so a pole pointing out of the
+    // dancer's own side points along the ring, and what came back out of the
+    // projection was 2–3 px of elbow sticking radially out of it, once per arm:
+    // the "weird pollen".
+    //
+    // Here the ring runs along y and the middle of it is at −x, so the dancer
+    // faces −x (180°) and "out of the ring" is +x.
+    const shoulder = [0, 0] as const;
+    for (const [side, along] of [
+      ["L", -1],
+      ["R", 1],
+    ] as const) {
+      const hand = { p: [-1.49, 4.12 * along] as [number, number], drop: 13.5 };
+      const { elbow, elbowZ } = solveArm3d(
+        shoulder,
+        hand,
+        side,
+        180,
+        elbowPole(shoulder, hand, side, 180),
+      );
+      // Under its own shoulder, near enough: a hair, not a spike.
+      expect(Math.abs(elbow[0] - shoulder[0])).toBeLessThan(1);
+      // And in the arm's own vertical plane: no offset out of it at all, and
+      // the elbow below the shoulder-hand line rather than above it.
+      const cross = (elbow[0] - shoulder[0]) * (hand.p[1] - shoulder[1]);
+      const back = (elbow[1] - shoulder[1]) * (hand.p[0] - shoulder[0]);
+      expect(Math.abs(cross - back)).toBeLessThan(0.05);
+      expect(elbowZ).toBeLessThan(-hand.drop / 2);
+    }
   });
 
   it("is untouched by the cap where the arm is nowhere near the pole", () => {

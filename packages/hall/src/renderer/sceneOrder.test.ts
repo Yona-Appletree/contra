@@ -208,4 +208,45 @@ describe("a wrist star's arms", () => {
     const order = sceneOrder([lark, robin], ROLE_SET);
     expect(order.arms).toEqual(order.bodies);
   });
+
+  it("leaves a hand on a shoulder to the screen, because a shoulder is not an arm", () => {
+    // **The swing** (FR-D2). A ballroom hold puts the robin's left hand on the
+    // lark's shoulder point — measured on the figure, 0.58 px from it — and his
+    // right arm's bone *begins* there, so the wrist-star rule saw a grip. While
+    // the pair's other hands are joined the join rule owns the pair and it never
+    // showed; at the take and at the open-out the joined hand is let go, and the
+    // rule flipped the robin's arms over the lark's for those beats. A hand at
+    // the shoulder is on the body, so it says nothing about the arms and the two
+    // are ordered up the screen, exactly as they were before FR-C1.
+    const larkShoulder: Vec2 = [0, 0];
+    const arm = (shoulder: Vec2, hand: Vec2) => ({
+      shoulder,
+      elbow: [(shoulder[0] + hand[0]) / 2, (shoulder[1] + hand[1]) / 2] as Vec2,
+      hand,
+      short: 0,
+      elbowZ: -4,
+      handZ: -3,
+      reach: 15,
+    });
+    // The robin is up the screen of the lark, so the screen sort puts her arms
+    // first — which is the order the rule was overturning.
+    const onShoulder: Hand = { p: [0.58, 0], drop: 0 };
+    const lark: OrderedDancer = {
+      id: "lark",
+      role: "lark",
+      p: [0, 4],
+      hands: { L: down(), R: { p: [-6, -6], drop: 1 } },
+      arms: [arm([-5.5, 4], [-14, 6]), arm(larkShoulder, [-6, -6])],
+    };
+    const robin: OrderedDancer = {
+      id: "robin",
+      role: "robin",
+      p: [2, -4],
+      hands: { L: onShoulder, R: { p: [12, -2], drop: 1 } },
+      arms: [arm([-3, -4], onShoulder.p), arm([7, -4], [12, -2])],
+    };
+    const order = sceneOrder([lark, robin], ROLE_SET);
+    expect(order.arms).toEqual(order.bodies);
+    expect(order.arms.indexOf(1)).toBeLessThan(order.arms.indexOf(0));
+  });
 });
