@@ -1,5 +1,13 @@
 import type { Angle, Beat, Hand, MotionProfile, PoseSample, Side, Vec2 } from "@caller/core";
-import { HOLD_SPACING_PX, angleDiff, dist, lerpHand, mix, ramp } from "@caller/core";
+import {
+  HOLD_SPACING_PX,
+  angleDiff,
+  dist,
+  handDown,
+  lerpHand,
+  mix,
+  ramp,
+} from "@caller/core";
 import type {
   EndPose,
   FigureDef,
@@ -12,7 +20,6 @@ import type {
   StationId,
 } from "@caller/choreo";
 import { frame, frameAngle, framePoint, joinHands, walkStep } from "@caller/choreo";
-import { handDown } from "../pair/PairFrame.js";
 
 /**
  * The contra figure library's own contract, on top of `@caller/choreo`'s

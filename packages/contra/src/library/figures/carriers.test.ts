@@ -1,19 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ContraFigure } from "../../figures/ContraFigure.js";
-import { californiaTwirl } from "../../figures/california-twirl.js";
-import { circle } from "../../figures/circle.js";
-import { doSiDo } from "../../figures/do-si-do.js";
-import { longLines } from "../../figures/long-lines.js";
-import { passThrough } from "../../figures/pass-through.js";
-import { petronella } from "../../figures/petronella.js";
-import { rightAndLeftThrough } from "../../figures/right-and-left-through.js";
-import { robinsChain } from "../../figures/robins-chain.js";
-import { rollAway } from "../../figures/roll-away.js";
-import { slideLeft } from "../../figures/slide-left.js";
-import { star } from "../../figures/star.js";
 import type { CompareCase } from "../compareFigures.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { CARRIER_DEFINITIONS } from "./index.js";
+import type { FigureFixture } from "../figureFixture.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { bothWays, carrierGolden, worstOf } from "./carriers.js";
 
 /**
@@ -85,7 +75,7 @@ const CRUISE_WHY =
 
 /** One figure's whole gate: the four claims, then its own cases. */
 function carrier(
-  coded: ContraFigure,
+  coded: FigureFixture,
   definition: FigureDefinition,
   cases: readonly CompareCase[],
   least: number,
@@ -111,9 +101,7 @@ function carrier(
     expect(definition.call).toBe(coded.call);
     expect(definition.lead).toBe(coded.lead);
     expect(definition.nominalBeats).toBe(coded.beats);
-    const defaults = { ...(coded.defaults as Record<string, unknown>) };
-    delete defaults["from"];
-    delete defaults["carried"];
+    const defaults = { ...coded.defaults };
     // **Every coded default, with its coded value** — and a definition is
     // allowed to have *more* of them (M8). The star's `amount` is the first: a
     // caller says "star left 7/8" and the coded figure has no word for it, so a
@@ -164,7 +152,7 @@ function carrier(
 
 describe("the circle as data", () => {
   carrier(
-    circle,
+    fixtureOf("circle"),
     findDefinition("circle"),
     [
       { params: {} },
@@ -186,7 +174,7 @@ describe("the circle as data", () => {
 
 describe("the star as data", () => {
   carrier(
-    star,
+    fixtureOf("star"),
     findDefinition("star"),
     [
       { params: {} },
@@ -212,7 +200,7 @@ describe("the star as data", () => {
 
 describe("long lines as data", () => {
   carrier(
-    longLines,
+    fixtureOf("long-lines"),
     findDefinition("long-lines"),
     [{ params: {} }, { params: { forwardPx: 6 } }, { params: { holdDrop: 4, stackPx: 0 } }],
     3000,
@@ -233,7 +221,7 @@ describe("long lines as data", () => {
 
 describe("the do-si-do as data", () => {
   carrier(
-    doSiDo,
+    fixtureOf("do-si-do"),
     findDefinition("do-si-do"),
     [
       { params: {} },
@@ -252,7 +240,7 @@ describe("the do-si-do as data", () => {
 
 describe("the pass through as data", () => {
   carrier(
-    passThrough,
+    fixtureOf("pass-through"),
     findDefinition("pass-through"),
     [{ params: {} }, { params: { direction: "along" } }, { params: { bowPx: 0 } }],
     1500,
@@ -269,7 +257,7 @@ describe("the pass through as data", () => {
 
 describe("the petronella as data", () => {
   carrier(
-    petronella,
+    fixtureOf("petronella"),
     findDefinition("petronella"),
     [{ params: {} }, { params: { places: 2 } }, { params: { spins: 2 } }, { params: { bowPx: 0 } }],
     2000,
@@ -289,7 +277,7 @@ describe("the petronella as data", () => {
 
 describe("the slide left as data", () => {
   carrier(
-    slideLeft,
+    fixtureOf("slide-left"),
     findDefinition("slide-left"),
     [{ params: {} }, { params: { direction: -1 } }, { params: { alongPx: 10 } }],
     1500,
@@ -298,7 +286,7 @@ describe("the slide left as data", () => {
 
 describe("the roll away as data", () => {
   carrier(
-    rollAway,
+    fixtureOf("roll-away"),
     findDefinition("roll-away"),
     [
       { params: {} },
@@ -335,7 +323,7 @@ describe("the roll away as data", () => {
 
 describe("the california twirl as data", () => {
   carrier(
-    californiaTwirl,
+    fixtureOf("california-twirl"),
     findDefinition("california-twirl"),
     [
       { params: {} },
@@ -371,7 +359,7 @@ describe("the california twirl as data", () => {
 
 describe("right and left through as data", () => {
   carrier(
-    rightAndLeftThrough,
+    fixtureOf("right-and-left-through"),
     findDefinition("right-and-left-through"),
     [
       { params: {} },
@@ -394,7 +382,7 @@ describe("right and left through as data", () => {
 
 describe("the robins chain as data", () => {
   carrier(
-    robinsChain,
+    fixtureOf("robins-chain"),
     findDefinition("robins-chain"),
     [
       { params: {} },

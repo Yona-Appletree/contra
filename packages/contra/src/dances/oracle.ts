@@ -25,8 +25,8 @@ import {
 import { BECKET } from "../formation/becket.js";
 import { BECKET_RIGHT } from "../formation/becketRight.js";
 import type { FigureDefaultsOverride } from "../figures/registry.js";
-import { contraFigureOf, createContraRegistry } from "../figures/registry.js";
-import { templateFigureOf } from "../library/figures/index.js";
+import { createContraRegistry } from "../figures/registry.js";
+import { figureOnFour } from "../figures/onFour.js";
 import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
 import { formationById } from "./formations.js";
 
@@ -101,9 +101,7 @@ export function threadsOnTheOldPath(dance: Dance): boolean {
     return concurrentCalls(call).every(
       (each) =>
         each.beats > 0 &&
-        (each.figure === HOLD_PLACE_FIGURE ||
-          contraFigureOf(each.figure) !== undefined ||
-          templateFigureOf(each.figure) !== undefined),
+        (each.figure === HOLD_PLACE_FIGURE || figureOnFour(each.figure) !== undefined),
     );
   });
 }

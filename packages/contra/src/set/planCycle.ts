@@ -51,7 +51,6 @@ import type { Library } from "../library/Library.js";
 import { contraDataEngine } from "../library/engine.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { figureFor } from "../library/interpret.js";
-import { legacyLibrary } from "../library/legacy.js";
 import { progressionOf, progressModel, progressSet } from "./lattice.js";
 import { parseRelation, relate } from "./relations.js";
 import type { FigureInstance } from "./resolve.js";
@@ -147,22 +146,6 @@ export function createContraCyclePlanner(options: ContraCyclePlannerOptions = {}
  */
 export const contraCyclePlanner: CyclePlanner = createContraCyclePlanner();
 
-/**
- * The contra planner with **every** figure bridged, which is what AC1 is about.
- *
- * AC1 is the hub's golden, not the gatherers': it asks whether resolving
- * against set state reproduces `chainCalls` when the figures are the same
- * figures. Every test of the hub itself names this one, and it keeps meaning
- * exactly what it meant in M1 for as long as any coded figure is left.
- *
- * Which is also why it keeps `start: "first-places"`: `chainCalls` restarts
- * every time through from the dance's own first places, so a planner being
- * compared against `chainCalls` has to as well. M3's switch to `"standing"` is
- * a change in what is danced, not in how it is computed, and belongs on the
- * path that is allowed to dance differently.
- */
-export const legacyCyclePlanner: CyclePlanner = (input) =>
-  planContraCycle(input, { library: legacyLibrary(input.registry), start: "first-places" });
 
 /** A half-open run of beats, measured from the start of a time through. */
 type Span = readonly [Beat, Beat];
@@ -573,7 +556,7 @@ function planContraCycle(
           // emission, so a definition the planner resolves against and a figure
           // the timeline samples have to be the same thing. Saying so loudly is
           // better than dancing a coded swing to a data swing's plan.
-          if (definition.shape.kind !== "legacy" && (def as unknown) !== (fig as unknown)) {
+          if ((def as unknown) !== (fig as unknown)) {
             throw new Error(
               `figure "${instance.figure}" is a definition in the library, but the registry holds a ` +
                 `different figure under that id — build the registry with \`contraDataEngine()\``,

@@ -10,7 +10,6 @@ import type {
 import { bearing, centreOf, contraFigure, midpoint } from "../figures/ContraFigure.js";
 import type { SlotView, TargetShape } from "../set/shape.js";
 import type { AnchorRule, FigureDefinition, FigureRole, ParamValue } from "./FigureDefinition.js";
-import { legacyFigureOf } from "./legacy.js";
 import { planShape } from "./kinds/index.js";
 import { claimPoolOf, recordClaim, takenIn } from "./kinds/places.js";
 
@@ -186,8 +185,7 @@ export function interpretDefinition(def: FigureDefinition): ContraFigure<Interpr
  * The one place `planCycle` asks "what do I actually sample", so that the
  * bridge going empty is a change to this function and to nothing else.
  */
-export function figureFor(def: FigureDefinition, registry: FigureRegistry): ContraFigure {
-  if (def.shape.kind === "legacy") return legacyFigureOf(registry, def.shape.figure);
+export function figureFor(def: FigureDefinition, _registry: FigureRegistry): ContraFigure {
   return interpretDefinition(def) as unknown as ContraFigure;
 }
 
@@ -210,9 +208,6 @@ export function paramDefaults(def: FigureDefinition): Readonly<Record<string, Pa
 }
 
 function buildFigure(def: FigureDefinition): ContraFigure<InterpretedParams> {
-  if (def.shape.kind === "legacy") {
-    throw new Error(`figure "${def.id}" has a legacy shape; use \`figureFor\` with a registry`);
-  }
   return contraFigure<InterpretedParams>({
     id: def.id,
     call: def.call ?? def.id.toUpperCase(),

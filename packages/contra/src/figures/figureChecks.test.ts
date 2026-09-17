@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
-import { CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
+import { createContraRegistry } from "./registry.js";
+import { DATA_IDS } from "../library/figures/index.js";
 
 /**
  * The known-wrong contract, in two halves.
@@ -79,7 +80,7 @@ describe("every figure says what the dancers do", () => {
 
   it("marks the ones we are unsure of, so a caller knows what to correct", () => {
     const registry = createContraRegistry();
-    const unsure = CONTRA_FIGURE_IDS.filter((id) => registry.get(id).describe?.includes("(unsure"));
+    const unsure = DATA_IDS.filter((id) => registry.get(id).describe?.includes("(unsure"));
     // The marker is written `(unsure: why)` rather than a bare `(unsure)`, so a
     // caller reading the report is told what to correct as well as where.
     // Not an assertion about which figures: an assertion that it is in use and

@@ -104,21 +104,18 @@ export type ParamValue = number | string | boolean | null | readonly unknown[];
  * How a call's shorthand parameters expand to the canonical ones the shape
  * runs on.
  *
- * `{ kind: "passthrough" }` is the legacy bridge's: a coded figure's parameters
- * already *are* its canonical ones, and a dance record writes them directly.
- * `{ kind: "canonical", defaults }` is what a data figure declares — the
+ * `{ kind: "passthrough" }` was the legacy bridge's: a coded figure's
+ * parameters already *were* its canonical ones, and a dance record wrote them
+ * directly. Nothing declares it since M11 deleted the coded layer, and the
+ * variant is kept because the shape of the type is a contract a dance record
+ * round-trips through. `{ kind: "canonical", defaults }` is what a data figure
+ * declares — the
  * parameter names its shape reads and the value each takes when a call is
  * silent, which is exactly the `defaults` object the compiled figure is built
  * with. Shorthand with a real expansion (`robins@2`, a pass list) is M5's.
  */
 export type ParamSpec =
   { kind: "passthrough" } | { kind: "canonical"; defaults: Readonly<Record<string, ParamValue>> };
-
-/** The coded figure of that id, run exactly as the decider runs it today. */
-export interface LegacyShape {
-  kind: "legacy";
-  figure: string;
-}
 
 /**
  * Several shapes in a row, each given a share of the figure's beats, with the
@@ -1171,7 +1168,6 @@ export interface WaveShape {
 
 /** What the figure actually draws. */
 export type FigureShape =
-  | LegacyShape
   | SequenceShape
   | OrbitPairShape
   | RockShape

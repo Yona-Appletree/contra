@@ -17,7 +17,6 @@ import {
   PROGRESSES_PARAM,
   REBIND_PARAM,
   contraCyclePlanner,
-  legacyCyclePlanner,
 } from "./planCycle.js";
 
 /**
@@ -56,8 +55,8 @@ describe("the contra planner does not read the chain", () => {
       expect(call.params).not.toHaveProperty("from");
       expect(call.params).not.toHaveProperty("carried");
     }
-    const threaded = danceAlone(BUTTER, 6, 128, {}, { cycle: legacyCyclePlanner }).timeline();
-    const raw = danceAlone(stripped, 6, 128, {}, { cycle: legacyCyclePlanner }).timeline();
+    const threaded = danceAlone(BUTTER, 6, 128, {}, { cycle: contraCyclePlanner }).timeline();
+    const raw = danceAlone(stripped, 6, 128, {}, { cycle: contraCyclePlanner }).timeline();
     for (const dancer of threaded.dancers()) {
       for (let beat = 0; beat <= 128; beat += ORACLE_STEP) {
         expect(poseAt(raw, dancer, beat)).toEqual(poseAt(threaded, dancer, beat));
@@ -70,7 +69,7 @@ describe("the contra planner does not read the chain", () => {
     // figure's own; the chain's carry shows up between `long-lines` and
     // `robins-chain`, and between the hey and the balance. Whatever it is, the
     // planner's answer and the chain's answer are the same object shape.
-    const now = danceAlone(unthreaded(BUTTER), 6, 64, {}, { cycle: legacyCyclePlanner }).timeline();
+    const now = danceAlone(unthreaded(BUTTER), 6, 64, {}, { cycle: contraCyclePlanner }).timeline();
     const old = danceAlone(BUTTER, 6, 64).timeline();
     const carriedOf = (t: Timeline, figure: string): Carried | undefined =>
       (figures(t).find((e) => e.figure === figure)!.params as { carried?: Carried }).carried;
@@ -80,7 +79,7 @@ describe("the contra planner does not read the chain", () => {
   });
 
   it("works out `from` itself, to the bit", () => {
-    const now = danceAlone(unthreaded(BUTTER), 6, 64, {}, { cycle: legacyCyclePlanner }).timeline();
+    const now = danceAlone(unthreaded(BUTTER), 6, 64, {}, { cycle: contraCyclePlanner }).timeline();
     const old = danceAlone(BUTTER, 6, 64).timeline();
     const fromOf = (t: Timeline, figure: string): Spots =>
       (figures(t).find((e) => e.figure === figure)!.params as { from: Spots }).from;
@@ -171,7 +170,7 @@ describe("the contra planner emits the same timeline shape", () => {
       const couples = dance.formation === "becket" ? 7 : 5;
       const old = figures(danceAlone(dance, couples, 128).timeline());
       const now = figures(
-        danceAlone(dance, couples, 128, {}, { cycle: legacyCyclePlanner }).timeline(),
+        danceAlone(dance, couples, 128, {}, { cycle: contraCyclePlanner }).timeline(),
       );
       expect(now.map((e) => [e.figure, e.start, e.end])).toEqual(
         old.map((e) => [e.figure, e.start, e.end]),
@@ -181,8 +180,8 @@ describe("the contra planner emits the same timeline shape", () => {
   });
 
   it("is a pure function: two runs give the same timeline", () => {
-    const a = danceAlone(BUTTER, 6, 128, {}, { cycle: legacyCyclePlanner }).timeline();
-    const b = danceAlone(BUTTER, 6, 128, {}, { cycle: legacyCyclePlanner }).timeline();
+    const a = danceAlone(BUTTER, 6, 128, {}, { cycle: contraCyclePlanner }).timeline();
+    const b = danceAlone(BUTTER, 6, 128, {}, { cycle: contraCyclePlanner }).timeline();
     for (const dancer of a.dancers()) {
       for (let beat = 0; beat <= 128; beat += 1) {
         expect(poseAt(b, dancer, beat)).toEqual(poseAt(a, dancer, beat));
@@ -368,7 +367,7 @@ describe("a call that carries the progression", () => {
     // its timeline is identical to the one the old path threads (AC1's claim,
     // re-asserted here because the fill is now cut one run per seating).
     const old = figures(danceAlone(BUTTER, 7, 128).timeline());
-    const now = figures(danceAlone(BUTTER, 7, 128, {}, { cycle: legacyCyclePlanner }).timeline());
+    const now = figures(danceAlone(BUTTER, 7, 128, {}, { cycle: contraCyclePlanner }).timeline());
     expect(now.map((e) => [e.figure, e.start, e.end])).toEqual(
       old.map((e) => [e.figure, e.start, e.end]),
     );

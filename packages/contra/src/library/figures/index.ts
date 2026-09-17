@@ -1,9 +1,7 @@
 import type { AnyFigureDef, FigureRegistry } from "@caller/choreo";
-import { CONTRA_FIGURE_IDS } from "../../figures/registry.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { createLibrary, type Library } from "../Library.js";
 import { interpretDefinition } from "../interpret.js";
-import { legacyLibrary } from "../legacy.js";
 import { allemandeDefinition } from "./allemande.js";
 import { balanceDefinition } from "./balance.js";
 import { balanceRingDefinition } from "./balance-ring.js";
@@ -216,31 +214,27 @@ export const GATHERER_IDS: readonly string[] = GATHERER_DEFINITIONS.map((def) =>
 export const DATA_IDS: readonly string[] = DATA_DEFINITIONS.map((def) => def.id);
 
 /**
- * The definitions with **no coded twin**: figures that have only ever been data.
+ * The definitions with **no coded twin**, which since M11 is all of them.
  *
- * M2's five and M4's eleven each replaced a coded figure of the same id, so
- * every consumer that walks the coded registry still saw them. M6's are new —
- * nothing in `figures/` answers to `pull-by` — so anything that enumerates
- * figures has to ask for these as well as for `CONTRA_FIGURE_IDS`. The Moves
- * gallery is the one that does. Read off every data definition rather than off
- * the gatherers alone, so a later milestone's genuinely-new figure is caught
- * whichever list it lands in.
+ * It used to mean something narrower: M2's five and M4's eleven each replaced a
+ * coded figure of the same id, so a consumer walking the coded registry still
+ * saw them, while M6's were new — nothing in `figures/` ever answered to
+ * `pull-by` — and anything enumerating figures had to ask for both lists. The
+ * coded list is gone, so the two lists are one.
+ *
+ * The name and the function are kept rather than folded into
+ * {@link DATA_DEFINITIONS}: the Moves gallery and the motion report ask this
+ * question by name, and "the figures nothing but the library defines" is still
+ * the question they mean.
  */
-export const dataOnlyDefinitions = (): readonly FigureDefinition[] =>
-  DATA_DEFINITIONS.filter(
-    (def) => !CONTRA_FIGURE_IDS.includes(def.id as (typeof CONTRA_FIGURE_IDS)[number]),
-  );
+export const dataOnlyDefinitions = (): readonly FigureDefinition[] => DATA_DEFINITIONS;
 
 /**
  * Their ids.
  *
- * **A function and not a constant** since M5, and the reason is a cycle:
- * `figures/registry.ts` now asks this module for the figures that exist only
- * here, so that `createContraRegistry()` really does hold every contra figure —
- * which stopped being true the moment the hey had no coded twin. Two modules
- * that import each other are fine as long as neither *evaluates* the other at
- * module scope, and a constant computed from `CONTRA_FIGURE_IDS` does exactly
- * that.
+ * **A function and not a constant**, because `figures/registry.ts` imports this
+ * module and this module is imported by it: two modules that import each other
+ * are fine as long as neither *evaluates* the other at module scope.
  */
 export const dataOnlyFigureIds = (): readonly string[] =>
   dataOnlyDefinitions().map((def) => def.id);
@@ -325,20 +319,16 @@ export const contraDataFigures = (): AnyFigureDef[] =>
   DATA_DEFINITIONS.map((def) => interpretDefinition(def) as unknown as AnyFigureDef);
 
 /**
- * The library the contra planner resolves against: every coded figure bridged,
- * with the migrated definitions replacing their own bridges.
+ * The library the contra planner resolves against: every figure, as data.
  *
- * `createLibrary` lets a later definition of the same id replace an earlier
- * one, so the bridge no longer wraps them — which is each milestone's own
- * definition of "migrated". After M4 it wraps `hey`.
+ * It used to be "every coded figure bridged, with the migrated definitions
+ * replacing their own bridges", and it shrank by one figure per migration until
+ * M11 deleted the last of them. The `registry` argument is kept because the
+ * planner's seam passes one and a later library may again want to be built
+ * against what a registry holds.
  */
-export function contraLibrary(registry: FigureRegistry): Library {
-  const bridged = legacyLibrary(registry);
-  const defs = bridged
-    .ids()
-    .filter((id) => !DATA_IDS.includes(id))
-    .map((id) => bridged.get(id));
-  return createLibrary([...defs, ...DATA_DEFINITIONS]);
+export function contraLibrary(_registry: FigureRegistry): Library {
+  return createLibrary(DATA_DEFINITIONS);
 }
 
 export { allemandeDefinition } from "./allemande.js";

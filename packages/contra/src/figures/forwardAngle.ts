@@ -2,6 +2,16 @@ import type { Hand, PoseSample, Side } from "@caller/core";
 import { angleDiff, angleOf, shouldersAt } from "@caller/core";
 
 /**
+ * **How an arm sits against its own shoulder**, and whether a figure is asking
+ * one to pull or push through a hand held behind it.
+ *
+ * Written in `pair/forwardAngle.ts` for the two-dancer engine (#101, the
+ * swing's thirty degrees) and moved here when M11 deleted that package: it is
+ * pure kinematics over a `PoseSample`, it knows nothing about a pair, and its
+ * reader is `figures/testing.ts`'s probe.
+ */
+
+/**
  * Below this the hand is effectively at its own shoulder — a folded arm, whose
  * floor projection has no meaningful direction.
  */

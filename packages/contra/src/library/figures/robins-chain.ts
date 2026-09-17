@@ -1,10 +1,90 @@
-import {
-  CHAIN_JOIN_BEAT,
-  CHAIN_LARK_LEAD_BEATS,
-  CHAIN_PASS_PX,
-} from "../../figures/robins-chain.js";
+import type { Beat } from "@caller/core";
+import { CLEARANCE_PX } from "../../figures/ContraFigure.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
+
+/**
+ * **The chain's three numbers**, from the coded chain M11 deleted.
+ *
+ * They are the figure's own tuning — where the robins pass, when she joins his
+ * orbit, how early he starts turning — and every word of why each is what it is
+ * was written against the figure they govern rather than against the code that
+ * read them, so they come across whole.
+ */
+/**
+ * How far to her own left of the set's centre each robin passes on an orbit
+ * chain, px: **half the library's own clearance**, 4.25.
+ *
+ * The two robins' paths are point reflections of each other through the set's
+ * centre at every instant (F8's closed form, and it is still true here), so the
+ * pair's clearance at the pull by is twice one robin's distance from that
+ * centre and nothing else — which makes "the smallest dip that keeps them at or
+ * above the torso floor" arithmetic rather than a sweep. Exactly 4 px puts them
+ * exactly 8.000 px apart, which is AC6's floor **and** AC6's own test is a
+ * strict `>`, so the dip that actually clears it is the next number the library
+ * already has: {@link CLEARANCE_PX} halved, which is 4.25 and puts them
+ * **8.500 px** apart — the same room every other figure for two leaves the pair
+ * beside it.
+ *
+ * It is *to her own left* because that is what passes right shoulders in this
+ * coordinate system (y down; see {@link passRight}), and because without it the
+ * pass is the wrong way round: her take lies up the hall of the straight line
+ * from her place to her new one, so the undipped paths cross with each robin on
+ * the other's **left**.
+ */
+export const CHAIN_PASS_PX = CLEARANCE_PX / 2;
+
+/**
+ * Which beat of the orbit chain the robin joins the lark on: **4** of eight —
+ * half the figure to pull by and cross, half to turn.
+ *
+ * The user, F10, describing what he had just watched: "the robins pull by to
+ * join the larks 1/4 of the way through. (2 beats)". The user again on
+ * 2026-09-16, watching it danced: *"in the chain the pull-by is still too fast
+ * and the turn too slow. it should be about 4 beats each."* This is that
+ * ruling, and it is the count every caller teaches: four to chain across, four
+ * to courtesy turn.
+ *
+ * **What had to change for the number to be free.** While the lark's orbit
+ * spanned the whole figure, moving the join dragged the robin's take round his
+ * circle with it — she arrives at the circle's *antipode*, so a later join is a
+ * take further round and further back out of the set. M10c measured the ladder:
+ * twice how near her undipped walk comes to the middle of the set was 8.477 px
+ * at two beats, 10.643 at 2.5, 13.716 at three and **14.050 at 3.05**, against
+ * the library's own `HOLD_SPACING_PX` of 14 — so past three beats the two
+ * robins stopped passing at all, and at four the right hands the figure still
+ * joined were 32 px apart and `reach` failed by 3.1817 px in every
+ * chain-calling dance.
+ *
+ * {@link CHAIN_LARK_LEAD_BEATS} is what took that wall away: his turn starts
+ * when she is nearly there rather than at beat zero, so her take is the near
+ * side of his circle — deep in the set, where a right-shoulder pull by reaches
+ * it — whatever beat she arrives on. The join beat and the take stopped being
+ * the same lever.
+ */
+export const CHAIN_JOIN_BEAT: Beat = 4;
+
+/**
+ * How long before the join the lark's own turn begins, beats: **1**.
+ *
+ * A chain's lark does not orbit from the first beat — he **receives** her. The
+ * robins have the middle of the set to themselves while they pull by and cross
+ * it, and he comes to meet the one arriving at his couple over the last beat of
+ * it, so that the pair is already moving together when the hands close.
+ *
+ * The sentence this replaces — "the lark is moving from the first beat, not
+ * waiting on his place" — was the coded figure's reading of an eight-beat
+ * orbit, not something the user said; what he described was one whole turn
+ * inside eight beats and the robins joining it part way through, which is what
+ * this still is.
+ *
+ * **One and not zero, measured.** M10c compared a lark who stands dead still
+ * through the pull by against one who has already begun, on the evenness of his
+ * own per-beat speeds, which is the user's standing criterion ("people try to
+ * move at a constant speed throughout the moves for the most part"); the
+ * numbers and the whole ladder are in the milestone's report.
+ */
+export const CHAIN_LARK_LEAD_BEATS: Beat = 0;
 
 /**
  * How long the couple takes to open out on to its two places, beats.

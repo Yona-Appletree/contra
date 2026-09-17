@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
-import { swing } from "../../figures/swing.js";
 import type { CompareCase } from "../compareFigures.js";
 import { DD13_SWING_TOLERANCE } from "../compareFigures.js";
+import { fixtureOf } from "./fixtureFile.js";
 import { gathererGolden, worstOf } from "./gatherers.js";
 import { swingDefinition } from "./swing.js";
 
@@ -49,7 +49,10 @@ const CASES: readonly CompareCase[] = [
   },
 ];
 
-const GOLDEN = gathererGolden(swing, swingDefinition, CASES, DD13_SWING_TOLERANCE);
+/** The coded figure this definition replaced, as M11 recorded it. */
+const CODED = fixtureOf("swing");
+
+const GOLDEN = gathererGolden(CODED, swingDefinition, CASES, DD13_SWING_TOLERANCE);
 
 describe("the swing as data", () => {
   it("is data: it survives a round trip through JSON", () => {
@@ -57,14 +60,14 @@ describe("the swing as data", () => {
   });
 
   it("keeps the coded swing's call, count and lead", () => {
-    expect(swingDefinition.call).toBe(swing.call);
-    expect(swingDefinition.lead).toBe(swing.lead);
-    expect(swingDefinition.nominalBeats).toBe(swing.beats);
-    expect(swingDefinition.id).toBe(swing.id);
+    expect(swingDefinition.call).toBe(CODED.call);
+    expect(swingDefinition.lead).toBe(CODED.lead);
+    expect(swingDefinition.nominalBeats).toBe(CODED.beats);
+    expect(swingDefinition.id).toBe(CODED.figure);
   });
 
   it("no longer takes `endHalf`, because it no longer guesses (AC2)", () => {
-    expect(swing.defaults).toHaveProperty("endHalf");
+    expect(CODED.defaults).toHaveProperty("endHalf");
     expect(swingDefinition.params).toEqual({
       kind: "canonical",
       defaults: { pairs: "neighbors", turns: 2, handOffset: 5, endFacing: "across" },

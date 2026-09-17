@@ -1,7 +1,23 @@
+import type { Beat } from "@caller/core";
 import type { AngleExpr, FigureDefinition, NumberExpr } from "../FigureDefinition.js";
 import { PLACE_PITCH_PX } from "../../formation/dupleImproper.js";
-import { STEP_BEATS } from "../../figures/slide-left.js";
 import { MINOR_SET_ROLES } from "./carriers.js";
+
+/**
+ * How long one walking step of the slide lasts, in beats.
+ *
+ * A slide left is called in two beats and danced in two steps — "and slide,
+ * two" — so the travel is one step a beat, not one glide across the whole
+ * call. It is the same distance either way and the same top speed; the
+ * difference is that the body arrives, settles and sets off again on the beat,
+ * which is what makes it read as stepping rather than as being dragged
+ * sideways. Every other travelling figure in this library covers a place pitch
+ * over four or eight beats; this one covers a *couple* pitch over two, so it is
+ * by a long way the fastest sustained travel on the floor and the only one
+ * where a single ease over the whole figure reads as a glide.
+ */
+export const STEP_BEATS: Beat = 1;
+
 
 /**
  * **Slide left**, as data: the whole line sashays one place — half a couple's width — along to

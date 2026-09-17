@@ -1,11 +1,13 @@
 import type { Beat, PoseSample, Side, Vec2 } from "@caller/core";
-import { dist } from "@caller/core";
+import {
+  armShortfall,
+  dist,
+} from "@caller/core";
 import type { Formation, Frame, Group, StationId } from "@caller/choreo";
 import { createGroup, frame as makeFrame, withDefaults } from "@caller/choreo";
 import type { ContraFigure, ContraParams, Spot, Spots } from "./ContraFigure.js";
 import { planContext, worldSpot } from "./ContraFigure.js";
-import { armShortfall } from "../pair/armShortfall.js";
-import { handBehindShoulder } from "../pair/forwardAngle.js";
+import { handBehindShoulder } from "./forwardAngle.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 
 /**

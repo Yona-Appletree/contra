@@ -1,5 +1,13 @@
 import { CLEARANCE_PX } from "../../figures/ContraFigure.js";
-import { TURN_RADIUS_PX } from "../../pair/allemande.js";
+
+/**
+ * How far out the dancers drift while turning, before closing back to the hold.
+ *
+ * From `pair/allemande.ts`, deleted with the two-dancer engine in M11; the
+ * allemande and the contra corners are what read it.
+ */
+export const TURN_RADIUS_PX = 9;
+
 import type { FigureDefinition, NumberExpr } from "../FigureDefinition.js";
 
 /**

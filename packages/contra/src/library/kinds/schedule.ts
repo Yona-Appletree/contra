@@ -1,5 +1,15 @@
 import type { Angle, Beat, Vec2 } from "@caller/core";
-import { angleDiff, angleLerp, angleOfVec, clamp01, dirOf, dist, ramp, smooth } from "@caller/core";
+import {
+  angleDiff,
+  angleLerp,
+  angleOfVec,
+  clamp01,
+  dirOf,
+  dist,
+  handDown,
+  ramp,
+  smooth,
+} from "@caller/core";
 import type { Side } from "@caller/choreo";
 import type {
   FigurePlan,
@@ -16,7 +26,7 @@ import {
   midpoint,
   takeAndRelease,
 } from "../../figures/ContraFigure.js";
-import { handDown } from "../../pair/PairFrame.js";
+
 import type { FigureRole, HoldSpec, ScheduleItem, ScheduleShape } from "../FigureDefinition.js";
 import type { ExprEnv } from "../expr.js";
 import { evalNumber } from "../expr.js";

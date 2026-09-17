@@ -266,11 +266,10 @@ export function resolveCall(
       // - a figure that is **data** gets the lattice, because a definition may
       //   name a slot (M7).
       //
-      // A bridged coded figure gets neither and is byte-identical to M1's.
       const cast = castOf(plan, stations);
       const extra: Record<string, unknown> = { ...params };
       if (needsPlaces(def, params)) extra["homes"] = homesOf(ctx, plan);
-      if (def.shape.kind !== "legacy") extra["slots"] = slotViewFor(ctx, plan.frame, cast);
+      extra["slots"] = slotViewFor(ctx, plan.frame, cast);
       // **The `pairs` word, as this instance's own roles** (DD73). See
       // {@link castPairsOf}: in a minor set it is the identity for the two
       // words `pairsOf` already read, and an answer for every other one.
@@ -278,10 +277,7 @@ export function resolveCall(
       if (paired !== undefined) extra["pairs"] = paired;
       instances.push({
         figure: call.figure,
-        params:
-          paired !== undefined || needsPlaces(def, params) || def.shape.kind !== "legacy"
-            ? extra
-            : params,
+        params: extra,
         cast,
         group: castGroup(plan, cast, call.figure, stations),
         frame: plan.frame,

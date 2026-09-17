@@ -1,10 +1,9 @@
 import type { Formation } from "@caller/choreo";
 import { BECKET } from "../../formation/becket.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
-import type { ContraFigure } from "../../figures/ContraFigure.js";
 import type { CompareCase, CompareOptions, CompareResult } from "../compareFigures.js";
 import { compareFigures } from "../compareFigures.js";
-import { SAMPLED_AT, fixtureFor } from "./fixtureFile.js";
+import type { FigureFixture } from "../figureFixture.js";
 import type { FigureDefinition, FigureRole } from "../FigureDefinition.js";
 
 /**
@@ -66,7 +65,7 @@ export interface CarrierGolden {
  * reason — which in this milestone happens exactly nowhere.
  */
 export function carrierGolden(
-  coded: ContraFigure,
+  fixture: FigureFixture,
   definition: FigureDefinition,
   cases: readonly CompareCase[],
   formations: readonly Formation[] = CARRIER_FORMATIONS,
@@ -76,7 +75,6 @@ export function carrierGolden(
     cases: cases.map((test) => ({ ...test, from: "displaced" as const })),
     formations,
   };
-  const fixture = fixtureFor(coded, [stations, displaced], SAMPLED_AT);
   return {
     stations: compareFigures(fixture, definition, stations),
     displaced: compareFigures(fixture, definition, displaced),

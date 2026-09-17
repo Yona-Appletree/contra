@@ -2,7 +2,6 @@ import type { FigureCall } from "@caller/choreo";
 import { createHall } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { createContraRegistry } from "../figures/registry.js";
-import { legacyLibrary } from "../library/legacy.js";
 import { contraLibrary } from "../library/figures/index.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { HOLD_PLACE_FIGURE, resolveCall } from "./resolve.js";
@@ -11,7 +10,7 @@ import { modelFromSet } from "./SetModel.js";
 /** One call against a live set: who dances it, where, and who stands. */
 
 const REGISTRY = createContraRegistry();
-const LIBRARY = legacyLibrary(REGISTRY);
+const LIBRARY = contraLibrary(REGISTRY);
 /** The data library, for the figures the bridge does not hold. */
 const DATA_LIBRARY = contraLibrary(REGISTRY);
 

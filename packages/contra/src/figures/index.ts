@@ -1,5 +1,8 @@
-// The contra figure library: every figure the demo's dances call, on
-// `@caller/choreo`'s figure contract, plus the registry a decider dances from.
+// The contra figure library: the figure contract every figure in
+// `../library/` is interpreted into, the geometry they share, and the registry
+// a decider dances from. The seventeen hand-coded figures that used to live
+// here went in M11; `docs/figure-layer-retirement.md` is the map of what each
+// of them became.
 
 export type {
   ContraFigure,
@@ -51,48 +54,6 @@ export {
 export type { Ring, RingWalk } from "./ring.js";
 export { ringEnd, ringFor, ringHands, ringOf, ringShift, ringWalk } from "./ring.js";
 
-export type { CircleParams } from "./circle.js";
-export { circle } from "./circle.js";
-
-export type { LongLinesParams } from "./long-lines.js";
-export { longLines } from "./long-lines.js";
-
-export type { PassThroughParams } from "./pass-through.js";
-export { facingPairs, passThrough } from "./pass-through.js";
-
-export type { SlideLeftParams } from "./slide-left.js";
-export { slideLeft } from "./slide-left.js";
-
-export type { StarParams } from "./star.js";
-export { star } from "./star.js";
-
-export type { BalanceParams } from "./balance.js";
-export { balance, balanceRing } from "./balance.js";
-
-export type { EndFacing, SwingParams } from "./swing.js";
-export { endFacingOf, placeHalf, stationHalf, swing } from "./swing.js";
-
-export type { AllemandeParams } from "./allemande.js";
-export { allemande } from "./allemande.js";
-
-export type { DoSiDoParams } from "./do-si-do.js";
-export { doSiDo } from "./do-si-do.js";
-
-export type { PetronellaParams } from "./petronella.js";
-export { petronella } from "./petronella.js";
-
-export type { CaliforniaTwirlParams } from "./california-twirl.js";
-export { californiaTwirl, insideSide } from "./california-twirl.js";
-
-export type { RollAwayParams } from "./roll-away.js";
-export { rollAway } from "./roll-away.js";
-
-export type { RightAndLeftThroughParams } from "./right-and-left-through.js";
-export { rightAndLeftThrough } from "./right-and-left-through.js";
-
-export type { RobinsChainParams } from "./robins-chain.js";
-export { CHAIN_JOIN_BEAT, CHAIN_PASS_PX, robinsChain } from "./robins-chain.js";
-
 export type { BackHands, CourtesyTurn, CourtesyTurnSpec, OrbitTurnSpec } from "./courtesyTurn.js";
 export {
   COURTESY_HALF_TURN,
@@ -105,14 +66,8 @@ export {
   orbitTurn,
 } from "./courtesyTurn.js";
 
-export type { ContraFigureId, FigureDefaultsOverride } from "./registry.js";
-export {
-  CONTRA_FIGURES,
-  CONTRA_FIGURE_IDS,
-  contraFigureList,
-  contraFigureOf,
-  createContraRegistry,
-} from "./registry.js";
+export type { FigureDefaultsOverride } from "./registry.js";
+export { contraFigureOf, createContraRegistry } from "./registry.js";
 
 export type { ContraCall, ContraDanceSpec, ContraPhrase } from "./chain.js";
 export { chainCalls, contraDance, danceEnds } from "./chain.js";

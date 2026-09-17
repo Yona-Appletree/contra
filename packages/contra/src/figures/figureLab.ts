@@ -28,6 +28,7 @@ import {
   threadsOnTheOldPath,
 } from "../dances/oracle.js";
 import { LAB_RUN } from "../dances/danceLab.js";
+import { figureOnFour } from "./onFour.js";
 import type { DanceOracles } from "../dances/oracle.js";
 import { BECKET } from "../formation/becket.js";
 import { isBecket } from "../dances/formations.js";
@@ -144,10 +145,7 @@ export function figurePaceRows(
   if (!registry.has(id)) return [];
   const group = aloneGroup(kind);
   const written = definitionOf(id);
-  const interpreted =
-    written && written.shape.kind !== "legacy"
-      ? (interpretDefinition(written) as unknown as AnyFigureDef)
-      : undefined;
+  const interpreted = figureOnFour(id) as AnyFigureDef | undefined;
   const plans = (def: AnyFigureDef): boolean => {
     try {
       def.sample(group, group.stations[0]!.id, 0, withDefaults(def, {}, def.beats));
@@ -505,15 +503,6 @@ const mark = (good: boolean): string => (good ? "pass" : "FAIL");
  */
 function definitionSection(id: string, definition: FigureDefinition | undefined): string[] {
   if (!definition) return [`## 0. Definition`, "", `_the library has no \`${id}\`._`, ""];
-  if (definition.shape.kind === "legacy") {
-    return [
-      `## 0. Definition`,
-      "",
-      `\`${id}\` is still a **coded** figure, reached through the legacy bridge. ` +
-        `Everything below measures that figure; M4 and M5 are what empty the bridge.`,
-      "",
-    ];
-  }
   return [
     `## 0. Definition`,
     "",

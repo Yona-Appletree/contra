@@ -1,4 +1,9 @@
-import { HAND_HANG_SWING_PX, dist, drawnArms } from "@caller/core";
+import {
+  HAND_HANG_SWING_PX,
+  dist,
+  drawnArms,
+  handDown,
+} from "@caller/core";
 import { describe, expect, it } from "vitest";
 import {
   CONTRA_EVENNESS,
@@ -11,7 +16,6 @@ import {
   deriveBounds,
   floorAspect,
 } from "./motionBounds.js";
-import { handDown } from "../pair/PairFrame.js";
 
 /**
  * The bounds are derived, not picked, and this is what keeps them honest: it

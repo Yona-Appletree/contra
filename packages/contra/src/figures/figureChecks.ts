@@ -29,17 +29,16 @@ import type { ContraFigure, ContraParams } from "./ContraFigure.js";
 import { bearing, holdWindow, planContext, worldSpot } from "./ContraFigure.js";
 import type { ContraCall } from "./chain.js";
 import { chainCalls } from "./chain.js";
-import { CHAIN_JOIN_BEAT } from "./robins-chain.js";
-import { CONTRA_FIGURES } from "./registry.js";
+import { CHAIN_JOIN_BEAT } from "../library/figures/robins-chain.js";
 import { heyDefinition } from "../library/figures/hey.js";
 import { interpretDefinition } from "../library/interpret.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import {
-  IN_BEATS as STAR_IN_BEATS,
-  OUT_BEATS as STAR_OUT_BEATS,
-  WRIST_ALONG,
-  wristPoint,
-} from "./star.js";
+  CIRCLE_IN_BEATS as STAR_IN_BEATS,
+  CIRCLE_OUT_BEATS as STAR_OUT_BEATS,
+} from "../library/figures/circle.js";
+import { WRIST_ALONG, wristPoint } from "../library/kinds/holds.js";
+import { figureOnFour } from "./onFour.js";
 
 /**
  * What each figure's `describe` says, turned into assertions.
@@ -189,27 +188,16 @@ type CheckParams = Record<string, unknown>;
 const describeOf = (id: string): string | undefined => checkFigure(id)?.describe;
 
 /**
- * The figures **only the library has**, which these checks still run on.
+ * The figure these checks run on: the library's own, interpreted.
  *
- * M5 deleted `figures/hey.ts`: the hey is a `FigureDefinition` now and has no
- * coded twin, so `CONTRA_FIGURES` no longer holds it. Its checks are the user's
- * own account of what a hey is ("that's a weaving figure, they should be passing
- * shoulders in the center of the set") and they are worth more against the
- * figure that ships than against one that does not exist, so they run against
- * the interpreted definition — the same object the registry, the timeline and
- * every oracle sample.
- *
- * M11 does this for the whole coded layer; this is the one figure that is ahead
- * of it.
+ * M5 was the first figure with no coded twin — the hey, which had become a
+ * `FigureDefinition` — and its checks ran against the interpreted definition
+ * because they are worth more against the figure that ships than against one
+ * that does not exist. M11 made that true of every figure: there is no coded
+ * layer left, and what these checks assert is what the registry, the timeline
+ * and every oracle sample see.
  */
-const DATA_ONLY_CHECKED: Readonly<Record<string, ContraFigure<ContraParams>>> = {
-  hey: interpretDefinition(heyDefinition) as unknown as ContraFigure<ContraParams>,
-};
-
-/** The figure these checks run on: the coded one, or the library's own. */
-const checkFigure = (id: string): ContraFigure<ContraParams> | undefined =>
-  ((CONTRA_FIGURES as Record<string, unknown>)[id] as ContraFigure<ContraParams> | undefined) ??
-  DATA_ONLY_CHECKED[id];
+const checkFigure = (id: string): ContraFigure<ContraParams> | undefined => figureOnFour(id);
 
 /**
  * A hey is four passes in the centre of the set, right shoulders, at about
@@ -1159,8 +1147,8 @@ function seamTrack(calls: readonly ContraCall[], span: Beat): { track: Track } {
   });
   const first = threaded.calls[0]!;
   const second = threaded.calls[1]!;
-  const firstDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[first.figure]!;
-  const secondDef = (CONTRA_FIGURES as Record<string, ContraFigure<ContraParams>>)[second.figure]!;
+  const firstDef = checkFigure(first.figure)!;
+  const secondDef = checkFigure(second.figure)!;
   const firstParams = withDefaults<ContraParams>(firstDef, first.params, first.beats);
   const secondParams = withDefaults<ContraParams>(secondDef, second.params, second.beats);
   const ids = group.stations.map((s) => s.id);

@@ -17,7 +17,7 @@ import {
 } from "./motionBounds.js";
 import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
-import { CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
+import { createContraRegistry } from "./registry.js";
 import { DEMO_DANCES } from "../dances/index.js";
 import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
 import { dataOnlyFigureIds, templateFigureOf } from "../library/figures/index.js";
@@ -247,7 +247,6 @@ export function figureAloneRows(): MotionStats[] {
   const registry = createContraRegistry();
   const rows: MotionStats[] = [];
   const alone = [
-    ...CONTRA_FIGURE_IDS,
     ...dataOnlyFigureIds().filter((id) => templateFigureOf(id) !== undefined),
   ];
   for (const id of alone) {

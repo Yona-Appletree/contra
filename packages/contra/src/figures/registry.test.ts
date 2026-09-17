@@ -3,31 +3,36 @@ import { WALK_TO_STATION, danceBeats, withDefaults } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { chainCalls, contraDance } from "./chain.js";
-import { CONTRA_FIGURES, CONTRA_FIGURE_IDS, createContraRegistry } from "./registry.js";
+import { createContraRegistry } from "./registry.js";
+import { DATA_DEFINITIONS, DATA_IDS } from "../library/figures/index.js";
+import { paramDefaults } from "../library/interpret.js";
 import { spotError, stationSpot } from "./testing.js";
 
 describe("the registry", () => {
   it("files every figure under its own id", () => {
-    for (const id of CONTRA_FIGURE_IDS) {
-      expect(CONTRA_FIGURES[id].id, id).toBe(id);
-    }
+    const registry = createContraRegistry();
+    for (const id of DATA_IDS) expect(registry.get(id).id, id).toBe(id);
   });
 
   it("holds every figure a dance can call, plus the two the engine needs", () => {
     const registry = createContraRegistry();
-    for (const id of CONTRA_FIGURE_IDS) expect(registry.has(id), id).toBe(true);
+    for (const id of DATA_IDS) expect(registry.has(id), id).toBe(true);
     expect(registry.has("wait-out")).toBe(true);
     expect(registry.has(WALK_TO_STATION.id)).toBe(true);
   });
 
-  it("gives every figure a call, a lead and a duration", () => {
-    for (const id of CONTRA_FIGURE_IDS) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const def = CONTRA_FIGURES[id] as import("./ContraFigure.js").ContraFigure<any>;
-      expect(def.call.length, id).toBeGreaterThan(0);
+  // **"gives every figure a call" is gone with the coded layer** (M11). A
+  // `FigureDefinition` has no call string of its own: what a caller says is the
+  // text layer's, computed from the figure and its parameters, and
+  // `interpret.ts` fills the compiled figure's `call` with the id in capitals
+  // so that a debugger has something to print. Asserting on it asserted on the
+  // coded table's shape, which is what this milestone deleted.
+  it("gives every figure a lead and a duration, and fills in from its own defaults", () => {
+    const registry = createContraRegistry();
+    for (const id of DATA_IDS) {
+      const def = registry.get(id);
       expect(def.lead, id).toBeGreaterThanOrEqual(0);
       expect(def.beats, id).toBeGreaterThan(0);
-      // Every figure's parameters fill in from its defaults alone.
       expect(() => withDefaults(def, undefined, def.beats), id).not.toThrow();
     }
   });
@@ -38,21 +43,28 @@ describe("the registry", () => {
     expect(() => createContraRegistry().get("dolphin-hey")).toThrow(/no figure "dolphin-hey"/);
   });
 
-  it("leaves every figure's defaults alone when no override names it", () => {
+  it("leaves every figure's declared defaults alone when no override names it", () => {
     const registry = createContraRegistry();
-    for (const id of CONTRA_FIGURE_IDS) {
-      expect(registry.get(id).defaults, id).toBe(CONTRA_FIGURES[id].defaults);
+    for (const def of DATA_DEFINITIONS) {
+      const built = registry.get(def.id).defaults as Record<string, unknown>;
+      for (const [key, value] of Object.entries(paramDefaults(def))) {
+        expect(built[key], `${def.id}.${key}`).toEqual(value);
+      }
     }
   });
 
   it("merges an override over one figure's defaults and leaves the rest untouched", () => {
     const registry = createContraRegistry([], { "robins-chain": { stepInPx: 8 } });
-    expect(registry.get("robins-chain").defaults).toEqual({
-      ...CONTRA_FIGURES["robins-chain"].defaults,
-      stepInPx: 8,
-    });
-    // Untouched: no key of `overrides` names it.
-    expect(registry.get("circle").defaults).toBe(CONTRA_FIGURES.circle.defaults);
+    const chain = registry.get("robins-chain").defaults as Record<string, unknown>;
+    expect(chain["stepInPx"]).toBe(8);
+    const plain = createContraRegistry();
+    // Untouched: no key of `overrides` names it, so it is the same figure.
+    for (const [key, value] of Object.entries(
+      plain.get("circle").defaults as Record<string, unknown>,
+    )) {
+      if (key === "from" || key === "homes" || key === "slots" || key === "nearby") continue;
+      expect((registry.get("circle").defaults as Record<string, unknown>)[key], key).toEqual(value);
+    }
   });
 });
 

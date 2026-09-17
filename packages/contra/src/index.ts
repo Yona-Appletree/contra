@@ -84,7 +84,6 @@ export type { ContraCyclePlannerOptions } from "./set/planCycle.js";
 export {
   contraCyclePlanner,
   createContraCyclePlanner,
-  legacyCyclePlanner,
 } from "./set/planCycle.js";
 
 export type {
@@ -107,7 +106,6 @@ export type {
   HoldWindowSpec,
   IdleHands,
   IdleTrack,
-  LegacyShape,
   MateHold,
   OrbitEnds,
   OrbitMotion,
@@ -278,23 +276,12 @@ export {
   twoHandRock,
   worstOf,
 } from "./library/figures/index.js";
-export {
-  LEGACY_ROLES,
-  isContraFigure,
-  isLegacyRole,
-  legacyDefinition,
-  legacyFigureOf,
-  legacyLibrary,
-} from "./library/legacy.js";
 
 export {
   BECKET_RIGHT,
   BECKET_RIGHT_LATTICE,
   BECKET_RIGHT_RELATIONS,
 } from "./formation/becketRight.js";
-
-export * from "./figures/index.js";
-export * from "./pair/index.js";
 
 export {
   ALL_DANCES,

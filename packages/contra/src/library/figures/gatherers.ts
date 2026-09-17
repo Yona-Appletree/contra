@@ -1,7 +1,6 @@
 import type { Formation } from "@caller/choreo";
 import { BECKET } from "../../formation/becket.js";
 import { DUPLE_IMPROPER } from "../../formation/dupleImproper.js";
-import type { ContraFigure } from "../../figures/ContraFigure.js";
 import type {
   CompareCase,
   CompareOptions,
@@ -10,7 +9,7 @@ import type {
 } from "../compareFigures.js";
 import { compareFigures } from "../compareFigures.js";
 import type { FigureDefinition } from "../FigureDefinition.js";
-import { SAMPLED_AT, fixtureFor } from "./fixtureFile.js";
+import type { FigureFixture } from "../figureFixture.js";
 
 /**
  * **The gate DD21 asks each migrated gatherer to pass**, as one call.
@@ -51,7 +50,7 @@ export interface GathererGolden {
  * where it is going, so the honest end moves the whole figure.
  */
 export function gathererGolden(
-  coded: ContraFigure,
+  fixture: FigureFixture,
   definition: FigureDefinition,
   cases: readonly CompareCase[],
   tolerance?: CompareTolerance,
@@ -70,7 +69,6 @@ export function gathererGolden(
     formations: GATHERER_FORMATIONS,
     ...(tolerance === undefined ? {} : { tolerance }),
   };
-  const fixture = fixtureFor(coded, [stations, displaced], SAMPLED_AT);
   return {
     stations: compareFigures(fixture, definition, stations),
     displaced: compareFigures(fixture, definition, displaced),
