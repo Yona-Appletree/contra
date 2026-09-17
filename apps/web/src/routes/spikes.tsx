@@ -49,7 +49,7 @@ const SPIKES: SpikeEntry[] = [
     name: "The Stage · transport, card, mute",
     date: "2026-09-16",
     ruling:
-      "Awaiting the gate: a five-button transport under the stage, the card's calls as tappable chips that open the move, and a mute in the stage's top-right corner.",
+      "Converged: the five transport glyphs outlined on the wall under the hall, a white notecard one call to a line, the tune in its own box with the moves under the staves and four potatoes counting in, a 32 px mute top-right.",
   },
 ];
 
