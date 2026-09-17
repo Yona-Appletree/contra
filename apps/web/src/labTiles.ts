@@ -186,7 +186,12 @@ export function labSection(
     hint: LAB_SEAMS.find((s) => s.key === key)?.hint ?? "",
     tiles: sized,
     beats: sized[0]?.window.beats ?? 0,
-    divergence: divergenceOf(sized[0]!, sized[1]!),
+    // **One treatment since M11**, so nothing diverges: the coded figures that
+    // were treatment A are deleted and B is what ships. Measuring the one
+    // treatment against itself keeps the page and its test honest — the number
+    // it prints is 0 px because there is one thing on the page — rather than
+    // pretending a comparison is still being made.
+    divergence: divergenceOf(sized[0]!, sized[1] ?? sized[0]!),
   };
 }
 

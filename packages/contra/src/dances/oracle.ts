@@ -94,6 +94,11 @@ export function formationFor(dance: Dance): Formation {
  *   of no length for it and the old path has no rule for one;
  * - a **multi-pass record** — the progression fires inside the cycle, and the
  *   old path progresses only at its boundary.
+ *
+ * **Since M11 the old path is gone and this question is `chainCalls`'s alone.**
+ * The name is kept because that is what the threading was: the answer is now
+ * "can a hands-four template thread this dance", which the figure lab and the
+ * dance record's load path still ask, and no shipped path does.
  */
 export function threadsOnTheOldPath(dance: Dance): boolean {
   if (dancePasses(dance) > 1) return false;

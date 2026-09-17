@@ -42,21 +42,25 @@ test("the Moves page links to the lab", async ({ page }) => {
 });
 
 for (const key of SEAMS) {
-  test(`the lab dances ${key} through both engines at once`, async ({ page }) => {
+  // **One treatment since M11.** The lab was built for gate G1's question — is
+  // the honest-ends treatment the right look? — and showed A, "today" (the
+  // coded figures on the old engine), beside B, the treatment that ships. The
+  // user answered at G1 on 2026-09-15 and the coded layer is deleted, so there
+  // is nothing to put beside B and the page shows the one that dances.
+  test(`the lab dances ${key}`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     // Frozen on the boundary: beat 0 of the lab's own count is the seam.
     await page.goto(`#/lab/seam/${key}?beat=0`);
 
     const treatments = page.getByTestId("lab-treatment");
-    await expect(treatments).toHaveCount(2);
-    await expect(treatments.nth(0)).toHaveAttribute("data-engine", "old");
-    await expect(treatments.nth(1)).toHaveAttribute("data-engine", "new");
+    await expect(treatments).toHaveCount(1);
+    await expect(treatments.nth(0)).toHaveAttribute("data-engine", "new");
 
-    // Both tiles draw, and both strips draw every cell they claim.
-    await expect(page.locator('canvas[data-testid="moves-canvas"][data-ready="1"]')).toHaveCount(2);
+    // The tile draws, and the strip draws every cell it claims.
+    await expect(page.locator('canvas[data-testid="moves-canvas"][data-ready="1"]')).toHaveCount(1);
     const strips = page.getByTestId("lab-strip");
-    await expect(strips).toHaveCount(2);
-    for (let i = 0; i < 2; i++) {
+    await expect(strips).toHaveCount(1);
+    for (let i = 0; i < 1; i++) {
       const strip = strips.nth(i);
       const cells = Number(await strip.getAttribute("data-cells"));
       // Four beats before the boundary and eight after, a frame a beat.
@@ -64,25 +68,15 @@ for (const key of SEAMS) {
       await expect(strip.locator('canvas[data-ready="1"]')).toHaveCount(cells);
     }
 
-    // The oracle's numbers land for both treatments, and the lab says how far
-    // apart the two are before it asks which is right.
+    // The oracle's numbers land.
     await expect(page.getByTestId("lab-controls")).toHaveAttribute("data-measured", "1");
-    await expect(page.getByTestId("moves-metrics")).toHaveCount(2);
+    await expect(page.getByTestId("moves-metrics")).toHaveCount(1);
     await expect(page.getByTestId("lab-divergence")).toHaveAttribute("data-px", /^\d/);
 
     if (WRITE_CROPS) {
       mkdirSync(CROP_DIR, { recursive: true });
-      for (let i = 0; i < 2; i++) {
-        const engine = i === 0 ? "old" : "new";
-        writeFileSync(
-          join(CROP_DIR, `${key}-${engine}-tile.png`),
-          await treatments.nth(i).screenshot(),
-        );
-        writeFileSync(
-          join(CROP_DIR, `${key}-${engine}-strip.png`),
-          await strips.nth(i).screenshot(),
-        );
-      }
+      writeFileSync(join(CROP_DIR, `${key}-new-tile.png`), await treatments.nth(0).screenshot());
+      writeFileSync(join(CROP_DIR, `${key}-new-strip.png`), await strips.nth(0).screenshot());
       writeFileSync(
         join(CROP_DIR, `${key}-strips.png`),
         await page.getByTestId("lab-strips").screenshot(),

@@ -19,7 +19,7 @@ import { checkGroup, figureChecks } from "./figureChecks.js";
 import { KNOWN_WRONG, isKnownWrong } from "./knownWrong.js";
 import { createContraRegistry } from "./registry.js";
 import { DEMO_DANCES } from "../dances/index.js";
-import { danceAlone, linesFor, threadsOnTheOldPath } from "../dances/oracle.js";
+import { danceAlone, linesFor } from "../dances/oracle.js";
 import { dataOnlyFigureIds } from "../library/figures/index.js";
 import type { AnyFigureDef } from "@caller/choreo";
 import { figureOnFour } from "./onFour.js";
@@ -186,14 +186,15 @@ function dancesSection(): string[] {
   let overall: MotionStats | undefined;
   for (const dance of DEMO_DANCES) {
     const couples = linesFor(dance).includes(6) && isBecket(dance) ? 6 : 4;
-    // On the engine that can dance it, which for every dance written before M5
-    // is the decider's own — the two differ by up to 1.16 px at the ends of a
-    // line (M3's cycle-start switch), and switching them all over is a rewrite
-    // of this whole report rather than a milestone's business. On the Prowl
-    // calls a figure for two with no coded twin and the old planner refuses it
-    // by name, so it is run on the contra planner and says so below.
-    const run = threadsOnTheOldPath(dance) ? {} : LAB_RUN;
-    const decider = danceAlone(dance, couples, REPORT_BEATS, {}, run);
+    // **On the engine the dance ships on**, which since M11 is the only one
+    // there is. This report used to measure every dance written before M5 on
+    // the decider's own planner and the rest on the contra planner, because the
+    // two differed by up to 1.16 px at the ends of a line (M3's cycle-start
+    // switch) and switching them all over was a rewrite rather than a
+    // milestone's business. The coded layer the old planner needed is deleted,
+    // so the whole table is the shipped path now — which is what it should
+    // always have been measuring.
+    const decider = danceAlone(dance, couples, REPORT_BEATS, {}, LAB_RUN);
     const report = motionReport(decider.timeline(), REPORT_BEATS, {
       bounds: CONTRA_MOTION_BOUNDS,
     });
