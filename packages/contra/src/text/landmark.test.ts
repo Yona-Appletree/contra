@@ -50,7 +50,6 @@ describe("the vocabulary of relations", () => {
       "Your partner is in your right hand.",
     );
   });
-
 });
 
 describe("the landmark a figure ends on", () => {

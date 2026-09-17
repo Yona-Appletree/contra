@@ -48,7 +48,12 @@
     {
       "name": "B1",
       "figures": [
-        { "figure": "turn-contra-corners", "beats": 16, "who": "ones", "call": "ONES TURN CONTRA CORNERS" }
+        {
+          "figure": "turn-contra-corners",
+          "beats": 16,
+          "who": "ones",
+          "call": "ONES TURN CONTRA CORNERS"
+        }
       ]
     },
     {
