@@ -1,7 +1,7 @@
 // A big circle (a Sicilian circle): couples facing couples around a ring,
 // improper along the ring. The ones progress clockwise round it and the twos
 // the other way; nobody is ever out. The ring is sized so that couples are a
-// dancer place apart along it.
+// metre apart along it, which a small ring needs to leave room across.
 
 formation minor-set() {
   anchor centre = point(x = 0m, y = 0m);
@@ -10,10 +10,10 @@ formation minor-set() {
   provide $neighbor: Place = opposite-role(other(me));
 }
 
-formation big-circle(minor-sets: Int = 4) {
+formation big-circle(minor-sets: Int = 6) {
   anchor centre = point(x = 0m, y = 0m);
   let n = 2 * minor-sets;
-  let r = 0.8m * n / (2 * pi);
+  let r = 1m * n / (2 * pi);
   repeat (i in n) group minor-set() at rotate(360 / n * i) translate(x = r);
   seat = alternate(minor-set);
   next = circle-progression(around = centre);

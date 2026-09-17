@@ -51,8 +51,9 @@ export function pixelsPane(): Pane {
     canvas.style.height = `${size.h * zoom}px`;
 
     const style = getComputedStyle(document.documentElement);
-    const floor = style.getPropertyValue("--floor").trim() || "#c9a06a";
-    const grid = style.getPropertyValue("--floor-grid").trim() || "#b78d5b";
+    // On black (R9): the hall's own backdrop, so the dancers are the light.
+    const floor = style.getPropertyValue("--floor").trim() || "#0c0a09";
+    const grid = style.getPropertyValue("--floor-grid").trim() || "#1c1815";
     context.fillStyle = floor;
     context.fillRect(0, 0, size.w, size.h);
 
@@ -86,7 +87,7 @@ export function pixelsPane(): Pane {
     }
 
     // The two long lines, a shade off the floor: a guide, not a thing on it.
-    const guide = mix(floor, "#000000", 0.82);
+    const guide = mix(floor, "#ffffff", 0.86);
     for (const x of lines) {
       for (let y = origin.y; y < origin.y + size.h; y++) px(x, y, guide);
     }

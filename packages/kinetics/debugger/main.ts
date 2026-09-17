@@ -4,6 +4,7 @@ import { run, type Run } from "../src/pipeline.js";
 import { complaintsOf, summaryOf } from "./complaints.js";
 import { cursor } from "./cursor.js";
 import { graphsPane } from "./panes/graphs.js";
+import { layoutPane } from "./panes/layout.js";
 import { listingPane } from "./panes/listing.js";
 import { pixelsPane } from "./panes/pixels.js";
 import { sourcePane } from "./panes/source.js";
@@ -76,6 +77,7 @@ const panes: Pane[] = [
     source = text;
     recompute(false);
   }),
+  layoutPane(),
   timelinePane((beat) => {
     bar.pause();
     bar.set(beat);
