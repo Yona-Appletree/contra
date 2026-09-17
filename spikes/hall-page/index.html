@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Stage · transport, card, mute</title>
+<style>
+/*
+ * The app's own palette, verbatim from packages/ui-design/src/theme.css, plus
+ * the hall's wall colour the stage strip is painted in (HALL_THEMES.grange).
+ */
+:root{
+  color-scheme:dark;
+  --radius:.5rem;
+  --background:oklch(0.235 0.022 58);
+  --foreground:oklch(0.925 0.018 78);
+  --card:oklch(0.995 0.004 90);
+  --card-foreground:oklch(0.22 0.02 50);
+  --card-accent:oklch(0.88 0.045 55);
+  --primary:oklch(0.72 0.1 72);
+  --primary-foreground:oklch(0.2 0.025 55);
+  --secondary:oklch(0.365 0.032 60);
+  --muted:oklch(0.315 0.028 58);
+  --muted-foreground:oklch(0.74 0.022 72);
+  --accent:oklch(0.41 0.037 60);
+  --border:oklch(0.4 0.03 60);
+  --input:oklch(0.4 0.03 60);
+  --wood-pitch:48px;
+  --wood-seam:oklch(0.2 0.018 55);
+  --wood-lit:oklch(0.272 0.024 60);
+  --wall-top:#75604c;
+  --lark:#e0a32e; --robin:#c8362f;
+  --dash:#6b5741;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--foreground);background-color:var(--background);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch));
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit}
+header,section{max-width:1480px;margin:0 auto;padding:18px 20px}
+h1{font-size:22px;margin:8px 0 6px;letter-spacing:.02em}
+h2{font-size:17px;margin:34px 0 6px;color:var(--primary);border-top:1px solid var(--border);padding-top:16px}
+h3{font-size:13px;margin:0 0 6px;color:var(--muted-foreground);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+p.hint{color:var(--muted-foreground);margin:4px 0 10px;max-width:90ch}
+p.hint b{color:var(--foreground);font-weight:600}
+code{font:12px ui-monospace,Menlo,monospace;background:var(--muted);padding:0 4px;border-radius:3px}
+kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--muted)}
+
+/* The exploration-controls strip. */
+.controls{border:1px dashed var(--dash);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 12px;background:oklch(0.2 0.02 58 / .8);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+.controls .grp{display:flex;align-items:center;gap:6px;font:12px ui-monospace,Menlo,monospace;color:var(--muted-foreground)}
+.controls .grp span.l{color:var(--primary)}
+.controls button{background:var(--muted);color:var(--foreground);border:1px solid var(--border);border-radius:5px;padding:4px 9px;font:12px ui-monospace,Menlo,monospace;cursor:pointer}
+.controls button.on{background:var(--accent);border-color:var(--primary);color:var(--primary)}
+.controls input[type=range]{width:220px;accent-color:var(--primary)}
+.controls .ro{min-width:24ch}
+
+/* Concept grids. */
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.concept{display:flex;flex-direction:column;gap:6px;max-width:100%}
+.concept > p{margin:0;font-size:12px;color:var(--muted-foreground);max-width:390px}
+.concept > p b{color:var(--foreground)}
+.lean{color:var(--primary);font-weight:600}
+
+/* ---------- The app's chrome, reproduced ---------- */
+.phone{width:390px;height:844px;border:1px solid var(--border);border-radius:6px;background:var(--background);position:relative;overflow:hidden;flex:none;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch))}
+.phone .scroll{height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}
+.laptop{width:1024px;max-width:100%;border:1px solid var(--border);border-radius:6px;background:var(--background);position:relative;overflow:hidden;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 2px),var(--wood-seam) calc(var(--wood-pitch) - 1px),var(--wood-lit) calc(var(--wood-pitch) - 1px),var(--wood-lit) var(--wood-pitch))}
+.tabs{display:flex;align-items:stretch;gap:4px;border-bottom:1px solid var(--border);background:var(--muted);padding:0 8px;font-size:14px}
+.tabs a{padding:6px 12px;text-decoration:none;color:var(--muted-foreground);border-bottom:2px solid transparent}
+.tabs a.on{color:var(--foreground);font-weight:600;border-bottom-color:var(--primary)}
+.tabs a:nth-child(4){margin-right:auto}
+.tabs .badge{align-self:center;width:16px;height:16px;border-radius:50%;background:var(--primary);opacity:.8}
+
+/* The stage strip and the canvas box, as in hall.css. */
+.strip{display:flex;justify-content:center;background:var(--wall-top)}
+.laptop .strip{width:fit-content;border-radius:4px}
+.canvaswrap{position:relative;display:inline-flex;max-width:100%}
+.canvaswrap img{display:block;image-rendering:pixelated;width:268px;height:342px}
+.canvaswrap.z2 img{width:536px;height:684px}
+.stage-bl{position:absolute;left:6px;bottom:6px;display:flex;gap:6px}
+.stage-tr{position:absolute;right:6px;top:6px;display:flex;gap:6px}
+.stage-tr.tight{right:4px;top:4px}
+
+/* Pixel buttons: the speaker/reset chip from hall.css. */
+.pixbtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid color-mix(in oklab,var(--foreground) 35%,transparent);border-radius:2px;background:color-mix(in oklab,black 55%,transparent);cursor:pointer;padding:0;color:var(--foreground);position:relative}
+.pixbtn:active{background:color-mix(in oklab,black 75%,transparent)}
+.pixbtn svg{width:22px;height:auto;shape-rendering:crispEdges;fill:var(--foreground)}
+.pixbtn svg.wide{width:30px}
+.pixbtn .gold{fill:var(--primary)}
+.pixbtn.sm{width:36px;height:36px}
+.pixbtn.sm svg{width:18px}.pixbtn.sm svg.wide{width:24px}
+.pixbtn.xs{width:32px;height:32px}
+.pixbtn.xs svg{width:16px}
+.pixbtn.flat{background:var(--muted);border-color:var(--border)}
+.pixbtn.play svg{width:18px}
+.pixbtn.play.sm svg{width:14px}
+.pixbtn.play{border-color:var(--primary)}
+.pixbtn.play svg{fill:var(--primary)}
+.pixbtn.muted svg .waves{display:none}
+.pixbtn:not(.muted) svg .cross{display:none}
+/* the double-press hint: a dot while the timer is armed */
+.pixbtn.armed::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;background:var(--primary)}
+
+/* Transport rows. */
+.transport{display:flex;align-items:center;gap:6px;padding:0 8px}
+.laptop .transport{padding:0}
+.transport .gap{flex:1}
+.toast{font:11px ui-monospace,Menlo,monospace;color:var(--muted-foreground);padding:0 8px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.laptop .toast{padding:0}
+.toast b{color:var(--primary);font-weight:500}
+
+/* The control row (select, tempo, trails) as it is shipped. */
+.ctl{display:flex;width:100%;align-items:center;gap:6px;overflow-x:auto;padding:0 8px;font-size:12px;white-space:nowrap}
+.laptop .ctl{padding:0}
+.ctl select{height:28px;width:152px;flex:none;border:1px solid var(--input);border-radius:4px;background:var(--background);color:var(--foreground);padding:0 6px;font-size:12px}
+.ctl input[type=range]{width:64px;height:16px;accent-color:var(--primary)}
+.ctl .bpm{display:inline-block;width:1.6em;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted-foreground)}
+.ctl label{display:flex;align-items:center;gap:4px;flex:none}
+.tbtn{height:28px;border:1px solid var(--border);border-radius:4px;background:transparent;color:inherit;padding:0 6px;font-size:12px;cursor:pointer}
+.tbtn.on{border-color:currentColor;font-weight:600}
+.tbtn:not(.on){opacity:.6}
+.ctl .word{font-size:12px;color:var(--muted-foreground);margin-right:4px}
+
+/* Under the card. */
+.aside{display:flex;flex-direction:column;gap:6px;padding:0 12px 4px}
+.laptop .aside{padding:0}
+.status{font-size:12px;color:var(--muted-foreground);margin:0}
+.dancelink{font-size:12px;color:var(--muted-foreground);margin:0}
+
+/* ---------- The card, from hall.css ---------- */
+.cmc{display:flex;flex-direction:column;overflow:hidden;border:1px solid color-mix(in oklab,var(--card-foreground) 12%,transparent);border-radius:4px;background:var(--card);color:var(--card-foreground);font-size:.875rem;box-shadow:0 1px 1px oklch(0 0 0/.35),0 10px 24px -12px oklch(0 0 0/.7);width:420px;max-width:100%}
+.phone .cmc{width:auto}
+.cmc-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .5rem;padding:.4rem .625rem;background:var(--card-accent);border-bottom:1px solid color-mix(in oklab,var(--card-foreground) 12%,transparent)}
+.cmc-title{font-weight:600;font-size:1rem;line-height:1.2}
+.cmc-author{font-size:.75rem;opacity:.7}
+.cmc-head .tt{margin-left:auto;font-size:.6875rem;opacity:.6;font-variant-numeric:tabular-nums}
+.cmc-body{display:flex;flex-direction:column;gap:.1875rem;padding:.4rem .5rem}
+.ph{position:relative;display:grid;grid-template-columns:1.75rem 1fr;align-items:baseline;gap:.5rem;overflow:hidden;border-radius:3px;padding:.1875rem .375rem;background:color-mix(in oklab,currentColor 5%,transparent)}
+.ph.cur{background:color-mix(in oklab,currentColor 10%,transparent)}
+.ph .fill{position:absolute;inset:0 auto 0 0;background:color-mix(in oklab,currentColor 12%,transparent);transition:width 120ms linear;pointer-events:none}
+.ph .lab{position:relative;font-variant-numeric:tabular-nums;font-weight:600;opacity:.7}
+.ph .figs{position:relative;display:flex;flex-wrap:wrap;gap:.125rem .75rem}
+.fig{opacity:.65}
+.fig.on{opacity:1;font-weight:700}
+.fig .with{display:block;padding-left:.75rem}
+.fig .with::before{content:"‖ ";opacity:.6}
+.cmc-extra{padding:0 .5rem .5rem}
+.caption{display:block;padding:.125rem .375rem .25rem;font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;opacity:.6}
+.notation svg{display:block;width:100%;height:auto}
+.notation .cur{fill:#b45309;stroke:#b45309}
+
+/* 2B: chips. Every call is a button; the progress lives in the current chip. */
+.chip{position:relative;display:inline-flex;align-items:baseline;gap:.35rem;padding:.1rem .45rem .1rem .5rem;border-radius:3px;border:1px solid color-mix(in oklab,currentColor 18%,transparent);background:var(--card);cursor:pointer;overflow:hidden;font:inherit;color:inherit;text-align:left;line-height:1.35;opacity:.75}
+.chip:hover{border-color:color-mix(in oklab,currentColor 45%,transparent);opacity:1}
+.chip.on{opacity:1;font-weight:700;border-color:color-mix(in oklab,currentColor 40%,transparent)}
+.chip .cf{position:absolute;inset:0 auto 0 0;background:color-mix(in oklab,var(--primary) 38%,transparent);pointer-events:none;transition:width 120ms linear}
+.chip > *{position:relative}
+.chip small{font-size:.6875rem;opacity:.55;font-variant-numeric:tabular-nums;font-weight:400}
+.chip .with{display:block;padding-left:.75rem;font-weight:400}
+.chip .with::before{content:"‖ ";opacity:.6}
+.chip .txt{display:flex;flex-direction:column}
+.info{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:inherit;cursor:pointer;opacity:.5;padding:0;align-self:center;flex:none}
+.info:hover{opacity:1;background:color-mix(in oklab,currentColor 10%,transparent)}
+.info svg{width:12px;height:12px}
+.ph.chips .figs{gap:.25rem .375rem;align-items:stretch}
+
+/* 2C: the set list. One figure per row, phrase as a gutter. */
+.setlist{display:grid;grid-template-columns:1.75rem 2rem 1fr 1.5rem;align-items:center;column-gap:.375rem}
+.sl-row{display:contents;cursor:pointer}
+.sl-row > *{position:relative;padding:.2rem .25rem;border-top:1px solid color-mix(in oklab,currentColor 8%,transparent)}
+.sl-row.first > *{border-top-color:color-mix(in oklab,currentColor 22%,transparent)}
+.sl-row .ph-lab{font-weight:600;opacity:.7;font-variant-numeric:tabular-nums;grid-column:1}
+.sl-row .bt{font-size:.75rem;opacity:.5;font-variant-numeric:tabular-nums;text-align:right;grid-column:2}
+.sl-row .call{grid-column:3;opacity:.65;line-height:1.3}
+.sl-row .call .with{display:block;padding-left:.75rem;font-size:.8125rem}
+.sl-row .call .with::before{content:"‖ ";opacity:.6}
+.sl-row .ic{grid-column:4;text-align:center;padding:0}
+.sl-row.on .call{opacity:1;font-weight:700}
+.sl-row.on > *{background:color-mix(in oklab,currentColor 6%,transparent)}
+.sl-row:hover > *{background:color-mix(in oklab,currentColor 4%,transparent)}
+.sl-row .bar{position:absolute;left:0;top:0;bottom:0;background:color-mix(in oklab,var(--primary) 40%,transparent);pointer-events:none;width:0;transition:width 120ms linear}
+.sl-row.on .bar{display:block}
+.sl-row:not(.on) .bar{display:none}
+
+/* 2D: the ruler card. A phrase is a track; a call is as wide as it is long. */
+.rl{display:grid;grid-template-columns:1.75rem 1fr;align-items:center;gap:.5rem;padding:.1875rem .375rem;border-radius:3px;background:color-mix(in oklab,currentColor 5%,transparent);position:relative}
+.rl.cur{background:color-mix(in oklab,currentColor 10%,transparent)}
+.rl .lab{font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
+.track{display:flex;gap:2px;position:relative;height:2.4rem}
+.seg{position:relative;flex:1 1 0;min-width:0;border:1px solid color-mix(in oklab,currentColor 18%,transparent);border-radius:3px;background:var(--card);cursor:pointer;padding:.15rem .3rem;font:inherit;color:inherit;text-align:left;overflow:hidden;opacity:.7;display:flex;flex-direction:column;justify-content:center}
+.seg:hover{opacity:1}
+.seg.on{opacity:1;font-weight:700;border-color:color-mix(in oklab,currentColor 40%,transparent)}
+.seg .sf{position:absolute;inset:0 auto 0 0;background:color-mix(in oklab,var(--primary) 38%,transparent);pointer-events:none;width:0}
+.seg .t{position:relative;font-size:.75rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg .t2{font-weight:400;opacity:.8}
+.seg .bt{position:absolute;right:3px;bottom:1px;font-size:.625rem;opacity:.5;font-variant-numeric:tabular-nums}
+.seg .info{position:absolute;right:1px;top:1px;width:15px;height:15px;opacity:.4}
+.seg.on .info{opacity:.8}
+.playhead{position:absolute;top:-3px;bottom:-3px;width:2px;background:#b45309;pointer-events:none;display:none;left:0}
+.rl.cur .playhead{display:block}
+
+/* 1D: the ruler under the stage. */
+.rulerbar{display:flex;flex-direction:column;gap:4px;padding:0 8px}
+.ruler{position:relative;height:26px;display:flex;gap:1px;background:color-mix(in oklab,black 35%,transparent);border-radius:3px;overflow:hidden;cursor:pointer}
+.ruler .rseg{position:relative;flex:1 1 0;min-width:0;background:var(--muted);border-left:1px solid var(--border);font:10px ui-monospace,Menlo,monospace;color:var(--muted-foreground);padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;justify-content:center;line-height:1.1}
+.ruler .rseg.pstart{border-left:2px solid var(--primary)}
+.ruler .rseg.on{background:var(--accent);color:var(--foreground)}
+.ruler .rseg .rf{position:absolute;inset:0 auto 0 0;background:color-mix(in oklab,var(--primary) 45%,transparent);width:0}
+.ruler .rseg span{position:relative}
+.ruler .rph{position:absolute;top:0;bottom:0;width:2px;background:var(--primary);left:0;pointer-events:none;box-shadow:0 0 4px var(--primary)}
+.rulerbar .tt{font:11px ui-monospace,Menlo,monospace;color:var(--muted-foreground);white-space:nowrap}
+
+/* The popup: one element, two dresses. */
+.pop{background:var(--card);color:var(--card-foreground);border-radius:6px;border:1px solid color-mix(in oklab,var(--card-foreground) 15%,transparent);box-shadow:0 2px 2px oklch(0 0 0/.3),0 18px 40px -12px oklch(0 0 0/.8);padding:10px 12px 12px;font-size:.875rem;display:none;z-index:30}
+.pop.popover{position:absolute;width:340px;max-width:calc(100vw - 20px)}
+.pop.sheet{position:absolute;left:0;right:0;bottom:0;border-radius:10px 10px 0 0;padding-bottom:18px}
+.pop.open{display:block}
+.pop .grab{width:36px;height:4px;border-radius:2px;background:color-mix(in oklab,currentColor 25%,transparent);margin:0 auto 10px;display:none}
+.pop.sheet .grab{display:block}
+.pop-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.25rem}
+.pop-head b{font-size:1rem}
+.pop-head .dim{font-size:.75rem;opacity:.6;font-variant-numeric:tabular-nums}
+.pop-head .x{margin-left:auto;border:none;background:transparent;font:16px/1 system-ui;cursor:pointer;color:inherit;opacity:.6;padding:0 2px}
+.pop-call{margin:.15rem 0;font-weight:600;letter-spacing:.02em;font-size:.8125rem}
+.pop-call .with{display:block;font-weight:400;padding-left:.75rem}
+.pop-call .with::before{content:"‖ ";opacity:.6}
+.pop-params{display:flex;flex-wrap:wrap;gap:4px;margin:.35rem 0}
+.pop-params span{font-size:.6875rem;padding:1px 6px;border-radius:9px;background:color-mix(in oklab,currentColor 8%,transparent);opacity:.85}
+.pop-short{margin:.35rem 0}
+.pop details{font-size:.8125rem;opacity:.85}
+.pop summary{cursor:pointer;opacity:.7}
+.pop details p{margin:.25rem 0 0}
+.pop-actions{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:.6rem 0 0;font-size:.8125rem}
+.pop-actions .jump{border:1px solid color-mix(in oklab,currentColor 30%,transparent);background:var(--card-accent);color:inherit;border-radius:4px;padding:3px 10px;font:inherit;font-weight:600;cursor:pointer}
+.pop-actions a{opacity:.8}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);display:none;z-index:29}
+.backdrop.open{display:block}
+
+/* Section 3 crops. */
+.crop{width:300px;height:150px;overflow:hidden;position:relative;border:1px solid var(--border);border-radius:4px;background:var(--wall-top);flex:none}
+.crop img{position:absolute;left:-236px;top:0;width:536px;height:684px;image-rendering:pixelated}
+.crop.z1{width:200px;height:100px}
+.crop.z1 img{left:-68px;width:268px;height:342px}
+.crop .stage-tr{right:6px;top:6px}
+.crop .stage-tr.tight{right:4px;top:4px}
+.croprow{display:flex;gap:10px;align-items:flex-end}
+.croprow .mini{align-self:flex-start}
+.stripdemo{width:390px;background:var(--wall-top);display:flex;justify-content:center;position:relative;height:120px;overflow:hidden;border-radius:4px}
+.stripdemo img{width:268px;height:342px;image-rendering:pixelated;margin-top:0}
+.stripdemo .stage-tr{right:8px;top:8px}
+.mini{font:12px ui-monospace,Menlo,monospace;color:var(--muted-foreground)}
+.pushback{border-left:3px solid var(--primary);padding:6px 12px;margin:10px 0;color:var(--muted-foreground);max-width:90ch;font-size:13px}
+.pushback b{color:var(--foreground)}
+.pushback ol{margin:4px 0 0;padding-left:18px}
+.pushback li{margin:4px 0}
+.laptop .page{display:flex;gap:24px;align-items:flex-start;padding:16px}
+.laptop .left{display:flex;flex-direction:column;gap:8px;flex:none}
+.laptop .right{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Stage · transport, card, mute</h1>
+  <p class="hint">UX spike for the front page, 2026-09-16. Three asks: <b>standard playback controls</b> (to the start of the dance / of the move, play, next move, next dance) with one-press and two-press meanings; <b>the dance as a real card</b> whose moves you can tap to jump to and open for details, with a link through to the Moves page; and <b>mute in the top-right of the stage</b>, music on by default, remembered in <code>localStorage</code>, untouched by a change of dance. Everything below runs on one clock: press play anywhere and every concept moves together. The hall is a still of the real canvas (the caller's bubble is left off it), the tune is a stand-in for abcjs.</p>
+  <p class="hint"><b>Glyph key.</b> A bar means "to a boundary", one triangle is a move, two are a dance: <b>|◀◀</b> start of the dance (again: the previous dance) · <b>|◀</b> start of this move (again: the previous move) · <b>▶ / ▮▮</b> · <b>▶|</b> next move · <b>▶▶|</b> next dance. Keyboard: <kbd>space</kbd> play, <kbd>←</kbd>/<kbd>→</kbd> moves, <kbd>⇧←</kbd>/<kbd>⇧→</kbd> dances, <kbd>m</kbd> mute.</p>
+  <div class="pushback"><b>Where I'd push back, and what the strip lets you compare:</b>
+    <ol>
+      <li><b>"Two presses quickly" vs the CD-player rule.</b> A timed double-press has to hold the first press back ~300 ms to see if a second is coming, so the one control that should snap gets a lag; and the timing is invisible. Every music player instead does <i>restart, or previous if you're already near the start</i> — and pressing twice quickly then <i>also</i> goes back (first press restarts, second finds you at the start). Both rules are wired up; the strip switches them. Lean: the CD rule, threshold two beats.</li>
+      <li><b>What "the beginning" of a dance is.</b> The shipped reset goes to the line-up (the announcement, the walk, hands four, then the potatoes — half a minute of silent hall). A transport's |◀◀ wants the <i>potatoes</i>: four beats before the first call, band counting in. The line-up stays what the evening does between dances on its own. Both wired up; lean: potatoes.</li>
+      <li><b>Mute is not pause.</b> Today the speaker <i>is</i> play/pause. Once mute is its own thing, "muted and playing" has to keep the tune's clock running at gain 0 — the beat stays a linear function of <code>AudioContext.currentTime</code> (AC4) — and the very first ▶ still has to be the click that primes the audio. Mute is a preference, not a state of the evening, so it shouldn't spill onto the Tunes jukebox: its own key, <code>hall:muted</code>.</li>
+      <li><b>The phone's control row is already full.</b> Five 44 px buttons don't fit beside the dance select and the tempo slider, so it's two rows: transport, then settings. Concept 1C keeps one row by putting the transport on the stage, at the cost of covering the bottom-left chairs.</li>
+    </ol>
+  </div>
+  <div class="controls" id="ctl">
+    <div class="grp"><button id="cPlay">▶ play</button><input type="range" id="cBeat" min="0" max="480" step="0.25" value="30"><span class="ro" id="cRead"></span></div>
+    <div class="grp"><span class="l">dance</span><span id="cDances"></span></div>
+    <div class="grp"><span class="l">|◀ rule</span><button data-k="rule" data-v="restart" class="on">restart, or previous when near the start</button><button data-k="rule" data-v="double">timed double-press</button></div>
+    <div class="grp"><span class="l">|◀◀ goes to</span><button data-k="target" data-v="potatoes" class="on">the potatoes</button><button data-k="target" data-v="lineup">the line-up</button></div>
+    <div class="grp"><span class="l">tempo</span><input type="range" id="cTempo" min="96" max="124" value="112" style="width:90px"><span id="cTempoV">112</span></div>
+    <div class="grp"><span class="l">storage</span><span id="cStore"></span><button id="cClear">clear</button><button id="cReload">reload page</button></div>
+  </div>
+</header>
+
+<section id="s1">
+  <h2>1. The transport</h2>
+  <p class="hint">Where the five controls live, on a phone. Each frame is a 390 × 844 viewport that scrolls, so the question "is play above the fold, and is the card?" is answered by looking. The one-line readout under each transport says what the last press did.</p>
+  <div class="row" id="row1"></div>
+</section>
+
+<section id="s2">
+  <h2>2. The card</h2>
+  <p class="hint">Four cards at the laptop's card width (420 px). <b>A</b> is what ships. In <b>B–D</b> tapping a call jumps the evening to it (paused stays paused, on the move's first beat); the small <b>ⓘ</b> opens the move: the dance's own call, its parameters, the short teach, the long one folded, and the links through to the Moves page. Pick <b>Fatal Attraction</b> in the strip for the awkward cases — a two-beat call, a concurrent "‖" line, and long calls.</p>
+  <div class="row" id="row2"></div>
+</section>
+
+<section id="s3">
+  <h2>3. Mute, top-right of the stage</h2>
+  <p class="hint">The top-right corner is where the band sits, so the button lands on the piano. Two sizes: the 44 px chip the stage's other buttons use, and a 32 px one that clears more of the band. Click either to mute; the strip's storage readout shows what was written. "Change dance" below the frames and "reload page" in the strip are the two things that must not touch it.</p>
+  <div class="row" id="row3"></div>
+</section>
+
+<section id="s4">
+  <h2>4. Put together</h2>
+  <p class="hint"><span class="lean">My lean</span>: 1B (a transport bar under the stage) + 2B (chips) + the 32 px mute top-right. Phone on the left with the move opening as a bottom sheet; laptop on the right with the same move opening as a popover beside the card. The dance select, tempo and trails stay where they are, on a second row.</p>
+  <div class="row" id="row4"></div>
+</section>
+
+<div class="pop" id="pop" role="dialog" aria-modal="false">
+  <div class="grab"></div>
+  <div class="pop-head"><b id="popTitle"></b><span class="dim" id="popDim"></span><button class="x" id="popX" aria-label="Close">×</button></div>
+  <p class="pop-call" id="popCall"></p>
+  <div class="pop-params" id="popParams"></div>
+  <p class="pop-short" id="popShort"></p>
+  <details><summary>The long teach</summary><p id="popLong"></p></details>
+  <p class="pop-actions"><button class="jump" id="popJump">▶ Jump here</button><a id="popMoves" href="#">on the Moves page →</a><a id="popTraces" href="#">all views</a></p>
+</div>
+
+<script>
+/* ---------------- data: three real dances, the moves' own texts ---------------- */
+const FIG = {
+  'balance-and-swing': {title:'Balance and swing', short:'Take both hands with {pairs}, rock in and out, then swing without letting go.', long:'Take both hands with {pairs} and rock: two steps in toward them, two steps back. That is the balance, four beats. Without letting go of the hand you are already holding, close into a ballroom hold and buzz round for the rest of the phrase. Open out side by side, lark on the left.'},
+  'circle': {title:'Circle', short:'Take hands in a ring. Circle {places} to your {direction}.', long:'All four take hands in a ring, hands about waist height, and walk forward round to your {direction}, {places}. Keep the ring the same size the whole way and keep the hands joined.'},
+  'do-si-do': {title:'Do-si-do', short:'Pass right shoulders with {pairs}, slide back to back, then back up passing left shoulders, {amount}.', long:'Walk forward and pass right shoulders with {pairs}, slide across back to back without turning, then walk backward to place passing left shoulders. Nobody takes hands and nobody turns around: you face the same way for all eight beats. Go {amount}.'},
+  'long-lines': {title:'Long lines', short:'Take hands along your own line, walk four steps in, and four steps back out.', long:'Take hands all the way along your own line with the dancers beside you. Walk four steps into the set, keeping the line straight, and four steps back out. Only the bodies travel; the arms stay where they are.'},
+  'allemande': {title:'Allemande', short:'Join {hand} hands with {pairs}, forearms up, and walk round each other, {amount}.', long:'Join {hand} hands with {pairs} — forearms up, palms together, elbows bent — and walk forward round each other, keeping the joined hands over the one spot between you, {amount}. Look at each other the whole way; the free hand hangs at your side.'},
+  'robins-chain': {title:'Robins chain', short:'Robins pull by right hands in the middle, then join left hands as the lark backs his circle round to your right, facing in.', long:'Robins pull by right hands with the other robin in the middle, passing right shoulders. The lark you are coming to is already backing a small circle, centred halfway between his place and yours. Join him at the far side of it: left hands together, his right hand behind your back, yours on it too. Walk forward as he keeps backing, turning as one until you face out together, then in again, you on his right.'},
+  'star': {title:'Star', short:'Put your {hand} hand on the wrist of the dancer ahead of you and walk forward, {places}.', long:'All four put the {hand} hand on the wrist of the dancer ahead of you round the star, not in a pile in the middle. Keep your arm a little bent and walk forward round the center: {places}.'},
+  'swing': {title:'Swing', short:'Close into a ballroom hold with {pairs}, right hips together, and buzz round. Open out side by side.', long:"Step in to {pairs} and close into a ballroom hold, right hips together: the lark's right hand on the robin's back, his left in her right out to the side. Buzz round with your weight on the inside foot, leaning away from each other a little. Open out side by side, lark on the left."},
+  'promenade': {title:'Promenade', short:'Side by side, both hands joined, walk the two of you round the whole set.', long:'Stand beside the dancer named, the two of you looking the same way, and take both hands — left in left and right in right, so your arms cross in front and the right hands ride over the left. Now walk as one along the line you are standing in, round the whole set rather than across your own little circle of four.'},
+  'cast-back': {title:'Cast back', short:'Turn away from the middle and walk round the outside into the place behind you.', long:"On your own, turn away from the middle of the set and walk round the outside of your own line into the place one behind you, still looking the way you were looking. Nobody's hand, and nobody goes with you: whoever was in that place has moved on."},
+  'shoulder-round': {title:'Shoulder round', short:'Walk round {pairs} keeping your {hand} shoulder toward them, and keep looking at each other. No hands.', long:'Nobody takes hands for this one. Walk forward round {pairs} with your {hand} shoulder toward them, turning your body as you go so the two of you are looking at each other the whole way round — that is what makes it a shoulder round rather than a do-si-do. {amount}, and you finish where that leaves you.'},
+};
+const WORDS = {
+  pairs:{neighbors:'your neighbor',partners:'your partner',robins:'the other robin','number two':'the number two'},
+  hand:{R:'right',L:'left'},
+  amount:{'1':'once around','1.5':'once and a half','0.5':'halfway'},
+  places:{'3':'three quarters','4':'once around'},
+  direction:{left:'left',right:'right'},
+};
+const DANCES = [
+  {slug:'airpants', title:'Airpants', author:'Lisa Greenleaf', tune:'The Kesh Jig', phrases:[
+    {name:'A1', figures:[{id:'balance-and-swing',beats:16,call:'NEIGHBOR BALANCE AND SWING',params:{pairs:'neighbors'}}]},
+    {name:'A2', figures:[{id:'long-lines',beats:8,call:'LONG LINES FORWARD AND BACK',params:{}},{id:'allemande',beats:8,call:'ROBINS ALLEMANDE RIGHT ONE AND A HALF',params:{pairs:'robins',hand:'R',amount:'1.5'}}]},
+    {name:'B1', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]},
+    {name:'B2', figures:[{id:'circle',beats:6,call:'CIRCLE LEFT THREE QUARTERS',params:{direction:'left',places:'3'}},{id:'do-si-do',beats:10,call:'NEIGHBOR DO-SI-DO ONE AND A HALF',params:{pairs:'neighbors',amount:'1.5'}}]}]},
+  {slug:'the-baby-rose', title:'The Baby Rose', author:'David Kaynor', tune:"Soldier's Joy", phrases:[
+    {name:'A1', figures:[{id:'balance-and-swing',beats:16,call:'NEIGHBOR BALANCE AND SWING',params:{pairs:'neighbors'}}]},
+    {name:'A2', figures:[{id:'circle',beats:8,call:'CIRCLE LEFT THREE QUARTERS',params:{direction:'left',places:'3'}},{id:'do-si-do',beats:8,call:'PARTNER DO-SI-DO',params:{pairs:'partners',amount:'1'}}]},
+    {name:'B1', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]},
+    {name:'B2', figures:[{id:'robins-chain',beats:8,call:'ROBINS CHAIN',params:{}},{id:'star',beats:8,call:'STAR LEFT ONCE',params:{hand:'L',places:'4'}}]}]},
+  {slug:'fatal-attraction', title:'Fatal Attraction', author:'Roger Auman', tune:"St. Anne's Reel", phrases:[
+    {name:'A1', figures:[{id:'robins-chain',beats:8,call:'ROBINS CHAIN TO YOUR NEIGHBOUR',params:{}},{id:'promenade',beats:8,call:'NEIGHBOUR PROMENADE COUNTERCLOCKWISE AROUND THE SET',params:{}}]},
+    {name:'A2', figures:[{id:'cast-back',beats:2,call:'ROBINS CAST BACK, LARKS GO FORWARD',params:{},with:['LARKS WALK FORWARD ONE PLACE']},{id:'shoulder-round',beats:6,call:'RIGHT SHOULDER ROUND WITH NUMBER TWO',params:{pairs:'number two',hand:'R',amount:'Once around'}},{id:'swing',beats:8,call:'SWING NUMBER TWO',params:{pairs:'number two'}}]},
+    {name:'B1', figures:[{id:'promenade',beats:8,call:'PROMENADE NUMBER TWO CLOCKWISE AROUND THE SET',params:{}},{id:'allemande',beats:8,call:'ROBINS ALLEMANDE RIGHT ONCE AND A HALF',params:{pairs:'robins',hand:'R',amount:'1.5'}}]},
+    {name:'B2', figures:[{id:'balance-and-swing',beats:16,call:'PARTNER BALANCE AND SWING',params:{pairs:'partners'}}]}]},
+];
+DANCES.forEach(d=>{ let s=0; d.moves=[]; d.phrases.forEach((p,pi)=>{ p.start=s; p.length=p.figures.reduce((a,f)=>a+f.beats,0); p.figures.forEach((f,fi)=>{ d.moves.push({pi,fi,phrase:p.name,start:s,beats:f.beats,fig:f,dance:d}); s+=f.beats; }); }); });
+
+const resolve=(text,params)=>text.replace(/\{(\w+)\}/g,(m,k)=>{ const v=params[k]; if(v===undefined) return k==='pairs'?'the dancer named':m; return (WORDS[k]&&WORDS[k][v])||v; });
+const paramChips=(m)=>{ const p=m.fig.params||{}; const out=[m.beats+' beats']; for(const k of Object.keys(p)){ out.push(k+': '+((WORDS[k]&&WORDS[k][p[k]])||p[k])); } return out; };
+
+/* ---------------- the evening's arithmetic (simplified from program.ts) ---------------- */
+const LINEUP=32, CYCLE=64, TIMES=2, DANCE=CYCLE*TIMES, ITEM=LINEUP+DANCE, POTATOES=4, THRESH=2;
+const N=DANCES.length;
+const danceAt=(item)=>DANCES[((item%N)+N)%N];
+function posAt(beat){
+  const item=Math.floor(beat/ITEM), into=beat-item*ITEM, dance=danceAt(item);
+  if(into<LINEUP){
+    const phase= into<8?'thanks': into<16?'announce': into<LINEUP-POTATOES?'walk':'potatoes';
+    return {item,dance,into,between:true,phase,timeThrough:0,cycleBeat:0,moves:dance.moves,moveIdx:-1,move:null};
+  }
+  const danceBeat=into-LINEUP, timeThrough=Math.floor(danceBeat/CYCLE), cycleBeat=danceBeat-timeThrough*CYCLE;
+  const moveIdx=dance.moves.findIndex(m=>cycleBeat>=m.start&&cycleBeat<m.start+m.beats);
+  return {item,dance,into,between:false,danceBeat,timeThrough,cycleBeat,moves:dance.moves,moveIdx,move:dance.moves[moveIdx]};
+}
+const statusOf=(p)=>{
+  if(!p.between) return `Time through ${p.timeThrough+1} of ${TIMES}`;
+  if(p.phase==='thanks') return `Thanks for ${danceAt(p.item-1).title}`;
+  if(p.phase==='announce') return `The caller announces ${p.dance.title}`;
+  if(p.phase==='walk') return `Lining up for ${p.dance.title}`;
+  return `Potatoes for ${p.dance.title}`;
+};
+const danceStart=(item)=> S.target==='potatoes' ? item*ITEM+LINEUP-POTATOES : item*ITEM;
+const moveAbs=(item,tt,m)=> item*ITEM+LINEUP+tt*CYCLE+m.start;
+
+/* ---------------- state ---------------- */
+const STORE_KEY='hall-page-spike:muted';
+const S={beat:30, playing:false, tempo:112, trails:true, rule:'restart', target:'potatoes', muted:false, last:'', armed:null};
+try{ S.muted = localStorage.getItem(STORE_KEY)==='true'; }catch(e){}
+const LIVE=[]; // updaters: fn(pos)
+let lastPos=null;
+
+function seek(b,label){ S.beat=Math.max(0,b); S.last=label||''; }
+function toggle(){ S.playing=!S.playing; }
+function setMuted(v){ S.muted=v; try{ localStorage.setItem(STORE_KEY,String(v)); }catch(e){} }
+
+function prevMove(force){
+  const p=posAt(S.beat);
+  if(p.between){
+    if(p.item===0) return seek(0,'|◀ → the start of the evening');
+    const pd=danceAt(p.item-1), m=pd.moves[pd.moves.length-1];
+    return seek(moveAbs(p.item-1,TIMES-1,m),`|◀ → previous move: ${pd.title} ${m.phrase} · ${m.fig.call} (time through ${TIMES})`);
+  }
+  const cur=moveAbs(p.item,p.timeThrough,p.move);
+  const mode = force || ((S.beat-cur)>=THRESH ? 'restart':'previous');
+  if(mode==='restart') return seek(cur,`|◀ → start of ${p.move.phrase} · ${p.move.fig.call}`);
+  let tt=p.timeThrough, mi=p.moveIdx-1;
+  if(mi<0){ if(tt>0){ tt--; mi=p.moves.length-1; } else return seek(danceStart(p.item),`|◀ → the start of ${p.dance.title} (${S.target})`); }
+  const m=p.moves[mi];
+  seek(moveAbs(p.item,tt,m),`|◀ → previous move: ${m.phrase} · ${m.fig.call}${tt!==p.timeThrough?' (time through '+(tt+1)+')':''}`);
+}
+function nextMove(){
+  const p=posAt(S.beat);
+  if(p.between){ const m=p.moves[0]; return seek(moveAbs(p.item,0,m),`▶| → ${p.dance.title} ${m.phrase} · ${m.fig.call}`); }
+  let tt=p.timeThrough, mi=p.moveIdx+1;
+  if(mi>=p.moves.length){ mi=0; tt++; if(tt>=TIMES){ const d=danceAt(p.item+1); return seek(danceStart(p.item+1),`▶| → next dance: ${d.title} (${S.target})`); } }
+  const m=p.moves[mi];
+  seek(moveAbs(p.item,tt,m),`▶| → ${m.phrase} · ${m.fig.call}${tt!==p.timeThrough?' (time through '+(tt+1)+')':''}`);
+}
+function prevDance(force){
+  const p=posAt(S.beat);
+  const start=danceStart(p.item);
+  const mode = force || ((S.beat-start)>=THRESH ? 'restart':'previous');
+  if(mode==='restart') return seek(start,`|◀◀ → the start of ${p.dance.title} (${S.target})`);
+  if(p.item===0) return seek(0,'|◀◀ → the start of the evening');
+  seek(danceStart(p.item-1),`|◀◀ → previous dance: ${danceAt(p.item-1).title}`);
+}
+function nextDance(){ const p=posAt(S.beat); seek(danceStart(p.item+1),`▶▶| → next dance: ${danceAt(p.item+1).title}`); }
+function pickDance(slug){
+  const p=posAt(S.beat); let item=p.item;
+  while(danceAt(item).slug!==slug) item++;
+  seek(danceStart(item),`dance select → ${danceAt(item).title} (${S.target}); mute stays ${S.muted?'muted':'on'}`);
+}
+function jumpTo(m){ const p=posAt(S.beat); seek(moveAbs(p.item,p.between?0:p.timeThrough,m),`card → ${m.phrase} · ${m.fig.call}`); }
+
+/* Two-press handling: 'restart' rule needs no timer; 'double' arms one. */
+const armed={};
+function press(act){
+  const fn = act==='prevMove'?prevMove : act==='prevDance'?prevDance : null;
+  if(!fn) return act==='nextMove'?nextMove(): act==='nextDance'?nextDance(): toggle();
+  if(S.rule==='restart') return fn();
+  if(armed[act]){ clearTimeout(armed[act]); armed[act]=null; fn('previous'); }
+  else { armed[act]=setTimeout(()=>{ armed[act]=null; fn('restart'); },350); }
+}
+
+/* ---------------- pixel glyphs ---------------- */
+const R=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}"${c?` class="${c}"`:''}/>`;
+const triL=(x,c)=>[0,1,2,3].map(i=>R(x+i,3-i,1,2*i+1,c)).join('');
+const triR=(x,c)=>[0,1,2,3].map(i=>R(x+i,i,1,7-2*i,c)).join('');
+const bar=(x,c)=>R(x,0,1,7,c);
+const G={
+  prevDance:`<svg class="wide" viewBox="0 0 12 7">${bar(1,'gold')}${triL(3)}${triL(8)}</svg>`,
+  prevMove:`<svg viewBox="0 0 12 7">${bar(3,'gold')}${triL(5)}</svg>`,
+  play:`<svg viewBox="0 0 5 7">${triR(0)}${R(4,3,1,1)}</svg>`,
+  pause:`<svg viewBox="0 0 5 7">${R(0,0,2,7)}${R(3,0,2,7)}</svg>`,
+  nextMove:`<svg viewBox="0 0 12 7">${triR(3)}${bar(8,'gold')}</svg>`,
+  nextDance:`<svg class="wide" viewBox="0 0 12 7">${triR(0)}${triR(5)}${bar(10,'gold')}</svg>`,
+  reset:`<svg viewBox="0 0 8 7">${R(0,3,1,1)}${R(1,2,1,3)}${R(2,1,1,5)}${R(3,0,1,7)}${R(4,0,1,7)}${R(6,0,1,7,'gold')}</svg>`,
+  speaker:(on)=>`<svg viewBox="0 0 9 6">${R(2,0,2,1)}${R(1,1,3,1)}${R(0,2,5,1)}${R(0,3,5,1)}${R(1,4,3,1)}${R(2,5,2,1)}<g class="waves">${R(6,2,1,2,'gold')}${R(7.5,1,1,4,'gold')}</g><g class="cross">${R(6,1,1,1)}${R(8,1,1,1)}${R(7,2,1,1)}${R(6,3,1,1)}${R(8,3,1,1)}</g></svg>`,
+};
+const INFO=`<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="5.3" y="5" width="1.4" height="4" fill="currentColor"/><rect x="5.3" y="2.7" width="1.4" height="1.4" fill="currentColor"/></svg>`;
+
+const el=(html)=>{ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; };
+
+/* ---------------- app chrome builders ---------------- */
+const tabbar=()=>el(`<nav class="tabs"><a class="on">Stage</a><a>Moves</a><a>Dances</a><a>Tunes</a><span class="badge"></span></nav>`);
+
+function pixbtn(act,cls){ const b=el(`<button class="pixbtn ${cls||''}" data-act="${act}" title="${act}"></button>`); b.innerHTML=G[act]||''; return b; }
+function playbtn(cls){ const b=pixbtn('toggle',cls); LIVE.push(()=>{ b.innerHTML=S.playing?G.pause:G.play; b.classList.toggle('play',!S.playing); b.title=S.playing?'Pause':'Play'; }); return b; }
+function mutebtn(cls){ const b=el(`<button class="pixbtn ${cls||''}" data-act="mute" title="Mute the band"></button>`); b.innerHTML=G.speaker(); LIVE.push(()=>{ b.classList.toggle('muted',S.muted); b.title=S.muted?'Unmute the band':'Mute the band'; }); return b; }
+function transportButtons(size){ const f=document.createDocumentFragment(); ['prevDance','prevMove'].forEach(a=>f.appendChild(pixbtn(a,size))); f.appendChild(playbtn(size)); ['nextMove','nextDance'].forEach(a=>f.appendChild(pixbtn(a,size))); return f; }
+function toast(){ const t=el(`<div class="toast"></div>`); LIVE.push(()=>{ t.innerHTML=S.last?S.last.replace(/^(\S+)/,'<b>$1</b>'):'&nbsp;'; }); return t; }
+
+function stage({zoom=1, current=false, transportOn=false, mute='none'}={}){
+  const strip=el(`<div class="strip"><div class="canvaswrap ${zoom===2?'z2':''}"><img src="stage-1x.png" alt="the hall"></div></div>`);
+  const wrap=strip.firstChild;
+  if(current){ const bl=el(`<div class="stage-bl"></div>`); const sp=el(`<button class="pixbtn" data-act="toggle" title="Play music"></button>`); LIVE.push(()=>{ sp.innerHTML=G.speaker(); sp.classList.toggle('muted',!S.playing); }); bl.appendChild(sp); const rs=pixbtn('prevDance'); rs.innerHTML=G.reset; rs.title='Restart this dance'; bl.appendChild(rs); wrap.appendChild(bl); }
+  if(transportOn){ const bl=el(`<div class="stage-bl"></div>`); bl.appendChild(transportButtons('sm')); wrap.appendChild(bl); }
+  if(mute!=='none'){ const tr=el(`<div class="stage-tr ${mute==='xs'?'tight':''}"></div>`); tr.appendChild(mutebtn(mute==='xs'?'xs':'')); wrap.appendChild(tr); }
+  return strip;
+}
+function ctlrow({withPlayWord=false}={}){
+  const c=el(`<div class="ctl"></div>`);
+  if(withPlayWord) c.appendChild(el(`<span class="word">Play</span>`));
+  const sel=el(`<select aria-label="Dance">${DANCES.map(d=>`<option value="${d.slug}">${d.title}</option>`).join('')}</select>`);
+  sel.addEventListener('change',()=>pickDance(sel.value));
+  LIVE.push(p=>{ if(sel.value!==p.dance.slug) sel.value=p.dance.slug; });
+  c.appendChild(sel);
+  const lab=el(`<label><input type="range" min="96" max="124" step="1" value="${S.tempo}"><span class="bpm">${S.tempo}</span></label>`);
+  const rng=lab.querySelector('input'), bpm=lab.querySelector('.bpm');
+  rng.addEventListener('input',()=>{ S.tempo=Number(rng.value); });
+  LIVE.push(()=>{ if(Number(rng.value)!==S.tempo) rng.value=S.tempo; bpm.textContent=S.tempo; });
+  c.appendChild(lab);
+  const tb=el(`<button class="tbtn on">trails</button>`); tb.addEventListener('click',()=>{ S.trails=!S.trails; }); LIVE.push(()=>tb.classList.toggle('on',S.trails)); c.appendChild(tb);
+  return c;
+}
+function transportRow(){ const t=el(`<div class="transport"></div>`); t.appendChild(transportButtons('')); return t; }
+function statusLine(){ const s=el(`<p class="status"></p>`); LIVE.push(p=>{ s.textContent=statusOf(p); }); return s; }
+function danceLink(){ const s=el(`<p class="dancelink"><a href="#"></a></p>`); LIVE.push(p=>{ s.firstChild.textContent=`${p.dance.title}: the dance page`; s.firstChild.href=`#/dances/${p.dance.slug}`; }); return s; }
+
+/* 1D: the ruler under the stage */
+function rulerBar(){
+  const wrap=el(`<div class="rulerbar"><div class="ruler"></div><div class="transport"><span class="tt" style="flex:1"></span><span class="gap"></span></div></div>`);
+  const ruler=wrap.querySelector('.ruler'), tr=wrap.querySelector('.transport'), tt=tr.querySelector('.tt');
+  const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px'; btns.appendChild(transportButtons('sm')); tr.appendChild(btns); tr.appendChild(el(`<span class="gap"></span>`));
+  let built=null, segs=[];
+  const ph=el(`<div class="rph"></div>`);
+  ruler.addEventListener('click',e=>{ const r=ruler.getBoundingClientRect(); const f=(e.clientX-r.left)/r.width; const p=posAt(S.beat); const cb=Math.floor(f*CYCLE); const m=p.moves.find(m=>cb>=m.start&&cb<m.start+m.beats)||p.moves[0]; seek(moveAbs(p.item,p.between?0:p.timeThrough,m),`ruler → ${m.phrase} · ${m.fig.call}`); });
+  LIVE.push(p=>{
+    if(built!==p.dance){ built=p.dance; ruler.innerHTML=''; segs=[]; p.moves.forEach(m=>{ const s=el(`<div class="rseg ${m.fi===0?'pstart':''}" style="flex-grow:${m.beats}"><div class="rf"></div><span>${m.fi===0?m.phrase+' ':''}${m.fig.call}</span></div>`); s.title=m.fig.call; ruler.appendChild(s); segs.push(s); }); ruler.appendChild(ph); }
+    segs.forEach((s,i)=>{ const on=i===p.moveIdx; s.classList.toggle('on',on); s.firstChild.style.width= on? ((p.cycleBeat-p.moves[i].start)/p.moves[i].beats*100)+'%' : (i<p.moveIdx?'100%':'0'); });
+    ph.style.left=(p.between?0:p.cycleBeat/CYCLE*100)+'%';
+    tt.textContent= p.between? statusOf(p) : `${p.move.phrase} · beat ${p.cycleBeat+1} · time through ${p.timeThrough+1} of ${TIMES}`;
+  });
+  return wrap;
+}
+
+/* ---------------- the card, four ways ---------------- */
+function notationSVG(dance,curBar){
+  // a stand-in for abcjs: four staves of eight bars, note heads from a seeded pattern, the current bar in orange
+  let seed=dance.slug.length*7; const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; };
+  const W=400, staveH=34, top=10; let out=`<svg viewBox="0 0 ${W} ${top+4*staveH+6}" xmlns="http://www.w3.org/2000/svg">`;
+  for(let s=0;s<4;s++){ const y=top+s*staveH;
+    for(let l=0;l<5;l++) out+=`<line x1="8" x2="${W-8}" y1="${y+l*3}" y2="${y+l*3}" stroke="currentColor" stroke-width=".5" opacity=".6"/>`;
+    const bw=(W-16)/8;
+    for(let b=0;b<8;b++){ const x=8+b*bw; const barIdx=s*8+b; const cls=barIdx===curBar?'cur':'';
+      out+=`<line x1="${x}" x2="${x}" y1="${y}" y2="${y+12}" stroke="currentColor" stroke-width=".7"/>`;
+      for(let n=0;n<4;n++){ const nx=x+6+n*(bw-10)/4; const ny=y-1+Math.floor(rnd()*9)*1.5; out+=`<ellipse class="${cls}" cx="${nx}" cy="${ny}" rx="2.1" ry="1.5" fill="currentColor"/><line class="${cls}" x1="${nx+2}" x2="${nx+2}" y1="${ny}" y2="${ny-8}" stroke="currentColor" stroke-width=".7"/>`; }
+    }
+    out+=`<line x1="${W-8}" x2="${W-8}" y1="${y}" y2="${y+12}" stroke="currentColor" stroke-width=".7"/>`;
+  }
+  return out+'</svg>';
+}
+function cardShell(variant){
+  const c=el(`<div class="cmc"><div class="cmc-head"><div class="cmc-title"></div><div class="cmc-author"></div><span class="tt"></span></div><div class="cmc-body"></div><div class="cmc-extra"><span class="caption"></span><div class="notation"></div></div></div>`);
+  const [title,author,tt]=[c.querySelector('.cmc-title'),c.querySelector('.cmc-author'),c.querySelector('.tt')];
+  const body=c.querySelector('.cmc-body'), cap=c.querySelector('.caption'), notn=c.querySelector('.notation');
+  let built=null, lastBar=-1;
+  LIVE.push(p=>{
+    if(built!==p.dance){ built=p.dance; title.textContent=p.dance.title; author.textContent=p.dance.author; cap.textContent=p.dance.tune; body.innerHTML=''; c._rows=BUILD[variant](body,p.dance); lastBar=-1; }
+    tt.textContent= variant==='current'?'' : (p.between? '' : `${p.timeThrough+1} of ${TIMES}`);
+    const bar=p.between?0:Math.floor(p.cycleBeat/2); if(bar!==lastBar){ lastBar=bar; notn.innerHTML=notationSVG(p.dance,bar); }
+    UPDATE[variant](c._rows,p);
+  });
+  return c;
+}
+const phraseFill=(p,pi)=>{ const ph=p.dance.phrases[pi]; const cur=!p.between&&p.move.pi===pi; return {cur, fill: cur? (p.cycleBeat-ph.start)/ph.length*100 : (!p.between&&p.move.pi>pi?100:0)}; };
+const BUILD={}, UPDATE={};
+/* A: what ships */
+BUILD.current=(body,d)=> d.phrases.map((ph,pi)=>{ const row=el(`<div class="ph"><div class="fill"></div><div class="lab">${ph.name}</div><div class="figs">${ph.figures.map(f=>`<span class="fig">${f.call}${(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('')}</span>`).join('')}</div></div>`); body.appendChild(row); return row; });
+UPDATE.current=(rows,p)=> rows.forEach((row,pi)=>{ const {cur,fill}=phraseFill(p,pi); row.classList.toggle('cur',cur); row.querySelector('.fill').style.width=fill+'%'; [...row.querySelectorAll('.fig')].forEach((f,fi)=>f.classList.toggle('on',cur&&p.move.fi===fi)); });
+/* B: chips */
+BUILD.chips=(body,d)=> d.phrases.map((ph,pi)=>{ const row=el(`<div class="ph chips"><div class="fill"></div><div class="lab">${ph.name}</div><div class="figs"></div></div>`); const figs=row.querySelector('.figs');
+  ph.figures.forEach((f,fi)=>{ const m=d.moves.find(m=>m.pi===pi&&m.fi===fi); const chip=el(`<button class="chip" title="Jump to ${f.call}"><div class="cf"></div><span class="txt"><span>${f.call}</span>${(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('')}</span><small>${f.beats}</small><span class="info" role="button" title="About this move">${INFO}</span></button>`);
+    chip.addEventListener('click',e=>{ if(e.target.closest('.info')){ e.stopPropagation(); openMove(m,chip); } else jumpTo(m); }); figs.appendChild(chip); });
+  body.appendChild(row); return row; });
+UPDATE.chips=(rows,p)=> rows.forEach((row,pi)=>{ const {cur}=phraseFill(p,pi); row.classList.toggle('cur',cur); row.querySelector('.fill').style.width='0'; [...row.querySelectorAll('.chip')].forEach((c,fi)=>{ const on=cur&&p.move.fi===fi; c.classList.toggle('on',on); const m=p.dance.moves.find(m=>m.pi===pi&&m.fi===fi); c.firstChild.style.width= on? ((p.cycleBeat-m.start)/m.beats*100)+'%' : (!p.between&&(p.move.pi>pi||(p.move.pi===pi&&p.move.fi>fi))?'100%':'0'); }); });
+/* C: the set list */
+BUILD.setlist=(body,d)=>{ const grid=el(`<div class="setlist"></div>`); const rows=[]; d.moves.forEach(m=>{ const f=m.fig; const row=el(`<div class="sl-row ${m.fi===0?'first':''}" title="Jump to ${f.call}"><div class="ph-lab">${m.fi===0?m.phrase:''}</div><div class="bt">${f.beats}</div><div class="call"><div class="bar"></div><span style="position:relative">${f.call}${(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('')}</span></div><div class="ic"><button class="info" title="About this move">${INFO}</button></div></div>`);
+  row.addEventListener('click',e=>{ if(e.target.closest('.info')){ e.stopPropagation(); openMove(m,row.querySelector('.info')); } else jumpTo(m); }); grid.appendChild(row); rows.push(row); }); body.appendChild(grid); return rows; };
+UPDATE.setlist=(rows,p)=> rows.forEach((row,i)=>{ const on=i===p.moveIdx; row.classList.toggle('on',on); const m=p.moves[i]; row.querySelector('.bar').style.width= on? ((p.cycleBeat-m.start)/m.beats*100)+'%':'0'; });
+/* D: the ruler card */
+BUILD.ruler=(body,d)=> d.phrases.map((ph,pi)=>{ const row=el(`<div class="rl"><div class="lab">${ph.name}</div><div class="track"></div></div>`); const track=row.querySelector('.track');
+  ph.figures.forEach((f,fi)=>{ const m=d.moves.find(m=>m.pi===pi&&m.fi===fi); const seg=el(`<button class="seg" style="flex-grow:${f.beats}" title="${f.call} · ${f.beats} beats"><div class="sf"></div><span class="t">${f.call}</span>${(f.with||[]).map(w=>`<span class="t t2">‖ ${w}</span>`).join('')}<span class="bt">${f.beats}</span><span class="info" role="button" title="About this move">${INFO}</span></button>`);
+    seg.addEventListener('click',e=>{ if(e.target.closest('.info')){ e.stopPropagation(); openMove(m,seg); } else jumpTo(m); }); track.appendChild(seg); });
+  track.appendChild(el(`<div class="playhead"></div>`)); body.appendChild(row); return row; });
+UPDATE.ruler=(rows,p)=> rows.forEach((row,pi)=>{ const {cur,fill}=phraseFill(p,pi); row.classList.toggle('cur',cur); row.querySelector('.playhead').style.left=fill+'%'; [...row.querySelectorAll('.seg')].forEach((s,fi)=>{ const on=cur&&p.move.fi===fi; s.classList.toggle('on',on); const m=p.dance.moves.find(m=>m.pi===pi&&m.fi===fi); s.firstChild.style.width= on? ((p.cycleBeat-m.start)/m.beats*100)+'%' : (!p.between&&(p.move.pi>pi||(p.move.pi===pi&&p.move.fi>fi))?'100%':'0'); }); });
+
+/* ---------------- the popup ---------------- */
+const pop=document.getElementById('pop'); let popMove=null, popHost=null;
+function openMove(m,anchor){
+  popMove=m; const f=m.fig, fig=FIG[f.id]||{title:f.id,short:'',long:''};
+  document.getElementById('popTitle').textContent=fig.title;
+  document.getElementById('popDim').textContent=`${m.phrase} · beats ${m.start+1}–${m.start+m.beats}`;
+  document.getElementById('popCall').innerHTML=f.call+(f.with||[]).map(w=>`<span class="with">${w}</span>`).join('');
+  document.getElementById('popParams').innerHTML=paramChips(m).map(t=>`<span>${t}</span>`).join('');
+  document.getElementById('popShort').textContent=resolve(fig.short,f.params||{});
+  document.getElementById('popLong').textContent=resolve(fig.long,f.params||{});
+  document.getElementById('popMoves').textContent=`${fig.title} on the Moves page →`; document.getElementById('popMoves').href=`#/moves/${f.id}`;
+  document.getElementById('popTraces').href=`#/moves/${f.id}/traces`;
+  pop.querySelector('details').open=false;
+  const phone=anchor.closest('.phone');
+  closePop();
+  if(phone){ pop.classList.add('sheet'); phone.appendChild(pop); phone.querySelector('.backdrop').classList.add('open'); popHost=phone; }
+  else { pop.classList.add('popover'); document.body.appendChild(pop); const r=anchor.getBoundingClientRect(); const x=Math.min(window.scrollX+r.left, window.scrollX+document.documentElement.clientWidth-350); pop.style.left=x+'px'; pop.style.top=(window.scrollY+r.bottom+6)+'px'; popHost=document.body; }
+  pop.classList.add('open');
+}
+function closePop(){ pop.classList.remove('open','sheet','popover'); document.querySelectorAll('.backdrop.open').forEach(b=>b.classList.remove('open')); }
+document.getElementById('popX').addEventListener('click',closePop);
+document.getElementById('popJump').addEventListener('click',()=>{ if(popMove) jumpTo(popMove); closePop(); });
+document.addEventListener('click',e=>{ if(e.target.closest('.backdrop')) closePop(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePop(); });
+
+/* ---------------- frames ---------------- */
+function phoneFrame(build){ const ph=el(`<div class="phone"><div class="scroll"></div><div class="backdrop"></div></div>`); const sc=ph.firstChild; sc.appendChild(tabbar()); build(sc); return ph; }
+function concept(label,text,frame){ const c=el(`<div class="concept"><h3>${label}</h3></div>`); c.appendChild(frame); const p=el(`<p>${text}</p>`); c.appendChild(p); return c; }
+function asideBlock(variant,{link=true}={}){ const a=el(`<div class="aside"></div>`); a.appendChild(cardShell(variant)); if(link) a.appendChild(danceLink()); a.appendChild(statusLine()); return a; }
+
+/* Section 1 */
+const row1=document.getElementById('row1');
+row1.appendChild(concept('1A · What ships (faithful)','Speaker = play/pause, and a "restart this dance" beside it, both on the stage. One control row: dance, tempo, trails. No way to reach a move; no mute apart from pausing.',
+  phoneFrame(sc=>{ const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({current:true})); col.appendChild(ctlrow()); sc.appendChild(col); sc.appendChild(asideBlock('current')); })));
+row1.appendChild(concept('1B · A bar under the stage <span class="lean">← lean</span>','The five controls in their own row directly under the stage, like a video player\'s bar; the settings row keeps its place beneath. Mute top-right of the stage. The stage stays clean; the card starts just below the fold.',
+  phoneFrame(sc=>{ const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({mute:'xs'})); col.appendChild(transportRow()); col.appendChild(toast()); col.appendChild(ctlrow()); sc.appendChild(col); sc.appendChild(asideBlock('chips')); })));
+row1.appendChild(concept('1C · On the stage','U3\'s idea carried through: five 36 px chips overlaid bottom-left, so the row below stays one line. Costs the chairs behind them, and 36 px is under the 40 px thumb target the brief asks for.',
+  phoneFrame(sc=>{ const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({transportOn:true,mute:'xs'})); col.appendChild(toast()); col.appendChild(ctlrow()); sc.appendChild(col); sc.appendChild(asideBlock('chips')); })));
+row1.appendChild(concept('1D · A ruler bar','A 64-beat ruler of the dance with its moves and a playhead, then the five controls centred under it with a beat readout. Tapping the ruler seeks; |◀ and ▶| become visible as "the next tick". It says what the card already says, twice on one screen.',
+  phoneFrame(sc=>{ const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({mute:'xs'})); col.appendChild(rulerBar()); col.appendChild(toast()); col.appendChild(ctlrow()); sc.appendChild(col); sc.appendChild(asideBlock('current')); })));
+
+/* Section 2 */
+const row2=document.getElementById('row2');
+row2.appendChild(concept('2A · What ships (faithful)','Phrase rows with a fill bar and the current call in bold. Nothing is tappable; the beat counts and the move boundaries are implied by the bold.', cardShell('current')));
+row2.appendChild(concept('2B · Chips <span class="lean">← lean</span>','Every call is a chip with its beat count and an ⓘ. The progress fills the current chip rather than the phrase, so the move you\'re in reads at a glance. Same index card, same phrasing; wraps the same way.', cardShell('chips')));
+row2.appendChild(concept('2C · The set list','One call per row: phrase, beats, call, ⓘ. A tap on a row jumps. Concurrent lines and long calls have room; the card gets taller (nine rows for Fatal Attraction), and A1/A2 as a gutter reads less like a caller\'s card.', cardShell('setlist')));
+row2.appendChild(concept('2D · The ruler card','A phrase is a track and a call is as wide as it is long, with the playhead sweeping across. Honest about time — a 2-beat cast back is a sliver — which is exactly where its text disappears.', cardShell('ruler')));
+
+/* Section 3 */
+const row3=document.getElementById('row3');
+function cropDemo(size,label,text){ const row=el(`<div class="croprow"></div>`); for(const z of ['z1','']){ const c=el(`<div class="crop ${z}"><img src="stage-1x.png" alt=""></div>`); const tr=el(`<div class="stage-tr ${size==='xs'?'tight':''}"></div>`); tr.appendChild(mutebtn(size==='xs'?'xs':'')); c.appendChild(tr); const w=el(`<div style="display:flex;flex-direction:column;gap:3px"><span class="mini">${z?'1× (phone)':'2× (laptop)'}</span></div>`); w.appendChild(c); row.appendChild(w); } return concept(label,text,row); }
+row3.appendChild(cropDemo('','3A · 44 px, the stage\'s own chip size','Same face as the transport. At 1× it sits on the right half of the piano; at 2× it lands on the wall beside it and clears the band.'));
+row3.appendChild(cropDemo('xs','3B · 32 px, a smaller chip <span class="lean">← lean</span>','At 1× it just touches the piano\'s edge; at 2× it is well clear. Still a 32 px target — fine for a toggle you press once an evening, and visibly not a transport control.'));
+{ const c=el(`<div class="concept"><h3>3C · States and what must not move it</h3></div>`);
+  const st=el(`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>`);
+  const a=el(`<div style="display:flex;flex-direction:column;align-items:center;gap:4px" class="mini"></div>`); const on=el(`<button class="pixbtn xs" data-act="none"></button>`); on.innerHTML=G.speaker(); a.appendChild(on); a.appendChild(el(`<span>music on</span>`)); st.appendChild(a);
+  const b=el(`<div style="display:flex;flex-direction:column;align-items:center;gap:4px" class="mini"></div>`); const off=el(`<button class="pixbtn xs muted" data-act="none"></button>`); off.innerHTML=G.speaker(); b.appendChild(off); b.appendChild(el(`<span>muted</span>`)); st.appendChild(b);
+  const live=el(`<div style="display:flex;flex-direction:column;align-items:center;gap:4px" class="mini"></div>`); live.appendChild(mutebtn('xs')); live.appendChild(el(`<span>live (click)</span>`)); st.appendChild(live);
+  c.appendChild(st);
+  const btns=el(`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>`);
+  const nd=el(`<button class="tbtn on">▶▶| next dance</button>`); nd.addEventListener('click',()=>nextDance()); btns.appendChild(nd);
+  const sel=el(`<button class="tbtn on">pick The Baby Rose</button>`); sel.addEventListener('click',()=>pickDance('the-baby-rose')); btns.appendChild(sel);
+  const rl=el(`<button class="tbtn on">reload page</button>`); rl.addEventListener('click',()=>location.reload()); btns.appendChild(rl);
+  c.appendChild(btns);
+  const ro=el(`<p class="mini" style="margin:8px 0 0;max-width:320px"></p>`); LIVE.push(()=>{ let v='(unset)'; try{ v=localStorage.getItem(STORE_KEY)??'(unset)'; }catch(e){} ro.textContent=`localStorage[${STORE_KEY}] = ${v} · in memory: ${S.muted?'muted':'on'} · nothing above writes it but the speaker itself.`; }); c.appendChild(ro);
+  c.appendChild(el(`<p>Before the first ▶ there is no AudioContext, so the button is a stored preference and nothing else; the first ▶ still primes the audio, at gain 0 if muted. Pausing does not mute and muting does not pause.</p>`));
+  row3.appendChild(c); }
+
+/* Section 4 */
+const row4=document.getElementById('row4');
+row4.appendChild(concept('4A · Phone','Tap ⓘ on a chip: the move opens as a bottom sheet over the page. Tap the chip itself to jump. |◀ twice quickly goes to the previous move under either rule.',
+  phoneFrame(sc=>{ const col=el(`<div style="display:flex;flex-direction:column;gap:8px"></div>`); col.appendChild(stage({mute:'xs'})); col.appendChild(transportRow()); col.appendChild(toast()); col.appendChild(ctlrow()); sc.appendChild(col); sc.appendChild(asideBlock('chips')); })));
+{ const lap=el(`<div class="laptop"></div>`); lap.appendChild(tabbar()); const page=el(`<div class="page"><div class="left"></div><div class="right"></div></div>`); const L=page.querySelector('.left'), Rt=page.querySelector('.right');
+  L.appendChild(stage({zoom:2,mute:'xs'})); L.appendChild(transportRow()); L.appendChild(toast()); L.appendChild(ctlrow());
+  Rt.appendChild(cardShell('chips')); Rt.appendChild(danceLink()); Rt.appendChild(statusLine()); Rt.appendChild(el(`<p class="status">the new engine <a href="#">(old engine)</a></p>`));
+  lap.appendChild(page); lap.appendChild(el(`<footer style="display:flex;gap:16px;border-top:1px solid var(--border);padding:8px 16px 12px;font-size:12px;color:var(--muted-foreground)"><a href="#">Spikes</a><a href="#">The pair</a><span>AGPL-3.0-or-later. Dances are their choreographers’; tunes are traditional.</span></footer>`));
+  row4.appendChild(concept('4B · Laptop (1024)','The stage at 2× with the bar under it; the chips card beside. ⓘ opens a popover under the chip. Everything is the shipped layout but the two rows under the stage and the card\'s chips.',lap)); }
+
+/* ---------------- the strip ---------------- */
+const cPlay=document.getElementById('cPlay'), cBeat=document.getElementById('cBeat'), cRead=document.getElementById('cRead'), cStore=document.getElementById('cStore');
+cPlay.addEventListener('click',toggle);
+cBeat.addEventListener('input',()=>{ S.beat=Number(cBeat.value); S.last='scrub'; });
+document.getElementById('cDances').append(...DANCES.map(d=>{ const b=el(`<button>${d.title}</button>`); b.addEventListener('click',()=>pickDance(d.slug)); LIVE.push(p=>b.classList.toggle('on',p.dance===d)); return b; }));
+document.querySelectorAll('#ctl [data-k]').forEach(b=>b.addEventListener('click',()=>{ S[b.dataset.k]=b.dataset.v; document.querySelectorAll(`#ctl [data-k="${b.dataset.k}"]`).forEach(x=>x.classList.toggle('on',x===b)); }));
+const cTempo=document.getElementById('cTempo'), cTempoV=document.getElementById('cTempoV'); cTempo.addEventListener('input',()=>{ S.tempo=Number(cTempo.value); }); LIVE.push(()=>{ cTempo.value=S.tempo; cTempoV.textContent=S.tempo; });
+document.getElementById('cClear').addEventListener('click',()=>{ try{ localStorage.removeItem(STORE_KEY);}catch(e){} S.muted=false; });
+document.getElementById('cReload').addEventListener('click',()=>location.reload());
+LIVE.push(p=>{ cPlay.textContent=S.playing?'▮▮ pause':'▶ play'; cPlay.classList.toggle('on',S.playing); if(document.activeElement!==cBeat) cBeat.value=S.beat; cRead.textContent=`beat ${S.beat.toFixed(0)} · ${p.dance.title} · ${p.between?p.phase:(p.move.phrase+' b'+(p.cycleBeat+1)+' · '+(p.timeThrough+1)+'/'+TIMES)}`; let v='(unset)'; try{ v=localStorage.getItem(STORE_KEY)??'(unset)'; }catch(e){} cStore.textContent=`muted=${v}`; });
+
+/* click delegation for every pixel button */
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act; if(a==='none') return; if(a==='mute') return setMuted(!S.muted); press(a); });
+document.querySelectorAll('.pixbtn[data-act="prevMove"],.pixbtn[data-act="prevDance"]').forEach(b=>{});
+document.addEventListener('keydown',e=>{ if(e.target.matches('input,select,textarea')) return; if(e.key===' '){ e.preventDefault(); toggle(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); e.shiftKey?press('prevDance'):press('prevMove'); } else if(e.key==='ArrowRight'){ e.preventDefault(); e.shiftKey?press('nextDance'):press('nextMove'); } else if(e.key==='m'){ setMuted(!S.muted); } });
+
+/* ---------------- the clock ---------------- */
+let lastT=performance.now();
+function tick(t){ const dt=(t-lastT)/1000; lastT=t; if(S.playing) S.beat+=dt*S.tempo/60; const p=posAt(S.beat);
+  document.querySelectorAll('.pixbtn[data-act="prevMove"]').forEach(b=>b.classList.toggle('armed',!!armed.prevMove));
+  document.querySelectorAll('.pixbtn[data-act="prevDance"]').forEach(b=>b.classList.toggle('armed',!!armed.prevDance));
+  LIVE.forEach(f=>f(p)); requestAnimationFrame(tick); }
+LIVE.forEach(f=>f(posAt(S.beat)));
+requestAnimationFrame(tick);
+/* ?demo=popover | sheet | fatal — open the page in a given state, for screenshots and for the gate. */
+{ const q=new URLSearchParams(location.search).get('demo');
+  if(q){ document.documentElement.style.scrollBehavior='auto'; S.beat=LINEUP+24+3; if(q==='fatal') pickDance('fatal-attraction'); LIVE.forEach(f=>f(posAt(S.beat)));
+    if(q==='popover'){ document.querySelectorAll('#row2 .chip .info')[2].click(); document.getElementById('row2').scrollIntoView(); }
+    if(q==='sheet'){ const ph=document.querySelector('#row4 .phone'); ph.querySelector('.scroll').scrollTop=380; ph.querySelectorAll('.chip .info')[4].click(); document.getElementById('row4').scrollIntoView(); }
+    if(q==='fatal'){ document.getElementById('row2').scrollIntoView(); } } }
+</script>
+</body>
+</html>
