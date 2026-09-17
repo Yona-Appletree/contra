@@ -232,9 +232,7 @@ export function elbowPole(shoulder: Vec2, hand: Hand, side: Side, facing: Angle)
  */
 function hangFraction(planar: number, drop: number): number {
   if (drop <= ELBOW_TUCK_DROP_PX || planar <= 0) return 0;
-  return (
-    smooth(planar / ELBOW_TUCK_PLANAR_PX) * smooth(drop / ELBOW_TUCK_DROP_PX - 1)
-  );
+  return smooth(planar / ELBOW_TUCK_PLANAR_PX) * smooth(drop / ELBOW_TUCK_DROP_PX - 1);
 }
 
 /**
