@@ -21,6 +21,14 @@ const OPEN_BEATS = 1.5;
  * robins pull by to join the larks 1/4 of the way through. (2 beats) they both
  * finish the orbit."
  *
+ * **M10c left the join where it is**, against the user's later ruling — "in the
+ * chain the pull-by is still too fast and the turn too slow. it should be about
+ * 4 beats each". Three walls stand in the way of every value between two beats
+ * and four, and all three of their numbers are on `CHAIN_JOIN_BEAT`: this
+ * figure's own pull-by hand is what the library's motion bounds are derived
+ * from, the `elbowPerHand` ratio rises as the take slows, and past 3.05 beats
+ * the two robins stop passing at all.
+ *
  * **A6: the orbit is the only regime the chain ships.** F13 made it the
  * default and kept F9's four earlier candidates reachable behind `?chain=` for
  * comparison; M4 takes them away, with `CHAIN_CANDIDATES`, `?chain=` and

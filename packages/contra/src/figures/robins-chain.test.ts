@@ -12,6 +12,10 @@ import {
 } from "./testing.js";
 
 describe("the chain's only regime, since A6", () => {
+  // M10c asked this number to move to about 4 and measured that it cannot,
+  // for three separate reasons written out on `CHAIN_JOIN_BEAT` — the first of
+  // which is that this figure's own pull-by hand is the take the whole
+  // library's motion bounds are derived from. It is still the user's own 2.
   it("is the lark's orbit, joined a quarter of the way through", () => {
     expect(CHAIN_JOIN_BEAT).toBe(2);
     expect(robinsChain.defaults.joinBeat).toBe(CHAIN_JOIN_BEAT);
