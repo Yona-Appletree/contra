@@ -41,7 +41,7 @@ import type { PathStep } from "../kinds/waypoints.js";
  * ## Its words are the transcript's
  *
  * `params.text` is the line as the Caller's Box printed it, and
- * `data/figures/custom.json` is four `{text}` slots — so the card's call is the
+ * `data/figures/custom.json` is five `{text}` slots — so the card's call is the
  * line upper-cased, the walkthrough teaches the line, and a record that writes
  * its own `call` still wins over all of them, as it does for every figure.
  */

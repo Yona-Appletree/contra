@@ -1,11 +1,14 @@
 {
   "id": "balance-and-swing",
+  "description": "Two dancers rock in and out and then swing, holding on throughout.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Take both hands with {pairs}, rock in and out, then swing without letting go.",
-    "long": "Take both hands with {pairs} and rock: two steps in toward them, two steps back. That is the balance, four beats. Without letting go of the hand you are already holding, close into a ballroom hold and buzz round for the rest of the phrase. Open out side by side, lark on the left. {where}"
+    "line": "Take both hands with {who}, rock in and out, then close up and swing.",
+    "teach": "Take both hands with {who} and rock: two steps in toward them, two steps back. That is the balance, four beats. Keep hold of the hand you have, close into a ballroom hold and buzz round for the rest of the phrase. Open out side by side, lark on the left."
   },
   "call": {
-    "short": "BALANCE AND SWING",
-    "long": "{pairs} BALANCE AND SWING"
+    "1": "BALANCE",
+    "2": "BALANCE AND SWING",
+    "4": "WITH YOUR {who} BALANCE AND SWING"
   }
 }

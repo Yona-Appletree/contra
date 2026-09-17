@@ -199,11 +199,12 @@ describe("the parameter rows", () => {
 
   test("carry the caller's own short line where the texts can say it", () => {
     const half = variantOf("hey~amount=0.5");
-    expect(half.callShort).toBe("HALF A HEY");
-    // And no line at all — rather than a throw — where they cannot: the texts'
-    // `{amount}` has no word for a third, which Jeremy Corners promenades (M13).
+    expect(half.callShort).toBe("HALF HEY");
+    // **M12's second finding, closed** (M13): `{amount}` now has a word for a
+    // third, which Jeremy Corners promenades single file, so the row that used
+    // to have no line at all has one.
     const third = variants.find((v) => v.key.startsWith("single-file-promenade~amount=0.33"));
-    expect(third?.callShort).toBeUndefined();
+    expect(third?.callShort).toBe("SINGLE FILE");
   });
 });
 

@@ -64,6 +64,27 @@ const HALF_ALONG = PLACE_PITCH_PX / 2;
  */
 export const DUPLE_IMPROPER_LINE_UP_CALLS: readonly string[] = HANDS_FOUR_CALLS;
 
+/**
+ * How a duple improper dance's walkthrough opens — the user's own sentence,
+ * word for word (D28):
+ *
+ * > "for the line-up call for improper, we don't actually use that term with
+ * > the audience. … I would say something like 'Take hands four from the top.
+ * > Larks on the left, robins on the right, facing up and down the set.' (Your
+ * > partner is across from you and you are facing your direction of
+ * > progression)."
+ *
+ * The word "progression" in the hint is the user's own and is said to dancers
+ * here rather than about them; `docs/move-texts.md` §5a's caller-only list is
+ * about the **figure** texts.
+ */
+export const dupleImproperWalkthroughOpening = (): { line: string; hint?: string } => ({
+  line:
+    "Take hands four from the top. Larks on the left, robins on the right, " +
+    "facing up and down the set.",
+  hint: "Your partner is across from you. You are facing your direction of progression.",
+});
+
 /** Down the hall in frame-local degrees; the ones face this way. */
 const DOWN = 90;
 /** Up the hall in frame-local degrees; the twos face this way. */
@@ -302,6 +323,7 @@ export const DUPLE_IMPROPER: Formation = {
   id: "duple-improper",
   roleSet: CONTRA_ROLES,
   lineUpCalls: DUPLE_IMPROPER_LINE_UP_CALLS,
+  walkthroughOpening: dupleImproperWalkthroughOpening,
   // A minor set is the ones and the twos, one place apart, so it spans two
   // places along the hall — twice PLACE_PITCH_PX, not the place pitch itself
   // (T6).

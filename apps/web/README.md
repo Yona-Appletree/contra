@@ -60,10 +60,11 @@ their own and are reached by URL or by a link on the page above them.
     gathers people home / carries them / makes a shape (`ends`), its timing
     profile, and its figure-roles — with a role word that names a contra role
     lightly coloured in the role colour (D5; `ROLE_COLOURS`, `docs/role-colours.md`);
-  - the move's own walkthrough — the short one, the full teach behind a "teach"
-    disclosure, and the caller's two registers as `SHORT · LONG`, all four read
+  - the figure's own texts — what it is in the third person, the mechanics line,
+    the full teach behind a "teach" disclosure with the generated ending hint
+    under it, and the caller's three forms longest first as `4 · 2 · 1`, all read
     from `data/figures/<id>.json` and resolved against **this** tile's
-    parameters (W1; `docs/move-texts.md`);
+    parameters and the dancer its call names (M13; `docs/move-texts.md`);
   - the motion oracle's measured numbers (`src/galleryTiles.ts`'s
     `tileMetrics`), with any number over `@caller/contra`'s bound picked out in
     colour;
@@ -88,7 +89,12 @@ their own and are reached by URL or by a link on the page above them.
   All four lists are disclosures, closed (phone first, U1). Deep links:
   `#/moves/<figure-id>` opens one definition alone at 4×;
   `#/moves/<figure-id>~<param>=<value>` opens one parameter row;
-  `#/moves/seam/<a>--<b>` opens one seam alone (`a` and `b` are figure ids).
+  `#/moves/seam/<a>--<b>` opens one seam alone (`a` and `b` are figure ids);
+  `#/moves/<figure-id>?dance=<slug>&figure=<index>` opens that figure **as one
+  dance dances it** — that dance's formation, that call's own parameters and
+  dancers — which is what the walkthrough card's "show" link asks for (D23), with
+  `&branch=<n>` for one branch of a concurrent call and the teach open. A slug or
+  an index that names nothing falls back to the ordinary tile.
   Query parameters: `beat=<n>` freezes, `zoom=<1|2|3|4|6>`,
   `speed=<0.25|0.5|1>`, `trails=1`, `strip=1&step=<beats>` shows the
   one-frame-per-`step`-beats strip in place of the row it opens from, and
@@ -119,11 +125,29 @@ their own and are reached by URL or by a link on the page above them.
   is the Stage tab already playing it. A **lab dance** (`DanceFile.status:
 "lab"`) has no card here — that is what the status means — but has its own
   dance page and dances on the Stage from `#/dance/<slug>`.
-- `#/dances/<slug>` — one dance's own reference sheet (U3): the head, the
-  static calling card, the shapes, the walkthrough, and (M3) **how it
-  resolves** — every figure instance the planner makes of the dance, one time
-  through, with its cast, anchor, ends, carried hands and anybody it left
-  standing. The same table `pnpm dance <slug>` prints, from the same function.
+- `#/dances/<slug>` — one dance's own reference sheet (U3): the head, **two
+  cards** (M13), the shapes, and (M3) **how it resolves** — every figure
+  instance the planner makes of the dance, one time through, with its cast,
+  anchor, ends, carried hands and anybody it left standing, the same table
+  `pnpm dance <slug>` prints, from the same function.
+
+  The **calling card** (`dance-page-calling-card`) is what a caller says for
+  this dance, one row per written call, **one column per register** (P7,
+  DD67 — the user's own gate edit, "we just need two columns, 4-beat call and
+  2-beat call"): the whole sentence, then the short form the note card also
+  uses (`NOTE_CARD_BUDGET`). Only the first column is coloured, by part (who /
+  what / which way / how far, D26; `cards/callColours.ts`), and the second is
+  plain ink (D32).
+
+  The **walkthrough card** (`dance-page-walkthrough`) is the dance as a caller
+  would teach it: the formation's own opening, one `walkthrough-entry` per call
+  with its beats in their own column, its name, one `walkthrough-more` and a
+  `walkthrough-show` link into the figure from **this dance's own resolution**
+  (`#/moves/<figure>?dance=<slug>&figure=<index>`), and the ending hint
+  (`walkthrough-hint`) under "more". Both cards are computed — nothing about
+  either is stored — from the same `callScript` and `danceWalkthrough` the
+  Stage's own bubble and note card read.
+
 - **Tunes** (`#/tunes`, F4). **A jukebox** — the user: "something where you
   can pick the tune but stay on the same page to listen". The book of tunes
   `@caller/music` bundles down one side, reels then jigs, one row each with

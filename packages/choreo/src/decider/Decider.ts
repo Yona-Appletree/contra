@@ -223,6 +223,36 @@ export interface ScriptDeciderOptions {
    * to do inline and is unchanged by having been lifted out of it.
    */
   cycle?: CyclePlanner;
+  /**
+   * **What the caller says each time through, and when.**
+   *
+   * Left out — every caller before `@caller/contra`'s own — is today's
+   * behaviour: one utterance per written call of the record, the dance's own
+   * words or the figure's, its length estimated from the words.
+   *
+   * A form supplies this when it has more to say than one line per figure. The
+   * contra one does: a call is said at whatever length there is room for, which
+   * gets shorter as the hall learns the dance, two short figures are called in
+   * one breath, and two figures danced at once are one utterance. All of that is
+   * a **contra** computation over a **contra** vocabulary, so it arrives as a
+   * list of plain events rather than as a rule this package understands — the
+   * dependency rule again (AC7): choreo carries beats and text and knows about
+   * neither relations nor figure-roles.
+   *
+   * `offset` is the beat **within the time through** the utterance is said
+   * before, which is the first covered call's own start; the lead is applied to
+   * it exactly as it is to a call's own start today.
+   */
+  callsFor?: (dance: Dance, timeThrough: number) => readonly SpokenCallEvent[];
+}
+
+/** One thing the caller says on one time through; see {@link ScriptDeciderOptions.callsFor}. */
+export interface SpokenCallEvent {
+  /** The beat of the time through it is said before. */
+  offset: Beat;
+  text: string;
+  /** How long the words take to say; the rhythm estimate when left out. */
+  beats?: Beat;
 }
 
 /**

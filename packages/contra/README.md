@@ -444,7 +444,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `robins-chain`               | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `holdDrop` 6, `stackPx` 1, `joinBeat` 2, `passPx` 4.25 — **data** (A6: the orbit is the only regime)                                                                                                                                                             |
 | `pass-through`               | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5 — **data**                                                                                                                                                                                                                            |
 | `roll-away`                  | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1 (**how many turns, not which way**: the roll is inward, FR-A1), `holdDrop` 6 — **data**                                                                                                                             |
-| `slide-left`                 | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1 — **data**                                                                                                                                                                                                                              |
+| `slide-left`                 | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 20 (`PLACE_PITCH_PX`, one dancer place — half a couple's width since FR-C2, DD54), `direction` 1 — **data**                                                                                                                                                                |
 | `hey`                        | 16    | `HEY FOR FOUR`                 | `passes` `""` (a pass list, `RR NL LR PL RR NL LR`), `start` `"robin"`, `by` `"right"`, `amount` 1, `ricochet` `""`, `for` 4, `idle` `""`, `axis` `"spread"`, `hands` false, `weavePx` 6.5, `joinBeats` 2, `passDrop` 6 — **data**, no coded twin                                    |
 | `mad-robin`                  | 8     | `MAD ROBIN`                    | `pairs` `"neighbors"` (the dancer **beside** you, whom you circle), `amount` 0.5, `direction` `"clockwise"` — the body faces **across the set** and is pinned there (FR-A1) — **data**, no coded twin                                                                                |
 | `shoulder-round`             | 8     | `RIGHT SHOULDER ROUND`         | `pairs` `"neighbors"`, `hand` `"R"`, `amount` 1 — **data**, no coded twin, side by side a shoulder's width apart with the body on the tangent and the eyes on each other (FR-B1)                                                                                                     |
@@ -468,7 +468,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `balance-wave-of-four`       | 4     | `BALANCE THE WAVE OF FOUR`     | `centre` `"robin"`, `hand` `"R"`, `direction` `"forward"` (also `left`, `right`, `left-and-back`, `right-and-back` — FR-A2), `rock` 1 px, `spacing` 14, `closeBeats` 1, `holdDrop` 2 — **data**, no coded twin, the wave **across** the set (M8)                                     |
 | `square-through`             | 4     | `SQUARE THROUGH`               | `firstPass` `"neighbors"`/`firstHand` `"R"`, `secondPass` `"partners"`/`secondHand` `"L"`, `holdDrop` 2 — **data**, no coded twin (M9)                                                                                                                                               |
 | `interrupted-square-through` | 8     | `INTERRUPTED SQUARE THROUGH`   | the square through's four, plus `balanceWith` `"neighbors"`, `rock` 1.0, `stackPx` 1 — **data**, no coded twin, a named composite (M9)                                                                                                                                               |
-| `jersey-twirl`               | 4     | `JERSEY TWIRL`                 | `pairs` `"partners"`, `holdDrop` 0, `direction` −1 — **data**, no coded twin, the California twirl's mirror with the dancer beside you (M9)                                                                                                                                          |
+| `jersey-twirl`               | 4     | `JERSEY TWIRL`                 | the California twirl's, with `hand` `"left-in-right"` (her right in his left) and `direction` −1 — **data**, no coded twin, the same figure from the mirror start: the robin on the lark's left (FR-D1)                                                                              |
 | `custom`                     | 8     | the call's own `text`          | `text` `""` — **data**, no coded twin, `actors: "each"`: an unencoded line of a transcript, danced as a stand with the hands down. Zero beats allowed. What `corpus/importCallersBox.ts` writes every Caller's Box line as                                                           |
 | `wait-out`                   | 64    | `WAIT IT OUT AND CROSS OVER`   | the engine's, less `crossTo` — see below                                                                                                                                                                                                                                             |
 
@@ -973,7 +973,7 @@ smoothstep of their own.
 
 | profile     | what it means                                                                                                                                                                                                                       | which definitions                                                                                                                                                                                                                                                  |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `cruise`    | `@caller/core`'s constant-speed trapezoid, ramps of `min(1 beat, leg / 4)` — up to speed in about a beat, hold it, down in about a beat. Peak-over-average 4/3 on a leg of four beats or fewer, 8/7 on eight.                       | `long-lines`, `circle`, `star`, `petronella`, `pass-through`, `roll-away`, `california-twirl`, `right-and-left-through`, `robins-chain`                                                                                                                            |
+| `cruise`    | `@caller/core`'s constant-speed trapezoid, ramps of `min(1 beat, leg / 4)` — up to speed in about a beat, hold it, down in about a beat. Peak-over-average 4/3 on a leg of four beats or fewer, 8/7 on eight.                       | `long-lines`, `circle`, `star`, `petronella`, `pass-through`, `roll-away`, `california-twirl`, `jersey-twirl`, `right-and-left-through`, `robins-chain`                                                                                                            |
 | `trapezoid` | the figure's own **explicit** four-corner speed window, written out in the shape (`SpeedWindow`) and read by `kinds/orbitPair.ts`. A figure that already says exactly how it accelerates does not need a general rule laid over it. | `swing`, `allemande`, `do-si-do`, `shoulder-round`, `balance-and-swing`, `turn-contra-corners`                                                                                                                                                                     |
 | `smooth`    | one smoothstep over the leg: the pre-M10 default, and what a figure that is not a walk keeps.                                                                                                                                       | everything else — `balance` and `balance-ring` (a 1 px rock; the feet are the point), the hey (its weave is already traversed at a constant rate and its two-beat step on and off is deliberately linear), `slide-left` (its `stepped()` pace was ruled by S2 #52) |
 
@@ -1041,13 +1041,48 @@ sentences of what the dancers do, in a caller's words. `star` and
 two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
 square to the other line, danced in two steps, and the figure now says so.
 
-**`describe` is the fallback now, not what the app shows** (W1). Every move's
-prose lives in `data/figures/<id>.json` — a short and a long walkthrough, a
-short and a long call, each a template over that figure's own parameters —
-loaded by `src/text/`. `resolveFigureText(id, params, group)` fills every slot
-from one call's own tuning, and `landmark(def, params, group)` writes the last
-sentence of the long walkthrough from `FigureDef.ends`: "you should be across
-the set from your partner, next to your neighbor". See
-[`docs/move-texts.md`](../../docs/move-texts.md) for the voice and the slot
-vocabulary. `describe` stays on the figure contract until the cleanup that
-removes it.
+**`describe` is not read by the app at all any more** (W1, M13, P7). Every
+figure's prose lives in `data/figures/<id>.json` — a third-person
+`description`, a `defaultLevel`, a mechanics `line`, a full `teach`, and the
+caller's `call` forms keyed by how many **beats** each takes to say — loaded by
+`src/text/`. `resolveFigureText(id, params, slots)` fills every slot from one
+call's own shorthand tuning and the dancer that call names (`callWho(call)`),
+and `resolveFigureForms` is the cheap half for the places that want the caller's
+words alone. One table — `src/text/relationWords.ts` — says who a relation is,
+in both registers, for every text in the app.
+
+Where a figure **leaves** you is no longer written (D22): `{where}` is gone from
+the texts, and the sentence is generated beside them — "Your partner is across
+from you. Your neighbor is beside you." Two functions say it, in one
+vocabulary (`src/text/seam.ts`, and nothing else in the app has a second):
+
+- **`seamHint(boundary, reference)`** — the hint at a **seam of a dance**, read
+  off the planner's own honest ends. `danceBoundaries(dance, formation)` in
+  `src/set/planCycle.ts` dances the dance headlessly on a probe line and reports
+  every dancer's spot, holds, slot and partner at every call boundary, with the
+  instances on either side of it; the hint is said only when something changed,
+  and splits by role when the roles disagree.
+- **`landmark(def, params, group)`** — the same sentence about a **figure**, over
+  one figure's own boundary pair, which is the question the Moves page can ask.
+
+**`callScript(dance, timeThrough)` and `callingCard(dance)`**
+(`src/text/callScript.ts`) are one function read two ways: along a time through,
+which is what the caller's bubble says (through `@caller/choreo`'s `callsFor`
+hook, wired in `apps/web/src/program.ts`), and down the record, which is what the
+calling card prints. A call is said at the longest form that fits the **window**
+the call before it leaves and the **budget** this time through is in; two short
+figures inside one phrase are said in one breath; two figures danced at once are
+joined by `WHILE`. A dance file's own `call` is a **flourish** and joins the list
+as the longest form there is.
+
+**A schedule figure's teach is generated** (`src/text/scheduleTeach.ts`): the
+hey's is its own pass list read aloud in the user's shape, because there are
+more heys a caller can ask for than anybody will write teach texts for. The file
+keeps the opening sentence and `resolveFigureText` appends the rest.
+
+**`danceWalkthrough(dance)`** (`src/text/walkthrough.ts`) is the whole card: the
+formation's own opening, one entry per call of the record with its heading, its
+lines and its hint, and the progression sentence at the wrap. See
+[`docs/move-texts.md`](../../docs/move-texts.md) for the voice, the file shape
+and the slot vocabulary. `describe` stays on the figure contract until the
+cleanup that removes it.

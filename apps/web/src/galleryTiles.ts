@@ -57,6 +57,8 @@ import {
   createContraRegistry,
   formationFor,
   isRelationWord,
+  callWho,
+  landmark,
   resolveFigureText,
 } from "@caller/contra";
 import type { EngineChoice } from "./state/engineQuery.js";
@@ -143,27 +145,26 @@ export interface GalleryCall {
   /** What the caller says for it — the dance's own words where a dance gave any. */
   call: string;
   /**
-   * What the dancers actually do, in the figure's own prose: `FigureDef.describe`,
-   * written by F3a. `undefined` only if a figure has none, which the registry
-   * test makes hard.
+   * The figure's seven texts, resolved against **this** call's own parameters
+   * and the dancer it names (`data/figures/<id>.json`).
    *
-   * The fallback now, not the text the row shows: W1 moved the prose into
-   * `data/figures/<id>.json` and {@link GalleryCall.texts} is what the page
-   * reads. It stays until the cleanup that removes `describe` from the figure
-   * contract altogether.
-   */
-  describe?: string;
-  /**
-   * The move's four texts, resolved against **this** call's own parameters and
-   * this tile's own group: the short and long walkthrough and the short and
-   * long call (`data/figures/<id>.json`).
-   *
-   * `undefined` only for a figure with no text file. The long walkthrough ends
-   * on the generated landmark, which is why the group has to be in hand to
-   * resolve it — "you should be across the set from your partner" is a fact
-   * about the figure *here*.
+   * `undefined` for a figure with no text file, and for a call whose `{who}`
+   * names nobody the vocabulary can say — a generated tuning on the Moves page
+   * is exactly the case, and a row with no call line is better than a page that
+   * refused to build.
    */
   texts?: FigureTexts;
+  /**
+   * **Where this figure leaves the four dancers**, generated rather than
+   * written (D22, M13's A3): "Your partner is across from you. Your neighbor is
+   * beside you."
+   *
+   * Its own field rather than the last sentence of the teach, because it is a
+   * fact about the figure *here* — the same circle left three places leaves a
+   * becket dancer and a duple dancer in different places — and because the
+   * walkthrough card shows it in its own style under "more".
+   */
+  hint?: string;
   /** The tuning it ran with. `from` is left out: it is threaded, not chosen. */
   params: Record<string, unknown>;
 }
@@ -620,7 +621,17 @@ export function figureTile(
   const formation = found === undefined ? DUPLE_IMPROPER : formationFor(found.dance);
   const beats = variant?.beats ?? found?.call.beats ?? def.beats;
   const params = variant === undefined ? withoutFrom(found?.call.params) : { ...variant.params };
-  const callText = found?.call.call ?? def.call;
+  const who = variant === undefined ? found?.call.who : variant.who;
+  // **No reader of `FigureDef.call` left in this file** (M13, P7): a dance's
+  // own call is a flourish (kept), and where no dance calls this figure the
+  // fallback is the text layer's own longest form — the same computation the
+  // calling card and the note card read — rather than the coded definition's
+  // retired `call` string.
+  const callText =
+    found?.call.call ??
+    textsFor({ figure: id, beats, params, ...(who === undefined ? {} : { who }) })?.forms[0]
+      ?.text ??
+    id.toUpperCase();
   const notes: string[] = [...(variant?.notes ?? [])];
   if (engine !== asked) notes.push(FORCED_ENGINE_NOTE);
 
@@ -635,7 +646,6 @@ export function figureTile(
     return engineFigureTile(id, def, formation, beats, params, callText, found, engine);
   }
 
-  const who = variant === undefined ? found?.call.who : variant.who;
   const one: ContraCall = {
     figure: id,
     beats,
@@ -690,7 +700,7 @@ export function figureTile(
     kind: variant === undefined ? "figure" : "variant",
     key: variant?.key ?? id,
     title: variant?.title ?? id,
-    calls: [listed(run.calls[0]!, callText, run.group, def.describe)],
+    calls: [listed(run.calls[0]!, callText, run.group, textWhoOf(id, who))],
     under: id,
     formation: formation.id,
     group: run.group,
@@ -768,6 +778,24 @@ function dancesHere(run: TileRun, id: string): boolean {
 }
 
 /**
+ * **Who a tile's texts name**, where the tile's own call does not say.
+ *
+ * A figure a dancer does alone — `loop`, `cast-back`, Fatal Attraction's own
+ * "go forward" — has no pairing parameter, so the subject of its call ("ROBINS
+ * LOOP RIGHT") is the record's actor selector. Three of those are called only
+ * by a **lab** dance, and {@link firstCallOf} looks in the programme, so the
+ * tile runs from the figure's own defaults and its texts would have nobody to
+ * name.
+ *
+ * Read off the whole corpus rather than the programme, and used for the **texts
+ * only**: the tile's own planned call is untouched, so no tile's geometry, no
+ * strip and no golden moves.
+ */
+function textWhoOf(id: string, who: FigureCall["who"]): FigureCall["who"] {
+  return who ?? callsOf(id, ALL_DANCES)[0]?.call.who;
+}
+
+/**
  * A tile for one of `@caller/choreo`'s own figures, built without a planner.
  *
  * See {@link figureTile} for why these two cannot go through resolution. The
@@ -817,7 +845,7 @@ function engineFigureTile(
     kind: "figure",
     key: id,
     title: id,
-    calls: [listed(calls[0]!, callText, group, def.describe)],
+    calls: [listed(calls[0]!, callText, group)],
     under: id,
     formation: formation.id,
     group,
@@ -910,7 +938,6 @@ export function seamTile(
     overrides,
     engine,
   });
-  const registry = createContraRegistry([], overrides);
   const notes = [
     ...(wrapped
       ? [
@@ -927,8 +954,10 @@ export function seamTile(
     key,
     title: `${a.figure} → ${b.figure}`,
     calls: run.calls.map((c) => {
-      const def = registry.get(c.figure);
-      return listed(c, c.call ?? def.call, run.group, def.describe);
+      // No reader of `FigureDef.call` here either (M13, P7): the fallback is
+      // the text layer's own longest form, same as `figureTile`'s.
+      const callText = c.call ?? textsFor(c)?.forms[0]?.text ?? c.figure.toUpperCase();
+      return listed(c, callText, run.group);
     }),
     under: a.figure,
     formation: formation.id,
@@ -1452,29 +1481,62 @@ function withoutFrom(params: object | undefined): Record<string, unknown> {
   return rest;
 }
 
-const listed = (call: FigureCall, text: string, group: Group, describe?: string): GalleryCall => {
-  const texts = textsFor(call, group);
+const listed = (
+  call: FigureCall,
+  text: string,
+  group: Group,
+  /** Who the texts name, where the tile's own call does not say; see {@link textWhoOf}. */
+  who?: FigureCall["who"],
+): GalleryCall => {
+  const texts = textsFor(who === undefined ? call : { ...call, who });
+  const hint = hintFor(call, group);
   return {
     figure: call.figure,
     beats: call.beats,
     call: text,
-    ...(describe === undefined ? {} : { describe }),
     ...(texts === undefined ? {} : { texts }),
+    ...(hint === undefined ? {} : { hint }),
     params: withoutFrom(call.params),
   };
 };
 
 /**
- * This call's four texts, resolved.
+ * This call's seven texts, resolved against its own parameters and the dancer
+ * it names.
+ *
+ * `resolveFigureText` throws by name rather than leaving a `{slot}` showing,
+ * which is the right rule for a dance's own calls and the wrong one for a page
+ * that **generates** tunings from a parameter spec — the whole point of a
+ * generated row is that nobody has written prose for it yet. So the throw is
+ * caught and the row simply has no text.
+ */
+function textsFor(call: FigureCall): FigureTexts | undefined {
+  try {
+    return resolveFigureText(
+      call.figure,
+      { ...(call.params ?? {}), beats: call.beats },
+      { who: callWho(call) },
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Where this call leaves the four dancers, in the words a caller uses.
  *
  * The **threaded** parameters, `from` and all — that is the difference between
- * "you are back where you started" and a landmark computed from the stations a
- * dance has long since left. `withDefaults` is what the decider hands a figure,
- * so the row reads exactly what the hall would.
+ * a landmark read off where the dance actually has people and one computed from
+ * stations the dance left long ago. `withDefaults` is what the decider hands a
+ * figure, so the row reads exactly what the hall would.
  */
-function textsFor(call: FigureCall, group: Group): FigureTexts | undefined {
-  const def = textRegistry().get(call.figure);
-  return resolveFigureText(call.figure, withDefaults(def, call.params, call.beats), group);
+function hintFor(call: FigureCall, group: Group): string | undefined {
+  try {
+    const def = textRegistry().get(call.figure);
+    return landmark(def, withDefaults(def, call.params, call.beats), group);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

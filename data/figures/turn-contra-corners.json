@@ -1,11 +1,14 @@
 {
   "id": "turn-contra-corners",
+  "description": "The two actives turn each other and their two corners in turn.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Right hand to the other active, left to your first corner, back, left to your second corner, and back again.",
-    "long": "Give your right hand to the other active and turn half way, then your left to your first corner and turn all the way round. Right hand to the active again, half way, left hand to your second corner all the way round, and right hand to the active once more to finish in the middle of the set. The corners wait between their turns."
+    "line": "Right to the other active, left to your first corner, back, left to your second corner.",
+    "teach": "Give your right hand to the other active and turn half way, then your left to your first corner and turn all the way round. Right hand to the active again, half way, then your left to your second corner and turn all the way round. The corners stand and wait between their turns."
   },
   "call": {
-    "short": "CONTRA CORNERS",
-    "long": "TURN CONTRA CORNERS"
+    "1": "CORNERS",
+    "2": "CONTRA CORNERS",
+    "4": "TURN CONTRA CORNERS"
   }
 }

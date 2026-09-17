@@ -17,26 +17,15 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "neighbors", "endFacing": "across" },
-          "call": "NEIGHBOR BALANCE AND SWING"
+          "params": { "pairs": "neighbors", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "A2",
       "figures": [
-        {
-          "figure": "circle",
-          "beats": 8,
-          "params": { "direction": "left", "places": 3 },
-          "call": "CIRCLE LEFT THREE QUARTERS"
-        },
-        {
-          "figure": "do-si-do",
-          "beats": 8,
-          "params": { "pairs": "partners", "amount": 1 },
-          "call": "PARTNER DO-SI-DO"
-        }
+        { "figure": "circle", "beats": 8, "params": { "direction": "left", "places": 3 } },
+        { "figure": "do-si-do", "beats": 8, "params": { "pairs": "partners", "amount": 1 } }
       ]
     },
     {
@@ -45,21 +34,15 @@
         {
           "figure": "balance-and-swing",
           "beats": 16,
-          "params": { "pairs": "partners", "endFacing": "across" },
-          "call": "PARTNER BALANCE AND SWING"
+          "params": { "pairs": "partners", "endFacing": "across" }
         }
       ]
     },
     {
       "name": "B2",
       "figures": [
-        { "figure": "robins-chain", "beats": 8, "call": "ROBINS CHAIN" },
-        {
-          "figure": "star",
-          "beats": 8,
-          "params": { "hand": "L", "places": 4 },
-          "call": "STAR LEFT ONCE"
-        }
+        { "figure": "robins-chain", "beats": 8 },
+        { "figure": "star", "beats": 8, "params": { "hand": "L", "places": 4 } }
       ]
     }
   ]

@@ -130,6 +130,20 @@ export interface DancePhrase {
   figures: FigureCall[];
 }
 
+/**
+ * **One edit a caller made to one entry of a walkthrough** (vision §4).
+ *
+ * Paragraphs around the entry, or a replacement for its own mechanics line.
+ * Plain strings, in the caller's own words: the voice rules are checked over
+ * `data/figures/`, which is the language, and a caller correcting one dance is
+ * not writing the language.
+ */
+export interface TeachEdit {
+  before?: string;
+  after?: string;
+  replace?: string;
+}
+
 /** A dance, as data. Survives `JSON.parse(JSON.stringify(dance))` unchanged. */
 export interface Dance {
   slug: string;
@@ -172,6 +186,31 @@ export interface Dance {
    */
   progressEvery?: number;
   notes?: string;
+  /**
+   * **How many beats of words this dance gets per time through**, 1-based, the
+   * last repeating for ever after.
+   *
+   * Left out — every dance so far — is the caller's own policy (4, then 2, then
+   * 2, then 1): the whole sentence the first time, the middle form for the next
+   * two, and a word after that. A dance that is harder than it looks, or easier,
+   * says so here and the calls stay long or go short sooner.
+   *
+   * A count of beats rather than a register name, because that is what the
+   * fitting rule takes: the longest form that fits in both this and the window
+   * the call before it leaves. `@caller/choreo` carries it and never reads it;
+   * `@caller/contra`'s `callScript` is what it is for.
+   */
+  callBudgets?: readonly Beat[];
+  /**
+   * **A caller's own edits to this dance's walkthrough**, keyed by phrase and
+   * figure.
+   *
+   * Left out — every dance so far — and that is the point: generated text is
+   * never stored, so the only thing on disk is what a human wrote. See
+   * `@caller/contra`'s `text/teach.ts` for the key grammar and
+   * `docs/dance-record.md` for the shape.
+   */
+  teach?: Record<string, TeachEdit>;
   /**
    * Where each station's dancer stands at beat 0 of **every** time through, in
    * the group frame's own axes. Left out — the usual case — means the

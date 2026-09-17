@@ -9,6 +9,7 @@ import type {
   PhraseName,
   Selector,
   Station,
+  TeachEdit,
 } from "@caller/choreo";
 import { HANDS_FOUR_GROUP, resolveSelector, validateDance, withDefaults } from "@caller/choreo";
 import type { Carried, ContraFigure, ContraParams, HandJoin, Spots } from "./ContraFigure.js";
@@ -86,6 +87,10 @@ export interface ContraDanceSpec {
   passes?: number;
   /** How many passes between progressions; see `Dance.progressEvery` (M8). */
   progressEvery?: number;
+  /** How many beats of words each time through gets; see `Dance.callBudgets` (M13). */
+  callBudgets?: readonly Beat[];
+  /** A caller's own edits to this dance's walkthrough; see `Dance.teach` (M13). */
+  teach?: Record<string, TeachEdit>;
   /**
    * How far each role progresses in one time through, in dancing places.
    *
@@ -350,6 +355,8 @@ export function contraDance(spec: ContraDanceSpec): ContraDance {
     ...(spec.waitOut === undefined ? {} : { waitOut: { ...spec.waitOut } }),
     ...(spec.passes === undefined ? {} : { passes: spec.passes }),
     ...(spec.progressEvery === undefined ? {} : { progressEvery: spec.progressEvery }),
+    ...(spec.callBudgets === undefined ? {} : { callBudgets: [...spec.callBudgets] }),
+    ...(spec.teach === undefined ? {} : { teach: structuredClone(spec.teach) }),
     ...(spec.progression === undefined ? {} : { progression: { ...spec.progression } }),
   };
   validateDance(dance);

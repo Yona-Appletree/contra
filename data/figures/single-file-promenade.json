@@ -1,18 +1,14 @@
 {
   "id": "single-file-promenade",
+  "description": "Dancers walk round the set one behind another, like a bike chain.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Walk round the outside of the set in single file, one behind the other, holding nothing.",
-    "long": "Turn to face the way you are going — {direction} — and walk round the outside of the set in single file, each of you following the one in front, with nobody holding anything at all. You are walking to the place of the dancer ahead of you, round the shape of the set: a quarter is one place along and a half is two. You stop facing the way you were travelling. {where}"
+    "line": "Face the way the ring is going and walk {direction} round the set in single file.",
+    "teach": "Turn to face the way the ring is going — {direction} — and walk round the set one behind another, the way a bike chain goes round, with your hands at your sides. A quarter of the ring is one place along and a half is two. You stop still facing the way you were travelling."
   },
   "call": {
-    "short": "SINGLE FILE",
-    "long": "SINGLE FILE PROMENADE {direction} {amount}"
-  },
-  "variants": {
-    "amount=0.5": {
-      "walkthrough": {
-        "short": "Walk half way round the set in single file, one behind the other, holding nothing."
-      }
-    }
+    "4": "SINGLE FILE PROMENADE {direction} {amount}",
+    "2": "SINGLE FILE",
+    "1": "SINGLE FILE"
   }
 }

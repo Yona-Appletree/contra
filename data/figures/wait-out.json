@@ -1,11 +1,14 @@
 {
   "id": "wait-out",
+  "description": "A couple at the end of the line waits a time through and crosses over.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "You have nobody to dance with this time through. Wait at the end of the line, then cross over.",
-    "long": "There is no couple for you this time through. Stand at the end of the line and wait, then cross to the other line so you come back in on the other side and as the other kind of couple. In a duple improper set you face each other and swap places; in a becket set you loop round the end together."
+    "line": "This time through you stand out at the end of the line, then cross over.",
+    "teach": "This time through you stand out at the end of the line. Wait there, then cross to the other line so you come back in on the other side and as the other kind of couple. In a becket set you loop round the end together instead."
   },
   "call": {
-    "short": "WAIT OUT",
-    "long": "WAIT IT OUT AND CROSS OVER"
+    "1": "WAIT",
+    "2": "WAIT OUT",
+    "4": "WAIT OUT AND CROSS OVER"
   }
 }

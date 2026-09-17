@@ -1,11 +1,14 @@
 {
   "id": "circle",
+  "description": "Four dancers join hands in a ring and walk it round.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "Take hands in a ring. Circle {places} to your {direction}.",
-    "long": "All four take hands in a ring, hands about waist height, and walk forward round to your {direction}, {places}. Keep the ring the same size the whole way and keep the hands joined. {where}"
+    "line": "Take hands in a ring. Circle {places} to your {direction}.",
+    "teach": "All four take hands in a ring, hands about waist height and elbows down between you so the ring is a smooth circle. Walk forward round to your {direction}, {places}, keeping the ring the same size the whole way and keeping the hands joined."
   },
   "call": {
-    "short": "CIRCLE {direction}",
-    "long": "CIRCLE {direction} {places}"
+    "4": "CIRCLE {direction} {places}",
+    "2": "CIRCLE {direction}",
+    "1": "CIRCLE"
   }
 }

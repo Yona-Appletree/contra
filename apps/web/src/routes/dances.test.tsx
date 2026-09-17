@@ -13,11 +13,20 @@ import { DancePage, DancesPage } from "./dances.js";
  * in, rather than pulling in jsdom and `@testing-library/react` for a first
  * route-render test.
  */
+/**
+ * The words a reader sees, with the markup taken out.
+ *
+ * A caller's line is drawn one `<span>` per part (D26), so a sentence on either
+ * card is several elements and `toContain` on the raw HTML would be asserting
+ * where the spans fall rather than what it says.
+ */
+const words = (html: string): string => html.replace(/<[^>]+>/g, "");
+
 describe("DancePage (U3: #/dances/<slug>)", () => {
   it("has the calling card, the shapes, and a Stage link at both the top and the bottom", () => {
     const html = renderToStaticMarkup(<DancePage slug="airpants" params={new URLSearchParams()} />);
     expect(html).toContain('data-testid="dance-page"');
-    expect(html).toContain('data-testid="dance-page-card"');
+    expect(html).toContain('data-testid="dance-page-calling-card"');
     expect(html).toContain('data-testid="dance-traces"');
     expect(html).toContain('data-testid="dance-page-play-top"');
     expect(html).toContain('data-testid="dance-page-play-bottom"');
@@ -64,11 +73,26 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
     expect(airpantsWrapped).toBe(airpantsUnwrapped);
   });
 
-  it("carries the walkthrough, one step per figure, in order", () => {
+  it("carries both cards: what the caller says, and how a caller teaches it", () => {
     const html = renderToStaticMarkup(<DancePage slug="airpants" params={new URLSearchParams()} />);
     expect(html).toContain('data-testid="dance-page-walkthrough"');
-    // Airpants' first figure, the user's own worked example's dance.
-    expect(html).toContain("NEIGHBOR BALANCE AND SWING");
+    expect(html).toContain('data-testid="dance-page-calling-card"');
+    // Airpants' first figure, said and taught: the caller's 4-beat form on the
+    // calling card — coloured by part, so it arrives as spans — and the same
+    // figure's name as the walkthrough's heading.
+    expect(html).toContain('class="call-token call-token--who">WITH YOUR NEIGHBOR<');
+    expect(html).toContain('class="call-token call-token--what"> BALANCE AND SWING<');
+    expect(words(html)).toContain("With your neighbor balance and swing");
+    // One entry per written call of the record, in order.
+    const entries = [...html.matchAll(/data-testid="walkthrough-entry" data-figure="([a-z-]+)"/g)];
+    expect(entries.map((m) => m[1])).toEqual([
+      "balance-and-swing",
+      "long-lines",
+      "allemande",
+      "balance-and-swing",
+      "circle",
+      "do-si-do",
+    ]);
   });
 
   it("lists every call's resolution: the figure, the cast, the anchor and the ends (M3)", () => {
@@ -77,7 +101,9 @@ describe("DancePage (U3: #/dances/<slug>)", () => {
     expect(html).not.toContain('data-testid="dance-page-resolution-error"');
     // Airpants' six calls, each resolved into one instance per pair or one per
     // minor set: a row per instance, never fewer than one per call.
-    const rows = [...html.matchAll(/data-figure="([a-z-]+)"/g)].map((m) => m[1]);
+    const rows = [
+      ...html.matchAll(/class="dance-page-resolution-row" data-figure="([a-z-]+)"/g),
+    ].map((m) => m[1]);
     expect(new Set(rows)).toEqual(
       new Set(["balance-and-swing", "long-lines", "allemande", "circle", "do-si-do"]),
     );

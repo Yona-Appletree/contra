@@ -4,7 +4,7 @@ import type { DanceFile } from "../../dances/loadDances.js";
 import { danceFromFile } from "../../dances/loadDances.js";
 import { CLOSURE_PX, danceAlone, oraclesFor } from "../../dances/oracle.js";
 import { contraCyclePlanner } from "../../set/planCycle.js";
-import { resolveFigureCall, resolveFigureText } from "../../text/figureText.js";
+import { resolveFigureForms, resolveFigureText } from "../../text/figureText.js";
 import { contraDataFigures } from "./index.js";
 import { customDefinition } from "./custom.js";
 
@@ -125,19 +125,17 @@ describe("the custom figure", () => {
   });
 
   it("says the transcript's own line, upper-cased, when the record writes no call", () => {
-    const said = resolveFigureCall("custom", {
-      beats: 8,
-      text: "Ladies chain to partner",
-    } as never);
-    expect(said?.short).toBe("LADIES CHAIN TO PARTNER");
-    expect(said?.long).toBe("LADIES CHAIN TO PARTNER");
+    const forms = resolveFigureForms("custom", { beats: 8, text: "Ladies chain to partner" })!;
+    // Every form is the same line: the transcript has no shorter way to say it.
+    expect(forms.map((form) => form.beats)).toEqual([4, 2, 1]);
+    for (const form of forms) expect(form.text).toBe("LADIES CHAIN TO PARTNER");
   });
 
   it("teaches the transcript's own line in the walkthrough", () => {
     const texts = resolveFigureText("custom", { beats: 8, text: "shift left" } as never);
     // The walkthrough's own first letter is capitalised, because a slot's words
     // are written in the case they take mid-sentence and this one opens on one.
-    expect(texts?.walkthrough.short.startsWith("Shift left")).toBe(true);
-    expect(texts?.walkthrough.long.startsWith("Shift left")).toBe(true);
+    expect(texts?.walkthrough.line.startsWith("Shift left")).toBe(true);
+    expect(texts?.walkthrough.teach.startsWith("Shift left")).toBe(true);
   });
 });

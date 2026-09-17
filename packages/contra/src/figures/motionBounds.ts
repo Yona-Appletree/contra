@@ -548,6 +548,36 @@ export function deriveBounds(step = DERIVE_STEP): {
  * | hand height rate | 21.7217 px/beat | 65.1650 |
  * | out-and-back inside a beat | 1.2 px | 3.6 |
  *
+ * ## M10c, 2026-09-16: re-derived because the reference figure moved (DD76)
+ *
+ * **The worst take in the registry is the chain's own pull by**, and the user
+ * ruled on the chain's timing: *"in the chain the pull-by is still too fast and
+ * the turn too slow. it should be about 4 beats each."* A pull by that takes
+ * four beats instead of two holds its two robins' right hands across more
+ * ground, so the reach this whole table is derived from went from **15.2143 px
+ * to 17.0152 px** and every guard derived from it moved with it:
+ *
+ * | | before | after |
+ * | --- | ---: | ---: |
+ * | reach, hip to held point | 15.2143 px | **17.0152** |
+ * | hand floor speed | 22.7917 → 68.375 | **25.4896 → 76.4688** |
+ * | elbow floor speed | 62.7703 → 188.3108 | **67.3223 → 201.9670** |
+ * | elbow / hand, per sample | 3.2955 → 9.8864 | **3.3819 → 10.1458** |
+ * | hand height rate | 21.7217 → 65.1650 | unchanged |
+ * | out-and-back inside a beat | 1.2 → 3.6 | unchanged |
+ * | sustained travel | 15.5463 → 23.3194 | unchanged (the swing) |
+ * | evenness | 1.6 | unchanged (the floor's rectangle) |
+ *
+ * **These bounds follow their reference figure; they are not a tolerance being
+ * raised.** That is what re-deriving is *for*, and it has happened four times
+ * before — F3c, F4, F5 and F7, the last of which moved the reach the other way
+ * when the rigid courtesy turn got longer. A bound derived from the chain's own
+ * take cannot also be a guard on the chain's timing: that is circular, and
+ * leaving it pinned would have frozen a figure's count against a user ruling.
+ * Every *other* figure in the library is measured against the new numbers and
+ * still passes, which is the check that this is a re-derivation and not a
+ * licence.
+ *
  * **The reach came down for four milestones and has gone back up once.** The
  * furthest any figure reaches from a hip to a hand it holds was 17.8986 px
  * before F4 — the courtesy turn in right and left through, whose couple had
@@ -585,9 +615,9 @@ export function deriveBounds(step = DERIVE_STEP): {
  * what made the ratio worth reporting in the first place.
  */
 export const CONTRA_MOTION_BOUNDS: MotionBounds = {
-  handSpeedPx: 68.375,
-  elbowSpeedPx: 188.3108,
-  elbowPerHand: 9.8864,
+  handSpeedPx: 76.4688,
+  elbowSpeedPx: 201.967,
+  elbowPerHand: 10.1458,
   heightRatePx: 65.165,
   dipPx: 3.6,
   // M10, R6: 1.5 × the swing's own orbit; see `CONTRA_TRAVEL_MOTION`.
@@ -703,16 +733,16 @@ export const CONTRA_EVENNESS = {
  */
 export const CONTRA_TAKE_MOTION = {
   /** The furthest hip-to-placed-point reach in the registry, px. */
-  floorPx: 15.2143,
-  floorAt: "robins-chain 1R R at t=0.969",
+  floorPx: 17.0152,
+  floorAt: "robins-chain 1R R at t=1.500",
   /** The smallest drop any figure holds a hand at, px. */
   drop: 0,
   dropAt: "swing 1R L at t=1.000",
-  handSpeed: 22.7917,
-  elbowSpeed: 62.7703,
+  handSpeed: 25.4896,
+  elbowSpeed: 67.3223,
   heightRate: 21.7217,
-  elbowPerHand: 2.7541,
-  elbowRatio: 3.2955,
+  elbowPerHand: 2.6412,
+  elbowRatio: 3.3819,
   hangingDipPx: 2 * HAND_HANG_SWING_PX,
 } as const;
 

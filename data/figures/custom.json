@@ -1,11 +1,14 @@
 {
   "id": "custom",
+  "description": "A line the library has no figure for yet: the dancers stand still while its own words are printed.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "{text} — stand where you are, hands down, until the count is out.",
-    "long": "{text} — that is the line as the dance's own source prints it, and this library has no figure for it yet. Stand where you are with your hands down for the whole count, and the dance picks up again on the next call."
+    "line": "{text} — stand where you are, hands down, until the count is out.",
+    "teach": "{text} — that is the line as the dance's own source prints it, and this library has no figure for it yet. Stand where you are with your hands down for the whole count, and the dance picks up again on the next call."
   },
   "call": {
-    "short": "{text}",
-    "long": "{text}"
+    "4": "{text}",
+    "2": "{text}",
+    "1": "{text}"
   }
 }

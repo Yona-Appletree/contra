@@ -1,11 +1,14 @@
 {
   "id": "interrupted-square-through",
+  "description": "A balance on the first hand, then a square through of two hands.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Balance on the right hand you are about to pull by with, then square through two hands.",
-    "long": "Take right hands with the dancer you are facing and balance: step in toward them and touch, then step back and touch. Keep that hand and pull by on it, then give your left to the dancer you are facing now and pull by again. Eight beats, and the balance is what interrupts the square through."
+    "line": "Balance on the {firstHand} hand you are about to pull by with, then square through two.",
+    "teach": "Take {firstHand} hands with the dancer you are facing and balance: step in toward them and touch, then step back and touch. Keep that hand and pull by on it, then give your {secondHand} hand to the dancer you are facing now and pull by again. Eight beats, and the balance is what interrupts the square through."
   },
   "call": {
-    "short": "BALANCE AND SQUARE THROUGH",
-    "long": "BALANCE THE RIGHT AND SQUARE THROUGH TWO"
+    "1": "SQUARE",
+    "2": "BALANCE AND SQUARE THROUGH",
+    "4": "BALANCE AND SQUARE THROUGH TWO"
   }
 }

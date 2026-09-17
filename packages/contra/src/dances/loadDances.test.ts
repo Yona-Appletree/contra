@@ -1,5 +1,7 @@
-import { HANDS_FOUR_GROUP } from "@caller/choreo";
+import { HANDS_FOUR_GROUP, concurrentCalls, danceSchedule } from "@caller/choreo";
 import { describe, expect, it } from "vitest";
+import { budgetFor, formsFor, saysTheSame } from "../text/callScript.js";
+import { DEMO_DANCES } from "./index.js";
 import type { DanceFile } from "./loadDances.js";
 import { danceFromFile } from "./loadDances.js";
 
@@ -65,5 +67,49 @@ describe("a dance file's figure calls", () => {
     expect(() => danceFromFile(file({ figure: "no-such-figure" }))).toThrow(
       /is not a known contra figure/,
     );
+  });
+});
+
+/**
+ * **A `call` in a dance file is a flourish, and only ever that** (M13, A7).
+ *
+ * What the caller says is derived from the figure's own forms; a record that
+ * writes its own words is saying something no form can — Butter's "SHIFT
+ * LEFT", After the Solstice's "AND SWING". Anything a form *can* say has been
+ * deleted from the file, and this is what keeps it deleted: without it the
+ * corpus's own vocabulary ("ONE AND A HALF", "THREE QUARTERS") creeps back one
+ * re-encoded dance at a time and the card and the bubble drift apart again.
+ */
+describe("a dance's own call is a flourish", () => {
+  for (const dance of DEMO_DANCES) {
+    it(`${dance.slug}: every call it still writes is one no form can say`, () => {
+      for (const [index, { call, phrase }] of danceSchedule(dance).entries()) {
+        const forms = formsFor(dance, index);
+        for (const one of concurrentCalls(call)) {
+          if (one.call === undefined) continue;
+          const where = `${dance.slug} ${phrase} ${one.figure}: "${one.call}"`;
+          for (const form of forms) {
+            expect(saysTheSame(one.call, form.text), `${where} is "${form.text}"`).toBe(false);
+          }
+          // And it is said in the user's own vocabulary, whatever the corpus
+          // wrote: "once and a half", "three places", robins and larks.
+          expect(one.call, where).not.toMatch(
+            /\bONE AND A HALF\b|\bTHREE QUARTERS\b|\bLADIES\b|\bGENTS\b/,
+          );
+        }
+      }
+    });
+  }
+});
+
+/** A dance may still say how long its calls stay long. */
+describe("callBudgets", () => {
+  it("overrides the policy for one dance, and no programme dance sets one", () => {
+    for (const dance of DEMO_DANCES) expect(dance.callBudgets, dance.slug).toBeUndefined();
+    const dance = danceFromFile({ ...file({}), callBudgets: [4, 4, 2] });
+    expect(dance.callBudgets).toEqual([4, 4, 2]);
+    expect(budgetFor({ budgets: dance.callBudgets! }, 2)).toBe(4);
+    expect(budgetFor({ budgets: dance.callBudgets! }, 9)).toBe(2);
+    expect(JSON.parse(JSON.stringify(dance))).toEqual(dance);
   });
 });

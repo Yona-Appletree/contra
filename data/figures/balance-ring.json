@@ -1,11 +1,14 @@
 {
   "id": "balance-ring",
+  "description": "Four dancers join hands in a ring and rock in toward the middle and out.",
+  "defaultLevel": "name",
   "walkthrough": {
-    "short": "All four take hands in a ring. Rock in toward the middle for two beats, back out for two.",
-    "long": "All four take hands in a ring, hands about waist height. Step in toward the middle on to one foot and touch the other beside it, then step back out and touch again. Two beats in, two beats out. Let the ring open back out to the places it started from. {where}"
+    "line": "Take hands in a ring. Rock in toward the middle for two beats and out for two.",
+    "teach": "All four take hands in a ring, hands about waist height. Step in toward the middle on to one foot and touch the other beside it, then step back out and touch again. Two beats in, two beats out. Let the ring open back out to the places it started from."
   },
   "call": {
-    "short": "BALANCE",
-    "long": "BALANCE THE RING"
+    "1": "BALANCE",
+    "2": "BALANCE",
+    "4": "BALANCE THE RING"
   }
 }

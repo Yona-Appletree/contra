@@ -1,11 +1,14 @@
 {
   "id": "right-and-left-through",
+  "description": "Two couples pass through by the right and each couple turns as one.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Pass the dancer you face by the right, then courtesy turn with {couples}.",
-    "long": "Both couples walk forward and pass through by the right, passing right shoulders with the dancer you face. Close up with {couples} on the other side and courtesy turn: her left hand in his left, his right hand on her back, she walks forward and he walks backward until you both face in again. {where}"
+    "line": "Pass the dancer you face by the right, then courtesy turn with {who}.",
+    "teach": "Both couples walk forward and pass through by the right, passing right shoulders with the dancer you face. Close up with {who} on the other side and courtesy turn: the robin's left hand in the lark's left, the lark's right hand on the robin's back, the robin walking forward and the lark walking backward until you both face in again."
   },
   "call": {
-    "short": "RIGHT AND LEFT",
-    "long": "RIGHT AND LEFT THROUGH"
+    "1": "THROUGH",
+    "2": "RIGHT AND LEFT",
+    "4": "RIGHT AND LEFT THROUGH"
   }
 }

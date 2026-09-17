@@ -1,11 +1,14 @@
 {
   "id": "california-twirl",
+  "description": "A couple trades places under a raised hand and ends facing the other way.",
+  "defaultLevel": "line",
   "walkthrough": {
-    "short": "Join one hand with {pairs}, the lark puts it up, the robin walks under: you trade places and face back.",
-    "long": "Join one hand with {pairs} — the lark's right in the robin's left — and the lark puts it up into an arch. Come together and walk forward: the robin goes under the arch, turning tight inside it, while the lark walks round the outside of her. You trade places and end facing back the way you came, the hand held throughout. It works from side by side or from face to face. {where}"
+    "line": "Take one hand with {who}, left in right. The lark raises it, the robin walks under, and you trade places.",
+    "teach": "Stand facing {who}, or side by side facing the same way, and take one hand — your left in their right, or your right in their left. The lark raises the joined hand and walks forward round the outside; the robin walks under it and round. The two of you trade places and end facing the way you came from, which is what makes this a way to change direction in the middle of a dance."
   },
   "call": {
-    "short": "CALIFORNIA TWIRL",
-    "long": "TAKE HANDS AND CALIFORNIA TWIRL"
+    "4": "CALIFORNIA TWIRL",
+    "2": "TWIRL",
+    "1": "TWIRL"
   }
 }

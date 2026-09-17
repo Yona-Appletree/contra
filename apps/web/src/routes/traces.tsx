@@ -161,16 +161,28 @@ export function MoveTracesPage({
       </header>
 
       {/*
-       * The long walkthrough, at the top: this page is where somebody comes to
-       * read one move properly, so it opens on the full teach rather than on
-       * the one-sentence version the Moves row shows (W1).
+       * The description as the lede, then the full teach and the ending hint:
+       * this page is where somebody comes to read one figure properly, so it
+       * opens on what the figure is and then on the whole teach rather than on
+       * the one-sentence version the Moves row shows (A11).
        */}
       {tile.calls.map((call) => (
-        <p key={call.figure} className="max-w-[80ch] text-sm" data-testid="move-traces-describe">
-          {call.texts?.walkthrough.long ??
-            call.describe ??
-            "No text: this figure has no data/figures file yet."}
-        </p>
+        <div key={call.figure} className="flex max-w-[80ch] flex-col gap-1">
+          {call.texts === undefined ? null : (
+            <p className="text-sm text-muted-foreground" data-testid="move-traces-description">
+              {call.texts.description}
+            </p>
+          )}
+          <p className="text-sm" data-testid="move-traces-describe">
+            {call.texts?.walkthrough.teach ??
+              "No text: this call's own tuning has no words the vocabulary can say."}
+          </p>
+          {call.hint === undefined ? null : (
+            <p className="text-sm italic text-muted-foreground" data-testid="move-traces-hint">
+              {call.hint}
+            </p>
+          )}
+        </div>
       ))}
 
       {VIEWS.map((view) => (

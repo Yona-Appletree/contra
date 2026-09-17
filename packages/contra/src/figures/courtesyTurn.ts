@@ -79,9 +79,8 @@ export interface CourtesyTurn {
    *
    * Absent on {@link courtesyTurn}, whose dancers stand on their places until
    * the figure walks them to {@link CourtesyTurn.takes};
-   * present on {@link orbitTurn}, whose lark is a quarter of the way round his
-   * own circle by the time she reaches him and whose robin has to arrive on it
-   * travelling at its own speed, neither of which a straight walk can do.
+   * present on {@link orbitTurn}, whose robin has to arrive on his circle
+   * travelling at its own speed, which a straight walk cannot do.
    * `approach(who, joinBeat)` is `takes[who]` exactly, so the two halves of the
    * figure meet without a step.
    */
@@ -204,7 +203,7 @@ export const ORBIT_FULL_TURN = 2 * COURTESY_HALF_TURN;
 
 /**
  * F10's candidate: **the courtesy turn as the lark's own orbit**, which the
- * robin joins a quarter of the way through.
+ * robin joins as it begins.
  *
  * The user, a caller, watching the chain back and describing what is missing:
  *
@@ -216,8 +215,8 @@ export const ORBIT_FULL_TURN = 2 * COURTESY_HALF_TURN;
  * standing on his place until the hands close and then turns the couple a
  * **half**; here he is walking backward from
  * beat one, turns a **whole**, and the take happens at a point he has already
- * carried a quarter of the way round — which is the one thing that puts her
- * take on the **inner** side of his line, past the middle of the set, where a
+ * carried off his own place — which is the one thing that puts her take on the
+ * **inner** side of his line, past the middle of the set, where a
  * right-shoulder pull by can reach it. F8 proved a rigid half turn cannot do
  * that at any pivot; a full orbit is not a tuning of it but a different figure.
  *
@@ -262,17 +261,34 @@ export function orbitTurn(spec: OrbitTurnSpec): CourtesyTurn {
   const openFrom = Math.max(beats - Math.max(spec.openBeats, 0), join);
 
   /**
+   * Which beat his own turn starts on, and how long it then has.
+   *
+   * **M10c.** The orbit used to span the whole figure, so the lark was already
+   * a fifth of the way round it by the time she reached him and the join could
+   * not be moved without moving her take. The turn now starts where
+   * {@link OrbitTurnSpec.turnFrom} says — `0` is the whole figure, as it was —
+   * and the user's chain has it start when the robins have finished pulling by,
+   * which is what a chain looks like on the floor: the lark receives her.
+   */
+  const turnFrom = Math.min(Math.max(spec.turnFrom ?? 0, 0), join);
+  const turning = beats - turnFrom;
+
+  /**
    * How far round he is `t` beats in, signed degrees; zero speed at both ends.
    *
    * On the cruise (M10) the orbit turns at a **constant rate** for the middle of
-   * the figure, which is the direction debt 5 asked for: the lark is further
-   * round at the two-beat join than a smoothstep leaves him, so the robin
-   * arrives on an orbit that has already carried him past the middle of the set.
+   * its own beats, which is the direction debt 5 asked for.
    */
   const profile = spec.profile ?? "smooth";
-  const spin = (t: Beat): number => ORBIT_FULL_TURN * profileProgress(profile, t, beats);
+  const spin = (t: Beat): number =>
+    t <= turnFrom || turning <= 0
+      ? 0
+      : ORBIT_FULL_TURN * profileProgress(profile, t - turnFrom, turning);
   /** `spin`'s own derivative, degrees per beat, so the join is exact and not sampled. */
-  const spinRate = (t: Beat): number => ORBIT_FULL_TURN * profileSpeed(profile, t, beats);
+  const spinRate = (t: Beat): number =>
+    t <= turnFrom || turning <= 0
+      ? 0
+      : ORBIT_FULL_TURN * profileSpeed(profile, t - turnFrom, turning);
 
   const larkAt = (t: Beat): Spot => ({
     p: polar(centre, from + spin(t), radius),
@@ -419,6 +435,18 @@ export interface OrbitTurnSpec {
   hold: number;
   /** Which beat of the figure she arrives on the orbit at, and the hands close. */
   joinBeat: Beat;
+  /**
+   * Which beat the lark's own turn starts on, never later than
+   * {@link OrbitTurnSpec.joinBeat}; default `0`, the whole figure.
+   *
+   * M10c: a chain's lark waits on his place while the robins pull by and then
+   * spends his whole turn with her, so this is the join beat less however long
+   * he moves to receive her. It is what makes the join beat a free number: with
+   * the orbit spanning the whole figure, moving the join moved her take round
+   * his circle with it and there was a point past which the two robins stopped
+   * passing at all.
+   */
+  turnFrom?: Beat;
   /** How far to her own left of {@link OrbitTurnSpec.centre} she passes, px. */
   passPx: number;
   /** How long the whole figure takes: the orbit is one turn over all of it. */
