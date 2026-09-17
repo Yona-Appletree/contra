@@ -27,6 +27,8 @@ start with
 | App screens, layout, routing, composition root                                     | `apps/web/src/`                        | `<Name>.tsx`                                         |
 | Full-tree stories                                                                  | `apps/storybook/src/`                  | `<Name>.stories.tsx`                                 |
 | Visual spikes (never imported by production code)                                  | `spikes/<name>/`                       | `index.html` + vendored assets                       |
+| Engine 3: the language, scheduler, executor, solver (nothing imports it yet)       | `packages/kinetics/src/`               | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The kinetics debugger (a vite root, served by the package's own `dev` script)      | `packages/kinetics/debugger/`          | `index.html` + `panes/*.ts`                          |
 
 A package may keep a local file at any layer when it needs one; the table
 names the default home, not a prohibition.
@@ -64,6 +66,7 @@ core ← choreo ← contra          (form-neutral model; contra is one form)
 core ← contra                   (a contra figure emits poses, so it needs core)
 core ← hall                     (renderer reads pose samples and the timeline)
 core ← music                    (clock, tunes, medleys)
+core ← kinetics                 (engine 3; nothing imports kinetics)
 ui-design ← ui-base             (theme tokens, shadcn primitives)
 apps/web → core, choreo, contra, hall, music, ui-design, ui-base
 apps/storybook → everything

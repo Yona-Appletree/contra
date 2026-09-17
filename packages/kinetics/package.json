@@ -1,0 +1,26 @@
+{
+  "name": "@caller/kinetics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build --config debugger/vite.config.ts",
+    "dev": "vite --config debugger/vite.config.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p debugger/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:golden": "exit 0"
+  },
+  "dependencies": {
+    "@caller/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.5",
+    "typescript": "^5.7.2",
+    "vite": "^7.0.0",
+    "vitest": "^4.0.0"
+  }
+}

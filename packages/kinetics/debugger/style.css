@@ -1,0 +1,384 @@
+:root {
+  --bg: #141110;
+  --panel: #1e1917;
+  --panel2: #272019;
+  --ink: #ebdfcd;
+  --muted: #a8977f;
+  --accent: #e7b96b;
+  --line: #3c3128;
+  --floor: #c9a06a;
+  --floor-grid: #b78d5b;
+  --lark: #e0a32e;
+  --robin: #c8362f;
+  --bad: #e07a7a;
+  --good: #9fd08a;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    13px/1.4 ui-monospace,
+    Menlo,
+    monospace;
+  overflow: hidden;
+}
+#app {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  height: 100%;
+  padding: 6px;
+}
+.transport,
+.chips,
+.complaints {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+section[data-pane] {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+section[data-pane] > h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+section[data-pane] > .body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 8px;
+}
+
+/* ---- the transport strip ------------------------------------------------ */
+
+.transport button.play {
+  width: 30px;
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 0;
+  cursor: pointer;
+  font: inherit;
+}
+.transport .scrub {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.transport .beat {
+  width: 180px;
+  flex: none;
+  text-align: right;
+  color: var(--accent);
+}
+.transport .pick {
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  padding: 2px 4px;
+  max-width: 220px;
+}
+.transport .pick:disabled {
+  opacity: 0.35;
+}
+
+/* ---- the time-through jump ---------------------------------------------- */
+
+.times {
+  display: flex;
+  gap: 3px;
+}
+.tbtn,
+.chip {
+  background: var(--panel2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font: inherit;
+  cursor: pointer;
+}
+.tbtn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+/* ---- the dancer picker --------------------------------------------------- */
+
+.chips {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chip.on {
+  color: var(--bg);
+  font-weight: 600;
+}
+
+/* ---- the errors strip ---------------------------------------------------- */
+
+.complaints {
+  display: block;
+  max-height: 68px;
+  overflow: auto;
+  padding: 4px 10px;
+  color: var(--muted);
+}
+.complaints .line {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+.complaints .line.bad .tag,
+.complaints .line.bad .what {
+  color: var(--bad);
+}
+.complaints .tag {
+  flex: none;
+  width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.complaints .where {
+  flex: none;
+  min-width: 190px;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.complaints .what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.complaints .count {
+  flex: none;
+  opacity: 0.7;
+}
+
+/* ---- a pane's own controls ---------------------------------------------- */
+
+section[data-pane] > h2 .pane-name {
+  flex: 1;
+}
+.slider {
+  width: 64px;
+  accent-color: var(--accent);
+}
+
+/* ---- source ------------------------------------------------------------- */
+
+section[data-pane="source"] > .body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 6px;
+}
+.source-text {
+  flex: 1;
+  min-height: 110px;
+  resize: none;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 5px 6px;
+  font: inherit;
+  tab-size: 2;
+}
+.crumb {
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ir {
+  margin: 0;
+  color: var(--muted);
+  white-space: pre;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* ---- timeline ----------------------------------------------------------- */
+
+.timeline {
+  display: block;
+  cursor: col-resize;
+  user-select: none;
+}
+.timeline .grid {
+  stroke: var(--line);
+}
+.timeline .tick,
+.timeline .rowname,
+.timeline .call-name {
+  font-size: 9px;
+  fill: var(--muted);
+}
+.timeline .rowname {
+  font-size: 10px;
+}
+.timeline .call-name {
+  fill: var(--ink);
+}
+.timeline .w-body {
+  fill: var(--accent);
+  opacity: 0.22;
+}
+.timeline .w-edge {
+  fill: var(--panel2);
+}
+.timeline .call-outline {
+  fill: none;
+  stroke: var(--line);
+}
+.timeline .seam {
+  font-size: 11px;
+  fill: var(--accent);
+}
+.timeline .seam-overlap {
+  stroke: var(--accent);
+  stroke-dasharray: 1 2;
+}
+.timeline .time-line {
+  stroke: var(--accent);
+  stroke-dasharray: 2 3;
+  opacity: 0.65;
+}
+.timeline .row.aside {
+  opacity: 0.45;
+}
+.timeline .cursor,
+.strip .cursor {
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.75;
+}
+
+/* ---- listing ------------------------------------------------------------ */
+
+.listing .line {
+  display: flex;
+  gap: 6px;
+  padding: 0 2px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.listing .line.lit {
+  background: var(--panel2);
+  color: var(--ink);
+}
+.listing .who {
+  width: 34px;
+  flex: none;
+}
+
+/* ---- 3d ----------------------------------------------------------------- */
+
+section[data-pane="3d"] > .body {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+section[data-pane="pixels"] > .body {
+  padding: 0;
+}
+.view3d {
+  display: block;
+}
+
+/* ---- graphs ------------------------------------------------------------- */
+
+section[data-pane="graphs"] > .body {
+  padding: 2px 0 6px;
+}
+.strip {
+  display: block;
+}
+.strip .band {
+  fill: var(--panel2);
+  opacity: 0.55;
+}
+.strip .axis {
+  stroke: var(--line);
+}
+.strip .cap {
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+  opacity: 0.8;
+}
+.strip .line {
+  fill: none;
+}
+.strip .line.speed {
+  stroke-width: 1.2;
+}
+.strip .line.accel {
+  stroke-width: 1;
+  opacity: 0.35;
+}
+.strip .dot {
+  fill: var(--bad);
+}
+.strip .strip-name {
+  font-size: 10px;
+  fill: var(--ink);
+}
+.strip .strip-tag {
+  font-size: 9px;
+  fill: var(--muted);
+}
+.strip .strip-cap {
+  font-size: 9px;
+  fill: var(--muted);
+  opacity: 0.6;
+}
+.empty {
+  color: var(--muted);
+  padding: 6px 8px;
+}
+
+/* ---- pixels ------------------------------------------------------------- */
+
+.pixels {
+  display: block;
+  margin: auto;
+  image-rendering: pixelated;
+}
