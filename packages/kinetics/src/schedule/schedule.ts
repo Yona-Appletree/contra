@@ -7,6 +7,7 @@ import type { FigureIR, LookTarget, Window } from "../ir/Figure.js";
 import { resolveChoice, resolveNumber } from "../ir/Figure.js";
 import type { CompiledCall, CompiledSequence } from "../lang/compile.js";
 import type { Tempo } from "../units/Tempo.js";
+import { TAKE_BEATS } from "../units/limits.js";
 import type { ScheduleError, ScheduleWarning } from "./errors.js";
 import type { HoldNeed, SeamKind } from "./seams.js";
 import { holdNeeds } from "./seams.js";
@@ -472,11 +473,16 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         }
         const prev = previous.get(need.dancer);
         const prevOther = previous.get(need.with);
+        // The take ramps over TAKE_BEATS and lands on the beat the body needs
+        // it, so it starts that many beats back — inside the previous figure
+        // when both dancers' hands are free there for that long.
         const freeBefore =
           prev !== undefined &&
           prevOther !== undefined &&
           prev.end === inst.start &&
           prevOther.end === inst.start &&
+          prev.start <= inst.start - TAKE_BEATS &&
+          prevOther.start <= inst.start - TAKE_BEATS &&
           current === undefined &&
           handState(fo, otherNeed.hand) === undefined;
         const instr: Instr = { op: "hold", hand: need.hand, with: need.with, hold: need.hold };
@@ -487,25 +493,28 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           hold: need.hold,
         };
         if (freeBefore && inst.entry === 0) {
+          const at = inst.start - TAKE_BEATS;
+          const prevCall = prev.calls.get(need.dancer) as CompiledCall;
+          const prevCallOther = prevOther.calls.get(need.with) as CompiledCall;
           emit(
             need.dancer,
-            inst.start - 1,
+            at,
             0,
             instr,
-            (prev.calls.get(need.dancer) as CompiledCall).id,
-            "exit",
+            prevCall.id,
+            at >= prev.end - prev.exit ? "exit" : "body",
           );
           emit(
             need.with,
-            inst.start - 1,
+            at,
             0,
             instrOther,
-            (prevOther.calls.get(need.with) as CompiledCall).id,
-            "exit",
+            prevCallOther.id,
+            at >= prevOther.end - prevOther.exit ? "exit" : "body",
           );
           seam = "take-overlapped";
           inst.notes.push(
-            `take ${need.hand} hands with ${need.with} (${need.hold}) overlapped on the last beat of ${prev.figure.id}: hands were free`,
+            `take ${need.hand} hands with ${need.with} (${need.hold}) overlapped on the last ${TAKE_BEATS} beats of ${prev.figure.id}: hands were free`,
           );
         } else {
           if (inst.entry === 0) inst.entry = 1;

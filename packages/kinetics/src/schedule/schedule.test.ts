@@ -7,6 +7,7 @@ import { compile } from "../lang/compile.js";
 import { FIXTURE_PROGRAM } from "../lang/fixture.js";
 import { parse } from "../lang/parse.js";
 import { tempo } from "../units/Tempo.js";
+import { TAKE_BEATS } from "../units/limits.js";
 import { schedule } from "./schedule.js";
 import type { Schedule } from "./schedule.js";
 
@@ -52,13 +53,13 @@ describe("the fixture", () => {
     }
   });
 
-  it("takes the allemande's hands overlapped on the do-si-do's last beat, and the allemande pays no entry", () => {
+  it("takes the allemande's hands overlapped on the do-si-do's last beats, and the allemande pays no entry", () => {
     const doSiDo = lark[1]!;
     const allemande = lark[2]!;
     expect(allemande.seamIn).toBe("take-overlapped");
     expect(allemande.entry).toEqual([12, 12]);
     expect(doSiDo.exit[1] - doSiDo.exit[0]).toBeGreaterThanOrEqual(1);
-    const slot = s.programs.lark?.slots.find((x) => x.beat === 11 && x.half === 0);
+    const slot = s.programs.lark?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
     expect(
       slot?.instrs.some((i) => i.op === "hold" && i.hold === "allemande-R" && i.with === "robin"),
     ).toBe(true);
@@ -82,8 +83,10 @@ describe("the fixture", () => {
   });
 
   it("emits a hold as one shared line in both programs", () => {
-    const larkSlot = s.programs.lark?.slots.find((x) => x.beat === 11 && x.half === 0);
-    const robinSlot = s.programs.robin?.slots.find((x) => x.beat === 11 && x.half === 0);
+    const larkSlot = s.programs.lark?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
+    const robinSlot = s.programs.robin?.slots.find(
+      (x) => x.beat === 12 - TAKE_BEATS && x.half === 0,
+    );
     const larkHold = larkSlot?.instrs.find((i) => i.op === "hold");
     const robinHold = robinSlot?.instrs.find((i) => i.op === "hold");
     expect(larkHold).toEqual({ op: "hold", hand: "right", with: "robin", hold: "allemande-R" });

@@ -26,8 +26,14 @@ export const JOINTS: readonly Joint[] = ["shoulderL", "shoulderR", "elbowL", "el
 /** Every point, effectors then joints. */
 export const POINTS: readonly PointName[] = [...EFFECTORS, ...JOINTS];
 
-/** A scalar quantity carried alongside the points. */
-export type Channel = "facing" | "lean" | "look" | "headYaw";
+/**
+ * A scalar quantity carried alongside the points.
+ *
+ * `holdWeightL` and `holdWeightR` are how much of a hand's take has ramped in,
+ * 0 (free) to 1 (fully held): the executor writes them, the body solver reads
+ * them to decide how far the torso comes round to the hold.
+ */
+export type Channel = "facing" | "lean" | "look" | "headYaw" | "holdWeightL" | "holdWeightR";
 
 /** Heights above the floor in px at 4 cm/px: hip 100 cm, shoulder 140 cm, head 165 cm. */
 export const HEIGHTS = { hipPx: 25, shoulderPx: 35, headPx: 41 } as const;

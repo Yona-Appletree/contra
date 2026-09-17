@@ -20,5 +20,12 @@ export const MAX_PIVOT_STEPPING_DEG = 90;
 /** The most a standing dancer may pivot in one beat, degrees. */
 export const MAX_PIVOT_STANDING_DEG = 180;
 
-/** How many beats a hand seam's take is, in beats. */
-export const TAKE_BEATS = 1;
+/**
+ * A take (and a release) ramps over this many beats, ending on the beat the
+ * hold is needed. P6's finding: a hand pulled from a full hang to an
+ * allemande in **one** beat peaks near 100 px/beat² at the elbow against its
+ * 57.4 cap at 112 bpm, whatever the ramp shape; at two beats it proves with
+ * 10–20% headroom. Whether the take wants two beats, the hang wants less
+ * extension, or the elbow cap wants moving is a G1 question.
+ */
+export const TAKE_BEATS = 2;
