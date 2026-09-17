@@ -3,21 +3,24 @@
   "configurations": [
     {
       "name": "spikes",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1"],
-      "port": 8765
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:spikes"],
+      "port": 8765,
+      "autoPort": true
     },
     {
       "name": "storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@caller/storybook", "dev"],
-      "port": 6006
+      "runtimeArgs": ["dev:storybook"],
+      "port": 6006,
+      "autoPort": true
     },
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@caller/web", "dev", "--", "--port", "5173", "--strictPort"],
-      "port": 5173
+      "runtimeArgs": ["dev:web"],
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }
