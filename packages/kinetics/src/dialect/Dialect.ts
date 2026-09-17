@@ -7,9 +7,10 @@ import type { Vec2 } from "@caller/core";
  *
  * It is the **only** place a role name appears (D16). Nothing under `lang/`,
  * `ir/` or `figures/` knows what a lark, a robin, a contra or a set is, so a
- * square dance is another dialect rather than another engine. Tonight's one is
- * the pair; the contra dialect's relation tables (`partner`, `neighbor`,
- * `left-diagonal`, …) and the layout language that derives them come later.
+ * square dance is another dialect rather than another engine. There are two:
+ * the pair (`dialect/pair`), and contra's two long lines (`dialect/contra`),
+ * whose relation tables — `partner`, `neighbor`, `left-diagonal`, … — are
+ * offsets on the set's lattice rather than two literals.
  *
  * Selects are the seam (DA14, the user at 00:26: *"a person does this stuff.
  * they do it with respect to named … slots"*). A program binds the people it
@@ -36,6 +37,23 @@ export interface Dialect {
   select(selector: string, from: DancerId, state: SetState): DancerId | undefined;
   /** The words this dialect knows, for the error message. */
   selectors: readonly string[];
+  /**
+   * The **group** words this dialect knows (`hands-four`), if any.
+   *
+   * A group is a selector that answers with several dancers rather than one:
+   * the ring a circle or a balance the ring is danced by. `compile` reads this
+   * list to decide which resolver a `select` statement wants, so a dialect
+   * that has no groups — the pair — simply leaves both members off.
+   */
+  groups?: readonly string[];
+  /**
+   * A group word, from this dancer's point of view: the dancers in the order
+   * the figure is danced in (for `hands-four`, clockwise round the ring from
+   * the asking dancer), or nobody where the group does not exist — a dancer at
+   * the end of a line is in no hands four, and `if (four) { … } else { … }`
+   * branches on that. An unknown word throws, as {@link Dialect.select} does.
+   */
+  group?(word: string, from: DancerId, state: SetState): DancerId[] | undefined;
 }
 
 /** The name of a dialect, for the record a compiled sequence carries. */

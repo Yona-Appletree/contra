@@ -44,13 +44,24 @@ export interface CompileError {
 }
 
 /**
+ * What a `select` binds: one dancer, nobody, or — when the dialect knows the
+ * word as a **group** — the dancers of that group in the order the figure is
+ * danced in (P9's `hands-four`).
+ *
+ * `if (name)` branches on the binding being somebody, which for a group is the
+ * group existing at all: a dancer at the end of a line is in no hands four.
+ */
+export type Binding = DancerId | undefined | readonly DancerId[];
+
+/**
  * Compile a program **per dancer** (DA14): each dancer walks the same
  * statements with their own bindings, so one text is every dancer's script and
  * a binding that finds nobody is an end effect rather than a special case.
  *
  * A `select` binds a name to whoever the dialect finds from this dancer's
- * point of view, or to nobody; an `if` branches on that binding being
- * somebody; a `repeat` is unrolled; a definition is inlined where it is called
+ * point of view, or to nobody — or, where the dialect knows the word as a
+ * group (`four = select(hands-four)`), to the several dancers of that group in
+ * ring order; an `if` branches on that binding being somebody; a `repeat` is unrolled; a definition is inlined where it is called
  * (it sees the bindings at the call, and calling itself is an error); a call's
  * positional arguments are mapped onto the figure's parameters and its beats
  * are laid end to end from beat 0.
@@ -81,7 +92,7 @@ export function compile(
   const state = dialect.initial();
   const perDancer: Record<DancerId, readonly CompiledCall[]> = {};
   for (const dancer of dialect.dancers) {
-    const bindings = new Map<string, DancerId | undefined>();
+    const bindings = new Map<string, Binding>();
     const calls: CompiledCall[] = [];
     let beat = 0;
 
@@ -92,7 +103,15 @@ export function compile(
             break;
           case "select":
             try {
-              bindings.set(stmt.name, dialect.select(stmt.selector, dancer, state));
+              // A group word and a selector word are bound the same way and
+              // told apart by the dialect: `hands-four` binds the ring of
+              // four, `neighbor` binds one dancer or nobody.
+              bindings.set(
+                stmt.name,
+                isGroupWord(dialect, stmt.selector)
+                  ? dialect.group?.(stmt.selector, dancer, state)
+                  : dialect.select(stmt.selector, dancer, state),
+              );
             } catch (error) {
               report(messageOf(error), stmt.span);
             }
@@ -102,7 +121,7 @@ export function compile(
               report(`${stmt.name} is not bound`, stmt.span);
               break;
             }
-            walk(bindings.get(stmt.name) === undefined ? stmt.else : stmt.then, path, stack);
+            walk(isSomebody(bindings.get(stmt.name)) ? stmt.then : stmt.else, path, stack);
             break;
           case "repeat":
             if (stmt.times < 0) {
@@ -194,7 +213,7 @@ const collectDefinitions = (
 const bindArguments = (
   figure: FigureIR,
   stmt: CallStmt,
-  bindings: ReadonlyMap<string, DancerId | undefined>,
+  bindings: ReadonlyMap<string, Binding>,
   report: (message: string, span?: Span) => void,
 ): { params: Params; partner: DancerId | undefined } | undefined => {
   const params: Record<string, string | number> = { ...defaultParams(figure) };
@@ -223,7 +242,16 @@ const bindArguments = (
         report(`${arg.value} is not bound`, arg.span);
         ok = false;
       } else {
-        partner = bindings.get(arg.value);
+        const bound = bindings.get(arg.value);
+        if (bound === undefined || typeof bound === "string") {
+          partner = bound;
+        } else {
+          // A figure danced by a group — a circle, a balance the ring — is
+          // P10's; until there is one, a group where a figure wants a dancer
+          // is a mistake worth naming rather than a first-of-four.
+          report(`${arg.value} is a group, and ${figure.id} takes one dancer`, arg.span);
+          ok = false;
+        }
       }
       return;
     }
@@ -253,6 +281,14 @@ const bindArguments = (
 
   return ok ? { params, partner } : undefined;
 };
+
+/** Whether a `select` found anybody: a dancer, or a group that exists. */
+const isSomebody = (binding: Binding): boolean =>
+  binding !== undefined && (typeof binding === "string" || binding.length > 0);
+
+/** Whether this dialect reads the word as a group rather than as a selector. */
+const isGroupWord = (dialect: Dialect, word: string): boolean =>
+  dialect.group !== undefined && (dialect.groups ?? []).includes(word);
 
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
