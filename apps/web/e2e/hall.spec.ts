@@ -367,6 +367,119 @@ test("the keyboard does nothing while the dance select has focus (AC5)", async (
   expect(Math.abs(guarded - 16)).toBeGreaterThan(0.5);
 });
 
+/**
+ * AC6: tapping a call goes to the start of that move **in the time through the
+ * hall is dancing** — the same target the popup's Jump button uses
+ * (`moveTarget`, whose whole ruling is in `transport.test.ts`).
+ *
+ * Airpants' third call is A2's second move, which starts at cycle beat 24.
+ */
+test("tapping a call on the notecard seeks to its start (AC6)", async ({ page }) => {
+  // No `dance:` in the URL: a bare `#/dance/<slug>` opens on that dance's own
+  // line-up (U4 requirement 6), where the card is still the dance before it.
+  // The programme's own beat 0 is Airpants dancing, which is what this wants.
+  await openHall(page, { zoom: 2 });
+  await expect(page.getByTestId("hall-notecard")).toContainText("Airpants");
+  // One call per move: A1 1, A2 2, B1 1, B2 2.
+  await expect(page.getByTestId("notecard-call")).toHaveCount(6);
+
+  await page.evaluate(() => window.hallDemo?.seek(3));
+  await page.getByTestId("notecard-call").nth(2).click();
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(24, 0);
+});
+
+/** AC6's other half: a tap is a seek, not a transport press — pause stays on. */
+test("a tap while the evening is paused leaves it paused at the target (AC6)", async ({ page }) => {
+  await page.goto(`#/dance/${FIRST_DANCE}`);
+  await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");
+  await page.evaluate(() => window.hallDemo?.seek(0));
+
+  const play = page.getByTestId("hall-play");
+  await play.click();
+  await page.waitForFunction(() => window.hallDemo?.musicOn() === true, undefined, {
+    timeout: 20_000,
+  });
+  await play.click();
+  expect(await page.evaluate(() => window.hallDemo?.paused())).toBe(true);
+
+  await page.getByTestId("notecard-call").nth(2).click();
+  expect(await page.evaluate(() => window.hallDemo?.paused())).toBe(true);
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(24, 0);
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+});
+
+/**
+ * A concurrent call (M8) is one line with its branch written under it, the
+ * corpus's own `‖` before it. Fatal Attraction's A2 opens with the two-beat
+ * `ROBINS CAST BACK, LARKS GO FORWARD || GO FORWARD ONE PLACE`, which is the
+ * only such call anywhere the Stage can dance.
+ */
+test("a concurrent call's ‖ branch is written under it (AC6)", async ({ page }) => {
+  await openHall(page, { dance: "fatal-attraction", beat: 0, zoom: 2 });
+  await expect(page.getByTestId("hall-notecard")).toContainText("Fatal Attraction");
+  const branches = page.locator('[data-testid="hall-notecard"] .nc-txt .with');
+  await expect(branches).toHaveCount(1);
+  await expect(branches).toContainText("GO FORWARD");
+});
+
+/**
+ * AC7 on a laptop: the ⓘ opens `@caller/ui-base`'s `Popover` beside the call,
+ * with the move's whole entry in it — and **▶ Jump here** seeks exactly as a
+ * tap on the call does and takes the panel away with it.
+ *
+ * Airpants' third move is the robins' allemande: A2, cycle beats 24–31, which
+ * the popup writes 1-based as "beats 25–32".
+ */
+test("the ⓘ opens the move popover beside the call at 1024 (AC7)", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openHall(page, { zoom: 1 });
+
+  await page.evaluate(() => window.hallDemo?.seek(3));
+  await page.getByTestId("notecard-info").nth(2).click();
+
+  const detail = page.getByTestId("hall-move-detail");
+  await expect(detail).toBeVisible();
+  await expect(detail).toHaveAttribute("data-figure", "allemande");
+  await expect(detail).toContainText("Allemande");
+  await expect(detail).toContainText("beats 25–32");
+  await expect(detail).toContainText("8 beats");
+  await expect(detail).toContainText("ROBINS ALLEMANDE RIGHT ONE AND A HALF");
+  await expect(detail.getByRole("link", { name: /Moves page/ })).toHaveAttribute(
+    "href",
+    "#/moves/allemande",
+  );
+  await expect(detail.getByRole("link", { name: "all views" })).toHaveAttribute(
+    "href",
+    "#/moves/allemande/traces",
+  );
+  // No bottom sheet at this width: the popover is the whole dressing.
+  await expect(page.getByTestId("hall-move-sheet")).toHaveCount(0);
+
+  await page.getByTestId("move-detail-jump").click();
+  expect(await page.evaluate(() => window.hallDemo?.beat() ?? 0)).toBeCloseTo(24, 0);
+  await expect(page.getByTestId("hall-move-detail")).toHaveCount(0);
+});
+
+/** AC7 on a phone: the same entry, as a bottom sheet over a backdrop. */
+test("the ⓘ opens the move sheet at 390, and Escape closes it (AC7)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHall(page, { zoom: 1 });
+
+  await page.getByTestId("notecard-info").nth(2).click();
+  const sheet = page.getByTestId("hall-move-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toHaveAttribute("role", "dialog");
+  await expect(sheet).toHaveAttribute("aria-modal", "true");
+  await expect(page.getByTestId("hall-move-backdrop")).toBeVisible();
+  await expect(page.getByTestId("hall-move-detail")).toContainText("Allemande");
+  // The × takes the focus, so the sheet is reachable from the keyboard at once.
+  await expect(page.getByTestId("hall-move-close")).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("hall-move-sheet")).toHaveCount(0);
+  await expect(page.getByTestId("hall-move-backdrop")).toHaveCount(0);
+});
+
 test("the hall dances before anyone presses play, on the silent clock", async ({ page }) => {
   await page.goto(`#/dance/${FIRST_DANCE}`);
   await page.waitForFunction(() => document.documentElement.dataset["hallReady"] === "true");

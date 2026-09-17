@@ -76,6 +76,47 @@ describe("HallPage (P3: the transport and the mute chip)", () => {
   });
 });
 
+/**
+ * P4: the notecard is the Stage's card now (AC6). A static render is enough
+ * for the markup — the classes that say which call is being danced come off
+ * `position.danceBeat`, which at `?beat=0` is the first move of Airpants.
+ */
+describe("HallPage (P4: the notecard)", () => {
+  const render = (params = "beat=0"): string =>
+    renderToStaticMarkup(
+      <HallPage dance="airpants" tune={undefined} params={new URLSearchParams(params)} />,
+    );
+
+  it("renders the notecard, with Airpants' title, author and time through", () => {
+    const html = render();
+    expect(html).toContain('data-testid="hall-notecard"');
+    expect(html).toContain("Airpants");
+    expect(html).toContain("Lisa Greenleaf");
+    expect(html).toContain("1 of 2");
+  });
+
+  it("writes one call per move — six for Airpants — with the first one on", () => {
+    const html = render();
+    const calls = [...html.matchAll(/data-testid="notecard-call"/g)];
+    expect(calls).toHaveLength(6);
+    // The first call carries `data-on="true"` at beat 0 and no other does.
+    const on = [...html.matchAll(/data-testid="notecard-call" data-move="(\d+)" data-on="true"/g)];
+    expect(on.map((m) => m[1])).toEqual(["0"]);
+  });
+
+  it("gives every call its own ⓘ", () => {
+    const html = render();
+    expect([...html.matchAll(/data-testid="notecard-info"/g)]).toHaveLength(6);
+  });
+
+  it("no longer puts @caller/music's Card on the Stage", () => {
+    const html = render();
+    expect(html).not.toContain("caller-music-card");
+    // The tune's own notation is still there until P5 moves it into its box.
+    expect(html).toContain('data-testid="hall-notation"');
+  });
+});
+
 describe("HallPage (U4: the control bar)", () => {
   const render = (params = "beat=0"): string =>
     renderToStaticMarkup(

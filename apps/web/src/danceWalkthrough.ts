@@ -68,8 +68,13 @@ export function danceWalkthrough(dance: Dance): readonly DanceWalkthroughStep[] 
  * *throw*, which took the whole dance page down rather than one step of it. A
  * lab dance is exactly the kind of dance whose figures are half written, so the
  * page catches here and shows the rest of the walkthrough.
+ *
+ * Exported since P4: the Stage's move popup (`MoveDetail.tsx`) wants exactly
+ * this — one call's texts, or nothing to print — for one move rather than for a
+ * whole dance, and a second copy of the try/catch would eventually disagree
+ * with this one about which failures are a missing text and which are a bug.
  */
-function textsFor(
+export function textsFor(
   registry: ReturnType<typeof createContraRegistry>,
   group: ReturnType<typeof probeGroup>,
   call: { figure: string; params?: object; beats: number },

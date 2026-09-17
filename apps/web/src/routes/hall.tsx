@@ -1,6 +1,6 @@
 import type { Beat, Clock, Vec2 } from "@caller/core";
 import { createClock } from "@caller/core";
-import type { DancerId } from "@caller/choreo";
+import type { Dance, DancerId } from "@caller/choreo";
 import { DEMO_DANCES } from "@caller/contra";
 import type { BlitCtx2D, HallWorld, Person, Renderer } from "@caller/hall";
 import {
@@ -15,12 +15,17 @@ import {
   layoutHall,
 } from "@caller/hall";
 import type { Medley, Player, Tune } from "@caller/music";
-import { Card, Notation, createPlayer, medleys, tunes } from "@caller/music";
-import type { CSSProperties, JSX } from "react";
+import { Notation, createPlayer, medleys, tunes } from "@caller/music";
+import { Popover, usePopoverClose } from "@caller/ui-base";
+import type { CSSProperties, JSX, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MoveDetail } from "../MoveDetail.js";
+import { MoveSheet } from "../MoveSheet.js";
 import { MuteButton } from "../MuteButton.js";
+import { InfoIcon, Notecard } from "../Notecard.js";
 import { TransportBand } from "../TransportBand.js";
-import { cardDance } from "../danceCard.js";
+import type { DanceMove } from "../danceMoves.js";
+import { danceMoves, moveAt } from "../danceMoves.js";
 import { createHallPeople, hallFrame } from "../hallFrame.js";
 import type { DemoProgram } from "../program.js";
 import {
@@ -43,7 +48,8 @@ import {
 import { engineFromQuery, otherEngine } from "../state/engineQuery.js";
 import { engineHash, readLines, readSeed, setHallUrl, startBeatFor } from "../state/hallUrl.js";
 import { readMuted, writeMuted } from "../state/muted.js";
-import { nextDance, nextMove, prevDance, prevMove } from "../transport.js";
+import { moveTarget, nextDance, nextMove, prevDance, prevMove } from "../transport.js";
+import { useMediaQuery } from "../useMediaQuery.js";
 
 /** The zooms the bar offers (director ruling DD20). */
 const ZOOMS = [1, 2, 3, 4, 6] as const;
@@ -51,7 +57,9 @@ const ZOOMS = [1, 2, 3, 4, 6] as const;
 /**
  * The width at which the page stops stacking and puts the card beside the
  * hall. The same breakpoint Tailwind's `lg:` uses, written out because the
- * zoom arithmetic has to agree with the layout about which one is running.
+ * zoom arithmetic has to agree with the layout about which one is running —
+ * and, since P4, because the move popup's dressing hangs off it too: a bottom
+ * sheet below this width, `@caller/ui-base`'s `Popover` at or above it (D6).
  */
 const WIDE_QUERY = "(min-width: 1024px)";
 
@@ -194,6 +202,14 @@ export function HallPage({
   // on dancing on a beat that is still a linear function of
   // `AudioContext.currentTime`. Picking a dance does not touch it (A2).
   const [muted, setMuted] = useState(readMuted);
+  // Which move's popup is open on a phone, by index into this dance's moves
+  // (P4). Only the narrow dressing needs page state: the laptop's popover is
+  // `@caller/ui-base`'s, which holds its own open flag beside its trigger.
+  const [openMove, setOpenMove] = useState<number | null>(null);
+  // Which dressing the ⓘ wears (D6): the sheet below the breakpoint, the
+  // popover at or above it. The same query the zoom arithmetic reads, so the
+  // two cannot disagree about which layout is running.
+  const wide = useMediaQuery(WIDE_QUERY);
   // Zoom is automatic (U4: "no size selector. its fine on auto") — the only
   // way to pick a fixed zoom now is the URL, for deep links and goldens.
   const zoomChoice = useMemo<"auto" | number>(() => zoomFrom(params.get("zoom")), [params]);
@@ -571,6 +587,80 @@ export function HallPage({
     setHallUrl(position.dance.slug, medleySlug === SHUFFLE_MEDLEY ? undefined : medleySlug);
   }, [position.dance.slug, medleySlug]);
 
+  /**
+   * The dance on the card, as one flat table of moves (D1) — the primitive the
+   * notecard, the popup and the transport all read. Memoised per dance object:
+   * it costs a registry build and a call resolution per figure, and the card
+   * re-renders four times a beat.
+   */
+  const moves = useMemo(() => danceMoves(position.dance), [position.dance]);
+  /** Which move the hall is on and how far through it, or nothing between dances. */
+  const current = useMemo(() => {
+    const danceBeat = position.danceBeat;
+    if (danceBeat === null) return null;
+    const move = moveAt(moves, danceBeat);
+    if (move === undefined) return null;
+    return { index: move.index, progress: (danceBeat - move.start) / move.beats };
+  }, [moves, position.danceBeat]);
+  /** A tap on a call: its start in the time through the hall is dancing (AC6). */
+  const seekMove = useCallback(
+    (move: DanceMove): void => {
+      seekTo(moveTarget(program, beatNow(), move.index).beat);
+    },
+    [program, beatNow, seekTo],
+  );
+  const closeMove = useCallback((): void => {
+    setOpenMove(null);
+  }, []);
+  /**
+   * The ⓘ at the end of a call, in whichever dressing this width wears (D6).
+   *
+   * On a laptop the trigger *is* `@caller/ui-base`'s `Popover` — its panel is
+   * the merged-outline chrome, welded to the icon, so the popup grows out of
+   * the call it belongs to. On a phone it is a plain button that opens the
+   * page's own bottom sheet. The two share `MoveDetail`, and nothing else.
+   */
+  const renderInfo = useCallback(
+    (move: DanceMove): ReactNode =>
+      wide ? (
+        <Popover
+          label="About this move"
+          title={`About ${move.call}`}
+          placement="bottom-start"
+          className="info"
+          triggerTestId="notecard-info"
+          panelTestId="hall-move-panel"
+          panelClassName="move-panel"
+          trigger={<InfoIcon />}
+        >
+          <PopoverMoveDetail
+            move={move}
+            dance={position.dance}
+            onJump={() => {
+              seekMove(move);
+            }}
+          />
+        </Popover>
+      ) : (
+        <button
+          type="button"
+          className="info"
+          aria-label="About this move"
+          data-testid="notecard-info"
+          data-move={move.index}
+          onClick={() => {
+            setOpenMove(move.index);
+          }}
+        >
+          <InfoIcon />
+        </button>
+      ),
+    [wide, position.dance, seekMove],
+  );
+  // The sheet's move, re-read off the current dance every render: a dance
+  // change while a sheet is open would otherwise leave last dance's move on it.
+  const sheetMove = openMove === null ? undefined : moves.moves[openMove];
+
   const play = useCallback(async (): Promise<void> => {
     // ▶ un-freezes the evening (D3). A fresh page is not paused, so this is a
     // no-op on the first press — the one that primes the audio.
@@ -836,24 +926,40 @@ export function HallPage({
         </div>
 
         <aside className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-1 lg:px-0">
-          <div data-testid="hall-card">
-            {/* The tune lives on the card now, under the phrases (U1). T2's
-                shapes moved off this card in U3 — "odd and random" on a live
-                simulation — onto the dance's own page instead. */}
-            <Card dance={cardDance(position.dance)} beat={position.danceBeat ?? 0}>
-              <div className="min-w-0" data-testid="hall-notation">
-                <span className="caller-music-card-caption" data-testid="hall-tune">
-                  {tune.title}
-                </span>
-                {/* The music beat, not the evening's: the notation takes its
-                    beat modulo the cycle, and the evening's beat counts the
-                    interval too, which put the cursor bars off after the first
-                    dance and kept it walking through the silence. During the
-                    interval this is the next tune's beat 0, so the cursor waits
-                    on bar 1 for the potatoes. */}
-                <Notation tune={tune} beat={shownMusicBeat(beat)} showTitle={false} />
-              </div>
-            </Card>
+          <div className="flex min-w-0 flex-col gap-1.5" data-testid="hall-card">
+            {/* P4: the notecard replaces `@caller/music`'s `Card` on the Stage
+                (AC6). The `Card` itself stays where it still belongs — the
+                Dances tab's static card — and `danceCard.ts` with it. */}
+            <Notecard
+              title={moves.title}
+              author={moves.author}
+              timeThrough={
+                position.danceBeat === null
+                  ? undefined
+                  : `${String(position.timeThrough + 1)} of ${String(TIMES_THROUGH)}`
+              }
+              phrases={moves.phrases}
+              current={current}
+              onSeek={seekMove}
+              renderInfo={renderInfo}
+            />
+            {/* Interim: the tune gets its own box in P5, with the phrase
+                letters, the calls under the bars and the potatoes. Until then
+                it sits on its own sheet of the same paper under the notecard,
+                so the cursor keeps following the music beat and
+                `hall-notation`'s own test keeps measuring it. */}
+            <div className="paper min-w-0 p-1.5" data-testid="hall-notation">
+              <span className="stage-tune-caption" data-testid="hall-tune">
+                {tune.title}
+              </span>
+              {/* The music beat, not the evening's: the notation takes its
+                  beat modulo the cycle, and the evening's beat counts the
+                  interval too, which put the cursor bars off after the first
+                  dance and kept it walking through the silence. During the
+                  interval this is the next tune's beat 0, so the cursor waits
+                  on bar 1 for the potatoes. */}
+              <Notation tune={tune} beat={shownMusicBeat(beat)} showTitle={false} />
+            </div>
           </div>
           {/*
            * U3: one discoverable link off the note card to this dance's own
@@ -891,7 +997,50 @@ export function HallPage({
       </div>
 
       <SiteFooter />
+
+      {/* The phone's move popup, over everything (D6). Rendered from the page
+          rather than from the notecard so that only one can ever be open. */}
+      {wide || sheetMove === undefined ? null : (
+        <MoveSheet
+          move={sheetMove}
+          dance={position.dance}
+          onClose={closeMove}
+          onJump={() => {
+            seekMove(sheetMove);
+            closeMove();
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+/**
+ * `MoveDetail` inside the laptop's popover, so "▶ Jump here" closes it.
+ *
+ * `usePopoverClose` only answers inside a `Popover`'s own panel, which is why
+ * this is a component rather than a callback the page could have built: the
+ * hook has to run under the panel's context provider.
+ */
+function PopoverMoveDetail({
+  move,
+  dance,
+  onJump,
+}: {
+  move: DanceMove;
+  dance: Dance;
+  onJump: () => void;
+}): JSX.Element {
+  const close = usePopoverClose();
+  return (
+    <MoveDetail
+      move={move}
+      dance={dance}
+      onJump={() => {
+        onJump();
+        close();
+      }}
+    />
   );
 }
 
