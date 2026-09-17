@@ -37,13 +37,13 @@ a walk round" all tell the dancer what is wrong instead of what is right.
 
 Instead of:
 
-> The whole line slides one couple's width along to its own left, so you find
-> yourselves facing a new couple. It is a sidestep, not a walk round.
+> The whole line slides half a couple's width along to its own left, so you
+> find yourselves facing a new couple. It is a sidestep, not a walk round.
 
 say:
 
-> Look on your left diagonal and identify your new neighbors. Slide left two
-> places along the set until you are across from them.
+> Look on your left diagonal and identify your new neighbors. Slide left one
+> place along the set until you are across from them.
 
 ## 3. The three things a walkthrough says, in order
 
@@ -77,8 +77,10 @@ uncertain, cut it.
   "one and a half".
 - **Round a ring:** places, where a place is a quarter of the ring. "Circle
   left three places." Never "three quarters".
-- **Along a line:** places, where a place is one dancer's spot. A slide left
-  is "two places", one minor set's width. Never "one couple's width".
+- **Along a line:** places, where a place is one dancer's spot. A becket
+  slide left is "one place", half a couple's width (FR-C2, DD54). Never "one
+  couple's width" or "two places" — that was the shift before FR-C2 halved
+  it.
 - **Places in the set:** across the set, beside you, along your own line, on
   the left diagonal, on the right diagonal, up the hall, down the hall, home.
 - **Hands:** "in your right hand", "in your left hand". "Take hands four."

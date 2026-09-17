@@ -1,10 +1,10 @@
 {
   "id": "slide-left",
-  "description": "Dancers step sideways two places along the set to meet a new couple.",
+  "description": "Dancers step sideways one place along the set to meet a new couple.",
   "defaultLevel": "line",
   "walkthrough": {
-    "line": "Look on your {direction} diagonal and identify your new neighbors. Slide {direction} two places along the set until you are across from them.",
-    "teach": "Look on your {direction} diagonal and identify your new neighbors. Slide {direction} two places along the set until you are across from them. Stay square to the couple across the set and to the dancer beside you, take two steps sideways along your own line, and glance the way you are going."
+    "line": "Look on your {direction} diagonal and identify your new neighbors. Slide {direction} one place along the set until you are across from them.",
+    "teach": "Look on your {direction} diagonal and identify your new neighbors. Slide {direction} one place along the set until you are across from them. Stay square to the couple across the set and to the dancer beside you, take a step sideways along your own line, and glance the way you are going."
   },
   "call": {
     "1": "SLIDE",

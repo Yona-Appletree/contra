@@ -444,7 +444,7 @@ where the dancers already stand (below); the defaults given are the rest.
 | `robins-chain`               | 8     | `ROBINS CHAIN`                 | `chains` `"robin"`, `holdDrop` 6, `stackPx` 1, `joinBeat` 2, `passPx` 4.25 — **data** (A6: the orbit is the only regime)                                                                                                                                                             |
 | `pass-through`               | 4     | `PASS THROUGH`                 | `direction` `"across"` or `"along"`, `bowPx` 5 — **data**                                                                                                                                                                                                                            |
 | `roll-away`                  | 4     | `ROLL AWAY WITH A HALF SASHAY` | `pairs` `"partners"`, `roller` `"robin"`, `bowPx` 4.5, `spins` 1 (**how many turns, not which way**: the roll is inward, FR-A1), `holdDrop` 6 — **data**                                                                                                                             |
-| `slide-left`                 | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 40 (a couple place), `direction` 1 — **data**                                                                                                                                                                                                                              |
+| `slide-left`                 | 4     | `SLIDE LEFT ALONG THE SET`     | `alongPx` 20 (`PLACE_PITCH_PX`, one dancer place — half a couple's width since FR-C2, DD54), `direction` 1 — **data**                                                                                                                                                                |
 | `hey`                        | 16    | `HEY FOR FOUR`                 | `passes` `""` (a pass list, `RR NL LR PL RR NL LR`), `start` `"robin"`, `by` `"right"`, `amount` 1, `ricochet` `""`, `for` 4, `idle` `""`, `axis` `"spread"`, `hands` false, `weavePx` 6.5, `joinBeats` 2, `passDrop` 6 — **data**, no coded twin                                    |
 | `mad-robin`                  | 8     | `MAD ROBIN`                    | `pairs` `"neighbors"` (the dancer **beside** you, whom you circle), `amount` 0.5, `direction` `"clockwise"` — the body faces **across the set** and is pinned there (FR-A1) — **data**, no coded twin                                                                                |
 | `shoulder-round`             | 8     | `RIGHT SHOULDER ROUND`         | `pairs` `"neighbors"`, `hand` `"R"`, `amount` 1 — **data**, no coded twin, side by side a shoulder's width apart with the body on the tangent and the eyes on each other (FR-B1)                                                                                                     |
@@ -1040,7 +1040,7 @@ sentences of what the dancers do, in a caller's words. `star` and
 two. `slide-left`'s marker is gone: S1 settled it as a sidestep with the torso
 square to the other line, danced in two steps, and the figure now says so.
 
-**`describe` is the fallback now, not what the app shows** (W1, M13). Every
+**`describe` is not read by the app at all any more** (W1, M13, P7). Every
 figure's prose lives in `data/figures/<id>.json` — a third-person
 `description`, a `defaultLevel`, a mechanics `line`, a full `teach`, and the
 caller's `call` forms keyed by how many **beats** each takes to say — loaded by
