@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPlayer } from "./Player.js";
+import { MUTE_RAMP_SECONDS, createPlayer } from "./Player.js";
 import { reelMedley } from "../tunes/medleys.js";
 import type { Tune } from "../tunes/Tune.js";
 
@@ -75,5 +75,100 @@ describe("createPlayer (silence mode: no AudioContext)", () => {
     const countAtStop = seen.length;
     await wait(200);
     expect(seen.length).toBe(countAtStop);
+  });
+
+  it("setMuted records the flag and reports no gain (there is no node to read)", async () => {
+    const player = createPlayer();
+    await player.load(reelMedley);
+    expect(player.muted()).toBe(false);
+    expect(player.gain()).toBeNull();
+    expect(() => player.setMuted(true)).not.toThrow();
+    expect(player.muted()).toBe(true);
+    expect(player.gain()).toBeNull();
+  });
+
+  it("a muted player keeps playing: the clock and the cycle events carry on", async () => {
+    // AC4: mute is a gain, not a stop. Nothing about the beat may notice it.
+    const player = createPlayer();
+    await player.load(reelMedley);
+    player.setTempo(120);
+    const seen: number[] = [];
+    player.onCycle((cycle) => seen.push(cycle));
+    player.play(0);
+    player.setMuted(true);
+    const b0 = player.clock.beat();
+    await wait(120);
+    expect(player.clock.beat()).toBeGreaterThan(b0);
+    expect(seen).toContain(0);
+    player.stop();
+  });
+});
+
+/**
+ * A minimal fake `AudioContext`: enough of one for `createPlayer` to build its
+ * master gain and for a mute to be observed on it, and nothing more. There is
+ * no `AudioContext` in Node at all, so the alternative to a fake is not
+ * testing the gain — and the gain is what AC4 is written about.
+ */
+function fakeContext() {
+  const ramps: Array<{ target: number; when: number; timeConstant: number }> = [];
+  const connectedTo: unknown[] = [];
+  const gain = {
+    value: 1,
+    setTargetAtTime(target: number, when: number, timeConstant: number): void {
+      ramps.push({ target, when, timeConstant });
+      // The real node approaches its target exponentially; the fake arrives,
+      // which is all `gain()` needs to be readable from.
+      gain.value = target;
+    },
+  };
+  const destination = { id: "destination" };
+  const gainNode = {
+    gain,
+    connect: (node: unknown): void => void connectedTo.push(node),
+    disconnect: (): void => undefined,
+  };
+  const ctx = {
+    currentTime: 12.5,
+    destination,
+    sampleRate: 48000,
+    createGain: () => gainNode,
+  };
+  return { ctx: ctx as unknown as AudioContext, ramps, connectedTo, destination, gain };
+}
+
+describe("createPlayer (the master gain)", () => {
+  it("builds a master gain and connects it to the destination", () => {
+    const fake = fakeContext();
+    const player = createPlayer(fake.ctx);
+    expect(fake.connectedTo).toEqual([fake.destination]);
+    expect(player.gain()).toBe(1);
+    expect(player.muted()).toBe(false);
+  });
+
+  it("setMuted(true) ramps the gain to 0, and back to 1 on unmute", () => {
+    const fake = fakeContext();
+    const player = createPlayer(fake.ctx);
+
+    player.setMuted(true);
+    expect(player.muted()).toBe(true);
+    expect(player.gain()).toBe(0);
+    expect(fake.ramps).toEqual([{ target: 0, when: 12.5, timeConstant: MUTE_RAMP_SECONDS }]);
+
+    player.setMuted(false);
+    expect(player.muted()).toBe(false);
+    expect(player.gain()).toBe(1);
+    expect(fake.ramps[1]).toEqual({ target: 1, when: 12.5, timeConstant: MUTE_RAMP_SECONDS });
+  });
+
+  it("ramps rather than stepping: the gain is never assigned outright", () => {
+    // A step to 0 clicks. The only way this player's gain moves is a
+    // `setTargetAtTime`, which is what the recorded ramps prove.
+    const fake = fakeContext();
+    const player = createPlayer(fake.ctx);
+    player.setMuted(true);
+    player.setMuted(true);
+    expect(fake.ramps.map((ramp) => ramp.target)).toEqual([0, 0]);
+    expect(fake.ramps.every((ramp) => ramp.timeConstant === MUTE_RAMP_SECONDS)).toBe(true);
   });
 });

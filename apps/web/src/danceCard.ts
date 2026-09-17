@@ -1,7 +1,8 @@
 import type { Dance } from "@caller/choreo";
-import { callBeats, withDefaults } from "@caller/choreo";
-import { createContraRegistry, resolveFigureCall } from "@caller/contra";
+import { callBeats } from "@caller/choreo";
+import { createContraRegistry } from "@caller/contra";
 import type { CardPhrase } from "@caller/music";
+import { fallbackCall } from "./danceMoves.js";
 
 /**
  * A dance as the card reads it, with every figure line carrying a caller's
@@ -59,15 +60,4 @@ export function cardDance(dance: Dance): {
       })),
     })),
   };
-}
-
-/** The move's own long call, resolved, or the figure contract's terse one. */
-function fallbackCall(
-  registry: ReturnType<typeof createContraRegistry>,
-  call: { figure: string; beats: number; params?: object },
-): string {
-  const def = registry.get(call.figure);
-  return (
-    resolveFigureCall(call.figure, withDefaults(def, call.params, call.beats))?.long ?? def.call
-  );
 }

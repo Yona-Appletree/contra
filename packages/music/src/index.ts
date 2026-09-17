@@ -11,6 +11,7 @@ export {
   type ParsedKey,
 } from "./chords/harmonise.js";
 export {
+  MUTE_RAMP_SECONDS,
   createPlayer,
   type PlayOptions,
   type Player,
@@ -77,8 +78,10 @@ export {
 export {
   Card,
   Notation,
+  trimToWidth,
   type CardFigure,
   type CardPhrase,
   type CardProps,
+  type NotationCaption,
   type NotationProps,
 } from "./ui/index.js";

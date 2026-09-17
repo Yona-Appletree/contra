@@ -41,6 +41,24 @@ export interface Player {
   clock: Clock;
   /** Fires once per cycle boundary (every 64 beats), including the one `play` starts in. */
   onCycle(cb: (cycle: number, tune: Tune) => void): void;
+  /**
+   * Mute or unmute the band **without stopping it**: the master gain ramps to
+   * 0 (or back to 1) over {@link MUTE_RAMP_SECONDS}, so there is no click, and
+   * the clock, the scheduling and `onCycle` carry on untouched. A muted player
+   * is still playing — that is the whole point: the hall keeps dancing on a
+   * beat that stays a linear function of `AudioContext.currentTime`.
+   *
+   * In silence mode (no `AudioContext`) this only records the flag.
+   */
+  setMuted(muted: boolean): void;
+  /** Whether {@link Player.setMuted} was last called with `true`. Default `false`. */
+  muted(): boolean;
+  /**
+   * The master gain's value right now, or `null` in silence mode (there is no
+   * gain node to read). It is the *live* value, so just after `setMuted(true)`
+   * it is still on its way down the ramp rather than exactly 0.
+   */
+  gain(): number | null;
 }
 
 /** Scheduling latency before the first buffer starts, seconds (matches the hall spike). */
@@ -51,6 +69,12 @@ const LOOKAHEAD = 0.2;
 const SILENT_POLL_MS = 50;
 /** What abcjs applies to its own FluidR3 rendering; ours is the same rendering, self-hosted. */
 const SOUND_FONT_VOLUME_MULTIPLIER = 3.0;
+/**
+ * The time constant of the mute ramp, seconds. `setTargetAtTime` approaches
+ * its target exponentially, so ten milliseconds is inaudible as a fade and
+ * still long enough that the step never clicks.
+ */
+export const MUTE_RAMP_SECONDS = 0.01;
 
 interface PrimedTune {
   bpm: number;
@@ -70,6 +94,16 @@ interface PrimedTune {
 export function createPlayer(ctx?: AudioContext, options: PlayerOptions = {}): Player {
   const silent = !ctx;
   const clock = createClock(silent ? () => performance.now() / 1000 : () => ctx.currentTime);
+
+  // The master gain: everything this player makes a sound with — the tunes and
+  // the potatoes alike — goes through it, so muting is one ramp rather than a
+  // walk over live sources, and a source started while muted is silent from
+  // its first sample. Silence mode has no node, only the flag.
+  const master = ctx ? ctx.createGain() : null;
+  if (ctx && master) master.connect(ctx.destination);
+  /** Where a source connects: the master gain, or the destination if there is none. */
+  const output = (): AudioNode | null => master ?? ctx?.destination ?? null;
+  let isMuted = false;
 
   let medley: Medley | null = null;
   let sequence: Tune[] = [];
@@ -205,7 +239,8 @@ export function createPlayer(ctx?: AudioContext, options: PlayerOptions = {}): P
 
     const source = ctx.createBufferSource();
     source.buffer = primedTune.buffer;
-    source.connect(ctx.destination);
+    const destination = output();
+    if (destination) source.connect(destination);
     start(source, startAt, offsetSeconds);
 
     const cycleStartsAt = startAt - offsetSeconds;
@@ -281,6 +316,7 @@ export function createPlayer(ctx?: AudioContext, options: PlayerOptions = {}): P
       const source = playPotatoes(ctx, countIn, {
         ...potatoesFor(tune, bpm),
         beats: potatoBeats,
+        ...(master === null ? {} : { destination: master }),
       });
       sources.add(source);
       source.onended = (): void => {
@@ -309,5 +345,19 @@ export function createPlayer(ctx?: AudioContext, options: PlayerOptions = {}): P
     cycleListeners.push(cb);
   }
 
-  return { load, play, stop, setTempo, clock, onCycle };
+  function setMuted(next: boolean): void {
+    isMuted = next;
+    if (!ctx || !master) return;
+    master.gain.setTargetAtTime(next ? 0 : 1, ctx.currentTime, MUTE_RAMP_SECONDS);
+  }
+
+  function muted(): boolean {
+    return isMuted;
+  }
+
+  function gain(): number | null {
+    return master === null ? null : master.gain.value;
+  }
+
+  return { load, play, stop, setTempo, clock, onCycle, setMuted, muted, gain };
 }

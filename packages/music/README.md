@@ -82,11 +82,15 @@ interface Player {
   setTempo(bpm: number): void;
   clock: Clock;
   onCycle(cb: (cycle: number, tune: Tune) => void): void;
+  setMuted(muted: boolean): void; // ramps the master gain, keeps playing
+  muted(): boolean;
+  gain(): number | null; // the master gain's live value; null in silence mode
 }
 interface PlayerOptions {
   soundFontUrl?: string; // where abcjs loads <instrument>-mp3/<Note>.mp3 from
 }
 function createPlayer(ctx?: AudioContext, options?: PlayerOptions): Player;
+const MUTE_RAMP_SECONDS: number; // 0.01, the mute ramp's time constant
 
 // The potatoes: four chords that count a dance in, src/player/potatoes.ts
 function renderPotatoes(sampleRate: number, options?: Partial<PotatoOptions>): Float32Array;
@@ -100,9 +104,27 @@ function keyOf(tune: Pick<Tune, "key">): { rootHz: number; mode: "major" | "mino
 type PotatoVoice = "bowed" | "struck" | "plucked";
 function voiceOf(program: number): PotatoVoice;
 function loudestVoice(arrangement: Arrangement): Voice;
+// PotatoOptions.destination?: AudioNode — what the source connects to
+// (default ctx.destination; the player passes its master gain)
 
 // React components, src/ui/
-function Notation(props: { tune: Tune; beat: Beat }): JSX.Element;
+function Notation(props: NotationProps): JSX.Element;
+interface NotationProps {
+  tune: Tune;
+  beat: Beat;
+  showTitle?: boolean;
+  staveLabels?: readonly string[]; // one per stave, drawn in its left gutter: "A1" … "B2"
+  captions?: readonly NotationCaption[]; // words under the bars they span, trimmed to fit
+  onBarClick?: (line: number, measure: number) => void; // a click on a bar; every bar gets a hit rect
+}
+interface NotationCaption {
+  line: number; // which stave, 0-based
+  fromBar: number; // first bar of the span within the stave, 0-based
+  bars: number;
+  text: string;
+  current?: boolean; // drawn in the cursor colour
+}
+function trimToWidth(text: string, fits: (candidate: string) => boolean): string;
 function Card(props: CardProps): JSX.Element;
 interface CardProps {
   dance: {
@@ -151,6 +173,60 @@ step. It is written out rather than imported because `scripts/check-deps.mjs`
 gives `music` one edge, to `core`; importing `@caller/choreo` here would have
 been a change to that table, and the card only ever reads a title, four
 phrase names, and each figure's duration and call text.
+
+### The master gain and the mute
+
+Every sound a player makes — the tune's buffers and the potatoes alike — goes
+through one `GainNode` between it and `ctx.destination`, built in
+`createPlayer`. `setMuted(true)` ramps that gain to 0 with
+`setTargetAtTime(0, ctx.currentTime, MUTE_RAMP_SECONDS)` (0.01 s), and
+`setMuted(false)` ramps it back to 1; a step would click, and a ten-millisecond
+time constant is inaudible as a fade. `muted()` reads the flag back, and
+`gain()` reads the node's **live** value — so just after a mute it is still on
+its way down rather than exactly 0 — or `null` in silence mode, where there is
+no node at all and `setMuted` only records the flag.
+
+Muting does not touch the clock, the scheduling or `onCycle`: **a muted player
+is still playing**, which is the whole of the point (the hall's `m` key, plan
+AC4). The potatoes obey it because `playPotatoes` takes a `destination` — the
+player passes its master gain — rather than always connecting to
+`ctx.destination`. Where the page keeps the muted flag, and how it survives a
+reload, is `apps/web`'s business, not this package's.
+
+### The notation's labels, captions and bar clicks
+
+`Notation` will also draw three things the hall's tune box asks for, all of
+them **into abcjs's own SVG after it has rendered**, positioned from the
+rendered elements' `getBBox` rather than from a guess at the layout:
+
+- `staveLabels` — one word in the left gutter of each stave; the app writes
+  "A1" … "B2" there. Rendered with abcjs's `paddingleft: 26` (its default is 15) so the gutter exists.
+- `captions` — `{ line, fromBar, bars, text, current? }`, the dance's calls
+  under the bars they take, each trimmed with an ellipsis by
+  `getComputedTextLength` until it fits its span (`trimToWidth` is the pure
+  half of that, and is unit-tested). A hairline marks the start of every
+  caption but the first of a stave, and `current` puts one in the cursor
+  colour. The band of paper they sit in is abcjs's `%%staffsep 70` (its default
+  here lays the staves 92 units apart; 70 makes it 124) plus `paddingbottom:
+28` for the last stave, whose band has no stave under it to push away —
+  abcjs's default 15 there put the bottom caption's baseline exactly on the
+  viewBox edge and clipped its descenders.
+- `onBarClick(line, measure)` — a transparent `rect` over every bar, so a
+  click anywhere in a bar can seek. It also gives the bars a pointer cursor.
+
+The classes are `caller-music-stave-label`, `caller-music-caption` (plus
+`current`), `caller-music-caption-tick` and `caller-music-bar-hit`, all inside
+one `caller-music-decoration` group so a redraw is a single `remove`. This
+package ships **no styles**: the app dresses those classes (`hall.css`), and
+`Notation.stories.tsx` carries a minimal stylesheet of its own so
+`Music/Notation → WithLabelsAndCaptions` and `Clickable` are legible.
+
+All three need `getBBox`, which jsdom does not implement — there the component
+renders the plain notation and appends nothing, which is what `Notation.test.tsx`
+asserts. The check that it actually draws is the two Storybook stories, in a
+browser (verified against abcjs 6.7: both `%%staffsep` and `paddingleft` are
+honoured). The existing `.abcjs-l{n}.abcjs-m{n}` cursor mechanism is untouched;
+the decoration rides on the same classes.
 
 ## The clock is `@caller/core`'s
 

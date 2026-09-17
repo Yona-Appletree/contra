@@ -108,6 +108,21 @@ export function lineUpStartBeat(danceCount: number, danceIndex = 0): Beat {
 }
 
 /**
+ * Where dance `index`'s potatoes begin: four beats before its own beat 0.
+ *
+ * `index` is an **unwrapped** item index, not a slug or a wrapped
+ * `positionAt` index — the transport's own arithmetic (`transport.ts`) works
+ * in unwrapped item indices throughout and only normalises the *result* of a
+ * beat computation (A4), so this stays a plain multiplication rather than a
+ * modulo. It is deliberately not `lineUpStartBeat`: |◀◀ "goes to the
+ * potatoes, not the whole line-up — a caller practising needs the count-in"
+ * (Yona, round 2), where `lineUpStartBeat` is U4's fuller answer — the
+ * announcement, walk and hands-four as well — for a dance freshly chosen from
+ * the select.
+ */
+export const danceStartBeat = (index: number): Beat => index * ITEM_BEATS - POTATO_BEATS;
+
+/**
  * Beats of **music** one programme item takes: the dancing beats, and no more.
  *
  * The gap between two dances carries no tune, which is the whole point. A dance
@@ -384,6 +399,25 @@ export const bandPlaying = (beat: Beat): boolean =>
 
 /** How far into its own programme item a beat is. */
 const intoItem = (beat: Beat): Beat => beat - Math.floor(beat / ITEM_BEATS) * ITEM_BEATS;
+
+/**
+ * How many potatoes have sounded by this beat: 0 outside the count-in, 1–4
+ * through it, on the half-beat exactly as the band strikes them.
+ *
+ * The count-in is the last {@link POTATO_BEATS} beats of an item's
+ * between-dances interval — the same stretch {@link betweenDancesAt} calls
+ * `"potatoes"` — which `intoItem` already measures from the *start* of an
+ * item; this reads it from the end instead, because a potato belongs to the
+ * dance it is counting **in**, not the one just finished. `Math.floor` on the
+ * offset is what makes a potato land and stay lit for the whole beat it
+ * sounds on, rather than blinking on only at its exact instant — the tune
+ * box lights potato `k` (`data-lit`) for exactly the beat this answers `k+1`.
+ */
+export function potatoCount(beat: Beat): number {
+  const offset = intoItem(beat) - (ITEM_BEATS - POTATO_BEATS);
+  if (offset < 0 || offset >= POTATO_BEATS) return 0;
+  return Math.floor(offset) + 1;
+}
 
 /** What the page says it is doing, under the card, between two dances. */
 export function betweenDancesStatus(position: ProgramPosition): string {
