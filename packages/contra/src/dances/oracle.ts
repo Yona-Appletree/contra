@@ -27,6 +27,7 @@ import { BECKET_RIGHT } from "../formation/becketRight.js";
 import type { FigureDefaultsOverride } from "../figures/registry.js";
 import { createContraRegistry } from "../figures/registry.js";
 import { figureOnFour } from "../figures/onFour.js";
+import { contraCyclePlanner } from "../set/planCycle.js";
 import { HOLD_PLACE_FIGURE } from "../set/resolve.js";
 import { formationById } from "./formations.js";
 
@@ -113,23 +114,24 @@ export const linesFor = (dance: Dance): readonly number[] =>
 /**
  * How one dance is run, beyond the figure tuning: which cycle planner plans it.
  *
- * `cycle` left out is the decider's own `defaultCyclePlanner` — today's path,
- * and what every golden, strip and plate is measured against. M1's
- * `planCycle.golden.test.ts` is what passes `contraCyclePlanner` here; M3 is
- * where the app gains the choice.
+ * `cycle` left out is **the contra planner**, which is what the app dances on
+ * and has been since M3 (`DEFAULT_ENGINE`). It used to be the decider's own
+ * `defaultCyclePlanner`: that planner hands a figure the four dancers of a
+ * hands-four and asks where it leaves them, which the coded layer could always
+ * answer and half the library cannot — a figure minted one instance per pair
+ * refuses four roles by name. M11 deleted the coded layer, so the old planner
+ * has nothing left to plan and no caller here names it.
  */
 export interface DanceRunOptions {
   cycle?: CyclePlanner;
   /**
-   * Figures added to the registry the decider runs on, replacing any coded
-   * figure of the same id.
+   * Figures added to the registry the decider runs on, replacing one of the
+   * same id.
    *
    * `poseAt` looks a figure up **by id in the registry**, not in the planner's
-   * emission, so a run on the new planner has to be given the interpreted
-   * figures too — `contraDataFigures()` — or the planner would resolve against
-   * the data swing while the timeline sampled the coded one. M2's `pnpm dance`
-   * and the per-figure goldens pass both; every other caller passes neither and
-   * runs exactly as it did.
+   * emission, so the registry and the planner's library have to be built from
+   * the same definitions. Since M11 they are, by default and by construction;
+   * this is the seam a caller comparing one tuning against another uses.
    */
   figures?: readonly AnyFigureDef[];
 }
@@ -154,7 +156,7 @@ export function danceAlone(
     registry,
     hall,
     createLibrary([dance], [formation]),
-    options.cycle === undefined ? {} : { cycle: options.cycle },
+    { cycle: options.cycle ?? contraCyclePlanner },
   );
   decider.advance(until);
   return decider;

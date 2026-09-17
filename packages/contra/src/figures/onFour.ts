@@ -1,12 +1,20 @@
 import type { Beat } from "@caller/core";
 import type { StationId } from "@caller/choreo";
-import type { ContraFigure, ContraParams, FigurePlan, HandJoin, Spots } from "./ContraFigure.js";
+import type { Vec2 } from "@caller/core";
+import type {
+  ContraFigure,
+  ContraParams,
+  FigurePlan,
+  HandJoin,
+  LocalSample,
+  Spots,
+} from "./ContraFigure.js";
 import { contraFigure, planContext } from "./ContraFigure.js";
 import type { Pairing } from "./pairing.js";
 import { NEIGHBORS, PARTNERS, pairsOf } from "./pairing.js";
 import type { FigureDefinition } from "../library/FigureDefinition.js";
 import { withDefaults } from "@caller/choreo";
-import { DATA_DEFINITIONS, templateFigureOf } from "../library/figures/index.js";
+import { DATA_DEFINITIONS } from "../library/figures/index.js";
 import { DUPLE_IMPROPER } from "../formation/dupleImproper.js";
 import { PROBE_FRAME, probeGroup } from "./testing.js";
 import { interpretDefinition } from "../library/interpret.js";
@@ -59,20 +67,25 @@ const CACHE = new Map<string, { figure: ContraFigure<ContraParams> | undefined }
 function buildOnFour(id: string): ContraFigure<ContraParams> | undefined {
   const def = DATA_DEFINITIONS.find((each) => each.id === id);
   if (def === undefined) return undefined;
-  if (!mintsPerPair(def)) return templateFigureOf(id) as ContraFigure<ContraParams> | undefined;
+  // **A figure that declares its own cast** reaches past the minor set by
+  // saying so — turn contra corners is danced by six — and a hands-four has
+  // four. Nothing to try.
+  if (def.cast !== undefined) return undefined;
   const inner = interpretDefinition(def) as unknown as ContraFigure<ContraParams>;
-  const figure = contraFigure<ContraParams>({
-    id: inner.id,
-    call: inner.call,
-    ...(inner.describe === undefined ? {} : { describe: inner.describe }),
-    lead: inner.lead,
-    beats: inner.beats,
-    defaults: inner.defaults as Omit<ContraParams, "beats" | "carried">,
-    plan: (ctx, params) => planPairs(def, inner, ctx, params),
-  });
-  // **Asked, not assumed.** A pair figure whose shape also reads the lattice
-  // needs a real set whatever its actors say, and the honest answer for it is
-  // the same as for a pull by: there is no figure-alone row.
+  const figure = !mintsPerPair(def)
+    ? inner
+    : contraFigure<ContraParams>({
+        id: inner.id,
+        call: inner.call,
+        ...(inner.describe === undefined ? {} : { describe: inner.describe }),
+        lead: inner.lead,
+        beats: inner.beats,
+        defaults: inner.defaults as Omit<ContraParams, "beats" | "carried">,
+        plan: (ctx, params) => planPairs(def, inner, ctx, params),
+      });
+  // **Asked, not assumed.** A figure whose shape reads the lattice needs a real
+  // set whatever its actors say, and the honest answer for it is the same as
+  // for a figure minted per dancer: there is no figure-alone row.
   try {
     const group = probeGroup(DUPLE_IMPROPER, 4, PROBE_FRAME);
     figure.sample(group, group.stations[0]!.id, 0, withDefaults(figure, {}, figure.beats));
@@ -125,7 +138,14 @@ function planPairs(
     return { ids: pair, byStation, byRole, plan };
   });
 
+  // **Whoever the pairing left out stands where they are.** A same-role pairing
+  // names one pair of the four — "robins allemande", `pairs: [["1R", "2R"]]` —
+  // and the other two are not in the figure at all. Resolution says so by
+  // minting a hold-place instance beside the figure's; a hands-four template has
+  // no second instance to mint, so it is said here, which is what the coded
+  // figures did with the dancers their own pairing missed.
   const ends: Spots = {};
+  for (const station of ctx.ids) ends[station] = ctx.spot(station);
   for (const { ids, byStation, plan } of planned) {
     for (const id of ids) {
       const end = plan.ends[byStation[id]!];
@@ -136,7 +156,7 @@ function planPairs(
   return {
     at(station, t) {
       const here = planned.find((each) => each.byStation[station] !== undefined);
-      if (here === undefined) throw new Error(`"${inner.id}": "${station}" is in no pair`);
+      if (here === undefined) return standing(ctx.spot(station));
       return here.plan.at(here.byStation[station]!, t);
     },
     ends,
@@ -156,6 +176,13 @@ function planPairs(
     },
   };
 }
+
+/** A dancer the pairing left out, on their own spot with their hands down. */
+const standing = (spot: { p: readonly [number, number] | Vec2; facing: number }): LocalSample => ({
+  p: [spot.p[0]!, spot.p[1]!],
+  facing: spot.facing,
+  hands: { L: "down", R: "down" },
+});
 
 /**
  * The pairs of a hands-four a `pairs` word names, or a named refusal.
