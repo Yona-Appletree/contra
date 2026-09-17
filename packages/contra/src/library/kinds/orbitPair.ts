@@ -124,7 +124,14 @@ export function planOrbitPair(
       );
       return {
         p: lerp(lerp(start.p, turning, into), end.p, open),
-        facing: bodyFacing(shape, input, role, t, psi + (away === 1 ? 180 : 0), settled),
+        facing: bodyFacing(
+          shape,
+          input,
+          role,
+          t,
+          psi + (away === 1 ? 180 : 0) + lateralBearing(tight),
+          settled,
+        ),
       };
     }
     const angle = bearing(centre, start.p) + turn * turned;
@@ -436,6 +443,25 @@ function squeezeOf(
   const k = Math.max(0, Math.min(1, (nearest - clearance) / (2 * orbit)));
   return { radius: radius * k, lateral: lateral * k };
 }
+
+/**
+ * How far the line between the two bodies lies off the axis of the turn.
+ *
+ * A `radial: "pair"` orbit puts each dancer `radius` along the axis and
+ * `lateral` across it, on opposite sides of both — so the line **through the
+ * pair**, which is what a body stage's `orbit` angle is measured from, is not
+ * the axis itself but this much round from it. The two offsets are mirror
+ * images, so it is the same number for both dancers, and the squeeze scales
+ * both, so it survives one.
+ *
+ * Without it the two offsets are counted twice over in a swing: the body turns
+ * 30° out of the *axis* when it meant to turn 30° out of its *partner*, the
+ * partner ends up 65° round instead, and the pair stands shoulder to shoulder
+ * rather than chest to chest — which puts the robin's joined hand behind her
+ * own shoulder, where no arm can reach.
+ */
+const lateralBearing = (tight: { radius: number; lateral: number }): Angle =>
+  (Math.atan2(tight.lateral, tight.radius) * 180) / Math.PI;
 
 /** The body, turned stage by stage over the figure. */
 function bodyFacing(

@@ -59,8 +59,10 @@ export const SWING_ORBIT: OrbitPairShape = {
   inBeats: 1,
   outBeats: 1.4,
   body: [
-    // Into the hold: face along the line of the turn, then turn 30° out of it
-    // as the hold is taken, which is what makes a swing spin instead of shuffle.
+    // Into the hold: face your partner — `orbit: 0` is the line through the
+    // pair, which the ballroom offset puts off the axis of the turn — then turn
+    // 30° out of it as the hold is taken, which is what puts right hips
+    // together and makes a swing spin instead of shuffle.
     { to: { orbit: 0 }, from: 0, until: 1, turnOut: -SWING_BODY_TURN_DEG },
     { to: { end: true }, from: { fromEnd: 1.4 }, until: { fromEnd: 0 } },
   ],

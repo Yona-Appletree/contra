@@ -60,6 +60,26 @@ export const SWING_LATERAL_PX = 3.5;
 /** How far each body turns out of the line of the turn as the hold is taken. */
 export const SWING_BODY_TURN_DEG = 30;
 
+/**
+ * How far the line joining the two bodies lies off the axis of the turn.
+ *
+ * A pair in the hold sits {@link SWING_RADIUS_PX} along that axis and
+ * {@link SWING_LATERAL_PX} across it, so the line from one dancer to the other
+ * is not the axis itself but this much round from it — 35°, and the same for
+ * both of them, because the two offsets are mirror images. The squeeze scales
+ * both, so it is a constant.
+ *
+ * It is here because {@link SWING_BODY_TURN_DEG} is measured **from the line
+ * between the two bodies**, which is what "turned out of the hold" means: the
+ * partner ends up 30° off your chest, right hips together, which is the
+ * ballroom hold. Measured from the axis instead, the two offsets add and the
+ * partner is 65° round — the pair stands shoulder to shoulder rather than
+ * chest to chest, and the robin's joined hand lands behind her own shoulder,
+ * where no arm can go.
+ */
+export const SWING_HOLD_BEARING_DEG =
+  (Math.atan2(SWING_LATERAL_PX, SWING_RADIUS_PX) * 180) / Math.PI;
+
 /** The outstretched joined hands sit just below shoulder height. */
 export const SWING_HAND_DROP_PX = 1;
 
@@ -110,13 +130,26 @@ function swingPlaces(frame: PairFrame, t: Beat, params: SwingParams): Places {
   const robinEnd = addScaled(frame.centre, rightOf(endFacing), OPEN_PAIR_HALF_PX);
 
   return {
+    // Each faces their partner, then turns `SWING_BODY_TURN_DEG` out of that as
+    // the hold is taken. Both swing in over `into`, because at the start of the
+    // figure the pair still stands on the axis, where the partner is straight
+    // ahead; it is the ballroom offset the turn takes them to that puts the
+    // partner `SWING_HOLD_BEARING_DEG` round from it.
     lark: {
       p: lerp(lerp(larkHold, larkTurn, into), larkEnd, open),
-      facing: angleLerp(psi - SWING_BODY_TURN_DEG * into, endFacing, open),
+      facing: angleLerp(
+        psi + (SWING_HOLD_BEARING_DEG - SWING_BODY_TURN_DEG) * into,
+        endFacing,
+        open,
+      ),
     },
     robin: {
       p: lerp(lerp(robinHold, robinTurn, into), robinEnd, open),
-      facing: angleLerp(psi + 180 - SWING_BODY_TURN_DEG * into, endFacing, open),
+      facing: angleLerp(
+        psi + 180 + (SWING_HOLD_BEARING_DEG - SWING_BODY_TURN_DEG) * into,
+        endFacing,
+        open,
+      ),
     },
     psi,
     into,

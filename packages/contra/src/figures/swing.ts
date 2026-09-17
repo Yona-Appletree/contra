@@ -42,6 +42,7 @@ import {
   BACK_HAND_RIGHT_PX,
   SHOULDER_HAND_INSET_PX,
   SWING_BODY_TURN_DEG,
+  SWING_HOLD_BEARING_DEG,
   SWING_FLARE_PX,
   SWING_HAND_DROP_PX,
   SWING_LATERAL_PX,
@@ -229,7 +230,11 @@ export function swingPlan(
     const end = ends[station] ?? ctx.spot(station);
     const start = ctx.spot(station);
     const p = lerp(lerp(start.p, turning, into), end.p, open);
-    const held = psi + (isLark ? 0 : 180) - SWING_BODY_TURN_DEG * into;
+    // Face your partner, then turn `SWING_BODY_TURN_DEG` out of that as the
+    // hold is taken. The partner is not along the axis of the turn but
+    // `SWING_HOLD_BEARING_DEG` round from it, because the ballroom offset puts
+    // each dancer across the axis as well as along it.
+    const held = psi + (isLark ? 0 : 180) + SWING_HOLD_BEARING_DEG - SWING_BODY_TURN_DEG * into;
     const facing = angleLerp(angleLerp(start.facing, held, into), pair.endFacing, open);
     return { p, facing };
   };
