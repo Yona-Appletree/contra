@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EFFECTORS, JOINTS } from "../body/Body.js";
-import { PAIR, PAIR_SOLO } from "../dialect/pair/Pair.js";
-import { FIGURES } from "../figures/registry.js";
-import { compile } from "../lang/compile.js";
-import { FIXTURE_PROGRAM } from "../lang/fixture.js";
-import { parse } from "../lang/parse.js";
+import { compileDance, readDance, standardFloor } from "../dances/load.js";
+import { treeDialect } from "../dialect/tree/TreeDialect.js";
 import { kinematicsOf, proveMotion, type Violation } from "../motion/prove.js";
 import { dist } from "../motion/Vec3.js";
 import { schedule } from "../schedule/schedule.js";
@@ -16,8 +13,12 @@ import { execute } from "./execute.js";
 
 const T = tempo(112);
 
-const run = (dialect = PAIR) => {
-  const { sequence, errors } = compile(parse(FIXTURE_PROGRAM), FIGURES, dialect);
+const PAIR = { dancers: ["lark", "robin"] };
+
+const run = (floorName = "pair") => {
+  const floor = standardFloor(floorName);
+  const dialect = treeDialect(floor);
+  const { sequence, errors } = compileDance(readDance("fixture.dance"), floor);
   expect(errors).toEqual([]);
   const scheduled = schedule(sequence, dialect, T);
   expect(scheduled.errors).toEqual([]);
@@ -197,7 +198,7 @@ describe("the executor's output, handed to the body solver", () => {
 
 describe("the fixture, danced alone", () => {
   it("stands the solo dancer still for forty beats with nothing in either hand", () => {
-    const { executed } = run(PAIR_SOLO);
+    const { executed } = run("solo");
     const t = executed.trajectories.lark!;
     expect(Object.keys(executed.input.dancers)).toEqual(["lark"]);
     expect(executed.input.dancers.lark!.holds).toEqual([]);

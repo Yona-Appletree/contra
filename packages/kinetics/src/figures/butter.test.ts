@@ -1,37 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { contraDialect } from "../dialect/contra/Contra.js";
+import { compileDance, standardFloor } from "../dances/load.js";
 import type { Dialect } from "../dialect/Dialect.js";
+import { treeDialect } from "../dialect/tree/TreeDialect.js";
 import { execute } from "../executor/execute.js";
-import { compile } from "../lang/compile.js";
-import { parse } from "../lang/parse.js";
 import { proveMotion } from "../motion/prove.js";
 import { schedule } from "../schedule/schedule.js";
 import type { Schedule } from "../schedule/schedule.js";
+import type { Floor } from "../tree/floor.js";
+import { resolve } from "../tree/relations.js";
 import { tempo } from "../units/Tempo.js";
-import { FIGURES } from "./registry.js";
 
 const T = tempo(112);
 
-/** Six couples in becket: three hands fours, so the middle one has no end effects. */
-const becket6 = (): Dialect => contraDialect({ formation: "becket", couples: 6 });
+/** Six couples in becket: three minor sets, so the middle one has no end effects. */
+const becket6 = (): Floor => standardFloor("becket", { "minor-sets": 3 });
 
-const runProgram = (source: string, dialect = becket6()): Schedule => {
-  const { sequence, errors } = compile(parse(source), FIGURES, dialect);
+const runProgram = (source: string, floor = becket6()): { s: Schedule; dialect: Dialect } => {
+  const dialect = treeDialect(floor);
+  const { sequence, errors } = compileDance(source, floor);
   expect(errors).toEqual([]);
-  return schedule(sequence, dialect, T);
+  return { s: schedule(sequence, dialect, T), dialect };
 };
 
-/** The dancers of the middle hands four, who have everybody they need. */
+/** The dancers of the middle minor set, who have everybody they need. */
 const MIDDLE = ["3L", "3R", "4L", "4R"];
 
 /**
  * No schedule errors, and the proof's shortfall pinned rather than hidden:
  * feet and hands prove clean; the hip is over its acceleration cap at figure
  * **seams** — a straight entry walk turning into an orbit, an orbit's landing
- * with the next figure setting off the other way — by up to two and a half times at the worst seam (the swing landing into long lines). The
- * fix is a curved entry in the scheduler (the entry walk should join the
- * orbit tangentially), not a bigger number in `CAPS`; this test exists to
- * keep that visible until it lands.
+ * with the next figure setting off the other way — by up to two and a half
+ * times at the worst seam (the swing landing into long lines). The fix is a
+ * curved entry in the scheduler (the entry walk should join the orbit
+ * tangentially), not a bigger number in `CAPS`; this test exists to keep
+ * that visible until it lands.
  */
 const proveDancers = (s: Schedule, dialect: Dialect, dancers: readonly string[]): void => {
   expect(s.errors).toEqual([]);
@@ -50,21 +52,20 @@ const proveDancers = (s: Schedule, dialect: Dialect, dancers: readonly string[])
 
 describe("Butter's figures alone, at floor level", () => {
   it("circle left three quarters: the four go round together, facing in, and prove", () => {
-    const d = becket6();
-    const s = runProgram("ring = select(hands-four)\ncircle(ring, left, 3, 6)", d);
+    const { s, dialect } = runProgram(
+      "dance d($minor-set: Group) { circle($minor-set, Left, places = 3, beats = 6); }",
+    );
     const call = s.calls["3L"]![0]!;
     // The take costs the first beat (nothing before it to overlap), so three
     // quarters go round in the five that are left.
     expect(call.rate).toBeCloseTo(0.75 / (call.exit[1] - call.body[0]), 9);
     expect(call.seamIn).toBe("take");
-    proveDancers(s, d, MIDDLE);
+    proveDancers(s, dialect, MIDDLE);
   });
 
   it("swing: free turns land the couple beside each other facing home, lark on the left", () => {
-    const d = becket6();
-    const s = runProgram(
-      "neighbor = select(neighbor)\nswing(neighbor, 12)\nlong-lines(neighbor, 8)",
-      d,
+    const { s } = runProgram(
+      "dance d($neighbor: Place) { swing($neighbor, beats = 12); long-lines($neighbor, beats = 8); }",
     );
     const swingCall = s.calls["3L"]![0]!;
     // Twelve beats from across the set: two to come together, two to open
@@ -79,57 +80,59 @@ describe("Butter's figures alone, at floor level", () => {
   });
 
   it("long lines forward and back returns everyone to place", () => {
-    const d = becket6();
-    const s = runProgram("partner = select(partner)\nlong-lines(partner, 8)", d);
+    const { s, dialect } = runProgram(
+      "dance d($partner: Place) { long-lines($partner, beats = 8); }",
+    );
     const program = s.programs["3L"]!;
     const steps = program.slots.flatMap((slot) => slot.instrs.filter((i) => i.op === "step"));
     expect(steps.length).toBeGreaterThan(0);
-    proveDancers(s, d, MIDDLE);
+    proveDancers(s, dialect, MIDDLE);
   });
 
   it("balance: a rock forward and back with both hands", () => {
-    const d = becket6();
-    const s = runProgram("partner = select(partner)\nbalance(partner)", d);
-    proveDancers(s, d, MIDDLE);
+    const { s, dialect } = runProgram("dance d($partner: Place) { balance($partner); }");
+    proveDancers(s, dialect, MIDDLE);
   });
 
   it("shift left moves the couple one place and the seating with it", () => {
-    const d = becket6();
-    const source = [
-      "partner = select(partner)",
-      "before = select(neighbor)",
-      "progress()",
-      "after = select(neighbor)",
-      "shift(after, left)",
-      "swing(after, 8)",
-    ].join("\n");
-    const { sequence, errors } = compile(parse(source), FIGURES, d);
+    const floor = becket6();
+    const dialect = treeDialect(floor);
+    const { sequence, errors } = compileDance(
+      "dance d($partner: Place, $neighbor: Place) { progress(); shift($neighbor, Left); swing($neighbor, beats = 8); }",
+      floor,
+    );
     expect(errors).toEqual([]);
     const calls = sequence.perDancer["3L"]!;
     expect(calls[0]!.figure.id).toBe("shift");
     // After the progression the neighbour is a different dancer.
-    const before = d.select("neighbor", "3L", d.initial());
-    expect(calls[1]!.cast.partner).not.toBe(before);
-    const s = schedule(sequence, d, T);
+    const before = resolve(
+      "neighbor",
+      floor.initial.placeOf.get("3L")!,
+      floor.root,
+      floor.mods,
+    ).value;
+    const beforeId =
+      before.kind === "place" ? floor.initial.dancerOf.get(before.place.path) : undefined;
+    expect(beforeId).toBe("4R");
+    expect(calls[1]!.cast.partner).not.toBe(beforeId);
+    expect(calls[1]!.bindings["neighbor"]).toBe(calls[1]!.cast.partner);
+    const s = schedule(sequence, dialect, T);
     expect(s.errors).toEqual([]);
   });
 });
 
 describe("Butter's A1", () => {
   it("shift, circle, swing for the middle four: no errors, every effector proved", () => {
-    const d = becket6();
-    const s = runProgram(
+    const { s, dialect } = runProgram(
       [
-        "partner = select(partner)",
-        "shift(partner, left)",
-        "ring = select(hands-four)",
-        "neighbor = select(neighbor)",
-        "circle(ring, left, 3, 6)",
-        "swing(neighbor, 8)",
-        "long-lines(partner, 8)",
+        "dance d($partner: Place, $neighbor: Place, $minor-set: Group) {",
+        "  shift($partner, Left);",
+        "  circle($minor-set, Left, places = 3, beats = 6);",
+        "  swing($neighbor, beats = 8);",
+        "  long-lines($partner, beats = 8);",
+        "}",
       ].join("\n"),
-      d,
     );
-    proveDancers(s, d, MIDDLE);
+    proveDancers(s, dialect, MIDDLE);
   });
 });

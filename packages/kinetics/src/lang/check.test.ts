@@ -23,6 +23,16 @@ describe("the checker", () => {
     ]);
   });
 
+  it("reads a bare $ or name in a condition as a somebody test", () => {
+    expect(errors("dance d() { if ($partner) { swing($partner); } }")).toEqual([]);
+    expect(
+      errors("dance d() { if ($partner and not $role is Robin) { swing($partner); } }"),
+    ).toEqual([]);
+    expect(errors("dance d() { if (3) { swing($partner); } }")).toEqual([
+      "expected Bool, found Int",
+    ]);
+  });
+
   it("resolves a bare member from the parameter it is given to", () => {
     expect(errors("dance d() { allemande($partner, Right); }")).toEqual([]);
     expect(errors("dance d() { allemande($partner, Robin); }")).toEqual([

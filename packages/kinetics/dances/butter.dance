@@ -4,6 +4,9 @@
 // B1 (16) Hey (WR;NL;MR;PL;WR;NL;MR)
 // B2 (4) Partner balance (12) Partner swing
 // The first time through has no shift: the circle takes the eight beats.
+// The robins chain and the hey are not written yet: a partner swing stands
+// in for the two, keeping the sixty-four beats and bringing each couple
+// back together on the lark's side as the chain would.
 
 dance butter($partner: Place, $neighbor: Place, $minor-set: Group) {
   title "Butter";
@@ -20,8 +23,7 @@ dance butter($partner: Place, $neighbor: Place, $minor-set: Group) {
       }
       swing($neighbor, beats = 8);
       long-lines($neighbor, beats = 8);
-      robins-chain($minor-set, beats = 8);
-      hey($minor-set, "WR;NL;MR;PL;WR;NL;MR", beats = 16);
+      swing($partner, beats = 24);
       balance($partner);
       swing($partner, beats = 12);
     } else {

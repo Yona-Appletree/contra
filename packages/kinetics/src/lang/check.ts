@@ -138,7 +138,7 @@ function checkModule(item: ModuleItem, ctx: Ctx): void {
           walk(stmt.body);
           break;
         case "if":
-          typeOf(stmt.condition, "Bool", scope);
+          condition(stmt.condition, scope);
           walk(stmt.then);
           walk(stmt.else);
           break;
@@ -259,6 +259,18 @@ function checkCall(
 
 const NUMERIC = new Set(["Int", "Number", "Length", "Beats"]);
 
+/**
+ * A condition is a Bool, or a **somebody test**: a bare `$neighbor`, a
+ * `let` name or a path is true when it found someone (the user: *"if the
+ * select returns no-one, then you just stay put"*), so those are inferred
+ * and not held to Bool.
+ */
+const condition = (e: Expr, scope: Scope): void => {
+  if (e.kind === "dyn" || e.kind === "name" || e.kind === "path" || e.kind === "call")
+    infer(e, undefined, scope);
+  else typeOf(e, "Bool", scope);
+};
+
 /** The type of an expression, checking it against `expected` when given. */
 function typeOf(e: Expr, expected: string | undefined, scope: Scope): string {
   const found = infer(e, expected, scope);
@@ -336,7 +348,7 @@ function infer(e: Expr, expected: string | undefined, scope: Scope): string {
       return UNKNOWN;
     case "unary":
       if (e.op === "not") {
-        typeOf(e.of, "Bool", scope);
+        condition(e.of, scope);
         return "Bool";
       }
       return infer(e.of, expected, scope);
@@ -353,8 +365,8 @@ function infer(e: Expr, expected: string | undefined, scope: Scope): string {
         return "Bool";
       }
       if (e.op === "and" || e.op === "or") {
-        typeOf(e.left, "Bool", scope);
-        typeOf(e.right, "Bool", scope);
+        condition(e.left, scope);
+        condition(e.right, scope);
         return "Bool";
       }
       if (e.op === "==" || e.op === "!=") {
@@ -375,7 +387,7 @@ function infer(e: Expr, expected: string | undefined, scope: Scope): string {
       return "Number";
     }
     case "cond": {
-      typeOf(e.condition, "Bool", scope);
+      condition(e.condition, scope);
       const then = infer(e.then, expected, scope);
       infer(e.else, then === UNKNOWN ? expected : then, scope);
       return then;

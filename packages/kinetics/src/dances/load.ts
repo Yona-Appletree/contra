@@ -1,8 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { File } from "../lang/syntax.js";
+import { FIGURES } from "../figures/registry.js";
+import type { FigureRegistry } from "../figures/registry.js";
+import type { CompileInput } from "../lang/compile.js";
+import { compile } from "../lang/compile.js";
 import { parse } from "../lang/parser.js";
+import type { File } from "../lang/syntax.js";
+import type { Floor } from "../tree/floor.js";
+import { floorOf } from "../tree/floor.js";
 
 /**
  * The `.dance` files of the package, read from disk — for tests and node.
@@ -34,3 +40,26 @@ export const loadFormation = (name: string): File[] => [
   loadDance("formations/common.dance"),
   loadDance(`formations/${name}.dance`),
 ];
+
+/** `dances/moves.dance`, parsed. */
+export const loadMoves = (): File => loadDance("moves.dance");
+
+/** A standard floor: the named formation from disk, built and seated. */
+export const standardFloor = (name: string, args: Readonly<Record<string, number>> = {}): Floor =>
+  floorOf(loadFormation(name), name, args);
+
+/** A dance file from disk compiled on a floor with the standard moves — the tests' one-liner. */
+export function compileDance(
+  source: string,
+  floor: Floor,
+  options: { registry?: FigureRegistry; moves?: File; entry?: string } = {},
+): ReturnType<typeof compile> {
+  const input: CompileInput = {
+    dance: parse(source),
+    moves: options.moves ?? loadMoves(),
+    floor,
+    registry: options.registry ?? FIGURES,
+  };
+  if (options.entry !== undefined) input.entry = options.entry;
+  return compile(input);
+}

@@ -1,44 +1,50 @@
 import type { ListingLine } from "./asm/listing.js";
 import { listing } from "./asm/listing.js";
 import type { DancerId, Dialect } from "./dialect/Dialect.js";
-import { PAIR } from "./dialect/pair/Pair.js";
+import { treeDialect } from "./dialect/tree/TreeDialect.js";
 import type { Executed } from "./executor/execute.js";
 import { execute } from "./executor/execute.js";
 import { FIGURES } from "./figures/registry.js";
-import type { SourceProgram, Span } from "./lang/ast.js";
+import type { FigureRegistry } from "./figures/registry.js";
+import { check } from "./lang/check.js";
 import type { CompiledSequence } from "./lang/compile.js";
 import { compile } from "./lang/compile.js";
-import { isParseError, parse } from "./lang/parse.js";
+import { isSyntaxError } from "./lang/lexer.js";
+import { parse } from "./lang/parser.js";
+import type { File, Span } from "./lang/syntax.js";
 import type { Schedule } from "./schedule/schedule.js";
 import { schedule } from "./schedule/schedule.js";
 import type { SolvedBodies } from "./solver/solveBody.js";
 import { solveBodies } from "./solver/solveBody.js";
+import type { Floor } from "./tree/floor.js";
+import { groupsOf } from "./tree/Tree.js";
 import type { Tempo } from "./units/Tempo.js";
 import { tempo } from "./units/Tempo.js";
 
 /**
- * The whole engine as one call: source text in, every layer's output out.
+ * The whole engine as one call: a dance's text in, every layer's output out.
  *
- * `run` is the debugger's only entry point, and the only place the six stages
+ * `run` is the debugger's only entry point, and the only place the stages
  * are wired to each other. A stage that fails leaves every later field
  * undefined and puts its complaint in `errors`, so the page always has
- * something to draw — a program with a parse error still shows its text, and a
- * program the scheduler cannot time still shows the calls it compiled.
+ * something to draw — a dance with a syntax error still shows its text, and
+ * a dance the scheduler cannot time still shows the calls it compiled.
  */
-export function run(source: string, opts: RunOptions = {}): Run {
-  const dialect = opts.dialect ?? PAIR;
+export function run(source: string, opts: RunOptions): Run {
+  const { floor, moves } = opts;
+  const dialect = treeDialect(floor);
   const t = opts.bpm === undefined ? tempo() : tempo(opts.bpm);
   const errors: RunError[] = [];
   const warnings: RunWarning[] = [];
 
-  let program: SourceProgram | undefined;
+  let program: File | undefined;
   let parseFailure: RunError | undefined;
   try {
     program = parse(source);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     parseFailure = { stage: "parse", message };
-    if (isParseError(error)) {
+    if (isSyntaxError(error)) {
       parseFailure.span = { start: error.offset, end: error.offset, line: error.line };
     }
     errors.push(parseFailure);
@@ -46,6 +52,7 @@ export function run(source: string, opts: RunOptions = {}): Run {
 
   const empty: Run = {
     source,
+    floor,
     dialect,
     tempo: t,
     program,
@@ -56,16 +63,38 @@ export function run(source: string, opts: RunOptions = {}): Run {
   };
   if (!program) return parseFailure ? { ...empty, parseError: parseFailure } : empty;
 
-  const compiled = compile(program, FIGURES, dialect);
+  // The checker sees the prelude's enums through the floor's modules, and
+  // the $ variables the formation provides with their declared types.
+  const dynamics: Record<string, string> = {};
+  for (const group of groupsOf(floor.root)) {
+    dynamics[group.kind] = "Group";
+    for (const p of group.provides) dynamics[p.name] = p.type;
+  }
+  const preludeItems = {
+    items: [...floor.mods.enums].map(([name, members]) => ({
+      kind: "enum" as const,
+      name,
+      members,
+      span: { start: 0, end: 0, line: 0 },
+    })),
+    source: "",
+  };
+  for (const e of check([preludeItems, moves, program], { dynamics })) {
+    errors.push({ stage: "check", message: e.message, span: e.span });
+  }
+
+  const compiled = compile({
+    dance: program,
+    moves,
+    floor,
+    registry: opts.registry ?? FIGURES,
+    ...(opts.entry === undefined ? {} : { entry: opts.entry }),
+  });
   for (const e of compiled.errors) {
     errors.push(
       e.span === undefined
         ? { stage: "compile", message: e.message }
-        : {
-            stage: "compile",
-            message: e.message,
-            span: e.span,
-          },
+        : { stage: "compile", message: e.message, span: e.span },
     );
   }
   const sequence: CompiledSequence = compiled.sequence;
@@ -100,6 +129,7 @@ export function run(source: string, opts: RunOptions = {}): Run {
 
   const base: Run = {
     source,
+    floor,
     dialect,
     tempo: t,
     program,
@@ -131,20 +161,25 @@ const attempt = <T>(stage: RunError["stage"], errors: RunError[], f: () => T): T
   }
 };
 
-/** What to run the program for: who is on the floor, and how fast. */
+/** What to run the dance on: which floor, which moves, how fast. */
 export interface RunOptions {
-  /** Defaults to the pair. */
-  dialect?: Dialect;
+  floor: Floor;
+  /** The moves the dance may call: `dances/moves.dance`, parsed. */
+  moves: File;
+  /** The dance module to run; the file's first by default. */
+  entry?: string;
   /** Defaults to `@caller/core`'s `DEFAULT_BPM`. */
   bpm?: number;
+  registry?: FigureRegistry;
 }
 
 /** Every layer's output, and everything that went wrong on the way. */
 export interface Run {
   source: string;
+  floor: Floor;
   dialect: Dialect;
   tempo: Tempo;
-  program: SourceProgram | undefined;
+  program: File | undefined;
   /** Set when the text does not parse; nothing after it is present. */
   parseError?: RunError;
   sequence?: CompiledSequence;
@@ -162,7 +197,7 @@ export interface Run {
  * a single line and does not care which layer minded.
  */
 export interface RunError {
-  stage: "parse" | "compile" | "schedule" | "execute" | "solve";
+  stage: "parse" | "check" | "compile" | "schedule" | "execute" | "solve";
   /** The scheduler's `ScheduleErrorKind`, where there is one. */
   kind?: string;
   message: string;
@@ -179,5 +214,3 @@ export interface RunWarning {
   dancer?: DancerId;
   beat?: number;
 }
-
-export { FIXTURE_PROGRAM } from "./lang/fixture.js";

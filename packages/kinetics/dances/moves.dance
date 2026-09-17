@@ -1,0 +1,41 @@
+// Every move the compiler knows: the $ variables it needs (its contract),
+// the parameters a caller may say, and the figure IR it is. The IR's own
+// parameters are matched by name — `hand`, `direction`, `places`, `beats` —
+// and its counterpart is the first Place the contract names, its ring the
+// first Group.
+
+move bow($partner: Place) {
+  ir "bow";
+}
+
+move do-si-do($partner: Place) {
+  ir "do-si-do";
+}
+
+move allemande($partner: Place, hand: Hand, amount: Number = 1, beats: Beats = 8) {
+  ir "allemande";
+}
+
+move shift($partner: Place, direction: Turn = Left, beats: Beats = 2) {
+  ir "shift";
+}
+
+move circle($minor-set: Group, direction: Turn = Left, places: Int = 4, beats: Beats = 8) {
+  ir "circle";
+}
+
+move swing($partner: Place, beats: Beats = 8) {
+  ir "swing";
+}
+
+move long-lines($neighbor: Place, beats: Beats = 8) {
+  ir "long-lines";
+}
+
+move balance($partner: Place) {
+  ir "balance";
+}
+
+move wait-out($partner: Place, beats: Beats = 64) {
+  ir "wait-out";
+}

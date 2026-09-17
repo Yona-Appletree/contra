@@ -1,56 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { contraDialect } from "../dialect/contra/Contra.js";
+import { treeDialect } from "../dialect/tree/TreeDialect.js";
 import { execute } from "../executor/execute.js";
-import { FIGURES } from "../figures/registry.js";
-import { compile } from "../lang/compile.js";
-import { parse } from "../lang/parse.js";
 import { proveMotion } from "../motion/prove.js";
 import { schedule } from "../schedule/schedule.js";
 import { tempo } from "../units/Tempo.js";
 import { BUTTER_BEATS_PER_TIME } from "./butter.js";
+import { compileDance, readDance, standardFloor } from "./load.js";
 
 const T = tempo(112);
+const BUTTER = readDance("butter.dance");
 
 /**
  * Butter's loop with the figures that exist so far: the seven times through,
  * the first-time elision, the progression, and the ends. The chain and the
- * hey are stood in for by long lines and a second swing until they land,
- * keeping the sixty-four beats.
+ * hey are stood in for by a second swing until they land, keeping the
+ * sixty-four beats.
  */
-const PARTIAL = `// Butter — Gene Hubert, becket
-partner = select(partner)
-
-repeat(7) { dance() }
-
-dance {
-  when (not first-time) { progress() }
-  here = select(neighbor)
-  if (here) {
-    when (first-time) {
-      ring = select(hands-four)
-      circle(ring, left, 3, 8)
-    } else {
-      shift(partner, left)
-      ring = select(hands-four)
-      circle(ring, left, 3, 6)
-    }
-    swing(here, 8)
-    long-lines(here, 8)
-    swing(partner, 24)
-    balance(partner)
-    swing(partner, 12)
-  } else {
-    wait-out(partner, 64)
-  }
-}
-`;
-
 describe("Butter, the loop", () => {
-  for (const couples of [2, 4, 6]) {
-    it(`${couples} couples: seven times through, first time without the shift, and the seams pinned`, () => {
-      const d = contraDialect({ formation: "becket", couples });
-      const { sequence, errors } = compile(parse(PARTIAL), FIGURES, d);
+  for (const minorSets of [1, 2, 3]) {
+    const couples = minorSets * 2;
+    it(`${String(couples)} couples: seven times through, first time without the shift, and the seams pinned`, () => {
+      const floor = standardFloor("becket", { "minor-sets": minorSets });
+      const d = treeDialect(floor);
+      const { sequence, errors } = compileDance(BUTTER, floor);
       expect(errors).toEqual([]);
+      expect(sequence.title).toBe("Butter");
       const calls = sequence.perDancer["1L"]!;
       // First time: no shift, and the circle takes the eight beats (D8).
       const first = calls[0]!;
@@ -60,6 +34,7 @@ describe("Butter, the loop", () => {
       const starts = calls.filter((c) => c.start % BUTTER_BEATS_PER_TIME === 0);
       expect(starts.length).toBe(7);
       expect(calls[calls.length - 1]!.end).toBe(7 * BUTTER_BEATS_PER_TIME);
+      expect(sequence.memberships.length).toBe(7);
       const s = schedule(sequence, d, T);
       // Pinned, not hidden: a handful of seams over the whole evening are still
       // over a step's length — a swing opening out to the line from where its
@@ -86,8 +61,9 @@ describe("Butter, the loop", () => {
   }
 
   it("ends: a couple that runs off the end crosses over, waits one time through, and comes back in", () => {
-    const d = contraDialect({ formation: "becket", couples: 4 });
-    const { sequence, errors } = compile(parse(PARTIAL), FIGURES, d);
+    const floor = standardFloor("becket", { "minor-sets": 2 });
+    const d = treeDialect(floor);
+    const { sequence, errors } = compileDance(BUTTER, floor);
     expect(errors).toEqual([]);
     // Somewhere in seven times through, every dancer stands a whole time through, and dances again after.
     for (const id of d.dancers) {
