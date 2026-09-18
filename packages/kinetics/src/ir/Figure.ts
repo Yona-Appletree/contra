@@ -61,8 +61,12 @@ export interface FigureIR {
  */
 export type Role = "self" | "partner" | "left" | "right" | "opposite";
 
-/** What `self` does when the keyed role is nobody. */
-export type CastRule = "elide" | "stand" | "walk-on";
+/**
+ * What `self` does when the keyed role is nobody. `free` is the long wave's
+ * rule (M3): the figure goes on without that role, and a hold named with
+ * it is simply not taken — the end robin balances with one hand.
+ */
+export type CastRule = "elide" | "stand" | "walk-on" | "free";
 
 /**
  * `nominal` is what a caller means by the figure; `min` is the fewest beats
@@ -83,6 +87,12 @@ export interface ParamSpec {
    * figure file itself never spells a role (D16); `enum`; `number`.
    */
   kind: "dancer" | "group" | "role" | "enum" | "number" | "string";
+  /**
+   * Which figure-role a `dancer` parameter binds: `partner` when omitted.
+   * A figure with two counterparts at once — the long wave's `right` and
+   * `left` — names a role for each, and the cast reads them by name.
+   */
+  role?: Exclude<Role, "self">;
   /** The words an `enum` accepts, in the order an error message lists them. */
   choices?: readonly string[];
   /** Filled in when the call omits the argument. A `dancer` never has one. */
@@ -101,6 +111,12 @@ export type Arrangement =
   /** `home` is the facing the dialect's seating gives this dancer's place (across, in a contra line). */
   | { kind: "facing"; who: Role; toward: Role | "home" }
   | { kind: "apart"; who: Role; from: Role; minPx: number; maxPx: number }
+  /**
+   * So many px forward of where `who` stands, facing unchanged: the long
+   * wave forms a step or two forward of the line, on the hall's centre,
+   * at each dancer's own place along it.
+   */
+  | { kind: "forward"; who: Role; distancePx: number }
   | {
       kind: "beside";
       who: Role;
@@ -149,13 +165,16 @@ export type Window =
        */
       sense: Choice<OrbitSense>;
       /**
-       * `fixed` keeps the facing it started with; `tangent` follows the arc;
-       * `inward` faces the axis; `partner` faces the counterpart; `couple`
-       * faces the pair one way as a couple — the dancer on the couple's right
-       * (the dialect's side) along the arc, the one on the left backing
-       * round with them (a courtesy turn).
+       * `fixed` keeps the facing it started with, each of a pair turned to
+       * where the other will stand (a do-si-do); `kept` keeps the facing
+       * exactly as the dancers arrive with it, no turn at all (a mad robin,
+       * eyes across the set); `tangent` follows the arc; `inward` faces the
+       * axis; `partner` faces the counterpart; `couple` faces the pair one
+       * way as a couple — the dancer on the couple's right (the dialect's
+       * side) along the arc, the one on the left backing round with them (a
+       * courtesy turn).
        */
-      facing: "fixed" | "tangent" | "inward" | "partner" | "couple";
+      facing: "fixed" | "kept" | "tangent" | "inward" | "partner" | "couple";
       /** Distance from the axis, in world px. */
       radiusPx: number;
       /** Above this the scheduler reports a rate violation, not a fast dancer. */
@@ -170,6 +189,15 @@ export type Window =
        * the two places as it comes round. Omitted, the radius holds.
        */
       openPx?: number;
+      /**
+       * `post`: when no figure follows that this one can spiral out into —
+       * the next figure has a different cast, or there is none — the last
+       * beats spiral to this figure's **own** `post` instead, so a swing ends
+       * on the places facing home whatever comes after it (M3: Robins on a
+       * Wire's partner swing into the next time's chain). A next figure of
+       * the same cast still negotiates the exit as before.
+       */
+      exit?: "post";
     } & WindowCommon)
   /**
    * Walk a path of waypoints, each at a beat, in the figure's **lane frame**:

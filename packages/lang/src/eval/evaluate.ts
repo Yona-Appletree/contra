@@ -103,6 +103,14 @@ export interface ScriptCtx {
   lastTime: boolean;
   /** False while running somebody else's `progress`, where nothing may take beats. */
   canMove: boolean;
+  /**
+   * True while an entrant **replays** the script from the top (notes D8): a
+   * move advances the cursor and records nothing, an event queues nothing, a
+   * card says nothing, and an argument the entrant cannot read yet — a
+   * relation its path has not got — is nobody rather than a failure. The
+   * `progress()` at the admitting beat turns it off.
+   */
+  silent?: boolean;
   move: (ir: string, args: readonly MoveArg[], beats: number, span: Span, ctx: Ctx) => void;
   queue: (to: Node, span: Span, ctx: Ctx) => void;
   card: (text: string, span: Span, ctx: Ctx) => void;
@@ -159,7 +167,21 @@ export function* execStmts(
   ctx: Ctx,
 ): Generator<void, Value | undefined, void> {
   let tail: Value | undefined;
-  for (const stmt of stmts) tail = yield* execStmt(stmt, ctx);
+  for (const stmt of stmts) {
+    if (ctx.script?.silent !== true) {
+      tail = yield* execStmt(stmt, ctx);
+      continue;
+    }
+    // A silent replay (D8) skips a statement it cannot read yet — a
+    // relation the entrant's path has not got — rather than failing the
+    // time through; the arguments of a move are already lenient (above), so
+    // this is the backstop for a read outside one.
+    try {
+      tail = yield* execStmt(stmt, ctx);
+    } catch (error) {
+      if (!isEvalFailure(error)) throw error;
+    }
+  }
   return tail;
 }
 
@@ -353,9 +375,29 @@ export interface EvaluatedArg {
 function evaluateArgs(args: readonly Arg[], ctx: Ctx): EvaluatedArg[] {
   return args.map((arg) => ({
     ...(arg.name === undefined ? {} : { name: arg.name }),
-    value: evaluateExpr(arg.value, { ...ctx, inExpression: true }),
+    value: evaluateArg(arg, ctx),
   }));
 }
+
+/**
+ * One argument. In a silent replay (D8) an argument the entrant cannot read
+ * — `neighbor` from a `Station`, `one!` over an empty place — is **nobody**
+ * rather than a failure, so the move it belongs to still takes its beats and
+ * the cursor still counts up to the admitting `progress()`.
+ */
+function evaluateArg(arg: Arg, ctx: Ctx): Value {
+  const inner: Ctx = { ...ctx, inExpression: true };
+  if (ctx.script?.silent !== true) return evaluateExpr(arg.value, inner);
+  try {
+    return evaluateExpr(arg.value, inner);
+  } catch (error) {
+    if (!isEvalFailure(error)) throw error;
+    return NOBODY;
+  }
+}
+
+/** An empty selection: what a `Role` argument holds when it names nobody (D10). */
+const NOBODY: Value = { t: "selection", items: [] };
 
 /** Call a `fn` value: a move emits, a dance re-bases the beat, the rest runs. */
 export function* callFn(
@@ -452,6 +494,23 @@ function emitMove(decl: FnDecl, ir: string, ctx: Ctx, span: Span): void {
     const value = lookupEnv(ctx.env, param.name);
     if (value === undefined) continue;
     if (param.name === "beats") beats = toInt(value);
+    // A `Role` argument is one person or nobody (D10): the end of the line
+    // has no far mate, and the figure's own cast rule says what a dancer
+    // does then. Two or more is a question the text has not answered.
+    if (param.type.kind === "named" && value.t === "selection" && value.items.length > 1)
+      fail(
+        ctx,
+        "L110",
+        "script",
+        `${decl.name}(${param.name}): ${String(value.items.length)} matched, ${value.items
+          .map(showValue)
+          .join(" and ")}; a move takes one`,
+        span,
+        {
+          suggestion:
+            "name the kind that tells them apart in the select, or write `one!` to say it must be exactly one",
+        },
+      );
     const ref = refOf(value);
     args.push({ name: param.name, value: showValue(value), ...(ref === undefined ? {} : { ref }) });
   }

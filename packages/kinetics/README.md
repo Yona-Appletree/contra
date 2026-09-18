@@ -122,6 +122,29 @@ the chain's pull-by while the lark receives. A window may take holds at its
 start (the courtesy hold as the pull-by ends), and its share of the body may
 come from a parameter (a hey's lap is `16 × amount − 4` beats).
 
+## The figures, and what a figure may say (M3)
+
+| figure                                                      | what it is                                                                                                                               |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `bow`, `do-si-do`, `allemande`, `balance`, `swing`          | the pair's, and a swing that ends on its own post when nothing of its cast follows (`exit: "post"`)                                      |
+| `shift`, `circle`, `long-lines`, `chain`, `hey`, `wait-out` | Butter's (M1, M2)                                                                                                                        |
+| `mad-robin`                                                 | the two beside each other orbit each other with the facing **kept** (`facing: "kept"`): a sideways do-si-do, eyes across the set         |
+| `form-wave`                                                 | a body that is an **arrangement**: a step forward of the line (`forward`), a hand to each side in the `wave` hold, either of them nobody |
+| `balance-wave`                                              | the balance's own intrinsic in the wave's hands, carried in; released after                                                              |
+| `single-file-promenade`                                     | the ring's orbit on the tangent, no hands, so many eighths round                                                                         |
+| `shoulder-round`                                            | a gypsy: an orbit shoulder to shoulder on the tangent, the head on the partner                                                           |
+| `stand`                                                     | the other role's half of a `\|\|`                                                                                                        |
+
+A `dancer` parameter binds a figure-role — `partner` unless it says
+(`role: "right"`), so the wave has two counterparts at once — and a cast
+rule `free` says the figure goes on without that role: a hold named with it
+is not taken, and the end robin balances with one hand. A figure's instance
+is the **connected component** of its casts over its span: a pair, a ring,
+or the whole long wave, so both sides of every hand come from one piece of
+geometry. `K107 HandTaken` is a hand this take wants that is already in a
+third dancer's hold — the entrant robin at a mid-dance progression, joining a
+wave whose hands were taken before her commit — reported, never overwritten.
+
 ## The seams
 
 A hold the next figure needs and this one already has is **carried**; a take
@@ -155,10 +178,15 @@ non-zero the moment anything is an error. `--json` is the same for an agent.
 
 ## What is deliberately not here yet
 
-The promenade; a buzz-step swing; the holds gallery and approvals (the
-chain's courtesy hold and the pull-by's right hands are placeholders — the
-pull-by's are not even taken, the other robin being outside the pair's
-cast); the other becket end (Q1 of the kinetics plan); triple minor's
+The couples' promenade (`contra.dance`'s `promenade`; the single-file one
+is here); a buzz-step swing; the holds gallery and approvals (the chain's
+courtesy hold, the pull-by's right hands and the long wave's hands are
+placeholders — the pull-by's are not even taken, the other robin being
+outside the pair's cast, and the wave's fold the arm nearly double, which
+the solver's elbow says); the other becket end (Q1 of the kinetics plan);
+a promenade that walks the places as a chain rather than the circle through
+them (the old library's finding, and what the 5/8 in four beats pins);
+triple minor's
 progression is an approximation; a half hey from the language (the figure
 takes `amount`, `contra.dance`'s `hey` does not pass it yet); moving the
 engine to metres; editor support; publishing the debugger at `/spikes/`. And

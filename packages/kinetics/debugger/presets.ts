@@ -38,6 +38,8 @@ const LABELS: Readonly<Record<string, string>> = {
   fixture: "pair — bow, do-si-do, allemande",
   solo: "solo — the lark, nobody across",
   butter: "Butter",
+  "robins-on-a-wire": "Robins on a Wire",
+  "robins-on-a-wire-passed": "Robins on a Wire — allemande the hand you hold",
 };
 
 /** Every dance in the bundle, as the language sees them, sorted by name. */

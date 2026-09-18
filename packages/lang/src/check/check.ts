@@ -1178,6 +1178,12 @@ function checker(program: Program) {
     if (fn.role === "move") {
       for (const { param, arg, want, type } of bound) {
         if (want.kind !== "group-ref" || type.kind !== "selection") continue;
+        // A parameter typed as a place kind — `with: Role` — takes a
+        // selection as it stands (notes D10): the end of the line's far mate
+        // is nobody, and the figure's own cast rule decides what the dancer
+        // does then. Several at once is the evaluator's `L110`, at the call;
+        // `one!` stays the mark that says it must be exactly one.
+        if (isLeafKind(want.group)) continue;
         report(
           "L024",
           `"${fn.name}" takes one "${want.group.name}", and this is a selection`,
@@ -1191,6 +1197,10 @@ function checker(program: Program) {
     }
     return UNKNOWN;
   }
+
+  /** A kind with no kinds below it: a place, where one dancer stands or nobody does. */
+  const isLeafKind = (group: GroupInfo): boolean =>
+    group.shapes.every((shape) => shape.length === 0);
 
   const roleText = (fn: FnInfo): string =>
     fn.role === "move" ? "a move" : fn.role === "dance" ? "a dance" : "a compound";

@@ -69,6 +69,14 @@ export const pullByR = placeholder(
 export const pullByL: HoldPosture = { ...pullByR, id: "pull-by-L", hand: "left" };
 /** The courtesy turn: side by side, hands in front of the robin. */
 export const courtesy = placeholder("courtesy", "either", "stacked", HEIGHTS.hipPx + 4, 14);
+/**
+ * A long wave: hands at shoulder height, palm to palm, midway between two
+ * dancers a place apart who face opposite ways (M3, Robins on a Wire). Palm
+ * to palm has no top; if the gallery makes it stacked, the rule written
+ * down for it is that the dancer on the **right** of the wave (the one whose
+ * left hand it is) stacks on top.
+ */
+export const wave = placeholder("wave", "either", "palm", HEIGHTS.shoulderPx - 3, 20);
 /** A two-hand hold facing: both hands, waist-plus. */
 export const twoHand = placeholder(
   "two-hand",

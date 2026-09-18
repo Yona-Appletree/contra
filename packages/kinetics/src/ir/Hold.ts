@@ -21,7 +21,8 @@ export type HoldId =
   | "pull-by-R"
   | "pull-by-L"
   | "courtesy"
-  | "two-hand";
+  | "two-hand"
+  | "wave";
 
 /**
  * Every hold the IR can name today, for tests and the debugger's pickers.
@@ -41,6 +42,7 @@ export const HOLD_IDS: readonly HoldId[] = [
   "pull-by-L",
   "courtesy",
   "two-hand",
+  "wave",
 ];
 
 /** Which hand a hold takes. */

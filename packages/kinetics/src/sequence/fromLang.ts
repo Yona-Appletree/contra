@@ -181,7 +181,11 @@ function callOf(move: Move, ctx: CallContext): CompiledCall {
         ctx.report(noCast(move, figure, spec, start, "a dancer"));
         continue;
       }
-      if (arg.ref?.t === "dancer") cast.partner = arg.ref.id;
+      // The argument names a person, or nobody — an empty place, or the
+      // language's empty selection (notes D10: the end of the long wave has
+      // no far mate). Nobody is not a complaint here: the figure's own cast
+      // rule says what the dancer does about it.
+      if (arg.ref?.t === "dancer") cast[spec.role ?? "partner"] = arg.ref.id;
       continue;
     }
     if (spec.kind === "group") {
@@ -271,9 +275,14 @@ function callOf(move: Move, ctx: CallContext): CompiledCall {
 
 const RING_ROLES = ["left", "opposite", "right"] as const;
 
-/** The argument that names somebody or somewhere: the one asked for, else the first that does. */
+/**
+ * The argument for a figure's counterpart: the one of the parameter's own
+ * name when the move has it — with or without a `ref`, since an argument
+ * that names nobody is still the answer — else the first that names
+ * somebody or somewhere (a figure whose `with` the move calls `to`).
+ */
 function referring(args: readonly MoveArg[], named: MoveArg | undefined): MoveArg | undefined {
-  if (named?.ref !== undefined) return named;
+  if (named !== undefined) return named;
   return args.find((arg) => arg.ref?.t === "dancer") ?? args.find((arg) => arg.ref !== undefined);
 }
 

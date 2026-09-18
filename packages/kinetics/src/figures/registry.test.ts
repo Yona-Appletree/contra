@@ -30,13 +30,27 @@ describe("FIGURES", () => {
     expect(figureNamed(FIGURES, "toString")).toBeUndefined();
   });
 
-  it("starts every figure's parameters with its counterpart, or its group", () => {
+  it("starts every figure's parameters with its counterparts, or its group", () => {
     for (const figure of figures) {
+      // `stand` has nobody to stand with: the other role's half of a `||`.
+      if (figure.id === "stand") {
+        expect(figure.params.filter((spec) => spec.kind !== "number")).toHaveLength(0);
+        continue;
+      }
       expect(["dancer", "group"], figure.id).toContain(figure.params[0]?.kind);
-      expect(
-        figure.params.filter((spec) => spec.kind === "dancer" || spec.kind === "group"),
-        figure.id,
-      ).toHaveLength(1);
+      const people = figure.params.filter(
+        (spec) => spec.kind === "dancer" || spec.kind === "group",
+      );
+      // One counterpart or one group — or, for a figure with a mate to each
+      // side (the long wave), one `dancer` parameter per figure-role, each
+      // naming a different role, and all of them first.
+      expect(people.length, figure.id).toBeGreaterThanOrEqual(1);
+      expect(figure.params.slice(0, people.length), figure.id).toEqual(people);
+      if (people.length > 1) {
+        const roles = people.map((spec) => spec.kind === "dancer" && spec.role);
+        expect(new Set(roles).size, figure.id).toBe(roles.length);
+        expect(roles, figure.id).not.toContain(false);
+      }
     }
   });
 
@@ -54,8 +68,12 @@ describe("FIGURES", () => {
   });
 
   it("can always squeeze a body into fewer beats than the nominal, but not none", () => {
+    // Two figures have no body to squeeze: `form-wave` is an arrangement the
+    // entry walks to, and `stand` is what it says.
+    const bodiless = new Set(["form-wave", "stand"]);
     for (const figure of figures) {
-      expect(figure.beats.min, figure.id).toBeGreaterThan(0);
+      if (bodiless.has(figure.id)) expect(figure.beats.min, figure.id).toBe(0);
+      else expect(figure.beats.min, figure.id).toBeGreaterThan(0);
       expect(figure.beats.min, figure.id).toBeLessThanOrEqual(figure.beats.nominal);
     }
   });
@@ -92,10 +110,19 @@ describe("FIGURES", () => {
     // for those moves." `elide: "stretch"` is the field D8 needs; no figure
     // tonight gives its beats away.
     for (const figure of figures) {
-      // A figure that is the progression (a becket's shift) gives its beats
-      // away instead: with nobody to shift toward, the circle takes them (D8).
-      expect(figure.casts.partner, figure.id).toBe(figure.id === "shift" ? "elide" : "stand");
-      expect(figure.elide, figure.id).toBe("stretch");
+      const roles = figure.params
+        .filter((spec) => spec.kind === "dancer")
+        .map((spec) => spec.role ?? "partner");
+      for (const role of roles) {
+        // A figure that is the progression (a becket's shift) gives its beats
+        // away instead: with nobody to shift toward, the circle takes them
+        // (D8). The long wave dances on with that hand free (M3, D10).
+        const rule = figure.id === "shift" ? "elide" : role === "partner" ? "stand" : "free";
+        expect(figure.casts[role], `${figure.id}.${role}`).toBe(rule);
+      }
+      // `stand` gives its beats away rather than stretching: it has nothing
+      // to stretch.
+      expect(figure.elide, figure.id).toBe(figure.id === "stand" ? "wait" : "stretch");
     }
   });
 

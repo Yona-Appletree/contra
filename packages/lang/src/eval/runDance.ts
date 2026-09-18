@@ -41,9 +41,13 @@ export interface RunOptions {
 /** Who the dance can address, and what to do about the ones it cannot. */
 interface Membership {
   contract: ReadonlySet<string>;
-  /** Classed out at the top of the time, less anyone the beat-0 commit let in. */
+  /** Classed out at the top of the time, less anyone a commit has let in. */
   waiting: Set<Dancer>;
-  enter: (dancer: Dancer) => Runner;
+  /** Who a commit let in, and at which beat: they wait out the beats before it. */
+  admitted: Map<Dancer, number>;
+  /** Who a commit made addressable at a beat the script does not progress at (L111). */
+  refused: Set<Dancer>;
+  enter: (dancer: Dancer, beat: number) => Runner;
 }
 
 interface Pending {
@@ -77,6 +81,8 @@ interface Runner {
   done: boolean;
   /** Set when the dance stopped being able to address this dancer mid-way. */
   wentOut?: boolean;
+  /** The cursors at which a silent replay met a `progress()` (D8), for L111. */
+  metProgressAt?: number[];
 }
 
 const DEFAULT_MAX_BEATS = 4096;
@@ -111,7 +117,9 @@ export function runDance(
   const membership: Membership = {
     contract,
     waiting: new Set(),
-    enter: (dancer) => makeDanceRunner(run, dancer, dance, args),
+    admitted: new Map(),
+    refused: new Set(),
+    enter: (dancer, beat) => makeDanceRunner(run, dancer, dance, args, beat),
   };
   for (const dancer of tree.dancers) {
     if (addresses(contract, dancer)) runners.push(makeDanceRunner(run, dancer, dance, args));
@@ -123,17 +131,23 @@ export function runDance(
 
   // D4: a dance's length is what its dancers' cursors reached, and `out` runs
   // for exactly that, afterwards, on the same time through. A dancer the
-  // progression carried out of the dance waits for what is left of it.
+  // progression carried out of the dance waits for what is left of it, and
+  // one a mid-dance commit let in (D8) waited out the beats before it.
   const length = runners.reduce((max, runner) => Math.max(max, runner.script.cursor), 0);
   if (!run.stopped) {
-    const waiting: { dancer: Dancer; from: number }[] = [
-      ...[...membership.waiting].map((dancer) => ({ dancer, from: 0 })),
+    const waiting: { dancer: Dancer; from: number; beats: number }[] = [
+      ...[...membership.waiting].map((dancer) => ({ dancer, from: 0, beats: length })),
       ...runners
         .filter((runner) => runner.wentOut === true)
-        .map((runner) => ({ dancer: runner.script.dancer, from: runner.script.cursor })),
+        .map((runner) => ({
+          dancer: runner.script.dancer,
+          from: runner.script.cursor,
+          beats: length - runner.script.cursor,
+        })),
+      ...[...membership.admitted].map(([dancer, beat]) => ({ dancer, from: 0, beats: beat })),
     ];
     const outRunners = waiting
-      .map(({ dancer, from }) => makeOutRunner(run, dancer, length - from, from))
+      .map(({ dancer, from, beats }) => makeOutRunner(run, dancer, beats, from))
       .filter((runner): runner is Runner => runner !== undefined);
     if (outRunners.length > 0) driveBeats(run, outRunners, maxBeats, undefined);
   }
@@ -177,7 +191,7 @@ function driveBeats(
     commitBeat(run, beat);
     if (membership !== undefined) {
       reviewMembership(runners, membership.contract);
-      if (beat === 0 && !run.stopped) admit(run, runners, membership, beat);
+      if (!run.stopped) admit(run, runners, membership, beat);
     }
     if (run.stopped) return;
     if (runners.every((runner) => runner.done)) return;
@@ -217,26 +231,60 @@ function reviewMembership(runners: readonly Runner[], contract: ReadonlySet<stri
 
 /**
  * The other half of the same rule: the couple waiting at the top **enters on
- * the progression and dances that time through**, shift and all. The events of
- * beat 0 are the top of the dance, so a dancer the beat-0 commit makes
- * addressable joins the dance from beat 0 rather than watching a time through
- * from a place it no longer stands in — otherwise an in-dancer would swing
- * somebody who is waiting out.
+ * the progression and dances that time through**, shift and all — otherwise
+ * an in-dancer would swing somebody who is waiting out.
  *
- * It is deliberately only the **beat-0** commit. A dance that progresses in the
- * middle would be asking a different question (what does a dancer who joins at
- * beat 32 dance?), and that is a G1 question, not a rule to guess at.
+ * A dancer the commit at beat `b` makes addressable joins at `b` by **silent
+ * replay** (notes D8): its runner runs the script from the top with nothing
+ * recorded — moves advance the cursor, events and cards go nowhere, a
+ * relation it cannot read yet is nobody — until it executes the `progress()`
+ * at cursor `b`, the one whose commit admitted it, and dances for real from
+ * the next statement. Beat 0 is the ordinary case of the rule: Butter's
+ * entrant meets `progress()` on its first statement. An entrant whose cursor
+ * passes `b` without meeting one is `L111` and waits out instead: the set
+ * progressed at a beat this script does not.
  */
 function admit(run: Run, runners: Runner[], membership: Membership, beat: number): void {
-  const joining = [...membership.waiting].filter((dancer) =>
-    addresses(membership.contract, dancer),
+  const joining = [...membership.waiting].filter(
+    (dancer) => !membership.refused.has(dancer) && addresses(membership.contract, dancer),
   );
   if (joining.length === 0) return;
   for (const dancer of joining) {
-    membership.waiting.delete(dancer);
-    const runner = membership.enter(dancer);
-    runners.push(runner);
+    const runner = membership.enter(dancer, beat);
     pump(run, runner, beat);
+    if (run.stopped) return;
+    if (runner.script.silent === true) {
+      // Replay the rest, still silent, to say where the script does progress.
+      while (!runner.done) {
+        try {
+          if (runner.gen.next().done === true) runner.done = true;
+        } catch (error) {
+          if (!isEvalFailure(error)) throw error;
+          runner.done = true;
+        }
+      }
+      const elsewhere = [...new Set(runner.metProgressAt ?? [])].sort((a, b) => a - b);
+      run.diagnostics.push(
+        diagnostic(
+          "L111",
+          "script",
+          `${dancer.id} entered at beat ${String(beat)} but the script progresses at ${
+            elsewhere.length === 0 ? "no beat" : `beat ${elsewhere.map(String).join(", ")}`
+          }`,
+          {
+            beat,
+            dancers: [dancer.id],
+            suggestion:
+              "a dancer joins at the `progress()` whose commit admitted it; this script has none at that cursor, so this one waits out",
+          },
+        ),
+      );
+      membership.refused.add(dancer);
+      continue;
+    }
+    membership.waiting.delete(dancer);
+    membership.admitted.set(dancer, beat);
+    runners.push(runner);
   }
   // Anything the entrants issued on this beat commits with it; `progress()` is
   // one trigger per beat (D5), so the re-run does not progress the set again.
@@ -363,7 +411,20 @@ export function positionsOf(tree: Tree): Position[] {
 // One dancer's script
 // ---------------------------------------------------------------------------
 
-function makeScript(run: Run, dancer: Dancer, cursor: number, canMove: boolean): ScriptCtx {
+/**
+ * One dancer's script context. `admitAt` is the beat whose commit let this
+ * dancer in (D8): the script replays silently up to the `progress()` at that
+ * cursor and is live from there. `undefined` is a dancer who was in from the
+ * top and runs live throughout.
+ */
+function makeScript(
+  run: Run,
+  dancer: Dancer,
+  cursor: number,
+  canMove: boolean,
+  admitAt?: number,
+  metProgressAt?: number[],
+): ScriptCtx {
   const script: ScriptCtx = {
     dancer,
     cursor,
@@ -372,27 +433,40 @@ function makeScript(run: Run, dancer: Dancer, cursor: number, canMove: boolean):
     firstTime: run.firstTime,
     lastTime: run.lastTime,
     canMove,
+    ...(admitAt === undefined ? {} : { silent: true }),
     move: (ir, args, beats, span) => {
-      run.moves.push({
-        dancer: dancer.id,
-        ir,
-        args: [...args],
-        start: script.cursor,
-        beats,
-        span,
-      });
+      if (script.silent !== true)
+        run.moves.push({
+          dancer: dancer.id,
+          ir,
+          args: [...args],
+          start: script.cursor,
+          beats,
+          span,
+        });
       script.cursor += beats;
     },
     queue: (to, span, ctx) => {
+      if (script.silent === true) return;
       run.pending.push({ dancer, to, beat: script.cursor, span, trace: ctx.trace });
     },
     card: (text) => {
+      if (script.silent === true) return;
       const existing = run.cards.find((card) => card.beat === script.cursor && card.text === text);
       if (existing === undefined)
         run.cards.push({ beat: script.cursor, text, dancers: [dancer.id] });
       else existing.dancers.push(dancer.id);
     },
     progress: (span, ctx) => {
+      if (script.silent === true) {
+        // The `progress()` whose commit admitted this dancer: live from the
+        // next statement. The set has already progressed at this beat, so
+        // there is nothing to trigger; any other `progress()` in the replay
+        // is one the set did without this dancer.
+        metProgressAt?.push(script.cursor);
+        if (script.cursor === admitAt) script.silent = false;
+        return;
+      }
       triggerProgress(run, script.cursor, span, ctx);
     },
     floorCheck: (decl, module, span, ctx) => {
@@ -420,8 +494,13 @@ function makeDanceRunner(
   dancer: Dancer,
   dance: DanceRef,
   args: Readonly<Record<string, Value>>,
+  admitAt?: number,
 ): Runner {
-  const script = makeScript(run, dancer, 0, true);
+  // A dancer in from the top is live from its first statement; one a commit
+  // let in — at beat 0 like anybody else (D8) — replays to that commit's
+  // `progress()` first.
+  const metProgressAt: number[] = [];
+  const script = makeScript(run, dancer, 0, true, admitAt, metProgressAt);
   const ctx = baseCtx(run, dance.module, script, [
     {
       layer: "script",
@@ -442,6 +521,7 @@ function makeDanceRunner(
   return {
     script,
     done: false,
+    metProgressAt,
     gen: (function* body() {
       yield* callFn(callee, given, dance.decl.span, ctx);
     })(),

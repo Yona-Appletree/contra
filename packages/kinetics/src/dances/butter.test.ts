@@ -45,13 +45,45 @@ import { runNamed } from "./load.js";
  * cap that go a few degrees over when the couple is not square to the set.
  * Subtracting the shift's own and the circle's leaves 115.
  *
+ * **M3 re-pinned three of these**, for three scheduler changes Robins on a
+ * Wire needed, each of which is a correction Butter also gets:
+ *
+ * 1. **A swing's post reads the left-hand dancer's home.** M2's read each
+ *    dancer's own, and a neighbour swing — whose two homes face opposite
+ *    ways — put the robin on the lark's **left**. Now she is on his right,
+ *    on his partner's seat, so Butter's chain to partner is the diagonal
+ *    crossing through the centre a chain is, and ends her on her own seat:
+ *    **the chain's drift is 0** (it was 20 / 39 / 62 and blamed on the
+ *    language's seating; the seating was right). The clearance count fell
+ *    with it, 765 → 177 at three sets.
+ * 2. **A swing with nothing of its own cast to spiral into ends on its own
+ *    post** (`exit: "post"`): the A1 swing lands in the line facing home and
+ *    long lines walks from there. The landing is a stop the walk sets off
+ *    from — hip vjump ×6.05 at that seam (beat 16k − 0.06), was ×4.61.
+ * 3. **The entry planner budgets the pivot** as it does the step: a turn the
+ *    cruise ramp would load on to one step gets another beat. The hey ends
+ *    the larks facing out, so the balance's entry is two beats now and its
+ *    body one short (`TimingViolation`, 6 at three sets) where before the
+ *    one-beat entry turned over the cap.
+ *
+ * | pin | M2 | **M3** |
+ * |---|---|---|
+ * | schedule errors | 139 / 259 / 372, ≤ 380 | **162 / 300 / 438, ≤ 450** |
+ * | hip worst | 4.34 / 4.61 / 4.61, < 5 | **6.05, < 6.5** (the swing's landing, above) |
+ * | drift | 72 / 141 / 234 | **62 / 100 / 138**: shift 48 / 72 / 96, swing 14 / 28 / 42, chain **0** |
+ * | clearance | ≤ 800 (230 / 453 / 765) | **≤ 200 (87 / 132 / 177)** |
+ *
+ * The 438 at three sets by share: the shift's own 96, the circle after it
+ * 144 + 3 + 18, the swing 36, the balance's pivots and timing 42 + 60, the
+ * chain's pivots 42.
+ *
  * `CAPS` has not moved and must not.
  */
-const MAX_SCHEDULE_ERRORS = 380;
-const MAX_HIP_RATIO = 5;
+const MAX_SCHEDULE_ERRORS = 450;
+const MAX_HIP_RATIO = 6.5;
 const KINDS = ["StepTooLong", "PivotTooLarge", "TimingViolation", "RateTooHigh"];
-/** Clearance stretches at 1 / 2 / 3 sets: 230 / 453 / 765, all on the shift's floor (below). */
-const MAX_CLEARANCE = 800;
+/** Clearance stretches at 1 / 2 / 3 sets: 87 / 132 / 177 (M2: 230 / 453 / 765), all on the shift's floor (below). */
+const MAX_CLEARANCE = 200;
 
 describe("Butter, the loop", () => {
   for (const minorSets of [1, 2, 3]) {
@@ -103,21 +135,21 @@ describe("Butter, the loop", () => {
         expect(worst, `${id} worst ×${worst.toFixed(2)}`).toBeLessThan(MAX_HIP_RATIO);
       }
 
-      // The chain's drift is the language's, not the figure's: every robin
-      // in a set chains across and ends on the other line's seat, 35–38 px
-      // from the one the text still gives her (`figures/butter.test.ts`
-      // shows it on the clean set); the larks' come from the floor the shift
-      // leaves. At least the robins', and no more than the measured.
+      // The chain to partner ends every robin on her own seat: after the
+      // neighbour swing she stands on the neighbour lark's right, on his
+      // partner's seat, and the chain crosses her back. M2 saw 20 / 39 / 62
+      // drifts here and read them as the language never reseating after a
+      // chain; the swing's post had her on the wrong side. Zero, since M3.
       const chainDrift = result.warnings.filter(
         (w) => w.kind === "Drift" && w.message.startsWith("chain"),
       );
-      expect(chainDrift.length).toBeGreaterThanOrEqual(minorSets * 2 * 7);
-      expect(chainDrift.length).toBeLessThanOrEqual(70);
+      expect(chainDrift).toEqual([]);
 
-      // Two bodies through one point (K304): measured 230 / 453 / 765, and
-      // the closest of them is 0.00 px — the couple the shift could not move
-      // out of the top set standing on the couple coming in. The shift's
-      // floor again; the figures alone keep everybody clear.
+      // Two bodies through one point (K304): measured 87 / 132 / 177 (M2:
+      // 230 / 453 / 765), and the closest of them is 0.00 px — the couple
+      // the shift could not move out of the top set standing on the couple
+      // coming in. The shift's floor again; the figures alone keep everybody
+      // clear.
       const clearance = result.clearance ?? [];
       expect(clearance.length).toBeLessThanOrEqual(MAX_CLEARANCE);
     });

@@ -1,0 +1,18 @@
+// two-partners.dance — run error: a move's `Role` argument names two dancers.
+//
+// A `Role` argument may name nobody (the end of a long wave has no far mate;
+// notes D10) but not several: `select(Couple = other)` with the role left
+// open is both dancers of the other couple, and a swing is danced with one.
+// The checker lets the selection through — it cannot count a computed
+// pattern — and the evaluator says so at the call, naming both (L110).
+
+use contra::{Role, Couple, swing};
+use becket::{MajorSet, MinorSet};
+
+fn two-partners(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Two partners";
+
+  // The error: both of the other couple.
+  swing(select(Couple = other, Role = _), beats = 8);
+}

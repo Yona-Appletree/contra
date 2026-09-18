@@ -94,6 +94,8 @@ const printArrangement = (arrangement: Arrangement): string => {
           : `${num(arrangement.minPx)}–${num(arrangement.maxPx)}`;
       return `${who}apart ${span} px`;
     }
+    case "forward":
+      return `${who}${num(arrangement.distancePx)} px forward`;
     case "beside":
       return `${who}beside ${arrangement.of} on the ${arrangement.side}, ${num(
         arrangement.spacingPx,
