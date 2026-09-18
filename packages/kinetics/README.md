@@ -76,7 +76,27 @@ pane only, `@caller/hall`'s people drawing. **Nothing imports this package**:
 | executor          | slots to continuous effector trajectories: hips and facing on a natural cubic spline, feet by cadence, hands on cosine ramps                                                                                                                                                  | `src/executor/*`                                 |
 | solver            | joints from effectors: shoulders, two-bone arms with a hold's swivel, hand plates, a head solved toward a point                                                                                                                                                               | `src/solver/*`, `src/holds/*`                    |
 | proof             | speed and acceleration under each point's cap, no jumps, at 16 samples a beat; and no two hips closer than a body's clearance (`K304`), which only the whole set's executed motion can say                                                                                    | `src/motion/prove.ts`, `src/motion/clearance.ts` |
-| debugger          | every layer on one page, one bar through all of them                                                                                                                                                                                                                          | `debugger/`                                      |
+| debugger          | the review instrument: the text beside the hall at 2×, the 3d under it, one bar through all of them                                                                                                                                                                           | `debugger/`                                      |
+
+## The debugger is the review instrument
+
+`pnpm --filter @caller/kinetics dev` (launch config `kinetics-debugger`, port 5177) serves one flat screen, built to the spike in
+`spikes/debugger-instrument/` after its three gate rounds: **the eyes are the
+oracle**, so every cell earns its place by what one look settles. Across the
+top the **tape** — the mode, the dance and its hall facts, `⏮ ▶ ⏭ ⟲`, and a
+ruler of the followed dancer's calls that the bar fills as it plays; `⏮ ⏭`
+jump call by call, `⟲` loops the running call, and the run goes round at its
+end. Down the left the `.dance` **text** with the running call lit, editable
+(the whole stack re-runs after 150 ms of quiet), and its **problems** under it,
+each line a click to its beat and dancer. On the right, in **dance** mode, the
+**whole hall at 2×** — never another zoom; the strip grows by holding more
+floor — the **3d** under it, dragged to turn and with buttons for the angles
+that matter, turned to whichever minor set the strip was clicked on (`hall`
+brings the line back); and under that a **deck** of one tab at a time —
+timeline, graphs, listing, tree, layout, bindings — that folds to its tab row.
+**Figure** mode holds its place until figures are text: a figure will be its
+own `.dance` file with a `rig` line per context it must look right in, one
+card each, the clicked one in the 3d.
 
 ## The debugger
 

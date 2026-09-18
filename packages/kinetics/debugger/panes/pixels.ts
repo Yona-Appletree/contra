@@ -7,7 +7,7 @@ import { sampleAt } from "../../src/motion/Trajectory.js";
 import type { Trajectory } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
 import type { HandPlate } from "../../src/solver/solveBody.js";
-import { boxesAt, membershipAt, padHull } from "../groups.js";
+import { boxesAt, membershipAt, minorSetAt, minorSetBoxes, padHull } from "../groups.js";
 import { boundsOf } from "../project.js";
 import {
   alphaOf,
@@ -23,25 +23,41 @@ import {
 } from "../view.js";
 
 const METRE_PX = 25;
-/** Six screen pixels to a world pixel for a short set, four for a long one — never a fraction of one. */
-const zoomFor = (couples: number): number => (couples <= 3 ? 6 : 4);
+/**
+ * Two screen pixels to a world pixel, always (G2: *"2x pixels is good … we're
+ * generally oversizing the 16-bit renderings"*). The strip gets wider by
+ * holding more floor, never by growing its pixels.
+ */
+const ZOOM = 2;
+
+/** The pixels pane, and the set it is showing the 3d. */
+export interface PixelsPane extends Pane {
+  setFocus(set: number | undefined): void;
+}
 
 /**
- * The floor from above, painted one world pixel at a time and then magnified
- * — never drawn at a fraction of a pixel and smoothed (DA13, the user's own
- * taste: an integer-pixel render, positions quantised to 1/256 px first).
+ * The whole hall from above at 2×, painted one world pixel at a time and then
+ * magnified — never drawn at a fraction of a pixel and smoothed (DA13, the
+ * user's own taste: an integer-pixel render, positions quantised to 1/256 px
+ * first). Every set, every dancer, the couples out, as wide as the column.
+ *
+ * The world runs the hall down `y` (`project.ts`); a strip across the top of
+ * the screen wants it left to right, so the picture is the world turned a
+ * quarter turn — a rotation, never a flip, so a right hand stays a right hand:
+ * screen x is world y, screen y is world x read upward.
  *
  * Clothes are the role colour; the hands and the head are skin, two tones by
  * dancer; the **top** hand of a stacked hold is painted last, which is the
- * rendering contract's robin-on-top made visible.
+ * rendering contract's robin-on-top made visible. A click picks the minor set
+ * under it for the 3d below (`onPick`), and the picked set wears a hairline.
  */
-export function pixelsPane(): Pane {
+export function pixelsPane(onPick: (set: number | undefined) => void): PixelsPane {
   const { section, head, body } = paneShell("pixels");
   const canvas = el("canvas", "pixels");
   body.append(canvas);
   const boxesToggle = el("input", "toggle");
   boxesToggle.type = "checkbox";
-  boxesToggle.checked = true;
+  boxesToggle.checked = false;
   boxesToggle.title = "groups";
   const boxesLabel = el("label", "toggle-label", "groups ");
   boxesLabel.append(boxesToggle);
@@ -50,38 +66,47 @@ export function pixelsPane(): Pane {
   wireToggle.title = "the wireframe, for reading the graphs against";
   const wireLabel = el("label", "toggle-label", "wire ");
   wireLabel.append(wireToggle);
-  head.append(boxesLabel, wireLabel);
+  const tag = el("span", "zoom-tag", "2×");
+  head.append(tag, boxesLabel, wireLabel);
 
   let view: View | undefined;
   let beat = 0;
+  /** The world window: `x` across the set, `y` down the hall. */
   let origin = { x: 0, y: 0 };
+  /** The world window's extent: `w` across the set, `h` down the hall. */
   let size = { w: 80, h: 80 };
-  let zoom = 6;
+  /** Where the hall's middle is, so the strip is centred on it whatever its width. */
+  let centreY = 0;
   let lines: number[] = [];
+  let focus: number | undefined;
   /** One person per dancer, from a seed, so the same dancer is the same person every run. */
   let persons = new Map<DancerId, Person>();
 
   const draw = (): void => {
     const context = canvas.getContext("2d");
     if (!context || !view) return;
-    canvas.width = size.w;
-    canvas.height = size.h;
-    canvas.style.width = `${size.w * zoom}px`;
-    canvas.style.height = `${size.h * zoom}px`;
+    // As much of the hall as the column holds, at 2×: the hall runs along the screen.
+    size.h = Math.max(Math.floor(body.clientWidth / ZOOM), 24);
+    origin.y = Math.round(centreY - size.h / 2);
+    canvas.width = size.h;
+    canvas.height = size.w;
+    canvas.style.width = `${size.h * ZOOM}px`;
+    canvas.style.height = `${size.w * ZOOM}px`;
 
     const style = getComputedStyle(document.documentElement);
     // On black (R9): the hall's own backdrop, so the dancers are the light.
     const floor = style.getPropertyValue("--floor").trim() || "#0c0a09";
     const grid = style.getPropertyValue("--floor-grid").trim() || "#1c1815";
+    const accent = style.getPropertyValue("--accent").trim() || "#e7b96b";
     context.fillStyle = floor;
-    context.fillRect(0, 0, size.w, size.h);
+    context.fillRect(0, 0, size.h, size.w);
 
     const px = (x: number, y: number, colour: string): void => {
       const ix = Math.round(q256(x)) - origin.x;
       const iy = Math.round(q256(y)) - origin.y;
       if (ix < 0 || iy < 0 || ix >= size.w || iy >= size.h) return;
       context.fillStyle = colour;
-      context.fillRect(ix, iy, 1, 1);
+      context.fillRect(iy, size.w - 1 - ix, 1, 1);
     };
     const line = (a: Vec3, b: Vec3, colour: string): void => {
       const steps = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y), 1);
@@ -95,6 +120,12 @@ export function pixelsPane(): Pane {
       for (let dy = -half; dy <= half; dy++) {
         for (let dx = -half; dx <= half; dx++) px(p.x + dx, p.y + dy, colour);
       }
+    };
+    const outline = (pts: readonly [number, number][], colour: string): void => {
+      pts.forEach((a, i) => {
+        const b = pts[(i + 1) % pts.length] as [number, number];
+        line({ x: a[0], y: a[1], z: 0 }, { x: b[0], y: b[1], z: 0 }, colour);
+      });
     };
 
     // The hall's own floorboards: one metre a square.
@@ -120,13 +151,13 @@ export function pixelsPane(): Pane {
       const membership = membershipAt(run, beat);
       const followed = pick.length === (run.dialect?.dancers.length ?? 0) ? [] : pick;
       for (const box of membership === undefined ? [] : boxesAt(run, membership, followed)) {
-        const pts = padHull(box.hullPx, 4);
-        const colour = mix(box.colour, floor, box.mine ? 0.75 : 0.3);
-        pts.forEach((a, i) => {
-          const b = pts[(i + 1) % pts.length] as [number, number];
-          line({ x: a[0], y: a[1], z: 0 }, { x: b[0], y: b[1], z: 0 }, colour);
-        });
+        outline(padHull(box.hullPx, 4), mix(box.colour, floor, box.mine ? 0.75 : 0.3));
       }
+    }
+    // The set the 3d is turned to, in a hairline.
+    if (focus !== undefined) {
+      const box = minorSetBoxes(run, beat)[focus];
+      if (box) outline(padHull(box.hullPx, 7), mix(accent, floor, 0.45));
     }
 
     const solved = run.solved;
@@ -136,9 +167,10 @@ export function pixelsPane(): Pane {
     for (const dancer of run.dialect?.dancers ?? []) {
       const t = solved.trajectories[dancer];
       const hip = t?.points.hip?.[sampleAt(t, beat)];
-      if (hip) order.push({ dancer, y: hip.y });
+      if (hip) order.push({ dancer, y: -hip.x });
     }
-    // Up the screen is further away: paint the far dancer first.
+    // Up the screen is further away — world +x, after the quarter turn — so
+    // the far dancer is painted first and the near one overlaps them.
     order.sort((a, b) => a.y - b.y);
 
     if (!wireToggle.checked) {
@@ -203,16 +235,17 @@ export function pixelsPane(): Pane {
     if (!view?.run.solved) return;
     const { run } = view;
     const solved = run.solved as NonNullable<typeof run.solved>;
-    const layer = new OffscreenCanvas(size.w * SUPERSAMPLE, size.h * SUPERSAMPLE);
+    const layer = new OffscreenCanvas(size.h * SUPERSAMPLE, size.w * SUPERSAMPLE);
     const g = layer.getContext("2d");
     if (!g) return;
+    // The quarter turn: screen x from world y, screen y from world x upward.
     g.setTransform(
+      0,
+      -SUPERSAMPLE,
       SUPERSAMPLE,
       0,
-      0,
-      SUPERSAMPLE,
-      -origin.x * SUPERSAMPLE,
       -origin.y * SUPERSAMPLE,
+      (size.w + origin.x) * SUPERSAMPLE,
     );
     g.lineCap = "round";
 
@@ -254,8 +287,17 @@ export function pixelsPane(): Pane {
     }
     g.globalAlpha = 1;
     context.imageSmoothingEnabled = true;
-    context.drawImage(layer, 0, 0, size.w, size.h);
+    context.drawImage(layer, 0, 0, size.h, size.w);
   };
+
+  canvas.addEventListener("click", (event) => {
+    if (!view) return;
+    const rect = canvas.getBoundingClientRect();
+    const y = origin.y + (event.clientX - rect.left) / ZOOM;
+    const x = origin.x + size.w - 1 - (event.clientY - rect.top) / ZOOM;
+    const set = minorSetAt(view.run, beat, x, y);
+    onPick(set === focus ? undefined : set);
+  });
 
   new ResizeObserver(draw).observe(body);
   boxesToggle.addEventListener("change", draw);
@@ -278,21 +320,19 @@ export function pixelsPane(): Pane {
           }),
         ]),
       );
-      zoom = zoomFor((dialect?.dancers.length ?? 2) / 2);
       const b = boundsOf(setPoints(next.run), 24);
-      origin = { x: Math.floor(b.min.x), y: Math.floor(b.min.y) };
-      size = {
-        w: Math.max(Math.ceil(b.max.x) - origin.x, 24),
-        h: Math.max(Math.ceil(b.max.y) - origin.y, 24),
-      };
-      // Where the world sits on this canvas, for anything framing a picture of
-      // it — a screenshot that wants one minor set and not the whole hall.
-      canvas.dataset.origin = `${String(origin.x)},${String(origin.y)}`;
-      canvas.dataset.zoom = String(zoom);
+      centreY = (b.min.y + b.max.y) / 2;
+      origin = { x: Math.floor(b.min.x), y: Math.round(centreY - size.h / 2) };
+      size = { w: Math.max(Math.ceil(b.max.x) - origin.x, 24), h: size.h };
+      canvas.dataset.zoom = String(ZOOM);
       draw();
     },
     setBeat(next) {
       beat = next;
+      draw();
+    },
+    setFocus(set) {
+      focus = set;
       draw();
     },
   };
