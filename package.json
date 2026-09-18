@@ -22,6 +22,7 @@
     "traces:export": "node --import ./scripts/ts-src-resolve.mjs apps/web/scripts/writeTraces.mjs",
     "figure": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/figureLab.mjs",
     "dance": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/danceLab.mjs",
+    "lang": "node --import ./scripts/ts-src-resolve.mjs packages/lang/cli/lang.mjs",
     "strips": "node apps/web/scripts/strips.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs",

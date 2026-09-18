@@ -1,0 +1,39 @@
+// neighbor-from-out.dance — check error: `neighbor` read where there is no
+// `MinorSet` above the reader.
+//
+// `neighbor` is a member of `MinorSet`, so only a dancer under a minor set may
+// read it. `out` is the script the couple at `OutTop` or `OutBottom` runs, and
+// that couple's path is `MajorSet / Station / Couple / Role`: no `MinorSet` in
+// it. The checker finds this by the path shapes, without running anything, and
+// the span is the read inside `out`.
+
+use contra::{Role, Couple, swing, wait-out};
+use becket::{MinorSet, Station};
+
+group MajorSet {
+  id: i32
+  minor-sets: i32 = 3
+  body {
+    translate(x = 0.64m,  y = -1.6m)             rotate(180) Station(OutTop)    Couple(Ones, seated = false);
+    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
+    translate(x = -0.64m, y = 1.6m * minor-sets)             Station(OutBottom) Couple(Twos, seated = false);
+  }
+
+  fn progress() {
+    match Station {
+      OutTop    => assign(Station = In, MinorSet = first);
+      OutBottom => assign(Station = In, MinorSet = last);
+      In        => assign(MinorSet = id(MinorSet) + travel) or assign(Station = exit, Couple = other);
+    }
+  }
+
+  // The error: an out couple has no neighbor to swing.
+  fn out(length: i32) { swing(neighbor, beats = length); }
+}
+
+fn waiting(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Waiting";
+  progress();
+  swing(neighbor, beats = 64);
+}

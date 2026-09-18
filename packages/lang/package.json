@@ -1,0 +1,21 @@
+{
+  "name": "@caller/lang",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:golden": "exit 0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.0"
+  }
+}

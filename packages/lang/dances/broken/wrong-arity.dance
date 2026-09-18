@@ -1,0 +1,21 @@
+// wrong-arity.dance — check error: a move called with arguments it does not
+// have.
+//
+// A move's parameters are its contract: `swing(with: Role, beats: i32 = 8)`
+// takes one group and a count, and `circle` has `places`, not `turns`. Both
+// are caught at the call, where the caller can see them, and both name the
+// declaration they were measured against.
+
+use contra::{Role, Couple, swing, circle};
+use becket::{MajorSet, MinorSet};
+
+fn too-much(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Too much";
+
+  // The error: `swing` takes one group, not two.
+  swing(partner, neighbor, beats = 8);
+
+  // The error: `circle` has `places`; `turns` is nobody's parameter.
+  circle(MinorSet, Left, turns = 3, beats = 8);
+}

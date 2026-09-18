@@ -1,0 +1,41 @@
+// butter.dance — Gene Hubert, becket.
+// A1 (2) shift left (6) circle left 3/4 (8) neighbor swing
+// A2 (8) long lines forward and back (8) robins chain to partner
+// B1 (16) hey for four, robins start right
+// B2 (4) partner balance (12) partner swing
+// The first time through has no shift: the circle takes the eight.
+//
+// Design §9, whole. The ends are not in the dance: its contract is `MinorSet`,
+// `Couple`, `Role`, the out couple lacks `MinorSet`, so it runs becket's `out`
+// for sixty-four beats and its `assign` happens in the same set-wide
+// `progress()` at beat 0.
+
+use contra::{Phrase, phrase, shift, circle, swing, long-lines, chain, hey, balance};
+use becket::{MajorSet, MinorSet};
+
+fn butter(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Butter";
+
+  phrase(A1) {
+    if (first-time) {
+      circle(MinorSet, Left, places = 3, beats = 8);
+    } else {
+      progress();                                   // the event, set-wide, at beat 0
+      shift(Left, beats = 2);                       // its motion
+      circle(MinorSet, Left, places = 3, beats = 6);
+    }
+    swing(neighbor, beats = 8);
+  }
+  phrase(A2) {
+    long-lines(across = partner, beats = 8);
+    chain(Robin, to = partner, beats = 8);
+  }
+  phrase(B1) {
+    hey(MinorSet, start = Robin, shoulder = Right, beats = 16);
+  }
+  phrase(B2) {
+    balance(partner, beats = 4);
+    swing(partner, beats = 12);
+  }
+}

@@ -1,0 +1,21 @@
+// other-in-is.dance — check error: `other` in an `is`.
+//
+// `other`, `first` and `last` compare a candidate against the reader, so they
+// mean something in `select` and `assign` and nothing in `is` or `match`
+// (§4). One pattern grammar, four sites, and the checker says which patterns
+// each site admits.
+
+use contra::{Role, Couple, swing};
+use becket::{MajorSet, MinorSet};
+
+fn wrong(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Other in an is";
+
+  // The error: there is no candidate here to be other *than*.
+  if (Couple is other) {
+    swing(neighbor, beats = 64);
+  } else {
+    swing(partner, beats = 64);
+  }
+}

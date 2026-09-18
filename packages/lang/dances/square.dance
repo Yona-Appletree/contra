@@ -1,0 +1,44 @@
+// square.dance — four couples round a square, ids 1 to 4. Acceptance item 4:
+// an `i32` id, a wrap-around `corner`, and no `Station` at all, because a
+// square has no ends and nobody is ever out.
+
+use contra::{Role, swing, balance, do-si-do, promenade};
+
+// Declared here, not imported: contra's `Couple` has `id: enum { Ones, Twos }`
+// and a square's couples are numbered. This is exactly the case where two
+// formations declare the same name with different bodies (§3).
+group Couple {
+  id: i32
+  seated: Bool = true
+  spacing: Length = 0.8m
+  body {
+    left(spacing / 2)  Role(Lark,  seated = seated);
+    right(spacing / 2) Role(Robin, seated = seated);
+  }
+  partner = other(Role);
+  side    = match Role { Lark => -1, Robin => 1 };
+}
+
+group Square {
+  id: i32
+  body {
+    for i in 0..4 { rotate(90 * i) translate(y = -1.5m) Couple(i + 1); }
+  }
+
+  // The lark's corner is the couple to the left, the robin's to the right, and
+  // the square wraps: couple 4's neighbour above is couple 1.
+  corner = one!(select(Couple = (wrap(id(Couple) + side)), Role = other));
+
+  fn wrap(n: i32) { ((n - 1) % 4 + 4) % 4 + 1 }
+}
+
+// A square takes no hall facts: there is one square, and it is always four
+// couples. The dance is one time through, like every other (§5).
+fn corners() {
+  setup { Square(1); }
+  card "Corners";
+  balance(corner, beats = 4);
+  swing(corner, beats = 12);
+  do-si-do(partner, beats = 8);
+  promenade(Square, beats = 8);
+}

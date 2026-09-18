@@ -1,0 +1,44 @@
+// duplicate-member.dance — check error: two groups on one path declare the
+// same bare member name.
+//
+// p1-syntax called this one `duplicate-center`, on the way to working out that
+// `center` cannot collide: every group has it, undeclared, and it is always
+// read qualified from outside (`anchor(MinorSet, center)`). What *can* collide
+// is a **member**, which is bare and lexical: every group above a dancer
+// contributes its members to that dancer's scope, and two of them declaring
+// `neighbor` is a check error naming both, not a resolution rule (§4).
+
+use contra::{Role, Couple, swing, wait-out};
+
+group Station { id: enum { OutTop, In, OutBottom } }
+
+group MinorSet {
+  id: i32
+  body {
+    translate(x = -0.64m)             Couple(Ones);
+    translate(x = 0.64m) rotate(180)  Couple(Twos);
+  }
+  travel   = match Couple { Ones => 1,         Twos => -1     };
+  exit     = match Couple { Ones => OutBottom, Twos => OutTop };
+  neighbor = one!(select(Couple = other, Role = other));
+}
+
+group MajorSet {
+  id: i32
+  minor-sets: i32 = 3
+  body {
+    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
+  }
+
+  // The error: `MinorSet` above already declares `neighbor`, and a dancer
+  // under both would have two.
+  neighbor = one!(select(MinorSet = other, Role = other));
+
+  fn out(length: i32) { wait-out(beats = length); }
+}
+
+fn ambiguous(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Whose neighbour?";
+  swing(neighbor, beats = 64);
+}

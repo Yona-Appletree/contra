@@ -1,0 +1,45 @@
+// becket.dance — couples side by side facing across; ones on the left line
+// travel to higher set ids, twos on the right line to lower. Design §8, whole.
+
+use contra::{Role, Couple, wait-out};
+
+group Station { id: enum { OutTop, In, OutBottom } }
+
+group MinorSet {
+  id: i32
+  body {
+    translate(x = -0.64m)             Couple(Ones);
+    translate(x = 0.64m) rotate(180)  Couple(Twos);
+    anchor across = line(through = center, along = Y);
+  }
+  travel   = match Couple { Ones => 1,         Twos => -1     };
+  exit     = match Couple { Ones => OutBottom, Twos => OutTop };
+  neighbor = one!(select(Couple = other, Role = other));
+  opposite = one!(select(Couple = other));
+  shadow   = one!(select(MinorSet = id + travel, Role = other));
+}
+
+group MajorSet {
+  id: i32
+  minor-sets: i32 = 3
+  body {
+    anchor up = direction(Up);
+    translate(x = 0.64m,  y = -1.6m)             rotate(180) Station(OutTop)    Couple(Ones, seated = false);
+    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
+    translate(x = -0.64m, y = 1.6m * minor-sets)             Station(OutBottom) Couple(Twos, seated = false);
+  }
+
+  // A couple leaves as the other couple, so the one waiting is already seated
+  // as what it will come in as, and coming in changes nothing but `Station`
+  // and `MinorSet`. The call is set-wide: the couple coming in takes its place
+  // in the same commit as the couple leaving it (§6).
+  fn progress() {
+    match Station {
+      OutTop    => assign(Station = In, MinorSet = first);
+      OutBottom => assign(Station = In, MinorSet = last);
+      In        => assign(MinorSet = id(MinorSet) + travel) or assign(Station = exit, Couple = other);
+    }
+  }
+
+  fn out(length: i32) { wait-out(beats = length); }
+}

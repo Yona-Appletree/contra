@@ -1,0 +1,71 @@
+// triple-minor.dance — three couples to a minor set. Acceptance item 3.
+//
+// **This file is a check-time failure fixture on purpose.** `Couple`'s ids
+// here are a three-member enum, so `other(Couple)` is a *selection*, not one
+// group: `one!` on it cannot hold, and the checker says so at `across` below.
+// `neighbor`, which names `Twos` outright, is fine.
+//
+// The progression is a spike's worth: the ones move down one couple, and the
+// couple they pass becomes the threes. The real triple-minor progression is a
+// follow-up.
+
+use contra::{Role, swing, balance, wait-out};
+
+group Station { id: enum { OutTop, In, OutBottom } }
+
+// Declared here rather than imported: contra's `Couple` has two ids, and this
+// formation's has three. Two formations may declare the same name (§3).
+group Couple {
+  id: enum { Ones, Twos, Threes }
+  seated: Bool = true
+  spacing: Length = 0.8m
+  body {
+    left(spacing / 2)  Role(Lark,  seated = seated);
+    right(spacing / 2) Role(Robin, seated = seated);
+  }
+  partner = other(Role);
+}
+
+group MinorSet {
+  id: i32
+  body {
+    translate(y = -1.6m) Couple(Ones);
+                         Couple(Twos);
+    translate(y = 1.6m)  Couple(Threes);
+  }
+  neighbor = one!(select(Couple = Twos, Role = other));
+
+  // The deliberate error: `other` over three ids is a selection of two, so
+  // `one!` has nothing to hold on to.
+  across   = one!(select(Couple = other, Role = other));
+}
+
+group MajorSet {
+  id: i32
+  minor-sets: i32 = 3
+  body {
+    anchor up = direction(Up);
+    translate(y = -4.8m) Station(OutTop) Couple(Ones, seated = false);
+    Station(In) { for i in 0..minor-sets { translate(y = 4.8m * i) MinorSet(i); } }
+    translate(y = 4.8m * minor-sets) Station(OutBottom) Couple(Threes, seated = false);
+  }
+
+  fn progress() {
+    match Couple {
+      Ones   => assign(MinorSet = id(MinorSet) + 1) or assign(Station = OutBottom, Couple = Threes);
+      Twos   => assign(Couple = Threes);
+      Threes => assign(Couple = Twos, MinorSet = id(MinorSet) - 1) or assign(Station = OutTop, Couple = Ones);
+    }
+  }
+
+  fn out(length: i32) { wait-out(beats = length); }
+}
+
+fn down-the-hall(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "A triple minor";
+  balance(neighbor, beats = 4);
+  swing(neighbor, beats = 12);
+  progress();
+  swing(partner, beats = 16);
+}
