@@ -240,19 +240,45 @@ section[data-pane="source"] > .body {
   display: flex;
   padding: 0;
 }
-.source-text {
+.code {
+  position: relative;
   flex: 1;
   min-height: 0;
-  resize: none;
-  background: var(--floor);
-  color: var(--ink);
-  border: 0;
-  outline: 0;
+  min-width: 0;
+}
+/* the text twice: the lit layer under, the textarea over it with its ink transparent */
+.source-lit,
+.source-text {
+  position: absolute;
+  inset: 0;
+  margin: 0;
   padding: 5px 8px 20px;
   font: inherit;
   line-height: 17px;
   tab-size: 2;
   white-space: pre;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+}
+.source-lit {
+  color: var(--ink);
+  overflow: hidden;
+  pointer-events: none;
+}
+.source-lit .call {
+  background: #39301f;
+  color: inherit;
+  box-shadow: -2px 0 0 var(--accent);
+}
+.source-text {
+  resize: none;
+  color: transparent;
+  caret-color: var(--ink);
+  outline: 0;
+}
+.source-text::selection {
+  background: #e7b96b40;
 }
 section[data-pane="problems"] {
   flex: none;

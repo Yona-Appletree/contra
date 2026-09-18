@@ -5,8 +5,10 @@ import { el, paneShell, type Pane, type View } from "../view.js";
  * The `.dance` text, editable, with a picker over **every file the dance
  * reads** — the dance's own module and the ones it `use`s, as the playground's
  * source pane has it. The call the bar is inside is lit in the file it was
- * written in. What it bound and how its figure reads are the deck's
- * `bindings` tab (M9): the text is the thing beside the picture.
+ * written in — painted on a layer under the text, since a textarea shows its
+ * selection only while it has the caret. What it bound and how its figure
+ * reads are the deck's `bindings` tab (M9): the text is the thing beside the
+ * picture.
  *
  * Typing re-runs the whole stack after 150 ms of quiet. The textarea is never
  * written back to while it has the caret, so an edit is not fought over by its
@@ -16,9 +18,16 @@ export function sourcePane(onEdit: (file: string, text: string) => void): Pane {
   const { section, head, body } = paneShell("source");
   const files = el("select", "pick");
   head.append(files);
+  const code = el("div", "code");
+  const lit = el("pre", "source-lit");
   const text = el("textarea", "source-text");
   text.spellcheck = false;
-  body.append(text);
+  code.append(lit, text);
+  body.append(code);
+  text.addEventListener("scroll", () => {
+    lit.scrollTop = text.scrollTop;
+    lit.scrollLeft = text.scrollLeft;
+  });
 
   let timer = 0;
   text.addEventListener("input", () => {
@@ -52,17 +61,30 @@ export function sourcePane(onEdit: (file: string, text: string) => void): Pane {
   const textOf = (name: string): string =>
     view?.run.sources.find((s) => s.name === name)?.text ?? "";
 
+  /** The text once more on the layer under the textarea, the call's span marked. */
+  const paint = (body: string, span?: { start: number; end: number }): void => {
+    lit.replaceChildren();
+    if (span === undefined) {
+      lit.textContent = body;
+    } else {
+      const mark = el("mark", "call", body.slice(span.start, span.end));
+      lit.append(body.slice(0, span.start), mark, body.slice(span.end));
+    }
+    lit.scrollTop = text.scrollTop;
+    lit.scrollLeft = text.scrollLeft;
+  };
+
   const show = (name: string, span?: { start: number; end: number }): void => {
-    if (document.activeElement === text) return;
     if (files.value !== name) files.value = name;
     const body = textOf(name);
-    if (text.value !== body) text.value = body;
-    if (span === undefined) return;
-    // Light the call, and scroll it into view without stealing the caret.
-    text.setSelectionRange(span.start, span.end);
+    if (document.activeElement !== text && text.value !== body) text.value = body;
+    paint(text.value, text.value === body ? span : undefined);
+    if (span === undefined || document.activeElement === text) return;
+    // Scroll the call into view without stealing the caret.
     const before = body.slice(0, span.start).split("\n").length - 1;
     const lines = Math.max(body.split("\n").length, 1);
     text.scrollTop = Math.max(0, (before / lines) * text.scrollHeight - text.clientHeight / 2);
+    lit.scrollTop = text.scrollTop;
   };
 
   const draw = (beat: number): void => {
