@@ -67,6 +67,7 @@ export type {
   Frame,
   Move,
   MoveArg,
+  MoveRef,
   Node,
   Position,
   RunOptions,

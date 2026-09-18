@@ -33,6 +33,8 @@ fn phrase(which: Phrase, body: fn) {
 // The moves: a `fn` with an `ir` in it is a leaf the kinematics can play, and
 // its parameters are its contract. The bodies are still TypeScript (§7).
 
+fn bow(with: Role, beats: i32 = 4) { ir "bow"; }
+
 fn shift(direction: Turn, beats: i32 = 2) { ir "shift"; }
 
 fn circle(ring: group, direction: Turn, places: i32 = 4, beats: i32 = 8) { ir "circle"; }

@@ -8,13 +8,27 @@
  * node), and the beats it spans. The kinematics are somebody else's problem
  * (§7); this is the whole of what the language says about motion.
  */
+import type { Span } from "../syntax/ast.js";
 import type { Diagnostic } from "../diagnostics/Diagnostic.js";
+
+/**
+ * What an argument **points at**, beside the text of it (notes D3).
+ *
+ * `value` is for a person to read; `ref` is for a consumer to act on, so a
+ * reader never has to parse `0-2R` back into a dancer. A place that somebody
+ * is standing in refers to that somebody — which is what a move means by a
+ * `Role` argument — and an empty one refers to the node, which is a place
+ * with nobody in it and reads as nobody.
+ */
+export type MoveRef = { t: "dancer"; id: string } | { t: "node"; path: string };
 
 export interface MoveArg {
   /** The parameter's name, as the move declared it. */
   name: string;
   /** The value as a fact: `0-2R`, `MinorSet(0)`, `Left`, `8`. */
   value: string;
+  /** The person or the node the value names, where it names one. */
+  ref?: MoveRef;
 }
 
 export interface Move {
@@ -26,6 +40,8 @@ export interface Move {
   /** The beat it starts on, counted from the top of this time through. */
   start: number;
   beats: number;
+  /** The call in the text, so a consumer's complaint can point at it. */
+  span: Span;
 }
 
 /** A dancer changing places: what `assign` queued and the commit applied. */

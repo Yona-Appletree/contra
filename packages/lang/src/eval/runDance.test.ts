@@ -234,6 +234,49 @@ fn everywhere(minor-sets: i32) {
     expect(partners(second, "0-1L")).toEqual(["2-2R", "0-1R", "0-1R"]);
   });
 
+  // The pair fixture (notes D2): the floor the kinetics stack is built on, and
+  // the one place a move's `ref` and `span` can be read without a progression
+  // in the way.
+  describe("the pair", () => {
+    it("gives every argument a ref and every move a span", () => {
+      const time = once(fixtures(), "fixture");
+      expect(time.diagnostics).toEqual([]);
+      expect(time.outDancers).toEqual([]);
+      expect(time.moves.filter((move) => move.dancer === "L")).toHaveLength(6);
+      expect(time.moves.filter((move) => move.dancer === "R")).toHaveLength(6);
+      expect(partners(time, "L")).toEqual(["R", "R", "R", "R", "R", "R"]);
+
+      // A `Role` argument is the person standing in the place, not the place.
+      const first = time.moves.find((move) => move.dancer === "L");
+      expect(first?.args.find((arg) => arg.name === "with")?.ref).toEqual({
+        t: "dancer",
+        id: "R",
+      });
+      // An enum and a number name nobody, so they carry no ref at all.
+      const allemande = time.moves.find((move) => move.dancer === "L" && move.ir === "allemande");
+      expect(allemande?.args.find((arg) => arg.name === "hand")?.ref).toBeUndefined();
+      expect(allemande?.args.find((arg) => arg.name === "beats")?.ref).toBeUndefined();
+
+      // Every move points back at the call that made it, in `pair.dance`.
+      for (const move of time.moves) {
+        expect(move.span.file).toBe("pair.dance");
+        expect(move.span.end).toBeGreaterThan(move.span.start);
+      }
+    });
+
+    it("leaves the solo's `with` on an empty place", () => {
+      const time = once(fixtures(), "solo");
+      expect(time.diagnostics).toEqual([]);
+      expect(time.moves.map((move) => move.dancer)).toEqual(["L", "L", "L", "L", "L", "L"]);
+      // Nobody is standing there, so the argument names the place instead —
+      // which is what a consumer reads as nobody (D10).
+      expect(time.moves[0]?.args.find((arg) => arg.name === "with")?.ref).toEqual({
+        t: "node",
+        path: "Pair(1)/Role(Robin)",
+      });
+    });
+  });
+
   it("prints a time through", () => {
     const time = once(fixtures(), "butter", { "minor-sets": 1 });
     expect(printTime(time)).toMatchSnapshot();
