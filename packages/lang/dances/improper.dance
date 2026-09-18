@@ -1,0 +1,50 @@
+// improper.dance — ones and twos in one line, each couple across the set from
+// the other, the ones facing down. The same group names as becket, behind
+// `use`: two formations may declare the same name with different bodies, since
+// a dance stands in one formation (§3). An evening that reads both has
+// `becket::MajorSet` and `improper::MajorSet`, which are different names.
+
+use contra::{Role, Couple, wait-out};
+
+group Station { id: enum { OutTop, In, OutBottom } }
+
+group MinorSet {
+  id: i32
+  body {
+    translate(y = -0.4m)             Couple(Ones);
+    translate(y = 0.4m) rotate(180)  Couple(Twos);
+    anchor across = line(through = center, along = X);
+  }
+  travel   = match Couple { Ones => 1,         Twos => -1     };
+  exit     = match Couple { Ones => OutBottom, Twos => OutTop };
+  neighbor = one!(select(Couple = other, Role = other));
+  opposite = one!(select(Couple = other));
+}
+
+group MajorSet {
+  id: i32
+  minor-sets: i32 = 3
+  body {
+    anchor up = direction(Up);
+    // A hall of 2n + 2 couples: the minor sets, and one waiting at each end,
+    // so the progression is a permutation of the places (see becket.dance).
+    //
+    // Becket's ends wait beside the line; improper's wait *in* it, and a
+    // couple that has come to the end crosses over — so the rotations are the
+    // other way round from becket's, and each waiting couple already faces the
+    // way it will dance when it comes back in.
+    translate(y = -1.6m)                          Station(OutTop)    Couple(Ones);
+    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
+    translate(y = 1.6m * minor-sets) rotate(180)  Station(OutBottom) Couple(Twos);
+  }
+
+  fn progress() {
+    match Station {
+      OutTop    => assign(Station = In, MinorSet = first);
+      OutBottom => assign(Station = In, MinorSet = last);
+      In        => assign(MinorSet = id(MinorSet) + travel) or assign(Station = exit, Couple = other);
+    }
+  }
+
+  fn out(length: i32) { wait-out(beats = length); }
+}

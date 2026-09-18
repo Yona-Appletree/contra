@@ -1,0 +1,25 @@
+// medley.dance — acceptance item 7. A medley is a `fn` like everything else:
+// it has a `setup`, so it is a dance an evening can run, and its body calls
+// other dances' bodies.
+//
+// `two-butters` composes Butter with itself on one floor. `mismatch` lays
+// improper's floor and then calls a becket dance on it: the two do not agree
+// on the formation, so the checker fails it. A qualified name needs no `use`
+// (§5), which is exactly what lets one file name two formations that both
+// call themselves `MajorSet`.
+
+use becket::MajorSet;
+use butter::butter;
+
+fn two-butters(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Two butters";
+  butter(minor-sets = minor-sets);
+  butter(minor-sets = minor-sets);
+}
+
+fn mismatch(minor-sets: i32) {
+  setup { improper::MajorSet(1, minor-sets = minor-sets); }
+  card "A becket dance on an improper floor";
+  butter(minor-sets = minor-sets);
+}

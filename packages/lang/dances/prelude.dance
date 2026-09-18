@@ -1,0 +1,13 @@
+// prelude.dance — the enums every file reads, and nothing else.
+//
+// The design's rule for where a name is declared: "the prelude has enums
+// only" (§3). The loader reads this file before every other one, so nothing
+// imports it.
+
+enum Hand { Left, Right }
+
+enum Turn { Left, Right }
+
+enum Direction { Up, Down }
+
+enum Axis { X, Y }

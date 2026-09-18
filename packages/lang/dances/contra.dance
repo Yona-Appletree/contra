@@ -1,0 +1,56 @@
+// contra.dance — what every contra formation shares: the two roles, the
+// couple, the phrase, and the moves. A formation imports it and declares the
+// rest (design §3, §8).
+//
+// Beats are a plain count, not a unit (notes D1): `beats: i32 = 8`.
+
+group Role {
+  id: enum { Lark, Robin }
+  seated: Bool = true
+  body { if (seated) dancer(); }
+}
+
+group Couple {
+  id: enum { Ones, Twos }
+  seated: Bool = true
+  spacing: Length = 0.8m
+  body {
+    left(spacing / 2)  Role(Lark,  seated = seated);
+    right(spacing / 2) Role(Robin, seated = seated);
+  }
+  partner = other(Role);
+}
+
+enum Phrase { A1, A2, B1, B2 }
+
+// A function with a trailing block wraps a phrase, and the assert turns a
+// phrase boundary into a diagnostic (§6).
+fn phrase(which: Phrase, body: fn) {
+  assert(beat == match which { A1 => 0, A2 => 16, B1 => 32, B2 => 48 });
+  body();
+}
+
+// The moves: a `fn` with an `ir` in it is a leaf the kinematics can play, and
+// its parameters are its contract. The bodies are still TypeScript (§7).
+
+fn shift(direction: Turn, beats: i32 = 2) { ir "shift"; }
+
+fn circle(ring: group, direction: Turn, places: i32 = 4, beats: i32 = 8) { ir "circle"; }
+
+fn swing(with: Role, beats: i32 = 8) { ir "swing"; }
+
+fn long-lines(across: Role, beats: i32 = 8) { ir "long-lines"; }
+
+fn chain(who: enum Role, to: Role, beats: i32 = 8) { ir "chain"; }
+
+fn hey(ring: group, start: enum Role, shoulder: Hand, beats: i32 = 16) { ir "hey"; }
+
+fn balance(with: Role, beats: i32 = 4) { ir "balance"; }
+
+fn wait-out(beats: i32 = 64) { ir "wait-out"; }
+
+fn allemande(with: Role, hand: Hand, beats: i32 = 8) { ir "allemande"; }
+
+fn do-si-do(with: Role, beats: i32 = 8) { ir "do-si-do"; }
+
+fn promenade(ring: group, beats: i32 = 8) { ir "promenade"; }

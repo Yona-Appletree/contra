@@ -1,0 +1,20 @@
+// move-in-setup.dance — check error: a move inside `setup`.
+//
+// The tree is built by running `setup` once, for nobody; the script runs once
+// per dancer afterwards. A move is a thing a dancer does, so it has no meaning
+// in `setup` and no cursor to advance (§5). The mirror of this error is a
+// group invocation *outside* `setup`.
+
+use contra::{Role, Couple, swing};
+use becket::{MajorSet, MinorSet};
+
+fn early(minor-sets: i32) {
+  setup {
+    MajorSet(1, minor-sets = minor-sets);
+
+    // The error: nobody is dancing yet.
+    swing(partner, beats = 8);
+  }
+  card "Too early";
+  swing(neighbor, beats = 64);
+}

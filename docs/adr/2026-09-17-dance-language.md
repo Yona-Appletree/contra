@@ -1,7 +1,8 @@
 # The dance language: one text for the tree and the timeline
 
 Date: 2026-09-17
-Status: proposed (to be accepted at the dance-language plan's gate G1)
+Status: superseded by [2026-09-17-dance-language-groups-first-class.md](./2026-09-17-dance-language-groups-first-class.md) —
+the group, not the `$` sigil, turned out to be the one thing everything else was standing in for.
 
 ## Context
 

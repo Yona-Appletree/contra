@@ -1,0 +1,75 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildTree > lays becket's floor: two lines, three minor sets, a couple waiting at each end 1`] = `
+"MajorSet(1) [x=0.000 y=0.000 h=0] {
+  anchor up = direction(Up)
+  Station(OutTop) [x=-0.640 y=-1.600 h=270] {
+    Couple(Ones) [x=-0.640 y=-1.600 h=270] {
+      Role(Lark) [x=-0.640 y=-1.200 h=270] { OT-1L }
+      Role(Robin) [x=-0.640 y=-2.000 h=270] { OT-1R }
+    }
+  }
+  Station(In) [x=0.000 y=0.000 h=0] {
+    MinorSet(0) [x=0.000 y=0.000 h=0] {
+      anchor across = line(through = point(0.000, 0.000), along = X)
+      Couple(Ones) [x=-0.640 y=0.000 h=270] {
+        Role(Lark) [x=-0.640 y=0.400 h=270] { 0-1L }
+        Role(Robin) [x=-0.640 y=-0.400 h=270] { 0-1R }
+      }
+      Couple(Twos) [x=0.640 y=0.000 h=90] {
+        Role(Lark) [x=0.640 y=-0.400 h=90] { 0-2L }
+        Role(Robin) [x=0.640 y=0.400 h=90] { 0-2R }
+      }
+    }
+    MinorSet(1) [x=0.000 y=1.600 h=0] {
+      anchor across = line(through = point(0.000, 1.600), along = X)
+      Couple(Ones) [x=-0.640 y=1.600 h=270] {
+        Role(Lark) [x=-0.640 y=2.000 h=270] { 1-1L }
+        Role(Robin) [x=-0.640 y=1.200 h=270] { 1-1R }
+      }
+      Couple(Twos) [x=0.640 y=1.600 h=90] {
+        Role(Lark) [x=0.640 y=1.200 h=90] { 1-2L }
+        Role(Robin) [x=0.640 y=2.000 h=90] { 1-2R }
+      }
+    }
+    MinorSet(2) [x=0.000 y=3.200 h=0] {
+      anchor across = line(through = point(0.000, 3.200), along = X)
+      Couple(Ones) [x=-0.640 y=3.200 h=270] {
+        Role(Lark) [x=-0.640 y=3.600 h=270] { 2-1L }
+        Role(Robin) [x=-0.640 y=2.800 h=270] { 2-1R }
+      }
+      Couple(Twos) [x=0.640 y=3.200 h=90] {
+        Role(Lark) [x=0.640 y=2.800 h=90] { 2-2L }
+        Role(Robin) [x=0.640 y=3.600 h=90] { 2-2R }
+      }
+    }
+  }
+  Station(OutBottom) [x=0.640 y=4.800 h=90] {
+    Couple(Twos) [x=0.640 y=4.800 h=90] {
+      Role(Lark) [x=0.640 y=4.400 h=90] { OB-2L }
+      Role(Robin) [x=0.640 y=5.200 h=90] { OB-2R }
+    }
+  }
+}"
+`;
+
+exports[`buildTree > puts four couples round a square, each facing the middle 1`] = `
+"Square(1) [x=0.000 y=0.000 h=0] {
+  Couple(1) [x=0.000 y=-1.500 h=0] {
+    Role(Lark) [x=-0.400 y=-1.500 h=0] { 1L }
+    Role(Robin) [x=0.400 y=-1.500 h=0] { 1R }
+  }
+  Couple(2) [x=1.500 y=0.000 h=90] {
+    Role(Lark) [x=1.500 y=-0.400 h=90] { 2L }
+    Role(Robin) [x=1.500 y=0.400 h=90] { 2R }
+  }
+  Couple(3) [x=0.000 y=1.500 h=180] {
+    Role(Lark) [x=0.400 y=1.500 h=180] { 3L }
+    Role(Robin) [x=-0.400 y=1.500 h=180] { 3R }
+  }
+  Couple(4) [x=-1.500 y=0.000 h=270] {
+    Role(Lark) [x=-1.500 y=0.400 h=270] { 4L }
+    Role(Robin) [x=-1.500 y=-0.400 h=270] { 4R }
+  }
+}"
+`;

@@ -1,0 +1,30 @@
+// phrase-assert.dance — check error: a phrase that does not start where it
+// says it does.
+//
+// `phrase` asserts that the cursor is at the phrase's beat before it runs its
+// block (§6). A1 here spends eighteen beats, so A2's block starts at beat 18
+// and its assert is false. The diagnostic is the assert's, with the dancer and
+// the beat, and the trace says which phrase call it came from.
+
+use contra::{Phrase, phrase, balance, swing};
+use becket::{MajorSet, MinorSet};
+
+fn long-a1(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Eighteen";
+
+  phrase(A1) {
+    balance(neighbor, beats = 2);
+    swing(neighbor, beats = 16);
+  }
+  phrase(A2) {
+    swing(partner, beats = 16);
+  }
+  phrase(B1) {
+    balance(partner, beats = 4);
+    swing(partner, beats = 12);
+  }
+  phrase(B2) {
+    swing(neighbor, beats = 16);
+  }
+}

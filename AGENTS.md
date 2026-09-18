@@ -7,28 +7,30 @@ start with
 
 ## Where code goes
 
-| Kind of code                                                                       | Package / path                         | Filename                                             |
-| ---------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
-| Clock, pose sample, arm solver, stacking, seam easing, style                       | `packages/core/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| The resting arm: where a `'down'` hand hangs, the elbow pole, the drawn arm points | `packages/core/src/kinematics/`        | `drawnArms.ts`                                       |
-| Formation, group, figure def, progression, timeline, decider                       | `packages/choreo/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| Contra role set, contra formations, contra dances                                  | `packages/contra/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| Set state and resolution: the lattice, relations, `resolveCall`, the cycle planner | `packages/contra/src/set/`             | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| The figure library: the definition type, the shape kinds and the interpreter       | `packages/contra/src/library/`         | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| **One figure, written as data** (a `FigureDefinition`)                             | `packages/contra/src/library/figures/` | `<figure-id>.ts`, co-located test                    |
-| A dance written as **data**, loaded by `packages/contra/src/dances/`               | `data/dances/`                         | `<slug>.json` with a `status`, plus `programme.json` |
-| A figure's texts as **data**, loaded by `packages/contra/src/text/`                | `data/figures/`                        | `<figure-id>.json`                                   |
-| The pixel-hall renderer: world, bodies, z-order, bubble                            | `packages/hall/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| Audio clock, tunes, medleys, notation cursor                                       | `packages/music/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| A tune as **data**: key, melody lines, hand chord chart, arrangement               | `packages/music/src/tunes/`            | `<tuneName>.ts` via `defineTune`                     |
-| The harmoniser: draft charts, chord plausibility                                   | `packages/music/src/chords/`           | `harmonise.ts`, co-located test                      |
-| Design tokens, theme, CSS variables                                                | `packages/ui-design/src/`              | `theme.css`                                          |
-| Primitive component (no app knowledge)                                             | `packages/ui-base/src/components/ui/`  | `<name>.tsx` (shadcn layout)                         |
-| App screens, layout, routing, composition root                                     | `apps/web/src/`                        | `<Name>.tsx`                                         |
-| Full-tree stories                                                                  | `apps/storybook/src/`                  | `<Name>.stories.tsx`                                 |
-| Visual spikes (never imported by production code)                                  | `spikes/<name>/`                       | `index.html` + vendored assets                       |
-| Engine 3: the language, scheduler, executor, solver (nothing imports it yet)       | `packages/kinetics/src/`               | `<Name>.ts`, co-located `<Name>.test.ts`             |
-| The kinetics debugger (a vite root, served by the package's own `dev` script)      | `packages/kinetics/debugger/`          | `index.html` + `panes/*.ts`                          |
+| Kind of code                                                                        | Package / path                         | Filename                                             |
+| ----------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| Clock, pose sample, arm solver, stacking, seam easing, style                        | `packages/core/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The resting arm: where a `'down'` hand hangs, the elbow pole, the drawn arm points  | `packages/core/src/kinematics/`        | `drawnArms.ts`                                       |
+| Formation, group, figure def, progression, timeline, decider                        | `packages/choreo/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Contra role set, contra formations, contra dances                                   | `packages/contra/src/`                 | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Set state and resolution: the lattice, relations, `resolveCall`, the cycle planner  | `packages/contra/src/set/`             | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The figure library: the definition type, the shape kinds and the interpreter        | `packages/contra/src/library/`         | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| **One figure, written as data** (a `FigureDefinition`)                              | `packages/contra/src/library/figures/` | `<figure-id>.ts`, co-located test                    |
+| A dance written as **data**, loaded by `packages/contra/src/dances/`                | `data/dances/`                         | `<slug>.json` with a `status`, plus `programme.json` |
+| A figure's texts as **data**, loaded by `packages/contra/src/text/`                 | `data/figures/`                        | `<figure-id>.json`                                   |
+| The pixel-hall renderer: world, bodies, z-order, bubble                             | `packages/hall/src/`                   | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| Audio clock, tunes, medleys, notation cursor                                        | `packages/music/src/`                  | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| A tune as **data**: key, melody lines, hand chord chart, arrangement                | `packages/music/src/tunes/`            | `<tuneName>.ts` via `defineTune`                     |
+| The harmoniser: draft charts, chord plausibility                                    | `packages/music/src/chords/`           | `harmonise.ts`, co-located test                      |
+| Design tokens, theme, CSS variables                                                 | `packages/ui-design/src/`              | `theme.css`                                          |
+| Primitive component (no app knowledge)                                              | `packages/ui-base/src/components/ui/`  | `<name>.tsx` (shadcn layout)                         |
+| App screens, layout, routing, composition root                                      | `apps/web/src/`                        | `<Name>.tsx`                                         |
+| Full-tree stories                                                                   | `apps/storybook/src/`                  | `<Name>.stories.tsx`                                 |
+| Visual spikes (never imported by production code)                                   | `spikes/<name>/`                       | `index.html` + vendored assets                       |
+| Engine 3: the language, scheduler, executor, solver (nothing imports it yet)        | `packages/kinetics/src/`               | `<Name>.ts`, co-located `<Name>.test.ts`             |
+| The kinetics debugger (a vite root, served by the package's own `dev` script)       | `packages/kinetics/debugger/`          | `index.html` + `panes/*.ts`                          |
+| The dance language, draft 3: lexer, parser, checker, evaluator (nothing imports it) | `packages/lang/src/`                   | `<name>.ts`, co-located `<name>.test.ts`             |
+| A `.dance` fixture: a formation, a dance, or one deliberate error                   | `packages/lang/dances/`                | `<slug>.dance`, broken ones in `broken/`             |
 
 A package may keep a local file at any layer when it needs one; the table
 names the default home, not a prohibition.
@@ -67,6 +69,8 @@ core ← contra                   (a contra figure emits poses, so it needs core
 core ← hall                     (renderer reads pose samples and the timeline)
 core ← music                    (clock, tunes, medleys)
 core, hall ← kinetics           (engine 3; nothing imports kinetics)
+(nothing) ← lang                (the dance language, draft 3; it imports nothing
+                                 and nothing imports it)
 ui-design ← ui-base             (theme tokens, shadcn primitives)
 apps/web → core, choreo, contra, hall, music, ui-design, ui-base
 apps/storybook → everything

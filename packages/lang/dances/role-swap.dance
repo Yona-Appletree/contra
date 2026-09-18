@@ -1,0 +1,30 @@
+// role-swap.dance — acceptance item 6. Two sixteen-beat dances on becket that
+// differ in one line.
+//
+// `swap-both`: every dancer says `assign(Role = other)`, so the couple's two
+// dancers trade places and the commit at the end of the beat finds one dancer
+// on each.
+//
+// `swap-one`: only the larks say it, so at the end of that beat both dancers
+// of a couple want the robin's place and nobody wants the lark's. That is a
+// pair-and-beat diagnostic, and it is the whole point of committing events at
+// the end of a beat rather than as they are issued (§6).
+
+use contra::{Role, Couple, balance, swing};
+use becket::{MajorSet, MinorSet};
+
+fn swap-both(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Both swap";
+  balance(partner, beats = 4);
+  assign(Role = other);
+  swing(partner, beats = 12);
+}
+
+fn swap-one(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "One swaps";
+  balance(partner, beats = 4);
+  if (Role is Lark) { assign(Role = other); }
+  swing(partner, beats = 12);
+}

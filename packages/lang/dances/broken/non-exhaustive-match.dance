@@ -1,0 +1,21 @@
+// non-exhaustive-match.dance — check error: a `match` that does not cover its
+// subject.
+//
+// `Station`'s ids are `OutTop`, `In` and `OutBottom`. Two arms is not all of
+// them, and a `match` is exhaustive or it is a check error (§4) — there is no
+// implicit fall-through, and `_` is always available to say "the rest" out
+// loud.
+
+use contra::{Role, Couple, swing, wait-out};
+use becket::{MajorSet, MinorSet, Station};
+
+fn partial(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Two of three";
+
+  // The error: `OutBottom` is missing.
+  match Station {
+    OutTop => wait-out(beats = 64);
+    In     => swing(neighbor, beats = 64);
+  }
+}

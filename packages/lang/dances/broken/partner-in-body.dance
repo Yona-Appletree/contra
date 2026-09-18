@@ -1,0 +1,20 @@
+// partner-in-body.dance — check error: a member read inside a body.
+//
+// A body runs once, at invocation, **for nobody**: it lays the children and
+// declares the anchors of the node being built. `partner` is a member, and a
+// member is read by a dancer. Reading one in a body is "no dancer here" (§3),
+// the same error as a move in `setup`.
+
+use contra::{Role, Couple};
+
+group Pair {
+  id: i32
+  body {
+    translate(x = -0.64m)            Couple(Ones);
+    translate(x = 0.64m) rotate(180) Couple(Twos);
+
+    // The error: there is no reader here, so there is no `partner`.
+    anchor facing = direction(partner);
+  }
+  neighbor = one!(select(Couple = other, Role = other));
+}
