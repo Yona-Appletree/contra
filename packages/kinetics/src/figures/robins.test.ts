@@ -18,8 +18,8 @@ import { WAVE_FORWARD_PX } from "./formWave.js";
  * Numbers measured 2026-09-18 at 112 bpm; a bound that is not clean is
  * pinned with the where and the why, never hidden.
  */
-const MIDDLE = ["1-1L", "1-1R", "1-2L", "1-2R"];
-const ROBINS = ["0-1R", "0-2R", "1-1R", "1-2R", "2-1R", "2-2R"];
+const MIDDLE = ["3-1L", "3-1R", "3-2L", "3-2R"];
+const ROBINS = ["1-1R", "1-2R", "3-1R", "3-2R", "5-1R", "5-2R"];
 
 const one = (name: string, uses: string, script: string): Source => ({
   name: `${name}.dance`,
@@ -126,13 +126,13 @@ describe("the mad robin and the long wave, on the middle set", () => {
   it("mad robin: the pair goes round each other and comes home, facing across throughout", () => {
     // After the chain the ones' lark of the middle set has the twos' robin
     // beside him on his right; the two orbit and are back on 14.
-    const l8 = hipAt(run, "1-1L", 8);
-    const r8 = hipAt(run, "1-2R", 8);
-    expect(onRightOf(run, "1-1L", "1-2R", 8)).toBe(true);
+    const l8 = hipAt(run, "3-1L", 8);
+    const r8 = hipAt(run, "3-2R", 8);
+    expect(onRightOf(run, "3-1L", "3-2R", 8)).toBe(true);
     expect(dist(l8.p, r8.p)).toBeCloseTo(20, 0);
     for (const [id, home] of [
-      ["1-1L", l8],
-      ["1-2R", r8],
+      ["3-1L", l8],
+      ["3-2R", r8],
     ] as const) {
       const end = hipAt(run, id, 14);
       expect(dist(end.p, home.p), id).toBeLessThan(0.5);
@@ -146,8 +146,8 @@ describe("the mad robin and the long wave, on the middle set", () => {
     }
     // Half way round each is on the other's place, having passed on the
     // far side of the line: at the quarter the lark is a place in from it.
-    expect(closest(run, "1-1L", "1-2R", 8, 14)).toBeGreaterThanOrEqual(CLEARANCE_PX);
-    const quarter = hipAt(run, "1-1L", 9.5);
+    expect(closest(run, "3-1L", "3-2R", 8, 14)).toBeGreaterThanOrEqual(CLEARANCE_PX);
+    const quarter = hipAt(run, "3-1L", 9.5);
     expect(Math.abs(quarter.p[0] - l8.p[0])).toBeGreaterThan(6);
   });
 
@@ -167,9 +167,9 @@ describe("the mad robin and the long wave, on the middle set", () => {
     // twos' robin (her far mate) and left hands with her own set's other
     // robin; the far side of the line is the same hand for both.
     const pairs: [DancerId, "right" | "left", DancerId, "right" | "left"][] = [
-      ["1-1R", "right", "2-2R", "right"],
-      ["1-1R", "left", "1-2R", "left"],
-      ["1-2R", "right", "0-1R", "right"],
+      ["3-1R", "right", "5-2R", "right"],
+      ["3-1R", "left", "3-2R", "left"],
+      ["3-2R", "right", "1-1R", "right"],
     ];
     for (const [a, ha, b, hb] of pairs) {
       const pa = handAt(run, a, ha, 16);
@@ -187,8 +187,8 @@ describe("the mad robin and the long wave, on the middle set", () => {
     // The top set's twos' robin has nobody above her, the bottom set's ones'
     // robin nobody below: the far hand hangs, the near hand is held.
     for (const [id, free, held] of [
-      ["0-2R", "right", "left"],
-      ["2-1R", "right", "left"],
+      ["1-2R", "right", "left"],
+      ["5-1R", "right", "left"],
     ] as const) {
       for (const beat of [16, 18]) {
         expect(handAt(run, id, free, beat).contact, `${id} ${free} at ${String(beat)}`).toBe(
@@ -204,14 +204,14 @@ describe("the mad robin and the long wave, on the middle set", () => {
   });
 
   it("balance-wave: forward on 1 and back on 3 along the facing, the line never crossed", () => {
-    const at16 = hipAt(run, "1-1R", 16);
-    const at17 = hipAt(run, "1-1R", 17);
-    const at19 = hipAt(run, "1-1R", 19);
+    const at16 = hipAt(run, "3-1R", 16);
+    const at17 = hipAt(run, "3-1R", 17);
+    const at19 = hipAt(run, "3-1R", 19);
     expect(Math.abs(at17.p[0] - at16.p[0])).toBeCloseTo(3, 0);
     expect(Math.abs(at19.p[0] - at16.p[0])).toBeLessThan(0.5);
     // Two neighbours in the wave face opposite ways and rock apart, never
     // through each other: still a place apart along the line.
-    expect(dist(hipAt(run, "1-1R", 17).p, hipAt(run, "1-2R", 17).p)).toBeGreaterThan(19);
+    expect(dist(hipAt(run, "3-1R", 17).p, hipAt(run, "3-2R", 17).p)).toBeGreaterThan(19);
   });
 
   it("proves: the hip and the feet pinned; the wave's hands pinned at the take", () => {
@@ -274,7 +274,7 @@ describe("the single-file promenade, on the middle set", () => {
     const kinds = new Set(errors.map((e) => e.kind));
     expect([...kinds].sort()).toEqual(["RateTooHigh", "StepTooLong", "TimingViolation"]);
     expect(errors.length).toBeLessThanOrEqual(18);
-    const rate = run.schedule!.calls["1-1L"]![0]!;
+    const rate = run.schedule!.calls["3-1L"]![0]!;
     expect(rate.entry[1] - rate.entry[0]).toBe(3);
     expect(rate.rate! * (rate.body[1] - rate.body[0])).toBeCloseTo(0.25, 2);
   });
@@ -295,20 +295,20 @@ describe("the shoulder round, on the middle set", () => {
     // The entry: the robin turns about, from facing across to walking the
     // tangent, which the pivot budget spreads over three beats (M3); the
     // orbit is the five that are left.
-    const call = run.schedule!.calls["1-1L"]![0]!;
+    const call = run.schedule!.calls["3-1L"]![0]!;
     const [from, to] = call.body;
     expect(from).toBe(3);
     const half = (from + to) / 2;
-    const a0 = hipAt(run, "1-1L", from);
-    const a6 = hipAt(run, "1-1L", half);
+    const a0 = hipAt(run, "3-1L", from);
+    const a6 = hipAt(run, "3-1L", half);
     // Shoulder to shoulder: eleven px apart the whole way round, both of
     // them on the circle of half that about the point between them.
     for (const beat of [from, half, to]) {
       expect(
-        dist(hipAt(run, "1-1L", beat).p, hipAt(run, "1-1R", beat).p),
+        dist(hipAt(run, "3-1L", beat).p, hipAt(run, "3-1R", beat).p),
         String(beat),
       ).toBeCloseTo(11, 0);
-      expect(dist(hipAt(run, "1-1L", beat).p, mid), String(beat)).toBeCloseTo(5.5, 0);
+      expect(dist(hipAt(run, "3-1L", beat).p, mid), String(beat)).toBeCloseTo(5.5, 0);
     }
     // Half way through the body the lark is on the far side from where he
     // began — within a step, the cruise ramp putting the half turn a little
@@ -316,15 +316,15 @@ describe("the shoulder round, on the middle set", () => {
     expect(dist(a6.p, [2 * mid[0] - a0.p[0], 2 * mid[1] - a0.p[1]])).toBeLessThan(3);
     // The body faces along the orbit — the partner on the right shoulder —
     // and the head does the looking.
-    expect(onRightOf(run, "1-1L", "1-1R", half)).toBe(true);
-    const listing = run.listings["1-1L"]!;
-    expect(listing.some((line) => line.text.includes("look at 1-1R"))).toBe(true);
+    expect(onRightOf(run, "3-1L", "3-1R", half)).toBe(true);
+    const listing = run.listings["3-1L"]!;
+    expect(listing.some((line) => line.text.includes("look at 3-1R"))).toBe(true);
     // Once round: back where the body began, still shoulder to shoulder on
     // the tangent. The `post` says facing each other, and it is the swing
     // after it that negotiates that turn in its entry; alone, the figure
     // ends as it went round.
-    const l8 = hipAt(run, "1-1L", 8);
-    const r8 = hipAt(run, "1-1R", 8);
+    const l8 = hipAt(run, "3-1L", 8);
+    const r8 = hipAt(run, "3-1R", 8);
     expect(dist(l8.p, a0.p)).toBeLessThan(1.5);
     const toward = Math.atan2(r8.p[1] - l8.p[1], r8.p[0] - l8.p[0]) * (180 / Math.PI);
     expect(Math.abs(Math.abs(angleDiff(l8.facing, toward)) - 90)).toBeLessThan(10);
