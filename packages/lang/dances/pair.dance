@@ -1,0 +1,54 @@
+// pair.dance — two dancers 0.8 m apart facing each other, and the forty beats
+// engine 3's vertical stack was built on (notes D2).
+//
+// `Pair` is the smallest floor there is: no lines, no sets, no progression —
+// a lark at `y = -0.4m` facing down the hall and a robin at `y = 0.4m` turned
+// to face back up it, which puts them face to face a hold's length apart. The
+// same group with `robin = false` is the **solo**: the robin's place is built
+// and nobody stands in it, so every call names a place with nobody in it and
+// the dancer stands there instead (D10).
+//
+// The relation is `opposite` and not `partner` because a bare relation puts
+// **every visible group that declares that name** into the dance's contract
+// (§5): `contra.dance` is imported for the moves, `contra::Couple` declares
+// `partner`, and a pair has no couple in it — so reading `partner` here would
+// put both of these dancers out of their own dance. Facing each other across
+// nothing at all, `opposite` is the word anyway.
+
+use contra::{Role, bow, do-si-do, allemande};
+
+group Pair {
+  id: i32
+  robin: Bool = true
+  body {
+    translate(y = -0.4m) Role(Lark);
+    translate(y = 0.4m) rotate(180) Role(Robin, seated = robin);
+  }
+  opposite = other(Role);
+}
+
+// Forty beats: a bow, two times through a do-si-do and an allemande, a bow.
+fn fixture() {
+  setup { Pair(1); }
+  card "the pair";
+
+  bow(opposite, beats = 4);
+  do-si-do(opposite, beats = 8);
+  allemande(opposite, Right, beats = 8);
+  do-si-do(opposite, beats = 8);
+  allemande(opposite, Right, beats = 8);
+  bow(opposite, beats = 4);
+}
+
+// The same script with nobody in the robin's place.
+fn solo() {
+  setup { Pair(1, robin = false); }
+  card "the solo";
+
+  bow(opposite, beats = 4);
+  do-si-do(opposite, beats = 8);
+  allemande(opposite, Right, beats = 8);
+  do-si-do(opposite, beats = 8);
+  allemande(opposite, Right, beats = 8);
+  bow(opposite, beats = 4);
+}

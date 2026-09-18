@@ -10,11 +10,17 @@ Design: `Planning/contra/dance-language-design.md`. Plan:
 
 ## Allowed imports
 
-**None.** `@caller/lang` imports no workspace package, and no workspace package
-imports it. It is a spike beside the engines, not on top of one: no geometry,
-no renderer, no figures — a move's body is the name in its `ir`, and the
-kinematics are somebody else's problem (§7). `scripts/check-deps.mjs` says so
-from the outside and `src/allowedImports.test.ts` from the inside.
+**None.** `@caller/lang` imports no workspace package. It sits beside the
+engines, not on top of one: no geometry, no renderer, no figures — a move's
+body is the name in its `ir`, and the kinematics are somebody else's problem
+(§7). `scripts/check-deps.mjs` says so from the outside and
+`src/allowedImports.test.ts` from the inside.
+
+`@caller/kinetics` **consumes its timeline** — the evening's moves, events and
+snapshots, through `packages/kinetics/src/sequence/fromLang.ts`
+([the ADR](../../docs/adr/2026-09-18-kinetics-consumes-lang.md)) — so a
+`.dance` file is the one text a dance has, from the tree to the pixels. The
+edge goes one way: nothing here knows that engine exists.
 
 ## What is not there
 
@@ -25,9 +31,8 @@ seating, dispersing are named in the design (§5) but the evening is a plain
 TypeScript function (`runEvening`), not a language. No moves' bodies — a move
 is `ir "swing"`, a name the kinematics reads; the motion behind it is
 somebody else's problem (§7), same as the geometry, the renderer and the
-figures this package does not import. Whether and how these join
-`packages/kinetics` is the overnight plan `docs/adr/
-2026-09-17-dance-language-groups-first-class.md` points at, not this one.
+figures this package does not import. (The join with
+`packages/kinetics` itself has happened: see "Allowed imports" above.)
 
 ## What is here
 
@@ -40,7 +45,7 @@ figures this package does not import. Whether and how these join
 | `src/check/check.ts`   | `check(program)` — the rules, as diagnostics; `checkProgram` also hands back the table.                                                                                                     |
 | `src/eval/`            | The two passes: `buildTree` lays the floor, `runDance` scripts a time, `runEvening` repeats it.                                                                                             |
 | `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                                                                                                                        |
-| `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`.                                                                                                  |
+| `dances/`              | The fixtures: the formations, the pair, Butter, a medley, and the deliberate errors under `broken/`.                                                                                        |
 | `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — one command over one file.                                                                                                                                   |
 | `playground/`          | A vite root: the six panes, dark, on 5178. Nothing else imports it.                                                                                                                         |
 
@@ -174,6 +179,24 @@ console.log(printTimeline(evening)); // events by beat, then a row per move
   `+y`, and a heading of 0 faces down the hall (`src/eval/frame.ts`). A picture
   wants the top at the top, so the playground's floor pane draws the hall turned
   through 180° — a rotation, so left stays left.
+
+### What a move hands on
+
+A `Move` is a leaf — an `ir` name, the beats it spans, and its arguments
+already resolved for the dancer who made it. Two fields are for a **consumer**
+rather than for a reader (notes D3):
+
+- **`arg.ref`** — what the argument points at, beside the `value` text a
+  person reads. A dancer is `{ t: "dancer", id }`; a place somebody is standing
+  in is that somebody; an empty place is `{ t: "node", path }`, which reads as
+  nobody; an enum member or a number has no `ref` at all. So a consumer casts
+  from the timeline without ever parsing `0-2R` back into a person.
+- **`move.span`** — the call in the text, so a complaint from three layers
+  down (`no figure for "chain"`) can point a caret at the line that asked.
+
+`@caller/kinetics` is the consumer: `src/sequence/fromLang.ts` turns an
+evening into its own compiled sequence with these two fields and the
+snapshots, and nothing else.
 
 ## Diagnostics
 

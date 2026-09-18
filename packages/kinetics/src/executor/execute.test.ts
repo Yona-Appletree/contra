@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { EFFECTORS, JOINTS } from "../body/Body.js";
-import { compileDance, readDance, standardFloor } from "../dances/load.js";
-import { treeDialect } from "../dialect/tree/TreeDialect.js";
+import { runNamed } from "../dances/load.js";
 import { kinematicsOf, proveMotion, type Violation } from "../motion/prove.js";
 import { dist } from "../motion/Vec3.js";
-import { schedule } from "../schedule/schedule.js";
 import { solveBodies } from "../solver/solveBody.js";
 import { capsAtTempo } from "../units/caps.js";
 import { TAKE_BEATS } from "../units/limits.js";
@@ -13,16 +11,19 @@ import { execute } from "./execute.js";
 
 const T = tempo(112);
 
-const PAIR = { dancers: ["lark", "robin"] };
+const PAIR = { dancers: ["L", "R"] };
 
-const run = (floorName = "pair") => {
-  const floor = standardFloor(floorName);
-  const dialect = treeDialect(floor);
-  const { sequence, errors } = compileDance(readDance("fixture.dance"), floor);
-  expect(errors).toEqual([]);
-  const scheduled = schedule(sequence, dialect, T);
+/**
+ * The pair fixture from `packages/lang/dances/pair.dance`, through the
+ * language and the join: the lark is `L` and the robin `R`, named for the
+ * places they started in.
+ */
+const run = (dance = "fixture") => {
+  const result = runNamed(dance, { bpm: 112 });
+  expect(result.errors).toEqual([]);
+  const scheduled = result.schedule!;
   expect(scheduled.errors).toEqual([]);
-  return { scheduled, executed: execute(scheduled, dialect, T) };
+  return { scheduled, executed: execute(scheduled, result.dialect!, T) };
 };
 
 describe("the fixture, executed", () => {
@@ -47,7 +48,7 @@ describe("the fixture, executed", () => {
 
   it("hands the solver an input it can read whole", () => {
     expect(executed.input.tempo).toBe(T);
-    expect(executed.input.dialectRoles).toEqual({ lark: "lark", robin: "robin" });
+    expect(executed.input.dialectRoles).toEqual({ L: "lark", R: "robin" });
     for (const id of PAIR.dancers) {
       const dancer = executed.input.dancers[id]!;
       expect(dancer.effectors).toBe(executed.trajectories[id]);
@@ -114,8 +115,8 @@ describe("the fixture, executed", () => {
   });
 
   it("holds the allemande with one shared point between the two dancers", () => {
-    const lark = executed.trajectories.lark!;
-    const robin = executed.trajectories.robin!;
+    const lark = executed.trajectories["L"]!;
+    const robin = executed.trajectories["R"]!;
     // Beat 14 is the middle of the first allemande, long past the take's ramp.
     const i = 14 * T.samplesPerBeat;
     expect(dist(lark.points.handR![i]!, robin.points.handR![i]!)).toBeCloseTo(0, 9);
@@ -128,7 +129,7 @@ describe("the fixture, executed", () => {
       holds.forEach((held, n) => {
         expect(held.hand).toBe("right");
         expect(held.hold).toBe("allemande-R");
-        expect(held.with).toBe(id === "lark" ? "robin" : "lark");
+        expect(held.with).toBe(id === "L" ? "R" : "L");
         // The take is emitted TAKE_BEATS before the allemande's body (beats 12
         // and 28), and the release ramps out over the next figure's first beats.
         const start = n === 0 ? 12 : 28;
@@ -139,7 +140,7 @@ describe("the fixture, executed", () => {
   });
 
   it("ramps the take in and the release out over TAKE_BEATS", () => {
-    const weight = executed.trajectories.lark!.channels.holdWeightR!;
+    const weight = executed.trajectories["L"]!.channels.holdWeightR!;
     expect(weight[(12 - TAKE_BEATS) * T.samplesPerBeat]).toBeCloseTo(0, 9);
     expect(weight[12 * T.samplesPerBeat]).toBeCloseTo(1, 9);
     expect(weight[35 * T.samplesPerBeat]).toBeCloseTo(1, 9);
@@ -163,15 +164,15 @@ describe("the fixture, executed", () => {
   });
 
   it("looks at the other dancer, and down with the bow", () => {
-    const look = executed.input.dancers.lark!.look;
-    expect(look[0]).toBe("robin");
+    const look = executed.input.dancers["L"]!.look;
+    expect(look[0]).toBe("R");
     // The bow's head goes down at the half beat; "down" resolves to the
     // direction the dancer already faces, because the lean carries the head.
     const half = Math.round(0.5 * T.samplesPerBeat);
     expect(look[half]).toEqual({ deg: expect.any(Number) });
-    expect(look[2 * T.samplesPerBeat]).toBe("robin");
+    expect(look[2 * T.samplesPerBeat]).toBe("R");
     // And the lean is what actually folds: 0 at the start, 25° at the bow.
-    const lean = executed.trajectories.lark!.channels.lean!;
+    const lean = executed.trajectories["L"]!.channels.lean!;
     expect(lean[0]).toBeCloseTo(0, 9);
     expect(Math.max(...lean)).toBeCloseTo(25, 6);
     expect(lean[lean.length - 1]).toBeCloseTo(0, 6);
@@ -199,9 +200,9 @@ describe("the executor's output, handed to the body solver", () => {
 describe("the fixture, danced alone", () => {
   it("stands the solo dancer still for forty beats with nothing in either hand", () => {
     const { executed } = run("solo");
-    const t = executed.trajectories.lark!;
-    expect(Object.keys(executed.input.dancers)).toEqual(["lark"]);
-    expect(executed.input.dancers.lark!.holds).toEqual([]);
+    const t = executed.trajectories["L"]!;
+    expect(Object.keys(executed.input.dancers)).toEqual(["L"]);
+    expect(executed.input.dancers["L"]!.holds).toEqual([]);
     const hip = t.points.hip!;
     for (const p of hip) {
       expect(p.x).toBeCloseTo(hip[0]!.x, 9);

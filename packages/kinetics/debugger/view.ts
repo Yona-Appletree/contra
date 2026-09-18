@@ -34,9 +34,10 @@ export const ROLE_COLOURS = { lark: "#e0a32e", robin: "#c8362f" } as const;
 export const SKIN = { lark: "#e8c39e", robin: "#c99a6b" } as const;
 
 export const colourOf = (run: Run, dancer: DancerId): string =>
-  ROLE_COLOURS[run.dialect.roleOf(dancer)];
+  ROLE_COLOURS[run.dialect?.roleOf(dancer) ?? "lark"];
 
-export const skinOf = (run: Run, dancer: DancerId): string => SKIN[run.dialect.roleOf(dancer)];
+export const skinOf = (run: Run, dancer: DancerId): string =>
+  SKIN[run.dialect?.roleOf(dancer) ?? "lark"];
 
 /**
  * Where everybody stands at beat 0 — the **set**, not the travel.
@@ -46,12 +47,12 @@ export const skinOf = (run: Run, dancer: DancerId): string => SKIN[run.dialect.r
  * fit that is a view of nothing.
  */
 export const setPoints = (run: Run): Vec3[] =>
-  Object.values(run.dialect.initial().dancers).map((d) => ({ x: d.p[0], y: d.p[1], z: 0 }));
+  Object.values(run.dialect?.initial().dancers ?? {}).map((d) => ({ x: d.p[0], y: d.p[1], z: 0 }));
 
 /** The two long lines, as x, or nothing when the floor is not two lines. */
 export const linesOf = (run: Run): number[] => {
   const xs = new Set<number>();
-  for (const d of Object.values(run.dialect.initial().dancers)) xs.add(Math.round(d.p[0]));
+  for (const d of Object.values(run.dialect?.initial().dancers ?? {})) xs.add(Math.round(d.p[0]));
   return xs.size === 2 ? [...xs].sort((a, b) => a - b) : [];
 };
 

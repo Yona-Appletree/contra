@@ -175,6 +175,10 @@ were accepted as part of the decision rather than sent back for a redo:
   later round joins the two stacks. `AGENTS.md`'s dependency table already
   marks `@caller/lang` as importing nothing and being imported by nothing —
   the two packages are not wired together yet.
+  **Closed, 2026-09-18**, by
+  [2026-09-18-kinetics-consumes-lang.md](./2026-09-18-kinetics-consumes-lang.md):
+  engine 3 consumes this language's timeline, round 1's text and tree are
+  deleted, and the dependency line is now `core, hall, lang ← kinetics`.
 - **A formatter and a linter are follow-ups**, not shipped with the spike;
   round 2 had both, and draft 3's grammar (trailing blocks, prefix modifiers,
   one pattern grammar in four places) needs its own before a `.dance` file in

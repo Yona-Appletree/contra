@@ -2,47 +2,12 @@
 // motion. Nothing imports this package (D11); see README.md.
 export const KINETICS = "engine 3" as const;
 
-// the .dance language (the dance-language plan, P1): one grammar for
-// formations, moves and dances, with its formatter, linter and checker
-export type {
-  Arg as DanceArg,
-  BinaryOp,
-  EnumItem,
-  Expr,
-  File as DanceFile,
-  Item,
-  ModuleItem,
-  ModuleKind,
-  Param,
-  Span as DanceSpan,
-  Stmt as DanceStmt,
-  Transform,
-} from "./lang/syntax.js";
-export { BUILTIN_TYPES, UNITS } from "./lang/syntax.js";
-export type { Comment, SyntaxError, Token } from "./lang/lexer.js";
-export { isSyntaxError, tokenize } from "./lang/lexer.js";
-export { parse as parseDance, parseWithComments } from "./lang/parser.js";
-export { format, printFile } from "./lang/format.js";
-export type { LintIssue, LintOptions } from "./lang/lint.js";
-export { lint } from "./lang/lint.js";
-export type { CheckError, CheckOptions } from "./lang/check.js";
-export { BUILTIN_FUNCTIONS, BUILTIN_STATEMENTS, check } from "./lang/check.js";
-export type { CompileError, CompileInput, CompiledCall, CompiledSequence } from "./lang/compile.js";
-export { compile, kebab } from "./lang/compile.js";
-
-// the tree (P2): a formation evaluated into groups, places and anchors in
-// metres; who stands where; `$name` for one dancer
-export type { Frame, Op } from "./tree/Frame.js";
-export { apply, applyAll, compose, distance, norm } from "./tree/Frame.js";
-export type { Anchor, Deferred, Group, Place, Provide } from "./tree/Tree.js";
-export { centreOf, chainTo, groupsOf, placeAt, placesOf } from "./tree/Tree.js";
-export type { Env, Value } from "./tree/values.js";
-export type { EvalError, Modules } from "./tree/evaluate.js";
-export { buildFormation, collect, evalExpr, isEvalError } from "./tree/evaluate.js";
-export type { Membership } from "./tree/membership.js";
-export { membership, progress, seatAll } from "./tree/membership.js";
-export type { Resolved } from "./tree/relations.js";
-export { providedNames, resolve } from "./tree/relations.js";
+// the join (kinetics-on-lang M1): `@caller/lang`'s evening as the compiled
+// sequence the scheduler takes. The language owns the text, the tree and the
+// beats; this package owns everything from the figures down.
+export type { CompiledCall, CompiledSequence, Membership } from "./sequence/CompiledSequence.js";
+export { membership } from "./sequence/CompiledSequence.js";
+export { kebab, sequenceFromEvening } from "./sequence/fromLang.js";
 
 // the IR: a figure as timed constraints
 export type {
@@ -76,11 +41,9 @@ export { allemande } from "./figures/allemande.js";
 export { bow } from "./figures/bow.js";
 export { doSiDo } from "./figures/doSiDo.js";
 
-// the floor: a formation built and seated, and the dialect the stack reads
+// the floor: the dialect the stack reads, made from the language's tree
 export type { DancerId, DancerState, Dialect, DialectId, SetState } from "./dialect/Dialect.js";
-export { METRE_PX, framePx, treeDialect } from "./dialect/tree/TreeDialect.js";
-export type { Floor } from "./tree/floor.js";
-export { floorOf } from "./tree/floor.js";
+export { METRE_PX, MM_PX, langDialect, normalizeDeg, posePx } from "./dialect/langDialect.js";
 
 // units, the body, motion and the proof (P2)
 export type { Tempo } from "./units/Tempo.js";
@@ -120,6 +83,8 @@ export { programEnd, slotAt, slotsOfBeat } from "./asm/Program.js";
 export type { ListingLine } from "./asm/listing.js";
 export { formatLine, listing } from "./asm/listing.js";
 export type { ScheduleError, ScheduleErrorKind, ScheduleWarning } from "./schedule/errors.js";
+export type { DriftWarning } from "./schedule/drift.js";
+export { PLACE_PX, driftOf } from "./schedule/drift.js";
 export type { SeamKind } from "./schedule/seams.js";
 export type { Schedule, ScheduledCall } from "./schedule/schedule.js";
 export { schedule } from "./schedule/schedule.js";
@@ -173,3 +138,6 @@ export { execute } from "./executor/execute.js";
 // the whole stack as one call, and the page that shows it (P7)
 export type { Run, RunError, RunOptions, RunWarning } from "./pipeline.js";
 export { run } from "./pipeline.js";
+// `dances/load.ts` is deliberately **not** re-exported: it reads the disk,
+// and this entry point is bundled into the debugger's page.
+export { BUTTER_BEATS_PER_TIME } from "./dances/butter.js";

@@ -18,12 +18,13 @@ const PACKAGES = {
   hall: { dir: "packages/hall", allows: new Set(["core"]) },
   music: { dir: "packages/music", allows: new Set(["core"]) },
   // Engine 3 (D11): nothing lists `kinetics` in its own `allows`, on purpose.
-  // It draws its debugger's people with `hall`'s own passes (dance-language P6).
-  kinetics: { dir: "packages/kinetics", allows: new Set(["core", "hall"]) },
+  // It draws its debugger's people with `hall`'s own passes (dance-language P6),
+  // and since M1 of kinetics-on-lang it animates from `lang`'s timeline (D1).
+  kinetics: { dir: "packages/kinetics", allows: new Set(["core", "hall", "lang"]) },
   // The dance language, draft 3 (the dance-language spike): a parser, a
   // checker and an evaluator over `.dance` text, and nothing else. It imports
-  // no workspace package and no workspace package imports it — the one edge
-  // rule it has is that it has none.
+  // no workspace package — `kinetics` consumes its timeline, and it still
+  // imports nothing itself.
   lang: { dir: "packages/lang", allows: new Set([]) },
   "ui-design": { dir: "packages/ui-design", allows: new Set([]) },
   "ui-base": { dir: "packages/ui-base", allows: new Set(["ui-design"]) },

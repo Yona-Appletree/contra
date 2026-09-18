@@ -1,37 +1,45 @@
+import type { Source } from "@caller/lang";
 import { describe, expect, it } from "vitest";
-import { compileDance, readDance, standardFloor } from "../dances/load.js";
-import { treeDialect } from "../dialect/tree/TreeDialect.js";
+import { runNamed } from "../dances/load.js";
 import { FIGURES } from "../figures/registry.js";
 import type { FigureRegistry } from "../figures/registry.js";
 import type { FigureIR } from "../ir/Figure.js";
-import { parse } from "../lang/parser.js";
-import { tempo } from "../units/Tempo.js";
 import { TAKE_BEATS } from "../units/limits.js";
-import { schedule } from "./schedule.js";
 import type { Schedule } from "./schedule.js";
 
-const T = tempo(112);
-
-const FIXTURE_PROGRAM = readDance("fixture.dance");
-
-/** A dance on a standard floor; `extraMoves` declares any figure the registry has that `moves.dance` does not. */
-const run = (
-  source: string,
-  floorName = "pair",
-  registry: FigureRegistry = FIGURES,
-  extraMoves = "",
-): Schedule => {
-  const floor = standardFloor(floorName);
-  const dialect = treeDialect(floor);
-  const moves = parse(readDance("moves.dance") + extraMoves);
-  const { sequence, errors } = compileDance(source, floor, { registry, moves });
-  expect(errors).toEqual([]);
-  return schedule(sequence, dialect, T);
+/**
+ * The scheduler, on the pair fixture from `packages/lang/dances/pair.dance`
+ * and on four-line dances written inline beside it. The dancers are `L` and
+ * `R` — the language names a person for the place they started in.
+ */
+const scheduleOf = (dance: string, registry?: FigureRegistry, extra?: Source): Schedule => {
+  const result = runNamed(dance, {
+    bpm: 112,
+    ...(registry === undefined ? {} : { registry }),
+    ...(extra === undefined ? {} : { extra: [extra] }),
+  });
+  expect(result.errors.filter((e) => e.stage !== "schedule")).toEqual([]);
+  return result.schedule as Schedule;
 };
 
+/** A module beside the fixtures: one move of its own, and a dance on the pair. */
+const withMove = (name: string, move: string, script: string, robin = true): Source => ({
+  name: `${name}.dance`,
+  text: `use contra::{Role, bow};
+use pair::{Pair};
+
+${move}
+
+fn ${name}() {
+  setup { Pair(1${robin ? "" : ", robin = false"}); }
+${script}
+}
+`,
+});
+
 describe("the fixture", () => {
-  const s = run(FIXTURE_PROGRAM);
-  const lark = s.calls.lark ?? [];
+  const s = scheduleOf("fixture");
+  const lark = s.calls["L"] ?? [];
 
   it("schedules six calls per dancer with no errors", () => {
     expect(s.errors).toEqual([]);
@@ -54,11 +62,11 @@ describe("the fixture", () => {
       expect(c.exit[1]).toBe(c.call.end);
       expect(c.body[1]).toBeGreaterThanOrEqual(c.body[0] + c.call.figure.beats.min);
     }
-    const program = s.programs.lark;
+    const program = s.programs["L"];
     for (let beat = 0; beat < 40; beat++) {
       expect(
         program?.slots.some((slot) => slot.beat === beat && slot.half === 0),
-        `beat ${beat}`,
+        `beat ${String(beat)}`,
       ).toBe(true);
     }
   });
@@ -69,9 +77,9 @@ describe("the fixture", () => {
     expect(allemande.seamIn).toBe("take-overlapped");
     expect(allemande.entry).toEqual([12, 12]);
     expect(doSiDo.exit[1] - doSiDo.exit[0]).toBeGreaterThanOrEqual(1);
-    const slot = s.programs.lark?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
+    const slot = s.programs["L"]?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
     expect(
-      slot?.instrs.some((i) => i.op === "hold" && i.hold === "allemande-R" && i.with === "robin"),
+      slot?.instrs.some((i) => i.op === "hold" && i.hold === "allemande-R" && i.with === "R"),
     ).toBe(true);
   });
 
@@ -93,14 +101,14 @@ describe("the fixture", () => {
   });
 
   it("emits a hold as one shared line in both programs", () => {
-    const larkSlot = s.programs.lark?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
-    const robinSlot = s.programs.robin?.slots.find(
+    const larkSlot = s.programs["L"]?.slots.find((x) => x.beat === 12 - TAKE_BEATS && x.half === 0);
+    const robinSlot = s.programs["R"]?.slots.find(
       (x) => x.beat === 12 - TAKE_BEATS && x.half === 0,
     );
     const larkHold = larkSlot?.instrs.find((i) => i.op === "hold");
     const robinHold = robinSlot?.instrs.find((i) => i.op === "hold");
-    expect(larkHold).toEqual({ op: "hold", hand: "right", with: "robin", hold: "allemande-R" });
-    expect(robinHold).toEqual({ op: "hold", hand: "right", with: "lark", hold: "allemande-R" });
+    expect(larkHold).toEqual({ op: "hold", hand: "right", with: "R", hold: "allemande-R" });
+    expect(robinHold).toEqual({ op: "hold", hand: "right", with: "L", hold: "allemande-R" });
   });
 
   it("chooses the allemande's rate from the beats its body has", () => {
@@ -119,9 +127,20 @@ describe("the fixture", () => {
 
 describe("errors", () => {
   it("reports an allemande once round in two beats as a rate violation", () => {
-    const s = run("dance d($partner: Place) { allemande($partner, Right, beats = 2); }");
+    const s = scheduleOf("hurried", undefined, {
+      name: "hurried.dance",
+      text: `use contra::{Role, allemande};
+use pair::{Pair};
+
+fn hurried() {
+  setup { Pair(1); }
+  allemande(opposite, Right, beats = 2);
+}
+`,
+    });
     expect(s.errors.map((e) => e.kind)).toContain("RateTooHigh");
   });
+
   it("reports a timing violation when entry and exit leave no body", () => {
     const tight: FigureIR = {
       ...FIGURES["do-si-do"]!,
@@ -135,11 +154,14 @@ describe("errors", () => {
         holds: [],
       },
     };
-    const s = run(
-      "dance d($partner: Place) { bow($partner); tight($partner); }",
-      "pair",
+    const s = scheduleOf(
+      "tighten",
       { ...FIGURES, tight },
-      'move tight($partner: Place) { ir "tight"; }',
+      withMove(
+        "tighten",
+        'fn tight(with: Role, beats: i32 = 2) { ir "tight"; }',
+        "  bow(opposite, beats = 4);\n  tight(opposite, beats = 2);",
+      ),
     );
     expect(s.errors.map((e) => e.kind)).toContain("TimingViolation");
   });
@@ -147,9 +169,9 @@ describe("errors", () => {
 
 describe("nobody", () => {
   it("stands the solo dancer for forty beats with no holds and no errors", () => {
-    const s = run(FIXTURE_PROGRAM, "solo");
+    const s = scheduleOf("solo");
     expect(s.errors).toEqual([]);
-    const program = s.programs.lark!;
+    const program = s.programs["L"]!;
     expect(
       program.slots.every((slot) => slot.instrs.every((i) => i.op !== "hold" && i.op !== "step")),
     ).toBe(true);
@@ -157,10 +179,10 @@ describe("nobody", () => {
       const slot = program.slots.find((x) => x.beat === beat && x.half === 0);
       expect(
         slot?.instrs.some((i) => i.op === "stand"),
-        `beat ${beat}`,
+        `beat ${String(beat)}`,
       ).toBe(true);
     }
-    for (const c of s.calls.lark ?? []) {
+    for (const c of s.calls["L"] ?? []) {
       expect(c.entry[1] - c.entry[0]).toBe(0);
       expect(c.seamIn).toBe("none");
     }
@@ -174,14 +196,18 @@ describe("nobody", () => {
       casts: { partner: "elide" },
       elide: "stretch",
     };
-    const s = run(
-      "dance d($partner: Place) { shifty($partner); bow($partner); }",
-      "solo",
+    const s = scheduleOf(
+      "shifting",
       { ...FIGURES, shifty },
-      'move shifty($partner: Place) { ir "shifty"; }',
+      withMove(
+        "shifting",
+        'fn shifty(with: Role, beats: i32 = 2) { ir "shifty"; }',
+        "  shifty(opposite, beats = 2);\n  bow(opposite, beats = 4);",
+        false,
+      ),
     );
     expect(s.errors).toEqual([]);
-    const calls = s.calls.lark ?? [];
+    const calls = s.calls["L"] ?? [];
     expect(calls.map((c) => c.call.figure.id)).toEqual(["bow"]);
     expect(calls[0]!.call.start).toBe(0);
     expect(calls[0]!.body).toEqual([0, 6]);

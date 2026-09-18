@@ -372,8 +372,15 @@ function makeScript(run: Run, dancer: Dancer, cursor: number, canMove: boolean):
     firstTime: run.firstTime,
     lastTime: run.lastTime,
     canMove,
-    move: (ir, args, beats) => {
-      run.moves.push({ dancer: dancer.id, ir, args: [...args], start: script.cursor, beats });
+    move: (ir, args, beats, span) => {
+      run.moves.push({
+        dancer: dancer.id,
+        ir,
+        args: [...args],
+        start: script.cursor,
+        beats,
+        span,
+      });
       script.cursor += beats;
     },
     queue: (to, span, ctx) => {

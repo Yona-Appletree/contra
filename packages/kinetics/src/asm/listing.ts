@@ -1,6 +1,6 @@
 import { angleDiff, angleOf, dist } from "@caller/core";
 import type { DancerId, Dialect } from "../dialect/Dialect.js";
-import type { CompiledSequence } from "../lang/compile.js";
+import type { CompiledSequence } from "../sequence/CompiledSequence.js";
 import type { Instr, WindowName } from "./Instruction.js";
 import type { Program } from "./Program.js";
 

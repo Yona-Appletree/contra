@@ -103,7 +103,7 @@ export function view3dPane(): Pane {
     // The groups at this seating, on the floor.
     if (boxesToggle.checked) {
       const membership = membershipAt(run, beat);
-      const followed = pick.length === run.dialect.dancers.length ? [] : pick;
+      const followed = pick.length === (run.dialect?.dancers.length ?? 0) ? [] : pick;
       for (const box of membership === undefined ? [] : boxesAt(run, membership, followed)) {
         const pts = padHull(box.hullPx, 4);
         context.globalAlpha = box.mine ? 0.9 : 0.35;
@@ -123,7 +123,7 @@ export function view3dPane(): Pane {
     const solved = run.solved;
     if (!solved) return;
     const order: { dancer: DancerId; depth: number }[] = [];
-    for (const dancer of run.dialect.dancers) {
+    for (const dancer of run.dialect?.dancers ?? []) {
       const hip = solved.trajectories[dancer]?.points.hip;
       const t = solved.trajectories[dancer];
       if (!hip || !t) continue;

@@ -114,8 +114,11 @@ describe("runEvening", () => {
         );
         // A dancer that went out mid-time may still have been named by the
         // moves it danced before the progression; nobody may be named after it.
+        // The out couple's own `wait-out` names its partner — who is of course
+        // also waiting out — so what is being asked here is only what the
+        // dancers still *in* the dance say.
         const asked = time.moves
-          .filter((move) => move.start >= 2)
+          .filter((move) => move.start >= 2 && !waiting.has(move.dancer))
           .flatMap((move) =>
             move.args.filter((arg) => arg.name === "with" || arg.name === "to").map((a) => a.value),
           );

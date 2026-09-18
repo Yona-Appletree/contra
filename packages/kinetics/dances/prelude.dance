@@ -1,7 +1,0 @@
-// Every .dance file is read after this one.
-
-enum Role { Lark, Robin }
-enum Hand { Left, Right }
-enum Turn { Left, Right }
-enum Form { Proper, Improper, Becket, ReverseBecket }
-enum End { Top, Bottom }

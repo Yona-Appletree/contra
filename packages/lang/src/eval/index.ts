@@ -30,6 +30,7 @@ export type {
   EventRecord,
   Move,
   MoveArg,
+  MoveRef,
   Position,
   Snapshot,
   TimeResult,

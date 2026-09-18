@@ -35,7 +35,7 @@ import type { Frame } from "./frame.js";
 import { compose, frame, reflection, rotation, translation } from "./frame.js";
 import type { Module, Program } from "./loadForEval.js";
 import { findEnumMember, findFn, findGroup, groupsDeclaringMember } from "./loadForEval.js";
-import type { MoveArg } from "./timeline.js";
+import type { MoveArg, MoveRef } from "./timeline.js";
 import type { Dancer, Node, Tree } from "./tree.js";
 import { ancestorOfKind, kindsOf, lineageOf, nodesOfKind, placesUnder } from "./tree.js";
 import type { Env, Value } from "./value.js";
@@ -452,9 +452,33 @@ function emitMove(decl: FnDecl, ir: string, ctx: Ctx, span: Span): void {
     const value = lookupEnv(ctx.env, param.name);
     if (value === undefined) continue;
     if (param.name === "beats") beats = toInt(value);
-    args.push({ name: param.name, value: showValue(value) });
+    const ref = refOf(value);
+    args.push({ name: param.name, value: showValue(value), ...(ref === undefined ? {} : { ref }) });
   }
   script.move(ir, args, beats, span, ctx);
+}
+
+/**
+ * What an argument points at (notes D3): a person, the place they stand in, or
+ * nothing at all. A place with somebody in it points at the somebody — a move
+ * that says `swing(neighbor)` means the person, and who stands there is
+ * settled by the last commit before the move. A selection of exactly one is
+ * that one; a selection of none or several names nobody in particular, and the
+ * consumer's own rule decides what to do about it (D10).
+ */
+function refOf(value: Value): MoveRef | undefined {
+  switch (value.t) {
+    case "dancer":
+      return { t: "dancer", id: value.dancer.id };
+    case "node":
+      return value.node.occupant === undefined
+        ? { t: "node", path: value.node.path }
+        : { t: "dancer", id: value.node.occupant.id };
+    case "selection":
+      return value.items.length === 1 ? refOf(value.items[0] as Value) : undefined;
+    default:
+      return undefined;
+  }
 }
 
 function bindParams(
