@@ -16,6 +16,7 @@
   --lark:#e0a32e; --robin:#c8362f; --bad:#e07a7a; --good:#9fd08a; --warn:#e0c07a;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);
   font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
@@ -87,7 +88,8 @@ button.ghost.on{background:#4a3a24;color:var(--accent)}
 .code{position:relative;flex:1;min-height:0;overflow:hidden;background:var(--floor)}
 .code .scroll{position:absolute;inset:0;overflow:auto}
 .code pre{margin:0;padding:6px 8px 20px;font:var(--cf,12px/17px) ui-monospace,Menlo,monospace;white-space:pre}
-.code .ln{display:block;padding:0 4px;border-left:2px solid transparent;color:var(--ink)}
+.code .ln{display:block;padding:0 4px;border-left:2px solid transparent;color:var(--ink);
+  line-height:inherit;min-height:1em}
 .code .ln.cm{color:#6f6151}
 .code .ln.dim{opacity:.35}
 .code .ln.lit{background:#39301f;border-left-color:var(--accent)}
@@ -123,7 +125,7 @@ canvas.pix{image-rendering:pixelated;display:block}
 
 /* ---- complaints ---- */
 .complaints{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 8px;
-  flex:none;max-height:58px;overflow:auto;color:var(--muted);font-size:11.5px}
+  flex:none;max-height:74px;overflow:auto;color:var(--muted);font-size:11.5px}
 .complaints .line{display:flex;gap:8px;white-space:nowrap;cursor:pointer}
 .complaints .tag{flex:none;width:150px;overflow:hidden;text-overflow:ellipsis}
 .complaints .where{flex:none;width:170px;color:var(--accent);overflow:hidden;text-overflow:ellipsis}
@@ -137,10 +139,10 @@ canvas.pix{image-rendering:pixelated;display:block}
 .tabbar button.on{color:var(--ink);background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel)}
 .tabbar .sp{flex:1}
 .rail{flex:none;display:flex;flex-direction:column;gap:3px;padding:4px 3px;background:var(--panel);
-  border-left:1px solid var(--line)}
+  border-left:1px solid var(--line);position:relative;z-index:3}
 .rail button{writing-mode:vertical-rl;padding:8px 2px;font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
 .rail button.on{background:#4a3a24;color:var(--accent);border-color:var(--accent)}
-.drawer{position:absolute;right:0;top:0;bottom:0;width:300px;background:#1e1917f2;border-left:1px solid var(--line);
+.drawer{position:absolute;right:31px;top:0;bottom:0;width:300px;background:#1e1917f2;border-left:1px solid var(--line);
   padding:6px 8px;overflow:auto;font-size:11px;color:var(--muted);backdrop-filter:blur(2px)}
 .drawer h4{margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
 
@@ -299,7 +301,7 @@ function makePerson(seed,role){
 // stands on the lark's right; partners are side by side, neighbours across.
 const DANCERS=['l1','r1','l2','r2'];
 const ROLE_OF={l1:'lark',r1:'robin',l2:'lark',r2:'robin'};
-const HOME={l1:{p:[7,-16],a:90},r1:{p:[-7,-16],a:90},l2:{p:[-7,16],a:270},r2:{p:[7,16],a:270}};
+const HOME={l1:{p:[12,-16],a:90},r1:{p:[-12,-16],a:90},l2:{p:[-12,16],a:270},r2:{p:[12,16],a:270}};
 const PARTNER={l1:'r1',r1:'l1',l2:'r2',r2:'l2'};
 const NEIGHBOUR={l1:'r2',r2:'l1',r1:'l2',l2:'r1'};
 const PEOPLE={};DANCERS.forEach((d,i)=>{PEOPLE[d]=makePerson(i+3,ROLE_OF[d]);});
@@ -321,7 +323,7 @@ MOVES.shift=(t,B,b)=>{const k=smooth(clamp01(t/B));const o={};
   for(const d of DANCERS){const h=HOME[d];const P=add(h.p,leftOf(h.a),14*k*(1-k)*2);
     o[d]={p:P,a:h.a,hands:{L:hang(P,h.a,-1,b,1),R:hang(P,h.a,1,b,1)},stepRate:1,amp:1};}
   return o;};
-MOVES.circle=(t,B,b,arg)=>{const places=arg.places||3;const k=t/B;const R=15.5;const o={};
+MOVES.circle=(t,B,b,arg)=>{const places=arg.places||3;const k=t/B;const R=15;const o={};
   const th0={};for(const d of DANCERS)th0[d]=ang(HOME[d].p[0],HOME[d].p[1]);
   const pos={};for(const d of DANCERS){
     const r=lerp(Math.hypot(HOME[d].p[0],HOME[d].p[1]),R,smooth(Math.min(k*3.2,1)));
@@ -335,35 +337,36 @@ MOVES.circle=(t,B,b,arg)=>{const places=arg.places||3;const k=t/B;const R=15.5;c
   return out;};
 MOVES['long-lines']=(t,B,b)=>{const k=t/B;const fwd=Math.sin(Math.PI*2*clamp01(k)/2)*(k<0.5?1:1);
   const off=smooth(Math.min(k*2,1))*(k<0.5?1:0)+(k>=0.5?1-smooth((k-0.5)*2):0);const o={};
-  for(const d of DANCERS){const h=HOME[d];const P=add(h.p,dirOf(h.a),6.5*off);
-    const p2=HOME[PARTNER[d]];const mid=mix(P,add(p2.p,dirOf(h.a),6.5*off),0.5);
+  for(const d of DANCERS){const h=HOME[d];const P=add(h.p,dirOf(h.a),8*off);
+    const p2=HOME[PARTNER[d]];const mid=mix(P,add(p2.p,dirOf(h.a),8*off),0.5);
     o[d]={p:P,a:h.a,stepRate:1,amp:1,lean:off*0.6*(k<0.5?1:-1),
       hands:handsTo(P,h.a,[{p:mid,d:HOLD_D+1}],b,1)};}
   return o;};
-MOVES.chain=(t,B,b)=>{                               // robins cross, larks turn them
-  const cross=trapInt(t,0,0.9,B*0.55,B*0.62);const turn=ramp(t,B*0.55,B);const o={};
-  for(const d of DANCERS){const h=HOME[d];const me=ROLE_OF[d];
-    if(me==='robin'){const other=DANCERS.find(x=>ROLE_OF[x]==='robin'&&x!==d);
-      const way=[h.p,mix(h.p,HOME[other].p,0.32),add(mix(h.p,HOME[other].p,0.5),[0,0],0),
-        mix(h.p,HOME[other].p,0.72),HOME[other].p,mix(HOME[other].p,h.p,0.16),h.p];
-      const P=spline(way,clamp01(cross*0.72+turn*0.28));
-      const a=alerp(h.a,ang(HOME[other].p[0]-h.p[0],HOME[other].p[1]-h.p[1]),Math.min(cross*1.4,1));
-      const lark=DANCERS.find(x=>ROLE_OF[x]==='lark'&&x!==PARTNER[d]);
-      o[d]={p:P,a:alerp(a,h.a,turn),stepRate:1,amp:1,
-        hands:handsTo(P,a,[{p:add(P,dirOf(a),3.2),d:6}],b,1)};
-      o[d]._lark=lark;
-    } else {const P=add(h.p,leftOf(h.a),-2.5*Math.sin(Math.PI*turn));
-      const a=h.a+30*Math.sin(Math.PI*turn);
-      o[d]={p:P,a,stepRate:1,amp:1,hands:handsTo(P,a,[{p:add(P,dirOf(a),3.6),d:7}],b,1)};}}
+MOVES.chain=(t,B,b)=>{                               // the robins swap, the larks turn them
+  const cross=trapInt(t,0,0.8,B*0.58,B*0.66);const turn=ramp(t,B*0.5,B);const o={};
+  const R=DANCERS.filter(d=>ROLE_OF[d]==='robin');
+  for(const d of DANCERS){const h=HOME[d];
+    if(ROLE_OF[d]==='robin'){const other=R.find(x=>x!==d);const to=HOME[other].p;
+      const k=cross;const straight=mix(h.p,to,k);
+      const n=[-(to[1]-h.p[1]),to[0]-h.p[0]];const nl=Math.hypot(n[0],n[1])||1;
+      const P=add(straight,[n[0]/nl,n[1]/nl],3.4*Math.sin(Math.PI*k));   // pass right shoulders
+      const travel=ang(to[0]-h.p[0],to[1]-h.p[1]);
+      const a=alerp(alerp(h.a,travel,Math.min(cross*1.6,1)),HOME[other].a,turn);
+      o[d]={p:P,a,stepRate:1,amp:1,
+        hands:handsTo(P,a,k>0.55?[{p:add(P,leftOf(a),-3.4),d:6}]:[{p:add(P,dirOf(a),3.4),d:6}],b,1)};
+    } else {const P=add(h.p,leftOf(h.a),-2.2*Math.sin(Math.PI*turn));
+      const a=h.a+26*Math.sin(Math.PI*turn);
+      o[d]={p:P,a,stepRate:1,amp:1,hands:handsTo(P,a,[{p:add(P,rightOf(a),3.4),d:7}],b,1)};}}
   return o;};
 MOVES.hey=(t,B,b)=>{const k=clamp01(t/B);const o={};
-  // a figure eight through the set: across, loop the end, back, loop home
-  for(const d of DANCERS){const h=HOME[d];const across=HOME[NEIGHBOUR[d]].p;const sgn=h.p[0]>0?1:-1;
-    const lo=[across[0]+sgn*11,across[1]*0.45],hi=[h.p[0]+sgn*11,h.p[1]*0.45];
-    const phase=ROLE_OF[d]==='robin'?0:0.5;
-    const way=[h.p,mix(h.p,across,0.5),across,lo,mix(across,h.p,0.5),h.p,hi,h.p];
-    const u=(k+phase)%1;const P=spline(way,u);const P2=spline(way,(u+0.02)%1);
-    const a=ang(P2[0]-P[0],P2[1]-P[1]);
+  // one figure eight for all four: two pass in the middle while two loop the ends
+  const PH={r1:0,l2:Math.PI/2,r2:Math.PI,l1:3*Math.PI/2};
+  const on=u=>{const c=Math.cos(u);return [c*(9*Math.sin(u)+2.6),16*Math.sin(u)];};
+  const in0=ramp(t,0,1.4),out0=1-ramp(t,B-1.4,B);
+  for(const d of DANCERS){const h=HOME[d];const u=PH[d]+TAU*k;
+    const P0=on(u),P1=on(u+0.05);
+    const w=Math.min(in0,out0);
+    const P=mix(h.p,P0,w);const a=alerp(h.a,ang(P1[0]-P0[0],P1[1]-P0[1]),w);
     o[d]={p:P,a,stepRate:1,amp:1,hands:handsTo(P,a,[],b,1)};}
   return o;};
 MOVES.balance=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;const o={};
@@ -371,7 +374,9 @@ MOVES.balance=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;cons
   if(T<0.7)fwd=smooth(T/0.7);else if(T<1.7)fwd=1;else if(T<2.6)fwd=1-2*smooth((T-1.7)/0.9);
   else if(T<3.5)fwd=-1;else fwd=-1+smooth((T-3.5)/0.5);
   for(const d of DANCERS){const h=HOME[d];const oth=HOME[who[d]];const C=mix(h.p,oth.p,0.5);
-    const a=ang(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);const P=add(h.p,dirOf(a),1.4*fwd);
+    const a=ang(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);
+    const gap=Math.hypot(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);
+    const P=add(h.p,dirOf(a),ramp(t,0,1.1)*Math.max(0,gap/2-7)+1.4*fwd);
     const wide=LAT+2*Math.max(fwd,0),drop=HOLD_D+3*Math.max(fwd,0);
     const take=ramp(t,0,0.9);
     const J=[{p:add(C,leftOf(a),wide),d:drop},{p:add(C,leftOf(a),-wide),d:drop}];
@@ -380,22 +385,32 @@ MOVES.balance=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;cons
       hands:{L:mixHand(hang(P,a,-1,b,0),hs.L,take),R:mixHand(hang(P,a,1,b,0),hs.R,take)}};}
   return o;};
 MOVES.swing=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;const o={};
-  const turns=Math.max(1.5,B/4.4);
-  const f=trapInt(t,0,1.2,B-1.7,B-0.3);const into=ramp(t,0,1.1),open=ramp(t,B-1.5,B);
-  for(const d of DANCERS){const h=HOME[d];const mate=who[d];const oth=HOME[mate];
-    const C=mix(h.p,oth.p,0.5);const a0=ang(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);
-    const lark=ROLE_OF[d]==='lark';const psi=a0+360*turns*f*(lark?1:1);
-    const r=5,side=3.4;const dp=dirOf(psi),lp=leftOf(psi);
-    const sw=add(add(C,dp,lark?-r:r),lp,lark?side:-side);
-    let P=mix(h.p,sw,into);P=mix(P,h.p,open);
-    let a=psi+(lark?0:180)-30*into;a=alerp(a,h.a,open);
+  // one frame per pair, so the joined hands are one floor point both of them compute
+  const turns=Math.max(1.5,Math.round(B/4));
+  const f=trapInt(t,0,1.2,Math.max(1.4,B-1.7),Math.max(1.7,B-0.3));
+  const into=ramp(t,0,1.1),open=ramp(t,B-1.5,B);const done={};
+  for(const d of DANCERS){
+    if(done[d])continue;const mate=who[d];done[d]=done[mate]=1;
+    const lark=ROLE_OF[d]==='lark'?d:mate,robin=ROLE_OF[d]==='lark'?mate:d;
+    const hl=HOME[lark],hr=HOME[robin];const C=mix(hl.p,hr.p,0.5);
+    const psi=ang(hr.p[0]-hl.p[0],hr.p[1]-hl.p[1])+360*turns*f;
+    const dp=dirOf(psi),lp=leftOf(psi);const r=4.6,side=3.2;
+    let PL=mix(hl.p,add(add(C,dp,-r),lp,side),into);
+    let PR=mix(hr.p,add(add(C,dp,r),lp,-side),into);
+    PL=mix(PL,hl.p,open);PR=mix(PR,hr.p,open);
+    const aL=alerp(psi-26*into,hl.a,open),aR=alerp(psi+180-26*into,hr.a,open);
+    const shLL=bodyPt(PL,aL,0.3,-SHW),shRR=bodyPt(PR,aR,0.3,SHW);
+    const joined=mixHand({p:add(C,lp,LAT),d:HOLD_D},{p:add(mix(shLL,shRR,0.5),lp,4.6),d:1},into);
+    const onBack={p:bodyPt(PR,aR,-1.6,-2.5),d:1};        // the lark's hand on the robin's back
+    const onShoulder={p:bodyPt(PL,aL,0,SHW-0.5),d:0};    // the robin's on the lark's shoulder
+    const other={p:add(C,lp,-LAT),d:HOLD_D};
     const buzz=into*(1-open);
-    // the joined hands: the pair's shared floor point, the robin's on top
-    const J1={p:add(C,lp,lark?5:5),d:1};const inside={p:add(C,dp,lark?-1:1),d:6};
-    const hs=handsTo(P,a,[mixHand({p:mix(h.p,oth.p,0.5),d:HOLD_D},J1,into),
-      mixHand({p:add(C,lp,-LAT),d:HOLD_D},inside,into)],b,0);
-    o[d]={p:P,a,lean:-0.6*buzz,stepRate:2,amp:0,buzz,flare:lark?0:2.4*buzz,
-      hands:{L:mixHand(hs.L,hang(P,a,-1,b,0),open),R:mixHand(hs.R,hang(P,a,1,b,0),open)}};}
+    o[lark]={p:PL,a:aL,lean:-0.6*buzz,stepRate:2,amp:0,buzz,flare:0,
+      hands:{L:mixHand(joined,hang(PL,aL,-1,b,0),open),
+             R:mixHand(mixHand(other,onBack,into),hang(PL,aL,1,b,0),open)}};
+    o[robin]={p:PR,a:aR,lean:-0.6*buzz,stepRate:2,amp:0,buzz,flare:2.4*buzz,
+      hands:{R:mixHand(joined,hang(PR,aR,1,b,0),open),
+             L:mixHand(mixHand(other,onShoulder,into),hang(PR,aR,-1,b,0),open)}};}
   return o;};
 
 // ================================================= the source, and what it says
@@ -442,9 +457,9 @@ function parse(text){
   const lines=text.split('\n');const out=[];let phrase='',depth=0,skip=-1;
   lines.forEach((ln,i)=>{
     const ph=ln.match(/phrase\(([A-B][12])\)/);if(ph)phrase=ph[1];
-    if(/if\s*\(first-time\)/.test(ln)){skip=depth;}
+    if(/if\s*\(first-time\)/.test(ln))skip=depth;
+    else if(skip>=0&&/\belse\b/.test(ln))skip=-1;      // the branch this run takes
     depth+=(ln.match(/{/g)||[]).length-(ln.match(/}/g)||[]).length;
-    if(skip>=0&&depth<=skip&&/else/.test(ln))skip=-1;
     const m=ln.match(/^\s*([a-z][a-z-]*)\(/);if(!m)return;
     const kind=m[1];if(!MOVES[kind])return;
     const beats=Number((ln.match(/beats\s*=\s*(\d+(?:\.\d+)?)/)||[])[1]||8);
@@ -457,6 +472,9 @@ function parse(text){
   });
   let at=0;const taken=out.filter(m=>m.taken);
   taken.forEach((m,i)=>{m.start=at;m.index=i;at+=m.beats;});
+  if(taken.length===0){                               // the text says nothing to dance
+    taken.push({kind:'shift',line:0,beats:8,start:0,index:0,phrase:'',taken:true,
+      arg:{rel:'',places:0},name:'(no call in the text)'});at=8;}
   return {all:out,moves:taken,length:at,lines};}
 
 // ================================================ sampling the whole evening
@@ -546,7 +564,7 @@ function renderHall(cv,W,H,zoom,st,opt){
   const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
   ctx.fillStyle='#0c0a09';ctx.fillRect(0,0,W,H);
   const ox=W/2,oy=H/2;                               // the set centre sits mid-canvas
-  ctx.fillStyle='#1c1815';
+  ctx.fillStyle='#171310';
   for(let x=(ox%25+25)%25;x<W;x+=25)ctx.fillRect(Math.round(x),0,1,H);
   for(let y=(oy%25+25)%25;y<H;y+=25)ctx.fillRect(0,Math.round(y),W,1);
   ctx.fillStyle='#211b16';                           // the two long lines, a shade off the floor
@@ -604,6 +622,7 @@ function tick(now){
   requestAnimationFrame(tick);}
 requestAnimationFrame(tick);
 const setBeat=b=>{const L=APP.plan.length||64;APP.beat=((b%L)+L)%L;
+  APP.loopMove=moveAt(APP.beat);                    // the loop always holds the move in view
   views.forEach(v=>{if(vis.has(v.el))v.frame(APP.beat);});};
 const jump=n=>{const ms=APP.plan.moves;const i=moveAt(APP.beat).index;
   const m=ms[(i+n+ms.length)%ms.length];APP.loopMove=m;setBeat(m.start+0.001);};
@@ -621,11 +640,11 @@ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function colour(line){
   let s=esc(line);
   if(/^\s*\/\//.test(s))return '<span class="cm">'+s+'</span>';
-  s=s.replace(/\b(fn|use|if|else|setup|card|phrase|let)\b/g,'<span class="kw">$1</span>');
-  s=s.replace(/(^|\s)([a-z][a-z-]*)\(/g,'$1<span class="fn">$2</span>(');
-  s=s.replace(/\b(partner|neighbor|Robin|Lark|MinorSet|MajorSet|Left|Right)\b/g,'<span class="rel">$1</span>');
-  s=s.replace(/=\s*(\d+(?:\.\d+)?)/g,'= <span class="num">$1</span>');
-  s=s.replace(/("[^"]*")/g,'<span class="str">$1</span>');
+  s=s.replace(/("[^"]*")/g,"<span class='str'>$1</span>");
+  s=s.replace(/\b(fn|use|if|else|setup|card|phrase|let)\b/g,"<span class='kw'>$1</span>");
+  s=s.replace(/(^|\s)([a-z][a-z-]*)\(/g,"$1<span class='fn'>$2</span>(");
+  s=s.replace(/\b(partner|neighbor|Robin|Lark|MinorSet|MajorSet|Left|Right)\b/g,"<span class='rel'>$1</span>");
+  s=s.replace(/=\s*(\d+(?:\.\d+)?)/g,"= <span class='num'>$1</span>");
   return s;}
 function codePane(opts){
   opts=opts||{};
@@ -643,7 +662,7 @@ function codePane(opts){
     pre.innerHTML=L.map((ln,i)=>{
       const taken=APP.plan.all.find(m=>m.line===i);
       const cls='ln'+(taken&&!taken.taken?' dim':'')+(i===litLine?' lit':'')+(i===b&&i!==litLine?' err':'');
-      return '<span class="'+cls+'">'+(colour(ln)||' ')+'</span>';}).join('\n');
+      return "<span class='"+cls+"'>"+(colour(ln)||' ')+'</span>';}).join('');
     lit=litLine;bad=b;
     const y=litLine*17-p.body.clientHeight/2+40;
     if(!opts.noscroll)scroll.scrollTop=Math.max(0,y);ta.scrollTop=scroll.scrollTop;};
@@ -658,7 +677,7 @@ function codePane(opts){
 // ----------------------------------------------------------- the pixel hall
 function pixPane(opts){
   opts=opts||{};
-  const W=opts.W||74,H=opts.H||74;
+  const W=opts.W||64,H=opts.H||62;
   const holder=opts.bare?E('div','pixwrap'):null;
   const p=opts.bare?null:pane(opts.title||'pixels',true);
   const wrap=holder||E('div','pixwrap');
@@ -667,7 +686,8 @@ function pixPane(opts){
   const badge=E('div','badge');wrap.append(badge);
   let zoom=opts.zoom||4;
   const fit=()=>{if(opts.zoom&&!opts.fit)return;
-    const z=APP.zoom||Math.max(1,Math.min(Math.floor(wrap.clientWidth/W),Math.floor(wrap.clientHeight/H)));
+    const z=APP.zoom||Math.min(8,Math.max(1,Math.min(Math.floor(wrap.clientWidth/W),
+      Math.floor(wrap.clientHeight/H))));
     zoom=Math.max(1,opts.max?Math.min(z,opts.max):z);};
   if(p){p.body.style.padding='0';p.body.style.display='flex';p.body.append(wrap);}
   const el=p?p.el:wrap;
@@ -714,8 +734,8 @@ function transport(opts){
   t.append(now,beat);
   if(opts.picker){const s=E('select');['Butter','Robins on a Wire','pair — bow, do-si-do'].forEach(n=>{
     const o=document.createElement('option');o.textContent=n;s.append(o);});t.append(s);
-    const s2=E('select');['3 minor sets','1 minor set','5 minor sets'].forEach(n=>{
-      const o=document.createElement('option');o.textContent=n;s2.append(o);});t.append(s2);}
+    if(opts.picker==='both'){const s2=E('select');['3 minor sets','1 minor set','5 minor sets'].forEach(n=>{
+      const o=document.createElement('option');o.textContent=n;s2.append(o);});t.append(s2);}}
   const frame=b=>{const m=moveAt(b);
     play.textContent=APP.playing?'❚❚':'▶';
     loop.classList.toggle('on',APP.loop);
@@ -730,7 +750,7 @@ const S=(tag,attrs)=>{const n=document.createElementNS(SVGNS,tag);
   for(const k in attrs)n.setAttribute(k,attrs[k]);return n;};
 function timeline(opts){
   opts=opts||{};
-  const box=E('div','tlbox');box.style.cssText='flex:1;min-height:0;overflow:hidden';
+  const box=E('div','tlbox');box.style.cssText='flex:1;min-height:0;overflow:hidden;width:100%';
   const svg=S('svg',{class:'tl'});box.append(svg);
   let cursor=null,w=900,rowH=opts.rowH||15;
   const build=()=>{
@@ -797,27 +817,30 @@ function complaints(opts){
 
 // ---------------------------------------------- the panes that become tabs
 function speedSeries(){
-  const L=APP.plan.length||64;const n=192;const out={};DANCERS.forEach(d=>out[d]=[]);
-  for(let i=0;i<n;i++){const b=i/n*L;const a=stateAt(APP.plan,b).st,c=stateAt(APP.plan,b+0.1).st;
-    DANCERS.forEach(d=>out[d].push(Math.hypot(c[d].p[0]-a[d].p[0],c[d].p[1]-a[d].p[1])/0.1));}
+  const L=APP.plan.length||64;const n=256;const out={};DANCERS.forEach(d=>out[d]=[]);
+  for(let i=0;i<n;i++){const b=i/n*L;const a=stateAt(APP.plan,b-0.15).st,c=stateAt(APP.plan,b+0.15).st;
+    DANCERS.forEach(d=>out[d].push(Math.min(14,Math.hypot(c[d].p[0]-a[d].p[0],c[d].p[1]-a[d].p[1])/0.3)));}
   return out;}
 function graphsMock(){
-  const p=pane('graphs — hip speed against the cap');
+  const p=pane('graphs — hip speed, four dancers, against the 5.2 px/beat cap');
   const draw=()=>{const s=speedSeries();const w=560,h=86;const svg=S('svg',{class:'strip',width:'100%',
     height:h,viewBox:'0 0 '+w+' '+h,preserveAspectRatio:'none'});
     svg.append(S('rect',{x:0,y:0,width:w,height:h,fill:'#0c0a09'}));
-    const cap=5.2,max=8;const y=v=>h-4-v/max*(h-12);
+    const cap=5.2,max=14;const y=v=>h-4-v/max*(h-12);
     svg.append(S('line',{x1:0,y1:y(cap),x2:w,y2:y(cap),stroke:'#a8977f',
       'stroke-dasharray':'3 3','stroke-opacity':0.8}));
     DANCERS.forEach(d=>{const pts=s[d].map((v,i)=>(i/(s[d].length-1)*w).toFixed(1)+','+y(v).toFixed(1)).join(' ');
       svg.append(S('polyline',{points:pts,fill:'none',stroke:ROLE[ROLE_OF[d]],'stroke-width':1.1,
-        'stroke-opacity':0.85}));});
-    const t=S('text',{x:4,y:11,class:'strip-tag',fill:'#a8977f','font-size':9});
-    t.textContent='cap 5.2 px/beat';svg.append(t);
-    p.body.replaceChildren(svg);p.body._x=w;};
+        'stroke-opacity':0.7}));});
+    cur=S('line',{x1:0,y1:0,x2:0,y2:h,stroke:'#ebdfcd','stroke-width':1.4,'stroke-opacity':0.8});
+    svg.append(cur);W=w;
+    p.body.replaceChildren(svg);};
+  let cur=null,W=560;
   draw();onStructure.push(draw);
-  const cur=S('line',{stroke:'#ebdfcd','stroke-width':1});
-  return {el:p.el,frame(){}};}
+  const frame=b=>{if(!cur)return;const x=(b/(APP.plan.length||64)*W).toFixed(1);
+    cur.setAttribute('x1',x);cur.setAttribute('x2',x);};
+  view(p.el,frame);
+  return {el:p.el,frame};}
 function treeMock(){
   const p=pane('tree');const m=E('div','mock');
   m.innerHTML='<div><b>MajorSet</b> #1 <span>lines 2 · sets 3</span></div>'+
@@ -838,6 +861,7 @@ function listingMock(){
           '</span> beat '+((bb%(APP.plan.length||64))+(APP.plan.length||64))%(APP.plan.length||64)+
           ' · '+move.kind+' · '+(cm>4?'step forward '+cm+' cm':'stand')+'</div>');});}
     m.innerHTML=rows.join('');};
+  view(p.el,frame);frame(APP.beat);
   return {el:p.el,frame};}
 function layoutMock(){
   const p=pane('layout');const wrap=E('div');wrap.style.cssText='display:flex;justify-content:center';
@@ -851,7 +875,8 @@ function layoutMock(){
   wrap.append(svg);p.body.append(wrap);return {el:p.el,frame(){}};}
 function view3dMock(){
   const p=pane('3d',true);p.body.style.padding='0';
-  const px=pixPane({bare:true,W:74,H:74,zoom:2,fit:true,max:3,label:'3d'});
+  const px=pixPane({bare:true,W:64,H:62,zoom:2,fit:true,max:3,label:'3d — mocked'});
+  px.wrap.firstChild.style.transform='scaleY(0.62)';
   p.body.append(px.el);px.el.style.flex='1';return {el:p.el,frame(){}};}
 const TABS={graphs:graphsMock,tree:treeMock,listing:listingMock,layout:layoutMock,'3d':view3dMock};
 
@@ -860,7 +885,7 @@ const TABS={graphs:graphsMock,tree:treeMock,listing:listingMock,layout:layoutMoc
   const host=document.getElementById('screen-now');const app=E('div','app');
   app.style.gridTemplateColumns='1fr 1fr 1fr 1fr';
   app.style.gridTemplateRows='auto auto auto 1fr 1fr';
-  const tp=transport({picker:true,noRuler:true});tp.el.style.gridColumn='1 / -1';
+  const tp=transport({picker:'both',noRuler:true});tp.el.style.gridColumn='1 / -1';
   const chips=E('div','transport');chips.style.gridColumn='1 / -1';
   chips.append(btn('all','on'));DANCERS.forEach(d=>{const b=btn(d);b.style.color=ROLE[ROLE_OF[d]];
     b.style.borderColor=ROLE[ROLE_OF[d]];chips.append(b);});
@@ -869,7 +894,7 @@ const TABS={graphs:graphsMock,tree:treeMock,listing:listingMock,layout:layoutMoc
   const src=codePane({font:'11px/15px',noscroll:false});
   const tl=timeline({rowH:12});const tlp=pane('timeline');tlp.body.style.padding='2px';
   tlp.body.append(tl.el);
-  const px=pixPane({W:74,H:74,zoom:6,title:'pixels'});
+  const px=pixPane({W:64,H:62,zoom:6,title:'pixels'});
   [src.el,layoutMock().el,tlp.el,listingMock().el,view3dMock().el,graphsMock().el,px.el,treeMock().el]
     .forEach(n=>app.append(n));
   host.append(app);
@@ -879,12 +904,12 @@ const TABS={graphs:graphsMock,tree:treeMock,listing:listingMock,layout:layoutMoc
 // ================================================================= screen A
 (function conceptA(){
   const host=document.getElementById('screen-a');const app=E('div','app');
-  app.style.gridTemplateColumns='330px 1fr';
+  app.style.gridTemplateColumns='384px 1fr';
   app.style.gridTemplateRows='auto 1fr 132px auto';
   const tp=transport({picker:true});tp.el.style.gridColumn='1 / -1';
   const src=codePane({});
   const hall=E('div','pane dark');hall.style.cssText+=';flex-direction:row;position:relative';
-  const px=pixPane({bare:true,W:80,H:78,label:'one minor set'});px.el.style.flex='1';
+  const px=pixPane({bare:true,W:64,H:62,label:'one minor set'});px.el.style.flex='1';
   const rail=E('div','rail');const drawer=E('div','drawer');drawer.hidden=true;
   let open='';
   Object.keys(TABS).forEach(name=>{const b=btn(name);b.addEventListener('click',()=>{
@@ -907,10 +932,10 @@ const TABS={graphs:graphsMock,tree:treeMock,listing:listingMock,layout:layoutMoc
 (function conceptB(){
   const host=document.getElementById('screen-b');const app=E('div','app');
   app.style.gridTemplateColumns='1fr 1fr';
-  app.style.gridTemplateRows='auto 1fr 92px auto auto';
+  app.style.gridTemplateRows='auto 1fr 112px auto auto';
   const tp=transport({picker:true});tp.el.style.gridColumn='1 / -1';
   const src=codePane({});
-  const px=pixPane({W:80,H:78,title:'pixels — the minor set at a whole zoom'});
+  const px=pixPane({W:64,H:62,title:'pixels — the minor set at a whole zoom'});
   const tl=timeline({rowH:13});const tlp=pane('timeline');tlp.body.style.padding='2px';
   tlp.body.append(tl.el);tlp.el.style.gridColumn='1 / -1';
   // the tab row: one of the five at a time, or none
@@ -951,7 +976,7 @@ function rigBoard(opts){
   opts=opts||{};
   const grid=E('div','rigs');
   grid.style.gridTemplateColumns='repeat('+(opts.cols||4)+',1fr)';
-  const W=opts.W||86,H=opts.H||76;
+  const W=opts.W||92,H=opts.H||70;
   const cells=RIGS.map((r,i)=>{
     const cell=E('div','rig');const cap=E('div','cap');
     const dot=E('i','dot');cap.append(dot,E('b',null,r.name),E('span','sp'));
@@ -959,8 +984,8 @@ function rigBoard(opts){
     const hold=E('div','hold');const cv=E('canvas','pix');hold.append(cv);
     cell.append(cap,hold);grid.append(cell);
     let zoom=2;
-    const relayout=()=>{zoom=Math.max(1,Math.min(Math.floor(hold.clientWidth/W),Math.floor(hold.clientHeight/H)));
-      if(APP.zoom)zoom=APP.zoom;};
+    const relayout=()=>{zoom=Math.min(6,Math.max(1,Math.min(Math.floor(hold.clientWidth/W),
+      Math.floor(hold.clientHeight/H))));if(APP.zoom)zoom=APP.zoom;};
     return {cell,dot,tag,cv,hold,r,relayout,get zoom(){return zoom;}};});
   const frame=b=>{
     const m=APP.loopMove||moveAt(b);
@@ -972,7 +997,7 @@ function rigBoard(opts){
       const ghosts=c.r.ghosts.map(gh=>{const g=rest(gh.d,local);
         g.p=[(c.r.mirror?-1:1)*(g.p[0]+gh.dx),g.p[1]];g.torsoA=g.a;g.look=g.a;g.lean=0;g.flare=0;
         g.feet={L:[2.5,-2.0],R:[2.5,2.0]};g.hands={L:hang(g.p,g.a,-1,0,0),R:hang(g.p,g.a,1,0,0)};
-        return {p:PEOPLE[gh.d],s:g,alpha:c.r.out?0.3:0.45};});
+        return {p:PEOPLE[gh.d],s:g,alpha:c.r.out?0.26:0.34};});
       renderHall(c.cv,W,H,c.zoom,st,{wire:APP.wire,ghosts});
       c.cv.style.width=(W*c.zoom)+'px';c.cv.style.height=(H*c.zoom)+'px';
       c.dot.classList.toggle('bad',!!bad);
@@ -1002,7 +1027,7 @@ function rigBoard(opts){
   const board=rigBoard({cols:2});
   const boardPane=E('div','pane');boardPane.style.padding='4px';boardPane.append(board.el);
   const dancePane=E('div','pane dark');dancePane.hidden=true;dancePane.style.padding='0';
-  const px=pixPane({bare:true,W:80,H:78,label:'the whole dance'});px.el.style.flex='1';
+  const px=pixPane({bare:true,W:64,H:62,label:'the whole dance'});px.el.style.flex='1';
   const dtl=timeline({rowH:12,phrases:true});const dtlWrap=E('div');
   dtlWrap.style.cssText='background:var(--panel);border-top:1px solid var(--line)';dtlWrap.append(dtl.el);
   dancePane.append(px.el,dtlWrap);
@@ -1013,9 +1038,11 @@ function rigBoard(opts){
   app.append(tp.el,list.el,mid,src.el,cx.el);host.append(app);
   const setMode=m=>{bMove.classList.toggle('on',m==='move');bDance.classList.toggle('on',m==='dance');
     boardPane.hidden=m!=='move';dancePane.hidden=m==='move';
-    if(m==='move')APP.loop=true;board.relayout();};
+    board.relayout();
+    if(m==='dance'){dtl.relayout();dtl.frame(APP.beat);}};
   bMove.addEventListener('click',()=>setMode('move'));
   bDance.addEventListener('click',()=>setMode('dance'));
+  setMode('move');
   view(app,b=>{tp.frame(b);
     if(!boardPane.hidden)board.frame(b);else dtl.frame(b);
     const cur=(APP.loopMove||moveAt(b)).index;
@@ -1029,7 +1056,7 @@ function rigBoard(opts){
   app.style.gridTemplateColumns='1fr';app.style.gridTemplateRows='auto auto 1fr auto';
   const tp=transport({noRuler:true});
   const call=E('div','complaints');call.style.cssText+=';color:var(--ink);white-space:nowrap;overflow:hidden';
-  const board=rigBoard({cols:4,W:86,H:78});
+  const board=rigBoard({cols:4,W:92,H:70});
   const holder=E('div','pane');holder.style.padding='5px';holder.append(board.el);
   const cx=complaints();
   app.append(tp.el,call,holder,cx.el);host.append(app);
@@ -1075,7 +1102,7 @@ function rigBoard(opts){
     e.preventDefault();APP.playing=!APP.playing;play.textContent=APP.playing?'❚❚ pause all':'▶ play all';}});
 })();
 restructure();
-setBeat(18.5);
+setBeat(12);                                        // open mid neighbour swing
 </script>
 </body>
 </html>
