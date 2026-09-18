@@ -122,7 +122,7 @@ fn only-promenade(minor-sets: i32) {
       'no figure for "promenade": the move stands for 8 beats',
     ]);
     expect(noFigure[0]?.span?.file).toBe("only-promenade.dance");
-    const calls = result.sequence!.perDancer["0-1L"]!;
+    const calls = result.sequence!.perDancer["1-1L"]!;
     const promenade = calls.find((c) => c.path === "promenade")!;
     expect(promenade.figure.id).toBe("standing");
     expect(promenade.beats).toBe(8);

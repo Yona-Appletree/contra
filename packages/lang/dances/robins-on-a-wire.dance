@@ -19,7 +19,7 @@
 // Read on the lattice: after the chain each robin stands on her neighbour
 // lark's right, the robins of every set are 0.8 m apart down the centre, and
 // the long wave is every robin in the hall, alternating hands — `opposite`
-// to one side, `wave-mate` (the adjacent set's other-couple robin) to the
+// to one side, `wave-mate` (the next set's other-couple robin) to the
 // other, nobody at the ends (notes D10). The ends are **in** this dance.
 //
 // Two half-progressions: the larks shift left in A2 and the robins in B1;
@@ -31,11 +31,17 @@
 // the allemande to the B1 mad robin, as the calling note says the dancers
 // feel. `||` is a per-role branch (D11), the other role standing.
 //
+// On the half-couple lattice (G1, 2026-09-18) the commit hands the wave's
+// two names on without moving a robin: the chain has already carried her the
+// place her couple is about to progress, so her new seat is where she stands,
+// the robin whose right hand she holds — `wave-mate` before the commit — is
+// `opposite` after it, and the one on her left is `wave-back`. She allemandes
+// the hand she is holding and it is the set's other robin, which is what the
+// record calls the N2 women's allemande: one dance, not two readings.
+//
 // The couple waiting at the top comes in on that mid-dance commit (D8): it
 // replays the script silently to the `progress()` at beat 16 and dances from
-// the shift. The two dances below differ in one word — whom the robin
-// allemandes — and are the two readings of the far mate on this lattice
-// (`becket.dance`, `wave-mate` and `passed`): a G1 question.
+// the shift.
 
 use contra::{Role, Couple, Phrase, phrase, chain, mad-robin, form-wave, balance-wave, shift, allemande, swing, single-file-promenade, shoulder-round, stand};
 use becket::{MajorSet, MinorSet};
@@ -71,8 +77,6 @@ fn b2() {
   }
 }
 
-// The lean: after the commit the couple is a unit in the new set, and the
-// robin allemandes the new set's other robin, `opposite`.
 fn robins-on-a-wire(minor-sets: i32) {
   setup { MajorSet(1, minor-sets = minor-sets); }
   card "Robins on a Wire";
@@ -80,29 +84,12 @@ fn robins-on-a-wire(minor-sets: i32) {
   a1();
   phrase(A2) {
     progress();                                   // the event, set-wide, at beat 16
+    // Still the A1 wave's two hands: a move reads its arguments during the
+    // beat, and the commit is at the end of it.
     if (Role is Robin) { balance-wave(right = wave-mate, left = opposite, beats = 4); }
     else { shift(Left, beats = 4); }              // its motion
+    // And now after the commit, where the hand she is holding is `opposite`.
     if (Role is Robin) { allemande(opposite, Right, amount = 3/4, beats = 4); }
-    else { stand(beats = 4); }
-    swing(neighbor, beats = 8);
-  }
-  b1();
-  b2();
-}
-
-// The other reading: the robin allemandes the robin whose right hand she is
-// holding, which after this lattice's whole-set progression is `passed` —
-// the other couple of the set she came from.
-fn robins-on-a-wire-passed(minor-sets: i32) {
-  setup { MajorSet(1, minor-sets = minor-sets); }
-  card "Robins on a Wire (allemande the hand you hold)";
-
-  a1();
-  phrase(A2) {
-    progress();
-    if (Role is Robin) { balance-wave(right = wave-mate, left = opposite, beats = 4); }
-    else { shift(Left, beats = 4); }
-    if (Role is Robin) { allemande(passed, Right, amount = 3/4, beats = 4); }
     else { stand(beats = 4); }
     swing(neighbor, beats = 8);
   }

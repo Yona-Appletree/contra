@@ -66,7 +66,7 @@ describe("Butter", () => {
   const { sequence, dialect, errors } = joined("butter", { "minor-sets": 3 }, 2);
 
   it("lays the two times through end to end on one beat line", () => {
-    const lark = sequence.perDancer["0-1L"]!;
+    const lark = sequence.perDancer["1-1L"]!;
     expect(lark[0]?.figure.id).toBe("circle");
     expect(lark[0]?.beats).toBe(8);
     // The second time opens with the shift, at beat 64 of the evening.
@@ -76,12 +76,13 @@ describe("Butter", () => {
   });
 
   it("gives the shift the seat the beat-0 commit moved it to (D6)", () => {
-    const lark = sequence.perDancer["0-1L"]!;
+    const lark = sequence.perDancer["1-1L"]!;
     const before = lark.find((c) => c.start === 52)!; // the swing that ends time 1
     const shift = lark.find((c) => c.start === 64)!;
     expect(before.membership).toBeLessThan(shift.membership);
-    // The ones travel one minor set down the hall: 1.6 m is 40 px along +y.
-    expect(shift.seatAfter.p[1] - before.seatAfter.p[1]).toBeCloseTo(40, 6);
+    // The ones travel one dancer place down the hall: 0.8 m is 20 px along
+    // +y (M8, the half-couple lattice; it was a whole set, 40 px).
+    expect(shift.seatAfter.p[1] - before.seatAfter.p[1]).toBeCloseTo(20, 6);
   });
 
   it("casts the circle's ring as the minor set, clockwise from self", () => {
@@ -113,7 +114,7 @@ describe("Butter", () => {
       without,
     );
     expect(e.filter((x) => x.kind === "NoFigure")).toHaveLength(1);
-    const hey = s.perDancer["0-1L"]!.find((c) => c.path === "hey")!;
+    const hey = s.perDancer["1-1L"]!.find((c) => c.path === "hey")!;
     expect(hey.figure.id).toBe("standing");
     expect(hey.figure.windows[0]?.kind).toBe("stand");
   });
@@ -141,7 +142,7 @@ fn ducks(minor-sets: i32) {
     );
     // `Lark` is a role somebody dances: the larks chain. No complaint.
     expect(result.errors.filter((e) => e.kind === "BadParam")).toEqual([]);
-    const chain = result.sequence.perDancer["0-1L"]!.find((c) => c.path === "chain")!;
+    const chain = result.sequence.perDancer["1-1L"]!.find((c) => c.path === "chain")!;
     expect(chain.params["who"]).toBe("lark");
   });
 

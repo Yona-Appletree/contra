@@ -10,9 +10,10 @@ group Station { id: enum { OutTop, In, OutBottom } }
 
 group MinorSet {
   id: i32
+  seated: Bool = true
   body {
-    translate(y = -0.4m)             Couple(Ones);
-    translate(y = 0.4m) rotate(180)  Couple(Twos);
+    translate(y = -0.4m)             Couple(Ones, seated = seated);
+    translate(y = 0.4m) rotate(180)  Couple(Twos, seated = seated);
     anchor across = line(through = center, along = X);
   }
   travel   = match Couple { Ones => 1,         Twos => -1     };
@@ -33,9 +34,21 @@ group MajorSet {
     // couple that has come to the end crosses over — so the rotations are the
     // other way round from becket's, and each waiting couple already faces the
     // way it will dance when it comes back in.
-    translate(y = -1.6m)                          Station(OutTop)    Couple(Ones);
-    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
-    translate(y = 1.6m * minor-sets) rotate(180)  Station(OutBottom) Couple(Twos);
+    //
+    // The same lattice as becket's (G1, 2026-09-18), said in a single line:
+    // a progression walks a couple one **place** along the hall, 0.8 m — the
+    // ones down and the twos up, so they trade — and the sets a hands-four is
+    // danced in stand every 0.8 m with every other one occupied.
+    // `MinorSet(i)` is the set at `y = 0.8m × i - 0.8m`, the odd ones hold the
+    // sets the evening starts with, and the ends wait one place beyond the
+    // last place of the lattice.
+    translate(y = -2.0m)                              Station(OutTop)    Couple(Ones);
+    Station(In) {
+      for i in 0..2 * minor-sets + 1 {
+        translate(y = 0.8m * i - 0.8m) MinorSet(i, seated = i % 2 == 1);
+      }
+    }
+    translate(y = 1.6m * minor-sets + 0.4m) rotate(180)  Station(OutBottom) Couple(Twos);
   }
 
   fn progress() {

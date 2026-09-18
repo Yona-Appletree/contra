@@ -11,9 +11,10 @@ import { runNamed } from "./load.js";
  * changes, with the old number, the new one and the why written down rather
  * than smoothed over. Two things stand behind every number:
  *
- * 1. **`becket.dance` lays its minor sets 1.6 m apart with every one seated**,
- *    so a progression moves a couple a whole couple-width (40 px) and the
- *    shift is asked to walk it in two beats. It cannot: `StepTooLong` says
+ * 1. **`becket.dance` laid its minor sets 1.6 m apart with every one seated**
+ *    (M1–M3; M8 is the fix, at the end of this note), so a progression moved
+ *    a couple a whole couple-width (40 px) and the
+ *    shift was asked to walk it in two beats. It cannot: `StepTooLong` says
  *    "shift walks 160 cm to its seat in 2 beats", the circle after it gets a
  *    squeezed body and long strides, the drift check says the dancers end up
  *    as much as 60 px from the seat the commit gave them, and the clearance
@@ -77,13 +78,36 @@ import { runNamed } from "./load.js";
  * 144 + 3 + 18, the swing 36, the balance's pivots and timing 42 + 60, the
  * chain's pivots 42.
  *
+ * **M8 took the floor away from under all of it.** Reading 1 above was the
+ * whole of the shift's share and most of the circle's: on the half-couple
+ * lattice a progression walks a couple **one dancer place, 0.8 m**, which is
+ * what the shift has two beats for, so the 256 `StepTooLong`s ("shift walks
+ * 160 cm") are gone, the circle after it starts from the line instead of from
+ * wherever the shift ran out of beats, and the couples the shift could not
+ * move are no longer standing on the couples coming in.
+ *
+ * | pin | M3 | **M8** | why |
+ * |---|---|---|---|
+ * | schedule errors | 162 / 300 / 438, ≤ 450 | **66 / 108 / 150, ≤ 160** | the shift walks what it has the beats for |
+ * | kinds | + RateTooHigh | **{StepTooLong, PivotTooLarge, TimingViolation}** | `RateTooHigh` was the circle squeezed after a shift that could not finish |
+ * | hip worst | 6.05, < 6.5 | **2.73, < 3** | the swing no longer lands into a 40 px shift |
+ * | drift | 62 / 100 / 138: shift 48 / 72 / 96, swing 14 / 28 / 42 | **26 / 40 / 54: swing 20 / 34 / 48, shift 6** | below |
+ * | clearance | ≤ 200 (87 / 132 / 177) | **≤ 80 (36 / 57 / 78)** | nobody is left standing in the next couple's place |
+ *
+ * What is left of the shift's share is **the crossing over**: the six shifts
+ * a seven-times evening ends at a `Station`, where the couple changes sides
+ * and its two dancers trade places along the line as well, so the robin walks
+ * 2.05 m in the two beats (`StepTooLong`, and a 51 px drift). That is a real
+ * thing dancers do slowly and this engine asks for in two beats; it is a move
+ * seam for the review (M10), not the lattice.
+ *
  * `CAPS` has not moved and must not.
  */
-const MAX_SCHEDULE_ERRORS = 450;
-const MAX_HIP_RATIO = 6.5;
-const KINDS = ["StepTooLong", "PivotTooLarge", "TimingViolation", "RateTooHigh"];
-/** Clearance stretches at 1 / 2 / 3 sets: 87 / 132 / 177 (M2: 230 / 453 / 765), all on the shift's floor (below). */
-const MAX_CLEARANCE = 200;
+const MAX_SCHEDULE_ERRORS = 160;
+const MAX_HIP_RATIO = 3;
+const KINDS = ["StepTooLong", "PivotTooLarge", "TimingViolation"];
+/** Clearance stretches at 1 / 2 / 3 sets: 36 / 57 / 78 (M3: 87 / 132 / 177). */
+const MAX_CLEARANCE = 80;
 
 describe("Butter, the loop", () => {
   for (const minorSets of [1, 2, 3]) {
@@ -102,7 +126,7 @@ describe("Butter, the loop", () => {
       expect(result.errors.filter((e) => e.kind === "NoFigure")).toEqual([]);
       expect(result.errors.filter((e) => e.stage === "compile")).toEqual([]);
 
-      const calls = result.sequence!.perDancer["0-1L"]!;
+      const calls = result.sequence!.perDancer["1-1L"]!;
       // First time: no shift, and the circle takes the eight beats (D8).
       const first = calls[0]!;
       expect(["circle", "wait-out"]).toContain(first.figure.id);
@@ -145,11 +169,10 @@ describe("Butter, the loop", () => {
       );
       expect(chainDrift).toEqual([]);
 
-      // Two bodies through one point (K304): measured 87 / 132 / 177 (M2:
-      // 230 / 453 / 765), and the closest of them is 0.00 px — the couple
-      // the shift could not move out of the top set standing on the couple
-      // coming in. The shift's floor again; the figures alone keep everybody
-      // clear.
+      // Two bodies through one point (K304): measured 36 / 57 / 78 (M3: 87 /
+      // 132 / 177). M3's closest was 0.00 px — the couple the shift could not
+      // move out of the top set standing on the couple coming in — and on the
+      // half-couple lattice it does move, so that pair is gone.
       const clearance = result.clearance ?? [];
       expect(clearance.length).toBeLessThanOrEqual(MAX_CLEARANCE);
     });
@@ -180,18 +203,22 @@ describe("Butter, the loop", () => {
   });
 
   /**
-   * The finding this milestone animated its way to, kept as a test so it
-   * cannot quietly go away: the becket's progression is twice the distance
-   * the shift has beats for, and the drift check names it.
+   * M1's finding, the other way up (M8): the progression is now the distance
+   * the shift has the beats for, and the only shift that cannot reach its
+   * seat is the one at the end of the line, where the couple crosses over.
    */
-  it("says the shift cannot reach the seat the progression gives it", () => {
+  it("walks the shift to the seat the progression gives it, but for the crossing over", () => {
     const result = runNamed("butter", { args: { "minor-sets": 3 }, times: 7, bpm: 112 });
-    const tooLong = result.errors.filter(
-      (e) => e.kind === "StepTooLong" && e.message.includes("shift walks 160 cm"),
+    const onTheShift = (message: string) => message.includes("shift");
+    // Seven times through, six progressions, one couple out at each end on
+    // three of them: six shifts end at a Station, and every other one — 90 of
+    // them at three sets — walks its 0.8 m and stands on its seat.
+    const tooLong = result.errors.filter((e) => e.kind === "StepTooLong" && onTheShift(e.message));
+    expect(tooLong.map((e) => e.message.replace(/^[^:]+: /, ""))).toEqual(
+      Array.from({ length: 6 }, () => "shift walks 205 cm to its seat in 2 beats"),
     );
-    expect(tooLong.length).toBeGreaterThan(0);
-    const drift = result.warnings.filter((w) => w.kind === "Drift");
-    expect(drift.length).toBeGreaterThan(0);
-    expect(drift.every((w) => /ends \d+\.\d px from the seat/.test(w.message))).toBe(true);
+    const drift = result.warnings.filter((w) => w.kind === "Drift" && onTheShift(w.message));
+    expect(drift).toHaveLength(6);
+    expect(drift.every((w) => w.message.includes("Station(Out"))).toBe(true);
   });
 });

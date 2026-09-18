@@ -61,7 +61,7 @@ describe("runDance", () => {
       expect(time.events.every((event) => event.beat === 4)).toBe(true);
       // Every place still holds exactly one dancer, and the two of a couple
       // have traded: the lark's place now holds who was the robin.
-      const swap = time.events.find((event) => event.dancer === "0-1L");
+      const swap = time.events.find((event) => event.dancer === "1-1L");
       expect(swap?.from).toContain("Role(Lark)");
       expect(swap?.to).toContain("Role(Robin)");
     });
@@ -98,7 +98,7 @@ describe("runDance", () => {
     it("runs a trailing block as the call's last argument, and asserts its beat", () => {
       const time = once(fixtures(), "butter", { "minor-sets": 2 });
       expect(time.diagnostics).toEqual([]);
-      const starts = time.moves.filter((move) => move.dancer === "0-1L").map((move) => move.start);
+      const starts = time.moves.filter((move) => move.dancer === "1-1L").map((move) => move.start);
       expect(starts).toEqual([0, 8, 16, 24, 32, 48, 52]);
     });
 
@@ -113,7 +113,7 @@ describe("runDance", () => {
     it("takes a default when the call does not say, and the call when it does", () => {
       const time = once(fixtures(), "swap-both", { "minor-sets": 1 });
       const beats = time.moves
-        .filter((move) => move.dancer === "0-1L")
+        .filter((move) => move.dancer === "1-1L")
         .map((move) => [move.ir, move.beats]);
       expect(beats).toEqual([
         ["balance", 4],
@@ -205,7 +205,8 @@ fn everywhere(minor-sets: i32) {
         { "minor-sets": 3 },
       );
       expect(time.diagnostics[0]?.code).toBe("L106");
-      expect(time.diagnostics[0]?.message).toContain("3 places");
+      // The lattice is 2n + 1 places wide (M8), and `_` names all of them.
+      expect(time.diagnostics[0]?.message).toContain("7 places");
     });
 
     it("complains when one! does not name one", () => {
@@ -234,7 +235,7 @@ fn everywhere(minor-sets: i32) {
     // The shift names the partner it slides with, so the second time through
     // reads: shift with the partner, swing the *new* neighbour, then the
     // partner twice.
-    expect(partners(second, "0-1L")).toEqual(["0-1R", "2-2R", "0-1R", "0-1R"]);
+    expect(partners(second, "1-1L")).toEqual(["1-1R", "3-2R", "1-1R", "1-1R"]);
   });
 
   // The pair fixture (notes D2): the floor the kinetics stack is built on, and
@@ -305,16 +306,16 @@ fn wave(minor-sets: i32) {
       expect(time.diagnostics).toEqual([]);
       // The ones travel down the hall: the ones' robin of the top set has a
       // far mate below her, the twos' robin of the same set has nobody above.
-      expect(argOf(time, "0-1R", "right")).toEqual({
+      expect(argOf(time, "1-1R", "right")).toEqual({
         name: "right",
-        value: "[1-2R]",
-        ref: { t: "dancer", id: "1-2R" },
+        value: "[3-2R]",
+        ref: { t: "dancer", id: "3-2R" },
       });
-      expect(argOf(time, "0-2R", "right")).toEqual({ name: "right", value: "[]" });
-      expect(argOf(time, "1-1R", "right")).toEqual({ name: "right", value: "[]" });
-      expect(argOf(time, "1-2R", "right")?.ref).toEqual({ t: "dancer", id: "0-1R" });
+      expect(argOf(time, "1-2R", "right")).toEqual({ name: "right", value: "[]" });
+      expect(argOf(time, "3-1R", "right")).toEqual({ name: "right", value: "[]" });
+      expect(argOf(time, "3-2R", "right")?.ref).toEqual({ t: "dancer", id: "1-1R" });
       // The near hand is always somebody.
-      for (const robin of ["0-1R", "0-2R", "1-1R", "1-2R"])
+      for (const robin of ["1-1R", "1-2R", "3-1R", "3-2R"])
         expect(argOf(time, robin, "left")?.ref?.t).toBe("dancer");
     });
 
@@ -323,8 +324,8 @@ fn wave(minor-sets: i32) {
       const first = time.diagnostics[0];
       expect(first?.code).toBe("L110");
       expect(first?.beat).toBe(0);
-      expect(first?.dancers).toEqual(["0-1L"]);
-      expect(first?.message).toBe("swing(with): 2 matched, 0-2L and 0-2R; a move takes one");
+      expect(first?.dancers).toEqual(["1-1L"]);
+      expect(first?.message).toBe("swing(with): 2 matched, 1-2L and 1-2R; a move takes one");
       expect(first?.span?.file).toBe("broken/two-partners.dance");
     });
   });
@@ -361,12 +362,28 @@ fn mid(minor-sets: i32) {
       expect([waited?.start, waited?.beats]).toEqual([0, 16]);
       expect(time.cards[0]?.dancers).not.toContain("OT-1R");
       expect(time.inDancers).toContain("OT-1R");
-      // The couple the commit carried out at the bottom danced the move it
-      // had already begun at 16 — read before the commit, with its old
-      // neighbour — and waits out from there (D4, as Butter's shift at 2).
-      const out = time.moves.find((move) => move.dancer === "1-1R" && move.ir === "wait-out");
-      expect([out?.start, out?.beats]).toEqual([20, 12]);
+      // On the half-couple lattice (M8) this commit carries **nobody** out:
+      // the ends come in on the parity the hall is progressing on to, and the
+      // hall dances one more set than it had. It is the next progression that
+      // puts a couple out at each end.
+      expect(time.outDancers).toEqual([]);
       expect(time.length).toBe(32);
+    });
+
+    it("puts a couple out at each end on the commit after the one that filled the parity", () => {
+      const program = withModule("mid", MID);
+      const dance = findDance(program, "mid")!;
+      const args = hallFacts({ "minor-sets": 2 });
+      const tree = buildTree(program, dance, args).tree;
+      expect(runDance(program, tree, dance, args, { time: 1 }).outDancers).toEqual([]);
+      const second = runDance(program, tree, dance, args, { time: 2 });
+      expect(second.diagnostics).toEqual([]);
+      // The couple the commit carried out danced the move it had already
+      // begun at 16 — read before the commit, with its old neighbour — and
+      // waits out from there (D4, as Butter's shift at 2).
+      expect([...second.outDancers].sort()).toEqual(["1-2L", "1-2R", "3-1L", "3-1R"]);
+      const out = second.moves.find((move) => move.dancer === "1-2R" && move.ir === "wait-out");
+      expect([out?.start, out?.beats]).toEqual([20, 12]);
     });
 
     it("keeps Butter's beat-0 admission as it was: the entrant is live from its first statement", () => {
