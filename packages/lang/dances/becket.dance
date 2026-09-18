@@ -5,6 +5,17 @@
 // each other **across** it, so a couple is turned a quarter from the hall's
 // own heading: the ones at -x face +x, the twos at +x face -x, and within a
 // couple `left`/`right` then lay the partners side by side along the line.
+//
+// **The lattice** (G1, 2026-09-18: "the progression is wrong, you slide 1/2
+// couple over"). A progression slides each line one **dancer place**, 0.8 m,
+// the two lines opposite ways, so a couple's travel relative to the other
+// line is one couple. The places a minor set can stand in therefore lie every
+// 0.8 m down the hall and only every other one holds a set at a time:
+// `MinorSet(i)` is the place at `y = 0.8m × i - 0.8m`, the odd ones hold the
+// sets the evening starts with, and the even ones are the places they
+// progress into. There are 2n + 1 of them, and the hall breathes: with the
+// ends waiting there are n sets, and on the beat they come in there are
+// n + 1 and nobody waits.
 
 use contra::{Role, Couple, wait-out};
 
@@ -12,28 +23,31 @@ group Station { id: enum { OutTop, In, OutBottom } }
 
 group MinorSet {
   id: i32
+  seated: Bool = true
   body {
-    translate(x = -0.64m) rotate(-90) Couple(Ones);
-    translate(x = 0.64m)  rotate(90)   Couple(Twos);
+    translate(x = -0.64m) rotate(-90) Couple(Ones, seated = seated);
+    translate(x = 0.64m)  rotate(90)  Couple(Twos, seated = seated);
     anchor across = line(through = center, along = X);
   }
   travel   = match Couple { Ones => 1,         Twos => -1     };
   exit     = match Couple { Ones => OutBottom, Twos => OutTop };
   neighbor = one!(select(Couple = other, Role = other));
   opposite = one!(select(Couple = other));
-  shadow   = one!(select(MinorSet = id + travel, Role = other));
+  // A set along the hall is two places along the lattice: the one between is
+  // the parity nobody stands on this time through.
+  shadow   = one!(select(MinorSet = id + 2 * travel, Role = other));
   // The long wave down the centre (Robins on a Wire): every dancer of one
   // role in the hall, 0.8 m apart, alternating hands. A dancer's two mates in
-  // it are `opposite` and the adjacent set's other-couple dancer of the same
-  // role on the far side — toward the set they progress into, which is the
-  // `travel` side. No `one!`: at the end of the hall there is nobody there,
-  // and a wave with one hand free is what the end dances (notes D10).
-  wave-mate = select(MinorSet = id + travel, Couple = other);
-  // On this lattice a progression moves a couple a whole set, so the couple
-  // the wave-mate belongs to is, after `progress()`, one set **back** — the
-  // couple you passed. Read after the commit, this names the same person
-  // `wave-mate` named before it (E1: the lattice's pitch is the G1 question).
-  passed = select(MinorSet = id - travel, Couple = other);
+  // it are `opposite` and the next set's other-couple dancer of the same role
+  // on the far side — toward the set they progress into, which is the `travel`
+  // side. No `one!`: at the end of the hall there is nobody there, and a wave
+  // with one hand free is what the end dances (notes D10).
+  //
+  // On this lattice the progression hands the name on: the person a dancer
+  // holds as `wave-mate` before a commit is `opposite` after it, which is why
+  // Robins on a Wire's A2 balances the wave with one and allemandes the other
+  // and they are the same person (G1: one reading, not two).
+  wave-mate = select(MinorSet = id + 2 * travel, Couple = other);
 }
 
 group MajorSet {
@@ -49,11 +63,16 @@ group MajorSet {
     // and stays one, which is what §8's own reading of the commit describes:
     // "the couple waiting at OutBottom on set 2 as twos".
     // A waiting couple stands at the end of the line it will come in on —
-    // the ones' line for OutTop, the twos' line for OutBottom — and faces
-    // across it like everybody else, so coming in really does change nothing
-    // but `Station` and `MinorSet`.
+    // the ones' line for OutTop, the twos' line for OutBottom — one dancer
+    // place beyond the last place of the lattice, facing across it like
+    // everybody else, so coming in really does change nothing but `Station`
+    // and `MinorSet` and walks the same 0.8 m as everybody else's shift.
     translate(x = -0.64m, y = -1.6m)             rotate(-90) Station(OutTop)    Couple(Ones);
-    Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
+    Station(In) {
+      for i in 0..2 * minor-sets + 1 {
+        translate(y = 0.8m * i - 0.8m) MinorSet(i, seated = i % 2 == 1);
+      }
+    }
     translate(x = 0.64m,  y = 1.6m * minor-sets) rotate(90)  Station(OutBottom) Couple(Twos);
   }
 
@@ -61,6 +80,12 @@ group MajorSet {
   // as what it will come in as, and coming in changes nothing but `Station`
   // and `MinorSet`. The call is set-wide: the couple coming in takes its place
   // in the same commit as the couple leaving it (§6).
+  //
+  // `first` and `last` are the ends of the lattice, and they are free on
+  // exactly the beats somebody is waiting to come in on them: a couple is put
+  // out by the commit that fills the parity its end place is not on, and comes
+  // in on the next one, which empties it again. A parity the text got wrong
+  // is two dancers in one place at the commit (L102), which is the check.
   fn progress() {
     match Station {
       OutTop    => assign(Station = In, MinorSet = first);

@@ -4,38 +4,38 @@ exports[`runDance > prints a time through 1`] = `
 "time 1 — 64 beats — first
   card "Butter" at beat 0
   out: OT-1L OT-1R OB-2L OB-2R
-  0-1L
-    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
-    [8-16] swing(with = 0-2R, beats = 8)
-    [16-24] long-lines(across = 0-1R, beats = 8)
-    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
-    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
-    [48-52] balance(with = 0-1R, beats = 4)
-    [52-64] swing(with = 0-1R, beats = 12)
-  0-1R
-    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
-    [8-16] swing(with = 0-2L, beats = 8)
-    [16-24] long-lines(across = 0-1L, beats = 8)
-    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
-    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
-    [48-52] balance(with = 0-1L, beats = 4)
-    [52-64] swing(with = 0-1L, beats = 12)
-  0-2L
-    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
-    [8-16] swing(with = 0-1R, beats = 8)
-    [16-24] long-lines(across = 0-2R, beats = 8)
-    [24-32] chain(who = Robin, to = 0-2R, beats = 8)
-    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
-    [48-52] balance(with = 0-2R, beats = 4)
-    [52-64] swing(with = 0-2R, beats = 12)
-  0-2R
-    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
-    [8-16] swing(with = 0-1L, beats = 8)
-    [16-24] long-lines(across = 0-2L, beats = 8)
-    [24-32] chain(who = Robin, to = 0-2L, beats = 8)
-    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
-    [48-52] balance(with = 0-2L, beats = 4)
-    [52-64] swing(with = 0-2L, beats = 12)
+  1-1L
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-2R, beats = 8)
+    [16-24] long-lines(across = 1-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1R, beats = 4)
+    [52-64] swing(with = 1-1R, beats = 12)
+  1-1R
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-2L, beats = 8)
+    [16-24] long-lines(across = 1-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1L, beats = 4)
+    [52-64] swing(with = 1-1L, beats = 12)
+  1-2L
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-1R, beats = 8)
+    [16-24] long-lines(across = 1-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2R, beats = 4)
+    [52-64] swing(with = 1-2R, beats = 12)
+  1-2R
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-1L, beats = 8)
+    [16-24] long-lines(across = 1-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2L, beats = 4)
+    [52-64] swing(with = 1-2L, beats = 12)
   OT-1L
     [0-64] wait-out(with = OT-1R, beats = 64)
   OT-1R

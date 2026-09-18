@@ -6,7 +6,7 @@ import { printTimeline } from "./printTimeline.js";
 import { printTree } from "./printTree.js";
 import type { EveningResult } from "./runEvening.js";
 import { hallFacts, runEvening } from "./runEvening.js";
-import { shortPath } from "./tree.js";
+import { placesUnder, shortPath } from "./tree.js";
 
 function evening(
   program: Program,
@@ -23,13 +23,23 @@ function evening(
 const membership = (result: EveningResult): Record<string, string> =>
   Object.fromEntries(result.tree.dancers.map((dancer) => [dancer.id, shortPath(dancer.at)]));
 
-/** Every place holds one dancer, and every dancer is in a place. */
+/**
+ * Nobody shares a place, everybody is in one, and no minor set is left half
+ * full. On the half-couple lattice (M8) half the places are empty at any
+ * moment — they are the parity the hall is about to progress on to — so what
+ * is checked is that a set holds four dancers or none, never a couple with
+ * nobody across from them.
+ */
 function everyPlaceHoldsOne(result: EveningResult): void {
-  for (const place of result.tree.places)
-    expect(place.occupant, `${place.path} is empty`).toBeDefined();
   expect(new Set(result.tree.dancers.map((dancer) => dancer.at)).size).toBe(
     result.tree.dancers.length,
   );
+  for (const dancer of result.tree.dancers)
+    expect(dancer.at.place, `${dancer.id} stands at ${dancer.at.path}`).toBe(true);
+  for (const set of result.tree.nodes.filter((node) => node.kind === "MinorSet")) {
+    const filled = placesUnder(set).filter((place) => place.occupant !== undefined).length;
+    expect([0, 4], `${set.label} holds ${String(filled)}`).toContain(filled);
+  }
 }
 
 describe("runEvening", () => {
@@ -49,25 +59,74 @@ describe("runEvening", () => {
       });
     }
 
+    /**
+     * The ruling (G1, 2026-09-18: "you slide 1/2 couple over") as a number.
+     * Every progression walks a couple **one dancer place, 0.8 m**, along its
+     * own line, and the couples waiting at the ends walk the same 0.8 m in on
+     * to the parity the rest of the hall is progressing on to — which is what
+     * `MinorSet = first` and `MinorSet = last` name, because the ends of the
+     * lattice are free on exactly the beats somebody is waiting to come in on
+     * them. The only longer walk is the crossing over at the end of the line,
+     * where a couple changes sides and its two dancers trade places along it.
+     */
+    it("slides each line one dancer place, the ends in on the free parity", () => {
+      for (const sets of [1, 2, 3]) {
+        const result = evening(fixtures(), "butter", 5, { "minor-sets": sets });
+        const commits = result.snapshots.filter((snapshot) => snapshot.at === "commit");
+        expect(commits.length).toBe(4);
+        let previous = result.snapshots[0]!;
+        let lastParity: number | undefined;
+        for (const commit of commits) {
+          const before = new Map(previous.positions.map((p) => [p.dancer, p]));
+          const ids: number[] = [];
+          for (const position of commit.positions) {
+            const set = /MinorSet\((\d+)\)/.exec(position.place) ?? undefined;
+            const was = before.get(position.dancer)!;
+            const walked = Math.hypot(position.x - was.x, position.y - was.y);
+            if (set === undefined) {
+              // Out at an end, which is the crossing over: the lark walks
+              // straight across the set (1.28 m) and the robin crosses and
+              // trades sides with him along the line as well (2.05 m).
+              expect([1280, 2049], `${position.dancer} out`).toContain(Math.round(walked));
+              continue;
+            }
+            ids.push(Number(set[1]));
+            expect(Math.round(walked), `${position.dancer} walked`).toBe(800);
+          }
+          // Every set in the hall is on one parity, and it is the other one
+          // from the beat before: the hall slides on to the places between.
+          const parities = new Set(ids.map((id) => id % 2));
+          expect(parities.size, ids.join(",")).toBe(1);
+          const parity = [...parities][0]!;
+          if (lastParity !== undefined) expect(parity).not.toBe(lastParity);
+          lastParity = parity;
+          previous = commit;
+        }
+      }
+    });
+
     it("puts everybody in their place after two times through three sets", () => {
       const result = evening(fixtures(), "butter", 2, { "minor-sets": 3 });
+      // One progression, and it moves every couple one place along the
+      // lattice: the odd sets empty on to the even ones, the two waiting
+      // couples come in at the ends, and the hall dances four sets (M8).
       expect(membership(result)).toEqual({
         "OT-1L": "Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)",
         "OT-1R": "Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)",
-        "0-1L": "Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)",
-        "0-1R": "Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)",
-        "0-2L": "Station(OutTop)/Couple(Ones)/Role(Lark)",
-        "0-2R": "Station(OutTop)/Couple(Ones)/Role(Robin)",
         "1-1L": "Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)",
         "1-1R": "Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)",
         "1-2L": "Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)",
         "1-2R": "Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)",
-        "2-1L": "Station(OutBottom)/Couple(Twos)/Role(Lark)",
-        "2-1R": "Station(OutBottom)/Couple(Twos)/Role(Robin)",
-        "2-2L": "Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)",
-        "2-2R": "Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)",
-        "OB-2L": "Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)",
-        "OB-2R": "Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)",
+        "3-1L": "Station(In)/MinorSet(4)/Couple(Ones)/Role(Lark)",
+        "3-1R": "Station(In)/MinorSet(4)/Couple(Ones)/Role(Robin)",
+        "3-2L": "Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)",
+        "3-2R": "Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)",
+        "5-1L": "Station(In)/MinorSet(6)/Couple(Ones)/Role(Lark)",
+        "5-1R": "Station(In)/MinorSet(6)/Couple(Ones)/Role(Robin)",
+        "5-2L": "Station(In)/MinorSet(4)/Couple(Twos)/Role(Lark)",
+        "5-2R": "Station(In)/MinorSet(4)/Couple(Twos)/Role(Robin)",
+        "OB-2L": "Station(In)/MinorSet(6)/Couple(Twos)/Role(Lark)",
+        "OB-2R": "Station(In)/MinorSet(6)/Couple(Twos)/Role(Robin)",
       });
     });
 
@@ -81,27 +140,31 @@ describe("runEvening", () => {
       // Time 1 does not progress, so the couples setup left at the ends have
       // nothing to enter on and wait the whole of it.
       expect(waits[0]).toEqual(["OT-1L 0+64", "OT-1R 0+64", "OB-2L 0+64", "OB-2R 0+64"]);
-      // From then on a couple goes out on the progression at beat 0 and waits
-      // what is left of that time, and comes back in on the next beat 0.
-      expect(waits[1]).toEqual(["0-2L 2+62", "0-2R 2+62", "2-1L 2+62", "2-1R 2+62"]);
+      // Time 2's progression brings them in and carries **nobody** out: on
+      // the half-couple lattice the ends come in on the parity the hall is
+      // moving on to, and that time it dances one more set than it had.
+      expect(waits[1]).toEqual([]);
+      // Time 3's puts a couple out at each end, and each waits what is left
+      // of that time from the shift it had already begun (D4).
+      expect(waits[2]).toEqual(["1-2L 2+62", "1-2R 2+62", "5-1L 2+62", "5-1R 2+62"]);
     });
 
     it("dances the couple that enters on the progression, the time it enters", () => {
       const result = evening(fixtures(), "butter", 4, { "minor-sets": 3 });
-      // 0-2 goes out at the top of time 2, waits the rest of it, and comes back
-      // in on time 3's own beat 0 — and then dances all sixty-four beats of
-      // time 3, shift and all, rather than watching it from a place it has left.
-      expect(result.times[2]?.events.filter((event) => event.dancer === "0-2L")).toEqual([
+      // 1-2 goes out at the top of time 3, waits the rest of it, and comes back
+      // in on time 4's own beat 0 — and then dances all sixty-four beats of
+      // time 4, shift and all, rather than watching it from a place it has left.
+      expect(result.times[3]?.events.filter((event) => event.dancer === "1-2L")).toEqual([
         {
-          dancer: "0-2L",
+          dancer: "1-2L",
           beat: 0,
           from: "Station(OutTop)/Couple(Ones)/Role(Lark)",
           to: "Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)",
         },
       ]);
-      expect(result.times[2]?.inDancers).toContain("0-2L");
+      expect(result.times[3]?.inDancers).toContain("1-2L");
       expect(
-        result.times[2]?.moves.filter((move) => move.dancer === "0-2L").map((move) => move.ir),
+        result.times[3]?.moves.filter((move) => move.dancer === "1-2L").map((move) => move.ir),
       ).toEqual(["shift", "circle", "swing", "long-lines", "chain", "hey", "balance", "swing"]);
     });
 
@@ -158,10 +221,10 @@ fn cross-over(minor-sets: i32) {
         .filter((event) => !event.to.startsWith("Station(In)"))
         .map((event) => `${event.dancer} ${event.to}`);
       expect(leaving).toEqual([
-        "0-1L Station(OutBottom)/Couple(Twos)/Role(Lark)",
-        "0-1R Station(OutBottom)/Couple(Twos)/Role(Robin)",
         "1-2L Station(OutTop)/Couple(Ones)/Role(Lark)",
         "1-2R Station(OutTop)/Couple(Ones)/Role(Robin)",
+        "3-1L Station(OutBottom)/Couple(Twos)/Role(Lark)",
+        "3-1R Station(OutBottom)/Couple(Twos)/Role(Robin)",
       ]);
       // Improper's waiting couples stand *in* the line and face the way they
       // will dance when they come back; becket's wait beside it.
@@ -190,35 +253,38 @@ fn cross-over(minor-sets: i32) {
   // mid-dance (beat 16), whose ends are in the dance, and whose end robin
   // balances the long wave with one hand (notes D8, D10).
   describe("Robins on a Wire", () => {
-    for (const name of ["robins-on-a-wire", "robins-on-a-wire-passed"]) {
-      for (const sets of [2, 3, 4]) {
-        it(`${name} at ${String(sets)} sets, seven times, with nothing to say`, () => {
-          const result = evening(fixtures(), name, 7, { "minor-sets": sets });
-          expect(result.diagnostics).toEqual([]);
-          expect(result.times.map((time) => time.length)).toEqual([64, 64, 64, 64, 64, 64, 64]);
-          everyPlaceHoldsOne(result);
-          for (const time of result.times) {
-            // One commit per time through, at A2's shift, everybody moving.
-            expect(time.events.every((event) => event.beat === 16)).toBe(true);
-            expect(time.events).toHaveLength(result.tree.dancers.length);
-            // The waiting couples come in at 16 and wait out the beats before.
-            const entrants = time.moves.filter(
-              (move) => move.ir === "wait-out" && move.start === 0 && move.beats === 16,
-            );
-            expect(entrants).toHaveLength(4);
-            // At each end of the wave one robin's far hand is nobody, and
-            // one lark's in B1 — never more than that, never a diagnostic.
-            const oneHanded = time.moves.filter(
-              (move) =>
-                move.ir === "balance-wave" &&
-                move.args.some(
-                  (arg) => (arg.name === "right" || arg.name === "left") && arg.value === "[]",
-                ),
-            );
-            expect(oneHanded.map((move) => move.dancer).length).toBe(4);
-          }
+    for (const sets of [2, 3, 4]) {
+      it(`at ${String(sets)} sets, seven times, with nothing to say`, () => {
+        const result = evening(fixtures(), "robins-on-a-wire", 7, { "minor-sets": sets });
+        expect(result.diagnostics).toEqual([]);
+        expect(result.times.map((time) => time.length)).toEqual([64, 64, 64, 64, 64, 64, 64]);
+        everyPlaceHoldsOne(result);
+        result.times.forEach((time, index) => {
+          // One commit per time through, at A2's shift, everybody moving.
+          expect(time.events.every((event) => event.beat === 16)).toBe(true);
+          expect(time.events).toHaveLength(result.tree.dancers.length);
+          // The ends take turns on the lattice (M8): the odd times through
+          // bring the waiting couples in at 16 — they wait out the beats
+          // before — and the even ones put a couple out at each end at 16.
+          const entrants = time.moves.filter(
+            (move) => move.ir === "wait-out" && move.start === 0 && move.beats === 16,
+          );
+          expect(entrants).toHaveLength(index % 2 === 0 ? 4 : 0);
+          expect(time.outDancers).toHaveLength(index % 2 === 0 ? 0 : 4);
+          // At each end of a wave a dancer's far hand is nobody, and it is
+          // never a diagnostic: two robins in A2, two larks in B1, and one
+          // more of each on the times the hall is one set longer.
+          const oneHanded = time.moves.filter(
+            (move) =>
+              move.ir === "balance-wave" &&
+              move.args.some(
+                (arg) => (arg.name === "right" || arg.name === "left") && arg.value === "[]",
+              ),
+          );
+          expect(oneHanded.length).toBeGreaterThanOrEqual(4);
+          expect(oneHanded.length).toBeLessThanOrEqual(6);
         });
-      }
+      });
     }
   });
 
@@ -236,7 +302,7 @@ fn cross-over(minor-sets: i32) {
         [64, "Butter"],
       ]);
       expect(
-        result.times[0]?.moves.filter((move) => move.dancer === "0-1L").map((move) => move.start),
+        result.times[0]?.moves.filter((move) => move.dancer === "1-1L").map((move) => move.start),
       ).toEqual([0, 8, 16, 24, 32, 48, 52, 64, 72, 80, 88, 96, 112, 116]);
     });
 
@@ -256,10 +322,10 @@ fn cross-over(minor-sets: i32) {
         ["commit", 2, 0],
       ],
     );
-    const first = result.snapshots[0]?.positions.find((position) => position.dancer === "0-1L");
+    const first = result.snapshots[0]?.positions.find((position) => position.dancer === "1-1L");
     expect(first).toEqual({
-      dancer: "0-1L",
-      place: "Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)",
+      dancer: "1-1L",
+      place: "Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)",
       // Becket's ones stand on the line at x = -0.64m facing across it
       // (heading 270 = +x), so the lark is 0.4m along the line from the
       // couple's centre: side by side with the robin, not across from them.

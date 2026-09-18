@@ -10,7 +10,7 @@ import { placesUnder } from "./tree.js";
  * floor — frames in millimetres, anchors as data, and one dancer per place.
  */
 describe("buildTree", () => {
-  it("lays becket's floor: two lines, three minor sets, a couple waiting at each end", () => {
+  it("lays becket's floor: two lines, the lattice of places, a couple waiting at each end", () => {
     const program = fixtures();
     const built = buildTree(program, findDance(program, "butter")!, hallFacts({ "minor-sets": 3 }));
     expect(built.diagnostics).toEqual([]);
@@ -20,23 +20,26 @@ describe("buildTree", () => {
   it("names a dancer for where it started, and keeps the name", () => {
     const program = fixtures();
     const built = buildTree(program, findDance(program, "butter")!, hallFacts({ "minor-sets": 2 }));
+    // The odd places of the lattice hold the sets the evening starts with
+    // (M8): a dancer is named for the place it started in, so the two sets of
+    // a two-set hall are 1 and 3.
     expect(built.tree.dancers.map((dancer) => dancer.id)).toEqual([
       "OT-1L",
       "OT-1R",
-      "0-1L",
-      "0-1R",
-      "0-2L",
-      "0-2R",
       "1-1L",
       "1-1R",
       "1-2L",
       "1-2R",
+      "3-1L",
+      "3-1R",
+      "3-2L",
+      "3-2R",
       "OB-2L",
       "OB-2R",
     ]);
   });
 
-  it("fills every place: a hall of 2n + 2 couples", () => {
+  it("fills every set of the lattice's parity: a hall of 2n + 2 couples on 2n + 1 places", () => {
     const program = fixtures();
     for (const sets of [1, 2, 3]) {
       const built = buildTree(
@@ -44,9 +47,18 @@ describe("buildTree", () => {
         findDance(program, "butter")!,
         hallFacts({ "minor-sets": sets }),
       );
-      expect(built.tree.places).toHaveLength(4 * sets + 4);
+      // Four places to a minor set, 2n + 1 of them, and the two stations.
+      expect(built.tree.places).toHaveLength(4 * (2 * sets + 1) + 4);
       expect(built.tree.dancers).toHaveLength(4 * sets + 4);
-      expect(built.tree.places.every((place) => place.occupant !== undefined)).toBe(true);
+      // The empty ones are the places the progression walks everybody into.
+      const empty = built.tree.places.filter((place) => place.occupant === undefined);
+      expect(empty).toHaveLength(4 * (sets + 1));
+      expect(
+        empty.every((place) => {
+          const set = place.parent?.parent;
+          return set?.kind === "MinorSet" && (set.id as { v: number }).v % 2 === 0;
+        }),
+      ).toBe(true);
     }
   });
 
@@ -87,7 +99,9 @@ describe("buildTree", () => {
   it("keeps an anchor as data, in the frame it was declared in", () => {
     const program = fixtures();
     const built = buildTree(program, findDance(program, "butter")!, hallFacts({ "minor-sets": 1 }));
-    const set = built.tree.nodes.find((node) => node.kind === "MinorSet");
+    // `MinorSet(1)` is the place at the origin: the lattice's `MinorSet(0)` is
+    // the empty one above it, at y = -0.8 m (M8).
+    const set = built.tree.nodes.find((node) => node.kind === "MinorSet" && node.idLabel === "1");
     expect(set?.anchors["across"]).toEqual({
       t: "anchor",
       form: "line",
