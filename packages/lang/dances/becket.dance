@@ -24,9 +24,16 @@ group MajorSet {
   minor-sets: i32 = 3
   body {
     anchor up = direction(Up);
-    translate(x = 0.64m,  y = -1.6m)             rotate(180) Station(OutTop)    Couple(Ones, seated = false);
+    // The hall is 2n + 2 couples: the minor sets, and one couple waiting at
+    // each end. The design wrote these two `seated = false` — an empty hall at
+    // the top of the evening — but then the progression is not a permutation
+    // of the places and a minor set ends up half empty, with a dancer whose
+    // `neighbor` names nobody. Seated, the progression below is a bijection
+    // and stays one, which is what §8's own reading of the commit describes:
+    // "the couple waiting at OutBottom on set 2 as twos".
+    translate(x = 0.64m,  y = -1.6m)             rotate(180) Station(OutTop)    Couple(Ones);
     Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
-    translate(x = -0.64m, y = 1.6m * minor-sets)             Station(OutBottom) Couple(Twos, seated = false);
+    translate(x = -0.64m, y = 1.6m * minor-sets)             Station(OutBottom) Couple(Twos);
   }
 
   // A couple leaves as the other couple, so the one waiting is already seated

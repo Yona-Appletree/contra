@@ -18,14 +18,17 @@ from the outside and `src/allowedImports.test.ts` from the inside.
 
 ## What is here
 
-| Path                   | What                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------ |
-| `src/syntax/lexer.ts`  | Tokens. Casing is grammar: kebab names, TitleCase groups, types and enum members.          |
-| `src/syntax/parser.ts` | `parseFile(text, name)` — recursive descent to the tree, or one diagnostic.                |
-| `src/syntax/ast.ts`    | The tree. Every node carries a `Span`; nothing is resolved.                                |
-| `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                       |
-| `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`. |
-| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — a stub until P4.                                            |
+| Path                   | What                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/syntax/lexer.ts`  | Tokens. Casing is grammar: kebab names, TitleCase groups, types and enum members.               |
+| `src/syntax/parser.ts` | `parseFile(text, name)` — recursive descent to the tree, or one diagnostic.                     |
+| `src/syntax/ast.ts`    | The tree. Every node carries a `Span`; nothing is resolved.                                     |
+| `src/load.ts`          | `loadProgram(path)` — the prelude, the file, and every module it names.                         |
+| `src/check/check.ts`   | `check(program)` — the rules, as diagnostics; `checkProgram` also hands back the table.         |
+| `src/eval/`            | The two passes: `buildTree` lays the floor, `runDance` scripts a time, `runEvening` repeats it. |
+| `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                            |
+| `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`.      |
+| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — a stub until P4.                                                 |
 
 ## The language in one screen
 
@@ -73,9 +76,61 @@ fn butter(minor-sets: i32) {
 3. **A block's last expression, written without a `;`, is its value** —
    `fn wrap(n: i32) { ((n - 1) % 4 + 4) % 4 + 1 }`.
 
+## What the checker knows
+
+A group is declared once and invoked to build a node, so **the paths from a
+dance's floor down to its dancers are lexical** — read off the nesting of
+invocations, `for` and `if` and all. Nearly every rule is a question about
+those paths, answered before anybody dances:
+
+- **Whose `neighbor`?** A relation is a member of a group and every group above
+  a dancer lends its members to that dancer. Reading one where not every path
+  has that group is an error in a body or on a group — narrow it first, by
+  matching on the kind that tells the paths apart. In a dance's script the same
+  read is the dance's **contract** instead: the couple at the end of the line
+  has no `MinorSet`, so it is out, and runs the floor's `out`.
+- **Can `one!` hold?** `other(Role)` over two ids is one and needs no `!`;
+  `other(Couple)` over three is two of them, and `one!` on it cannot hold.
+- **Is this `match` exhaustive**, is `other` in a place that has a candidate to
+  compare against, does this `assign` land on a branch that has the kinds it
+  names, do two dances composed stand on one floor, and — since a move says its
+  beats — **does `phrase(A2)` start on beat 16**.
+
+`checkProgram` hands back a **resolution table** beside the diagnostics: what
+every name binds to, what every call calls, what each `fn` is (an `ir` makes a
+move, a `setup` makes a dance), each dance's floor, contract and length, and
+the path shapes below every group. The evaluator and the playground read it
+rather than working it out again.
+
+## Running one
+
+`setup` runs **once, for nobody** and builds the tree; the script runs **once
+per dancer** against it, in lock step, and the events of a beat commit together
+at the end of it.
+
+```ts
+const program = loadDanceDir("packages/lang/dances");
+const evening = runEvening(program, findDance(program, "butter")!, {
+  times: 7,
+  args: hallFacts({ "minor-sets": 3 }),
+});
+console.log(printTree(evening.tree)); // the floor, OpenSCAD's CSG shape
+console.log(printTimeline(evening)); // events by beat, then a row per move
+```
+
+- **A dancer is a person, not a place.** Its name is minted at setup from where
+  it started (`0-1L`, `OT-1R`) and never changes; what the progression moves is
+  which place holds it.
+- **The out couples are in the tree.** A dance's contract is the kinds it reads,
+  and a dancer whose path lacks one of them runs the formation's `out(length)` —
+  `wait-out(64)` for a time through of Butter — while still taking part in the
+  set-wide `progress()`.
+- **A commit is where the diagnostics live.** Two dancers in one place names the
+  pair and the beat (`L102`); half a role swap is exactly that.
+
 ## Diagnostics
 
-Codes are stable and banded: `L001–L009` parse, `L010–` check, `L100–` run.
+Codes are stable and banded: `L001–L009` parse, `L010–L099` check, `L100–` run.
 The shape is round 2's (`packages/kinetics/src/diagnostics/`), rustc's really:
 a code, a message, a span with a caret, the beat and the dancers, a trace of
 the facts on the way down, and a suggestion.

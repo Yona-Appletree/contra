@@ -50,11 +50,18 @@ group MajorSet {
     translate(y = 4.8m * minor-sets) Station(OutBottom) Couple(Threes, seated = false);
   }
 
+  // Station first, then Couple: the couples waiting at the ends have no
+  // `MinorSet`, so a `match Couple` on its own would read one where a third of
+  // the paths have none. Becket's `progress` narrows the same way.
   fn progress() {
-    match Couple {
-      Ones   => assign(MinorSet = id(MinorSet) + 1) or assign(Station = OutBottom, Couple = Threes);
-      Twos   => assign(Couple = Threes);
-      Threes => assign(Couple = Twos, MinorSet = id(MinorSet) - 1) or assign(Station = OutTop, Couple = Ones);
+    match Station {
+      OutTop    => assign(Station = In, MinorSet = first);
+      OutBottom => assign(Station = In, MinorSet = last);
+      In        => match Couple {
+        Ones   => assign(MinorSet = id(MinorSet) + 1) or assign(Station = OutBottom, Couple = Threes);
+        Twos   => assign(Couple = Threes);
+        Threes => assign(Couple = Twos, MinorSet = id(MinorSet) - 1) or assign(Station = OutTop, Couple = Ones);
+      }
     }
   }
 

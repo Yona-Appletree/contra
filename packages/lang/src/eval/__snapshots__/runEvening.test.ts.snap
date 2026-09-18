@@ -1,0 +1,837 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`runEvening > improper > lays its own floor under the same names, and progresses on it 1`] = `
+"MajorSet(1) [x=0.000 y=0.000 h=0] {
+  anchor up = direction(Up)
+  Station(OutTop) [x=0.000 y=-1.600 h=0] {
+    Couple(Ones) [x=0.000 y=-1.600 h=0] {
+      Role(Lark) [x=-0.400 y=-1.600 h=0] { 1-2L }
+      Role(Robin) [x=0.400 y=-1.600 h=0] { 1-2R }
+    }
+  }
+  Station(In) [x=0.000 y=0.000 h=0] {
+    MinorSet(0) [x=0.000 y=0.000 h=0] {
+      anchor across = line(through = point(0.000, 0.000), along = X)
+      Couple(Ones) [x=0.000 y=-0.400 h=0] {
+        Role(Lark) [x=-0.400 y=-0.400 h=0] { 0-2L }
+        Role(Robin) [x=0.400 y=-0.400 h=0] { 0-2R }
+      }
+      Couple(Twos) [x=0.000 y=0.400 h=180] {
+        Role(Lark) [x=0.400 y=0.400 h=180] { OB-2L }
+        Role(Robin) [x=-0.400 y=0.400 h=180] { OB-2R }
+      }
+    }
+    MinorSet(1) [x=0.000 y=1.600 h=0] {
+      anchor across = line(through = point(0.000, 1.600), along = X)
+      Couple(Ones) [x=0.000 y=1.200 h=0] {
+        Role(Lark) [x=-0.400 y=1.200 h=0] { OT-1L }
+        Role(Robin) [x=0.400 y=1.200 h=0] { OT-1R }
+      }
+      Couple(Twos) [x=0.000 y=2.000 h=180] {
+        Role(Lark) [x=0.400 y=2.000 h=180] { 1-1L }
+        Role(Robin) [x=-0.400 y=2.000 h=180] { 1-1R }
+      }
+    }
+  }
+  Station(OutBottom) [x=0.000 y=3.200 h=180] {
+    Couple(Twos) [x=0.000 y=3.200 h=180] {
+      Role(Lark) [x=0.400 y=3.200 h=180] { 0-1L }
+      Role(Robin) [x=-0.400 y=3.200 h=180] { 0-1R }
+    }
+  }
+}"
+`;
+
+exports[`runEvening > runs Butter seven times through three sets with nothing to say 1`] = `
+"time 1 — 64 beats — first
+  card "Butter" at beat 0
+  out: OT-1L OT-1R OB-2L OB-2R
+  0-1L
+    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 0-2R, beats = 8)
+    [16-24] long-lines(across = 0-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1R, beats = 4)
+    [52-64] swing(with = 0-1R, beats = 12)
+  0-1R
+    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 0-2L, beats = 8)
+    [16-24] long-lines(across = 0-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1L, beats = 4)
+    [52-64] swing(with = 0-1L, beats = 12)
+  0-2L
+    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 0-1R, beats = 8)
+    [16-24] long-lines(across = 0-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2R, beats = 4)
+    [52-64] swing(with = 0-2R, beats = 12)
+  0-2R
+    [0-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 0-1L, beats = 8)
+    [16-24] long-lines(across = 0-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2L, beats = 4)
+    [52-64] swing(with = 0-2L, beats = 12)
+  1-1L
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-2R, beats = 8)
+    [16-24] long-lines(across = 1-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1R, beats = 4)
+    [52-64] swing(with = 1-1R, beats = 12)
+  1-1R
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-2L, beats = 8)
+    [16-24] long-lines(across = 1-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1L, beats = 4)
+    [52-64] swing(with = 1-1L, beats = 12)
+  1-2L
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-1R, beats = 8)
+    [16-24] long-lines(across = 1-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2R, beats = 4)
+    [52-64] swing(with = 1-2R, beats = 12)
+  1-2R
+    [0-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 1-1L, beats = 8)
+    [16-24] long-lines(across = 1-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2L, beats = 4)
+    [52-64] swing(with = 1-2L, beats = 12)
+  2-1L
+    [0-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 2-2R, beats = 8)
+    [16-24] long-lines(across = 2-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1R, beats = 4)
+    [52-64] swing(with = 2-1R, beats = 12)
+  2-1R
+    [0-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 2-2L, beats = 8)
+    [16-24] long-lines(across = 2-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1L, beats = 4)
+    [52-64] swing(with = 2-1L, beats = 12)
+  2-2L
+    [0-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 2-1R, beats = 8)
+    [16-24] long-lines(across = 2-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2R, beats = 4)
+    [52-64] swing(with = 2-2R, beats = 12)
+  2-2R
+    [0-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 8)
+    [8-16] swing(with = 2-1L, beats = 8)
+    [16-24] long-lines(across = 2-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2L, beats = 4)
+    [52-64] swing(with = 2-2L, beats = 12)
+  OT-1L
+    [0-64] wait-out(beats = 64)
+  OT-1R
+    [0-64] wait-out(beats = 64)
+  OB-2L
+    [0-64] wait-out(beats = 64)
+  OB-2R
+    [0-64] wait-out(beats = 64)
+
+time 2 — 64 beats
+  card "Butter" at beat 0
+  out: OT-1L OT-1R OB-2L OB-2R 0-2L 0-2R 2-1L 2-1R
+  events
+    beat 0
+      OT-1L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      OT-1R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+      0-1L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      0-1R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+      0-2L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      0-2R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+      1-1L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      1-1R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      1-2L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      1-2R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+      2-1L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      2-1R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      2-2L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      2-2R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+      OB-2L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      OB-2R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+  0-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2R, beats = 8)
+    [16-24] long-lines(across = 0-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1R, beats = 4)
+    [52-64] swing(with = 0-1R, beats = 12)
+  0-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2L, beats = 8)
+    [16-24] long-lines(across = 0-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1L, beats = 4)
+    [52-64] swing(with = 0-1L, beats = 12)
+  0-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2R, beats = 8)
+    [16-24] long-lines(across = 1-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1R, beats = 4)
+    [52-64] swing(with = 1-1R, beats = 12)
+  1-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2L, beats = 8)
+    [16-24] long-lines(across = 1-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1L, beats = 4)
+    [52-64] swing(with = 1-1L, beats = 12)
+  1-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1R, beats = 8)
+    [16-24] long-lines(across = 1-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2R, beats = 4)
+    [52-64] swing(with = 1-2R, beats = 12)
+  1-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1L, beats = 8)
+    [16-24] long-lines(across = 1-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2L, beats = 4)
+    [52-64] swing(with = 1-2L, beats = 12)
+  2-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1R, beats = 8)
+    [16-24] long-lines(across = 2-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2R, beats = 4)
+    [52-64] swing(with = 2-2R, beats = 12)
+  2-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1L, beats = 8)
+    [16-24] long-lines(across = 2-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2L, beats = 4)
+    [52-64] swing(with = 2-2L, beats = 12)
+  OT-1L
+    [0-64] wait-out(beats = 64)
+  OT-1R
+    [0-64] wait-out(beats = 64)
+  OB-2L
+    [0-64] wait-out(beats = 64)
+  OB-2R
+    [0-64] wait-out(beats = 64)
+
+time 3 — 64 beats
+  card "Butter" at beat 0
+  out: 0-2L 0-2R 2-1L 2-1R 1-1L 1-1R 1-2L 1-2R
+  events
+    beat 0
+      OT-1L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      OT-1R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+      0-1L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      0-1R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      0-2L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      0-2R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+      1-1L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      1-1R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      1-2L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      1-2R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+      2-1L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      2-1R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+      2-2L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      2-2R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+      OB-2L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      OB-2R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+  OT-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2R, beats = 8)
+    [16-24] long-lines(across = OT-1R, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1R, beats = 4)
+    [52-64] swing(with = OT-1R, beats = 12)
+  OT-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2L, beats = 8)
+    [16-24] long-lines(across = OT-1L, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1L, beats = 4)
+    [52-64] swing(with = OT-1L, beats = 12)
+  0-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1R, beats = 8)
+    [16-24] long-lines(across = 0-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1R, beats = 4)
+    [52-64] swing(with = 0-1R, beats = 12)
+  0-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1L, beats = 8)
+    [16-24] long-lines(across = 0-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1L, beats = 4)
+    [52-64] swing(with = 0-1L, beats = 12)
+  1-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2R, beats = 8)
+    [16-24] long-lines(across = 2-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2R, beats = 4)
+    [52-64] swing(with = 2-2R, beats = 12)
+  2-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2L, beats = 8)
+    [16-24] long-lines(across = 2-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2L, beats = 4)
+    [52-64] swing(with = 2-2L, beats = 12)
+  OB-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1R, beats = 8)
+    [16-24] long-lines(across = OB-2R, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2R, beats = 4)
+    [52-64] swing(with = OB-2R, beats = 12)
+  OB-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1L, beats = 8)
+    [16-24] long-lines(across = OB-2L, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2L, beats = 4)
+    [52-64] swing(with = OB-2L, beats = 12)
+  0-2L
+    [0-64] wait-out(beats = 64)
+  0-2R
+    [0-64] wait-out(beats = 64)
+  2-1L
+    [0-64] wait-out(beats = 64)
+  2-1R
+    [0-64] wait-out(beats = 64)
+
+time 4 — 64 beats
+  card "Butter" at beat 0
+  out: 1-1L 1-1R 1-2L 1-2R 0-1L 0-1R 2-2L 2-2R
+  events
+    beat 0
+      OT-1L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      OT-1R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      0-1L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      0-1R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      0-2L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      0-2R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+      1-1L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      1-1R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+      1-2L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      1-2R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+      2-1L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      2-1R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+      2-2L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      2-2R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+      OB-2L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      OB-2R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+  OT-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-1R, beats = 8)
+    [16-24] long-lines(across = OT-1R, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1R, beats = 4)
+    [52-64] swing(with = OT-1R, beats = 12)
+  OT-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-1L, beats = 8)
+    [16-24] long-lines(across = OT-1L, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1L, beats = 4)
+    [52-64] swing(with = OT-1L, beats = 12)
+  0-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1R, beats = 8)
+    [16-24] long-lines(across = 0-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2R, beats = 4)
+    [52-64] swing(with = 0-2R, beats = 12)
+  0-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1L, beats = 8)
+    [16-24] long-lines(across = 0-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2L, beats = 4)
+    [52-64] swing(with = 0-2L, beats = 12)
+  2-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2R, beats = 8)
+    [16-24] long-lines(across = 2-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1R, beats = 4)
+    [52-64] swing(with = 2-1R, beats = 12)
+  2-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2L, beats = 8)
+    [16-24] long-lines(across = 2-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1L, beats = 4)
+    [52-64] swing(with = 2-1L, beats = 12)
+  2-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  OB-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-2R, beats = 8)
+    [16-24] long-lines(across = OB-2R, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2R, beats = 4)
+    [52-64] swing(with = OB-2R, beats = 12)
+  OB-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-2L, beats = 8)
+    [16-24] long-lines(across = OB-2L, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2L, beats = 4)
+    [52-64] swing(with = OB-2L, beats = 12)
+  1-1L
+    [0-64] wait-out(beats = 64)
+  1-1R
+    [0-64] wait-out(beats = 64)
+  1-2L
+    [0-64] wait-out(beats = 64)
+  1-2R
+    [0-64] wait-out(beats = 64)
+
+time 5 — 64 beats
+  card "Butter" at beat 0
+  out: 0-1L 0-1R 2-2L 2-2R OT-1L OT-1R OB-2L OB-2R
+  events
+    beat 0
+      OT-1L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      OT-1R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      0-1L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      0-1R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+      0-2L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      0-2R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      1-1L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      1-1R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+      1-2L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      1-2R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+      2-1L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      2-1R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+      2-2L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      2-2R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+      OB-2L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      OB-2R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+  OT-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  OT-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1R, beats = 8)
+    [16-24] long-lines(across = 0-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2R, beats = 4)
+    [52-64] swing(with = 0-2R, beats = 12)
+  0-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1L, beats = 8)
+    [16-24] long-lines(across = 0-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-2L, beats = 4)
+    [52-64] swing(with = 0-2L, beats = 12)
+  1-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-2R, beats = 8)
+    [16-24] long-lines(across = 1-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1R, beats = 4)
+    [52-64] swing(with = 1-1R, beats = 12)
+  1-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-2L, beats = 8)
+    [16-24] long-lines(across = 1-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1L, beats = 4)
+    [52-64] swing(with = 1-1L, beats = 12)
+  1-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-1R, beats = 8)
+    [16-24] long-lines(across = 1-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2R, beats = 4)
+    [52-64] swing(with = 1-2R, beats = 12)
+  1-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 1-1L, beats = 8)
+    [16-24] long-lines(across = 1-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2L, beats = 4)
+    [52-64] swing(with = 1-2L, beats = 12)
+  2-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2R, beats = 8)
+    [16-24] long-lines(across = 2-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1R, beats = 4)
+    [52-64] swing(with = 2-1R, beats = 12)
+  2-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2L, beats = 8)
+    [16-24] long-lines(across = 2-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-1L, beats = 4)
+    [52-64] swing(with = 2-1L, beats = 12)
+  OB-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  OB-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-1L
+    [0-64] wait-out(beats = 64)
+  0-1R
+    [0-64] wait-out(beats = 64)
+  2-2L
+    [0-64] wait-out(beats = 64)
+  2-2R
+    [0-64] wait-out(beats = 64)
+
+time 6 — 64 beats
+  card "Butter" at beat 0
+  out: OT-1L OT-1R OB-2L OB-2R 0-2L 0-2R 2-1L 2-1R
+  events
+    beat 0
+      OT-1L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      OT-1R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+      0-1L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      0-1R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+      0-2L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      0-2R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      1-1L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      1-1R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+      1-2L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      1-2R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      2-1L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      2-1R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+      2-2L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      2-2R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+      OB-2L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      OB-2R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+  0-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2R, beats = 8)
+    [16-24] long-lines(across = 0-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1R, beats = 4)
+    [52-64] swing(with = 0-1R, beats = 12)
+  0-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-2L, beats = 8)
+    [16-24] long-lines(across = 0-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1L, beats = 4)
+    [52-64] swing(with = 0-1L, beats = 12)
+  0-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  0-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2R, beats = 8)
+    [16-24] long-lines(across = 1-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1R, beats = 4)
+    [52-64] swing(with = 1-1R, beats = 12)
+  1-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2L, beats = 8)
+    [16-24] long-lines(across = 1-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-1L, beats = 4)
+    [52-64] swing(with = 1-1L, beats = 12)
+  1-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1R, beats = 8)
+    [16-24] long-lines(across = 1-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2R, beats = 4)
+    [52-64] swing(with = 1-2R, beats = 12)
+  1-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1L, beats = 8)
+    [16-24] long-lines(across = 1-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 1-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 1-2L, beats = 4)
+    [52-64] swing(with = 1-2L, beats = 12)
+  2-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1R, beats = 8)
+    [16-24] long-lines(across = 2-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2R, beats = 4)
+    [52-64] swing(with = 2-2R, beats = 12)
+  2-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-1L, beats = 8)
+    [16-24] long-lines(across = 2-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2L, beats = 4)
+    [52-64] swing(with = 2-2L, beats = 12)
+  OT-1L
+    [0-64] wait-out(beats = 64)
+  OT-1R
+    [0-64] wait-out(beats = 64)
+  OB-2L
+    [0-64] wait-out(beats = 64)
+  OB-2R
+    [0-64] wait-out(beats = 64)
+
+time 7 — 64 beats — last
+  card "Butter" at beat 0
+  out: 0-2L 0-2R 2-1L 2-1R 1-1L 1-1R 1-2L 1-2R
+  events
+    beat 0
+      OT-1L  Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark)
+      OT-1R  Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin)
+      0-1L  Station(In)/MinorSet(1)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark)
+      0-1R  Station(In)/MinorSet(1)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin)
+      0-2L  Station(OutBottom)/Couple(Twos)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Lark)
+      0-2R  Station(OutBottom)/Couple(Twos)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Twos)/Role(Robin)
+      1-1L  Station(In)/MinorSet(0)/Couple(Twos)/Role(Lark) -> Station(OutTop)/Couple(Ones)/Role(Lark)
+      1-1R  Station(In)/MinorSet(0)/Couple(Twos)/Role(Robin) -> Station(OutTop)/Couple(Ones)/Role(Robin)
+      1-2L  Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark) -> Station(OutBottom)/Couple(Twos)/Role(Lark)
+      1-2R  Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin) -> Station(OutBottom)/Couple(Twos)/Role(Robin)
+      2-1L  Station(OutTop)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)
+      2-1R  Station(OutTop)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin)
+      2-2L  Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Lark)
+      2-2R  Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(2)/Couple(Ones)/Role(Robin)
+      OB-2L  Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Lark)
+      OB-2R  Station(In)/MinorSet(0)/Couple(Ones)/Role(Robin) -> Station(In)/MinorSet(1)/Couple(Ones)/Role(Robin)
+  OT-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2R, beats = 8)
+    [16-24] long-lines(across = OT-1R, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1R, beats = 4)
+    [52-64] swing(with = OT-1R, beats = 12)
+  OT-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OB-2L, beats = 8)
+    [16-24] long-lines(across = OT-1L, beats = 8)
+    [24-32] chain(who = Robin, to = OT-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OT-1L, beats = 4)
+    [52-64] swing(with = OT-1L, beats = 12)
+  0-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1R, beats = 8)
+    [16-24] long-lines(across = 0-1R, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1R, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1R, beats = 4)
+    [52-64] swing(with = 0-1R, beats = 12)
+  0-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(0), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 2-1L, beats = 8)
+    [16-24] long-lines(across = 0-1L, beats = 8)
+    [24-32] chain(who = Robin, to = 0-1L, beats = 8)
+    [32-48] hey(ring = MinorSet(0), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 0-1L, beats = 4)
+    [52-64] swing(with = 0-1L, beats = 12)
+  1-1L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-1R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  1-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-64] wait-out(beats = 62)
+  2-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2R, beats = 8)
+    [16-24] long-lines(across = 2-2R, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2R, beats = 4)
+    [52-64] swing(with = 2-2R, beats = 12)
+  2-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(2), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = 0-2L, beats = 8)
+    [16-24] long-lines(across = 2-2L, beats = 8)
+    [24-32] chain(who = Robin, to = 2-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(2), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = 2-2L, beats = 4)
+    [52-64] swing(with = 2-2L, beats = 12)
+  OB-2L
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1R, beats = 8)
+    [16-24] long-lines(across = OB-2R, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2R, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2R, beats = 4)
+    [52-64] swing(with = OB-2R, beats = 12)
+  OB-2R
+    [0-2] shift(direction = Left, beats = 2)
+    [2-8] circle(ring = MinorSet(1), direction = Left, places = 3, beats = 6)
+    [8-16] swing(with = OT-1L, beats = 8)
+    [16-24] long-lines(across = OB-2L, beats = 8)
+    [24-32] chain(who = Robin, to = OB-2L, beats = 8)
+    [32-48] hey(ring = MinorSet(1), start = Robin, shoulder = Right, beats = 16)
+    [48-52] balance(with = OB-2L, beats = 4)
+    [52-64] swing(with = OB-2L, beats = 12)
+  0-2L
+    [0-64] wait-out(beats = 64)
+  0-2R
+    [0-64] wait-out(beats = 64)
+  2-1L
+    [0-64] wait-out(beats = 64)
+  2-1R
+    [0-64] wait-out(beats = 64)"
+`;
