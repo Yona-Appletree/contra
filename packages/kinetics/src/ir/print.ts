@@ -7,6 +7,7 @@ import type {
   IntrinsicOp,
   LookRule,
   Params,
+  Who,
   Window,
 } from "./Figure.js";
 import { beatsOf, defaultParams, resolveChoice, resolveNumber } from "./Figure.js";
@@ -106,26 +107,55 @@ const printHold = (hold: HoldRef, params: Params): string[] => {
   return [`${hand} hands within reach`, `hold ${id} ${hand} with ${hold.with}`];
 };
 
-const printWindow = (window: Window, params: Params): string[] => {
-  const who = window.who ? `${window.who}: ` : "";
-  const share = window.beats !== undefined ? ` · ${num(window.beats)} beats` : "";
+const printWho = (who: Who | undefined, params: Params): string => {
+  if (who === undefined) return "";
+  if (typeof who === "string") return `${who}: `;
+  const word = printValue(params[who.role]);
+  return who.not ? `not ${word}: ` : `${word}: `;
+};
+
+const printWindow = (window: Window, params: Params, label = "body"): string[] => {
+  const who = printWho(window.who, params);
+  const share =
+    window.beats !== undefined ? ` · ${num(resolveNumber(window.beats, params))} beats` : "";
+  const holds =
+    window.holds === undefined || window.holds.length === 0
+      ? ""
+      : ` · take ${window.holds.map((h) => printHold(h, params)[1]).join(", ")}`;
   switch (window.kind) {
-    case "stand":
-      return [row("body", `${who}stand${share}`)];
-    case "walk":
-      return [row("body", `${who}walk ${window.direction} ${num(window.distancePx)} px${share}`)];
-    case "pass":
-      return [row("body", `${who}pass ${window.shoulder} shoulders${share}`)];
-    case "pivot":
-      return [row("body", `${who}turn ${num(window.deg)}°${share}`)];
-    case "walk-to-seat":
-      return [row("body", `${who}walk to your seat${share}`)];
+    case "parallel":
+      return [
+        row(label, `${who}together${share}`),
+        ...window.parts.flatMap((part) => printWindow(part, params, "").map((l) => INDENT + l)),
+      ];
+    case "path": {
+      const lap =
+        window.lap === undefined
+          ? ""
+          : ` · a lap${
+              window.lap.amount === undefined
+                ? ""
+                : ` × ${num(resolveNumber(window.lap.amount, params))}`
+            }`;
+      const mirror =
+        window.mirror !== undefined && params[window.mirror.param] === window.mirror.when
+          ? " · mirrored"
+          : "";
+      return [
+        row(
+          label,
+          `${who}path of ${num(window.points.length)} points over ${num(
+            window.points[window.points.length - 1]?.beat ?? 0,
+          )} beats${lap}${mirror}${holds}${share}`,
+        ),
+      ];
+    }
     case "orbit": {
       const turns = window.turns === "free" ? "free" : num(resolveNumber(window.turns, params));
       const sense = resolveChoice(window.sense, params).replace(/-/g, " ");
       return [
         row(
-          "body",
+          label,
           [
             `${who}orbit ${window.axis}`,
             `${turns} ${turns === "1" ? "turn" : "turns"}`,
@@ -134,12 +164,37 @@ const printWindow = (window: Window, params: Params): string[] => {
             `r ${num(window.radiusPx)} px`,
             `≤ ${num(window.rateMaxTurnsPerBeat)} turn/beat`,
             ...(window.buzz ? ["buzz"] : []),
-          ].join(" · ") + share,
+            ...(window.openPx === undefined ? [] : [`opening to ${num(window.openPx)} px`]),
+          ].join(" · ") +
+            holds +
+            share,
         ),
       ];
     }
+    default:
+      return printSimpleWindow(window, who, share + holds, label);
+  }
+};
+
+const printSimpleWindow = (
+  window: Exclude<Window, { kind: "orbit" | "path" | "parallel" }>,
+  who: string,
+  share: string,
+  label: string,
+): string[] => {
+  switch (window.kind) {
+    case "stand":
+      return [row(label, `${who}stand${share}`)];
+    case "walk":
+      return [row(label, `${who}walk ${window.direction} ${num(window.distancePx)} px${share}`)];
+    case "pass":
+      return [row(label, `${who}pass ${window.shoulder} shoulders${share}`)];
+    case "pivot":
+      return [row(label, `${who}turn ${num(window.deg)}°${share}`)];
+    case "walk-to-seat":
+      return [row(label, `${who}walk to your seat${share}`)];
     case "intrinsic":
-      return [row("body", `${who}intrinsic${share}`), ...printIntrinsic(window.lines)];
+      return [row(label, `${who}intrinsic${share}`), ...printIntrinsic(window.lines)];
   }
 };
 

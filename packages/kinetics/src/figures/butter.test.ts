@@ -1,11 +1,17 @@
+import { angleDiff, dist, rightOf } from "@caller/core";
+import type { Vec2 } from "@caller/core";
 import type { Source } from "@caller/lang";
 import { describe, expect, it } from "vitest";
 import { runNamed } from "../dances/load.js";
-import type { Dialect } from "../dialect/Dialect.js";
+import type { DancerId, Dialect } from "../dialect/Dialect.js";
 import { execute } from "../executor/execute.js";
+import { CLEARANCE_PX } from "../motion/clearance.js";
 import { proveMotion } from "../motion/prove.js";
+import { sampleAt } from "../motion/Trajectory.js";
+import type { Run } from "../pipeline.js";
 import type { Schedule } from "../schedule/schedule.js";
 import { tempo } from "../units/Tempo.js";
+import { TAKE_BEATS } from "../units/limits.js";
 
 const T = tempo(112);
 
@@ -170,6 +176,279 @@ describe("Butter's figures alone, at floor level", () => {
     expect(tooLong.map((e) => e.message).join("\n")).toContain(
       "shift walks 160 cm to its seat in 2 beats",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The chain and the hey (M2)
+// ---------------------------------------------------------------------------
+
+const runWhole = (source: Source): Run => {
+  const result = runNamed(source.name.replace(/\.dance$/, ""), {
+    args: { "minor-sets": 3 },
+    times: 1,
+    bpm: 112,
+    extra: [source],
+  });
+  expect(result.errors.filter((e) => e.stage !== "schedule")).toEqual([]);
+  expect(figureErrors(result.schedule as Schedule)).toEqual([]);
+  return result;
+};
+
+/** Hip position and facing of `id` at `beat`, from the executed motion. */
+const hipAt = (run: Run, id: DancerId, beat: number): { p: Vec2; facing: number } => {
+  const t = run.executed!.trajectories[id]!;
+  const i = sampleAt(t, beat);
+  const p = t.points.hip![i]!;
+  return { p: [p.x, p.y], facing: t.channels.facing![i]! };
+};
+
+/** The closest the two come between `from` and `to`, and the beat. */
+const closest = (
+  run: Run,
+  a: DancerId,
+  b: DancerId,
+  from: number,
+  to: number,
+): { min: number; beat: number } => {
+  const ta = run.executed!.trajectories[a]!;
+  const tb = run.executed!.trajectories[b]!;
+  let min = Infinity;
+  let beat = from;
+  for (let i = sampleAt(ta, from); i <= sampleAt(ta, to); i++) {
+    const pa = ta.points.hip![i]!;
+    const pb = tb.points.hip![i]!;
+    const d = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+    if (d < min) {
+      min = d;
+      beat = i / ta.tempo.samplesPerBeat;
+    }
+  }
+  return { min, beat };
+};
+
+/**
+ * The sign test from the old library's chain (`passRight`): the other is
+ * on `me`'s right when the vector to them has a positive component along
+ * `rightOf(facing)` — the engine's px frame, y down, right is facing + 90°.
+ */
+const onRightOf = (run: Run, me: DancerId, other: DancerId, beat: number): boolean => {
+  const a = hipAt(run, me, beat);
+  const b = hipAt(run, other, beat);
+  const r = rightOf(a.facing);
+  return (b.p[0] - a.p[0]) * r[0] + (b.p[1] - a.p[1]) * r[1] > 0;
+};
+
+/** Every stretch two of `dancers` came closer than a body's clearance. */
+const clearanceAmong = (run: Run, dancers: readonly DancerId[]) =>
+  (run.clearance ?? []).filter((c) => dancers.includes(c.dancer) && dancers.includes(c.with));
+
+/**
+ * The proof over `[from, to)` for `dancers`: the hands must be clean; the
+ * hip and the feet are pinned at the worst ratio measured, never hidden.
+ */
+const worstOver = (
+  run: Run,
+  dancers: readonly DancerId[],
+  from: number,
+  to: number,
+): Record<"hip" | "feet" | "hands", number> => {
+  const worst = { hip: 0, feet: 0, hands: 0 };
+  for (const d of dancers) {
+    for (const v of proveMotion(run.executed!.trajectories[d]!)) {
+      if (v.beat < from || v.beat >= to) continue;
+      const ratio = v.value / v.cap;
+      const key = v.point === "hip" ? "hip" : v.point.startsWith("foot") ? "feet" : "hands";
+      worst[key] = Math.max(worst[key], ratio);
+    }
+  }
+  return worst;
+};
+
+/** The four places of the middle set, from the dialect. */
+const placesOf = (run: Run): Vec2[] => MIDDLE.map((id) => run.dialect!.initial().dancers[id]!.p);
+
+const nearAPlace = (p: Vec2, places: readonly Vec2[], withinPx: number): number | undefined => {
+  const i = places.findIndex((q) => dist(p, q) <= withinPx);
+  return i < 0 ? undefined : i;
+};
+
+describe("the chain, on the middle set", () => {
+  // Butter's own order: the chain flows into the hey, which is what keeps
+  // the courtesy turn from having to stop dead (a full turn in four beats
+  // has no beat to ramp down in).
+  const run = runWhole(
+    one(
+      "only-chain",
+      "chain, hey",
+      [
+        "  chain(Robin, to = neighbor, beats = 8);",
+        "  hey(MinorSet, start = Robin, shoulder = Right, beats = 16);",
+      ].join("\n"),
+    ),
+  );
+  const robins = ["1-1R", "1-2R"] as const;
+
+  it("pulls by right shoulders in the middle, clear of each other, and is across by beat 4", () => {
+    expect(clearanceAmong(run, MIDDLE)).toEqual([]);
+    const pass = closest(run, "1-1R", "1-2R", 0, 4);
+    // Measured 8.82 px at beat 2.13 with the pass offset at 4.5 px (4.25,
+    // the old library's, gave 8.08 once the executor's spline had rounded
+    // the corner: the clearance check is what said so).
+    expect(pass.min).toBeGreaterThanOrEqual(CLEARANCE_PX);
+    expect(pass.beat).toBeGreaterThan(1.5);
+    expect(pass.beat).toBeLessThan(2.5);
+    expect(onRightOf(run, "1-1R", "1-2R", pass.beat)).toBe(true);
+    expect(onRightOf(run, "1-2R", "1-1R", pass.beat)).toBe(true);
+    // By beat 4 each robin is on the far line, seventeen px to her lark's
+    // right, facing the way he faces; he has stepped three px to his right.
+    const r = hipAt(run, "1-2R", 4);
+    const l = hipAt(run, "1-1L", 4);
+    expect(dist(r.p, [16, 33])).toBeLessThan(0.5);
+    expect(dist(l.p, [16, 47])).toBeLessThan(0.5);
+    expect(Math.abs(angleDiff(r.facing, 180))).toBeLessThan(5);
+    expect(Math.abs(angleDiff(l.facing, 180))).toBeLessThan(5);
+  });
+
+  it("courtesy turns over four beats: out together half way, home in the line facing across", () => {
+    // Half way round the couple faces directly out of the set (F10).
+    const r6 = hipAt(run, "1-2R", 6);
+    const l6 = hipAt(run, "1-1L", 6);
+    expect(Math.abs(angleDiff(r6.facing, 0))).toBeLessThan(5);
+    expect(Math.abs(angleDiff(l6.facing, 0))).toBeLessThan(5);
+    // And at the end the couple is on the two places, facing across, the
+    // robin on the lark's right — the whole effect of a chain.
+    const r8 = hipAt(run, "1-2R", 8);
+    const l8 = hipAt(run, "1-1L", 8);
+    expect(dist(r8.p, [16, 30])).toBeLessThan(0.5);
+    expect(dist(l8.p, [16, 50])).toBeLessThan(0.5);
+    expect(Math.abs(angleDiff(r8.facing, 180))).toBeLessThan(5);
+    expect(Math.abs(angleDiff(l8.facing, 180))).toBeLessThan(5);
+    expect(onRightOf(run, "1-1L", "1-2R", 8)).toBe(true);
+    // The hey needs no entry: the chain leaves everyone where it starts.
+    for (const id of MIDDLE) {
+      const hey = run.schedule!.calls[id]!.find((c) => c.call.figure.id === "hey")!;
+      expect(hey.entry[1] - hey.entry[0]).toBe(0);
+    }
+  });
+
+  it("takes the courtesy hold as the pull-by ends, left hands, the robin's on top", () => {
+    const slots = run.schedule!.programs["1-2R"]!.slots;
+    const take = slots.find((s) =>
+      s.instrs.some((i) => i.op === "hold" && i.hold === "courtesy" && i.hand === "left"),
+    );
+    expect(take?.beat).toBe(4 - TAKE_BEATS);
+    const hands = run.solved!.hands;
+    const t = run.executed!.trajectories["1-2R"]!;
+    const i = sampleAt(t, 6);
+    const robin = hands["1-2R"]!.left[i]!;
+    const lark = hands["1-1L"]!.left[i]!;
+    expect(robin.contact).toBe("stacked");
+    expect(robin.onTop).toBe(true);
+    expect(lark.onTop).toBe(false);
+    // One shared point.
+    expect(
+      Math.hypot(robin.p.x - lark.p.x, robin.p.y - lark.p.y, robin.p.z - lark.p.z),
+    ).toBeLessThan(1e-6);
+  });
+
+  it("proves: hands clean, the hip and the feet pinned", () => {
+    const worst = worstOver(run, MIDDLE, 0, 8);
+    expect(worst.hands).toBe(0);
+    // Measured 2026-09-18: the hip's worst is the courtesy turn — a quarter
+    // turn a beat at seven px is four chord points a turn for the executor's
+    // spline, the same seam the swing pins (its test allows 2.5×). The feet
+    // are over on the pull-by's arrival footfall, where the robin reverses
+    // over two beats.
+    expect(worst.hip, `hip ×${worst.hip.toFixed(2)}`).toBeLessThan(2.5);
+    expect(worst.feet, `feet ×${worst.feet.toFixed(2)}`).toBeLessThan(1.5);
+  });
+
+  it("drifts, by the language's seating: a robin who chained across stands on the other line's seat", () => {
+    const drift = run.warnings.filter((w) => w.kind === "Drift" && w.message.startsWith("chain"));
+    // Every robin, and only the robins: 37.7 px is a place along and a set
+    // across, the seat the text still gives her. Nothing in the language
+    // reseats after a chain; a G1 question beside the swing's.
+    expect(drift.map((w) => w.dancer).sort()).toEqual(
+      ["0-1R", "0-2R", "1-1R", "1-2R", "2-1R", "2-2R"].sort(),
+    );
+    expect(drift.every((w) => /ends 3\d\.\d px from the seat/.test(w.message))).toBe(true);
+    void robins;
+  });
+});
+
+describe("the hey, on the middle set", () => {
+  const run = runWhole(
+    one("only-hey", "hey", "  hey(MinorSet, start = Robin, shoulder = Right, beats = 16);"),
+  );
+
+  it("meets seven times at the beats: robins in the middle on 2, larks on 6, sides on 4, 8, 12", () => {
+    expect(clearanceAmong(run, MIDDLE)).toEqual([]);
+    const middle = (a: DancerId, b: DancerId, beat: number): void => {
+      const pa = hipAt(run, a, beat);
+      const pb = hipAt(run, b, beat);
+      expect(Math.abs(pa.p[0]), `${a} at ${String(beat)}`).toBeLessThan(0.6);
+      expect(Math.abs(pb.p[0]), `${b} at ${String(beat)}`).toBeLessThan(0.6);
+      const apart = dist(pa.p, pb.p);
+      expect(apart).toBeGreaterThanOrEqual(CLEARANCE_PX);
+      expect(apart).toBeLessThan(11);
+      // Right shoulders: each has the other on their right.
+      expect(onRightOf(run, a, b, beat)).toBe(true);
+      expect(onRightOf(run, b, a, beat)).toBe(true);
+    };
+    middle("1-1R", "1-2R", 2);
+    middle("1-1L", "1-2L", 6);
+    middle("1-1R", "1-2R", 10);
+    middle("1-1L", "1-2L", 14);
+    // At the sides everybody is on one of the four places, all four taken.
+    const places = placesOf(run);
+    for (const beat of [4, 8, 12, 16]) {
+      const taken = MIDDLE.map((id) => nearAPlace(hipAt(run, id, beat).p, places, 1));
+      expect(taken, `beat ${String(beat)}: ${taken.join(",")}`).not.toContain(undefined);
+      expect(new Set(taken).size).toBe(4);
+    }
+  });
+
+  it("keeps everybody a body's clearance apart, and brings everybody home on 16", () => {
+    for (let a = 0; a < MIDDLE.length; a++) {
+      for (let b = a + 1; b < MIDDLE.length; b++) {
+        const { min } = closest(run, MIDDLE[a]!, MIDDLE[b]!, 0, 16);
+        expect(min, `${MIDDLE[a]!}/${MIDDLE[b]!}`).toBeGreaterThanOrEqual(CLEARANCE_PX);
+      }
+    }
+    const homes = run.dialect!.initial().dancers;
+    for (const id of MIDDLE) {
+      expect(dist(hipAt(run, id, 16).p, homes[id]!.p), id).toBeLessThan(1);
+    }
+    // The larks arrive home from their second crossing, so they face out of
+    // it; the robins from their loop, so they face across. The next figure's
+    // entry turns them (Butter's balance costs one beat for it).
+    expect(Math.abs(angleDiff(hipAt(run, "1-1R", 16).facing, 180))).toBeLessThan(25);
+  });
+
+  it("proves: hands clean, the hip and the feet pinned", () => {
+    const worst = worstOver(run, MIDDLE, 0, 16);
+    expect(worst.hands).toBe(0);
+    // Measured 2026-09-18: hip ×2.32 at the first and the last step — a
+    // path has no cruise ramp, so from rest the first step is a whole one
+    // and the last stops dead; the meetings stay on their beats. The feet
+    // ×1.41 on the left foot's arrival footfall at the end of a crossing.
+    expect(worst.hip, `hip ×${worst.hip.toFixed(2)}`).toBeLessThan(2.5);
+    expect(worst.feet, `feet ×${worst.feet.toFixed(2)}`).toBeLessThan(1.5);
+  });
+
+  it("by the left is the same track with every pass by the other shoulder", () => {
+    const left = runWhole(
+      one("only-hey-left", "hey", "  hey(MinorSet, start = Robin, shoulder = Left, beats = 16);"),
+    );
+    expect(clearanceAmong(left, MIDDLE)).toEqual([]);
+    const pa = hipAt(left, "1-1R", 2);
+    const pb = hipAt(left, "1-2R", 2);
+    expect(dist(pa.p, pb.p)).toBeGreaterThanOrEqual(CLEARANCE_PX);
+    expect(onRightOf(left, "1-1R", "1-2R", 2)).toBe(false);
+    expect(onRightOf(left, "1-2R", "1-1R", 2)).toBe(false);
+    const homes = left.dialect!.initial().dancers;
+    for (const id of MIDDLE) expect(dist(hipAt(left, id, 16).p, homes[id]!.p), id).toBeLessThan(1);
   });
 });
 

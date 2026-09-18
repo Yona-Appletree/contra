@@ -79,6 +79,7 @@ export function sequenceFromEvening(
 
   const perDancer: Record<DancerId, CompiledCall[]> = {};
   for (const id of dialect.dancers) perDancer[id] = [];
+  const roles = new Set(dialect.dancers.map((id) => dialect.roleOf(id)));
 
   for (const time of evening.times) {
     const offset = offsetOfTime(time.time);
@@ -93,6 +94,7 @@ export function sequenceFromEvening(
           seatings,
           seating: seatingFor(offset + move.start + move.beats),
           id: calls.length,
+          roles,
           report,
         }),
       );
@@ -139,6 +141,8 @@ interface CallContext {
   seatings: readonly Seating[];
   seating: number;
   id: number;
+  /** The roles anybody on the floor dances, as the dialect names them. */
+  roles: ReadonlySet<string>;
   report: (error: RunError) => void;
 }
 
@@ -211,7 +215,22 @@ function callOf(move: Move, ctx: CallContext): CompiledCall {
     const arg = byName.get(spec.name);
     if (arg === undefined) continue;
     const value = valueOf(spec, arg, move, start, ctx.report);
-    if (value !== undefined) params[spec.name] = value;
+    if (value === undefined) continue;
+    // A role word nobody on the floor dances: the figure's windows for that
+    // role would name no-one and everybody would stand, silently (D16 says
+    // the figure never spells a role, so this is where the word is checked).
+    if (spec.kind === "role" && typeof value === "string" && !ctx.roles.has(value)) {
+      ctx.report({
+        stage: "compile",
+        kind: "BadParam",
+        message: `"${arg.value}" is not a role anybody dances, for ${move.ir}'s ${spec.name}: ${[...ctx.roles].sort().join(" | ")}`,
+        span: move.span,
+        dancer: move.dancer,
+        beat: start,
+      });
+      continue;
+    }
+    params[spec.name] = value;
   }
 
   // The ring's neighbours, in its own order from `self`: the second is the one

@@ -3,7 +3,9 @@ import { allemande } from "./allemande.js";
 import { bow } from "./bow.js";
 import { doSiDo } from "./doSiDo.js";
 import { balance } from "./balance.js";
+import { chain } from "./chain.js";
 import { circle } from "./circle.js";
+import { hey } from "./hey.js";
 import { longLines } from "./longLines.js";
 import { shift } from "./shift.js";
 import { swing } from "./swing.js";
@@ -15,8 +17,8 @@ import { waitOut } from "./waitOut.js";
  * this table has not got is a compile error with the call's span, never a
  * silent stand.
  *
- * The pair's three, and Butter's at floor level (shift, circle, swing, long
- * lines, balance; the chain and the hey follow) — more data, not more code.
+ * The pair's three, and Butter whole (shift, circle, swing, long lines,
+ * chain, hey, balance) — more data, not more code.
  */
 export const FIGURES: FigureRegistry = {
   [bow.id]: bow,
@@ -26,6 +28,8 @@ export const FIGURES: FigureRegistry = {
   [circle.id]: circle,
   [swing.id]: swing,
   [longLines.id]: longLines,
+  [chain.id]: chain,
+  [hey.id]: hey,
   [balance.id]: balance,
   [waitOut.id]: waitOut,
 };

@@ -7,39 +7,51 @@ import { runNamed } from "./load.js";
  * Butter, whole, from `packages/lang/dances/butter.dance`: the seven times
  * through, the first time without the shift, the progression, and the ends.
  *
- * The bounds here are **re-pinned for the joined stack** (risk R2) and every
- * one of them moved, for two reasons that are both written down rather than
- * smoothed over:
+ * The bounds here are **re-pinned** (risk R2) each time the stack under them
+ * changes, with the old number, the new one and the why written down rather
+ * than smoothed over. Two things stand behind every number:
  *
- * 1. **The chain and the hey are stands** (D5) — no figure answers to their
- *    `ir` yet, so twenty-four of the sixty-four beats are a dancer standing
- *    still, and the balance that follows the hey has to take hands from
- *    wherever the stand left them. M2 makes them figures and re-pins again.
- * 2. **`becket.dance` lays its minor sets 1.6 m apart with every one seated**,
+ * 1. **`becket.dance` lays its minor sets 1.6 m apart with every one seated**,
  *    so a progression moves a couple a whole couple-width (40 px) and the
  *    shift is asked to walk it in two beats. It cannot: `StepTooLong` says
- *    "shift walks 160 cm to its seat in 2 beats" two hundred and fifty-six
- *    times, and the drift check says the dancers end up as much as 60 px from
- *    the seat the commit gave them. The floor a becket really has is half
- *    that pitch with alternate minor sets occupied (the kinetics plan's DA9);
- *    saying so in the language needs the couple coming in to land on the
- *    right parity, which is a G1/D9 question and not this milestone's.
+ *    "shift walks 160 cm to its seat in 2 beats", the circle after it gets a
+ *    squeezed body and long strides, the drift check says the dancers end up
+ *    as much as 60 px from the seat the commit gave them, and the clearance
+ *    check finds the couple the shift could not move standing on the couple
+ *    coming in at the top. The floor a becket really has is half that pitch
+ *    with alternate minor sets occupied (the kinetics plan's DA9); saying so
+ *    in the language needs the couple coming in to land on the right parity,
+ *    which is a G1/D9 question (E1 in the director's log) and not M1's or
+ *    M2's. Its share is attributed below so the next re-pin can subtract it.
+ * 2. **The chain and the hey are figures since M2**, danced on that floor:
+ *    on the clean middle set of a three-set hall they schedule with no
+ *    complaint (`figures/butter.test.ts`), but in Butter whole they start
+ *    from wherever the shift's failure left everyone, and their lane frames
+ *    are skewed with it — which the pivot cap and the clearance check say.
  *
- * Old numbers, from round 1's text on round 1's becket with a partner swing
- * standing in for the chain and the hey: **≤ 40 schedule errors**, kinds ⊆
- * {StepTooLong, PivotTooLarge, TimingViolation}, **hip worst < 5×**.
+ * Numbers, measured at 112 bpm, seven times through, at 1 / 2 / 3 sets:
  *
- * New numbers, measured 2026-09-18 at 112 bpm, seven times through:
- * **116 / 215 / 308** schedule errors at 1 / 2 / 3 minor sets, kinds ⊆
- * {StepTooLong, TimingViolation, RateTooHigh} — `PivotTooLarge` has gone and
- * `RateTooHigh` has arrived, both because the circle now gets a squeezed body
- * after paying for a shift it could not finish — and the hip's worst ratio is
- * **3.67 / 3.92 / 3.87×**, so that pin **tightens** from 5 to 4 rather than
- * loosening. `CAPS` has not moved and must not.
+ * | pin | M1 (chain and hey stands) | M2 (figures) | why it moved |
+ * |---|---|---|---|
+ * | schedule errors | 116 / 215 / 308, ≤ 320 | **139 / 259 / 372, ≤ 380** | see the shares |
+ * | kinds | {StepTooLong, TimingViolation, RateTooHigh} | + **PivotTooLarge** | the chain's and hey's turns on a skewed floor |
+ * | hip worst | 3.67 / 3.92 / 3.87, < 4 | **4.34 / 4.61 / 4.61, < 5** | the B2 swing now starts from the hey's real end and its spiral into the 40 px shift is sharper; the loosening is at that one seam (beat 64k − 0.06) |
+ * | drift | 132 at 3 sets, shift and swing | **72 / 141 / 234**: shift 42 / 57 / 66, swing 10 / 45 / 106, chain 20 / 39 / 62 | the chain's is the language's seating (below) |
+ *
+ * The 372 at three sets by share: **the shift's own 66** (`shift walks 160
+ * cm`), **the circle after it 164 + 18 + 9** (`StepTooLong`, `TimingViolation`,
+ * `RateTooHigh`), the balance 29 + 16, the swing 12, and **the chain's and
+ * the hey's `PivotTooLarge`, 16 + 42** — turns at the ninety-degree stepping
+ * cap that go a few degrees over when the couple is not square to the set.
+ * Subtracting the shift's own and the circle's leaves 115.
+ *
+ * `CAPS` has not moved and must not.
  */
-const MAX_SCHEDULE_ERRORS = 320;
-const MAX_HIP_RATIO = 4;
+const MAX_SCHEDULE_ERRORS = 380;
+const MAX_HIP_RATIO = 5;
 const KINDS = ["StepTooLong", "PivotTooLarge", "TimingViolation", "RateTooHigh"];
+/** Clearance stretches at 1 / 2 / 3 sets: 230 / 453 / 765, all on the shift's floor (below). */
+const MAX_CLEARANCE = 800;
 
 describe("Butter, the loop", () => {
   for (const minorSets of [1, 2, 3]) {
@@ -54,13 +66,9 @@ describe("Butter, the loop", () => {
       expect(result.sequence?.title).toBe("Butter");
       expect(result.sequence?.dialect).toBe("MajorSet");
 
-      // The chain and the hey, once each, however many dancers say them (D5).
-      const noFigure = result.errors.filter((e) => e.kind === "NoFigure");
-      expect(noFigure.map((e) => e.message.replace(/ \(\d+ calls\)$/, ""))).toEqual([
-        'no figure for "chain": the move stands for 8 beats',
-        'no figure for "hey": the move stands for 16 beats',
-      ]);
-      expect(noFigure.every((e) => e.span?.file === "butter.dance")).toBe(true);
+      // Every move Butter says has a figure (M2: the chain and the hey).
+      expect(result.errors.filter((e) => e.kind === "NoFigure")).toEqual([]);
+      expect(result.errors.filter((e) => e.stage === "compile")).toEqual([]);
 
       const calls = result.sequence!.perDancer["0-1L"]!;
       // First time: no shift, and the circle takes the eight beats (D8).
@@ -94,6 +102,24 @@ describe("Butter, the loop", () => {
         const worst = Math.max(0, ...violations.map((v) => v.value / v.cap));
         expect(worst, `${id} worst ×${worst.toFixed(2)}`).toBeLessThan(MAX_HIP_RATIO);
       }
+
+      // The chain's drift is the language's, not the figure's: every robin
+      // in a set chains across and ends on the other line's seat, 35–38 px
+      // from the one the text still gives her (`figures/butter.test.ts`
+      // shows it on the clean set); the larks' come from the floor the shift
+      // leaves. At least the robins', and no more than the measured.
+      const chainDrift = result.warnings.filter(
+        (w) => w.kind === "Drift" && w.message.startsWith("chain"),
+      );
+      expect(chainDrift.length).toBeGreaterThanOrEqual(minorSets * 2 * 7);
+      expect(chainDrift.length).toBeLessThanOrEqual(70);
+
+      // Two bodies through one point (K304): measured 230 / 453 / 765, and
+      // the closest of them is 0.00 px — the couple the shift could not move
+      // out of the top set standing on the couple coming in. The shift's
+      // floor again; the figures alone keep everybody clear.
+      const clearance = result.clearance ?? [];
+      expect(clearance.length).toBeLessThanOrEqual(MAX_CLEARANCE);
     });
   }
 

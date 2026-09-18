@@ -60,6 +60,17 @@ export const complaintsOf = (run: Run): Complaint[] => {
       ...(w.dancer === undefined ? {} : { dancer: w.dancer }),
     });
   }
+  // Two bodies through one point (K304): the executed motion's own finding.
+  for (const c of run.clearance ?? []) {
+    add({
+      bad: false,
+      tag: "execute clearance",
+      where: whereOf(run, c.dancer, c.beat, undefined),
+      message: `${c.dancer} and ${c.with} are ${c.value.toFixed(1)} px apart, under the ${c.cap.toFixed(1)} two bodies keep (${c.figures[0]}, ${c.figures[1]})`,
+      beat: c.beat,
+      dancer: c.dancer,
+    });
+  }
   return [...seen.values()];
 };
 
