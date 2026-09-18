@@ -165,13 +165,26 @@ console.log(printTimeline(evening)); // events by beat, then a row per move
 - **The out couples are in the tree.** A dance's contract is the kinds it reads,
   and a dancer whose path lacks one of them runs the formation's `out(length)`
   while still taking part in the set-wide `progress()`.
-- **Beat 0 is the top of the dance, and membership settles there.** The couple
-  the progression carries off the end stops where it stands and waits out the
-  rest; the couple waiting at the end enters on the same commit and dances that
-  time through, shift and all, so nobody is ever asked to swing somebody who is
-  waiting out. Whether a dance that progresses in the _middle_ should admit and
-  release dancers the same way is a G1 question, and the rule is deliberately
-  restricted to the beat-0 commit until it is answered.
+- **Membership settles at every commit.** The couple the progression carries
+  off the end stops where it stands and waits out the rest; the couple waiting
+  at the end enters on the same commit, so nobody is ever asked to swing
+  somebody who is waiting out. A dancer a commit at beat `b` makes addressable
+  joins by **silent replay** (notes D8; M3, judged at G1): its runner runs the
+  script from the top with nothing recorded — moves advance the cursor, events
+  and cards go nowhere, a relation it cannot read yet is nobody — until it
+  executes the `progress()` at cursor `b`, the one whose commit admitted it,
+  and dances for real from the next statement, having waited out the beats
+  before. Beat 0 is the ordinary case: Butter's entrant meets `progress()` on
+  its first statement. An entrant whose replay passes `b` without one is
+  `L111` and waits out instead. Robins on a Wire progresses at beat 16, and
+  its waiting couple comes in on the shift.
+- **A `Role` argument may name nobody** (notes D10; M3, judged at G1). The
+  checker lets a selection through where a place kind is due, so `form-wave(
+right = wave-mate, …)` at the end of the long wave — where `wave-mate =
+select(MinorSet = id + travel, Couple = other)` finds no one — is a move with
+  an empty argument, no `ref`, and the consumer's own cast rule says what the
+  dancer does about it (the end robin balances with one hand). Two or more is
+  `L110` at the call, naming them; `one!` stays the mark that says exactly one.
 - **A commit is where the diagnostics live.** Two dancers in one place names the
   pair and the beat (`L102`); half a role swap is exactly that.
 - **`+y` runs down the hall.** The hall's top is at negative `y`, the minor sets
