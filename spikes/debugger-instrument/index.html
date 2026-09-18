@@ -14,6 +14,7 @@
   --bg:#141110; --panel:#1e1917; --panel2:#272019; --ink:#ebdfcd; --muted:#a8977f;
   --accent:#e7b96b; --line:#3c3128; --dash:#6b5741; --floor:#0c0a09; --grid:#1c1815;
   --lark:#e0a32e; --robin:#c8362f; --bad:#e07a7a; --good:#9fd08a; --warn:#e0c07a;
+  --cf:12px/17px;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -32,50 +33,52 @@ blockquote{margin:6px 0 10px;border-left:3px solid var(--dash);padding:1px 0 1px
 blockquote b{color:var(--ink)}
 a{color:var(--accent)}
 
-/* ---- exploration controls: the dashed strip ---- */
+/* ---- buttons: flat inside the screen ---- */
+button{background:transparent;color:var(--muted);border:1px solid transparent;border-radius:3px;
+  padding:2px 7px;font:11.5px ui-monospace,Menlo,monospace;cursor:pointer;white-space:nowrap}
+button:hover{color:var(--ink)}
+button.on{color:var(--accent);background:#2b2219}
+button:disabled{opacity:.35;cursor:default}
+
+/* ---- exploration controls: the dashed strip, outside the screen ---- */
 .controls{border:1px dashed var(--dash);border-radius:8px;padding:8px 11px;display:flex;flex-wrap:wrap;
   gap:7px 16px;align-items:center;margin:8px 0 10px;background:var(--panel);position:sticky;top:0;z-index:40}
+.controls button{background:var(--panel2);color:var(--ink);border-color:var(--line)}
+.controls button:hover{border-color:var(--dash)}
+.controls button.on{background:var(--accent);border-color:var(--accent);color:#1b1410;font-weight:600}
+.controls button.ghost.on{background:#4a3a24;color:var(--accent)}
 .grp{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:11.5px;color:var(--muted)}
 .grp span.l{color:var(--accent);white-space:nowrap;margin-right:2px}
-button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;
-  padding:3px 8px;font:11.5px ui-monospace,Menlo,monospace;cursor:pointer;white-space:nowrap}
-button:hover{border-color:var(--dash)}
-button.on{background:var(--accent);border-color:var(--accent);color:#1b1410;font-weight:600}
-button.ghost.on{background:#4a3a24;color:var(--accent)}
 
-/* ---- one laptop screen ---- */
-.screen{border:1px solid var(--line);border-radius:9px;background:var(--bg);overflow:hidden;
-  box-shadow:0 8px 26px -16px #000;height:792px;display:flex;flex-direction:column}
-.screen > .chrome{background:var(--panel2);border-bottom:1px solid var(--line);padding:4px 10px;
-  font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;flex:none}
-.screen > .chrome b{color:var(--accent);font-weight:600}
-.app{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:5px;background:var(--bg)}
-.mid{flex:1;min-height:0;display:flex;gap:5px}
+/* ---- one laptop screen: a flat grid, hairlines between cells, nothing nested ---- */
+.screen{border:1px solid var(--line);background:var(--line);height:792px;display:grid;
+  grid-template-columns:440px 1fr;grid-template-rows:auto 1fr;gap:1px;overflow:hidden;
+  box-shadow:0 8px 26px -16px #000}
+.chrome{grid-column:1/-1;background:var(--panel2);padding:3px 10px;font-size:11px;color:var(--muted);
+  display:flex;gap:8px;align-items:center}
+.chrome b{color:var(--accent);font-weight:600}
+.left{background:var(--floor);display:flex;flex-direction:column;min-height:0;min-width:0}
+.right{background:var(--bg);display:flex;flex-direction:column;min-height:0;min-width:0}
 
-/* ---- panes ---- */
-.pane{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;
-  flex-direction:column;min-height:0;min-width:0;overflow:hidden}
-.pane > h3{display:flex;align-items:center;gap:6px;margin:0;padding:2px 8px;font-size:10px;font-weight:600;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);flex:none}
-.pane > h3 .sp{flex:1}
-.pane > .body{flex:1;min-height:0;overflow:auto;padding:5px 7px}
-.pane.dark{background:var(--floor)}
-
-/* ---- transport: its own tape, always on screen ---- */
-.transport{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
-  border-radius:6px;padding:4px 8px;flex:none;flex-wrap:nowrap;overflow:hidden}
-.transport .beat{color:var(--accent);white-space:nowrap;font-size:12px}
-.transport select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;
-  font:11.5px ui-monospace,Menlo,monospace;padding:2px 4px}
-.tbtn{width:26px;text-align:center;padding:3px 0}
-.loopbtn.on{background:var(--accent);border-color:var(--accent);color:#1b1410;font-weight:600}
-.ruler{display:flex;gap:1px;flex:1;min-width:0;height:22px}
-.ruler .mv{flex-grow:var(--w);flex-basis:0;min-width:0;background:var(--panel2);border:1px solid var(--line);
-  border-radius:3px;font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);padding:0 4px;
+/* ---- the tape: modes, file, transport, the ruler ---- */
+.tape{grid-column:1/-1;background:var(--panel);display:flex;align-items:center;gap:6px;padding:3px 8px;
+  overflow:hidden}
+.modes{display:flex;gap:1px;margin-right:6px}
+.modes button{padding:2px 9px;border-radius:0;border-bottom:2px solid transparent;font-weight:600}
+.modes button.on{background:transparent;border-bottom-color:var(--accent)}
+.tape select{background:transparent;color:var(--ink);border:1px solid transparent;border-radius:3px;
+  font:11.5px ui-monospace,Menlo,monospace;padding:2px 2px}
+.tape select:hover{border-color:var(--line)}
+.tbtn{width:26px;text-align:center;padding:2px 0;color:var(--ink)}
+.tape .beat{color:var(--accent);white-space:nowrap;font-size:11.5px;min-width:96px;text-align:right}
+.ruler{display:flex;gap:1px;flex:1;min-width:0;height:20px}
+.ruler .mv{flex-grow:var(--w);flex-basis:0;min-width:0;background:var(--panel2);
+  font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);padding:0 4px;
   display:flex;align-items:center;overflow:hidden;white-space:nowrap;cursor:pointer;position:relative}
 .ruler .mv b{font-weight:400;overflow:hidden;text-overflow:ellipsis;position:relative}
-.ruler .mv.on{border-color:var(--accent);color:var(--ink);background:#372b1c}
-.ruler .mv .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);opacity:.20;width:0}
+.ruler .mv.on{color:var(--ink);background:#372b1c}
+.ruler .mv.side{opacity:.6}
+.ruler .mv .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);opacity:.2;width:0}
 
 /* ---- code ---- */
 .code{position:relative;flex:1;min-height:0;overflow:hidden;background:var(--floor)}
@@ -85,82 +88,70 @@ button.ghost.on{background:#4a3a24;color:var(--accent)}
   line-height:inherit;min-height:1em}
 .code .ln.cm{color:#6f6151}
 .code .ln.dim{opacity:.35}
+.code .ln.sel{border-left-color:var(--dash)}
 .code .ln.lit{background:#39301f;border-left-color:var(--accent)}
 .code .ln.err{background:#3a201e;border-left-color:var(--bad)}
+.code .ln.wrn{border-left-color:var(--warn)}
 .code .kw{color:#b08bd0}.code .fn{color:var(--accent)}.code .num{color:var(--good)}
 .code .rel{color:#7fb0c8}.code .str{color:#d9b06a}
 .code textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:0;
   background:transparent;color:transparent;caret-color:var(--ink);padding:6px 14px 20px;
   font:var(--cf,12.5px/18px) ui-monospace,Menlo,monospace;white-space:pre;overflow:auto;tab-size:2}
-.code .edit-tag{position:absolute;right:6px;bottom:4px;font-size:10px;color:var(--muted);
+.code .edit-tag{position:absolute;right:6px;bottom:4px;font-size:10px;color:#6f6151;
   background:#0009;border-radius:3px;padding:1px 5px;pointer-events:none}
 
-/* ---- the card wall: many views, all at 2x ---- */
-.wallhead{display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:10px;color:var(--muted);
-  background:var(--panel);border-bottom:1px solid var(--line);flex:none}
-.wallhead .l{color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-right:3px}
-.wallhead button{padding:1px 7px;font-size:10.5px}
-.wallhead .sp{flex:1}
-/* the wall is a grid: a card holds as much floor as its cell fits, always at 2x */
-.wall{flex:1;min-height:0;overflow:hidden;padding:5px;display:grid;gap:6px;
-  grid-auto-rows:1fr}
-.card{border:1px solid var(--line);border-radius:5px;background:var(--floor);overflow:hidden;
-  display:flex;flex-direction:column;cursor:pointer;min-width:0;min-height:0}
-.card:hover{border-color:var(--dash)}
-.card .cap{display:flex;align-items:center;gap:5px;padding:1px 5px;font-size:10px;color:var(--muted);
-  background:var(--panel);border-bottom:1px solid var(--line);flex:none;white-space:nowrap;overflow:hidden}
-.card .cap b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
-.card .cap .sp{flex:1}
-.card .dot{width:5px;height:5px;border-radius:50%;background:#3c3128;flex:none}
-.card .dot.bad{background:var(--bad)}
-.card .dot.warn{background:var(--warn)}
-.card .hold{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* ---- problems, under the code ---- */
+.problems{border-top:1px solid var(--line);height:112px;overflow:auto;padding:4px 8px;font-size:11.5px;
+  background:var(--floor);flex:none}
+.pl{display:grid;grid-template-columns:128px 1fr;gap:8px;cursor:pointer;padding:1px 0}
+.pl .at{color:var(--accent);overflow:hidden;text-overflow:ellipsis}
+.pl .what{color:var(--muted)}
+.pl.bad .what{color:var(--bad)}
+.pl.warn .what{color:var(--warn)}
+.pl.ok{color:#6f6151;cursor:default}
+.pl:hover .what{color:var(--ink)}
+
+/* ---- the hall strip (dance mode): the whole hall at 2x ---- */
+.hallstrip{background:var(--floor);flex:none;display:flex;justify-content:center;overflow:hidden;
+  position:relative;cursor:pointer}
+.hallstrip canvas{image-rendering:pixelated;display:block}
+.hallstrip .tag{position:absolute;left:6px;top:4px;font-size:10px;color:#6f6151;pointer-events:none}
+
+/* ---- the cards (figure mode): one per rig, at 2x ---- */
+.cards{background:var(--line);flex:none;display:grid;gap:1px;
+  grid-template-columns:repeat(auto-fit,minmax(236px,1fr))}
+.card{background:var(--floor);display:flex;flex-direction:column;cursor:pointer;min-width:0;overflow:hidden;
+  border-bottom:2px solid transparent}
+.card .hold{height:114px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .card canvas{image-rendering:pixelated;display:block}
-.card.sel{border-color:var(--accent)}
+.card .cap{display:flex;align-items:baseline;gap:5px;padding:1px 6px 2px;font-size:10.5px;color:var(--muted);
+  white-space:nowrap;overflow:hidden}
+.card .cap b{color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.card .cap .sub{color:#6f6151;font-size:10px;overflow:hidden;text-overflow:ellipsis}
+.card .cap .sub.bad{color:var(--bad)}
+.card .cap .sub.warn{color:var(--warn)}
+.card:hover .cap b{color:var(--ink)}
+.card.sel{border-bottom-color:var(--accent)}
+.card.sel .cap b{color:var(--accent)}
 
-/* ---- the detail of one card ---- */
-.detail{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;padding:5px}
-.detail .crumb{display:flex;align-items:center;gap:8px;flex:none;font-size:11.5px;color:var(--muted)}
-.detail .crumb b{color:var(--ink);font-weight:600}
-.detail .crumb .sp{flex:1}
-.detail .top{display:flex;gap:5px;flex:1;min-height:0}
-.detail .hall{background:var(--floor);border:1px solid var(--line);border-radius:5px;position:relative;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
-.detail .bot{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px}
-.pane3d{background:var(--floor);border:1px solid var(--line);border-radius:5px;display:flex;
-  flex-direction:column;overflow:hidden;flex:1;min-width:0}
-.pane3d .head{display:flex;align-items:center;gap:6px;padding:1px 6px;font-size:10px;color:var(--muted);
-  background:var(--panel);border-bottom:1px solid var(--line);flex:none}
-.pane3d .head .sp{flex:1}
-.pane3d input[type=range]{width:74px;accent-color:var(--accent);height:12px}
-.pane3d canvas{display:block}
-.zoomtag{position:absolute;left:5px;top:4px;font-size:10px;color:#7c6c58;pointer-events:none}
-.badge{position:absolute;right:5px;top:4px;font-size:10px;color:var(--bad);pointer-events:none}
+/* ---- the 3d, below, dragged and preset ---- */
+.v3{position:relative;flex:1;min-height:0;background:var(--floor);cursor:grab;border-top:1px solid var(--line)}
+.v3:active{cursor:grabbing}
+.v3 canvas{display:block}
+.v3 .presets{position:absolute;right:6px;top:5px;display:flex;gap:1px}
+.v3 .presets button{font-size:10.5px;padding:1px 7px;background:#0c0a09cc}
+.v3 .presets button.on{color:var(--accent)}
+.v3 .who{position:absolute;left:8px;top:6px;font-size:10.5px;color:#7c6c58;pointer-events:none}
+.v3 .who b{color:var(--muted);font-weight:600}
 
-/* ---- bindings ---- */
-.binds{font-size:11px;color:var(--muted);line-height:1.55}
-.binds .k{display:inline-block;width:88px;color:#6f6151}
-.binds .v{color:var(--ink)}
-
-/* ---- complaints ---- */
-.complaints{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 8px;
-  flex:none;max-height:58px;overflow:auto;color:var(--muted);font-size:11.5px}
-.complaints .line{display:flex;gap:8px;white-space:nowrap;cursor:pointer}
-.complaints .tag{flex:none;width:150px;overflow:hidden;text-overflow:ellipsis}
-.complaints .where{flex:none;width:170px;color:var(--accent);overflow:hidden;text-overflow:ellipsis}
-.complaints .what{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.complaints .line.bad .tag,.complaints .line.bad .what{color:var(--bad)}
-.complaints.bad{border-color:#6b2f2c}
-
-/* ---- the one tabbed panel: timeline, graphs, tree, listing, layout ---- */
-.deck{flex:none;display:flex;flex-direction:column;min-height:0}
-.tabbar{display:flex;gap:3px;align-items:center;flex:none;padding:0 1px}
-.tabbar button{padding:2px 9px;border-radius:4px 4px 0 0;color:var(--muted);font-size:11px;
-  border-bottom-color:transparent}
-.tabbar button.on{color:var(--ink);background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel)}
+/* ---- the one tabbed panel, under the main content, foldable ---- */
+.deck{border-top:1px solid var(--line);flex:none;display:flex;flex-direction:column}
+.tabbar{display:flex;gap:2px;padding:0 4px;background:var(--panel);align-items:center}
+.tabbar button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:2px 8px;font-size:11px}
+.tabbar button.on{color:var(--ink);background:transparent;border-bottom-color:var(--accent)}
 .tabbar .sp{flex:1}
-.deck .body{background:var(--panel);border:1px solid var(--line);border-radius:0 6px 6px 6px;
-  flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.deck .body{height:190px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
+  border-top:1px solid var(--line)}
 
 /* ---- timeline ---- */
 .tl{display:block;width:100%}
@@ -170,16 +161,19 @@ button.ghost.on{background:#4a3a24;color:var(--accent)}
 .tl .blk{fill:#e7b96b2e;stroke:#e7b96b66}
 .tl .blk.on{fill:#e7b96b52;stroke:var(--accent)}
 .tl .blk.wait{fill:#ffffff10;stroke:#ffffff24}
+.tl .blk.side{fill:#ffffff10;stroke:#ffffff30}
 .tl .seam{stroke:var(--accent);stroke-dasharray:1 2;opacity:.75}
 .tl .grid{stroke:var(--line)}
 .tl .phrase{font:9px ui-monospace,Menlo,monospace;fill:var(--accent)}
 .tl .cursor{stroke:var(--ink);stroke-width:1}
 .tl .hit{fill:transparent;cursor:col-resize}
 
-.mock{font-size:11px;color:var(--muted);line-height:1.45}
-.mock .lit{color:var(--ink);background:var(--panel2)}
-.mock .who{color:var(--ink)}
-.mock b{color:var(--ink);font-weight:400}
+.binds{font-size:11px;color:var(--muted);line-height:1.6;padding:6px 10px;columns:2}
+.binds div{break-inside:avoid}
+.binds .k{display:inline-block;width:88px;color:#6f6151}
+.binds .v{color:var(--ink)}
+.info{font-size:11px;color:var(--muted);line-height:1.6;padding:6px 10px}
+.info b{color:var(--ink);font-weight:400}
 
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:6px 0 0}
 .sw{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px}
@@ -189,49 +183,46 @@ button.ghost.on{background:#4a3a24;color:var(--accent)}
 
 <header>
 <h1>The debugger as a move-review instrument</h1>
-<p class="hint">One screen, three states of it. Pixels are <b>always 2&times;</b> &mdash; a view gets bigger by
-holding more floor, never by growing its pixels. The wall of cards is the instrument: every card is the same
-beat, and clicking one opens that one alone with the 3d beside it. <code>&#10226;&nbsp;loop</code> is also the
-switch &mdash; watching the dance, the cards are the hall's minor sets; looping a move, the same cards become
-that move's rigs.</p>
-<blockquote>&ldquo;<b>2x pixels is good</b> &hellip; I want to see <b>multiple views at 2x</b>. if possible click
-one of them and get details about exactly that one &hellip; the <b>3d view is important</b> &hellip; timeline and
-graphs in one tabbed view, the timeline basically is a graph &hellip; keep the separate tape.&rdquo;</blockquote>
+<p class="hint">Round 3. <b>Two modes, a dance and a figure</b>, and one flat screen for each: hairlines,
+no boxes in boxes. The text is beside the picture, its problems under it. Pixels are <b>always 2&times;</b>.
+The 3d is always below the pixels, dragged to turn, with buttons for the angles that matter. Figure mode is the
+harness for the loop that comes next &mdash; an agent edits the figure's text, Yona looks: the contexts it is
+judged in are <code>rig</code> lines in that text, one card each.</p>
+<blockquote>&ldquo;too many boxes in boxes &hellip; two different modes, figure and dances &hellip; the small
+cards should be when in figure mode, showing it in different contexts/transitions. <b>the source code should
+define them</b> &hellip; in dance mode the whole dance on top in 16-bit, the 3d view below &hellip; problems in
+the bottom left below the code, timeline and graphs under the main content &hellip; 3d should support
+dragging &hellip; presets for common angles.&rdquo;</blockquote>
 <div class="controls" id="controls"></div>
 </header>
 
 <section>
-<h2>1 &nbsp;On a dance <em>&mdash; a card per minor set, plus the couples waiting out</em></h2>
-<p class="hint">Six minor sets and two waiting couples, all on the same beat, so the eye catches the one set
-whose hey is late or whose end dancer has nobody. The wide card across the top is the whole hall at the same
-2&times;. The text is beside them, lit at the running call and editable.</p>
-<div class="screen" id="s1"><div class="chrome"><b>butter.dance</b> &mdash; 6 minor sets &middot; 112 bpm</div></div>
+<h2>1 &nbsp;A dance <em>&mdash; the whole hall on top, the 3d below it</em></h2>
+<p class="hint">Six sets and the two couples out, all at 2&times; in one strip. Click a set and the 3d turns
+to it alone; <code>hall</code> brings the whole line back. <code>&#10226;</code> loops the running call;
+<code>&#9198; &#9197;</code> jump call by call. The deck under the 3d folds to its tab row with
+<code>&#9662;</code>.</p>
+<div class="screen" id="s1"></div>
 </section>
 
 <section>
-<h2>2 &nbsp;After &#10226;&nbsp;loop <em>&mdash; the same wall, now the rigs of the one move</em></h2>
-<p class="hint">The looped call in nine contexts it will meet: the middle of a long set, both ends, the other
-side, entered facing the other way, at six beats and at ten, out of a chain, and with nobody where the
-neighbour should be. Same beat in all nine, so they compare.</p>
-<div class="screen" id="s2"><div class="chrome"><b>butter.dance</b> &mdash; looping <b>neighbor swing</b> &middot; 9 rigs</div></div>
+<h2>2 &nbsp;A figure <em>&mdash; a card per context, the clicked one in 3d</em></h2>
+<p class="hint">The figure's own file: its body as <code>pre</code>, <code>body</code>, <code>post</code>, then
+one <code>rig</code> line per context it must look right in &mdash; an end, the other side, the calls it comes
+out of and goes into, a shorter count, nobody across. Every rig is a card; the tape runs the clicked card's
+clock, transitions included; <code>&#9198; &#9197;</code> step between cards. Add a <code>rig</code> line and
+a card appears; change a <code>beats</code> and every card re-times on the keystroke.</p>
+<div class="screen" id="s2"></div>
 </section>
 
 <section>
-<h2>3 &nbsp;One card opened <em>&mdash; and the tabbed panel folded away</em></h2>
-<p class="hint">The same hall, still 2&times;, given more floor rather than fatter pixels; the 3d view of exactly
-that rig beside it, with yaw and pitch; what the call bound in that context; and only its own complaints. One
-click on <code>&#9662;</code> folded the timeline panel to its tab row and the detail took the height.</p>
-<div class="screen" id="s3"><div class="chrome"><b>butter.dance</b> &mdash; rig <b>the top end</b> &middot; nobody above</div></div>
-</section>
-
-<section>
-<h2>4 &nbsp;What the mock is not</h2>
-<p class="hint">Every move begins and ends in becket lines, so any one of them loops alone; the hey is a spline
-through four waypoints, not a hey; the complaints are written by hand and <code>inject a defect</code> puts one
-on the wall so a bad card can be seen carrying it. What is real: the text is <code>butter.dance</code>, the
-moves and their beats are parsed out of it live, the 3d is drawn from the same bodies the pixels are, and
-editing a <code>beats&nbsp;=&nbsp;n</code> or deleting a call re-times every picture on this page on the
-keystroke.</p>
+<h2>3 &nbsp;What the mock is not</h2>
+<p class="hint">Every call begins and ends in becket lines, so any one of them loops alone and any two abut;
+the hey is a spline through four waypoints, not a hey; the figure's <code>pre/body/post</code> is read for its
+line numbers only, the motion is still the mock's own; the problems are written by hand and
+<code>inject a defect</code> puts one on the screen so it can be seen carried to its line, its beat and its
+card. What is real: both texts are parsed live, the calls and rigs and their beats come out of them, and the
+3d is drawn from the same bodies the pixels are.</p>
 <div class="legend">
   <span><i class="sw" style="background:#e0a32e"></i>lark <code>#e0a32e</code></span>
   <span><i class="sw" style="background:#c8362f"></i>robin <code>#c8362f</code></span>
@@ -699,57 +690,226 @@ function render3d(cv,w,h,actors,cam0){
     c.globalAlpha=1;}
 }
 
+
+// ============================================ the figure's own file (mocked)
+// M7's question, written the way the brief puts it: the body as constraints,
+// not a path — and the contexts the review shows it in, as `rig` lines.
+const FIG_SOURCE=`// swing.dance — the swing as text. A caller who reads
+// Butter can read this. The body is constraints, never a
+// path; the rigs are where the review shows it, a card each.
+
+use contra::{Role, Hand, partner, neighbor, Robin, MinorSet};
+use contra::{chain, hey, circle, balance, long-lines};
+
+fn swing(with: Role, beats: i32 = 8) {
+  pre {
+    facing with; apart 0.56m;
+    hold ballroom(Right) with with;
+  }
+  body {
+    orbit midpoint(self, with), turns = beats / 4;
+    with on Right; buzz-step;
+  }
+  post { beside with as-couple; facing home; }
+}
+
+rig "middle of the set" { swing(neighbor); }
+rig "the top end"       { at = top; swing(neighbor); }
+rig "the bottom end"    { at = bottom; swing(neighbor); }
+rig "the other side"    { side = other; swing(neighbor); }
+rig "out of a chain" {
+  chain(Robin, to = partner);
+  swing(partner);
+}
+rig "into the hey" {
+  swing(neighbor);
+  hey(MinorSet, start = Robin, shoulder = Right);
+}
+rig "in six"            { swing(neighbor, beats = 6); }
+rig "nobody across"     { across = nobody; swing(neighbor); }`;
+const DEFAULT_BEATS={shift:2,circle:8,swing:8,'long-lines':8,chain:8,hey:16,balance:4};
+const callName=(kind,arg)=>kind==='swing'?(arg.rel==='partner'?'partner swing':'neighbor swing')
+  :kind==='balance'?'partner balance':NAMES[kind]||kind;
+/** The figure, its phase lines, and its rigs — each rig a run of calls with the figure in focus. */
+function parseFigure(text){
+  const lines=text.split('\n');
+  const f={name:'swing',line:0,pre:-1,body:-1,post:-1,beats:8,rigs:[],lines};
+  const T=2;                                          // beats of the call before and after
+  const closeOf=i=>{if(/\}\s*$/.test(lines[i]))return i;let j=i+1;while(j<lines.length&&!/^\s*\}/.test(lines[j]))j++;return j;};
+  let open=null;                                       // a rig block still being read
+  lines.forEach((ln,i)=>{let at=null;
+    const fn=ln.match(/^fn\s+([a-z][a-z-]*)\(/);
+    if(fn){f.name=fn[1];f.line=i;const b=ln.match(/beats:\s*i32\s*=\s*(\d+)/);if(b)f.beats=+b[1];}
+    if(f.pre<0&&/^\s*pre\s*\{/.test(ln))f.pre=[i,closeOf(i)];
+    if(f.body<0&&/^\s*body\s*\{/.test(ln))f.body=[i,closeOf(i)];
+    if(f.post<0&&/^\s*post\s*\{/.test(ln))f.post=[i,closeOf(i)];
+    let rg=ln.match(/^\s*rig\s+"([^"]*)"\s*\{(.*)$/);
+    if(rg&&!/\}/.test(rg[2])){open={label:rg[1],line:i,body:rg[2]};return;}
+    if(open){if(/^\s*\}/.test(ln)){rg=[null,open.label,open.body];at=open.line;open=null;}
+      else{open.body+=' '+ln;return;}}
+    if(!rg)return;
+    const r={label:rg[1],line:at!=null?at:i,opts:{},calls:[]};
+    rg[2].replace(/\}.*$/,'').split(';').map(s=>s.trim()).filter(Boolean).forEach(s=>{
+      const o=s.match(/^([a-z]+)\s*=\s*([a-z]+)$/);if(o){r.opts[o[1]]=o[2];return;}
+      const c=s.match(/^([a-z][a-z-]*)\((.*)\)$/);if(!c||!MOVES[c[1]])return;
+      const a=c[2];const kind=c[1];
+      const arg={rel:/partner/.test(a)?'partner':/neighbo/.test(a)?'neighbor':'',
+        places:Number((a.match(/places\s*=\s*(\d+)/)||[])[1]||3)};
+      const beats=Number((a.match(/beats\s*=\s*(\d+(?:\.\d+)?)/)||[])[1]
+        ||(kind===f.name?f.beats:DEFAULT_BEATS[kind]||8));
+      r.calls.push({kind,arg,beats,name:callName(kind,arg)});});
+    let fi=r.calls.findIndex(c=>c.kind===f.name);
+    if(fi<0){r.calls.unshift({kind:f.name,arg:{rel:'neighbor',places:3},beats:f.beats,
+      name:callName(f.name,{rel:'neighbor'})});fi=0;}
+    const pre=r.calls.slice(0,fi),post=r.calls.slice(fi+1),fig=r.calls[fi];
+    const segs=[];let start=0;
+    pre.forEach(c=>start-=Math.min(T,c.beats));
+    pre.forEach(c=>{const len=Math.min(T,c.beats);
+      segs.push({kind:c.kind,arg:c.arg,B:c.beats,tt0:c.beats-len,start,beats:len,name:c.name,line:r.line,side:true});
+      start+=len;});
+    segs.push({kind:fig.kind,arg:fig.arg,B:fig.beats,tt0:0,start:0,beats:fig.beats,name:fig.name,line:r.line,focus:true});
+    start=fig.beats;
+    post.forEach(c=>{const len=Math.min(T,c.beats);
+      segs.push({kind:c.kind,arg:c.arg,B:c.beats,tt0:0,start,beats:len,name:c.name,line:r.line,side:true});
+      start+=len;});
+    segs.forEach((s,k)=>s.index=k);
+    r.segs=segs;r.pre=-segs[0].start;r.L=start-segs[0].start;r.fig=Object.assign({line:r.line,index:0},fig);
+    r.nb=r.opts.at==='top'?[1]:r.opts.at==='bottom'?[-1]:[-1,1];
+    r.mirror=r.opts.side==='other';r.turn=r.opts.facing==='back';
+    r.drop=r.opts.across==='nobody'?['l2','r2']:[];
+    r.flaw=r.drop.length?'a hand reaches nobody':'';
+    r.sub=r.opts.at?'nobody '+(r.opts.at==='top'?'above':'below'):r.mirror?'mirrored':r.turn?'half a turn'
+      :fig.beats!==f.beats?fig.beats+' beats':pre.length?'after the '+pre[pre.length-1].kind
+      :post.length?'before the '+post[0].kind:r.drop.length?'the place is empty':'';
+    r.index=f.rigs.length;f.rigs.push(r);});
+  if(!f.rigs.length){                                 // the text names no rig: one card, the figure alone
+    const fig={kind:f.name,arg:{rel:'neighbor',places:3},beats:f.beats,name:callName(f.name,{rel:'neighbor'})};
+    f.rigs.push({label:'(no rig in the text)',line:f.line,opts:{},calls:[fig],index:0,
+      segs:[Object.assign({B:fig.beats,tt0:0,start:0,index:0,line:f.line,focus:true},fig)],
+      pre:0,L:fig.beats,fig:Object.assign({line:f.line,index:0},fig),nb:[-1,1],mirror:false,turn:false,drop:[],flaw:'',sub:''});}
+  return f;}
+
+/** A rig's four bodies at a beat of its own clock (the figure starts at 0). */
+function blendFrom(st,ps,w){for(const d of DANCERS){
+  st[d].hands.L=mixHand(ps[d].hands.L,st[d].hands.L,w);st[d].hands.R=mixHand(ps[d].hands.R,st[d].hands.R,w);
+  st[d].a=alerp(ps[d].a,st[d].a,w);st[d].p=mix(ps[d].p,st[d].p,w);st[d].lean=lerp(ps[d].lean||0,st[d].lean||0,w);}}
+function rigSeqAt(rig,b,defect){
+  const key='rig|'+rig.index+'|'+b+'|'+rig.L+'|'+(defect||'');
+  const hit=cache.get(key);if(hit)return hit;
+  const L=rig.L,o=-rig.pre;const t=o+(((b-o)%L)+L)%L;
+  const segs=rig.segs;let i=segs.length-1;while(i>0&&t<segs[i].start)i--;
+  const sg=segs[i];const tt=sg.tt0+(t-sg.start);
+  const st=MOVES[sg.kind](tt,sg.B,b,sg.arg);
+  const st2=MOVES[sg.kind](Math.min(tt+dt,sg.B),sg.B,b+dt,sg.arg);
+  if(t-sg.start<SEAM){const pv=segs[(i+segs.length-1)%segs.length];
+    const ps=MOVES[pv.kind](pv.tt0+pv.beats,pv.B,b-(t-sg.start),pv.arg);
+    blendFrom(st,ps,smooth((t-sg.start)/SEAM));}
+  finish(st,st2,sg,b);
+  if(defect)st[defect].p=add(st[defect].p,[0,1],3.2*Math.sin(TAU*b/8)+3.2);
+  cache.set(key,st);return st;}
+const rigDefect=rig=>APP.defect&&rig.index===1?'r2':null;
+function rigActors(rig,b){
+  let st=rigSeqAt(rig,b,rigDefect(rig));
+  if(rig.mirror)st=mirror(st);if(rig.turn)st=turn(st);
+  const out=[];
+  for(const d of DANCERS)if(!rig.drop.includes(d))out.push({p:faceOf(rig.turn?7:2,d),s:st[d],alpha:1});
+  for(const k of rig.nb)for(const d of DANCERS)out.push({p:faceOf(k>0?5:6,d),s:standing(d,k*PITCH,b),alpha:0.5});
+  return out;}
+const rigFlaw=rig=>rig.flaw?{what:rig.flaw,kind:'warn'}:rigDefect(rig)?{what:'r2 ends 2.8 px off place',kind:'bad'}:null;
+/** Every body in the hall at a beat of the dance. */
+function hallActors(b){
+  const {st}=stateAt(APP.plan,b,{defect:APP.defect?'r2':null});const out=[];
+  for(let k=0;k<SETS;k++){const dx=setX(k);
+    for(const d of DANCERS)out.push({p:faceOf(k,d),s:shiftSt(st[d],dx),alpha:1});}
+  out.push({p:faceOf(90,'l1'),s:standing('l1',setX(0)-PITCH,b),alpha:1});
+  out.push({p:faceOf(90,'r1'),s:standing('r1',setX(0)-PITCH,b),alpha:1});
+  out.push({p:faceOf(91,'l2'),s:standing('l2',setX(SETS-1)+PITCH,b),alpha:1});
+  out.push({p:faceOf(91,'r2'),s:standing('r2',setX(SETS-1)+PITCH,b),alpha:1});
+  return out;}
+
 // =========================================================== the app's state
-const APP={src:SOURCE,plan:parse(SOURCE),beat:0,playing:true,bpm:112,loop:false,
-  wire:false,defect:false,loopMove:null};
 const ZOOM=2;                                        // never 4x, never 6x
-const views=[];                                     // {el,frame(beat),relayout?}
+const APP={playing:true,bpm:112,wire:false,defect:false,
+  src:{dance:SOURCE,figure:FIG_SOURCE},plan:parse(SOURCE),fig:parseFigure(FIG_SOURCE)};
+const SCREENS=[];
+const views=[];                                     // {el,frame(),relayout?}
 const onStructure=[];
 const vis=new WeakSet();
 const io=new IntersectionObserver(es=>es.forEach(e=>{
   if(e.isIntersecting)vis.add(e.target);else vis.delete(e.target);}),{rootMargin:'200px'});
 function view(el,frame,relayout){const v={el,frame,relayout};views.push(v);io.observe(el);
-  if(relayout)new ResizeObserver(()=>{relayout();frame(APP.beat);}).observe(el);
+  if(relayout)new ResizeObserver(()=>{relayout();frame();}).observe(el);
   return v;}
-const moveAt=beat=>{const L=APP.plan.length||64;const t=((beat%L)+L)%L;
-  const ms=APP.plan.moves;let i=ms.length-1;while(i>0&&t<ms[i].start)i--;return ms[i];};
-const curMove=()=>APP.loop?(APP.loopMove||moveAt(APP.beat)):moveAt(APP.beat);
-function restructure(){APP.plan=parse(APP.src);cache.clear();
-  if(APP.loopMove)APP.loopMove=APP.plan.moves[Math.min(APP.loopMove.index,APP.plan.moves.length-1)];
+function restructure(){
+  APP.plan=parse(APP.src.dance);APP.fig=parseFigure(APP.src.figure);cache.clear();
+  SCREENS.forEach(s=>s.C.fix());
   onStructure.forEach(f=>f());
-  views.forEach(v=>{if(v.relayout)v.relayout();v.frame(APP.beat);});}
+  views.forEach(v=>{if(v.relayout)v.relayout();v.frame();});}
+const redraw=()=>{cache.clear();views.forEach(v=>{if(vis.has(v.el))v.frame();});};
+
+/** One screen's clock: a dance's beats, or a rig's (the figure starts at 0). */
+function clock(mode){
+  const C={mode,beat:0,loop:false,loopMove:null,rig:0,focus:null};
+  C.rigOf=()=>APP.fig.rigs[Math.min(C.rig,APP.fig.rigs.length-1)];
+  C.length=()=>C.mode==='dance'?(APP.plan.length||64):C.rigOf().L;
+  C.origin=()=>C.mode==='dance'?0:-C.rigOf().pre;
+  C.wrap=b=>{const L=C.length(),o=C.origin();return o+(((b-o)%L)+L)%L;};
+  C.blocks=()=>C.mode==='dance'?APP.plan.moves:C.rigOf().segs;
+  C.current=()=>{const t=C.wrap(C.beat);const bs=C.blocks();let i=bs.length-1;while(i>0&&t<bs[i].start)i--;return bs[i];};
+  C.move=()=>C.mode==='dance'?((C.loop&&C.loopMove)||C.current()):C.rigOf().fig;
+  C.stateFor=b=>C.mode==='dance'?stateAt(APP.plan,b,{defect:APP.defect?'r2':null}).st
+    :rigSeqAt(C.rigOf(),b,rigDefect(C.rigOf()));
+  C.actors=b=>C.mode==='dance'?hallActors(b):rigActors(C.rigOf(),b);
+  C.seek=b=>{C.beat=C.wrap(b);};
+  C.fix=()=>{if(C.mode==='dance'&&C.loopMove)C.loopMove=APP.plan.moves[Math.min(C.loopMove.index,APP.plan.moves.length-1)];
+    C.rig=Math.min(C.rig,APP.fig.rigs.length-1);C.beat=C.wrap(C.beat);};
+  C.jump=n=>{
+    if(C.mode==='dance'){const ms=APP.plan.moves;const i=C.move().index;const m=ms[(i+n+ms.length)%ms.length];
+      C.loopMove=C.loop?m:null;C.seek(m.start+0.001);}
+    else{C.rig=(C.rig+n+APP.fig.rigs.length)%APP.fig.rigs.length;C.beat=C.wrap(C.beat);}
+    onStructure.forEach(f=>f());};
+  C.setLoop=(on,m)=>{C.loop=on;C.loopMove=on?(m||C.current()):null;if(on&&m)C.beat=m.start+0.001;
+    onStructure.forEach(f=>f());};
+  C.advance=dt=>{C.beat+=dt*APP.bpm/60;
+    if(C.mode==='dance'&&C.loop){const m=C.loopMove||C.current();C.loopMove=m;
+      if(C.beat<m.start||C.beat>=m.start+m.beats)C.beat=m.start+((C.beat-m.start)%m.beats+m.beats)%m.beats;}
+    else C.beat=C.wrap(C.beat);};
+  C.setMode=m=>{if(m===C.mode)return;C.mode=m;C.loop=false;C.loopMove=null;C.focus=null;
+    C.beat=C.mode==='dance'?APP.plan.moves[2].start+4.6:4.6;C.onMode&&C.onMode();onStructure.forEach(f=>f());};
+  /** The line of text the picture is at right now. */
+  C.litLine=()=>{
+    if(C.mode==='dance'){const l=C.move().line;return [l,l];}
+    const f=APP.fig;const cur=C.current();if(cur.side){const l=C.rigOf().line;return [l,l];}
+    const tt=C.wrap(C.beat);const B=cur.beats;
+    const ph=tt<1.2?f.pre:tt>B-1.5?f.post:f.body;return ph<0?[-1,-1]:ph;};
+  /** The problems the run reports, each pointing at a line, a beat, a card. */
+  C.problems=()=>{
+    const out=[];
+    if(C.mode==='dance'){
+      if(APP.defect){const hey=APP.plan.all.find(m=>m.kind==='hey');const ln=hey?hey.line:22;
+        out.push({kind:'bad',at:'butter.dance:'+(ln+1)+':5',what:'clearance: l1 and r2 pass 0.6 px apart at beat 41.5 (floor 3.0)',line:ln,beat:41.5});
+        out.push({kind:'bad',at:'butter.dance:'+(ln+1)+':5',what:'cap: r2’s hip runs 6.1 px/beat over beats 41–42 (cap 5.2)',line:ln,beat:41.2});}
+    } else APP.fig.rigs.forEach(r=>{const fl=rigFlaw(r);if(!fl)return;
+      out.push({kind:fl.kind,at:'swing.dance:'+(r.line+1)+':1',what:r.label+' — '+fl.what+(fl.kind==='warn'?' (r1’s left, the neighbour place is empty)':''),line:r.line,rig:r.index,beat:fl.kind==='bad'?7.6:3});});
+    return out;};
+  return C;}
 
 let last=performance.now();
 function tick(now){
   const dt=Math.min(0.12,(now-last)/1000);last=now;
   cache.clear();
-  if(APP.playing){APP.beat+=dt*APP.bpm/60;
-    const L=APP.plan.length||64;
-    if(APP.loop){const m=APP.loopMove||moveAt(APP.beat);APP.loopMove=m;
-      if(APP.beat<m.start||APP.beat>=m.start+m.beats)APP.beat=m.start+((APP.beat-m.start)%m.beats+m.beats)%m.beats;}
-    else if(APP.beat>=L)APP.beat-=L;}
-  for(const v of views)if(vis.has(v.el))v.frame(APP.beat);
+  if(APP.playing)SCREENS.forEach(s=>s.C.advance(dt));
+  for(const v of views)if(vis.has(v.el))v.frame();
   requestAnimationFrame(tick);}
 requestAnimationFrame(tick);
-const redraw=()=>{cache.clear();views.forEach(v=>{if(vis.has(v.el))v.frame(APP.beat);});};
-const setBeat=b=>{const L=APP.plan.length||64;APP.beat=((b%L)+L)%L;redraw();};
-// ⟲ is also the switch: looping a move turns every wall into that move's rigs
-const setLoop=(on,m)=>{APP.loop=on;APP.loopMove=on?(m||moveAt(APP.beat)):null;
-  if(on&&m)APP.beat=m.start+0.001;
-  onStructure.forEach(f=>f());
-  SCREENS.forEach(s=>s.setMode(on?'rigs':'sets'));
-  redraw();};
-const jump=n=>{const ms=APP.plan.moves;const i=curMove().index;
-  const m=ms[(i+n+ms.length)%ms.length];APP.loopMove=APP.loop?m:null;
-  setBeat(m.start+0.001);onStructure.forEach(f=>f());};
 
 // ============================================================ small builders
 const E=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;
   if(txt!=null)n.textContent=txt;return n;};
-function pane(title,dark){const s=E('div','pane'+(dark?' dark':''));const h=E('h3');
-  h.append(E('span','name',title),E('span','sp'));const b=E('div','body');s.append(h,b);
-  return {el:s,head:h,body:b};}
 const btn=(txt,cls)=>E('button',cls||'',txt);
+const SVGNS='http://www.w3.org/2000/svg';
+const S=(tag,attrs)=>{const n=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)n.setAttribute(k,attrs[k]);return n;};
 
 // ------------------------------------------------------------- the code pane
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -757,280 +917,218 @@ function colour(line){
   let s=esc(line);
   if(/^\s*\/\//.test(s))return '<span class="cm">'+s+'</span>';
   s=s.replace(/("[^"]*")/g,"<span class='str'>$1</span>");
-  s=s.replace(/\b(fn|use|if|else|setup|card|phrase|let)\b/g,"<span class='kw'>$1</span>");
-  s=s.replace(/(^|\s)([a-z][a-z-]*)\(/g,"$1<span class='fn'>$2</span>(");
-  s=s.replace(/\b(partner|neighbor|Robin|Lark|MinorSet|MajorSet|Left|Right)\b/g,"<span class='rel'>$1</span>");
+  s=s.replace(/\b(fn|use|if|else|setup|card|phrase|let|rig|pre|body|post)\b/g,"<span class='kw'>$1</span>");
+  s=s.replace(/(^|[\s(])([a-z][a-z-]*)\(/g,"$1<span class='fn'>$2</span>(");
+  s=s.replace(/\b(partner|neighbor|Robin|Lark|MinorSet|MajorSet|Left|Right|top|bottom|other|nobody|back)\b/g,"<span class='rel'>$1</span>");
   s=s.replace(/=\s*(\d+(?:\.\d+)?)/g,"= <span class='num'>$1</span>");
   return s;}
-function codePane(){
-  const p=pane('butter.dance');p.el.classList.add('dark');
-  p.body.style.padding='0';p.body.style.overflow='hidden';p.body.style.display='flex';
+function codePane(C){
   const wrap=E('div','code');const scroll=E('div','scroll');const pre=E('pre');
-  const ta=document.createElement('textarea');ta.spellcheck=false;ta.value=APP.src;
+  const ta=document.createElement('textarea');ta.spellcheck=false;
   scroll.append(pre);wrap.append(scroll,ta,E('div','edit-tag','editable — the page re-times on every keystroke'));
-  p.body.append(wrap);
-  const badLine=()=>APP.defect?(APP.plan.all.find(m=>m.kind==='hey')||{}).line:-1;
-  let lit=-2,bad=-2;
-  const paint=()=>{const L=APP.plan.lines;const litLine=curMove().line;const b=badLine();
+  let lit=-2,sel=-2,errs='';
+  const paint=()=>{
+    const L=(C.mode==='dance'?APP.plan:APP.fig).lines;const litLine=C.litLine();
+    const selLine=C.mode==='figure'?C.rigOf().line:-1;
+    const probs=C.problems();const key=probs.map(p=>p.kind+p.line).join();
     pre.innerHTML=L.map((ln,i)=>{
-      const taken=APP.plan.all.find(m=>m.line===i);
-      const cls='ln'+(taken&&!taken.taken?' dim':'')+(i===litLine?' lit':'')+(i===b&&i!==litLine?' err':'');
+      const taken=C.mode==='dance'&&APP.plan.all.find(m=>m.line===i);
+      const pr=probs.find(p=>p.line===i);const on=i>=litLine[0]&&i<=litLine[1];
+      const cls='ln'+(taken&&!taken.taken?' dim':'')+(i===selLine?' sel':'')+(on?' lit':'')
+        +(pr&&!on?(pr.kind==='bad'?' err':' wrn'):'');
       return "<span class='"+cls+"'>"+(colour(ln)||' ')+'</span>';}).join('');
-    lit=litLine;bad=b;
-    const y=litLine*18-p.body.clientHeight/2+40;
+    lit=litLine.join();sel=selLine;errs=key;
+    const y=(litLine[0]+litLine[1])/2*17-wrap.clientHeight/2+40;
     scroll.scrollTop=Math.max(0,y);ta.scrollTop=scroll.scrollTop;};
-  ta.addEventListener('input',()=>{APP.src=ta.value;restructure();lit=-2;paint();});
+  const load=()=>{if(ta.value!==APP.src[C.mode])ta.value=APP.src[C.mode];lit=-2;};
+  ta.addEventListener('input',()=>{APP.src[C.mode]=ta.value;restructure();});
   ta.addEventListener('scroll',()=>{scroll.scrollTop=ta.scrollTop;});
-  onStructure.push(()=>{if(ta.value!==APP.src)ta.value=APP.src;lit=-2;});
-  view(p.el,()=>{if(curMove().line!==lit||badLine()!==bad)paint();});
+  onStructure.push(load);load();
+  view(wrap,()=>{if(C.litLine().join()!==lit||(C.mode==='figure'?C.rigOf().line:-1)!==sel
+    ||C.problems().map(p=>p.kind+p.line).join()!==errs)paint();});
   paint();
-  return p;}
+  return wrap;}
 
-// -------------------------------------------------- the transport, its own tape
-function ruler(){
+// ----------------------------------------------------- problems, under the code
+function problems(C){
+  const el=E('div','problems');
+  const build=()=>{el.replaceChildren();const ps=C.problems();
+    if(!ps.length){const n=E('div','pl ok');n.append(E('span','at','clean'),E('span','what',''));el.append(n);return;}
+    ps.forEach(p=>{const n=E('div','pl '+p.kind);n.append(E('span','at',p.at),E('span','what',p.what));
+      n.title=p.what;
+      n.addEventListener('click',()=>{if(p.rig!=null)C.rig=p.rig;C.seek(p.beat);APP.playing=false;
+        onStructure.forEach(f=>f());redraw();});
+      el.append(n);});};
+  build();onStructure.push(build);
+  return el;}
+
+// -------------------------------------------------- the tape: modes, transport
+function ruler(C){
   const r=E('div','ruler');let cells=[];
-  const build=()=>{r.replaceChildren();cells=APP.plan.moves.map(m=>{
-    const c=E('div','mv');c.style.setProperty('--w',m.beats);
+  const build=()=>{r.replaceChildren();cells=C.blocks().map(m=>{
+    const c=E('div','mv'+(m.side?' side':''));c.style.setProperty('--w',m.beats);
     const fill=E('div','fill');c.append(fill,E('b',null,m.name));
     c.title=m.name+' — '+m.beats+' beats';
-    c.addEventListener('click',()=>{APP.loopMove=m;setBeat(m.start+0.001);
+    c.addEventListener('click',()=>{if(C.mode==='dance')C.loopMove=C.loop?m:null;C.seek(m.start+0.001);
       onStructure.forEach(f=>f());});
     r.append(c);return {c,fill,m};});};
   build();onStructure.push(build);
-  return {el:r,frame(beat){const cur=curMove();
-    cells.forEach(x=>{const on=x.m===cur;x.c.classList.toggle('on',on);
-      x.fill.style.width=on?((beat-x.m.start)/x.m.beats*100)+'%':'0';});}};}
-function transport(){
-  const t=E('div','transport');
+  return {el:r,frame(){const cur=C.move();const b=C.wrap(C.beat);
+    cells.forEach(x=>{const on=C.mode==='dance'?x.m===cur:b>=x.m.start&&b<x.m.start+x.m.beats;
+      x.c.classList.toggle('on',on);
+      x.fill.style.width=on?((b-x.m.start)/x.m.beats*100)+'%':'0';});}};}
+function tape(C){
+  const t=E('div','tape');
+  const modes=E('div','modes');const bD=btn('dance'),bF=btn('figure');modes.append(bD,bF);
+  const file=E('select');
   const play=btn('▶','tbtn'),prev=btn('⏮','tbtn'),next=btn('⏭','tbtn');
-  const loop=btn('⟲ loop','loopbtn');
+  const loop=btn('⟲');loop.title='loop the running call';
   const beat=E('span','beat');
-  const rl=ruler();
-  const dance=E('select');['Butter','Robins on a Wire','pair — bow, do-si-do'].forEach(n=>{
-    const o=document.createElement('option');o.textContent=n;dance.append(o);});
-  const sets=E('select');['6 minor sets','3 minor sets','1 minor set'].forEach(n=>{
-    const o=document.createElement('option');o.textContent=n;sets.append(o);});
+  const rl=ruler(C);
+  const files=()=>{file.replaceChildren();
+    (C.mode==='dance'?['butter.dance','robins-on-a-wire.dance']:['swing.dance','chain.dance','hey.dance'])
+      .forEach(n=>{const o=document.createElement('option');o.textContent=n;file.append(o);});};
+  files();
+  bD.addEventListener('click',()=>C.setMode('dance'));
+  bF.addEventListener('click',()=>C.setMode('figure'));
   play.addEventListener('click',()=>{APP.playing=!APP.playing;});
-  prev.addEventListener('click',()=>jump(-1));
-  next.addEventListener('click',()=>jump(1));
-  loop.addEventListener('click',()=>setLoop(!APP.loop));
-  t.append(dance,sets,prev,play,next,loop,rl.el,beat);
-  const frame=b=>{const m=curMove();
+  prev.addEventListener('click',()=>C.jump(-1));
+  next.addEventListener('click',()=>C.jump(1));
+  loop.addEventListener('click',()=>C.setLoop(!C.loop));
+  t.append(modes,file,prev,play,next,loop,rl.el,beat);
+  const frame=()=>{
+    bD.classList.toggle('on',C.mode==='dance');bF.classList.toggle('on',C.mode==='figure');
+    loop.hidden=C.mode!=='dance';
     play.textContent=APP.playing?'❚❚':'▶';
-    loop.classList.toggle('on',APP.loop);
-    beat.textContent='beat '+(b-m.start).toFixed(2)+'/'+m.beats;
-    rl.frame(b);};
+    loop.classList.toggle('on',C.loop);
+    const b=C.wrap(C.beat);
+    if(C.mode==='dance'){const m=C.move();beat.textContent='beat '+(b-m.start).toFixed(2)+' / '+m.beats;}
+    else{const r=C.rigOf();beat.textContent=(r.index+1)+'/'+APP.fig.rigs.length+' · beat '+b.toFixed(2)+' / '+r.fig.beats;}
+    rl.frame();};
+  onStructure.push(files);
   return {el:t,frame};}
 
-// ============================================== the views the cards stand for
-/** The dance's own sets, plus the two couples standing out. */
-function danceViews(){
-  const out=[];
-  out.push({id:'hall',wide:true,label:'the whole hall',sub:'6 sets',H:58,pan:0,kind:'hall'});
-  for(let k=0;k<SETS;k++)out.push({id:'set'+k,label:'set '+(k+1),
-    sub:k===0?'the top end':k===SETS-1?'the bottom end':'',W:88,H:58,pan:-setX(k),kind:'hall',set:k});
-  out.push({id:'outTop',label:'out — top',sub:'waiting',W:88,H:58,pan:-(setX(0)-PITCH),kind:'hall'});
-  out.push({id:'outBot',label:'out — bottom',sub:'waiting',W:88,H:58,pan:-(setX(SETS-1)+PITCH),kind:'hall'});
-  return out;}
-/** The looped call in every context it will meet. */
-const RIGS=[
-  {id:'mid',label:'middle of a long set',nb:[-1,1]},
-  {id:'top',label:'the top end',sub:'nobody above',nb:[1],flaw:'ends 2.8 px off place'},
-  {id:'bot',label:'the bottom end',sub:'nobody below',nb:[-1]},
-  {id:'side',label:'the other side',sub:'mirrored',nb:[-1,1],mirror:true},
-  {id:'face',label:'entered facing back',sub:'half a turn',nb:[-1,1],turn:true},
-  {id:'short',label:'the same call in 6',sub:'6 beats',nb:[-1,1],beats:6},
-  {id:'long',label:'the same call in 10',sub:'10 beats',nb:[-1,1],beats:10},
-  {id:'crowd',label:'three sets deep',sub:'the neighbours dance too',nb:[-1,1],live:true},
-  {id:'alone',label:'nobody across',sub:'the neighbour place is empty',nb:[1],drop:['l2','r2'],
-    flaw:'a hand reaches nobody'}
-];
-const moveViews=()=>RIGS.map(r=>Object.assign({W:122,H:62,pan:0,kind:'rig'},r));
-const viewsFor=mode=>mode==='rigs'?moveViews():danceViews();
-
-/** Every body a view draws, at this beat. */
-function actorsFor(v,beat){
-  const out=[];
-  if(v.kind==='hall'){
-    const {st}=stateAt(APP.plan,beat,{defect:APP.defect?'r2':null});
-    for(let k=0;k<SETS;k++){const dx=setX(k);
-      for(const d of DANCERS)out.push({p:faceOf(k,d),s:shiftSt(st[d],dx),alpha:1});}
-    out.push({p:faceOf(90,'l1'),s:standing('l1',setX(0)-PITCH,beat),alpha:1});
-    out.push({p:faceOf(90,'r1'),s:standing('r1',setX(0)-PITCH,beat),alpha:1});
-    out.push({p:faceOf(91,'l2'),s:standing('l2',setX(SETS-1)+PITCH,beat),alpha:1});
-    out.push({p:faceOf(91,'r2'),s:standing('r2',setX(SETS-1)+PITCH,beat),alpha:1});
-    return out;}
-  // a rig: the call alone, on its own clock, with whatever neighbours the context gives it
-  const m=curMove();
-  const B=v.beats||m.beats;
-  let st=rigStateAt(m,beat,B,APP.defect&&v.flaw?'r2':null);
-  if(v.mirror)st=mirror(st);
-  if(v.turn)st=turn(st);
-  const keep=DANCERS.filter(d=>!(v.drop||[]).includes(d));
-  for(const d of keep)out.push({p:faceOf(v.turn?7:2,d),s:st[d],alpha:1});
-  for(const k of v.nb||[])for(const d of DANCERS)
-    out.push({p:faceOf(k>0?5:6,d),
-      s:v.live?shiftSt(st[d],k*PITCH):standing(d,k*PITCH,beat),alpha:v.live?1:0.5});
-  return out;}
-const flawOf=v=>(v.flaw&&(v.id==='alone'||APP.defect))?v.flaw:'';
-
-// ------------------------------------------------------------- the card wall
-function wall(getMode,onOpen){
-  const el=E('div','wall');let cards=[];
-  const build=()=>{el.replaceChildren();
-    const mode=getMode();
-    el.style.gridTemplateColumns='repeat('+(mode==='rigs'?3:4)+',1fr)';
-    el.style.gridTemplateRows=mode==='rigs'?'repeat(3,1fr)':'116px 1fr 1fr';
-    cards=viewsFor(mode).map(v=>{
-      const c=E('div','card');if(v.wide)c.style.gridColumn='1 / -1';
-      const cap=E('div','cap');const dot=E('i','dot');
-      cap.append(dot,E('b',null,v.label),E('span','sp'));
-      const tag=E('span',null,v.sub||'');cap.append(tag);
-      const hold=E('div','hold');const cv=E('canvas');hold.append(cv);
-      c.append(cap,hold);
-      c.addEventListener('click',()=>onOpen(v));
-      el.append(c);return {c,cv,hold,dot,tag,v};});};
-  build();onStructure.push(build);
-  const frame=b=>{cards.forEach(x=>{const v=x.v;
-    // as much floor as the cell holds, up to what the view is about —
-    // the zoom never moves off 2×, so a card grows by holding more floor
-    const W=Math.max(40,Math.min(v.W||1e4,Math.floor((x.hold.clientWidth-2)/ZOOM)));
-    const H=Math.max(34,Math.min(v.H||1e4,Math.floor((x.hold.clientHeight-2)/ZOOM)));
-    renderHall(x.cv,W,H,ZOOM,actorsFor(v,b),{wire:APP.wire,panX:v.pan});
-    const f=flawOf(v);x.dot.className='dot'+(f?(v.id==='alone'?' warn':' bad'):'');
-    x.tag.textContent=f||v.sub||'';x.tag.style.color=f?'var(--bad)':'#6f6151';});};
-  return {el,frame,rebuild:build};}
-
-// ------------------------------- what the run says about itself, in one line
-function complaints(){
-  const c=E('div','complaints');
-  const build=()=>{
-    const hey=APP.plan.all.find(m=>m.kind==='hey');const ln=hey?hey.line+1:22;
-    c.replaceChildren();c.classList.toggle('bad',APP.defect);
-    const line=(tag,where,what,bad)=>{const n=E('div','line'+(bad?' bad':''));
-      n.append(E('span','tag',tag),E('span','where',where),E('span','what',what));
-      c.append(n);};
-    line('✓ '+APP.plan.moves.length+' moves · '+APP.plan.length+' beats',
-      SETS+' sets · 26 dancers','112 bpm · proof clean · no drift over 0.04 px',false);
-    line('rig: nobody across','butter.dance:'+ln+':3',
-      'the neighbour place is empty — r1’s left hand reaches nobody',false);
-    if(APP.defect){
-      line('clearance','butter.dance:'+ln+':3','l1 and r2 pass 0.6 px apart at beat 41.5 (floor is 3.0)',true);
-      line('cap: hip speed','butter.dance:'+ln+':3','r2 runs 6.1 px/beat over beats 41–42 (cap 5.2)',true);}};
-  build();onStructure.push(build);
-  return {el:c,frame(){}};}
-
-// ------------------------------------------------------- one view, opened up
-function detail(v,onBack){
-  const el=E('div','detail');
-  const crumb=E('div','crumb');
-  const back=btn('← all views');back.addEventListener('click',onBack);
-  crumb.append(back,E('b',null,v.label),E('span',null,v.sub||''),E('span','sp'));
-  const top=E('div','top');top.style.flex='1';
-  const left=E('div');left.style.cssText='display:flex;flex-direction:column;gap:5px;flex:none;min-height:0';
-  const hall=E('div','hall');const cv=E('canvas');const zt=E('div','zoomtag','2×');
-  const bad=E('div','badge');hall.append(cv,zt,bad);
-  const p3=E('div','pane3d');const h3=E('div','head');
-  const yaw=E('input');yaw.type='range';yaw.min=-180;yaw.max=180;yaw.value=v.kind==='rig'?-34:-20;
-  const el3=E('input');el3.type='range';el3.min=6;el3.max=90;el3.value=32;
-  h3.append(E('span',null,'3d'),E('span','sp'),E('span',null,'yaw'),yaw,E('span',null,'pitch'),el3);
-  const cv3=E('canvas');p3.append(h3,cv3);
-  const bot=E('div','bot');
-  const bp=pane('bindings');const binds=E('div','binds');bp.body.append(binds);
-  bp.el.style.flex='none';
-  const cp=pane('complaints — this view only');const cl=E('div','mock');cp.body.append(cl);
-  cp.el.style.flex='1';
-  bot.append(bp.el,cp.el);
-  left.append(hall,bot);top.append(left,p3);
-  el.append(crumb,top);
-  // more floor, never fatter pixels: the canvas grows along the hall, the zoom does not
-  const DW=v.wide?400:v.kind==='hall'?164:150, DH=88;
-  let w3=360,h3h=240;
-  const relayout=()=>{
-    const room=Math.max(320,el.clientWidth-10);
-    left.style.width=(DW*ZOOM+2)+'px';
-    hall.style.height=(DH*ZOOM+2)+'px';
-    w3=Math.max(220,room-DW*ZOOM-9);h3h=Math.max(150,top.clientHeight-22);};
-  const m=()=>curMove();
-  const frame=b=>{
-    const acts=actorsFor(v,b);
-    renderHall(cv,DW,DH,ZOOM,acts,{wire:APP.wire,panX:v.pan});
-    const f=flawOf(v);bad.textContent=f;
-    render3d(cv3,w3,h3h,acts,{yaw:+yaw.value,elev:+el3.value,
-      radius:v.wide?190:v.kind==='hall'?60:56,radiusY:30,centre:-v.pan});
-    const c=m();
-    binds.innerHTML=[
-      ['call',c.name+' · '+c.beats+' beats'],
-      ['at',(v.kind==='rig'?'rig ':'')+ (v.set!=null?'MinorSet('+(v.set+1)+')':v.id)],
-      ['self','r1 · robin'],['partner','l1'],['neighbor','l2'],
-      ['group',(v.drop||[]).length?'[ r1 l1 ] — 2 of 4':'[ l1 r1 l2 r2 ]'],
-      ['seat after',(v.mirror?'(+12, −16)':'(−12, +16)')+' facing '+(v.mirror?'90°':'270°')],
-      ['beat',(b-c.start).toFixed(2)+' of '+c.beats]
-    ].map(([k,val])=>'<div><span class="k">'+k+'</span><span class="v">'+val+'</span></div>').join('');
-    cl.innerHTML=f
-      ? '<div style="color:var(--bad)">butter.dance:'+(c.line+1)+':3 &nbsp; '+f+'</div>'
-        +'<div style="color:var(--muted)">hip 5.9 px/beat over beats 3–4 (cap 5.2)</div>'
-      : '<div>clean · no drift over 0.04 px · hip peak 4.1 px/beat (cap 5.2)</div>';};
-  yaw.addEventListener('input',()=>frame(APP.beat));
-  el3.addEventListener('input',()=>frame(APP.beat));
+// ---------------------------------------------- the hall strip (dance mode)
+function hallStrip(C){
+  const el=E('div','hallstrip');const cv=E('canvas');const tag=E('div','tag','2× · click a set');
+  el.append(cv,tag);
+  let W=400,H=58;
+  const relayout=()=>{W=Math.max(120,Math.floor((el.clientWidth-4)/ZOOM));el.style.height=(H*ZOOM+6)+'px';};
+  el.addEventListener('click',ev=>{const r=cv.getBoundingClientRect();
+    const x=(ev.clientX-r.left)/ZOOM-W/2;const k=Math.round(x/PITCH+(SETS-1)/2);
+    C.focus=(k>=0&&k<SETS&&C.focus!==k)?k:null;});
+  const frame=()=>{
+    renderHall(cv,W,H,ZOOM,C.actors(C.beat),{wire:APP.wire});
+    if(C.focus!=null){const g=cv.getContext('2d');g.strokeStyle='#e7b96b66';g.lineWidth=1;
+      g.strokeRect(Math.round(W/2+setX(C.focus)-22)+0.5,Math.round(H/2-27)+0.5,44,54);}
+    tag.textContent='2×'+(C.focus!=null?' · set '+(C.focus+1):'');};
   relayout();
   return {el,frame,relayout};}
 
-// ---------------------------------------- the one tabbed panel, and its hide
-function speedSeries(){
-  const L=APP.plan.length||64;const n=192;const out={};DANCERS.forEach(d=>out[d]=[]);
-  for(let i=0;i<n;i++){const b=i/n*L;const a=stateAt(APP.plan,b-0.15).st,c=stateAt(APP.plan,b+0.15).st;
+// ---------------------------------------------------- the cards (figure mode)
+function cards(C){
+  const el=E('div','cards');let cs=[];
+  const build=()=>{el.replaceChildren();
+    cs=APP.fig.rigs.map(r=>{
+      const c=E('div','card');const hold=E('div','hold');const cv=E('canvas');hold.append(cv);
+      const cap=E('div','cap');const b=E('b',null,r.label);const sub=E('span','sub',r.sub);cap.append(b,sub);
+      c.append(hold,cap);
+      c.addEventListener('click',()=>{C.rig=r.index;C.beat=C.wrap(C.beat);onStructure.forEach(f=>f());});
+      el.append(c);return {c,cv,hold,sub,r};});};
+  build();onStructure.push(build);
+  const frame=()=>{cs.forEach(x=>{const r=APP.fig.rigs[x.r.index];if(!r)return;
+    const W=Math.max(40,Math.floor((x.hold.clientWidth-2)/ZOOM)),H=56;
+    renderHall(x.cv,W,H,ZOOM,rigActors(r,C.beat),{wire:APP.wire});
+    x.c.classList.toggle('sel',r.index===C.rig);
+    const f=rigFlaw(r);x.sub.textContent=f?f.what:r.sub;x.sub.className='sub'+(f?' '+f.kind:'');});};
+  return {el,frame,relayout(){}};}
+
+// ------------------------------------------------ the 3d, dragged and preset
+const ANGLES=[['top',{yaw:0,elev:89}],['¾',{yaw:-34,elev:32}],['side',{yaw:0,elev:14}],
+  ['along',{yaw:90,elev:16}],['eye',{yaw:-34,elev:7}]];
+function view3(C){
+  const el=E('div','v3');const cv=E('canvas');const who=E('div','who');const ps=E('div','presets');
+  el.append(cv,who,ps);
+  const cam={yaw:-34,elev:32};let w=400,h=300;
+  const pbs=ANGLES.map(([n,a])=>{const b=btn(n);b.addEventListener('click',()=>{cam.yaw=a.yaw;cam.elev=a.elev;});ps.append(b);return {b,a};});
+  const hall=btn('hall');hall.title='the whole line';hall.addEventListener('click',()=>{C.focus=null;});ps.append(hall);
+  let drag=null;
+  el.addEventListener('pointerdown',ev=>{if(ev.target.tagName==='BUTTON')return;
+    drag={x:ev.clientX,y:ev.clientY,yaw:cam.yaw,elev:cam.elev};el.setPointerCapture(ev.pointerId);});
+  el.addEventListener('pointermove',ev=>{if(!drag)return;
+    cam.yaw=drag.yaw+(ev.clientX-drag.x)*0.4;
+    cam.elev=Math.max(4,Math.min(89,drag.elev-(ev.clientY-drag.y)*0.4));});
+  el.addEventListener('pointerup',()=>{drag=null;});
+  const relayout=()=>{w=Math.max(200,el.clientWidth);h=Math.max(120,el.clientHeight);};
+  const frame=()=>{
+    const dance=C.mode==='dance';const foc=dance&&C.focus!=null;
+    let acts=C.actors(C.beat);
+    if(foc){const cx=setX(C.focus);                   // the set alone, its neighbours a shade
+      acts=acts.filter(x=>Math.abs(x.s.p[0]-cx)<PITCH*1.4)
+        .map(x=>Math.abs(x.s.p[0]-cx)<PITCH*0.5?x:Object.assign({},x,{alpha:0.3}));}
+    render3d(cv,w,h,acts,{yaw:cam.yaw,elev:cam.elev,
+      radius:dance?(foc?60:190):50,radiusY:dance?30:24,centre:foc?setX(C.focus):0});
+    pbs.forEach(x=>x.b.classList.toggle('on',Math.abs(x.a.yaw-cam.yaw)<1&&Math.abs(x.a.elev-cam.elev)<1));
+    hall.hidden=!dance;hall.classList.toggle('on',dance&&!foc);
+    const r=C.rigOf();
+    who.innerHTML=dance?(foc?'<b>set '+(C.focus+1)+'</b> · '+C.move().name:'<b>the hall</b> · '+C.move().name)
+      :'<b>'+r.label+'</b>'+(r.sub?' · '+r.sub:'')+' · '+r.fig.name;};
+  relayout();
+  return {el,frame,relayout};}
+
+// ---------------------------------------- the one tabbed panel, and its fold
+function speedSeries(C){
+  const L=C.length(),o=C.origin();const n=192;const out={};DANCERS.forEach(d=>out[d]=[]);
+  for(let i=0;i<n;i++){const b=o+i/n*L;const a=C.stateFor(b-0.15),c=C.stateFor(b+0.15);
     DANCERS.forEach(d=>out[d].push(Math.min(14,Math.hypot(c[d].p[0]-a[d].p[0],c[d].p[1]-a[d].p[1])/0.3)));}
   return out;}
-const SVGNS='http://www.w3.org/2000/svg';
-const S=(tag,attrs)=>{const n=document.createElementNS(SVGNS,tag);
-  for(const k in attrs)n.setAttribute(k,attrs[k]);return n;};
-function timelineTab(){
+function timelineTab(C){
   const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto;width:100%;padding:3px';
   const svg=S('svg',{class:'tl'});box.append(svg);
   let cursor=null;
   const build=()=>{
     const w=Math.max(360,box.clientWidth-8);const pad=30,right=6;
-    const L=APP.plan.length||64;const head=24;
+    const L=C.length(),o=C.origin();const dance=C.mode==='dance';const head=dance?24:8;
     const rowH=Math.max(18,Math.min(48,Math.floor((box.clientHeight-head-22)/DANCERS.length)));
     const h=head+DANCERS.length*rowH+14;
     svg.setAttribute('width',w);svg.setAttribute('height',h);svg.replaceChildren();
-    const x=b=>pad+b/L*(w-pad-right);
-    for(let p=0;p<L;p+=16){const g=S('rect',{x:x(p),y:2,width:Math.max(2,x(Math.min(p+16,L))-x(p)-2),
-      height:13,fill:'#e7b96b14',stroke:'#e7b96b33',rx:2});svg.append(g);
-      const lab=S('text',{x:x(p)+4,y:12,class:'phrase'});
-      lab.textContent=['A1','A2','B1','B2'][p/16]||'';svg.append(lab);}
-    for(let b=0;b<=L;b+=4){svg.append(S('line',{x1:x(b),y1:head,x2:x(b),y2:head+DANCERS.length*rowH,
-      class:'grid','stroke-opacity':b%16?0.5:1}));
-      if(b%8===0){const tx=S('text',{x:x(b)+2,y:h-4,class:'tick'});tx.textContent=b;svg.append(tx);}}
+    const x=b=>pad+(b-o)/L*(w-pad-right);
+    if(dance)for(let p=0;p<L;p+=16){svg.append(S('rect',{x:x(p),y:2,width:Math.max(2,x(Math.min(p+16,L))-x(p)-2),
+      height:13,fill:'#e7b96b14',stroke:'#e7b96b33',rx:2}));
+      const lab=S('text',{x:x(p)+4,y:12,class:'phrase'});lab.textContent=['A1','A2','B1','B2'][p/16]||'';svg.append(lab);}
+    const step=L>24?4:1;
+    for(let b=Math.ceil(o);b<=o+L;b+=step){svg.append(S('line',{x1:x(b),y1:head,x2:x(b),y2:head+DANCERS.length*rowH,
+      class:'grid','stroke-opacity':b%(step*4)?0.5:1}));
+      if(b%(L>24?8:2)===0){const tx=S('text',{x:x(b)+2,y:h-4,class:'tick'});tx.textContent=b;svg.append(tx);}}
+    const blocks=C.blocks();
     DANCERS.forEach((d,i)=>{const y=head+i*rowH;
       const nm=S('text',{x:2,y:y+rowH-8,class:'rowname',fill:ROLE[ROLE_OF[d]]});nm.textContent=d;svg.append(nm);
-      APP.plan.moves.forEach(m=>{
+      blocks.forEach(m=>{
         const out=m.kind==='chain'&&ROLE_OF[d]==='lark';
         svg.append(S('rect',{x:x(m.start)+0.5,y:y+1,width:Math.max(2,x(m.start+m.beats)-x(m.start)-1.5),
-          height:rowH-3,rx:2,class:'blk'+(out?' wait':''),'data-m':m.index}));
+          height:rowH-3,rx:2,class:'blk'+(out?' wait':m.side?' side':''),'data-m':m.index}));
         if(i===0){const tx=S('text',{x:x(m.start)+4,y:y+rowH-7,class:'callname'});
           const room=x(m.start+m.beats)-x(m.start)-8;
           tx.textContent=room>m.name.length*5.6?m.name:m.name.slice(0,Math.max(0,Math.floor(room/5.6)));
           svg.append(tx);}});
-      if(i===0)APP.plan.moves.forEach(m=>{if(m.start===0)return;
+      if(i===0)blocks.forEach(m=>{if(m.start===o)return;
         svg.append(S('line',{x1:x(m.start),y1:head,x2:x(m.start),y2:head+DANCERS.length*rowH,class:'seam'}));});});
     cursor=S('line',{x1:pad,y1:head-2,x2:pad,y2:head+DANCERS.length*rowH+2,class:'cursor'});svg.append(cursor);
     const hit=S('rect',{x:0,y:0,width:w,height:h,class:'hit'});svg.append(hit);
     const seek=ev=>{const r=svg.getBoundingClientRect();
-      setBeat((ev.clientX-r.left-pad)/(w-pad-right)*L);APP.playing=false;};
+      C.seek(o+(ev.clientX-r.left-pad)/(w-pad-right)*L);APP.playing=false;};
     hit.addEventListener('pointerdown',ev=>{hit.setPointerCapture(ev.pointerId);seek(ev);});
     hit.addEventListener('pointermove',ev=>{if(ev.buttons)seek(ev);});
     svg._x=x;};
   build();onStructure.push(build);
-  return {el:box,relayout:build,frame(b){if(!cursor||!svg._x)return;const X=svg._x(b);
+  return {el:box,relayout:build,frame(){if(!cursor||!svg._x)return;const X=svg._x(C.wrap(C.beat));
     cursor.setAttribute('x1',X);cursor.setAttribute('x2',X);
-    const cur=curMove();
+    const cur=C.current();
     svg.querySelectorAll('rect.blk').forEach(r=>r.classList.toggle('on',+r.dataset.m===cur.index));}};}
-function graphsTab(){
+function graphsTab(C){
   const box=E('div');box.style.cssText='flex:1;min-height:0;padding:4px;display:flex';
   let cur=null,W=600,PAD=30;
-  const draw=()=>{const s=speedSeries();
+  const draw=()=>{const s=speedSeries(C);
     const w=Math.max(360,box.clientWidth-8),h=Math.max(90,box.clientHeight-8);
     const svg=S('svg',{width:w,height:h});
     svg.append(S('rect',{x:0,y:0,width:w,height:h,fill:'#0c0a09'}));
@@ -1038,9 +1136,9 @@ function graphsTab(){
     svg.append(S('line',{x1:PAD,y1:y(cap),x2:w,y2:y(cap),stroke:'#a8977f','stroke-dasharray':'3 3'}));
     const lab=S('text',{x:2,y:y(cap)-3,class:'tick',fill:'#a8977f'});lab.textContent='hip cap 5.2';
     svg.append(lab);
-    const L=APP.plan.length||64;
-    for(let b=0;b<=L;b+=8){const g=x(b/L);
-      svg.append(S('line',{x1:g,y1:4,x2:g,y2:h-12,class:'grid','stroke-opacity':b%16?0.4:0.9}));
+    const L=C.length(),o=C.origin();const step=L>24?8:2;
+    for(let b=Math.ceil(o/step)*step;b<=o+L;b+=step){const g=x((b-o)/L);
+      svg.append(S('line',{x1:g,y1:4,x2:g,y2:h-12,class:'grid','stroke-opacity':b%(step*2)?0.4:0.9}));
       const t=S('text',{x:g+2,y:h-3,class:'tick'});t.textContent=b;svg.append(t);}
     DANCERS.forEach(d=>{const n=s[d].length;
       const pts=s[d].map((v,i)=>x(i/(n-1)).toFixed(1)+','+y(v).toFixed(1)).join(' ');
@@ -1049,110 +1147,81 @@ function graphsTab(){
     cur=S('line',{x1:PAD,y1:0,x2:PAD,y2:h-12,stroke:'#ebdfcd','stroke-width':1.3});svg.append(cur);
     W=w;box.replaceChildren(svg);};
   draw();onStructure.push(draw);
-  return {el:box,relayout:draw,frame(b){if(!cur)return;
-    const x=(PAD+b/(APP.plan.length||64)*(W-PAD-6)).toFixed(1);
+  return {el:box,relayout:draw,frame(){if(!cur)return;
+    const x=(PAD+(C.wrap(C.beat)-C.origin())/C.length()*(W-PAD-6)).toFixed(1);
     cur.setAttribute('x1',x);cur.setAttribute('x2',x);}};}
-function treeTab(){
-  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto;padding:6px 8px';
-  const m=E('div','mock');
-  m.innerHTML='<div><b>MajorSet</b> #1 &mdash; lines 2 · sets '+SETS+'</div>'+
-    '<div style="border-left:1px solid #3c3128;margin-left:6px;padding-left:8px">'+
-    '<div><b>MinorSet</b> #1 &mdash; becket · provides partner, neighbor</div>'+
-    DANCERS.map(d=>'<div style="padding-left:10px"><span class="who" style="color:'+
-      ROLE[ROLE_OF[d]]+'">'+d+'</span> · '+ROLE_OF[d]+' · place '+d[1]+'</div>').join('')+
-    '<div style="opacity:.55;padding-top:2px"><b>MinorSet</b> #2 &hellip; #'+SETS+
-    ' &nbsp; <b>out</b> (2 couples)</div></div>';
-  box.append(m);return {el:box,frame(){}};}
-function listingTab(){
-  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto;padding:6px 8px';
-  const m=E('div','mock');box.append(m);let lit=-1;
-  return {el:box,frame(b){const n=Math.floor(b);if(n===lit)return;lit=n;
-    const rows=[];for(let k=-4;k<=8;k++){const bb=n+k;const {st,move}=stateAt(APP.plan,bb);
-      DANCERS.slice(0,2).forEach(d=>{const s=st[d];const cm=Math.round(s.speed*4/5)*5;
-        rows.push('<div class="'+(k===0?'lit':'')+'"><span style="color:'+ROLE[ROLE_OF[d]]+'">'+d+
-          '</span> beat '+((bb%(APP.plan.length||64))+(APP.plan.length||64))%(APP.plan.length||64)+
-          ' · '+move.kind+' · '+(cm>4?'step forward '+cm+' cm':'stand')+'</div>');});}
-    m.innerHTML=rows.join('');}};}
-function layoutTab(){
-  const box=E('div');box.style.cssText='flex:1;min-height:0;display:flex;align-items:center;justify-content:center';
-  const svg=S('svg',{width:'96%',height:'86%',viewBox:'-160 -34 320 68'});
-  svg.append(S('rect',{x:-150,y:-26,width:300,height:52,fill:'#e7b96b0c',stroke:'#e7b96b33',rx:3}));
-  for(let k=0;k<SETS;k++){const dx=setX(k)*1.0;
-    svg.append(S('rect',{x:dx-20,y:-22,width:40,height:44,fill:'none',stroke:'#e7b96b44',rx:2}));
-    DANCERS.forEach(d=>svg.append(S('circle',{cx:HOME[d].p[0]+dx,cy:HOME[d].p[1],r:3.4,
-      fill:ROLE[ROLE_OF[d]]})));
-    const t=S('text',{x:dx-4,y:30,'font-size':7,fill:'#a8977f'});t.textContent=k+1;svg.append(t);}
-  ['l1','r1'].forEach(d=>svg.append(S('circle',{cx:HOME[d].p[0]+setX(0)-PITCH,cy:HOME[d].p[1],r:3.4,
-    fill:ROLE[ROLE_OF[d]],'fill-opacity':0.35})));
-  ['l2','r2'].forEach(d=>svg.append(S('circle',{cx:HOME[d].p[0]+setX(SETS-1)+PITCH,cy:HOME[d].p[1],r:3.4,
-    fill:ROLE[ROLE_OF[d]],'fill-opacity':0.35})));
-  box.append(svg);return {el:box,frame(){}};}
-const TABS={timeline:timelineTab,graphs:graphsTab,tree:treeTab,listing:listingTab,layout:layoutTab};
-
-function deck(openTab){
+function bindingsTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto';
+  const m=E('div','binds');box.append(m);
+  return {el:box,frame(){const c=C.move();const r=C.rigOf();const dance=C.mode==='dance';
+    const b=C.wrap(C.beat);
+    m.innerHTML=[
+      ['call',c.name+' · '+c.beats+' beats'],
+      ['at',dance?(C.focus!=null?'MinorSet('+(C.focus+1)+')':'every MinorSet'):'rig “'+r.label+'”'],
+      ['self','r1 · robin'],['partner','l1'],['neighbor',(!dance&&r.drop.length)?'nobody':'l2'],
+      ['group',(!dance&&r.drop.length)?'[ r1 l1 ] — 2 of 4':'[ l1 r1 l2 r2 ]'],
+      ['seat after',((!dance&&r.mirror)?'(+12, −16)':'(−12, +16)')+' facing '+((!dance&&r.mirror)?'90°':'270°')],
+      ['beat',(b-c.start).toFixed(2)+' of '+c.beats]
+    ].map(([k,v])=>'<div><span class="k">'+k+'</span><span class="v">'+v+'</span></div>').join('');}};}
+function infoTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto';
+  const m=E('div','info');box.append(m);
+  const build=()=>{m.innerHTML=C.mode==='dance'
+    ?'<div><b>butter.dance</b> · '+APP.plan.moves.length+' moves · '+APP.plan.length+' beats · '+SETS+' sets · 26 dancers · '+APP.bpm+' bpm</div>'
+      +'<div>proof clean · no drift over 0.04 px · hip peak 4.1 px/beat (cap 5.2)</div>'
+      +'<div>MajorSet #1 — lines 2 · MinorSet #1…#'+SETS+' becket, provides partner, neighbor · out: 2 couples</div>'
+    :'<div><b>swing.dance</b> · fn '+APP.fig.name+' · '+APP.fig.beats+' beats · '+APP.fig.rigs.length+' rigs</div>'
+      +'<div>proof clean in '+(APP.fig.rigs.length-APP.fig.rigs.filter(rigFlaw).length)+' of '+APP.fig.rigs.length+' · hip peak 4.1 px/beat (cap 5.2)</div>';};
+  build();onStructure.push(build);
+  return {el:box,frame(){}};}
+const TABS={timeline:timelineTab,graphs:graphsTab,bindings:bindingsTab,info:infoTab};
+function deck(C,openTab){
   const d=E('div','deck');const bar=E('div','tabbar');const body=E('div','body');
   let cur=openTab||'timeline',held={};
   const show=name=>{cur=name;
     [...bar.children].forEach(c=>c.tagName==='BUTTON'&&c.classList.toggle('on',c.dataset.t===name));
-    body.hidden=!name;d.style.height=name?'236px':'auto';
+    body.hidden=!name;
     if(!name)return;
-    if(!held[name]){const t=TABS[name]();held[name]=t;
-      view(body,b=>{if(cur===name)t.frame(b);},t.relayout?()=>{if(cur===name)t.relayout();}:null);}
+    if(!held[name]){const t=TABS[name](C);held[name]=t;
+      view(body,()=>{if(cur===name)t.frame();},t.relayout?()=>{if(cur===name)t.relayout();}:null);}
     body.replaceChildren(held[name].el);
-    if(held[name].relayout)requestAnimationFrame(()=>{held[name].relayout();held[name].frame(APP.beat);});};
+    if(held[name].relayout)requestAnimationFrame(()=>{held[name].relayout();held[name].frame();});};
   Object.keys(TABS).forEach(n=>{const b=btn(n);b.dataset.t=n;
     b.addEventListener('click',()=>show(cur===n?'':n));bar.append(b);});
   bar.append(E('span','sp'));
   const hide=btn('▾');hide.title='fold the panel away';
-  hide.addEventListener('click',()=>show(cur?'':(openTab||'timeline')));bar.append(hide);
+  hide.addEventListener('click',()=>{show(cur?'':(openTab||'timeline'));hide.textContent=cur?'▾':'▴';});bar.append(hide);
   d.append(bar,body);
   requestAnimationFrame(()=>show(cur));
   return {el:d,show};}
 
-// ====================================================== the converged screen
-const SCREENS=[];
+// ====================================================== the screen, one mode
 function screen(host,opt){
-  opt=opt||{};
-  let mode=opt.mode||'sets';
-  const app=E('div','app');
-  const tp=transport();
-  const mid=E('div','mid');
-  const code=codePane();code.el.style.cssText+=';flex:none;width:414px';
-  const right=E('div','pane');right.style.cssText+=';flex:1;min-width:0;padding:0';
-  const head=E('div','wallhead');
-  const bSets=btn('the hall’s sets'),bRigs=btn('the move’s rigs');
-  const count=E('span','sp');const tag=E('span',null,'');
-  head.append(E('span','l','views'),bSets,bRigs,count,tag);
-  const w=wall(()=>mode,v=>open(v));
-  let det=null;
-  const open=v=>{det=detail(v,()=>{det=null;paint();});paint();};
-  const setMode=next=>{if(next===mode)return;mode=next;det=null;w.rebuild();paint();};
-  bSets.addEventListener('click',()=>setMode('sets'));
-  bRigs.addEventListener('click',()=>setMode('rigs'));
-  const label=()=>(mode==='sets'?SETS+' sets + 2 waiting out'
-    :RIGS.length+' rigs of '+curMove().name)+' · 2×';
-  const paint=()=>{
-    bSets.classList.toggle('on',mode==='sets');bRigs.classList.toggle('on',mode==='rigs');
-    tag.textContent=label();
-    right.replaceChildren(head,det?det.el:w.el);
-    if(det){det.relayout();det.frame(APP.beat);}else w.frame(APP.beat);};
-  right.style.flexDirection='column';
-  mid.append(code.el,right);
-  const cx=complaints();
-  const dk=deck(opt.tab);
-  app.append(tp.el,mid,cx.el,dk.el);
-  host.append(app);
-  if(opt.open!=null)requestAnimationFrame(()=>{open(viewsFor(mode)[opt.open]);});
+  const C=clock(opt.mode);
+  const tp=tape(C);
+  const left=E('div','left');const right=E('div','right');
+  left.append(codePane(C),problems(C));
+  let main=null;const v3=view3(C);const dk=deck(C,opt.tab);
+  const build=()=>{
+    main=C.mode==='dance'?hallStrip(C):cards(C);
+    right.replaceChildren(main.el,v3.el,dk.el);
+    main.relayout();v3.relayout();};
+  C.onMode=build;
+  build();
+  host.append(tp.el,left,right);
+  const s={C,el:host};SCREENS.push(s);
+  view(host,()=>{tp.frame();main.frame();v3.frame();},()=>{main.relayout();v3.relayout();});
+  if(opt.beat!=null)C.beat=opt.beat;
+  if(opt.rig!=null)C.rig=opt.rig;
+  if(opt.focus!=null)C.focus=opt.focus;
   if(opt.foldDeck)requestAnimationFrame(()=>dk.show(''));
-  paint();
-  view(app,b=>{tp.frame(b);tag.textContent=label();
-    if(det)det.frame(b);else w.frame(b);},
-    ()=>{if(det)det.relayout();});
-  const s={setMode,paint};SCREENS.push(s);return s;}
+  return s;}
 
-screen(document.getElementById('s1'),{tab:'timeline',mode:'sets'});
-screen(document.getElementById('s2'),{tab:'graphs',mode:'rigs'});
-screen(document.getElementById('s3'),{tab:'timeline',mode:'rigs',open:1,foldDeck:true});
+const s1=screen(document.getElementById('s1'),{mode:'dance',tab:'timeline'});
+const s2=screen(document.getElementById('s2'),{mode:'figure',tab:'graphs',rig:4,foldDeck:true});
+s1.C.beat=APP.plan.moves[2].start+4.6;s1.C.focus=2;
+s2.C.beat=4.6;
+onStructure.forEach(f=>f());                            // the opening state, built once
 
 // ======================================================== the control strip
 (function controls(){
@@ -1161,32 +1230,27 @@ screen(document.getElementById('s3'),{tab:'timeline',mode:'rigs',open:1,foldDeck
     nodes.forEach(n=>g.append(n));c.append(g);return g;};
   const play=btn('❚❚ pause all');play.addEventListener('click',()=>{APP.playing=!APP.playing;
     play.textContent=APP.playing?'❚❚ pause all':'▶ play all';});
-  const prev=btn('⏮ move'),next=btn('move ⏭');
-  prev.addEventListener('click',()=>jump(-1));next.addEventListener('click',()=>jump(1));
-  const loop=btn('⟲ loop the move','ghost');
-  loop.addEventListener('click',()=>{setLoop(!APP.loop);loop.classList.toggle('on',APP.loop);});
-  grp('',play,prev,next,loop);
+  const prev=btn('⏮'),next=btn('⏭');
+  prev.addEventListener('click',()=>SCREENS.forEach(s=>s.C.jump(-1)));
+  next.addEventListener('click',()=>SCREENS.forEach(s=>s.C.jump(1)));
+  grp('',play,prev,next);
   const tempo=E('div','grp');['88','112','132'].forEach(t=>{const b=btn(t+' bpm',t==='112'?'ghost on':'ghost');
     b.addEventListener('click',()=>{APP.bpm=+t;[...tempo.querySelectorAll('button')]
-      .forEach(x=>x.classList.toggle('on',x===b));});tempo.append(b);});
+      .forEach(x=>x.classList.toggle('on',x===b));onStructure.forEach(f=>f());});tempo.append(b);});
   tempo.prepend(E('span','l','tempo'));c.append(tempo);
   const wire=btn('wire','ghost');wire.addEventListener('click',()=>{APP.wire=!APP.wire;
     wire.classList.toggle('on',APP.wire);redraw();});
   const bad=btn('inject a defect','ghost');bad.addEventListener('click',()=>{APP.defect=!APP.defect;
     bad.classList.toggle('on',APP.defect);restructure();});
-  const reset=btn('reset the text');reset.addEventListener('click',()=>{APP.src=SOURCE;restructure();});
+  const reset=btn('reset the texts');reset.addEventListener('click',()=>{APP.src.dance=SOURCE;APP.src.figure=FIG_SOURCE;restructure();});
   grp('',wire,bad,reset);
   const tip=E('div','grp');
-  tip.append(E('span',null,'space plays · click a card to open it · ⟲ turns the wall into rigs · zoom is 2× always'));
+  tip.append(E('span',null,'space plays · drag the 3d · click a set or a card · edit either text · zoom is 2× always'));
   c.append(tip);
   addEventListener('keydown',e=>{if(e.code==='Space'&&!(e.target instanceof HTMLTextAreaElement)){
     e.preventDefault();APP.playing=!APP.playing;play.textContent=APP.playing?'❚❚ pause all':'▶ play all';}});
 })();
-// open mid neighbour swing, the dance running; sections 2 and 3 show the rig wall
-APP.loopMove=APP.plan.moves[2];
-setBeat(APP.plan.moves[2].start+4.6);
-SCREENS.forEach(s=>s.paint());
-window.spike={APP,setBeat,setLoop,jump,SCREENS};      // a handle, for driving it headless
+window.spike={APP,SCREENS,restructure};                // a handle, for driving it headless
 </script>
 </body>
 </html>
