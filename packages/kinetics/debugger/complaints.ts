@@ -1,5 +1,5 @@
 import type { DancerId } from "../src/dialect/Dialect.js";
-import type { Span } from "../src/lang/syntax.js";
+import type { Span } from "@caller/lang";
 import type { Run } from "../src/pipeline.js";
 
 /** One line of the errors strip: what minded, about whom, where, and why. */
@@ -12,21 +12,30 @@ export interface Complaint {
   message: string;
   /** How many dancers said the same thing. */
   count: number;
+  /** The beat the strip jumps to when this line is clicked, where there is one. */
+  beat?: number;
+  dancer?: DancerId;
 }
 
 /**
- * Every complaint in the run, deduplicated, each naming the dancer, the call
- * and the beat it is about.
+ * Every complaint in the run, **grouped**, each naming the dancer, the call
+ * and the beat of the first of its kind.
  *
  * A stage that knows the dancer and the beat gets its call looked up in that
  * dancer's own compiled sequence; a compile error, which has neither, is named
- * by the text it is pointing at — `robins-chain(ring, robins, 8)` is a better
- * answer to *which call* than a character offset.
+ * by the text it is pointing at — `chain(Robin, to = partner, beats = 8)` is a
+ * better answer to *which call* than a character offset.
+ *
+ * Grouping is by **what was said**, with the numbers in it standing in for
+ * each other: a hall of sixteen dancing seven times through says the same
+ * thing about the same call ninety-six times, at ninety-six different beats,
+ * and a strip of ninety-six lines is a strip nobody reads. The count goes on
+ * the line and clicking it takes the bar to the first one.
  */
 export const complaintsOf = (run: Run): Complaint[] => {
   const seen = new Map<string, Complaint>();
   const add = (c: Omit<Complaint, "count">): void => {
-    const key = `${c.tag}|${c.where}|${c.message}`;
+    const key = `${c.tag}|${c.message.replace(/\d+(\.\d+)?/g, "#")}`;
     const had = seen.get(key);
     if (had) had.count += 1;
     else seen.set(key, { ...c, count: 1 });
@@ -37,14 +46,18 @@ export const complaintsOf = (run: Run): Complaint[] => {
       tag: e.kind === undefined ? e.stage : `${e.stage} ${e.kind}`,
       where: whereOf(run, e.dancer, e.beat, e.span),
       message: e.message,
+      ...(e.beat === undefined ? {} : { beat: e.beat }),
+      ...(e.dancer === undefined ? {} : { dancer: e.dancer }),
     });
   }
   for (const w of run.warnings) {
     add({
       bad: false,
       tag: `${w.stage} ${w.kind}`,
-      where: whereOf(run, w.dancer, w.beat, undefined),
+      where: whereOf(run, w.dancer, w.beat, w.span),
       message: w.message,
+      ...(w.beat === undefined ? {} : { beat: w.beat }),
+      ...(w.dancer === undefined ? {} : { dancer: w.dancer }),
     });
   }
   return [...seen.values()];
@@ -53,7 +66,8 @@ export const complaintsOf = (run: Run): Complaint[] => {
 /** What the run has to say when nothing went wrong. */
 export const summaryOf = (run: Run): string => {
   const violations = (run.solved?.violations.length ?? 0) + (run.executed?.violations.length ?? 0);
-  return `${String(run.endBeat)} beats · ${String(run.dialect.dancers.length)} dancers · ${String(violations)} proof violations`;
+  const dancers = run.dialect?.dancers.length ?? 0;
+  return `${String(run.endBeat)} beats · ${String(dancers)} dancers · ${String(violations)} proof violations`;
 };
 
 const whereOf = (
@@ -83,9 +97,11 @@ const callAt = (
   return call?.path;
 };
 
-/** The source text a span points at, as one line. */
+/** The text a span points at, in the file it names, as one line. */
 const sourceAt = (run: Run, span: Span | undefined): string | undefined => {
   if (!span) return undefined;
-  const text = run.source.slice(span.start, span.end).trim().split("\n")[0]?.trim();
-  return text === undefined || text === "" ? `line ${String(span.line)}` : text;
+  const source = run.sources.find((s) => s.name === span.file);
+  if (source === undefined) return span.file;
+  const text = source.text.slice(span.start, span.end).trim().split("\n")[0]?.trim();
+  return text === undefined || text === "" ? span.file : text;
 };

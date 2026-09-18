@@ -118,7 +118,7 @@ export function pixelsPane(): Pane {
     // the followed dancer's own brighter than the rest.
     if (boxesToggle.checked) {
       const membership = membershipAt(run, beat);
-      const followed = pick.length === run.dialect.dancers.length ? [] : pick;
+      const followed = pick.length === (run.dialect?.dancers.length ?? 0) ? [] : pick;
       for (const box of membership === undefined ? [] : boxesAt(run, membership, followed)) {
         const pts = padHull(box.hullPx, 4);
         const colour = mix(box.colour, floor, box.mine ? 0.75 : 0.3);
@@ -133,7 +133,7 @@ export function pixelsPane(): Pane {
     if (!solved) return;
 
     const order: { dancer: DancerId; y: number }[] = [];
-    for (const dancer of run.dialect.dancers) {
+    for (const dancer of run.dialect?.dancers ?? []) {
       const t = solved.trajectories[dancer];
       const hip = t?.points.hip?.[sampleAt(t, beat)];
       if (hip) order.push({ dancer, y: hip.y });
@@ -266,19 +266,29 @@ export function pixelsPane(): Pane {
     setRun(next) {
       view = next;
       lines = linesOf(next.run);
+      const dialect = next.run.dialect;
       persons = new Map(
-        next.run.dialect.dancers.map((id, seed) => [
+        (dialect?.dancers ?? []).map((id, seed) => [
           id,
-          createPerson({ id, role: next.run.dialect.roleOf(id), seed: seed + 1, roleShirts: true }),
+          createPerson({
+            id,
+            role: dialect?.roleOf(id) ?? "lark",
+            seed: seed + 1,
+            roleShirts: true,
+          }),
         ]),
       );
-      zoom = zoomFor(next.run.dialect.dancers.length / 2);
+      zoom = zoomFor((dialect?.dancers.length ?? 2) / 2);
       const b = boundsOf(setPoints(next.run), 24);
       origin = { x: Math.floor(b.min.x), y: Math.floor(b.min.y) };
       size = {
         w: Math.max(Math.ceil(b.max.x) - origin.x, 24),
         h: Math.max(Math.ceil(b.max.y) - origin.y, 24),
       };
+      // Where the world sits on this canvas, for anything framing a picture of
+      // it — a screenshot that wants one minor set and not the whole hall.
+      canvas.dataset.origin = `${String(origin.x)},${String(origin.y)}`;
+      canvas.dataset.zoom = String(zoom);
       draw();
     },
     setBeat(next) {

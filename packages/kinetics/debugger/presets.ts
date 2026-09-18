@@ -1,94 +1,89 @@
-import { parse } from "../src/lang/parser.js";
-import type { File } from "../src/lang/syntax.js";
-import type { Floor } from "../src/tree/floor.js";
-import { floorOf } from "../src/tree/floor.js";
+import type { EveningResult, Source } from "@caller/lang";
+import { loadForEval } from "@caller/lang";
 
-/** A time through, and the four phrases it is made of. */
-export const TIME_THROUGH_BEATS = 64;
-const PHRASES = ["A1", "A2", "B1", "B2"] as const;
-
-/** Every `.dance` file under `dances/`, by path, as text (vite's `?raw`). */
-const FILES = import.meta.glob("../dances/**/*.dance", {
+/**
+ * The `.dance` files, bundled as text, and the dances the language finds in
+ * them.
+ *
+ * There is **one home for `.dance` text** (notes D2) and it is
+ * `packages/lang/dances/`, so the debugger globs across the workspace — vite
+ * serves anything under the workspace root, which is what makes the two
+ * packages share one directory of fixtures rather than two copies of it (R3).
+ * The deliberately-broken ones under `broken/` are the language's own tests
+ * and have nothing to animate.
+ */
+const FILES = import.meta.glob("../../lang/dances/*.dance", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
-const text = (relative: string): string => {
-  const found = FILES[`../dances/${relative}`];
-  if (found === undefined) throw new Error(`no dance file ${relative}`);
-  return found;
-};
+const fileNameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
 
-export const PRELUDE = text("prelude.dance");
-export const COMMON = text("formations/common.dance");
-export const MOVES: File = parse(text("moves.dance"));
+export const SOURCES: Source[] = Object.entries(FILES)
+  .map(([path, text]) => ({ name: fileNameOf(path), text }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
-/** The formations on disk (`becket`, `improper`, …), sorted. */
-export const FORMATIONS: string[] = Object.keys(FILES)
-  .filter((p) => p.includes("/formations/") && !p.endsWith("common.dance"))
-  .map((p) => p.slice(p.lastIndexOf("/") + 1, -".dance".length))
-  .sort();
-
-/** The name of the size parameter a formation takes (`minor-sets`, `couples`), or none. */
-export function sizeParamOf(formation: string): { name: string; fallback: number } | undefined {
-  const file = parse(text(`formations/${formation}.dance`));
-  const root = file.items.find((i) => i.kind !== "enum" && i.name === formation);
-  if (root === undefined || root.kind === "enum") return undefined;
-  const param = root.params.find((p) => p.name === "minor-sets" || p.name === "couples");
-  if (param === undefined) return undefined;
-  const fallback = param.default?.kind === "number" ? param.default.value : 3;
-  return { name: param.name, fallback };
-}
-
-/** Build and seat a formation from its file, at `size` when it takes one. */
-export function floorFor(formation: string, size: number | undefined): Floor {
-  const files = [parse(PRELUDE), parse(COMMON), parse(text(`formations/${formation}.dance`))];
-  const param = sizeParamOf(formation);
-  const args = param === undefined || size === undefined ? {} : { [param.name]: size };
-  return floorOf(files, formation, args);
-}
-
-/** A dance to run, and the floor it wants first. */
-export interface Preset {
+/** A dance the picker can run: a `fn` with a `setup` in it, and what it takes. */
+export interface DanceOption {
+  name: string;
+  module: string;
   label: string;
-  source: string;
-  formation: string;
-  size?: number;
+  /** The hall facts the dance declares — `minor-sets`, and its default. */
+  facts: { name: string; fallback: number }[];
 }
 
-export const PRESETS: Record<string, Preset> = {
-  pair: {
-    label: "pair — bow, do-si-do, allemande",
-    source: text("fixture.dance"),
-    formation: "pair",
-  },
-  solo: {
-    label: "solo — the lark, nobody across",
-    source: text("fixture.dance"),
-    formation: "solo",
-  },
-  contra: {
-    label: "becket — bow, do-si-do, allemande with partner",
-    source: text("fixture.dance"),
-    formation: "becket",
-    size: 2,
-  },
-  butter: {
-    label: "Butter (chain and hey stood in)",
-    source: text("butter.dance"),
-    formation: "becket",
-    size: 2,
-  },
+/** The labels worth keeping from round 1, where the dance is still the same one. */
+const LABELS: Readonly<Record<string, string>> = {
+  fixture: "pair — bow, do-si-do, allemande",
+  solo: "solo — the lark, nobody across",
+  butter: "Butter (chain and hey stood in)",
 };
 
-/** How many times through a run of `endBeat` beats is; never fewer than one. */
-export const timesThrough = (endBeat: number): number =>
-  Math.max(1, Math.ceil(endBeat / TIME_THROUGH_BEATS));
+/** Every dance in the bundle, as the language sees them, sorted by name. */
+export function dancesIn(sources: readonly Source[]): DanceOption[] {
+  const program = loadForEval(sources);
+  const out: DanceOption[] = [];
+  for (const [module, mod] of program.modules) {
+    for (const decl of mod.file.decls) {
+      if (decl.kind !== "fn") continue;
+      if (!decl.body.some((stmt) => stmt.kind === "setup")) continue;
+      out.push({
+        name: decl.name,
+        module,
+        label: LABELS[decl.name] ?? `${decl.name} — ${module}.dance`,
+        facts: decl.params.map((param) => ({
+          name: param.name,
+          fallback: param.default?.kind === "int" ? param.default.value : 3,
+        })),
+      });
+    }
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
 
-/** `time 3 · A2 · beat 71.50` — where the bar is, in a caller's own words. */
-export const timeLabel = (beat: number): string => {
-  const time = Math.floor(beat / TIME_THROUGH_BEATS) + 1;
-  const phrase = PHRASES[Math.floor((beat % TIME_THROUGH_BEATS) / 16)] ?? "A1";
-  return `time ${String(time)} · ${phrase} · beat ${beat.toFixed(2)}`;
+export const DANCES: DanceOption[] = dancesIn(SOURCES);
+
+/** Where each time through sits on the evening's beat line. */
+export interface TimeSpan {
+  time: number;
+  offset: number;
+  length: number;
+}
+
+export const spansOf = (evening: EveningResult | undefined): TimeSpan[] => {
+  const spans: TimeSpan[] = [];
+  let offset = 0;
+  for (const time of evening?.times ?? []) {
+    spans.push({ time: time.time, offset, length: time.length });
+    offset += time.length;
+  }
+  return spans;
 };
+
+/** `time 3 · beat 7.50` — where the bar is, in a caller's own words. */
+export function timeLabel(spans: readonly TimeSpan[], beat: number): string {
+  const span = spans.find((s) => beat < s.offset + s.length) ?? spans[spans.length - 1];
+  if (span === undefined) return `beat ${beat.toFixed(2)}`;
+  return `time ${String(span.time)} · beat ${(beat - span.offset).toFixed(2)}`;
+}

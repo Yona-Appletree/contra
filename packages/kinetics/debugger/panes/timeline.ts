@@ -1,6 +1,6 @@
 import type { SeamKind } from "../../src/schedule/seams.js";
 import { SET_COLOURS, minorSetIndex } from "../groups.js";
-import { TIME_THROUGH_BEATS } from "../presets.js";
+import { spansOf } from "../presets.js";
 import { colourOf, paneShell, svg, type Pane, type View } from "../view.js";
 
 const ROW = 26;
@@ -46,10 +46,8 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
     endBeat = Math.max(run.endBeat, 1);
     const picked = new Set(pick);
     // The one being followed rides at the top; the rest keep the set's order.
-    const dancers = [
-      ...run.dialect.dancers.filter((d) => picked.has(d)),
-      ...run.dialect.dancers.filter((d) => !picked.has(d)),
-    ];
+    const all = run.dialect?.dancers ?? [];
+    const dancers = [...all.filter((d) => picked.has(d)), ...all.filter((d) => !picked.has(d))];
     const height = RULER + dancers.length * ROW + 4;
     root.replaceChildren();
     root.setAttribute("width", String(width));
@@ -64,9 +62,10 @@ export function timelinePane(onScrub: (beat: number) => void): Pane {
       root.append(svg("line", { x1: x, y1: RULER - 4, x2: x, y2: height, class: "grid" }));
       root.append(svg("text", { x: x + 2, y: RULER - 5, class: "tick" }, String(beat)));
     }
-    // Where one time through ends and the next begins.
-    for (let beat = TIME_THROUGH_BEATS; beat < endBeat; beat += TIME_THROUGH_BEATS) {
-      const x = beatToX(beat);
+    // Where one time through ends and the next begins — the evening's own
+    // beat line, since a time is as long as its dancers' cursors reached.
+    for (const span of spansOf(run.evening).slice(1)) {
+      const x = beatToX(span.offset);
       root.append(svg("line", { x1: x, y1: 0, x2: x, y2: height, class: "time-line" }));
     }
 
