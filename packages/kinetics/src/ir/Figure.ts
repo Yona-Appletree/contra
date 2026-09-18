@@ -131,8 +131,9 @@ export interface HoldRef {
 /**
  * The body of a figure over the beats the scheduler leaves it. A figure with
  * several windows runs them in order, each taking its `beats` share of the
- * body (equal shares when none says). A window with `who` is danced by that
- * role only; the other roles get the window that names them, or stand.
+ * body (equal shares when none says). A window with `who` is danced by those
+ * dancers only; the others get the window that names them, or stand. Two
+ * roles doing different things at once is a `parallel` window.
  */
 export type Window =
   | ({
@@ -141,10 +142,20 @@ export type Window =
       axis: "midpoint" | "hands" | "centroid";
       /** How far round; `free` lets the scheduler choose so the exit lands on the `post`. */
       turns: NumberValue | "free";
-      /** Which way round: the side the counterpart is on, or the ring's own left/right. */
+      /**
+       * Which way round: the side the counterpart is on, or the ring's own
+       * left/right. For a `couple` facing, the side from the point of view of
+       * the dancer on the couple's right — the one who walks forward.
+       */
       sense: Choice<OrbitSense>;
-      /** `fixed` keeps the facing it started with; `tangent` follows the arc; `inward` faces the axis; `partner` faces the counterpart. */
-      facing: "fixed" | "tangent" | "inward" | "partner";
+      /**
+       * `fixed` keeps the facing it started with; `tangent` follows the arc;
+       * `inward` faces the axis; `partner` faces the counterpart; `couple`
+       * faces the pair one way as a couple — the dancer on the couple's right
+       * (the dialect's side) along the arc, the one on the left backing
+       * round with them (a courtesy turn).
+       */
+      facing: "fixed" | "tangent" | "inward" | "partner" | "couple";
       /** Distance from the axis, in world px. */
       radiusPx: number;
       /** Above this the scheduler reports a rate violation, not a fast dancer. */
@@ -153,7 +164,42 @@ export type Window =
       rateMinTurnsPerBeat?: number;
       /** Two steps a beat (a swing). */
       buzz?: boolean;
+      /**
+       * A spacing the pair opens out to over the orbit's last two beats, still
+       * turning, in world px: a courtesy turn danced close and let out onto
+       * the two places as it comes round. Omitted, the radius holds.
+       */
+      openPx?: number;
     } & WindowCommon)
+  /**
+   * Walk a path of waypoints, each at a beat, in the figure's **lane frame**:
+   * the origin is the centroid of the dancers the window names at its start;
+   * `x` runs across the lane toward the far side, in half-widths (−1 is
+   * `self`'s own side, +1 the far side, half the distance to the dancer
+   * across from `self`); `y` runs along it to `self`'s right, in half-places
+   * (`PLACE_PX / 2`, so the two rows of a hands four are `y = ±1`). Every
+   * dancer walks their own copy in their own frame, which is how one closed
+   * track through four places comes out of one list of points.
+   */
+  | ({
+      kind: "path";
+      /** Waypoints at beats from the window's start; the last one's beat is the window's nominal length. */
+      points: readonly Waypoint[];
+      /**
+       * The points are one lap of a **closed** track: a role may start part
+       * way round it (`phase`, in beats round the lap), and `amount` — a
+       * parameter, so half a hey is a number — is how much of a lap is
+       * walked in the window's beats.
+       */
+      lap?: {
+        phase: readonly { who: Who; beats: number }[];
+        amount?: NumberValue;
+      };
+      /** Reflect the track across the lane (`y → −y`) when the parameter holds this word: a hey by the left. */
+      mirror?: { param: string; when: string };
+    } & WindowCommon)
+  /** Several windows over one span, each for the dancers its `who` names. */
+  | ({ kind: "parallel"; parts: readonly Window[] } & WindowCommon)
   /** Walk a distance in a direction relative to the facing, facing unchanged. */
   | ({
       kind: "walk";
@@ -183,8 +229,44 @@ export type Window =
 export interface WindowCommon {
   /** This window's share of the body, in nominal beats. */
   beats?: number;
-  /** The role this window is for; every role when omitted. */
-  who?: Role;
+  /** Who this window is for; everyone when omitted. */
+  who?: Who;
+  /**
+   * Holds taken at this window's start — the take ramps in over the beats
+   * before it — for a hold a figure needs part way through rather than at its
+   * `pre`: the chain's courtesy hold, taken as the pull-by ends. Released like
+   * any other at the figure's end unless `post` keeps them.
+   */
+  holds?: readonly HoldRef[];
+}
+
+/**
+ * Which dancers a window or a phase is for: a figure-role, or everyone whose
+ * dialect role is the word a `role` parameter holds (`{ role: "who" }`), or
+ * everyone else (`not`). The figure never spells a role (D16): the word
+ * comes from the call, and the dialect says who dances it.
+ */
+export type Who = Role | { role: string; not?: boolean };
+
+/** One point of a `path` window, in the lane frame. */
+export interface Waypoint {
+  /** Beats from the path's start (nominal). */
+  beat: number;
+  /** Across the lane, in half-widths: −1 `self`'s own side, +1 the far side. */
+  x: number;
+  /** Along the lane, in half-places, positive to `self`'s right. */
+  y: number;
+  /**
+   * A sideways offset in world px to the walker's own left of the straight
+   * line between the neighbouring waypoints — a pass: two dancers who each
+   * keep to their own left of the same point go by right shoulders.
+   */
+  left?: number;
+  /**
+   * The facing at this waypoint, degrees in the lane frame (0 = across toward
+   * the far side, 90 = to `self`'s right); the heading of travel when omitted.
+   */
+  facing?: number;
 }
 
 export type OrbitSense = "partner-on-right" | "partner-on-left" | "left" | "right";
