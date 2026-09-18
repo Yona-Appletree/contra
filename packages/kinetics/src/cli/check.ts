@@ -18,7 +18,8 @@ import { proveMotion } from "../motion/prove.js";
  *
  * The codes are banded like the language's: `L…` are the language's own, and
  * `K001–K099` are the join's, `K1xx` the scheduler's, `K2xx` its warnings,
- * `K3xx` the proof's.
+ * `K3xx` the proof's — `K301` a cap, `K302` the executor's reach, `K303` the
+ * solver's, `K304` two bodies closer than a body's clearance.
  */
 export function checkCommand(argv: readonly string[]): number {
   let options: Options;
@@ -150,6 +151,22 @@ function proofDiagnostics(result: Run): Diagnostic[] {
         `${worst.kind} ×${ratio(worst).toFixed(2)} (${worst.value.toFixed(1)} of ${worst.cap.toFixed(1)})`,
       beat: worst.beat,
       dancers: [dancer],
+      trace: [],
+    });
+  }
+  // Two bodies through one point: one line per stretch, both dancers named,
+  // and the figures each was dancing, which is the trace a fix starts from.
+  for (const c of result.clearance ?? []) {
+    out.push({
+      code: "K304",
+      severity: "warning",
+      stage: "script",
+      message:
+        `clearance: ${c.dancer} and ${c.with} are ${c.value.toFixed(1)} px apart at beat ` +
+        `${c.beat.toFixed(2)}, under the ${c.cap.toFixed(1)} two bodies keep ` +
+        `(${c.figures[0]}, ${c.figures[1]})`,
+      beat: c.beat,
+      dancers: [c.dancer, c.with],
       trace: [],
     });
   }

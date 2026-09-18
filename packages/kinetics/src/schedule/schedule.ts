@@ -93,6 +93,22 @@ interface Instance {
   replannable: boolean;
   /** Somebody this figure needs is missing: the dancer stands. */
   nobody: boolean;
+  /**
+   * Each dancer's lane frame for this figure's `path` windows, fixed from
+   * the floor as it is when the body begins: a hey's second window reads the
+   * same frame as its first, from the dancer's own side, wherever the first
+   * has walked them to.
+   */
+  lanes: Map<DancerId, Lane>;
+}
+
+/** A dancer's lane frame; see `laneFrame` below. */
+interface Lane {
+  origin: Vec2;
+  /** Degrees, the lane's across direction from `self`'s side. */
+  acrossDeg: number;
+  halfWidthPx: number;
+  mirror: boolean;
 }
 
 export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Tempo): Schedule {
@@ -253,7 +269,13 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   const stopsAfter = (inst: Instance, d: DancerId): boolean => {
     const next = neighbourOf(inst, d, 1);
     if (!next) return true;
-    const kind = firstWindowFor(next, d)?.kind;
+    const first = firstWindowFor(next, d);
+    const kind = first?.kind;
+    // A path that begins by waiting on its first point is a stop too.
+    if (first?.kind === "path" && first.lap === undefined) {
+      const [a, b] = first.points;
+      if (a !== undefined && b !== undefined && a.x === b.x && a.y === b.y) return true;
+    }
     return (
       next.nobody ||
       kind === undefined ||
@@ -305,7 +327,8 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     const windows = inst.figure.windows;
     const n = to - from;
     if (windows.length === 0 || n <= 0) return [];
-    const shares = windows.map((w) => w.beats ?? 1);
+    const params = inst.calls.get(inst.dancers[0] as DancerId)?.params ?? {};
+    const shares = windows.map((w) => (w.beats === undefined ? 1 : resolveNumber(w.beats, params)));
     const total = shares.reduce((a, b) => a + b, 0);
     const spans: { window: Window; from: number; to: number }[] = [];
     let at = from;
@@ -425,14 +448,6 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
    * across is the ring neighbour further away (a hands four is wider than it
    * is long) or, for a pair, the counterpart.
    */
-  interface Lane {
-    origin: Vec2;
-    /** Degrees, the lane's across direction from `self`'s side. */
-    acrossDeg: number;
-    halfWidthPx: number;
-    mirror: boolean;
-  }
-
   const laneFrame = (inst: Instance, w: Extract<Window, { kind: "path" }>, d: DancerId): Lane => {
     const call = inst.calls.get(d) as CompiledCall;
     const me = poseOf(d);
@@ -447,6 +462,15 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       halfWidthPx,
       mirror,
     };
+  };
+
+  /** The figure's lane frame for `d`, made once from the floor at the body's start and kept. */
+  const laneOf = (inst: Instance, w: Extract<Window, { kind: "path" }>, d: DancerId): Lane => {
+    const kept = inst.lanes.get(d);
+    if (kept !== undefined) return kept;
+    const lane = laneFrame(inst, w, d);
+    inst.lanes.set(d, lane);
+    return lane;
   };
 
   /** The dancer across the lane from `d`: the further ring neighbour, else the counterpart. */
@@ -472,16 +496,14 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   const laneToWorld = (lane: Lane, x: number, y: number): Vec2 => {
     const ax = dirOf(lane.acrossDeg);
     const ay = rightOf(lane.acrossDeg);
-    const sy = lane.mirror ? -y : y;
-    const along = sy * (PLACE_PX / 2);
+    const along = y * (PLACE_PX / 2);
     return [
       lane.origin[0] + ax[0] * x * lane.halfWidthPx + ay[0] * along,
       lane.origin[1] + ax[1] * x * lane.halfWidthPx + ay[1] * along,
     ];
   };
 
-  const laneFacing = (lane: Lane, deg: number): number =>
-    lane.acrossDeg + (lane.mirror ? -deg : deg);
+  const laneFacing = (lane: Lane, deg: number): number => lane.acrossDeg + deg;
 
   /** Where a path's first waypoint puts `d`, facing as they face now. */
   const pathStart = (inst: Instance, w: Extract<Window, { kind: "path" }>, d: DancerId): Pose => {
@@ -514,7 +536,8 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     const closed = w.lap !== undefined;
     const last = raw.length - 1;
     return raw.map((pt, i) => {
-      const left = w.points[i]?.left ?? 0;
+      // A pass by the other shoulder is the same point kept to the other side.
+      const left = (w.points[i]?.left ?? 0) * (lane.mirror ? -1 : 1);
       if (left === 0) return pt;
       // On a closed lap the first and last points are the same point, so
       // their neighbours wrap round it.
@@ -553,7 +576,12 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       if (Math.abs(b - z.beat) < 1e-9)
         return { p: z.p, ...(z.facing === undefined ? {} : { facing: z.facing }) };
       const t = z.beat > a.beat ? (b - a.beat) / (z.beat - a.beat) : 1;
-      return { p: [a.p[0] + (z.p[0] - a.p[0]) * t, a.p[1] + (z.p[1] - a.p[1]) * t] };
+      const p: Vec2 = [a.p[0] + (z.p[0] - a.p[0]) * t, a.p[1] + (z.p[1] - a.p[1]) * t];
+      // Between two waypoints that both say where to face, face between them
+      // (a side-step facing across stays facing across).
+      if (a.facing !== undefined && z.facing !== undefined)
+        return { p, facing: a.facing + angleDiff(a.facing, z.facing) * t };
+      return { p };
     }
     return { p: last.p, ...(last.facing === undefined ? {} : { facing: last.facing }) };
   };
@@ -645,6 +673,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     blend?: ExitBlend,
   ): void => {
     inst.bodyEnd = new Map();
+    inst.lanes = new Map();
     for (const d of inst.dancers) setPose(d, start.get(d) as Pose);
     if (to - from <= 0 || inst.nobody) {
       if (inst.nobody) {
@@ -680,32 +709,17 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         }
       }
       const lastSpan = span.to === to;
-      if (w.kind === "parallel") {
-        for (const part of w.parts)
-          emitWindow(
-            inst,
-            part,
-            span.from,
-            n,
-            named(part),
-            from,
-            lastSpan ? blend : undefined,
-            start,
-            lastSpan,
-          );
-      } else {
-        emitWindow(
-          inst,
-          w,
-          span.from,
-          n,
-          dancers,
-          from,
-          lastSpan ? blend : undefined,
-          start,
-          lastSpan,
-        );
-      }
+      emitWindow(
+        inst,
+        w,
+        span.from,
+        n,
+        dancers,
+        from,
+        lastSpan ? blend : undefined,
+        start,
+        lastSpan,
+      );
     }
     for (const d of inst.dancers) inst.bodyEnd.set(d, poseOf(d));
   };
@@ -728,20 +742,22 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       takeWindowHolds(inst, w.holds, dancers, spanFrom);
     {
       switch (w.kind) {
-        case "parallel":
-          for (const part of w.parts)
-            emitWindow(
-              inst,
-              part,
-              spanFrom,
-              n,
-              dancers.filter((d) => roleMatches(inst, d, part.who)),
-              from,
-              blend,
-              start,
-              lastSpan,
-            );
+        case "parallel": {
+          // Every part reads the floor as it was when the span began — the
+          // robin's pull-by is planned from where the lark stands, not from
+          // where his own part has already put him — and the floor ends
+          // where each dancer's own part left them.
+          const before = new Map(inst.dancers.map((d) => [d, poseOf(d)] as const));
+          const after = new Map<DancerId, Pose>();
+          for (const part of w.parts) {
+            for (const [d, pose] of before) setPose(d, pose);
+            const mine = dancers.filter((d) => roleMatches(inst, d, part.who));
+            emitWindow(inst, part, spanFrom, n, mine, from, blend, start, lastSpan);
+            for (const d of mine) after.set(d, poseOf(d));
+          }
+          for (const [d, pose] of before) setPose(d, after.get(d) ?? pose);
           break;
+        }
         case "path":
           emitPath(inst, w, span.from, n, dancers, from, lastSpan);
           break;
@@ -949,10 +965,17 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
   ): void => {
     void lastSpan;
     if (w.points.length === 0) return;
+    // Every dancer's frame from the floor as it is when the window begins:
+    // the second robin's lane is not moved by where the first has walked to.
+    const paths = new Map(
+      dancers.map((d) => {
+        const call = inst.calls.get(d) as CompiledCall;
+        return [d, worldPath(w, laneOf(inst, w, d), call)] as const;
+      }),
+    );
     for (const d of dancers) {
       const call = inst.calls.get(d) as CompiledCall;
-      const lane = laneFrame(inst, w, d);
-      const pts = worldPath(w, lane, call);
+      const pts = paths.get(d) as WorldPoint[];
       const first = pts[0] as WorldPoint;
       const last = pts[pts.length - 1] as WorldPoint;
       const length = last.beat - first.beat;
@@ -1712,6 +1735,7 @@ function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[]
           bodyEnd: new Map(),
           replannable: false,
           nobody,
+          lanes: new Map(),
         };
         byKey.set(key, inst);
       }

@@ -91,13 +91,58 @@ describe("Butter", () => {
     expect(new Set(circle.group)).toEqual(new Set(["1-1L", "1-1R", "1-2L", "1-2R"]));
   });
 
-  it("stands the chain and the hey, and says so twice", () => {
-    expect(errors.filter((e) => e.kind === "NoFigure")).toHaveLength(2);
-    const lark = sequence.perDancer["0-1L"]!;
+  it("casts the chain's `to` as the partner, the role word as a parameter, and the hey's ring", () => {
+    expect(errors.filter((e) => e.kind === "NoFigure")).toEqual([]);
+    const lark = sequence.perDancer["1-1L"]!;
     const chain = lark.find((c) => c.path === "chain")!;
-    expect(chain.figure.id).toBe("standing");
-    expect(chain.figure.windows[0]?.kind).toBe("stand");
-    expect(chain.cast.partner).toBeUndefined();
+    expect(chain.figure.id).toBe("chain");
+    expect(chain.cast.partner).toBe("1-1R");
+    expect(chain.params["who"]).toBe("robin");
+    const hey = lark.find((c) => c.path === "hey")!;
+    expect(hey.figure.id).toBe("hey");
+    expect(hey.group).toHaveLength(4);
+    expect(hey.params["start"]).toBe("robin");
+    expect(hey.params["shoulder"]).toBe("right");
+    expect(hey.params["amount"]).toBe(1);
+  });
+
+  it("stands a move whose figure the registry has not got, and says so once", () => {
+    const without = Object.fromEntries(Object.entries(FIGURES).filter(([id]) => id !== "hey"));
+    const { sequence: s, errors: e } = sequenceFromEvening(
+      evening("butter", { "minor-sets": 1 }),
+      without,
+    );
+    expect(e.filter((x) => x.kind === "NoFigure")).toHaveLength(1);
+    const hey = s.perDancer["0-1L"]!.find((c) => c.path === "hey")!;
+    expect(hey.figure.id).toBe("standing");
+    expect(hey.figure.windows[0]?.kind).toBe("stand");
+  });
+
+  it("says a role word nobody on the floor dances is a bad parameter", () => {
+    const program = loadForEval([
+      ...danceSources(),
+      {
+        name: "ducks.dance",
+        text: `use contra::{Role, Couple, chain};
+use becket::{MajorSet, MinorSet};
+
+fn ducks(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  chain(Lark, to = neighbor, beats = 8);
+}
+`,
+      },
+    ]);
+    const found = findDance(program, "ducks");
+    if (found === undefined) throw new Error("no dance called ducks");
+    const result = sequenceFromEvening(
+      runEvening(program, found, { times: 1, args: hallFacts({ "minor-sets": 1 }) }),
+      FIGURES,
+    );
+    // `Lark` is a role somebody dances: the larks chain. No complaint.
+    expect(result.errors.filter((e) => e.kind === "BadParam")).toEqual([]);
+    const chain = result.sequence.perDancer["0-1L"]!.find((c) => c.path === "chain")!;
+    expect(chain.params["who"]).toBe("lark");
   });
 
   it("gives the couple that ran off the end a wait-out with its partner", () => {

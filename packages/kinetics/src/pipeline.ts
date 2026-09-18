@@ -12,6 +12,8 @@ import { listing } from "./asm/listing.js";
 import type { DancerId, Dialect } from "./dialect/Dialect.js";
 import type { Executed } from "./executor/execute.js";
 import { execute } from "./executor/execute.js";
+import type { ClearanceViolation } from "./motion/clearance.js";
+import { clearanceOf } from "./motion/clearance.js";
 import { FIGURES } from "./figures/registry.js";
 import type { FigureRegistry } from "./figures/registry.js";
 import type { Schedule } from "./schedule/schedule.js";
@@ -142,8 +144,12 @@ export function run(opts: RunOptions): Run {
 
   const executed = attempt("execute", errors, () => execute(scheduled, dialect, t));
   if (!executed) return withSchedule;
+  // Two bodies through one point is a fact about the whole set that only the
+  // executed motion holds (`motion/clearance.ts`).
+  const clearance = clearanceOf(executed.trajectories, scheduled);
+  const withMotion: Run = { ...withSchedule, executed, clearance };
   const solved = attempt("solve", errors, () => solveBodies(executed.input));
-  return solved ? { ...withSchedule, executed, solved } : { ...withSchedule, executed };
+  return solved ? { ...withMotion, solved } : withMotion;
 }
 
 /**
@@ -200,6 +206,8 @@ export interface Run {
   sequence?: CompiledSequence;
   schedule?: Schedule;
   executed?: Executed;
+  /** Every stretch two hips came closer than a body's clearance, from the executed motion. */
+  clearance?: readonly ClearanceViolation[];
   solved?: SolvedBodies;
   errors: readonly RunError[];
   warnings: readonly RunWarning[];

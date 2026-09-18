@@ -37,7 +37,7 @@ export interface DanceOption {
 const LABELS: Readonly<Record<string, string>> = {
   fixture: "pair — bow, do-si-do, allemande",
   solo: "solo — the lark, nobody across",
-  butter: "Butter (chain and hey stood in)",
+  butter: "Butter",
 };
 
 /** Every dance in the bundle, as the language sees them, sorted by name. */

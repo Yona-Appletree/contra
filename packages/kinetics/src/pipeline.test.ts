@@ -96,17 +96,38 @@ fn hurry() {
   });
 
   it("says a move has no figure, at its span, and stands the dancers for its beats", () => {
-    const result = runNamed("butter", { args: { "minor-sets": 1 }, times: 1, bpm: 112 });
+    // The promenade is the one `ir` in `contra.dance` no figure answers to
+    // yet (M4's); Butter's chain and hey have been figures since M2.
+    const result = runNamed("only-promenade", {
+      args: { "minor-sets": 1 },
+      times: 1,
+      bpm: 112,
+      extra: [
+        {
+          name: "only-promenade.dance",
+          text: `use contra::{Role, Couple, promenade};
+use becket::{MajorSet, MinorSet};
+
+fn only-promenade(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  promenade(MinorSet, beats = 8);
+}
+`,
+        },
+      ],
+    });
     const noFigure = result.errors.filter((e) => e.kind === "NoFigure");
-    // Two moves, not one per dancer per time through (D5).
+    // One move, not one per dancer (D5).
     expect(noFigure.map((e) => e.message.replace(/ \(\d+ calls\)$/, ""))).toEqual([
-      'no figure for "chain": the move stands for 8 beats',
-      'no figure for "hey": the move stands for 16 beats',
+      'no figure for "promenade": the move stands for 8 beats',
     ]);
-    expect(noFigure[0]?.span?.file).toBe("butter.dance");
+    expect(noFigure[0]?.span?.file).toBe("only-promenade.dance");
     const calls = result.sequence!.perDancer["0-1L"]!;
-    const chain = calls.find((c) => c.path === "chain")!;
-    expect(chain.figure.id).toBe("standing");
-    expect(chain.beats).toBe(8);
+    const promenade = calls.find((c) => c.path === "promenade")!;
+    expect(promenade.figure.id).toBe("standing");
+    expect(promenade.beats).toBe(8);
+    // And Butter has none left.
+    const butter = runNamed("butter", { args: { "minor-sets": 1 }, times: 1, bpm: 112 });
+    expect(butter.errors.filter((e) => e.kind === "NoFigure")).toEqual([]);
   });
 });

@@ -195,7 +195,11 @@ export type Window =
         phase: readonly { who: Who; beats: number }[];
         amount?: NumberValue;
       };
-      /** Reflect the track across the lane (`y → −y`) when the parameter holds this word: a hey by the left. */
+      /**
+       * Every pass by the other shoulder — each `left` offset negated — when
+       * the parameter holds this word: a hey by the left. The places stay
+       * where they are; only the passes change hands.
+       */
       mirror?: { param: string; when: string };
     } & WindowCommon)
   /** Several windows over one span, each for the dancers its `who` names. */
@@ -227,8 +231,12 @@ export type Window =
     } & WindowCommon);
 
 export interface WindowCommon {
-  /** This window's share of the body, in nominal beats. */
-  beats?: number;
+  /**
+   * This window's share of the body, in nominal beats — a number, or one
+   * taken from a parameter (a hey's lap is `16 × amount − 4` beats after
+   * its four-beat entry, so a half hey's entry keeps its four).
+   */
+  beats?: NumberValue;
   /** Who this window is for; everyone when omitted. */
   who?: Who;
   /**
@@ -322,8 +330,11 @@ export type Choice<T extends string> =
       cases?: Readonly<Record<string, T>>;
     };
 
-/** A number that may be taken from one of the call's parameters, optionally scaled (`places / 4` turns). */
-export type NumberValue = number | { param: string; scale?: number };
+/**
+ * A number that may be taken from one of the call's parameters, optionally
+ * scaled and offset (`places / 4` turns; `16 × amount − 4` beats).
+ */
+export type NumberValue = number | { param: string; scale?: number; offset?: number };
 
 /** A call's resolved arguments, by parameter name. Dancers live in the cast. */
 export type Params = Readonly<Record<string, string | number>>;
@@ -349,7 +360,7 @@ export const resolveNumber = (value: NumberValue, params: Params): number => {
   if (typeof number !== "number") {
     throw new Error(`parameter "${value.param}" is not a number`);
   }
-  return number * (value.scale ?? 1);
+  return number * (value.scale ?? 1) + (value.offset ?? 0);
 };
 
 /** The parameters a call gets when it says nothing: every declared default. */

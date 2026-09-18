@@ -116,7 +116,8 @@ const printWho = (who: Who | undefined, params: Params): string => {
 
 const printWindow = (window: Window, params: Params, label = "body"): string[] => {
   const who = printWho(window.who, params);
-  const share = window.beats !== undefined ? ` · ${num(window.beats)} beats` : "";
+  const share =
+    window.beats !== undefined ? ` · ${num(resolveNumber(window.beats, params))} beats` : "";
   const holds =
     window.holds === undefined || window.holds.length === 0
       ? ""

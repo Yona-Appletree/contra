@@ -25,8 +25,13 @@ describe("drift", () => {
       expect(w.message).toMatch(/ends \d+(\.\d)? px from the seat the commit gave/);
     }
     // Only figures that claim to end at a seat are checked: the shift walks to
-    // one and the swing lands in the line, the circle and the stands do not.
-    expect(new Set(drift.map((w) => w.message.split(" ")[0]))).toEqual(new Set(["shift", "swing"]));
+    // one, the swing and the chain land in the line, the circle and the hey
+    // do not. The chain's is the language's: a robin who has chained across
+    // stands on the other line's seat, and the text still gives her her own
+    // (`dances/butter.test.ts` pins it).
+    expect(new Set(drift.map((w) => w.message.split(" ")[0]))).toEqual(
+      new Set(["shift", "swing", "chain"]),
+    );
   });
 
   it("measures a place as half a couple's spacing", () => {
