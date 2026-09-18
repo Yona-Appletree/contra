@@ -10,11 +10,17 @@ Design: `Planning/contra/dance-language-design.md`. Plan:
 
 ## Allowed imports
 
-**None.** `@caller/lang` imports no workspace package, and no workspace package
-imports it. It is a spike beside the engines, not on top of one: no geometry,
-no renderer, no figures — a move's body is the name in its `ir`, and the
-kinematics are somebody else's problem (§7). `scripts/check-deps.mjs` says so
-from the outside and `src/allowedImports.test.ts` from the inside.
+**None.** `@caller/lang` imports no workspace package. It sits beside the
+engines, not on top of one: no geometry, no renderer, no figures — a move's
+body is the name in its `ir`, and the kinematics are somebody else's problem
+(§7). `scripts/check-deps.mjs` says so from the outside and
+`src/allowedImports.test.ts` from the inside.
+
+`@caller/kinetics` **consumes its timeline** — the evening's moves, events and
+snapshots, through `packages/kinetics/src/sequence/fromLang.ts`
+([the ADR](../../docs/adr/2026-09-18-kinetics-consumes-lang.md)) — so a
+`.dance` file is the one text a dance has, from the tree to the pixels. The
+edge goes one way: nothing here knows that engine exists.
 
 ## What is not there
 
@@ -25,9 +31,8 @@ seating, dispersing are named in the design (§5) but the evening is a plain
 TypeScript function (`runEvening`), not a language. No moves' bodies — a move
 is `ir "swing"`, a name the kinematics reads; the motion behind it is
 somebody else's problem (§7), same as the geometry, the renderer and the
-figures this package does not import. Whether and how these join
-`packages/kinetics` is the overnight plan `docs/adr/
-2026-09-17-dance-language-groups-first-class.md` points at, not this one.
+figures this package does not import. (The join with
+`packages/kinetics` itself has happened: see "Allowed imports" above.)
 
 ## What is here
 

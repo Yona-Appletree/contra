@@ -71,3 +71,9 @@ Figures know nothing of contras. The debugger draws a formation from its
 text with nobody on it, and the tree in time. The chain and the hey, whose
 line of four is the first transient group, are the next bite. A new
 language costs its tooling: a CLI and editor support are follow-ups.
+
+**Closed, 2026-09-18.** The language this ADR proposed — round 1's `.dance`
+text inside `packages/kinetics` — is deleted by
+[2026-09-18-kinetics-consumes-lang.md](./2026-09-18-kinetics-consumes-lang.md);
+engine 3 animates from `@caller/lang`'s timeline, and `.dance` text has one
+home, `packages/lang/dances/`.

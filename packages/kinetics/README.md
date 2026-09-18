@@ -1,134 +1,98 @@
 # @caller/kinetics
 
-Engine 3: a compiler from a dance, written as text, to proved motion. A
-**formation** builds a tree of groups, places and anchors in metres; a
-**dance** sequences moves in beats from every dancer's own point of view;
-the moves compile, through a figure language of timed constraints and a
-per-dancer per-beat assembly, into continuous trajectories for every body
+Engine 3: a compiler from a dance to proved motion. `@caller/lang` reads the
+`.dance` text and says what every dancer does on every beat; this package
+takes that and, through a figure language of timed constraints and a
+per-dancer per-beat assembly, makes continuous trajectories for every body
 point, each under a physical cap with no discontinuities, proved once on
 the executor rather than per figure. Vision and plans:
 `Planning/contra/_archive/2026-09-16-2348-kinetics-model/` (`vision.md`
-D1–D17) and `Planning/contra/2026-09-17-0742-dance-language/`.
+D1–D17) and `Planning/contra/2026-09-18-0008-kinetics-on-lang/`.
 
-## The language
+## Where a dance comes from
 
-One grammar, three kinds of module, in `.dance` files under `dances/`:
+A dance is a `.dance` file in `packages/lang/dances/`, and `@caller/lang`
+owns every word of it: the grammar, the checker, the tree `setup` builds and
+the per-beat timeline the script leaves behind. This package starts where
+that stops — `src/sequence/fromLang.ts` turns an evening into the compiled
+sequence the scheduler takes, and nothing below that file knows there is a
+language ([the ADR](../../docs/adr/2026-09-18-kinetics-consumes-lang.md)).
 
 ```text
-formation minor-set() {
-  anchor centre = point(x = 0m, y = 0m);
-  group ones = couple() at translate(x = -0.64m);
-  group twos = couple() at translate(x = 0.64m) rotate(180);
-  provide $neighbor: Place = opposite-role(other(me));
-}
+fn butter(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Butter";
 
-move swing($partner: Place, beats: Beats = 8) { ir "swing"; }
-
-dance butter($partner: Place, $neighbor: Place, $minor-set: Group) {
-  repeat (7) {
-    if ($time != 1) { progress(); }
-    if ($neighbor) { swing($neighbor, beats = 8); } else { wait-out($partner); }
+  phrase(A1) {
+    if (first-time) {
+      circle(MinorSet, Left, places = 3, beats = 8);
+    } else {
+      progress();                                   // the event, set-wide, at beat 0
+      shift(Left, beats = 2);                       // its motion
+      circle(MinorSet, Left, places = 3, beats = 6);
+    }
+    swing(neighbor, beats = 8);
   }
+  // …A2, B1, B2 — see packages/lang/dances/butter.dance whole.
 }
 ```
 
-- **Casing is grammar.** Names are kebab-case (`minor-set`, `do-si-do`);
-  types and enum members are TitleCase (`Place`, `Robin`). Anything else is
-  a lex error that says so. `a-b` is a name, `a - b` a subtraction.
-- **`$` is the only sigil.** `$name` is bound from the tree the dancer
-  stands in at that beat, innermost group first; `$kind-name` (`$couple`,
-  `$minor-set`) binds the innermost group of that kind; a move's `$`
-  parameters are its contract and are filled from the tree unless the call
-  passes them (`swing($partner = $neighbor)`). A `$` no group of the
-  formation provides is a compile error with a span; one that is provided
-  but finds nobody is an end effect — the move stands, `if ($neighbor)`
-  takes its else.
-- **Enums** are declared (`dances/prelude.dance`), tested with `is`
-  (`$role is Robin`), and written bare wherever a parameter's type says
-  which enum (`allemande($partner, Right)`).
-- Statements end with `;`, blocks with `}`; newlines mean nothing; `//`
-  comments only. Lengths carry units (`0.8m`, `60cm`); angles are degrees.
-- A **formatter** (`format`) prints the one way a file looks, a **linter**
-  (`lint`) names unknown types, unread bindings and statements in the wrong
-  kind of module, and a **checker** (`check`) types enum members, `is`,
-  calls and transforms. `src/lang/fixtures.test.ts` holds every `.dance`
-  file in the repo format-stable, lint-clean and checked.
+Two things the adapter will not do quietly, both `K`-coded and both at the
+call's own span in the `.dance` file:
 
-## The tree
+- **A move whose `ir` no figure answers to** is a diagnostic and a stand for
+  its beats — never a crash and never a silent stand. Butter's chain and hey
+  are two of these until they are figures.
+- **A figure that wants a dancer or a ring the move never names** is the same
+  thing said about the cast. A figure that silently stands is a dance that
+  silently goes missing.
 
-A formation evaluates (`src/tree/evaluate.ts`) to a static tree: **groups**
-(a kind, a name, a frame, children, anchors, the `$` variables it
-`provide`s), **places** (a frame a dancer can occupy, with a role) and
-**anchors** (a point, a line, or a direction — one frame, three uses;
-facing a line means facing its normal). `at translate(…) rotate(…)
-mirror(…)` is OpenSCAD's order: the rightmost op first. Every frame is in
-the root's coordinates, in metres; the engine's px are 25 to the metre.
-
-**Membership** — who stands on which place — is the only mutable state
-(`src/tree/membership.ts`). It is declared, not measured: bodies move
-continuously, membership changes only when the dance says `progress()`,
-which runs the formation's `next` (`duple-progression`,
-`triple-progression`, `circle-progression`, `none`). `seat = …` says which
-groups are filled at beat 0.
-
-The lattice's truth (DA9 in the plan's notes): a progression moves each
-couple **half a minor set** along the hall, so the standard contra
-formations lay their minor sets at half their own length apart, seat every
-other one, and let `next` move a couple one minor set along — every dancer
-position is exactly the lattice's, and adjacent minor sets are never both
-occupied. `dances/formations/` has proper, improper, becket, reverse
-becket, triple minor, square, four-face-four and big-circle, plus the pair
-and the solo the vertical stack was built on. A formation is a file: it is
-read with the prelude and `common.dance` (the couple) and nothing else, so
-every formation names its modules `minor-set` and `major-set` and a move's
-`$minor-set` means the same thing on every floor.
-
-Relations are a handful of built-ins evaluated with `me` (the member of
-the providing group on the way down to the asking dancer): `other`,
-`opposite-role`, `same-role`, `across(me, line)`, `child`, `index`, `at`,
-`role`, `my-role`; geometry: `point`, `line`, `direction`, `midpoint`,
-`centre`; `group(a, b, …)` forms a group on the fly.
+**The frames have opposite handedness**, and the adapter is where that is
+fixed: the language says a node's own `+x` is to its right, and this engine
+says a dancer's right is `facing + 90°`. `dialect/langDialect.ts`'s `posePx`
+mirrors `x` — which keeps the hall's top at the top and makes left left.
 
 ## Allowed imports
 
 `@caller/core` (the geometry, the time layer, `RENDERING_CONTRACT` — never
 `core/src/kinematics/*`, which this engine replaces;
-`src/allowedImports.test.ts` fails on their names) and, for the debugger's
-pixels pane only, `@caller/hall`'s people drawing. **Nothing imports this
-package**: `scripts/check-deps.mjs` lists `kinetics` in no other package's
-allowed set.
+`src/allowedImports.test.ts` fails on their names); `@caller/lang` (the
+language: a dance's text, tree and timeline); and, for the debugger's pixels
+pane only, `@caller/hall`'s people drawing. **Nothing imports this package**:
+`scripts/check-deps.mjs` lists `kinetics` in no other package's allowed set.
 
 ## The layers, and who owns each
 
-| layer             | what it is                                                                                                                                                                    | file                                   |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| language          | lexer, parser, syntax tree, formatter, linter, checker                                                                                                                        | `src/lang/*`                           |
-| tree              | a formation evaluated to groups, places and anchors; relations; seating and progression                                                                                       | `src/tree/*`, `dances/formations/*`    |
-| compiled sequence | one script per dancer: calls with beats, this dancer's cast, the `$` bindings and the seating each was read from                                                              | `src/lang/compile.ts`                  |
-| moves             | each move's contract, parameters and figure                                                                                                                                   | `dances/moves.dance`                   |
-| figure IR         | a figure as timed constraints: `pre`, soft `post`, windows (orbit, walk, pass, pivot, walk-to-seat, stand, intrinsic), look rules, casts                                      | `src/ir/Figure.ts`, `src/figures/*.ts` |
-| dialect           | what the rest of the stack reads of the floor: who, which role, where at beat 0, home; made from the tree                                                                     | `src/dialect/tree/TreeDialect.ts`      |
-| schedule          | entry, body and exit per call, the exit back-chained from the next figure's `pre` onto this one's soft end; hand seams; nobody stands; elision; home is the place at the call | `src/schedule/schedule.ts`             |
-| assembly          | one slot per dancer per beat: step, pivot, hold, drop, lean, look, buzz, stand; the listing in a dancer's words                                                               | `src/asm/*`                            |
-| executor          | slots to continuous effector trajectories: hips and facing on a natural cubic spline, feet by cadence, hands on cosine ramps                                                  | `src/executor/*`                       |
-| solver            | joints from effectors: shoulders, two-bone arms with a hold's swivel, hand plates, a head solved toward a point                                                               | `src/solver/*`, `src/holds/*`          |
-| proof             | speed and acceleration under each point's cap, no jumps, at 16 samples a beat                                                                                                 | `src/motion/prove.ts`                  |
-| debugger          | every layer on one page, one bar through all of them                                                                                                                          | `debugger/`                            |
+| layer             | what it is                                                                                                                                                                    | file                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| language          | lexer, parser, checker, evaluator — somebody else's package                                                                                                                   | `@caller/lang`                          |
+| tree              | the floor `setup` built: nodes, places, anchors, and who stands where at every commit                                                                                         | `@caller/lang`, `packages/lang/dances/` |
+| compiled sequence | one script per dancer: calls with beats, this dancer's cast, the arguments and the seating each was read against                                                              | `src/sequence/fromLang.ts`              |
+| moves             | each move's parameters and the figure its `ir` names                                                                                                                          | `packages/lang/dances/contra.dance`     |
+| figure IR         | a figure as timed constraints: `pre`, soft `post`, windows (orbit, walk, pass, pivot, walk-to-seat, stand, intrinsic), look rules, casts                                      | `src/ir/Figure.ts`, `src/figures/*.ts`  |
+| dialect           | what the rest of the stack reads of the floor: who, which role, where at beat 0, home; made from the tree                                                                     | `src/dialect/langDialect.ts`            |
+| schedule          | entry, body and exit per call, the exit back-chained from the next figure's `pre` onto this one's soft end; hand seams; nobody stands; elision; home is the place at the call | `src/schedule/schedule.ts`              |
+| assembly          | one slot per dancer per beat: step, pivot, hold, drop, lean, look, buzz, stand; the listing in a dancer's words                                                               | `src/asm/*`                             |
+| executor          | slots to continuous effector trajectories: hips and facing on a natural cubic spline, feet by cadence, hands on cosine ramps                                                  | `src/executor/*`                        |
+| solver            | joints from effectors: shoulders, two-bone arms with a hold's swivel, hand plates, a head solved toward a point                                                               | `src/solver/*`, `src/holds/*`           |
+| proof             | speed and acceleration under each point's cap, no jumps, at 16 samples a beat                                                                                                 | `src/motion/prove.ts`                   |
+| debugger          | every layer on one page, one bar through all of them                                                                                                                          | `debugger/`                             |
 
 ## The debugger
 
-`pnpm --filter @caller/kinetics dev` → http://localhost:5177. A preset (the
-pair, the solo, the fixture on a becket, Butter), a formation and a size;
-one dancer to follow. Panes: **source** (the dance, editable, with the call
-under the bar, its `$` bindings and its figure IR), **layout** (a formation
-from its text with nobody on it: places, anchors, group hulls; the
-interleaved minor sets faint), **timeline** (calls with entry, body, exit
-and seams; a membership lane per dancer coloured by minor set, hatched
-when out), **listing**, **3d** and **pixels** (the bodies, with group boxes
-at the bar's seating; the pixels pane draws the app's own people on black,
-the wireframe behind a toggle), **graphs** (every point against its cap),
-**tree** (the formation with the seating at the bar, the followed dancer's
-chain lit).
+`pnpm --filter @caller/kinetics dev` → http://localhost:5177. A dance from
+`packages/lang/dances/`, a hall size and a number of times through; one
+dancer to follow. Panes: **source** (every file the dance reads, editable,
+with the call under the bar lit in the file it was written in, its arguments
+and its figure IR), **layout** (the floor `setup` built: places, anchors,
+group hulls), **timeline** (calls with entry, body, exit and seams; a
+membership lane per dancer coloured by minor set, hatched when out),
+**listing**, **3d** and **pixels** (the bodies, with group boxes at the bar's
+seating; the pixels pane draws the app's own people on black, the wireframe
+behind a toggle), **graphs** (every point against its cap), **tree** (the
+language's tree with the seating at the bar, the followed dancer's lineage
+lit). The strip above them groups every layer's complaints and clicks through
+to the beat and the dancer.
 
 ## The caps
 
@@ -155,18 +119,26 @@ where its `post` says (a swing: beside the partner, facing home, in the line).
 ## Running
 
 ```bash
+pnpm kinetics check butter --minor-sets 3 --times 7   # the whole stack, headless
+pnpm kinetics check fixture                            # the pair, forty beats
 pnpm --filter @caller/kinetics test
 pnpm --filter @caller/kinetics dev     # the debugger, http://localhost:5177
 pnpm --filter @caller/kinetics build   # dist/debugger/
 ```
+
+`pnpm kinetics check` is this engine's own oracle: it loads every `.dance`
+file, checks it, runs the evening, joins it to the figures, schedules,
+executes, solves and proves, and prints every layer's complaints in one
+shape — the language's, rustc's — with the line and a caret. It exits
+non-zero the moment anything is an error. `--json` is the same for an agent.
 
 ## What is deliberately not here yet
 
 The robins chain and the hey (a partner swing stands in for both in
 `butter.dance`); a buzz-step swing; the holds gallery and approvals; the
 other becket end (Q1 of the kinetics plan); triple minor's progression is
-an approximation; moving the engine to metres; a `dance` CLI and editor
-support; publishing the debugger at `/spikes/`. And the seams the tests
+an approximation; moving the engine to metres; editor support; publishing
+the debugger at `/spikes/`. And the seams the tests
 pin rather than hide: a straight entry walk turning into an orbit, a swing
 opening out to the line from hands taken across the set — over the hip's
 acceleration cap, to be fixed by curved entries in the scheduler, not by a
