@@ -221,9 +221,12 @@ fn cross-over(minor-sets: i32) {
     expect(first).toEqual({
       dancer: "0-1L",
       place: "Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)",
-      x: -1040,
-      y: 0,
-      heading: 0,
+      // Becket's ones stand on the line at x = -0.64m facing across it
+      // (heading 270 = +x), so the lark is 0.4m along the line from the
+      // couple's centre: side by side with the robin, not across from them.
+      x: -640,
+      y: 400,
+      heading: 270,
     });
   });
 });

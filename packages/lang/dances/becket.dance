@@ -1,5 +1,10 @@
 // becket.dance — couples side by side facing across; ones on the left line
 // travel to higher set ids, twos on the right line to lower. Design §8, whole.
+//
+// The two lines run down the hall at x = ±0.64m and the couples on them face
+// each other **across** it, so a couple is turned a quarter from the hall's
+// own heading: the ones at -x face +x, the twos at +x face -x, and within a
+// couple `left`/`right` then lay the partners side by side along the line.
 
 use contra::{Role, Couple, wait-out};
 
@@ -8,9 +13,9 @@ group Station { id: enum { OutTop, In, OutBottom } }
 group MinorSet {
   id: i32
   body {
-    translate(x = -0.64m)             Couple(Ones);
-    translate(x = 0.64m) rotate(180)  Couple(Twos);
-    anchor across = line(through = center, along = Y);
+    translate(x = -0.64m) rotate(-90) Couple(Ones);
+    translate(x = 0.64m)  rotate(90)   Couple(Twos);
+    anchor across = line(through = center, along = X);
   }
   travel   = match Couple { Ones => 1,         Twos => -1     };
   exit     = match Couple { Ones => OutBottom, Twos => OutTop };
@@ -31,9 +36,13 @@ group MajorSet {
     // `neighbor` names nobody. Seated, the progression below is a bijection
     // and stays one, which is what §8's own reading of the commit describes:
     // "the couple waiting at OutBottom on set 2 as twos".
-    translate(x = 0.64m,  y = -1.6m)             rotate(180) Station(OutTop)    Couple(Ones);
+    // A waiting couple stands at the end of the line it will come in on —
+    // the ones' line for OutTop, the twos' line for OutBottom — and faces
+    // across it like everybody else, so coming in really does change nothing
+    // but `Station` and `MinorSet`.
+    translate(x = -0.64m, y = -1.6m)             rotate(-90) Station(OutTop)    Couple(Ones);
     Station(In) { for i in 0..minor-sets { translate(y = 1.6m * i) MinorSet(i); } }
-    translate(x = -0.64m, y = 1.6m * minor-sets)             Station(OutBottom) Couple(Twos);
+    translate(x = 0.64m,  y = 1.6m * minor-sets) rotate(90)  Station(OutBottom) Couple(Twos);
   }
 
   // A couple leaves as the other couple, so the one waiting is already seated

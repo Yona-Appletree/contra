@@ -93,7 +93,7 @@ describe("buildTree", () => {
       form: "line",
       args: [
         { name: "through", value: { t: "point", x: 0, y: 0 } },
-        { name: "along", value: { t: "enum", member: "Y", enumName: "Axis" } },
+        { name: "along", value: { t: "enum", member: "X", enumName: "Axis" } },
       ],
     });
   });

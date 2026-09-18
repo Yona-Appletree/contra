@@ -134,6 +134,11 @@ console.log(printTimeline(evening)); // events by beat, then a row per move
   restricted to the beat-0 commit until it is answered.
 - **A commit is where the diagnostics live.** Two dancers in one place names the
   pair and the beat (`L102`); half a role swap is exactly that.
+- **`+y` runs down the hall.** The hall's top is at negative `y`, the minor sets
+  are laid at increasing `y`, a couple travelling `+1` in set id travels along
+  `+y`, and a heading of 0 faces down the hall (`src/eval/frame.ts`). A picture
+  wants the top at the top, so the playground's floor pane draws the hall turned
+  through 180° — a rotation, so left stays left.
 
 ## Diagnostics
 

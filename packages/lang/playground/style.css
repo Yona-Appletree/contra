@@ -359,14 +359,10 @@ section[data-pane="floor"] > .body {
   font-size: 170px;
   fill: var(--muted);
 }
-.floor .axis {
-  fill: none;
-  stroke: var(--line);
-  stroke-width: 26;
-}
-.floor .axis-name {
+.floor .top-mark {
   font-size: 170px;
-  fill: var(--line);
+  fill: var(--muted);
+  opacity: 0.55;
 }
 
 /* ---- diagnostics --------------------------------------------------------- */

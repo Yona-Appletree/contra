@@ -10,24 +10,30 @@
  * Couple(i + 1); }` means in `square.dance`, and the only reading that puts
  * four couples round a square rather than four couples in one spot.
  *
- * Headings are measured **counter-clockwise from +y**, so a node at heading 0
- * faces up the hall (the direction minor sets are laid in), its own `+x` is to
- * its right and its own `+y` is in front of it. Lengths compute in `f64` and
- * are stored as integer millimetres (notes D6); every distance in the fixtures
- * is a whole millimetre, so nothing is lost on the way down the tree.
+ * `+y` runs **down the hall**: the hall's top is at negative `y`, the minor
+ * sets are laid at increasing `y`, and a couple travelling `+1` in set id
+ * travels along `+y` and leaves at the bottom. Headings are measured
+ * **counter-clockwise from +y**, so a node at heading 0 faces down the hall,
+ * its own `+x` is to its right and its own `+y` is in front of it. (A picture
+ * of the hall wants the top at the top, so the playground's floor pane draws
+ * the whole thing turned through 180° — a rotation, so left stays left.)
+ *
+ * Lengths compute in `f64` and are stored as integer millimetres (notes D6);
+ * every distance in the fixtures is a whole millimetre, so nothing is lost on
+ * the way down the tree.
  */
 export interface Frame {
-  /** Millimetres east of the hall's origin. */
+  /** Millimetres to the right of the hall's origin, looking down the hall. */
   x: number;
-  /** Millimetres up the hall from the hall's origin. */
+  /** Millimetres down the hall from the hall's origin; the top is negative. */
   y: number;
-  /** Degrees counter-clockwise from "up the hall", in `[0, 360)`. */
+  /** Degrees counter-clockwise from "down the hall", in `[0, 360)`. */
   heading: number;
   /** Whether an odd number of `mirror`s got here: the frame's `x` is flipped. */
   mirrored: boolean;
 }
 
-/** The hall's own frame: the origin, facing up the hall. */
+/** The hall's own frame: the origin, facing down the hall. */
 export const originFrame: Frame = { x: 0, y: 0, heading: 0, mirrored: false };
 
 /** A frame from parts, rounded the way a stored frame is rounded. */

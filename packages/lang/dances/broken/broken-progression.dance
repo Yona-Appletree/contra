@@ -17,7 +17,7 @@ group MinorSet {
     translate(x = 0.64m) rotate(180)  Couple(Twos);
     anchor across = line(through = center, along = Y);
   }
-  // Becket's is `Twos => -1`. This sends both couples up the hall.
+  // Becket's is `Twos => -1`. This sends both couples down the hall.
   travel   = match Couple { Ones => 1,         Twos => 1      };
   exit     = match Couple { Ones => OutBottom, Twos => OutTop };
   neighbor = one!(select(Couple = other, Role = other));
