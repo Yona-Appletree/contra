@@ -217,6 +217,16 @@ export const CODES: Readonly<Record<string, { title: string; explain: string }>>
     explain:
       "A move is a thing a dancer does, so it has no meaning in `setup`, in a group's body or inside an expression \u2014 there is no cursor there to advance.",
   },
+  L110: {
+    title: "a move takes one",
+    explain:
+      "A move's `Role` argument matched two or more dancers at once. Nobody (an empty selection) is a legitimate answer at the end of a line \u2014 the figure's own cast rule decides what the dancer does \u2014 but several is not: name the kind that tells them apart, or `one!` it.",
+  },
+  L111: {
+    title: "entered where the script does not progress",
+    explain:
+      "A dancer the commit at beat b made addressable replays the script silently from the top until the `progress()` that admitted it, then dances for real. This one's cursor passed beat b without meeting a `progress()` there \u2014 the set progressed at another beat \u2014 so it waits out instead.",
+  },
 };
 
 /** The explanation line for a code, or a stub when the code is not one of ours. */

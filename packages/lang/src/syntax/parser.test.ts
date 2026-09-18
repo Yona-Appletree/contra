@@ -93,7 +93,7 @@ describe("the fixtures cover the acceptance list", () => {
     return result.file;
   };
 
-  it("the nine broken files are all there", () => {
+  it("the ten broken files are all there", () => {
     expect([...byName.keys()].filter((n) => n.startsWith("broken/"))).toEqual([
       "broken/broken-progression.dance",
       "broken/duplicate-member.dance",
@@ -103,6 +103,7 @@ describe("the fixtures cover the acceptance list", () => {
       "broken/other-in-is.dance",
       "broken/partner-in-body.dance",
       "broken/phrase-assert.dance",
+      "broken/two-partners.dance",
       "broken/wrong-arity.dance",
     ]);
   });

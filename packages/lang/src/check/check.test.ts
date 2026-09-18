@@ -46,6 +46,7 @@ const HAPPY = [
   "becket.dance",
   "improper.dance",
   "butter.dance",
+  "robins-on-a-wire.dance",
   "role-swap.dance",
   "square.dance",
 ];
@@ -258,6 +259,17 @@ describe("the broken fixtures", () => {
    */
   it("broken-progression is a run-time failure, not a check-time one", () => {
     const { text } = checkFixture("broken/broken-progression.dance");
+    expect(text).toBe("no complaints\n");
+  });
+
+  /**
+   * The tenth is the same kind of thing: a `Role` argument that names two
+   * dancers. The checker lets a selection through where a place kind is due
+   * (notes D10 — nobody is a legitimate answer at the ends), so it is the
+   * evaluator's `L110` at the call.
+   */
+  it("two-partners is a run-time failure, not a check-time one", () => {
+    const { text } = checkFixture("broken/two-partners.dance");
     expect(text).toBe("no complaints\n");
   });
 });
@@ -519,10 +531,22 @@ describe("rule 7: contracts and floors", () => {
     ]);
   });
 
-  it("a move given a selection rather than a dancer", () => {
+  // Notes D10: a `Role` argument may name nobody — the end of a long wave has
+  // no far mate — so a selection where a place kind is due goes through as it
+  // stands, and several at once is the evaluator's L110 at the call. A move
+  // whose parameter is a kind with places *below* it is still given one.
+  it("a move given a selection where a Role is due lets it through (D10)", () => {
     expect(
       checkText("fn dance() { setup { Hall(1); } swing(select(Couple = _), beats = 64); }"),
-    ).toEqual(['L024 "swing" takes one "Role", and this is a selection']);
+    ).toEqual([]);
+  });
+
+  it("a move given a selection rather than a couple", () => {
+    expect(
+      checkText(
+        'fn dance() { setup { Hall(1); } lead(select(Couple = _), beats = 64); }\nfn lead(who: Couple, beats: i32 = 8) { ir "lead"; }',
+      ),
+    ).toEqual(['L024 "lead" takes one "Couple", and this is a selection']);
   });
 
   it("a dance's contract is the kinds it reads", () => {

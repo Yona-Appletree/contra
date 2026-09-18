@@ -55,8 +55,38 @@ fn balance(with: Role, beats: i32 = 4) { ir "balance"; }
 
 fn wait-out(with: Role = partner, beats: i32 = 64) { ir "wait-out"; }
 
-fn allemande(with: Role, hand: Hand, beats: i32 = 8) { ir "allemande"; }
+// `amount` is turns: an allemande right three quarters is `amount = 3/4`.
+fn allemande(with: Role, hand: Hand, amount: f64 = 1, beats: i32 = 8) { ir "allemande"; }
 
 fn do-si-do(with: Role, beats: i32 = 8) { ir "do-si-do"; }
 
 fn promenade(ring: group, beats: i32 = 8) { ir "promenade"; }
+
+// Robins on a Wire's figures (the kinetics-on-lang plan, M3).
+//
+// A `Role` argument may name nobody (notes D10): the robin at the end of the
+// long wave has no far mate, and `form-wave(right = wave-mate, …)` there is a
+// wave with one hand free — the figure's own cast rule says so. `stand` is
+// what the other role does while one role dances a `||` (D11): the larks
+// while the robins walk forward into the wave.
+
+// The two beside each other, facing across, circulate around each other
+// keeping that facing: a sideways do-si-do, eyes across the set. `Left` is
+// the way a circle left goes (clockwise seen from above), `Right` the other.
+fn mad-robin(around: Role, direction: Turn, beats: i32 = 6) { ir "mad-robin"; }
+
+// Walk forward to the centre line and take a hand to each side, right to
+// `right` and left to `left` — either may be nobody.
+fn form-wave(right: Role, left: Role, beats: i32 = 2) { ir "form-wave"; }
+
+// Balance in the wave you formed, the same hands.
+fn balance-wave(right: Role, left: Role, beats: i32 = 4) { ir "balance-wave"; }
+
+// The ring in single file, each facing along it, no hands, `eighths` of the
+// way round.
+fn single-file-promenade(ring: group, direction: Turn, eighths: i32, beats: i32 = 4) { ir "single-file-promenade"; }
+
+// A gypsy: orbit each other by the named shoulder, eyes locked, no hands.
+fn shoulder-round(with: Role, shoulder: Hand, amount-quarters: i32 = 4, beats: i32 = 8) { ir "shoulder-round"; }
+
+fn stand(beats: i32 = 4) { ir "stand"; }

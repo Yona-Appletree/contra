@@ -22,6 +22,18 @@ group MinorSet {
   neighbor = one!(select(Couple = other, Role = other));
   opposite = one!(select(Couple = other));
   shadow   = one!(select(MinorSet = id + travel, Role = other));
+  // The long wave down the centre (Robins on a Wire): every dancer of one
+  // role in the hall, 0.8 m apart, alternating hands. A dancer's two mates in
+  // it are `opposite` and the adjacent set's other-couple dancer of the same
+  // role on the far side — toward the set they progress into, which is the
+  // `travel` side. No `one!`: at the end of the hall there is nobody there,
+  // and a wave with one hand free is what the end dances (notes D10).
+  wave-mate = select(MinorSet = id + travel, Couple = other);
+  // On this lattice a progression moves a couple a whole set, so the couple
+  // the wave-mate belongs to is, after `progress()`, one set **back** — the
+  // couple you passed. Read after the commit, this names the same person
+  // `wave-mate` named before it (E1: the lattice's pitch is the G1 question).
+  passed = select(MinorSet = id - travel, Couple = other);
 }
 
 group MajorSet {

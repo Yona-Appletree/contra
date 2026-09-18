@@ -186,6 +186,42 @@ fn cross-over(minor-sets: i32) {
     expect(printTimeline(result)).toMatchSnapshot();
   });
 
+  // The kinetics-on-lang plan, M3: Robins on a Wire, whose progression is
+  // mid-dance (beat 16), whose ends are in the dance, and whose end robin
+  // balances the long wave with one hand (notes D8, D10).
+  describe("Robins on a Wire", () => {
+    for (const name of ["robins-on-a-wire", "robins-on-a-wire-passed"]) {
+      for (const sets of [2, 3, 4]) {
+        it(`${name} at ${String(sets)} sets, seven times, with nothing to say`, () => {
+          const result = evening(fixtures(), name, 7, { "minor-sets": sets });
+          expect(result.diagnostics).toEqual([]);
+          expect(result.times.map((time) => time.length)).toEqual([64, 64, 64, 64, 64, 64, 64]);
+          everyPlaceHoldsOne(result);
+          for (const time of result.times) {
+            // One commit per time through, at A2's shift, everybody moving.
+            expect(time.events.every((event) => event.beat === 16)).toBe(true);
+            expect(time.events).toHaveLength(result.tree.dancers.length);
+            // The waiting couples come in at 16 and wait out the beats before.
+            const entrants = time.moves.filter(
+              (move) => move.ir === "wait-out" && move.start === 0 && move.beats === 16,
+            );
+            expect(entrants).toHaveLength(4);
+            // At each end of the wave one robin's far hand is nobody, and
+            // one lark's in B1 — never more than that, never a diagnostic.
+            const oneHanded = time.moves.filter(
+              (move) =>
+                move.ir === "balance-wave" &&
+                move.args.some(
+                  (arg) => (arg.name === "right" || arg.name === "left") && arg.value === "[]",
+                ),
+            );
+            expect(oneHanded.map((move) => move.dancer).length).toBe(4);
+          }
+        });
+      }
+    }
+  });
+
   // Acceptance item 7: two dances composed, and two that do not compose.
   describe("a medley", () => {
     it("runs two Butters on one floor, one after the other", () => {

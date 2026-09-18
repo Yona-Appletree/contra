@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`every fixture parses > becket.dance 1`] = `
-"file module="becket" [0..2830]
+"file module="becket" [0..3714]
   uses:
     use module="contra" [468..505]
       names:
@@ -15,7 +15,7 @@ exports[`every fixture parses > becket.dance 1`] = `
           - name="OutTop" [534..540]
           - name="In" [542..544]
           - name="OutBottom" [546..555]
-    group name="MinorSet" bodySpan=[590..760] [561..1057]
+    group name="MinorSet" bodySpan=[590..760] [561..1941]
       idType: i32 [580..587]
       body:
         modified [601..648]
@@ -106,150 +106,170 @@ exports[`every fixture parses > becket.dance 1`] = `
                       right: name name="travel" title=false [1032..1038]
                 - group="Role" [1040..1052]
                   pattern: relative which="other" [1047..1052]
-    group name="MajorSet" bodySpan=[1110..2214] [1059..2829]
-      idType: i32 [1078..1085]
+        member name="wave-mate" [1514..1573]
+          value: select [1526..1572]
+            args:
+              - group="MinorSet" [1533..1555]
+                pattern: expr-pattern [1544..1555]
+                  expr: binary op="+" [1544..1555]
+                    left: name name="id" title=false [1544..1546]
+                    right: name name="travel" title=false [1549..1555]
+              - group="Couple" [1557..1571]
+                pattern: relative which="other" [1566..1571]
+        member name="passed" [1883..1939]
+          value: select [1892..1938]
+            args:
+              - group="MinorSet" [1899..1921]
+                pattern: expr-pattern [1910..1921]
+                  expr: binary op="-" [1910..1921]
+                    left: name name="id" title=false [1910..1912]
+                    right: name name="travel" title=false [1915..1921]
+              - group="Couple" [1923..1937]
+                pattern: relative which="other" [1932..1937]
+    group name="MajorSet" bodySpan=[1994..3098] [1943..3713]
+      idType: i32 [1962..1969]
       params:
-        param name="minor-sets" [1088..1107]
-          type: primitive name="i32" [1100..1103]
-          default: int value=3 [1106..1107]
+        param name="minor-sets" [1972..1991]
+          type: primitive name="i32" [1984..1987]
+          default: int value=3 [1990..1991]
       body:
-        anchor name="up" [1121..1147]
-          value: call callee="direction" title=false [1133..1146]
+        anchor name="up" [2005..2031]
+          value: call callee="direction" title=false [2017..2030]
             args:
-              arg [1143..1145]
-                value: name name="Up" title=true [1143..1145]
-        modified [1943..2032]
+              arg [2027..2029]
+                value: name name="Up" title=true [2027..2029]
+        modified [2827..2916]
           modifiers:
-            call callee="translate" title=false [1943..1975]
+            call callee="translate" title=false [2827..2859]
               args:
-                arg name="x" [1953..1963]
-                  value: unary op="-" [1957..1963]
-                    operand: float value=0.64 unit="m" [1958..1963]
-                arg name="y" [1965..1974]
-                  value: unary op="-" [1969..1974]
-                    operand: float value=1.6 unit="m" [1970..1974]
-            call callee="rotate" title=false [1988..1999]
+                arg name="x" [2837..2847]
+                  value: unary op="-" [2841..2847]
+                    operand: float value=0.64 unit="m" [2842..2847]
+                arg name="y" [2849..2858]
+                  value: unary op="-" [2853..2858]
+                    operand: float value=1.6 unit="m" [2854..2858]
+            call callee="rotate" title=false [2872..2883]
               args:
-                arg [1995..1998]
-                  value: unary op="-" [1995..1998]
-                    operand: int value=90 [1996..1998]
-          stmt: invoke name="Station" [2000..2032]
+                arg [2879..2882]
+                  value: unary op="-" [2879..2882]
+                    operand: int value=90 [2880..2882]
+          stmt: invoke name="Station" [2884..2916]
             args:
-              arg [2008..2014]
-                value: name name="OutTop" title=true [2008..2014]
+              arg [2892..2898]
+                value: name name="OutTop" title=true [2892..2898]
             children:
-              invoke name="Couple" [2019..2032]
+              invoke name="Couple" [2903..2916]
                 args:
-                  arg [2026..2030]
-                    value: name name="Ones" title=true [2026..2030]
-        invoke name="Station" [2037..2116]
+                  arg [2910..2914]
+                    value: name name="Ones" title=true [2910..2914]
+        invoke name="Station" [2921..3000]
           args:
-            arg [2045..2047]
-              value: name name="In" title=true [2045..2047]
+            arg [2929..2931]
+              value: name name="In" title=true [2929..2931]
           children:
-            for name="i" [2051..2114]
-              range inclusive=false [2060..2073]
-                from: int value=0 [2060..2061]
-                to: name name="minor-sets" title=false [2063..2073]
+            for name="i" [2935..2998]
+              range inclusive=false [2944..2957]
+                from: int value=0 [2944..2945]
+                to: name name="minor-sets" title=false [2947..2957]
               body:
-                modified [2076..2112]
+                modified [2960..2996]
                   modifiers:
-                    call callee="translate" title=false [2076..2099]
+                    call callee="translate" title=false [2960..2983]
                       args:
-                        arg name="y" [2086..2098]
-                          value: binary op="*" [2090..2098]
-                            left: float value=1.6 unit="m" [2090..2094]
-                            right: name name="i" title=false [2097..2098]
-                  stmt: invoke name="MinorSet" [2100..2112]
+                        arg name="y" [2970..2982]
+                          value: binary op="*" [2974..2982]
+                            left: float value=1.6 unit="m" [2974..2978]
+                            right: name name="i" title=false [2981..2982]
+                  stmt: invoke name="MinorSet" [2984..2996]
                     args:
-                      arg [2109..2110]
-                        value: name name="i" title=false [2109..2110]
-        modified [2121..2210]
+                      arg [2993..2994]
+                        value: name name="i" title=false [2993..2994]
+        modified [3005..3094]
           modifiers:
-            call callee="translate" title=false [2121..2165]
+            call callee="translate" title=false [3005..3049]
               args:
-                arg name="x" [2131..2140]
-                  value: float value=0.64 unit="m" [2135..2140]
-                arg name="y" [2143..2164]
-                  value: binary op="*" [2147..2164]
-                    left: float value=1.6 unit="m" [2147..2151]
-                    right: name name="minor-sets" title=false [2154..2164]
-            call callee="rotate" title=false [2166..2176]
+                arg name="x" [3015..3024]
+                  value: float value=0.64 unit="m" [3019..3024]
+                arg name="y" [3027..3048]
+                  value: binary op="*" [3031..3048]
+                    left: float value=1.6 unit="m" [3031..3035]
+                    right: name name="minor-sets" title=false [3038..3048]
+            call callee="rotate" title=false [3050..3060]
               args:
-                arg [2173..2175]
-                  value: int value=90 [2173..2175]
-          stmt: invoke name="Station" [2178..2210]
+                arg [3057..3059]
+                  value: int value=90 [3057..3059]
+          stmt: invoke name="Station" [3062..3094]
             args:
-              arg [2186..2195]
-                value: name name="OutBottom" title=true [2186..2195]
+              arg [3070..3079]
+                value: name name="OutBottom" title=true [3070..3079]
             children:
-              invoke name="Couple" [2197..2210]
+              invoke name="Couple" [3081..3094]
                 args:
-                  arg [2204..2208]
-                    value: name name="Twos" title=true [2204..2208]
+                  arg [3088..3092]
+                    value: name name="Twos" title=true [3088..3092]
       members:
-        fn name="progress" [2509..2774]
+        fn name="progress" [3393..3658]
           body:
-            match [2529..2770]
-              subject: name name="Station" title=true [2535..2542]
+            match [3413..3654]
+              subject: name name="Station" title=true [3419..3426]
               arms:
-                - [2551..2603]
-                  pattern: expr-pattern [2551..2557]
-                    expr: name name="OutTop" title=true [2551..2557]
+                - [3435..3487]
+                  pattern: expr-pattern [3435..3441]
+                    expr: name name="OutTop" title=true [3435..3441]
                   body:
-                    expr tail=false [2564..2603]
-                      expr: assign [2564..2602]
+                    expr tail=false [3448..3487]
+                      expr: assign [3448..3486]
                         args:
-                          - group="Station" [2571..2583]
-                            pattern: expr-pattern [2581..2583]
-                              expr: name name="In" title=true [2581..2583]
-                          - group="MinorSet" [2585..2601]
-                            pattern: relative which="first" [2596..2601]
-                - [2610..2661]
-                  pattern: expr-pattern [2610..2619]
-                    expr: name name="OutBottom" title=true [2610..2619]
+                          - group="Station" [3455..3467]
+                            pattern: expr-pattern [3465..3467]
+                              expr: name name="In" title=true [3465..3467]
+                          - group="MinorSet" [3469..3485]
+                            pattern: relative which="first" [3480..3485]
+                - [3494..3545]
+                  pattern: expr-pattern [3494..3503]
+                    expr: name name="OutBottom" title=true [3494..3503]
                   body:
-                    expr tail=false [2623..2661]
-                      expr: assign [2623..2660]
+                    expr tail=false [3507..3545]
+                      expr: assign [3507..3544]
                         args:
-                          - group="Station" [2630..2642]
-                            pattern: expr-pattern [2640..2642]
-                              expr: name name="In" title=true [2640..2642]
-                          - group="MinorSet" [2644..2659]
-                            pattern: relative which="last" [2655..2659]
-                - [2668..2764]
-                  pattern: expr-pattern [2668..2670]
-                    expr: name name="In" title=true [2668..2670]
+                          - group="Station" [3514..3526]
+                            pattern: expr-pattern [3524..3526]
+                              expr: name name="In" title=true [3524..3526]
+                          - group="MinorSet" [3528..3543]
+                            pattern: relative which="last" [3539..3543]
+                - [3552..3648]
+                  pattern: expr-pattern [3552..3554]
+                    expr: name name="In" title=true [3552..3554]
                   body:
-                    expr tail=false [2681..2764]
-                      expr: binary op="or" [2681..2763]
-                        left: assign [2681..2721]
+                    expr tail=false [3565..3648]
+                      expr: binary op="or" [3565..3647]
+                        left: assign [3565..3605]
                           args:
-                            - group="MinorSet" [2688..2720]
-                              pattern: expr-pattern [2699..2720]
-                                expr: binary op="+" [2699..2720]
-                                  left: call callee="id" title=false [2699..2711]
+                            - group="MinorSet" [3572..3604]
+                              pattern: expr-pattern [3583..3604]
+                                expr: binary op="+" [3583..3604]
+                                  left: call callee="id" title=false [3583..3595]
                                     args:
-                                      arg [2702..2710]
-                                        value: name name="MinorSet" title=true [2702..2710]
-                                  right: name name="travel" title=false [2714..2720]
-                        right: assign [2725..2763]
+                                      arg [3586..3594]
+                                        value: name name="MinorSet" title=true [3586..3594]
+                                  right: name name="travel" title=false [3598..3604]
+                        right: assign [3609..3647]
                           args:
-                            - group="Station" [2732..2746]
-                              pattern: expr-pattern [2742..2746]
-                                expr: name name="exit" title=false [2742..2746]
-                            - group="Couple" [2748..2762]
-                              pattern: relative which="other" [2757..2762]
-        fn name="out" [2778..2827]
+                            - group="Station" [3616..3630]
+                              pattern: expr-pattern [3626..3630]
+                                expr: name name="exit" title=false [3626..3630]
+                            - group="Couple" [3632..3646]
+                              pattern: relative which="other" [3641..3646]
+        fn name="out" [3662..3711]
           params:
-            param name="length" [2785..2796]
-              type: primitive name="i32" [2793..2796]
+            param name="length" [3669..3680]
+              type: primitive name="i32" [3677..3680]
           body:
-            expr tail=false [2800..2825]
-              expr: call callee="wait-out" title=false [2800..2824]
+            expr tail=false [3684..3709]
+              expr: call callee="wait-out" title=false [3684..3708]
                 args:
-                  arg name="beats" [2809..2823]
-                    value: name name="length" title=false [2817..2823]"
+                  arg name="beats" [3693..3707]
+                    value: name name="length" title=false [3701..3707]"
 `;
 
 exports[`every fixture parses > broken/broken-progression.dance 1`] = `
@@ -1121,6 +1141,47 @@ exports[`every fixture parses > broken/phrase-assert.dance 1`] = `
                     value: int value=16 [843..845]"
 `;
 
+exports[`every fixture parses > broken/two-partners.dance 1`] = `
+"file module="two-partners" [0..733]
+  uses:
+    use module="contra" [456..490]
+      names:
+        - name="Role" [469..473]
+        - name="Couple" [475..481]
+        - name="swing" [483..488]
+    use module="becket" [491..524]
+      names:
+        - name="MajorSet" [504..512]
+        - name="MinorSet" [514..522]
+  decls:
+    fn name="two-partners" [526..732]
+      params:
+        param name="minor-sets" [542..557]
+          type: primitive name="i32" [554..557]
+      body:
+        setup [563..610]
+          body:
+            invoke name="MajorSet" [571..608]
+              args:
+                arg [580..581]
+                  value: int value=1 [580..581]
+                arg name="minor-sets" [583..606]
+                  value: name name="minor-sets" title=false [596..606]
+        card text="Two partners" [613..633]
+        expr tail=false [679..730]
+          expr: call callee="swing" title=false [679..729]
+            args:
+              arg [685..717]
+                value: select [685..717]
+                  args:
+                    - group="Couple" [692..706]
+                      pattern: relative which="other" [701..706]
+                    - group="Role" [708..716]
+                      pattern: wildcard [715..716]
+              arg name="beats" [719..728]
+                value: int value=8 [727..728]"
+`;
+
 exports[`every fixture parses > broken/wrong-arity.dance 1`] = `
 "file module="wrong-arity" [0..752]
   uses:
@@ -1314,7 +1375,7 @@ exports[`every fixture parses > butter.dance 1`] = `
 `;
 
 exports[`every fixture parses > contra.dance 1`] = `
-"file module="contra" [0..2126]
+"file module="contra" [0..3723]
   decls:
     group name="Role" bodySpan=[313..343] [249..345]
       idType: enum [264..288]
@@ -1514,35 +1575,105 @@ exports[`every fixture parses > contra.dance 1`] = `
           default: int value=64 [1906..1908]
       body:
         ir name="wait-out" [1912..1926]
-    fn name="allemande" [1930..2002]
+    fn name="allemande" [2005..2094]
       params:
-        param name="with" [1943..1953]
-          type: named name="Role" [1949..1953]
-        param name="hand" [1955..1965]
-          type: named name="Hand" [1961..1965]
-        param name="beats" [1967..1981]
-          type: primitive name="i32" [1974..1977]
-          default: int value=8 [1980..1981]
+        param name="with" [2018..2028]
+          type: named name="Role" [2024..2028]
+        param name="hand" [2030..2040]
+          type: named name="Hand" [2036..2040]
+        param name="amount" [2042..2057]
+          type: primitive name="f64" [2050..2053]
+          default: int value=1 [2056..2057]
+        param name="beats" [2059..2073]
+          type: primitive name="i32" [2066..2069]
+          default: int value=8 [2072..2073]
       body:
-        ir name="allemande" [1985..2000]
-    fn name="do-si-do" [2004..2062]
+        ir name="allemande" [2077..2092]
+    fn name="do-si-do" [2096..2154]
       params:
-        param name="with" [2016..2026]
-          type: named name="Role" [2022..2026]
-        param name="beats" [2028..2042]
-          type: primitive name="i32" [2035..2038]
-          default: int value=8 [2041..2042]
+        param name="with" [2108..2118]
+          type: named name="Role" [2114..2118]
+        param name="beats" [2120..2134]
+          type: primitive name="i32" [2127..2130]
+          default: int value=8 [2133..2134]
       body:
-        ir name="do-si-do" [2046..2060]
-    fn name="promenade" [2064..2125]
+        ir name="do-si-do" [2138..2152]
+    fn name="promenade" [2156..2217]
       params:
-        param name="ring" [2077..2088]
-          type: primitive name="group" [2083..2088]
-        param name="beats" [2090..2104]
-          type: primitive name="i32" [2097..2100]
-          default: int value=8 [2103..2104]
+        param name="ring" [2169..2180]
+          type: primitive name="group" [2175..2180]
+        param name="beats" [2182..2196]
+          type: primitive name="i32" [2189..2192]
+          default: int value=8 [2195..2196]
       body:
-        ir name="promenade" [2108..2123]"
+        ir name="promenade" [2200..2215]
+    fn name="mad-robin" [2868..2947]
+      params:
+        param name="around" [2881..2893]
+          type: named name="Role" [2889..2893]
+        param name="direction" [2895..2910]
+          type: named name="Turn" [2906..2910]
+        param name="beats" [2912..2926]
+          type: primitive name="i32" [2919..2922]
+          default: int value=6 [2925..2926]
+      body:
+        ir name="mad-robin" [2930..2945]
+    fn name="form-wave" [3077..3150]
+      params:
+        param name="right" [3090..3101]
+          type: named name="Role" [3097..3101]
+        param name="left" [3103..3113]
+          type: named name="Role" [3109..3113]
+        param name="beats" [3115..3129]
+          type: primitive name="i32" [3122..3125]
+          default: int value=2 [3128..3129]
+      body:
+        ir name="form-wave" [3133..3148]
+    fn name="balance-wave" [3203..3282]
+      params:
+        param name="right" [3219..3230]
+          type: named name="Role" [3226..3230]
+        param name="left" [3232..3242]
+          type: named name="Role" [3238..3242]
+        param name="beats" [3244..3258]
+          type: primitive name="i32" [3251..3254]
+          default: int value=4 [3257..3258]
+      body:
+        ir name="balance-wave" [3262..3280]
+    fn name="single-file-promenade" [3375..3491]
+      params:
+        param name="ring" [3400..3411]
+          type: primitive name="group" [3406..3411]
+        param name="direction" [3413..3428]
+          type: named name="Turn" [3424..3428]
+        param name="eighths" [3430..3442]
+          type: primitive name="i32" [3439..3442]
+        param name="beats" [3444..3458]
+          type: primitive name="i32" [3451..3454]
+          default: int value=4 [3457..3458]
+      body:
+        ir name="single-file-promenade" [3462..3489]
+    fn name="shoulder-round" [3568..3680]
+      params:
+        param name="with" [3586..3596]
+          type: named name="Role" [3592..3596]
+        param name="shoulder" [3598..3612]
+          type: named name="Hand" [3608..3612]
+        param name="amount-quarters" [3614..3638]
+          type: primitive name="i32" [3631..3634]
+          default: int value=4 [3637..3638]
+        param name="beats" [3640..3654]
+          type: primitive name="i32" [3647..3650]
+          default: int value=8 [3653..3654]
+      body:
+        ir name="shoulder-round" [3658..3678]
+    fn name="stand" [3682..3722]
+      params:
+        param name="beats" [3691..3705]
+          type: primitive name="i32" [3698..3701]
+          default: int value=4 [3704..3705]
+      body:
+        ir name="stand" [3709..3720]"
 `;
 
 exports[`every fixture parses > improper.dance 1`] = `
@@ -2009,6 +2140,343 @@ exports[`every fixture parses > prelude.dance 1`] = `
       members:
         - name="X" [330..331]
         - name="Y" [333..334]"
+`;
+
+exports[`every fixture parses > robins-on-a-wire.dance 1`] = `
+"file module="robins-on-a-wire" [0..4678]
+  uses:
+    use module="contra" [2112..2269]
+      names:
+        - name="Role" [2125..2129]
+        - name="Couple" [2131..2137]
+        - name="Phrase" [2139..2145]
+        - name="phrase" [2147..2153]
+        - name="chain" [2155..2160]
+        - name="mad-robin" [2162..2171]
+        - name="form-wave" [2173..2182]
+        - name="balance-wave" [2184..2196]
+        - name="shift" [2198..2203]
+        - name="allemande" [2205..2214]
+        - name="swing" [2216..2221]
+        - name="single-file-promenade" [2223..2244]
+        - name="shoulder-round" [2246..2260]
+        - name="stand" [2262..2267]
+    use module="becket" [2270..2303]
+      names:
+        - name="MajorSet" [2283..2291]
+        - name="MinorSet" [2293..2301]
+  decls:
+    fn name="a1" [2439..2672]
+      body:
+        expr tail=false [2451..2670]
+          expr: call callee="phrase" title=false [2451..2461]
+            args:
+              arg [2458..2460]
+                value: name name="A1" title=true [2458..2460]
+          block:
+            expr tail=false [2468..2507]
+              expr: call callee="chain" title=false [2468..2506]
+                args:
+                  arg [2474..2479]
+                    value: name name="Robin" title=true [2474..2479]
+                  arg name="to" [2481..2494]
+                    value: name name="neighbor" title=false [2486..2494]
+                  arg name="beats" [2496..2505]
+                    value: int value=8 [2504..2505]
+            expr tail=false [2512..2550]
+              expr: call callee="mad-robin" title=false [2512..2549]
+                args:
+                  arg [2522..2530]
+                    value: name name="neighbor" title=false [2522..2530]
+                  arg [2532..2537]
+                    value: name name="Right" title=true [2532..2537]
+                  arg name="beats" [2539..2548]
+                    value: int value=6 [2547..2548]
+            if [2555..2666]
+              test: is [2559..2572]
+                subject: name name="Role" title=true [2559..2563]
+                pattern: expr-pattern [2567..2572]
+                  expr: name name="Robin" title=true [2567..2572]
+              then:
+                expr tail=false [2576..2633]
+                  expr: call callee="form-wave" title=false [2576..2632]
+                    args:
+                      arg name="right" [2586..2603]
+                        value: name name="wave-mate" title=false [2594..2603]
+                      arg name="left" [2605..2620]
+                        value: name name="opposite" title=false [2612..2620]
+                      arg name="beats" [2622..2631]
+                        value: int value=2 [2630..2631]
+              else:
+                expr tail=false [2647..2664]
+                  expr: call callee="stand" title=false [2647..2663]
+                    args:
+                      arg name="beats" [2653..2662]
+                        value: int value=2 [2661..2662]
+    fn name="b1" [2811..3189]
+      body:
+        expr tail=false [2823..3187]
+          expr: call callee="phrase" title=false [2823..2833]
+            args:
+              arg [2830..2832]
+                value: name name="B1" title=true [2830..2832]
+          block:
+            expr tail=false [2840..2877]
+              expr: call callee="mad-robin" title=false [2840..2876]
+                args:
+                  arg [2850..2858]
+                    value: name name="neighbor" title=false [2850..2858]
+                  arg [2860..2864]
+                    value: name name="Left" title=true [2860..2864]
+                  arg name="beats" [2866..2875]
+                    value: int value=6 [2874..2875]
+            if [2882..2992]
+              test: is [2886..2898]
+                subject: name name="Role" title=true [2886..2890]
+                pattern: expr-pattern [2894..2898]
+                  expr: name name="Lark" title=true [2894..2898]
+              then:
+                expr tail=false [2902..2959]
+                  expr: call callee="form-wave" title=false [2902..2958]
+                    args:
+                      arg name="right" [2912..2928]
+                        value: name name="opposite" title=false [2920..2928]
+                      arg name="left" [2930..2946]
+                        value: name name="wave-mate" title=false [2937..2946]
+                      arg name="beats" [2948..2957]
+                        value: int value=2 [2956..2957]
+              else:
+                expr tail=false [2973..2990]
+                  expr: call callee="stand" title=false [2973..2989]
+                    args:
+                      arg name="beats" [2979..2988]
+                        value: int value=2 [2987..2988]
+            if [2997..3116]
+              test: is [3001..3013]
+                subject: name name="Role" title=true [3001..3005]
+                pattern: expr-pattern [3009..3013]
+                  expr: name name="Lark" title=true [3009..3013]
+              then:
+                expr tail=false [3017..3077]
+                  expr: call callee="balance-wave" title=false [3017..3076]
+                    args:
+                      arg name="right" [3030..3046]
+                        value: name name="opposite" title=false [3038..3046]
+                      arg name="left" [3048..3064]
+                        value: name name="wave-mate" title=false [3055..3064]
+                      arg name="beats" [3066..3075]
+                        value: int value=4 [3074..3075]
+              else:
+                expr tail=false [3091..3114]
+                  expr: call callee="shift" title=false [3091..3113]
+                    args:
+                      arg [3097..3101]
+                        value: name name="Left" title=true [3097..3101]
+                      arg name="beats" [3103..3112]
+                        value: int value=4 [3111..3112]
+            expr tail=false [3121..3183]
+              expr: call callee="single-file-promenade" title=false [3121..3182]
+                args:
+                  arg [3143..3151]
+                    value: name name="MinorSet" title=true [3143..3151]
+                  arg [3153..3157]
+                    value: name name="Left" title=true [3153..3157]
+                  arg name="eighths" [3159..3170]
+                    value: int value=5 [3169..3170]
+                  arg name="beats" [3172..3181]
+                    value: int value=4 [3180..3181]
+    fn name="b2" [3191..3320]
+      body:
+        expr tail=false [3203..3318]
+          expr: call callee="phrase" title=false [3203..3213]
+            args:
+              arg [3210..3212]
+                value: name name="B2" title=true [3210..3212]
+          block:
+            expr tail=false [3220..3283]
+              expr: call callee="shoulder-round" title=false [3220..3282]
+                args:
+                  arg [3235..3242]
+                    value: name name="partner" title=false [3235..3242]
+                  arg [3244..3249]
+                    value: name name="Right" title=true [3244..3249]
+                  arg name="amount-quarters" [3251..3270]
+                    value: int value=4 [3269..3270]
+                  arg name="beats" [3272..3281]
+                    value: int value=8 [3280..3281]
+            expr tail=false [3288..3314]
+              expr: call callee="swing" title=false [3288..3313]
+                args:
+                  arg [3294..3301]
+                    value: name name="partner" title=false [3294..3301]
+                  arg name="beats" [3303..3312]
+                    value: int value=8 [3311..3312]
+    fn name="robins-on-a-wire" [3456..3997]
+      params:
+        param name="minor-sets" [3476..3491]
+          type: primitive name="i32" [3488..3491]
+      body:
+        setup [3497..3544]
+          body:
+            invoke name="MajorSet" [3505..3542]
+              args:
+                arg [3514..3515]
+                  value: int value=1 [3514..3515]
+                arg name="minor-sets" [3517..3540]
+                  value: name name="minor-sets" title=false [3530..3540]
+        card text="Robins on a Wire" [3547..3571]
+        expr tail=false [3575..3580]
+          expr: call callee="a1" title=false [3575..3579]
+        expr tail=false [3583..3979]
+          expr: call callee="phrase" title=false [3583..3593]
+            args:
+              arg [3590..3592]
+                value: name name="A2" title=true [3590..3592]
+          block:
+            expr tail=false [3600..3611]
+              expr: call callee="progress" title=false [3600..3610]
+            if [3685..3805]
+              test: is [3689..3702]
+                subject: name name="Role" title=true [3689..3693]
+                pattern: expr-pattern [3697..3702]
+                  expr: name name="Robin" title=true [3697..3702]
+              then:
+                expr tail=false [3706..3766]
+                  expr: call callee="balance-wave" title=false [3706..3765]
+                    args:
+                      arg name="right" [3719..3736]
+                        value: name name="wave-mate" title=false [3727..3736]
+                      arg name="left" [3738..3753]
+                        value: name name="opposite" title=false [3745..3753]
+                      arg name="beats" [3755..3764]
+                        value: int value=4 [3763..3764]
+              else:
+                expr tail=false [3780..3803]
+                  expr: call callee="shift" title=false [3780..3802]
+                    args:
+                      arg [3786..3790]
+                        value: name name="Left" title=true [3786..3790]
+                      arg name="beats" [3792..3801]
+                        value: int value=4 [3800..3801]
+            if [3837..3943]
+              test: is [3841..3854]
+                subject: name name="Role" title=true [3841..3845]
+                pattern: expr-pattern [3849..3854]
+                  expr: name name="Robin" title=true [3849..3854]
+              then:
+                expr tail=false [3858..3910]
+                  expr: call callee="allemande" title=false [3858..3909]
+                    args:
+                      arg [3868..3876]
+                        value: name name="opposite" title=false [3868..3876]
+                      arg [3878..3883]
+                        value: name name="Right" title=true [3878..3883]
+                      arg name="amount" [3885..3897]
+                        value: binary op="/" [3894..3897]
+                          left: int value=3 [3894..3895]
+                          right: int value=4 [3896..3897]
+                      arg name="beats" [3899..3908]
+                        value: int value=4 [3907..3908]
+              else:
+                expr tail=false [3924..3941]
+                  expr: call callee="stand" title=false [3924..3940]
+                    args:
+                      arg name="beats" [3930..3939]
+                        value: int value=4 [3938..3939]
+            expr tail=false [3948..3975]
+              expr: call callee="swing" title=false [3948..3974]
+                args:
+                  arg [3954..3962]
+                    value: name name="neighbor" title=false [3954..3962]
+                  arg name="beats" [3964..3973]
+                    value: int value=8 [3972..3973]
+        expr tail=false [3982..3987]
+          expr: call callee="b1" title=false [3982..3986]
+        expr tail=false [3990..3995]
+          expr: call callee="b2" title=false [3990..3994]
+    fn name="robins-on-a-wire-passed" [4197..4677]
+      params:
+        param name="minor-sets" [4224..4239]
+          type: primitive name="i32" [4236..4239]
+      body:
+        setup [4245..4292]
+          body:
+            invoke name="MajorSet" [4253..4290]
+              args:
+                arg [4262..4263]
+                  value: int value=1 [4262..4263]
+                arg name="minor-sets" [4265..4288]
+                  value: name name="minor-sets" title=false [4278..4288]
+        card text="Robins on a Wire (allemande the hand you hold)" [4295..4349]
+        expr tail=false [4353..4358]
+          expr: call callee="a1" title=false [4353..4357]
+        expr tail=false [4361..4659]
+          expr: call callee="phrase" title=false [4361..4371]
+            args:
+              arg [4368..4370]
+                value: name name="A2" title=true [4368..4370]
+          block:
+            expr tail=false [4378..4389]
+              expr: call callee="progress" title=false [4378..4388]
+            if [4394..4514]
+              test: is [4398..4411]
+                subject: name name="Role" title=true [4398..4402]
+                pattern: expr-pattern [4406..4411]
+                  expr: name name="Robin" title=true [4406..4411]
+              then:
+                expr tail=false [4415..4475]
+                  expr: call callee="balance-wave" title=false [4415..4474]
+                    args:
+                      arg name="right" [4428..4445]
+                        value: name name="wave-mate" title=false [4436..4445]
+                      arg name="left" [4447..4462]
+                        value: name name="opposite" title=false [4454..4462]
+                      arg name="beats" [4464..4473]
+                        value: int value=4 [4472..4473]
+              else:
+                expr tail=false [4489..4512]
+                  expr: call callee="shift" title=false [4489..4511]
+                    args:
+                      arg [4495..4499]
+                        value: name name="Left" title=true [4495..4499]
+                      arg name="beats" [4501..4510]
+                        value: int value=4 [4509..4510]
+            if [4519..4623]
+              test: is [4523..4536]
+                subject: name name="Role" title=true [4523..4527]
+                pattern: expr-pattern [4531..4536]
+                  expr: name name="Robin" title=true [4531..4536]
+              then:
+                expr tail=false [4540..4590]
+                  expr: call callee="allemande" title=false [4540..4589]
+                    args:
+                      arg [4550..4556]
+                        value: name name="passed" title=false [4550..4556]
+                      arg [4558..4563]
+                        value: name name="Right" title=true [4558..4563]
+                      arg name="amount" [4565..4577]
+                        value: binary op="/" [4574..4577]
+                          left: int value=3 [4574..4575]
+                          right: int value=4 [4576..4577]
+                      arg name="beats" [4579..4588]
+                        value: int value=4 [4587..4588]
+              else:
+                expr tail=false [4604..4621]
+                  expr: call callee="stand" title=false [4604..4620]
+                    args:
+                      arg name="beats" [4610..4619]
+                        value: int value=4 [4618..4619]
+            expr tail=false [4628..4655]
+              expr: call callee="swing" title=false [4628..4654]
+                args:
+                  arg [4634..4642]
+                    value: name name="neighbor" title=false [4634..4642]
+                  arg name="beats" [4644..4653]
+                    value: int value=8 [4652..4653]
+        expr tail=false [4662..4667]
+          expr: call callee="b1" title=false [4662..4666]
+        expr tail=false [4670..4675]
+          expr: call callee="b2" title=false [4670..4674]"
 `;
 
 exports[`every fixture parses > role-swap.dance 1`] = `

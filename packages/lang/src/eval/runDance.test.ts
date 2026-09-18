@@ -284,4 +284,125 @@ fn everywhere(minor-sets: i32) {
     const time = once(fixtures(), "butter", { "minor-sets": 1 });
     expect(printTime(time)).toMatchSnapshot();
   });
+
+  // The kinetics-on-lang plan, M3: nobody as a `Role` value (notes D10) and
+  // mid-dance admission by silent replay (D8).
+  describe("nobody as a Role value (D10)", () => {
+    const WAVE = `use contra::{Role, Couple, form-wave, stand};
+use becket::{MajorSet, MinorSet};
+
+fn wave(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  if (Role is Robin) { form-wave(right = wave-mate, left = opposite, beats = 2); }
+  else { stand(beats = 2); }
+}
+`;
+    const argOf = (time: TimeResult, dancer: string, name: string) =>
+      time.moves.find((move) => move.dancer === dancer)?.args.find((arg) => arg.name === name);
+
+    it("leaves the end robin's far hand on nobody, and is not a diagnostic", () => {
+      const time = once(withModule("wave", WAVE), "wave", { "minor-sets": 2 });
+      expect(time.diagnostics).toEqual([]);
+      // The ones travel down the hall: the ones' robin of the top set has a
+      // far mate below her, the twos' robin of the same set has nobody above.
+      expect(argOf(time, "0-1R", "right")).toEqual({
+        name: "right",
+        value: "[1-2R]",
+        ref: { t: "dancer", id: "1-2R" },
+      });
+      expect(argOf(time, "0-2R", "right")).toEqual({ name: "right", value: "[]" });
+      expect(argOf(time, "1-1R", "right")).toEqual({ name: "right", value: "[]" });
+      expect(argOf(time, "1-2R", "right")?.ref).toEqual({ t: "dancer", id: "0-1R" });
+      // The near hand is always somebody.
+      for (const robin of ["0-1R", "0-2R", "1-1R", "1-2R"])
+        expect(argOf(time, robin, "left")?.ref?.t).toBe("dancer");
+    });
+
+    it("says so at the call when a Role argument names two", () => {
+      const time = once(fixtures({ broken: true }), "two-partners", { "minor-sets": 1 });
+      const first = time.diagnostics[0];
+      expect(first?.code).toBe("L110");
+      expect(first?.beat).toBe(0);
+      expect(first?.dancers).toEqual(["0-1L"]);
+      expect(first?.message).toBe("swing(with): 2 matched, 0-2L and 0-2R; a move takes one");
+      expect(first?.span?.file).toBe("broken/two-partners.dance");
+    });
+  });
+
+  describe("mid-dance admission by silent replay (D8)", () => {
+    const MID = `use contra::{Role, Couple, swing, balance};
+use becket::{MajorSet, MinorSet};
+
+fn mid(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Mid";
+  swing(partner, beats = 16);
+  progress();
+  balance(neighbor, beats = 4);
+  swing(neighbor, beats = 12);
+}
+`;
+
+    it("admits the waiting couple at the commit that makes it addressable, live from the statement after progress()", () => {
+      const time = once(withModule("mid", MID), "mid", { "minor-sets": 2 });
+      expect(time.diagnostics).toEqual([]);
+      expect(time.events.every((event) => event.beat === 16)).toBe(true);
+      expect(time.events.map((event) => event.dancer)).toContain("OT-1L");
+      // The entrant's first recorded move is the one after `progress()`,
+      // read from where the commit put it: the balance with its new
+      // neighbour, at beat 16 — not the swing at 0 it replayed silently.
+      const recorded = time.moves
+        .filter((move) => move.dancer === "OT-1R" && move.ir !== "wait-out")
+        .map((move) => `${String(move.start)} ${move.ir}(${move.args[0]?.value ?? ""})`);
+      expect(recorded).toEqual(["16 balance(1-2L)", "20 swing(1-2L)"]);
+      // It waited out the beats before it, and the card was said by the
+      // dancers who were in at beat 0 only.
+      const waited = time.moves.find((move) => move.dancer === "OT-1R" && move.ir === "wait-out");
+      expect([waited?.start, waited?.beats]).toEqual([0, 16]);
+      expect(time.cards[0]?.dancers).not.toContain("OT-1R");
+      expect(time.inDancers).toContain("OT-1R");
+      // The couple the commit carried out at the bottom danced the move it
+      // had already begun at 16 — read before the commit, with its old
+      // neighbour — and waits out from there (D4, as Butter's shift at 2).
+      const out = time.moves.find((move) => move.dancer === "1-1R" && move.ir === "wait-out");
+      expect([out?.start, out?.beats]).toEqual([20, 12]);
+      expect(time.length).toBe(32);
+    });
+
+    it("keeps Butter's beat-0 admission as it was: the entrant is live from its first statement", () => {
+      const time = once(fixtures(), "butter", { "minor-sets": 2 }, { time: 2 });
+      expect(time.diagnostics).toEqual([]);
+      const entrant = time.moves.filter((move) => move.dancer === "OT-1L").map((m) => m.ir);
+      expect(entrant.slice(0, 3)).toEqual(["shift", "circle", "swing"]);
+      expect(entrant).not.toContain("wait-out");
+    });
+
+    it("refuses an entrant whose replay never meets a progress() at the admitting beat (L111)", () => {
+      // The larks progress the set at beat 0; the robins' text says it at 8.
+      // The robin waiting at the top is made addressable at 0, replays past
+      // it without a `progress()` at cursor 0, and waits out instead.
+      const time = once(
+        withModule(
+          "skew",
+          `use contra::{Role, Couple, swing};
+use becket::{MajorSet, MinorSet};
+
+fn skew(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  if (Role is Lark) { progress(); swing(neighbor, beats = 16); }
+  else { swing(neighbor, beats = 8); progress(); swing(neighbor, beats = 8); }
+}
+`,
+        ),
+        "skew",
+        { "minor-sets": 2 },
+      );
+      const refused = time.diagnostics.find((d) => d.code === "L111");
+      expect(refused?.dancers).toEqual(["OT-1R"]);
+      expect(refused?.beat).toBe(0);
+      expect(refused?.message).toBe("OT-1R entered at beat 0 but the script progresses at beat 8");
+      expect(time.outDancers).toContain("OT-1R");
+      expect(time.inDancers).toContain("OT-1L");
+    });
+  });
 });
