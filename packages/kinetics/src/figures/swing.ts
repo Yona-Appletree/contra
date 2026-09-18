@@ -63,6 +63,9 @@ export const swing: FigureIR = {
       rateMaxTurnsPerBeat: 0.25,
       rateMinTurnsPerBeat: 0.15,
       buzz: true,
+      // With nothing of the same cast to spiral into, the swing still ends
+      // in the line facing home: its own post, over its last two beats.
+      exit: "post",
     },
   ],
   look: [{ role: "self", at: "partner" }],

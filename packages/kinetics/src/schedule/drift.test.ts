@@ -26,12 +26,10 @@ describe("drift", () => {
     }
     // Only figures that claim to end at a seat are checked: the shift walks to
     // one, the swing and the chain land in the line, the circle and the hey
-    // do not. The chain's is the language's: a robin who has chained across
-    // stands on the other line's seat, and the text still gives her her own
-    // (`dances/butter.test.ts` pins it).
-    expect(new Set(drift.map((w) => w.message.split(" ")[0]))).toEqual(
-      new Set(["shift", "swing", "chain"]),
-    );
+    // do not. Butter's chain to partner drifts nothing since M3 (the swing
+    // before it puts the robin on the right side; `dances/butter.test.ts`);
+    // a chain to neighbour does (`dances/robins.test.ts`).
+    expect(new Set(drift.map((w) => w.message.split(" ")[0]))).toEqual(new Set(["shift", "swing"]));
   });
 
   it("measures a place as half a couple's spacing", () => {

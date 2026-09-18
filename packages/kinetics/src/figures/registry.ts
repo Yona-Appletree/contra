@@ -5,9 +5,15 @@ import { doSiDo } from "./doSiDo.js";
 import { balance } from "./balance.js";
 import { chain } from "./chain.js";
 import { circle } from "./circle.js";
+import { balanceWave } from "./balanceWave.js";
+import { formWave } from "./formWave.js";
 import { hey } from "./hey.js";
 import { longLines } from "./longLines.js";
+import { madRobin } from "./madRobin.js";
 import { shift } from "./shift.js";
+import { shoulderRound } from "./shoulderRound.js";
+import { singleFilePromenade } from "./singleFilePromenade.js";
+import { stand } from "./stand.js";
 import { swing } from "./swing.js";
 import { waitOut } from "./waitOut.js";
 
@@ -17,8 +23,9 @@ import { waitOut } from "./waitOut.js";
  * this table has not got is a compile error with the call's span, never a
  * silent stand.
  *
- * The pair's three, and Butter whole (shift, circle, swing, long lines,
- * chain, hey, balance) — more data, not more code.
+ * The pair's three, Butter whole (shift, circle, swing, long lines, chain,
+ * hey, balance) and Robins on a Wire's (mad robin, form-wave, balance-wave,
+ * single-file promenade, shoulder round, stand) — more data, not more code.
  */
 export const FIGURES: FigureRegistry = {
   [bow.id]: bow,
@@ -32,6 +39,12 @@ export const FIGURES: FigureRegistry = {
   [hey.id]: hey,
   [balance.id]: balance,
   [waitOut.id]: waitOut,
+  [madRobin.id]: madRobin,
+  [formWave.id]: formWave,
+  [balanceWave.id]: balanceWave,
+  [singleFilePromenade.id]: singleFilePromenade,
+  [shoulderRound.id]: shoulderRound,
+  [stand.id]: stand,
 };
 
 /** The figures a compile is run against. */

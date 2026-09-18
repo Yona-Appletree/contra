@@ -107,6 +107,7 @@ const ERROR_CODES: Readonly<Record<string, string>> = {
   PivotTooLarge: "K104",
   TakeOutOfReach: "K105",
   Unplannable: "K106",
+  HandTaken: "K107",
   LongStride: "K201",
   IntrinsicTruncated: "K202",
   Drift: "K203",

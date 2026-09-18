@@ -10,6 +10,7 @@ import {
   pullByR,
   ring,
   twoHand,
+  wave,
 } from "./placeholders.js";
 import type { HoldPosture } from "./HoldPosture.js";
 
@@ -36,6 +37,7 @@ export const HOLDS: Readonly<Record<HoldId, HoldPosture>> = {
   "pull-by-L": pullByL,
   courtesy,
   "two-hand": twoHand,
+  wave,
 };
 
 /** The posture `id` names. */

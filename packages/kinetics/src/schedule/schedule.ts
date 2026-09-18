@@ -428,7 +428,8 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         ),
       });
     });
-    // With the facing fixed each faces where the other will stand (a do-si-do).
+    // With the facing fixed each faces where the other will stand (a do-si-do);
+    // `kept` keeps the facing they arrive with (a mad robin, eyes across).
     if (orbit.facing === "fixed" && ordered.length === 2) {
       const [a, b] = ordered as [DancerId, DancerId];
       const ta = targets.get(a) as Pose;
@@ -605,6 +606,11 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           if (other) facing = bearing(p, poseOf(other).p);
         }
       }
+      if (clause.kind === "forward") {
+        // So far forward of where they stand, along the facing they have.
+        const dir = dirOf(facing);
+        p = [p[0] + dir[0] * clause.distancePx, p[1] + dir[1] * clause.distancePx];
+      }
       if (clause.kind === "apart") {
         const other = castOf(inst, d, clause.from);
         if (!other) continue;
@@ -623,17 +629,31 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         const side = clause.side === "as-couple" ? dialect.sideOf?.(d, other) : clause.side;
         if (!side) continue;
         let mid = midpoint(me.p, poseOf(other).p);
+        // Home is the **left-hand dancer's** when the pair ends on their seat:
+        // a neighbour swing ends the couple on the lark's line, and the robin
+        // from the other line has the other line's home. (Before M3 each
+        // read their own, and a couple whose two homes faced opposite ways
+        // put the robin on the lark's left — Robins on a Wire's N2 swing.)
+        const leftOne = side === "left" ? d : other;
         const f = clauses.some((c) => c.kind === "facing" && c.toward === "home")
-          ? homeOf(inst, d)
+          ? homeOf(inst, clause.centre === "left-seat" ? leftOne : d)
           : facing;
         if (clause.centre === "left-seat") {
-          // Move the centre along the home facing onto the left-hand dancer's seat line.
-          const leftOne = side === "left" ? d : other;
+          // The left-hand dancer lands **on** their seat and the other beside
+          // them on their right: the pair's centre is half the spacing to the
+          // right of that seat. (M2 moved the centre along the home facing
+          // only, on to the seat's line across the set, and left the pair
+          // wherever along the line the hands had been taken — right when
+          // the swing happens on the places, as Butter's do, and a whole
+          // hand's reach off when it does not, as Robins on a Wire's swing
+          // after the allemande showed in the wave that followed it.)
           const seat = inst.calls.get(leftOne)?.seatAfter.p;
           if (seat) {
-            const along = dirOf(f);
-            const t = (seat[0] - mid[0]) * along[0] + (seat[1] - mid[1]) * along[1];
-            mid = [mid[0] + along[0] * t, mid[1] + along[1] * t];
+            const toRight = rightOf(f);
+            mid = [
+              seat[0] + toRight[0] * (clause.spacingPx / 2),
+              seat[1] + toRight[1] * (clause.spacingPx / 2),
+            ];
           }
         }
         const lateral = side === "left" ? leftOf(f) : rightOf(f);
@@ -1044,6 +1064,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         const fd = floor[need.dancer];
         const fo = floor[need.with];
         if (!fd || !fo) continue;
+        if (handTaken(inst, need, otherNeed, beat)) continue;
         const at = Math.max(beat - TAKE_BEATS, inst.start);
         const otherCall = inst.calls.get(need.with) as CompiledCall;
         emit(
@@ -1093,16 +1114,37 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     // The rate cap is a cap on the **fastest step**, which with a ramp is a
     // middle one, not on the average.
     const lastWindow = from + n === inst.end - inst.exit || blend !== undefined;
+    // A `post` exit: with no next figure of the same cast to spiral into,
+    // the last beats spiral to this figure's **own** post — a swing that
+    // ends on the places facing home whatever follows it (M3: Robins on a
+    // Wire's partner swing into the next time's chain, whose cast is the
+    // neighbour's, could not back-chain and left the chain paying an entry
+    // it has no beat for).
+    const postExit = (): ExitBlend | undefined => {
+      if (w.exit !== "post" || !lastWindow || n <= OPEN_BEATS) return undefined;
+      const targets = new Map(
+        dancers.map((d) => [d, arrangementTarget(inst, d, inst.figure.post.arrangement)]),
+      );
+      // As many beats as the walk to the post would take from where the
+      // orbit runs, no fewer than a spiral's two and no more than the body
+      // can spare: a post a whole place off (the shift's floor, E1) is not
+      // reached in a two-beat lunge.
+      let beats = OPEN_BEATS;
+      for (const d of dancers)
+        beats = Math.max(beats, beatsNeeded(poseOf(d), targets.get(d) as Pose, limits));
+      return { beats: Math.min(beats, n - 1), targets, keepTurning: false };
+    };
+    const exitBlend: ExitBlend | undefined = blend ?? postExit();
     // A spiral settles: the last beat of a swing is a landing, not a sprint,
     // and the figure after it may well set off the other way.
     const shares = fractionsFor(
       dancers[0] as DancerId,
       from,
       n,
-      lastWindow && (blend !== undefined || stopsAfter(inst, dancers[0] as DancerId)),
+      lastWindow && (exitBlend !== undefined || stopsAfter(inst, dancers[0] as DancerId)),
     );
-    const freeze = blend !== undefined && !blend.keepTurning;
-    const orbitSteps = freeze ? Math.max(1, n - blend.beats) : n;
+    const freeze = exitBlend !== undefined && !exitBlend.keepTurning;
+    const orbitSteps = freeze ? Math.max(1, n - exitBlend.beats) : n;
     // Frozen, the orbit's own steps ramp down before the spiral takes over.
     const orbitShares = freeze
       ? fractionsFor(dancers[0] as DancerId, from, orbitSteps, true)
@@ -1134,7 +1176,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         emit(d, from + n - 1, 1, { op: "buzz", on: false }, call.id, "body", inst);
       }
     }
-    // With an exit blend the turns complete over the first `n − k` steps and
+    // With an exit exitBlend the turns complete over the first `n − k` steps and
     // the last `k` are the spiral alone: the swing opens out, it does not go
     // on turning at a growing radius (a 27 px chord at 19 px out).
     const progress: number[] = [0];
@@ -1144,9 +1186,9 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     }
     // The open-out: over the last beats the radius eases to half the spacing
     // the figure ends at, the orbit still turning — a courtesy turn let out
-    // on to the two places. The scheduler's own spiral (a blend) does this
+    // on to the two places. The scheduler's own spiral (a exitBlend) does this
     // with the next figure's start instead, and wins when it is there.
-    const openR = w.openPx === undefined || blend !== undefined ? undefined : w.openPx / 2;
+    const openR = w.openPx === undefined || exitBlend !== undefined ? undefined : w.openPx / 2;
     const rAt = (k: number): number => {
       if (openR === undefined || k <= n - OPEN_BEATS) return r;
       return r + (openR - r) * smoothstep((k - (n - OPEN_BEATS)) / OPEN_BEATS);
@@ -1159,7 +1201,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
     for (const d of dancers) {
       const call = inst.calls.get(d) as CompiledCall;
       const startFacing = poseOf(d).facing;
-      const target = blend?.targets.get(d);
+      const target = exitBlend?.targets.get(d);
       const backs = backsInCouple(inst, d);
       let prev: Pose = poseOf(d);
       let spiralFacing: number | undefined;
@@ -1179,27 +1221,27 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           },
           backs,
         );
-        const exiting = blend !== undefined && target !== undefined && k > n - blend.beats;
+        const exiting = exitBlend !== undefined && target !== undefined && k > n - exitBlend.beats;
         if (exiting && target) {
-          // Spiral out: the last `blend.beats` steps lean toward the next
+          // Spiral out: the last `exitBlend.beats` steps lean toward the next
           // figure's start, the final one landing on it exactly. The facing
           // turns from where it was when the spiral began straight to the
           // target's, spread evenly, rather than riding the orbit's own turn
           // as well (which stacked the two into one 113° step).
-          const i = k - (n - blend.beats);
-          const sBlend = i >= blend.beats ? 1 : smoothstep(i / blend.beats);
+          const i = k - (n - exitBlend.beats);
+          const sBlend = i >= exitBlend.beats ? 1 : smoothstep(i / exitBlend.beats);
           // Blend in polar coordinates about the axis, so the orbit keeps its
           // tangential pace while the radius and the bearing ease toward the
-          // target's; a Cartesian blend lengthens one step and shortens the next.
+          // target's; a Cartesian exitBlend lengthens one step and shortens the next.
           const rT = dist(axis, target.p);
           const thetaEnd = (theta0.get(d) ?? 0) + sign * 360 * turns;
           const thetaT = thetaEnd + angleDiff(thetaEnd, bearing(axis, target.p));
           const rK = r + (rT - r) * sBlend;
           const thetaK = (freeze ? thetaEnd : theta) + (thetaT - thetaEnd) * sBlend;
           p = [axis[0] + rK * dirOf(thetaK)[0], axis[1] + rK * dirOf(thetaK)[1]];
-          if (i >= blend.beats) p = target.p;
+          if (i >= exitBlend.beats) p = target.p;
           spiralFacing ??= prev.facing;
-          facing = spiralFacing + angleDiff(spiralFacing, target.facing) * (i / blend.beats);
+          facing = spiralFacing + angleDiff(spiralFacing, target.facing) * (i / exitBlend.beats);
         }
         // Keep the facing on one continuous branch from step to step.
         facing = prev.facing + angleDiff(prev.facing, facing);
@@ -1321,6 +1363,7 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
           inst.notes.push(`${need.hold} with ${need.with} carried: already held`);
           continue;
         }
+        if (handTaken(inst, need, otherNeed, inst.start)) continue;
         const reach = dist(fd.p, fo.p);
         if (reach > 2 * (ARM_REACH_PX - 4) + 1e-9 && inst.entry === 0) {
           errors.push({
@@ -1397,6 +1440,33 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       }
     }
     return seam;
+  };
+
+  /**
+   * **A hand taken twice** (tool-building mode, M3): the hand this take wants
+   * on the far side is already in a hold with a third dancer at this beat,
+   * and nothing has let it go. Overwriting the floor's record would hand one
+   * hand to two people and the executor would draw whichever came last; so it
+   * is a `HandTaken` error naming all three, and the take does not happen.
+   * The first place it fired: the robin who came in at a mid-dance
+   * progression taking a wave hand that the wave's own dancers had already
+   * joined between themselves.
+   */
+  const handTaken = (inst: Instance, need: HoldNeed, other: HoldNeed, beat: number): boolean => {
+    const fo = floor[other.dancer];
+    if (!fo) return false;
+    const theirs = handState(fo, other.hand);
+    if (theirs === undefined || theirs.with === need.dancer) return false;
+    const call = inst.calls.get(need.dancer) as CompiledCall;
+    errors.push({
+      kind: "HandTaken",
+      message: `${need.dancer}: ${other.dancer}'s ${other.hand} hand is already held by ${theirs.with} (${theirs.hold}) at beat ${beat}, so the ${need.hold} with them is not taken`,
+      call: call.id,
+      dancer: need.dancer,
+      beat,
+      span: call.span,
+    });
+    return true;
   };
 
   const dropHands = (inst: Instance): SeamKind => {
@@ -1486,13 +1556,23 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
       }
     }
     // With the cruise ramp the first step is a half one, so the others are
-    // longer than an even share: add beats until the longest fits.
+    // longer than an even share — and carry more than an even share of the
+    // turn: add beats until the longest step and the biggest pivot both fit.
+    // (The pivot's share was not checked before M3: a robin turning about
+    // to walk a shoulder round got a 120° pivot on the second of two entry
+    // steps, which `K104` said and this now plans for.)
     for (const d of inst.dancers) {
       const dPx = dist(poseOf(d).p, (targets.get(d) as Pose).p);
       if (dPx <= limits.tolerancePx) continue;
+      const turnDeg = Math.abs(angleDiff(poseOf(d).facing, (targets.get(d) as Pose).facing));
       for (let guard = 0; guard < 8; guard++) {
         const shares = fractionsFor(d, inst.start, Math.max(need, 1), false);
-        if (Math.max(...shares) * dPx <= limits.maxStepPx + 1e-9) break;
+        const peak = Math.max(...shares);
+        if (
+          peak * dPx <= limits.maxStepPx + 1e-9 &&
+          peak * turnDeg <= limits.maxPivotSteppingDeg + 1e-9
+        )
+          break;
         need = Math.max(need, 1) + 1;
       }
     }
@@ -1695,26 +1775,51 @@ function elide(sequence: CompiledSequence): Record<DancerId, CompiledCall[]> {
   return out;
 }
 
-/** Whether a call is missing the counterpart or group its figure needs. */
+/**
+ * Whether a call is missing the counterpart or group its figure needs. A
+ * `dancer` parameter binds a figure-role (`partner` unless it says); a role
+ * whose cast rule is `free` may be nobody without the call being one — the
+ * long wave's end has one hand free and goes on — but a figure whose every
+ * counterpart is nobody stands.
+ */
 function isNobody(call: CompiledCall): boolean {
-  const wantsDancer = call.figure.params.some((p) => p.kind === "dancer");
+  const dancerParams = call.figure.params.filter((p) => p.kind === "dancer");
   const wantsGroup = call.figure.params.some((p) => p.kind === "group");
-  return (
-    (wantsDancer && call.cast.partner === undefined) || (wantsGroup && call.group === undefined)
-  );
+  if (wantsGroup && call.group === undefined) return true;
+  if (dancerParams.length === 0) return false;
+  const missing = dancerParams.filter((p) => call.cast[p.role ?? "partner"] === undefined);
+  if (missing.length === 0) return false;
+  if (missing.length === dancerParams.length) return true;
+  return missing.some((p) => call.figure.casts[p.role ?? "partner"] !== "free");
 }
 
-/** Group each dancer's calls into figure instances: same figure, same span, cast together. */
+/** The counterparts a call names, in its figure's own roles, for the instance it belongs to. */
+const castMembers = (call: CompiledCall): DancerId[] => {
+  if (call.group) return [...call.group];
+  const members: DancerId[] = [];
+  for (const p of call.figure.params) {
+    if (p.kind !== "dancer") continue;
+    const who = call.cast[p.role ?? "partner"];
+    if (who !== undefined) members.push(who);
+  }
+  return members;
+};
+
+/**
+ * Group each dancer's calls into figure instances: same figure, same span,
+ * cast together — where "together" is the **connected component** of the
+ * casts: a pair names each other, a ring names its four, and a long wave
+ * names two mates each, so the whole line of it is one instance and both
+ * sides of every hand come from one piece of geometry. A call that names
+ * nobody it needs is an instance of its own, and stands.
+ */
 function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[] {
   const byKey = new Map<string, Instance>();
+  const componentOf = componentsOf(perDancer);
   for (const [d, list] of Object.entries(perDancer)) {
     for (const call of list) {
       const nobody = isNobody(call);
-      const members = nobody
-        ? [d]
-        : call.group
-          ? [...call.group].sort()
-          : [d, call.cast.partner as DancerId].sort();
+      const members = nobody ? [d] : componentOf(d, call);
       const key = `${call.figure.id}@${call.start}-${call.end}:${members.join("+")}`;
       let inst = byKey.get(key);
       if (!inst) {
@@ -1744,6 +1849,63 @@ function groupInstances(perDancer: Record<DancerId, CompiledCall[]>): Instance[]
     }
   }
   return [...byKey.values()].sort((a, b) => a.start - b.start || a.key.localeCompare(b.key));
+}
+
+/**
+ * The connected components of the cast graph, per figure and span: a union
+ * of every dancer with everyone their call names, until nothing joins.
+ * Returns the sorted members of the component `d`'s call is in.
+ */
+function componentsOf(
+  perDancer: Record<DancerId, CompiledCall[]>,
+): (d: DancerId, call: CompiledCall) => DancerId[] {
+  const spanKey = (call: CompiledCall): string => `${call.figure.id}@${call.start}-${call.end}`;
+  const parent = new Map<string, string>();
+  const find = (k: string): string => {
+    let at = k;
+    while (parent.get(at) !== undefined && parent.get(at) !== at) at = parent.get(at) as string;
+    return at;
+  };
+  const union = (a: string, b: string): void => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  const callsBySpan = new Map<string, Map<DancerId, CompiledCall>>();
+  for (const [d, list] of Object.entries(perDancer)) {
+    for (const call of list) {
+      const span = spanKey(call);
+      let calls = callsBySpan.get(span);
+      if (!calls) {
+        calls = new Map();
+        callsBySpan.set(span, calls);
+      }
+      calls.set(d, call);
+    }
+  }
+  for (const [span, calls] of callsBySpan) {
+    for (const [d, call] of calls) {
+      const me = `${span}:${d}`;
+      if (parent.get(me) === undefined) parent.set(me, me);
+      if (isNobody(call)) continue;
+      for (const other of castMembers(call)) {
+        // Only a dancer whose own call is this figure over this span joins:
+        // naming somebody who is dancing something else names nobody here.
+        if (!calls.has(other)) continue;
+        const them = `${span}:${other}`;
+        if (parent.get(them) === undefined) parent.set(them, them);
+        union(me, them);
+      }
+    }
+  }
+  return (d, call) => {
+    const span = spanKey(call);
+    const root = find(`${span}:${d}`);
+    const members: DancerId[] = [];
+    for (const other of callsBySpan.get(span)?.keys() ?? [])
+      if (find(`${span}:${other}`) === root) members.push(other);
+    return members.sort();
+  };
 }
 
 const smoothstep = (k: number): number => {
@@ -1784,6 +1946,7 @@ function orbitFacing(
     case "partner":
       return partner();
     case "fixed":
+    case "kept":
       return fixed;
   }
 }

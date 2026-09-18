@@ -12,7 +12,9 @@ export type ScheduleErrorKind =
   | "StepTooLong"
   | "PivotTooLarge"
   | "TakeOutOfReach"
-  | "Unplannable";
+  | "Unplannable"
+  /** A hand this take wants is already in a third dancer's hold (M3, `K107`). */
+  | "HandTaken";
 
 export interface ScheduleError {
   kind: ScheduleErrorKind;
