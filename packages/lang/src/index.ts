@@ -42,12 +42,17 @@ export type { LoadOptions, Module, ModuleFinder, Program } from "./load.js";
  * `./eval/index.js` rather than from here.
  */
 export {
+  ancestorOfKind,
   buildTree,
   contractKinds,
+  facing,
   findDance,
   hallFacts,
+  kindsOf,
   loadDanceDir,
   loadForEval,
+  nodesOfKind,
+  placesUnder,
   positionsOf,
   printTime,
   printTimeline,
@@ -55,6 +60,8 @@ export {
   runDance,
   runEvening,
   runEveningNamed,
+  shortPath,
+  showValue,
 } from "./eval/index.js";
 export type {
   BuildResult,

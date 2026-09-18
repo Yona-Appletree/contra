@@ -5,7 +5,7 @@ import type { Program } from "../asm/Program.js";
 import type { DancerId, Dialect } from "../dialect/Dialect.js";
 import type { FigureIR, LookTarget, Role, Window } from "../ir/Figure.js";
 import { resolveChoice, resolveNumber } from "../ir/Figure.js";
-import type { CompiledCall, CompiledSequence } from "../lang/compile.js";
+import type { CompiledCall, CompiledSequence } from "../sequence/CompiledSequence.js";
 import type { Tempo } from "../units/Tempo.js";
 import { TAKE_BEATS } from "../units/limits.js";
 import { capsAtTempo } from "../units/caps.js";
@@ -51,6 +51,13 @@ export interface ScheduledCall {
   seamOut: SeamKind;
   /** Turns per beat for an orbit body. */
   rate?: number;
+  /**
+   * Where the body left this dancer, before the exit walks anywhere. The
+   * drift check (`drift.ts`) compares it with the seat the language committed:
+   * a figure that ends a place away from the seat its dance says it ends on is
+   * a warning with a beat and a distance, not a picture nobody looks at.
+   */
+  bodyEnd?: Pose;
   /** One line per decision, in plain words. */
   notes: readonly string[];
 }
@@ -1199,6 +1206,8 @@ export function schedule(sequence: CompiledSequence, dialect: Dialect, tempo: Te
         notes: inst.notes,
       };
       if (inst.rate !== undefined) sc.rate = inst.rate;
+      const end = inst.bodyEnd.get(d);
+      if (end !== undefined) sc.bodyEnd = end;
       calls[d].push(sc);
     }
     calls[d].sort((x, y) => x.call.start - y.call.start);

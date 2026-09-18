@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && vite build --config debugger/vite.config.ts",
+    "check": "node --import ../../scripts/ts-src-resolve.mjs cli/kinetics.mjs",
     "dev": "vite --config debugger/vite.config.ts",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p debugger/tsconfig.json --noEmit",
@@ -16,7 +17,8 @@
   },
   "dependencies": {
     "@caller/core": "workspace:*",
-    "@caller/hall": "workspace:*"
+    "@caller/hall": "workspace:*",
+    "@caller/lang": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.13.5",

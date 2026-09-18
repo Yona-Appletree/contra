@@ -5,10 +5,11 @@ import { describe, expect, it } from "vitest";
 
 /**
  * The package's own import rule, which `scripts/check-deps.mjs` cannot see:
- * `@caller/core` and `@caller/hall` are the workspace packages this one may
- * import, and of `core` only the geometry, time and rendering-contract
- * pieces. The kinematics under `core/src/kinematics/` are what engine 3
- * replaces; importing one of their names would be engine 2 leaking in.
+ * `@caller/core`, `@caller/hall` and `@caller/lang` are the workspace
+ * packages this one may import, and of `core` only the geometry, time and
+ * rendering-contract pieces. The kinematics under `core/src/kinematics/` are
+ * what engine 3 replaces; importing one of their names would be engine 2
+ * leaking in.
  *
  * The one exception is the debugger's pixels pane, which draws with the
  * hall's own passes (the dance-language plan, P6) and so has to hand the
@@ -45,7 +46,14 @@ const ENGINE_2_NAMES = [
   "shouldersAt",
 ];
 
-const ALLOWED_BARE = new Set(["@caller/core", "@caller/hall", "vitest", "vite", "vitest/config"]);
+const ALLOWED_BARE = new Set([
+  "@caller/core",
+  "@caller/hall",
+  "@caller/lang",
+  "vitest",
+  "vite",
+  "vitest/config",
+]);
 
 /** The hall's types the pixels pane must speak, and nothing else may. */
 const HALL_TYPES_ONLY: Readonly<Record<string, readonly string[]>> = {

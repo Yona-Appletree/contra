@@ -231,7 +231,10 @@ fn everywhere(minor-sets: i32) {
     const tree = buildTree(program, dance, args).tree;
     runDance(program, tree, dance, args, { time: 1, firstTime: true });
     const second = runDance(program, tree, dance, args, { time: 2 });
-    expect(partners(second, "0-1L")).toEqual(["2-2R", "0-1R", "0-1R"]);
+    // The shift names the partner it slides with, so the second time through
+    // reads: shift with the partner, swing the *new* neighbour, then the
+    // partner twice.
+    expect(partners(second, "0-1L")).toEqual(["0-1R", "2-2R", "0-1R", "0-1R"]);
   });
 
   // The pair fixture (notes D2): the floor the kinetics stack is built on, and

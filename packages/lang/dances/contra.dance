@@ -35,7 +35,11 @@ fn phrase(which: Phrase, body: fn) {
 
 fn bow(with: Role, beats: i32 = 4) { ir "bow"; }
 
-fn shift(direction: Turn, beats: i32 = 2) { ir "shift"; }
+// A becket's shift is danced by the couple as one — the two slide along
+// their line together — so the move names the partner it slides with, the
+// way the swing names who it swings. A move that names nobody where its
+// figure wants somebody is a `K002` from the join, and the dancers stand.
+fn shift(direction: Turn, with: Role = partner, beats: i32 = 2) { ir "shift"; }
 
 fn circle(ring: group, direction: Turn, places: i32 = 4, beats: i32 = 8) { ir "circle"; }
 
@@ -49,7 +53,7 @@ fn hey(ring: group, start: enum Role, shoulder: Hand, beats: i32 = 16) { ir "hey
 
 fn balance(with: Role, beats: i32 = 4) { ir "balance"; }
 
-fn wait-out(beats: i32 = 64) { ir "wait-out"; }
+fn wait-out(with: Role = partner, beats: i32 = 64) { ir "wait-out"; }
 
 fn allemande(with: Role, hand: Hand, beats: i32 = 8) { ir "allemande"; }
 

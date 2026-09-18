@@ -1,5 +1,5 @@
 import type { DancerId } from "../dialect/Dialect.js";
-import type { Span } from "../lang/syntax.js";
+import type { Span } from "@caller/lang";
 
 /**
  * What the scheduler says when the beats do not suffice (D3): a compile

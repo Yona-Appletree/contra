@@ -2,7 +2,7 @@ import type { DancerId } from "../dialect/Dialect.js";
 import type { Contract } from "../ir/Figure.js";
 import { resolveChoice } from "../ir/Figure.js";
 import type { Hand, HoldId } from "../ir/Hold.js";
-import type { CompiledCall } from "../lang/compile.js";
+import type { CompiledCall } from "../sequence/CompiledSequence.js";
 
 /**
  * How one figure's hands become the next figure's hands (D13, DA9): a hold

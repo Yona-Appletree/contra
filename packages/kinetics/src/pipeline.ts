@@ -1,106 +1,116 @@
+import type { Diagnostic, EveningResult, Source, Span } from "@caller/lang";
+import {
+  checkProgram,
+  findDance,
+  hallFacts,
+  loadForEval,
+  loadTexts,
+  runEvening,
+} from "@caller/lang";
 import type { ListingLine } from "./asm/listing.js";
 import { listing } from "./asm/listing.js";
 import type { DancerId, Dialect } from "./dialect/Dialect.js";
-import { treeDialect } from "./dialect/tree/TreeDialect.js";
 import type { Executed } from "./executor/execute.js";
 import { execute } from "./executor/execute.js";
 import { FIGURES } from "./figures/registry.js";
 import type { FigureRegistry } from "./figures/registry.js";
-import { check } from "./lang/check.js";
-import type { CompiledSequence } from "./lang/compile.js";
-import { compile } from "./lang/compile.js";
-import { isSyntaxError } from "./lang/lexer.js";
-import { parse } from "./lang/parser.js";
-import type { File, Span } from "./lang/syntax.js";
 import type { Schedule } from "./schedule/schedule.js";
 import { schedule } from "./schedule/schedule.js";
+import type { DriftWarning } from "./schedule/drift.js";
+import { driftOf } from "./schedule/drift.js";
+import type { CompiledSequence } from "./sequence/CompiledSequence.js";
+import { sequenceFromEvening } from "./sequence/fromLang.js";
 import type { SolvedBodies } from "./solver/solveBody.js";
 import { solveBodies } from "./solver/solveBody.js";
-import type { Floor } from "./tree/floor.js";
-import { groupsOf } from "./tree/Tree.js";
 import type { Tempo } from "./units/Tempo.js";
 import { tempo } from "./units/Tempo.js";
 
 /**
- * The whole engine as one call: a dance's text in, every layer's output out.
+ * The whole engine as one call: `.dance` text in, every layer's output out.
  *
- * `run` is the debugger's only entry point, and the only place the stages
- * are wired to each other. A stage that fails leaves every later field
- * undefined and puts its complaint in `errors`, so the page always has
- * something to draw — a dance with a syntax error still shows its text, and
- * a dance the scheduler cannot time still shows the calls it compiled.
+ * Since M1 of the kinetics-on-lang plan the first three layers are
+ * `@caller/lang`'s (notes D1): it loads the sources, checks them, builds the
+ * floor and runs the evening, and `sequenceFromEvening` turns what it says
+ * about motion into calls on figures. Everything from the scheduler down is
+ * unchanged, and knows nothing about a language.
+ *
+ * `run` is the debugger's and the CLI's only entry point, and the only place
+ * the stages are wired to each other. A stage that fails leaves every later
+ * field undefined and puts its complaint in `errors`, so the page always has
+ * something to draw — a dance with a parse error still shows its text, and a
+ * dance the scheduler cannot time still shows the calls it made.
  */
-export function run(source: string, opts: RunOptions): Run {
-  const { floor, moves } = opts;
-  const dialect = treeDialect(floor);
+export function run(opts: RunOptions): Run {
   const t = opts.bpm === undefined ? tempo() : tempo(opts.bpm);
   const errors: RunError[] = [];
   const warnings: RunWarning[] = [];
-
-  let program: File | undefined;
-  let parseFailure: RunError | undefined;
-  try {
-    program = parse(source);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    parseFailure = { stage: "parse", message };
-    if (isSyntaxError(error)) {
-      parseFailure.span = { start: error.offset, end: error.offset, line: error.line };
-    }
-    errors.push(parseFailure);
-  }
+  const diagnostics: Diagnostic[] = [];
+  const registry = opts.registry ?? FIGURES;
 
   const empty: Run = {
-    source,
-    floor,
-    dialect,
+    sources: opts.sources,
+    dance: opts.dance,
     tempo: t,
-    program,
     errors,
     warnings,
+    diagnostics,
     listings: {},
     endBeat: 0,
   };
-  if (!program) return parseFailure ? { ...empty, parseError: parseFailure } : empty;
 
-  // The checker sees the prelude's enums through the floor's modules, and
-  // the $ variables the formation provides with their declared types.
-  const dynamics: Record<string, string> = {};
-  for (const group of groupsOf(floor.root)) {
-    dynamics[group.kind] = "Group";
-    for (const p of group.provides) dynamics[p.name] = p.type;
+  // Two loaders, both on the same texts, as the playground's `model.ts` has
+  // it: `loadForEval` finds a dance **by name** among every file, and
+  // `loadTexts` checks the dance's own module and the `use` lines it follows.
+  // Checking every file at once would answer questions nobody asked — a
+  // fixture nothing imported complaining about a dance nobody ran.
+  const program = attempt("check", errors, () => loadForEval(opts.sources));
+  if (program === undefined) return empty;
+  for (const d of program.diagnostics) {
+    diagnostics.push(d);
+    errors.push(runErrorOf(d, "parse"));
   }
-  const preludeItems = {
-    items: [...floor.mods.enums].map(([name, members]) => ({
-      kind: "enum" as const,
-      name,
-      members,
-      span: { start: 0, end: 0, line: 0 },
-    })),
-    source: "",
+
+  const found = findDance(program, opts.dance, opts.module);
+  if (found === undefined) {
+    errors.push({ stage: "run", message: `there is no dance called "${opts.dance}"` });
+    return { ...empty, program };
+  }
+
+  const checked = attempt("check", errors, () =>
+    checkProgram(loadTexts(opts.sources, found.module.name)),
+  );
+  for (const d of checked?.diagnostics ?? []) {
+    diagnostics.push(d);
+    errors.push(runErrorOf(d, d.stage === "parse" ? "parse" : "check"));
+  }
+  if ((checked?.diagnostics ?? []).some((d) => d.severity === "error"))
+    return { ...empty, program };
+
+  const evening = attempt("run", errors, () =>
+    runEvening(program, found, {
+      ...(opts.times === undefined ? {} : { times: opts.times }),
+      args: hallFacts(opts.args ?? {}),
+    }),
+  );
+  if (evening === undefined) return { ...empty, program };
+
+  const joined = sequenceFromEvening(evening, registry);
+  errors.push(...joined.errors);
+  diagnostics.push(...evening.diagnostics);
+  const { sequence, dialect } = joined;
+  const endBeat = evening.times.reduce((sum, time) => sum + time.length, 0);
+
+  const base: Run = {
+    ...empty,
+    program,
+    evening,
+    dialect,
+    sequence,
+    endBeat,
   };
-  for (const e of check([preludeItems, moves, program], { dynamics })) {
-    errors.push({ stage: "check", message: e.message, span: e.span });
-  }
-
-  const compiled = compile({
-    dance: program,
-    moves,
-    floor,
-    registry: opts.registry ?? FIGURES,
-    ...(opts.entry === undefined ? {} : { entry: opts.entry }),
-  });
-  for (const e of compiled.errors) {
-    errors.push(
-      e.span === undefined
-        ? { stage: "compile", message: e.message }
-        : { stage: "compile", message: e.message, span: e.span },
-    );
-  }
-  const sequence: CompiledSequence = compiled.sequence;
 
   const scheduled = attempt("schedule", errors, () => schedule(sequence, dialect, t));
-  if (!scheduled) return { ...empty, program, sequence };
+  if (!scheduled) return base;
   for (const e of scheduled.errors) {
     errors.push({
       stage: "schedule",
@@ -111,13 +121,14 @@ export function run(source: string, opts: RunOptions): Run {
       ...(e.beat === undefined ? {} : { beat: e.beat }),
     });
   }
-  for (const w of scheduled.warnings) {
+  for (const w of [...scheduled.warnings, ...driftOf(scheduled, sequence)]) {
     warnings.push({
       stage: "schedule",
       kind: w.kind,
       message: w.message,
       ...(w.dancer === undefined ? {} : { dancer: w.dancer }),
       ...(w.beat === undefined ? {} : { beat: w.beat }),
+      ...("span" in w && w.span !== undefined ? { span: w.span } : {}),
     });
   }
 
@@ -127,24 +138,12 @@ export function run(source: string, opts: RunOptions): Run {
     listings[dancer] = program2 ? listing(program2, dialect, sequence) : [];
   }
 
-  const base: Run = {
-    source,
-    floor,
-    dialect,
-    tempo: t,
-    program,
-    sequence,
-    schedule: scheduled,
-    errors,
-    warnings,
-    listings,
-    endBeat: scheduled.endBeat,
-  };
+  const withSchedule: Run = { ...base, schedule: scheduled, listings };
 
   const executed = attempt("execute", errors, () => execute(scheduled, dialect, t));
-  if (!executed) return base;
+  if (!executed) return withSchedule;
   const solved = attempt("solve", errors, () => solveBodies(executed.input));
-  return solved ? { ...base, executed, solved } : { ...base, executed };
+  return solved ? { ...withSchedule, executed, solved } : { ...withSchedule, executed };
 }
 
 /**
@@ -161,13 +160,28 @@ const attempt = <T>(stage: RunError["stage"], errors: RunError[], f: () => T): T
   }
 };
 
-/** What to run the dance on: which floor, which moves, how fast. */
+/** One of the language's diagnostics as the run's own complaint. */
+const runErrorOf = (d: Diagnostic, stage: RunError["stage"]): RunError => ({
+  stage,
+  kind: d.code,
+  message: `${d.code}: ${d.message}`,
+  ...(d.span === undefined ? {} : { span: d.span }),
+  ...(d.beat === undefined ? {} : { beat: d.beat }),
+  ...(d.dancers[0] === undefined ? {} : { dancer: d.dancers[0] }),
+});
+
+/** What to run, on what, how many times and how fast. */
 export interface RunOptions {
-  floor: Floor;
-  /** The moves the dance may call: `dances/moves.dance`, parsed. */
-  moves: File;
-  /** The dance module to run; the file's first by default. */
-  entry?: string;
+  /** Every `.dance` file the dance may read; the loader finds its modules among them. */
+  sources: readonly Source[];
+  /** The `fn` with a `setup` to run. */
+  dance: string;
+  /** Which module it is in, when two modules have a dance of that name. */
+  module?: string;
+  /** The hall's facts, which arrive as the dance's parameters (`minor-sets`). */
+  args?: Readonly<Record<string, number>>;
+  /** How many times through; the language's own default when omitted. */
+  times?: number;
   /** Defaults to `@caller/core`'s `DEFAULT_BPM`. */
   bpm?: number;
   registry?: FigureRegistry;
@@ -175,30 +189,34 @@ export interface RunOptions {
 
 /** Every layer's output, and everything that went wrong on the way. */
 export interface Run {
-  source: string;
-  floor: Floor;
-  dialect: Dialect;
+  sources: readonly Source[];
+  dance: string;
   tempo: Tempo;
-  program: File | undefined;
-  /** Set when the text does not parse; nothing after it is present. */
-  parseError?: RunError;
+  /** The language's module index, for a pane that wants the text of a file. */
+  program?: ReturnType<typeof loadForEval>;
+  /** The floor, the times, the moves and the commits. */
+  evening?: EveningResult;
+  dialect?: Dialect;
   sequence?: CompiledSequence;
   schedule?: Schedule;
   executed?: Executed;
   solved?: SolvedBodies;
   errors: readonly RunError[];
   warnings: readonly RunWarning[];
+  /** The language's own diagnostics, whole — traces, suggestions and all. */
+  diagnostics: readonly Diagnostic[];
   listings: Readonly<Record<DancerId, readonly ListingLine[]>>;
   endBeat: number;
 }
 
 /**
- * One complaint from any stage, in one shape: the debugger prints the list as
- * a single line and does not care which layer minded.
+ * One complaint from any stage, in one shape: a list the debugger prints as
+ * single lines and the CLI prints with a caret, without caring which layer
+ * minded.
  */
 export interface RunError {
-  stage: "parse" | "check" | "compile" | "schedule" | "execute" | "solve";
-  /** The scheduler's `ScheduleErrorKind`, where there is one. */
+  stage: "parse" | "check" | "run" | "compile" | "schedule" | "execute" | "solve";
+  /** The scheduler's `ScheduleErrorKind` or the language's code, where there is one. */
   kind?: string;
   message: string;
   span?: Span;
@@ -211,6 +229,9 @@ export interface RunWarning {
   stage: "schedule";
   kind: string;
   message: string;
+  span?: Span;
   dancer?: DancerId;
   beat?: number;
 }
+
+export type { DriftWarning };

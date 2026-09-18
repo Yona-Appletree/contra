@@ -23,6 +23,7 @@
     "figure": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/figureLab.mjs",
     "dance": "node --import ./scripts/ts-src-resolve.mjs packages/contra/scripts/danceLab.mjs",
     "lang": "node --import ./scripts/ts-src-resolve.mjs packages/lang/cli/lang.mjs",
+    "kinetics": "pnpm --filter @caller/kinetics check",
     "strips": "node apps/web/scripts/strips.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "corpus:crawl": "node scripts/corpus/crawl-callers-box.mjs",
