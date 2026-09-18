@@ -121,6 +121,21 @@ were accepted as part of the decision rather than sent back for a redo:
   on set 2 as twos"). The seated-ends model versus half sets waiting in place
   is carried forward as an open question, to be judged with motion once the
   language joins the kinetics stack.
+- **A progression slides each line half a couple, and the minor sets stand on
+  a lattice of places 0.8 m apart with every other one occupied** (Yona at
+  G1, 2026-09-18: _"the progression is wrong, you slide 1/2 couple over"_;
+  the kinetics-on-lang plan's M8, PR #110). `becket.dance` seated its sets
+  1.6 m apart and moved a couple a whole one, which is a double progression;
+  the floor a becket really has puts `MinorSet(i)` at `y = 0.8m × i - 0.8m`,
+  `2n + 1` of them, the odd ones occupied at the top of the evening and the
+  even ones the places they progress into. The hall then breathes with its
+  ends — `n` sets while a couple waits at each end, `n + 1` on the commit
+  they come in — and `MinorSet = first` / `= last` are free on exactly the
+  beats somebody is waiting to come in on them, so the entry needed no new
+  pattern. `improper.dance` gets the same lattice. This settles the design
+  doc's §10 open 1 in the loser's favour and leaves seated ends (the item
+  above) standing: it is a change to the two formations' text, not to the
+  engine.
 - **A commit can carry a dancer out mid-dance**: it stops where it stands and
   waits out the rest, rather than the model assuming everyone's contract is
   fixed for the whole time through.

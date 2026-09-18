@@ -181,7 +181,7 @@ console.log(printTimeline(evening)); // events by beat, then a row per move
 - **A `Role` argument may name nobody** (notes D10; M3, judged at G1). The
   checker lets a selection through where a place kind is due, so `form-wave(
 right = wave-mate, …)` at the end of the long wave — where `wave-mate =
-select(MinorSet = id + travel, Couple = other)` finds no one — is a move with
+select(MinorSet = id + 2 * travel, Couple = other)` finds no one — is a move with
   an empty argument, no `ref`, and the consumer's own cast rule says what the
   dancer does about it (the end robin balances with one hand). Two or more is
   `L110` at the call, naming them; `one!` stays the mark that says exactly one.
@@ -192,6 +192,19 @@ select(MinorSet = id + travel, Couple = other)` finds no one — is a move with
   `+y`, and a heading of 0 faces down the hall (`src/eval/frame.ts`). A picture
   wants the top at the top, so the playground's floor pane draws the hall turned
   through 180° — a rotation, so left stays left.
+- **A progression slides each line half a couple** (Yona, 2026-09-18; M8).
+  `becket.dance` and `improper.dance` lay their minor sets on a lattice of
+  places **0.8 m apart** — `MinorSet(i)` at `y = 0.8m × i - 0.8m`, `2n + 1` of
+  them — with only every other one occupied at a time: a commit moves each
+  line one **dancer place**, the two lines opposite ways, so a couple's travel
+  relative to the other line is one couple. The hall breathes with its ends:
+  with a couple waiting at each end there are `n` sets, and on the commit they
+  come in there are `n + 1` and nobody waits. `MinorSet = first` and `= last`
+  are the ends of the lattice, and they are free on exactly the beats somebody
+  is waiting to come in on them, so the entry needs no `first-free`; a text
+  that gets the parity wrong is two dancers in one place at the commit
+  (`L102`). One consequence worth knowing: the person a dancer holds as
+  `wave-mate` before a commit is `opposite` after it.
 
 ### What a move hands on
 
