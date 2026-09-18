@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The debugger as a move-review instrument</title>
+<style>
+/*
+ * The palette is the debugger's own (packages/kinetics/debugger/style.css),
+ * which is the hall after dark; the role colours are the contract number —
+ * lark gold #e0a32e, robin red #c8362f (AGENTS.md, docs/role-colours.md).
+ */
+:root{
+  --bg:#141110; --panel:#1e1917; --panel2:#272019; --ink:#ebdfcd; --muted:#a8977f;
+  --accent:#e7b96b; --line:#3c3128; --dash:#6b5741; --floor:#0c0a09; --grid:#1c1815;
+  --lark:#e0a32e; --robin:#c8362f; --bad:#e07a7a; --good:#9fd08a; --warn:#e0c07a;
+  --cf:12px/17px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
+header,section{max-width:1470px;margin:0 auto;padding:10px 18px}
+h1{font:600 21px/1.2 system-ui,-apple-system,sans-serif;margin:10px 0 6px;letter-spacing:.01em}
+h2{font:600 16px/1.3 system-ui,-apple-system,sans-serif;margin:30px 0 4px;color:var(--accent);
+  border-top:1px solid var(--line);padding-top:14px}
+h2 em{font-style:normal;color:var(--muted);font-weight:400;font-size:13px}
+p.hint{color:var(--muted);margin:3px 0 10px;max-width:104ch;font:13px/1.55 system-ui,-apple-system,sans-serif}
+p.hint b{color:var(--ink);font-weight:600}
+p.hint code{color:var(--accent);font:12px ui-monospace,Menlo,monospace}
+blockquote{margin:6px 0 10px;border-left:3px solid var(--dash);padding:1px 0 1px 10px;color:var(--muted);
+  font:13px/1.5 system-ui,-apple-system,sans-serif;max-width:100ch}
+blockquote b{color:var(--ink)}
+a{color:var(--accent)}
+
+/* ---- buttons: flat inside the screen ---- */
+button{background:transparent;color:var(--muted);border:1px solid transparent;border-radius:3px;
+  padding:2px 7px;font:11.5px ui-monospace,Menlo,monospace;cursor:pointer;white-space:nowrap}
+button:hover{color:var(--ink)}
+button.on{color:var(--accent);background:#2b2219}
+button:disabled{opacity:.35;cursor:default}
+
+/* ---- exploration controls: the dashed strip, outside the screen ---- */
+.controls{border:1px dashed var(--dash);border-radius:8px;padding:8px 11px;display:flex;flex-wrap:wrap;
+  gap:7px 16px;align-items:center;margin:8px 0 10px;background:var(--panel);position:sticky;top:0;z-index:40}
+.controls button{background:var(--panel2);color:var(--ink);border-color:var(--line)}
+.controls button:hover{border-color:var(--dash)}
+.controls button.on{background:var(--accent);border-color:var(--accent);color:#1b1410;font-weight:600}
+.controls button.ghost.on{background:#4a3a24;color:var(--accent)}
+.grp{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:11.5px;color:var(--muted)}
+.grp span.l{color:var(--accent);white-space:nowrap;margin-right:2px}
+
+/* ---- one laptop screen: a flat grid, hairlines between cells, nothing nested ---- */
+.screen{border:1px solid var(--line);background:var(--line);height:792px;display:grid;
+  grid-template-columns:440px 1fr;grid-template-rows:auto 1fr;gap:1px;overflow:hidden;
+  box-shadow:0 8px 26px -16px #000}
+.chrome{grid-column:1/-1;background:var(--panel2);padding:3px 10px;font-size:11px;color:var(--muted);
+  display:flex;gap:8px;align-items:center}
+.chrome b{color:var(--accent);font-weight:600}
+.left{background:var(--floor);display:flex;flex-direction:column;min-height:0;min-width:0}
+.right{background:var(--bg);display:flex;flex-direction:column;min-height:0;min-width:0}
+
+/* ---- the tape: modes, file, transport, the ruler ---- */
+.tape{grid-column:1/-1;background:var(--panel);display:flex;align-items:center;gap:6px;padding:3px 8px;
+  overflow:hidden}
+.modes{display:flex;gap:1px;margin-right:6px}
+.modes button{padding:2px 9px;border-radius:0;border-bottom:2px solid transparent;font-weight:600}
+.modes button.on{background:transparent;border-bottom-color:var(--accent)}
+.tape select{background:transparent;color:var(--ink);border:1px solid transparent;border-radius:3px;
+  font:11.5px ui-monospace,Menlo,monospace;padding:2px 2px}
+.tape select:hover{border-color:var(--line)}
+.tbtn{width:26px;text-align:center;padding:2px 0;color:var(--ink)}
+.tape .beat{color:var(--accent);white-space:nowrap;font-size:11.5px;min-width:96px;text-align:right}
+.ruler{display:flex;gap:1px;flex:1;min-width:0;height:20px}
+.ruler .mv{flex-grow:var(--w);flex-basis:0;min-width:0;background:var(--panel2);
+  font:10.5px ui-monospace,Menlo,monospace;color:var(--muted);padding:0 4px;
+  display:flex;align-items:center;overflow:hidden;white-space:nowrap;cursor:pointer;position:relative}
+.ruler .mv b{font-weight:400;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ruler .mv.on{color:var(--ink);background:#372b1c}
+.ruler .mv.side{opacity:.6}
+.ruler .mv .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);opacity:.2;width:0}
+
+/* ---- code ---- */
+.code{position:relative;flex:1;min-height:0;overflow:hidden;background:var(--floor)}
+.code .scroll{position:absolute;inset:0;overflow:auto}
+.code pre{margin:0;padding:6px 8px 20px;font:var(--cf,12.5px/18px) ui-monospace,Menlo,monospace;white-space:pre}
+.code .ln{display:block;padding:0 4px;border-left:2px solid transparent;color:var(--ink);
+  line-height:inherit;min-height:1em}
+.code .ln.cm{color:#6f6151}
+.code .ln.dim{opacity:.35}
+.code .ln.sel{border-left-color:var(--dash)}
+.code .ln.lit{background:#39301f;border-left-color:var(--accent)}
+.code .ln.err{background:#3a201e;border-left-color:var(--bad)}
+.code .ln.wrn{border-left-color:var(--warn)}
+.code .kw{color:#b08bd0}.code .fn{color:var(--accent)}.code .num{color:var(--good)}
+.code .rel{color:#7fb0c8}.code .str{color:#d9b06a}
+.code textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:0;
+  background:transparent;color:transparent;caret-color:var(--ink);padding:6px 14px 20px;
+  font:var(--cf,12.5px/18px) ui-monospace,Menlo,monospace;white-space:pre;overflow:auto;tab-size:2}
+.code .edit-tag{position:absolute;right:6px;bottom:4px;font-size:10px;color:#6f6151;
+  background:#0009;border-radius:3px;padding:1px 5px;pointer-events:none}
+
+/* ---- problems, under the code ---- */
+.problems{border-top:1px solid var(--line);height:112px;overflow:auto;padding:4px 8px;font-size:11.5px;
+  background:var(--floor);flex:none}
+.pl{display:grid;grid-template-columns:128px 1fr;gap:8px;cursor:pointer;padding:1px 0}
+.pl .at{color:var(--accent);overflow:hidden;text-overflow:ellipsis}
+.pl .what{color:var(--muted)}
+.pl.bad .what{color:var(--bad)}
+.pl.warn .what{color:var(--warn)}
+.pl.ok{color:#6f6151;cursor:default}
+.pl:hover .what{color:var(--ink)}
+
+/* ---- the hall strip (dance mode): the whole hall at 2x ---- */
+.hallstrip{background:var(--floor);flex:none;display:flex;justify-content:center;overflow:hidden;
+  position:relative;cursor:pointer}
+.hallstrip canvas{image-rendering:pixelated;display:block}
+.hallstrip .tag{position:absolute;left:6px;top:4px;font-size:10px;color:#6f6151;pointer-events:none}
+
+/* ---- the cards (figure mode): one per rig, at 2x ---- */
+.cards{background:var(--line);flex:none;display:grid;gap:1px;
+  grid-template-columns:repeat(auto-fit,minmax(236px,1fr))}
+.card{background:var(--floor);display:flex;flex-direction:column;cursor:pointer;min-width:0;overflow:hidden;
+  border-bottom:2px solid transparent}
+.card .hold{height:114px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card canvas{image-rendering:pixelated;display:block}
+.card .cap{display:flex;align-items:baseline;gap:5px;padding:1px 6px 2px;font-size:10.5px;color:var(--muted);
+  white-space:nowrap;overflow:hidden}
+.card .cap b{color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.card .cap .sub{color:#6f6151;font-size:10px;overflow:hidden;text-overflow:ellipsis}
+.card .cap .sub.bad{color:var(--bad)}
+.card .cap .sub.warn{color:var(--warn)}
+.card:hover .cap b{color:var(--ink)}
+.card.sel{border-bottom-color:var(--accent)}
+.card.sel .cap b{color:var(--accent)}
+
+/* ---- the 3d, below, dragged and preset ---- */
+.v3{position:relative;flex:1;min-height:0;background:var(--floor);cursor:grab;border-top:1px solid var(--line)}
+.v3:active{cursor:grabbing}
+.v3 canvas{display:block}
+.v3 .presets{position:absolute;right:6px;top:5px;display:flex;gap:1px}
+.v3 .presets button{font-size:10.5px;padding:1px 7px;background:#0c0a09cc}
+.v3 .presets button.on{color:var(--accent)}
+.v3 .who{position:absolute;left:8px;top:6px;font-size:10.5px;color:#7c6c58;pointer-events:none}
+.v3 .who b{color:var(--muted);font-weight:600}
+
+/* ---- the one tabbed panel, under the main content, foldable ---- */
+.deck{border-top:1px solid var(--line);flex:none;display:flex;flex-direction:column}
+.tabbar{display:flex;gap:2px;padding:0 4px;background:var(--panel);align-items:center}
+.tabbar button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:2px 8px;font-size:11px}
+.tabbar button.on{color:var(--ink);background:transparent;border-bottom-color:var(--accent)}
+.tabbar .sp{flex:1}
+.deck .body{height:190px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden;
+  border-top:1px solid var(--line)}
+
+/* ---- timeline ---- */
+.tl{display:block;width:100%}
+.tl .rowname{font:9px ui-monospace,Menlo,monospace;fill:var(--muted)}
+.tl .callname{font:9.5px ui-monospace,Menlo,monospace;fill:var(--ink)}
+.tl .tick{font:8.5px ui-monospace,Menlo,monospace;fill:#6f6151}
+.tl .blk{fill:#e7b96b2e;stroke:#e7b96b66}
+.tl .blk.on{fill:#e7b96b52;stroke:var(--accent)}
+.tl .blk.wait{fill:#ffffff10;stroke:#ffffff24}
+.tl .blk.side{fill:#ffffff10;stroke:#ffffff30}
+.tl .seam{stroke:var(--accent);stroke-dasharray:1 2;opacity:.75}
+.tl .grid{stroke:var(--line)}
+.tl .phrase{font:9px ui-monospace,Menlo,monospace;fill:var(--accent)}
+.tl .cursor{stroke:var(--ink);stroke-width:1}
+.tl .hit{fill:transparent;cursor:col-resize}
+
+.binds{font-size:11px;color:var(--muted);line-height:1.6;padding:6px 10px;columns:2}
+.binds div{break-inside:avoid}
+.binds .k{display:inline-block;width:88px;color:#6f6151}
+.binds .v{color:var(--ink)}
+.info{font-size:11px;color:var(--muted);line-height:1.6;padding:6px 10px}
+.info b{color:var(--ink);font-weight:400}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:6px 0 0}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>The debugger as a move-review instrument</h1>
+<p class="hint">Round 3. <b>Two modes, a dance and a figure</b>, and one flat screen for each: hairlines,
+no boxes in boxes. The text is beside the picture, its problems under it. Pixels are <b>always 2&times;</b>.
+The 3d is always below the pixels, dragged to turn, with buttons for the angles that matter. Figure mode is the
+harness for the loop that comes next &mdash; an agent edits the figure's text, Yona looks: the contexts it is
+judged in are <code>rig</code> lines in that text, one card each.</p>
+<blockquote>&ldquo;too many boxes in boxes &hellip; two different modes, figure and dances &hellip; the small
+cards should be when in figure mode, showing it in different contexts/transitions. <b>the source code should
+define them</b> &hellip; in dance mode the whole dance on top in 16-bit, the 3d view below &hellip; problems in
+the bottom left below the code, timeline and graphs under the main content &hellip; 3d should support
+dragging &hellip; presets for common angles.&rdquo;</blockquote>
+<div class="controls" id="controls"></div>
+</header>
+
+<section>
+<h2>1 &nbsp;A dance <em>&mdash; the whole hall on top, the 3d below it</em></h2>
+<p class="hint">Six sets and the two couples out, all at 2&times; in one strip. Click a set and the 3d turns
+to it alone; <code>hall</code> brings the whole line back. <code>&#10226;</code> loops the running call;
+<code>&#9198; &#9197;</code> jump call by call. The deck under the 3d folds to its tab row with
+<code>&#9662;</code>.</p>
+<div class="screen" id="s1"></div>
+</section>
+
+<section>
+<h2>2 &nbsp;A figure <em>&mdash; a card per context, the clicked one in 3d</em></h2>
+<p class="hint">The figure's own file: its body as <code>pre</code>, <code>body</code>, <code>post</code>, then
+one <code>rig</code> line per context it must look right in &mdash; an end, the other side, the calls it comes
+out of and goes into, a shorter count, nobody across. Every rig is a card; the tape runs the clicked card's
+clock, transitions included; <code>&#9198; &#9197;</code> step between cards. Add a <code>rig</code> line and
+a card appears; change a <code>beats</code> and every card re-times on the keystroke.</p>
+<div class="screen" id="s2"></div>
+</section>
+
+<section>
+<h2>3 &nbsp;What the mock is not</h2>
+<p class="hint">Every call begins and ends in becket lines, so any one of them loops alone and any two abut;
+the hey is a spline through four waypoints, not a hey; the figure's <code>pre/body/post</code> is read for its
+line numbers only, the motion is still the mock's own; the problems are written by hand and
+<code>inject a defect</code> puts one on the screen so it can be seen carried to its line, its beat and its
+card. What is real: both texts are parsed live, the calls and rigs and their beats come out of them, and the
+3d is drawn from the same bodies the pixels are.</p>
+<div class="legend">
+  <span><i class="sw" style="background:#e0a32e"></i>lark <code>#e0a32e</code></span>
+  <span><i class="sw" style="background:#c8362f"></i>robin <code>#c8362f</code></span>
+  <span><i class="sw" style="background:#0c0a09;outline:1px solid #3c3128"></i>floor &mdash; the hall on black</span>
+  <span>4&nbsp;cm/px &middot; 2&times; &middot; arms 7.5&nbsp;px &times;2 &middot; shoulders 11&nbsp;px &middot; sets 1.84&nbsp;m apart</span>
+</div>
+</section>
+
+<script>
+'use strict';
+// ===================================================================== maths
+const TAU=Math.PI*2;
+const lerp=(a,b,k)=>a+(b-a)*k;
+const clamp01=v=>v<0?0:v>1?1:v;
+const smooth=k=>{k=clamp01(k);return k*k*(3-2*k);};
+const ramp=(t,a,b)=>smooth((t-a)/(b-a));
+const dirOf=a=>{const t=a*Math.PI/180;return [Math.cos(t),Math.sin(t)];};
+const leftOf=a=>{const d=dirOf(a);return [d[1],-d[0]];};
+const rightOf=a=>{const d=dirOf(a);return [-d[1],d[0]];};
+const adiff=(a,b)=>{let d=((b-a)%360+360)%360;if(d>180)d-=360;return d;};
+const alerp=(a,b,k)=>a+adiff(a,b)*k;
+const add=(p,v,k)=>[p[0]+v[0]*k,p[1]+v[1]*k];
+const mix=(p,q,k)=>[lerp(p[0],q[0],k),lerp(p[1],q[1],k)];
+const ang=(x,y)=>Math.atan2(y,x)*180/Math.PI;
+const q256=v=>Math.round(v*256)/256;                // positions live at 1/256 px
+const bodyPt=(P,a,u,w)=>{const d=dirOf(a),r=rightOf(a);return [P[0]+d[0]*u+r[0]*w,P[1]+d[1]*u+r[1]*w];};
+function trapInt(t,a0,a1,b0,b1){const seg=u=>{let s=0;if(u>a0){const e=Math.min(u,a1),k=(e-a0)/(a1-a0);s+=(a1-a0)*k*k/2;}if(u>a1)s+=Math.max(0,Math.min(u,b0)-a1);if(u>b0){const e=Math.min(u,b1),k=(e-b0)/(b1-b0);s+=(b1-b0)*(k-k*k/2);}return s;};return seg(Math.min(t,b1))/seg(b1);}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const pickOf=(rng,arr)=>arr[Math.floor(rng()*arr.length)];
+const hexToRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+function shade(h,f){const c=v=>Math.max(0,Math.min(255,Math.round(v*f)));return '#'+hexToRgb(h).map(v=>c(v).toString(16).padStart(2,'0')).join('');}
+
+// ===================================================== people (the Stage look)
+const SKINS=['#f3cfae','#e6b48e','#d29a70','#b47a56','#8a5a3c','#5f3d28'];
+const HAIRS=['#2a1a11','#4a2e1b','#8a5a2b','#c98a3c','#e8c67e','#b8b1a6','#1b1b1b','#6b4a3a'];
+const STYLES=['short','short','long','bob','curly','bald','cap','bun'];
+const ROLE={lark:'#e0a32e',robin:'#c8362f'};        // the contract number, AGENTS.md
+const DK='#1b1410', SHOE='#2b1d14';
+function makePerson(seed,role){
+  const rng=mulberry32(seed*7919+13);
+  const p={skin:pickOf(rng,SKINS),hair:pickOf(rng,HAIRS),style:pickOf(rng,STYLES),shirt:ROLE[role],role};
+  p.shirtDark=shade(p.shirt,0.72);p.shirtLite=shade(p.shirt,1.18);
+  p.hairLite=shade(p.hair,1.28);p.hairDark=shade(p.hair,0.78);
+  p.cap=shade(p.shirt,0.8);p.capDark=shade(p.shirt,0.6);
+  return p;}
+
+// ============================================== one minor set: four dancers
+// Line A at y=-16 faces across (+y); line B at y=+16 faces back. Partners are
+// side by side on a line, neighbours across. x runs along the hall.
+const DANCERS=['l1','r1','l2','r2'];
+const ROLE_OF={l1:'lark',r1:'robin',l2:'lark',r2:'robin'};
+const HOME={l1:{p:[12,-16],a:90},r1:{p:[-12,-16],a:90},l2:{p:[-12,16],a:270},r2:{p:[12,16],a:270}};
+const PARTNER={l1:'r1',r1:'l1',l2:'r2',r2:'l2'};
+const NEIGHBOUR={l1:'r2',r2:'l1',r1:'l2',l2:'r1'};
+const SETS=6, PITCH=46;                              // minor sets along the hall
+const setX=k=>(k-(SETS-1)/2)*PITCH;
+const CAST=new Map();                                // a face per (set, dancer)
+const faceOf=(k,d)=>{const key=k+'/'+d;if(!CAST.has(key))
+  CAST.set(key,makePerson(k*23+DANCERS.indexOf(d)+3,ROLE_OF[d]));return CAST.get(key);};
+
+const HOLD_D=5, HANG_D=14, LAT=4.5;
+const hang=(P,a,side,ph,amp)=>({p:bodyPt(P,a,0.4+side*0.8*(amp||0)*Math.sin(TAU*ph),side*6.2),d:HANG_D});
+const mixHand=(h0,h1,k)=>({p:mix(h0.p,h1.p,k),d:lerp(h0.d,h1.d,k)});
+const rest=(d,b)=>{const h=HOME[d];return {p:h.p.slice(),a:h.a,hands:{L:hang(h.p,h.a,-1,b,1),R:hang(h.p,h.a,1,b,1)},stepRate:1,amp:1};};
+// give each free target to the hand whose side it is on
+function handsTo(P,a,targets,b,amp){
+  const out={L:hang(P,a,-1,b,amp),R:hang(P,a,1,b,amp)};const rt=rightOf(a);
+  for(const t of targets){const k=(t.p[0]-P[0])*rt[0]+(t.p[1]-P[1])*rt[1];out[k>0?'R':'L']=t;}
+  return out;}
+
+// ======================================================= the moves of Butter
+// Every move begins and ends in becket lines, so any one of them loops alone.
+const MOVES={};
+MOVES.shift=(t,B,b)=>{const k=smooth(clamp01(t/B));const o={};
+  for(const d of DANCERS){const h=HOME[d];const P=add(h.p,leftOf(h.a),14*k*(1-k)*2);
+    o[d]={p:P,a:h.a,hands:{L:hang(P,h.a,-1,b,1),R:hang(P,h.a,1,b,1)},stepRate:1,amp:1};}
+  return o;};
+MOVES.circle=(t,B,b,arg)=>{const places=arg.places||3;const k=t/B;const R=15;const o={};
+  const th0={};for(const d of DANCERS)th0[d]=ang(HOME[d].p[0],HOME[d].p[1]);
+  const pos={};for(const d of DANCERS){
+    const r=lerp(Math.hypot(HOME[d].p[0],HOME[d].p[1]),R,smooth(Math.min(k*3.2,1)));
+    const th=th0[d]+90*places*smooth(clamp01(k*1.06));pos[d]=[Math.cos(th*Math.PI/180)*r,Math.sin(th*Math.PI/180)*r];
+    o[d]={th,r};}
+  const ring=DANCERS.slice().sort((x,y)=>ang(pos[x][0],pos[x][1])-ang(pos[y][0],pos[y][1]));
+  const out={};ring.forEach((d,i)=>{const P=pos[d];const nx=pos[ring[(i+1)%4]],pv=pos[ring[(i+3)%4]];
+    const a=o[d].th+90+18;                          // along the travel, shoulder turned in
+    out[d]={p:P,a,stepRate:1,amp:1,lean:0,
+      hands:handsTo(P,a,[{p:mix(P,nx,0.5),d:HOLD_D},{p:mix(P,pv,0.5),d:HOLD_D}],b,1)};});
+  return out;};
+MOVES['long-lines']=(t,B,b)=>{const k=t/B;
+  const off=smooth(Math.min(k*2,1))*(k<0.5?1:0)+(k>=0.5?1-smooth((k-0.5)*2):0);const o={};
+  for(const d of DANCERS){const h=HOME[d];const P=add(h.p,dirOf(h.a),8*off);
+    const p2=HOME[PARTNER[d]];const mid=mix(P,add(p2.p,dirOf(h.a),8*off),0.5);
+    o[d]={p:P,a:h.a,stepRate:1,amp:1,lean:off*0.6*(k<0.5?1:-1),
+      hands:handsTo(P,h.a,[{p:mid,d:HOLD_D+1}],b,1)};}
+  return o;};
+MOVES.chain=(t,B,b)=>{                               // the robins swap, the larks turn them
+  const cross=trapInt(t,0,0.8,B*0.58,B*0.66);const turn=ramp(t,B*0.5,B);const o={};
+  const R=DANCERS.filter(d=>ROLE_OF[d]==='robin');
+  for(const d of DANCERS){const h=HOME[d];
+    if(ROLE_OF[d]==='robin'){const other=R.find(x=>x!==d);const to=HOME[other].p;
+      const k=cross;const straight=mix(h.p,to,k);
+      const n=[-(to[1]-h.p[1]),to[0]-h.p[0]];const nl=Math.hypot(n[0],n[1])||1;
+      const P=add(straight,[n[0]/nl,n[1]/nl],3.4*Math.sin(Math.PI*k));   // pass right shoulders
+      const travel=ang(to[0]-h.p[0],to[1]-h.p[1]);
+      const a=alerp(alerp(h.a,travel,Math.min(cross*1.6,1)),HOME[other].a,turn);
+      o[d]={p:P,a,stepRate:1,amp:1,
+        hands:handsTo(P,a,k>0.55?[{p:add(P,leftOf(a),-3.4),d:6}]:[{p:add(P,dirOf(a),3.4),d:6}],b,1)};
+    } else {const P=add(h.p,leftOf(h.a),-2.2*Math.sin(Math.PI*turn));
+      const a=h.a+26*Math.sin(Math.PI*turn);
+      o[d]={p:P,a,stepRate:1,amp:1,hands:handsTo(P,a,[{p:add(P,rightOf(a),3.4),d:7}],b,1)};}}
+  return o;};
+MOVES.hey=(t,B,b)=>{const k=clamp01(t/B);const o={};
+  // one figure eight for all four: two pass in the middle while two loop the ends
+  const PH={r1:0,l2:Math.PI/2,r2:Math.PI,l1:3*Math.PI/2};
+  const on=u=>{const c=Math.cos(u);return [c*(9*Math.sin(u)+2.6),16*Math.sin(u)];};
+  const in0=ramp(t,0,1.4),out0=1-ramp(t,B-1.4,B);
+  for(const d of DANCERS){const h=HOME[d];const u=PH[d]+TAU*k;
+    const P0=on(u),P1=on(u+0.05);
+    const w=Math.min(in0,out0);
+    const P=mix(h.p,P0,w);const a=alerp(h.a,ang(P1[0]-P0[0],P1[1]-P0[1]),w);
+    o[d]={p:P,a,stepRate:1,amp:1,hands:handsTo(P,a,[],b,1)};}
+  return o;};
+MOVES.balance=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;const o={};
+  let fwd;const T=t/B*4;
+  if(T<0.7)fwd=smooth(T/0.7);else if(T<1.7)fwd=1;else if(T<2.6)fwd=1-2*smooth((T-1.7)/0.9);
+  else if(T<3.5)fwd=-1;else fwd=-1+smooth((T-3.5)/0.5);
+  for(const d of DANCERS){const h=HOME[d];const oth=HOME[who[d]];const C=mix(h.p,oth.p,0.5);
+    const a=ang(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);
+    const gap=Math.hypot(oth.p[0]-h.p[0],oth.p[1]-h.p[1]);
+    const P=add(h.p,dirOf(a),ramp(t,0,1.1)*Math.max(0,gap/2-7)+1.4*fwd);
+    const wide=LAT+2*Math.max(fwd,0),drop=HOLD_D+3*Math.max(fwd,0);
+    const take=ramp(t,0,0.9);
+    const J=[{p:add(C,leftOf(a),wide),d:drop},{p:add(C,leftOf(a),-wide),d:drop}];
+    const hs=handsTo(P,a,J,b,0);
+    o[d]={p:P,a,lean:fwd,stepRate:1,amp:0,feet:{L:[0.8-1.3*fwd,-2.0],R:[2.9-1.3*fwd,2.0]},
+      hands:{L:mixHand(hang(P,a,-1,b,0),hs.L,take),R:mixHand(hang(P,a,1,b,0),hs.R,take)}};}
+  return o;};
+MOVES.swing=(t,B,b,arg)=>{const who=arg.rel==='partner'?PARTNER:NEIGHBOUR;const o={};
+  // one frame per pair, so the joined hands are one floor point both of them compute
+  const turns=Math.max(1.5,Math.round(B/4));
+  const f=trapInt(t,0,1.2,Math.max(1.4,B-1.7),Math.max(1.7,B-0.3));
+  const into=ramp(t,0,1.1),open=ramp(t,B-1.5,B);const done={};
+  for(const d of DANCERS){
+    if(done[d])continue;const mate=who[d];done[d]=done[mate]=1;
+    const lark=ROLE_OF[d]==='lark'?d:mate,robin=ROLE_OF[d]==='lark'?mate:d;
+    const hl=HOME[lark],hr=HOME[robin];const C=mix(hl.p,hr.p,0.5);
+    const psi=ang(hr.p[0]-hl.p[0],hr.p[1]-hl.p[1])+360*turns*f;
+    const dp=dirOf(psi),lp=leftOf(psi);const r=4.6,side=3.2;
+    let PL=mix(hl.p,add(add(C,dp,-r),lp,side),into);
+    let PR=mix(hr.p,add(add(C,dp,r),lp,-side),into);
+    PL=mix(PL,hl.p,open);PR=mix(PR,hr.p,open);
+    const aL=alerp(psi-26*into,hl.a,open),aR=alerp(psi+180-26*into,hr.a,open);
+    const shLL=bodyPt(PL,aL,0.3,-SHW),shRR=bodyPt(PR,aR,0.3,SHW);
+    const joined=mixHand({p:add(C,lp,LAT),d:HOLD_D},{p:add(mix(shLL,shRR,0.5),lp,4.6),d:1},into);
+    const onBack={p:bodyPt(PR,aR,-1.6,-2.5),d:1};        // the lark's hand on the robin's back
+    const onShoulder={p:bodyPt(PL,aL,0,SHW-0.5),d:0};    // the robin's on the lark's shoulder
+    const other={p:add(C,lp,-LAT),d:HOLD_D};
+    const buzz=into*(1-open);
+    o[lark]={p:PL,a:aL,lean:-0.6*buzz,stepRate:2,amp:0,buzz,flare:0,
+      hands:{L:mixHand(joined,hang(PL,aL,-1,b,0),open),
+             R:mixHand(mixHand(other,onBack,into),hang(PL,aL,1,b,0),open)}};
+    o[robin]={p:PR,a:aR,lean:-0.6*buzz,stepRate:2,amp:0,buzz,flare:2.4*buzz,
+      hands:{R:mixHand(joined,hang(PR,aR,1,b,0),open),
+             L:mixHand(mixHand(other,onShoulder,into),hang(PR,aR,-1,b,0),open)}};}
+  return o;};
+
+// ================================================= the source, and what it says
+const SOURCE=`// butter.dance — Gene Hubert, becket.
+// A1 (2) shift left (6) circle left 3/4 (8) neighbor swing
+// A2 (8) long lines forward and back (8) robins chain to partner
+// B1 (16) hey for four, robins start right
+// B2 (4) partner balance (12) partner swing
+
+use contra::{Phrase, phrase, shift, circle, swing, long-lines, chain, hey, balance};
+use becket::{MajorSet, MinorSet};
+
+fn butter(minor-sets: i32) {
+  setup { MajorSet(1, minor-sets = minor-sets); }
+  card "Butter";
+
+  phrase(A1) {
+    if (first-time) {
+      circle(MinorSet, Left, places = 3, beats = 8);
+    } else {
+      progress();
+      shift(Left, beats = 2);
+      circle(MinorSet, Left, places = 3, beats = 6);
+    }
+    swing(neighbor, beats = 8);
+  }
+  phrase(A2) {
+    long-lines(across = partner, beats = 8);
+    chain(Robin, to = partner, beats = 8);
+  }
+  phrase(B1) {
+    hey(MinorSet, start = Robin, shoulder = Right, beats = 16);
+  }
+  phrase(B2) {
+    balance(partner, beats = 4);
+    swing(partner, beats = 12);
+  }
+}`;
+const NAMES={shift:'shift left',circle:'circle left 3 places',swing:'swing',
+  'long-lines':'long lines forward and back',chain:'robins chain to partner',
+  hey:'hey for four',balance:'balance'};
+/** The moves, read out of the text: one per call line the run takes. */
+function parse(text){
+  const lines=text.split('\n');const out=[];let phrase='',depth=0,skip=-1;
+  lines.forEach((ln,i)=>{
+    const ph=ln.match(/phrase\(([A-B][12])\)/);if(ph)phrase=ph[1];
+    if(/if\s*\(first-time\)/.test(ln))skip=depth;
+    else if(skip>=0&&/\belse\b/.test(ln))skip=-1;      // the branch this run takes
+    depth+=(ln.match(/{/g)||[]).length-(ln.match(/}/g)||[]).length;
+    const m=ln.match(/^\s*([a-z][a-z-]*)\(/);if(!m)return;
+    const kind=m[1];if(!MOVES[kind])return;
+    const beats=Number((ln.match(/beats\s*=\s*(\d+(?:\.\d+)?)/)||[])[1]||8);
+    const rel=/partner/.test(ln)?'partner':/neighbor|neighbour/.test(ln)?'neighbor':'';
+    const places=Number((ln.match(/places\s*=\s*(\d+)/)||[])[1]||0);
+    const taken=skip<0;
+    out.push({kind,line:i,beats,phrase,taken,arg:{rel,places},
+      name:kind==='swing'?(rel==='partner'?'partner swing':'neighbor swing')
+        :kind==='balance'?'partner balance':NAMES[kind]||kind});
+  });
+  let at=0;const taken=out.filter(m=>m.taken);
+  taken.forEach((m,i)=>{m.start=at;m.index=i;at+=m.beats;});
+  if(taken.length===0){                               // the text says nothing to dance
+    taken.push({kind:'shift',line:0,beats:8,start:0,index:0,phrase:'',taken:true,
+      arg:{rel:'',places:0},name:'(no call in the text)'});at=8;}
+  return {all:out,moves:taken,length:at,lines};}
+
+// ================================================ sampling the whole evening
+const SEAM=0.5, dt=0.06;
+let cache=new Map();
+/** The four bodies of one call at phase `tt` of `B` beats. */
+function poseAt(m,tt,B,beat,defect){
+  const st=MOVES[m.kind](tt,B,beat,m.arg);
+  const st2=MOVES[m.kind](Math.min(tt+dt,B),B,beat+dt,m.arg);
+  finish(st,st2,m,beat);
+  if(defect)st[defect].p=add(st[defect].p,[0,1],3.2*Math.sin(TAU*beat/8)+3.2);
+  return st;}
+/** One minor set's four bodies at a beat of the dance. Memoised for the frame. */
+function stateAt(plan,beat,opt){
+  opt=opt||{};
+  const key=beat+'|'+(opt.defect||'');
+  const hit=cache.get(key);if(hit)return hit;
+  const L=plan.length||64;const t=((beat%L)+L)%L;
+  let i=plan.moves.length-1;while(i>0&&t<plan.moves[i].start)i--;
+  const m=plan.moves[i];const B=m.beats;const tt=t-m.start;
+  const st=MOVES[m.kind](tt,B,beat,m.arg);
+  const st2=MOVES[m.kind](Math.min(tt+dt,B),B,beat+dt,m.arg);
+  if(tt<SEAM&&plan.moves.length>1){const pv=plan.moves[(i+plan.moves.length-1)%plan.moves.length];
+    const ps=MOVES[pv.kind](pv.beats,pv.beats,beat-tt,pv.arg);const w=smooth(tt/SEAM);
+    for(const d of DANCERS){st[d].hands.L=mixHand(ps[d].hands.L,st[d].hands.L,w);
+      st[d].hands.R=mixHand(ps[d].hands.R,st[d].hands.R,w);
+      st[d].a=alerp(ps[d].a,st[d].a,w);st[d].p=mix(ps[d].p,st[d].p,w);
+      st[d].lean=lerp(ps[d].lean||0,st[d].lean||0,w);}}
+  finish(st,st2,m,beat);
+  if(opt.defect)st[opt.defect].p=add(st[opt.defect].p,[0,1],3.2*Math.sin(TAU*beat/8)+3.2);
+  const res={st,move:m,i,t};cache.set(key,res);return res;}
+/** The one call alone, given its own beat count — the rig's clock. */
+function rigStateAt(m,beat,B,defect){
+  const key='rig|'+m.index+'|'+beat+'|'+B+'|'+(defect||'');
+  const hit=cache.get(key);if(hit)return hit;
+  const tt=(((beat-m.start)%B)+B)%B;
+  const st=poseAt(m,tt,B,beat,defect);cache.set(key,st);return st;}
+/** Feet, gait, gaze and the 1/256 px quantisation — the same for every clock. */
+function finish(st,st2,m,beat){
+  for(const d of DANCERS){const s=st[d],n=st2[d];
+    const v=[(n.p[0]-s.p[0])/dt,(n.p[1]-s.p[1])/dt];const speed=Math.hypot(v[0],v[1]);
+    const dd=dirOf(s.a),rt=rightOf(s.a);
+    const vu=speed>1e-3?(v[0]*dd[0]+v[1]*dd[1])/speed:1,vw=speed>1e-3?(v[0]*rt[0]+v[1]*rt[1])/speed:0;
+    const ampS=Math.min(1,speed/4)*(s.amp==null?1:s.amp);const sn=Math.sin(TAU*beat*(s.stepRate||1));
+    let feet=s.feet;
+    if(!feet)feet={L:[2.5+2.6*sn*vu*ampS,-2.0+2.6*sn*vw*ampS],R:[2.5-2.6*sn*vu*ampS,2.0-2.6*sn*vw*ampS]};
+    if(s.buzz){const bz=Math.sin(TAU*2*beat);const bf={L:[1.5+1.8*bz*vu,-3.0+1.8*bz*vw],R:[2.6,2.3]};
+      feet={L:mix(feet.L,bf.L,s.buzz),R:mix(feet.R,bf.R,s.buzz)};}
+    s.feet=feet;s.torsoA=s.a+(s.buzz?0:1.5*sn*ampS);s.speed=speed;s.flare=s.flare||0;s.lean=s.lean||0;
+    // the head looks at whoever the hands are with, else across the set
+    const mate=st[(m.kind==='swing'||m.kind==='balance')?((m.arg.rel==='partner'?PARTNER:NEIGHBOUR)[d]):NEIGHBOUR[d]];
+    const to=ang(mate.p[0]-s.p[0],mate.p[1]-s.p[1]);const dl=adiff(s.a,to);const ad=Math.abs(dl);
+    s.look=s.a+(ad<=55?dl:ad<115?Math.sign(dl)*55*(1-(ad-55)/60):0);
+    s.p=[q256(s.p[0]),q256(s.p[1])];}}
+
+/** The same four bodies read backwards down the hall — the other side of the set. */
+function mirror(st){const o={};for(const d in st){const s=st[d];
+  o[d]={p:[-s.p[0],s.p[1]],a:180-s.a,torsoA:180-s.torsoA,look:180-s.look,lean:s.lean,flare:s.flare,
+    feet:{L:[s.feet.R[0],-s.feet.R[1]],R:[s.feet.L[0],-s.feet.L[1]]},speed:s.speed,buzz:s.buzz,
+    hands:{L:{p:[-s.hands.R.p[0],s.hands.R.p[1]],d:s.hands.R.d},
+           R:{p:[-s.hands.L.p[0],s.hands.L.p[1]],d:s.hands.L.d}}};}
+  return o;}
+/** The same four bodies entered the other way round — half a turn about the set. */
+function turn(st){const o={};for(const d in st){const s=st[d];
+  o[d]={p:[-s.p[0],-s.p[1]],a:s.a+180,torsoA:s.torsoA+180,look:s.look+180,lean:s.lean,flare:s.flare,
+    feet:s.feet,speed:s.speed,buzz:s.buzz,
+    hands:{L:{p:[-s.hands.L.p[0],-s.hands.L.p[1]],d:s.hands.L.d},
+           R:{p:[-s.hands.R.p[0],-s.hands.R.p[1]],d:s.hands.R.d}}};}
+  return o;}
+/** Shift one set's bodies along the hall. */
+function shiftSt(s,dx){const m=p=>[p[0]+dx,p[1]];
+  return {p:m(s.p),a:s.a,torsoA:s.torsoA,look:s.look,lean:s.lean,flare:s.flare,speed:s.speed,
+    buzz:s.buzz,feet:s.feet,hands:{L:{p:m(s.hands.L.p),d:s.hands.L.d},R:{p:m(s.hands.R.p),d:s.hands.R.d}}};}
+function standing(d,dx,beat){const s=rest(d,beat);
+  s.torsoA=s.a;s.look=s.a;s.lean=0;s.flare=0;s.speed=0;
+  s.feet={L:[2.5,-2.0],R:[2.5,2.0]};return shiftSt(s,dx);}
+
+// ============================================================ the pixel hall
+const ARM={L1:7.5,L2:7.5},SHW=5.2;
+const HIPZ=24, SHZ=37, HEADZ=43;                     // 4 cm/px: hip 0.96 m, head 1.72 m
+function solveArm(S,H,drop,outward){
+  const L1=ARM.L1,L2=ARM.L2;const hz=-Math.max(0,drop);
+  let vx=H[0]-S[0],vy=H[1]-S[1],vz=hz;let d=Math.hypot(vx,vy,vz);let hx=H[0],hy=H[1];
+  if(d>L1+L2){const k=(L1+L2)/d;vx*=k;vy*=k;vz*=k;hx=S[0]+vx;hy=S[1]+vy;d=L1+L2;}
+  if(d<0.05)return {S,E:[S[0]+outward[0]*0.5,S[1]+outward[1]*0.5],H:[hx,hy],hz:vz,ez:0};
+  const ux=vx/d,uy=vy/d,uz=vz/d;const a=(L1*L1-L2*L2+d*d)/(2*d);const hh=Math.sqrt(Math.max(0,L1*L1-a*a));
+  let px=outward[0]*0.55,py=outward[1]*0.55,pz=-1.0;let dot=px*ux+py*uy+pz*uz;
+  px-=dot*ux;py-=dot*uy;pz-=dot*uz;let pl=Math.hypot(px,py,pz)||1;px/=pl;py/=pl;pz/=pl;
+  return {S,E:[S[0]+ux*a+px*hh,S[1]+uy*a+py*hh],H:[hx,hy],hz:vz,ez:uz*a+pz*hh};}
+function ell(g,x,y,rx,ry,rot,fill,outline){g.beginPath();g.ellipse(x,y,rx,ry,rot,0,TAU);
+  if(outline){g.lineWidth=1.3;g.strokeStyle=DK;g.stroke();}g.fillStyle=fill;g.fill();}
+const circ=(g,x,y,r,f,o)=>ell(g,x,y,r,r,0,f,o);
+function seg(g,a,b,w,col){g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineWidth=w;
+  g.strokeStyle=col;g.lineCap='round';g.stroke();}
+function drawBody(g,p,s){
+  const P=s.p,a=s.torsoA,rad=a*Math.PI/180;
+  const q=bodyPt(P,a,-0.2,0);ell(g,q[0]+1,q[1]+1.3,4.6+s.flare*0.5,6.2+s.flare*0.5,rad,'rgba(0,0,0,0.30)',false);
+  ['L','R'].forEach(f=>{const t=bodyPt(P,a,s.feet[f][0],s.feet[f][1]);ell(g,t[0],t[1],1.8,1.1,rad,SHOE,true);});
+  const tq=bodyPt(P,a,s.lean*0.5,0);
+  ell(g,tq[0],tq[1],3.6,5.6,rad,p.shirtDark,true);ell(g,tq[0],tq[1],2.5,4.3,rad,p.shirt,false);
+  const hl=bodyPt(P,a,s.lean*0.5+0.6,-1.2);ell(g,hl[0],hl[1],1.2,2.0,rad,p.shirtLite,false);}
+function armRigs(s){const P=s.p,a=s.torsoA;
+  const SL=bodyPt(P,a,0.3,-SHW),SR=bodyPt(P,a,0.3,SHW);
+  return {L:solveArm(SL,s.hands.L.p,s.hands.L.d,leftOf(a)),
+          R:solveArm(SR,s.hands.R.p,s.hands.R.d,rightOf(a))};}
+function drawArms(g,p,s,onTop){
+  const rigs=armRigs(s);
+  ['L','R'].forEach(k=>{const r=rigs[k];const hr=1.25+0.35*(1+Math.max(-15,r.hz)/15)+(onTop?-0.1:0.35);
+    seg(g,r.S,r.E,3.7,DK);seg(g,r.E,r.H,3.2,DK);circ(g,r.H[0],r.H[1],hr+0.7,DK,false);
+    seg(g,r.S,r.E,2.4,p.shirt);seg(g,r.E,r.H,1.9,p.skin);circ(g,r.H[0],r.H[1],hr,p.skin,false);});}
+function drawHead(g,p,s){
+  const P=s.p;const hc=bodyPt(P,s.a,0.9+s.lean*0.8,0);const look=s.look;const lr=look*Math.PI/180;const st=p.style;
+  const R=st==='bob'||st==='curly'?3.2:2.9;const hairC=st==='bald'?p.skin:st==='cap'?p.cap:p.hair;
+  if(st==='long'){const q=bodyPt(hc,look,-2.8,0);ell(g,q[0],q[1],2.6,2.1,lr,p.hairDark,true);}
+  if(st==='bun'){const q=bodyPt(hc,look,-2.9,0);circ(g,q[0],q[1],1.4,p.hairDark,true);}
+  if(st==='curly'){for(let i=0;i<7;i++){const t=i/7*TAU;circ(g,hc[0]+Math.cos(t)*2.5,hc[1]+Math.sin(t)*2.5,1.2,p.hair,true);}}
+  circ(g,hc[0],hc[1],R,hairC,true);
+  g.save();g.beginPath();g.arc(hc[0],hc[1],R,0,TAU);g.clip();
+  if(st==='bald'){const q=bodyPt(hc,look,-1.3,0);circ(g,q[0],q[1],R,p.hair,false);
+    const q2=bodyPt(hc,look,0.3,0);circ(g,q2[0],q2[1],R-0.7,p.skin,false);}
+  if(st!=='cap'){const q=bodyPt(hc,look,st==='bald'?2.1:1.5,0);circ(g,q[0],q[1],R,p.skin,false);}
+  if(st!=='bald'){const q=bodyPt(hc,look,-0.2,-0.7);ell(g,q[0],q[1],1.3,0.9,lr,st==='cap'?shade(p.cap,1.3):p.hairLite,false);}
+  g.restore();
+  if(st==='cap'){const q=bodyPt(hc,look,2.8,0);ell(g,q[0],q[1],1.4,2.8,lr,p.capDark,true);}
+  const n=bodyPt(hc,look,R+0.3,0);circ(g,n[0],n[1],0.7,p.skin,true);}
+
+const SS=4;                                          // the hall's own supersample
+const POOL=new Map();
+function scratchFor(W,H){const k=W+'x'+H;let s=POOL.get(k);
+  if(!s){s={ss:document.createElement('canvas'),layer:document.createElement('canvas')};
+    s.ss.width=W*SS;s.ss.height=H*SS;s.layer.width=W;s.layer.height=H;POOL.set(k,s);}
+  return s;}
+/** One frame of the hall: black floor, metre grid, the two lines, the people. */
+function renderHall(cv,W,H,zoom,actors,opt){
+  opt=opt||{};
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  cv.style.width=(W*zoom)+'px';cv.style.height=(H*zoom)+'px';
+  const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+  ctx.fillStyle='#0c0a09';ctx.fillRect(0,0,W,H);
+  const ox=W/2+(opt.panX||0),oy=H/2+(opt.panY||0);
+  ctx.fillStyle='#171310';
+  for(let x=(ox%25+25)%25;x<W;x+=25)ctx.fillRect(Math.round(x),0,1,H);
+  for(let y=(oy%25+25)%25;y<H;y+=25)ctx.fillRect(0,Math.round(y),W,1);
+  ctx.fillStyle='#211b16';                           // the two long lines, a shade off the floor
+  [-16,16].forEach(y=>ctx.fillRect(0,Math.round(oy+y),W,1));
+  const s=scratchFor(W,H);const ss=s.ss;const g=ss.getContext('2d');
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W*SS,H*SS);
+  g.setTransform(SS,0,0,SS,SS*ox,SS*oy);
+  const draw=actors.slice().sort((a,b)=>a.s.p[1]-b.s.p[1]);
+  const at=a=>{g.globalAlpha=a==null?1:a;};
+  draw.forEach(x=>{at(x.alpha);drawBody(g,x.p,x.s);});
+  // the robin's hand stacks on top: paint the larks' arms first
+  draw.filter(x=>x.p.role==='lark').forEach(x=>{at(x.alpha);drawArms(g,x.p,x.s,false);});
+  draw.filter(x=>x.p.role!=='lark').forEach(x=>{at(x.alpha);drawArms(g,x.p,x.s,true);});
+  draw.forEach(x=>{at(x.alpha);drawHead(g,x.p,x.s);});
+  g.globalAlpha=1;
+  const layer=s.layer;const lg=layer.getContext('2d',{willReadFrequently:true});
+  lg.clearRect(0,0,W,H);lg.imageSmoothingEnabled=true;lg.imageSmoothingQuality='high';
+  lg.drawImage(ss,0,0,W,H);
+  const id=lg.getImageData(0,0,W,H);const dd=id.data;      // integer pixels: no soft edge
+  for(let i=3;i<dd.length;i+=4)dd[i]=dd[i]>=128?255:0;
+  lg.putImageData(id,0,0);
+  ctx.drawImage(layer,0,0);
+  if(opt.wire){ctx.fillStyle='#ffffff66';
+    actors.forEach(x=>ctx.fillRect(Math.round(ox+x.s.p[0]),Math.round(oy+x.s.p[1]),1,1));}
+}
+
+// ============================================================== the 3d view
+/** Orthographic, yaw then elevation — the old debugger's view3d pane, remade. */
+function project3(cam,p){
+  const y=cam.yaw*Math.PI/180,e=cam.elev*Math.PI/180;
+  const rx=p[0]*Math.cos(y)-p[1]*Math.sin(y), ry=p[0]*Math.sin(y)+p[1]*Math.cos(y);
+  return {x:cam.cx+rx*cam.s, y:cam.cy+(ry*Math.sin(e)-p[2]*Math.cos(e))*cam.s, depth:ry};}
+function arm3(S,H,pole){
+  const L1=ARM.L1,L2=ARM.L2;let v=[H[0]-S[0],H[1]-S[1],H[2]-S[2]];
+  let d=Math.hypot(v[0],v[1],v[2]);let Hp=H.slice();
+  if(d>L1+L2){const k=(L1+L2)/d;v=v.map(c=>c*k);Hp=[S[0]+v[0],S[1]+v[1],S[2]+v[2]];d=L1+L2;}
+  if(d<0.05)return {E:[S[0]+pole[0],S[1]+pole[1],S[2]+pole[2]],H:Hp};
+  const u=v.map(c=>c/d);
+  const a=(L1*L1-L2*L2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,L1*L1-a*a));
+  let p=pole.slice();const dot=p[0]*u[0]+p[1]*u[1]+p[2]*u[2];
+  p=[p[0]-dot*u[0],p[1]-dot*u[1],p[2]-dot*u[2]];
+  const pl=Math.hypot(p[0],p[1],p[2])||1;p=p.map(c=>c/pl);
+  return {E:[S[0]+u[0]*a+p[0]*hh,S[1]+u[1]*a+p[1]*hh,S[2]+u[2]*a+p[2]*hh],H:Hp};}
+function bones3(s){
+  const P=s.p,a=s.torsoA;
+  const SL=bodyPt(P,a,0.3,-SHW),SR=bodyPt(P,a,0.3,SHW);
+  const sl=[SL[0],SL[1],SHZ],sr=[SR[0],SR[1],SHZ];
+  const hip=[P[0],P[1],HIPZ];
+  const neck=[(sl[0]+sr[0])/2,(sl[1]+sr[1])/2,SHZ];
+  const hc=bodyPt(P,s.a,0.9+s.lean*0.8,0);const head=[hc[0],hc[1],HEADZ];
+  const hL=[s.hands.L.p[0],s.hands.L.p[1],SHZ-s.hands.L.d];
+  const hR=[s.hands.R.p[0],s.hands.R.p[1],SHZ-s.hands.R.d];
+  const lo=leftOf(a),ro=rightOf(a);
+  const aL=arm3(sl,hL,[lo[0]*0.55,lo[1]*0.55,-1]),aR=arm3(sr,hR,[ro[0]*0.55,ro[1]*0.55,-1]);
+  const fL=bodyPt(P,a,s.feet.L[0],s.feet.L[1]),fR=bodyPt(P,a,s.feet.R[0],s.feet.R[1]);
+  return {hip,neck,sl,sr,head,footL:[fL[0],fL[1],0],footR:[fR[0],fR[1],0],
+    elbowL:aL.E,handL:aL.H,elbowR:aR.E,handR:aR.H,look:s.look};}
+function render3d(cv,w,h,actors,cam0){
+  const dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  cv.style.width=w+'px';cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  c.fillStyle='#0c0a09';c.fillRect(0,0,w,h);
+  // fit the floor box and a dancer's height into the canvas, then stop moving
+  const R=cam0.radius, RY=cam0.radiusY||30, probe={yaw:cam0.yaw,elev:cam0.elev,s:1,cx:0,cy:0};
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const sx of [-1,1])for(const sy of [-1,1])for(const z of [0,46]){
+    const q=project3(probe,[sx*R,sy*RY,z]);
+    x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);}
+  const s=0.88*Math.min((w-10)/Math.max(1,x1-x0),(h-10)/Math.max(1,y1-y0));
+  const cam={yaw:cam0.yaw,elev:cam0.elev,s,cx:w/2-(x0+x1)/2*s,cy:h/2-(y0+y1)/2*s};
+  const at=p=>{const q=project3(cam,[p[0]-cam0.centre,p[1],p[2]]);return [q.x,q.y];};
+  const line=(a,b,col,wd)=>{c.strokeStyle=col;c.lineWidth=wd||1;c.beginPath();
+    const A=at(a),B=at(b);c.moveTo(A[0],A[1]);c.lineTo(B[0],B[1]);c.stroke();};
+  c.lineWidth=1;                                       // the floor, a metre at a time
+  for(let x=-Math.ceil(R/25)*25;x<=R;x+=25)line([x+cam0.centre,-R,0],[x+cam0.centre,R,0],'#2c241d');
+  for(let y=-Math.ceil(RY/25)*25;y<=RY;y+=25)line([cam0.centre-R,y,0],[cam0.centre+R,y,0],'#2c241d');
+  [-16,16].forEach(y=>line([cam0.centre-R,y,0],[cam0.centre+R,y,0],'#5b4a3a',1.2));
+  const list=actors.map(x=>({x,b:bones3(x.s)}));
+  list.sort((p,q)=>project3(cam,[p.b.hip[0]-cam0.centre,p.b.hip[1],p.b.hip[2]]).depth
+    -project3(cam,[q.b.hip[0]-cam0.centre,q.b.hip[1],q.b.hip[2]]).depth);
+  const bw=Math.max(1.1,cam.s*0.42);
+  for(const {x,b} of list){
+    const col=ROLE[x.p.role];c.globalAlpha=x.alpha==null?1:x.alpha;
+    [[b.hip,b.neck],[b.sl,b.sr],[b.sl,b.elbowL],[b.elbowL,b.handL],[b.sr,b.elbowR],
+     [b.elbowR,b.handR],[b.hip,b.footL],[b.hip,b.footR],[b.neck,b.head]]
+      .forEach(([p,q])=>line(p,q,col,bw));
+    // the nose, along the head's yaw; the hands as plates that lie the way the palm does
+    const d=dirOf(b.look);
+    line(b.head,[b.head[0]+3*d[0],b.head[1]+3*d[1],b.head[2]],x.p.skin,1.4);
+    const dot=(p,col2,r)=>{const q=at(p);c.fillStyle=col2;c.beginPath();c.arc(q[0],q[1],r,0,TAU);c.fill();};
+    dot(b.head,x.p.skin,2.6*cam.s);
+    [b.handL,b.handR].forEach(hp=>dot(hp,x.p.skin,1.6*cam.s));
+    [b.footL,b.footR,b.hip].forEach(p=>dot(p,col,1.2*cam.s));
+    c.globalAlpha=1;}
+}
+
+
+// ============================================ the figure's own file (mocked)
+// M7's question, written the way the brief puts it: the body as constraints,
+// not a path — and the contexts the review shows it in, as `rig` lines.
+const FIG_SOURCE=`// swing.dance — the swing as text. A caller who reads
+// Butter can read this. The body is constraints, never a
+// path; the rigs are where the review shows it, a card each.
+
+use contra::{Role, Hand, partner, neighbor, Robin, MinorSet};
+use contra::{chain, hey, circle, balance, long-lines};
+
+fn swing(with: Role, beats: i32 = 8) {
+  pre {
+    facing with; apart 0.56m;
+    hold ballroom(Right) with with;
+  }
+  body {
+    orbit midpoint(self, with), turns = beats / 4;
+    with on Right; buzz-step;
+  }
+  post { beside with as-couple; facing home; }
+}
+
+rig "middle of the set" { swing(neighbor); }
+rig "the top end"       { at = top; swing(neighbor); }
+rig "the bottom end"    { at = bottom; swing(neighbor); }
+rig "the other side"    { side = other; swing(neighbor); }
+rig "out of a chain" {
+  chain(Robin, to = partner);
+  swing(partner);
+}
+rig "into the hey" {
+  swing(neighbor);
+  hey(MinorSet, start = Robin, shoulder = Right);
+}
+rig "in six"            { swing(neighbor, beats = 6); }
+rig "nobody across"     { across = nobody; swing(neighbor); }`;
+const DEFAULT_BEATS={shift:2,circle:8,swing:8,'long-lines':8,chain:8,hey:16,balance:4};
+const callName=(kind,arg)=>kind==='swing'?(arg.rel==='partner'?'partner swing':'neighbor swing')
+  :kind==='balance'?'partner balance':NAMES[kind]||kind;
+/** The figure, its phase lines, and its rigs — each rig a run of calls with the figure in focus. */
+function parseFigure(text){
+  const lines=text.split('\n');
+  const f={name:'swing',line:0,pre:-1,body:-1,post:-1,beats:8,rigs:[],lines};
+  const T=2;                                          // beats of the call before and after
+  const closeOf=i=>{if(/\}\s*$/.test(lines[i]))return i;let j=i+1;while(j<lines.length&&!/^\s*\}/.test(lines[j]))j++;return j;};
+  let open=null;                                       // a rig block still being read
+  lines.forEach((ln,i)=>{let at=null;
+    const fn=ln.match(/^fn\s+([a-z][a-z-]*)\(/);
+    if(fn){f.name=fn[1];f.line=i;const b=ln.match(/beats:\s*i32\s*=\s*(\d+)/);if(b)f.beats=+b[1];}
+    if(f.pre<0&&/^\s*pre\s*\{/.test(ln))f.pre=[i,closeOf(i)];
+    if(f.body<0&&/^\s*body\s*\{/.test(ln))f.body=[i,closeOf(i)];
+    if(f.post<0&&/^\s*post\s*\{/.test(ln))f.post=[i,closeOf(i)];
+    let rg=ln.match(/^\s*rig\s+"([^"]*)"\s*\{(.*)$/);
+    if(rg&&!/\}/.test(rg[2])){open={label:rg[1],line:i,body:rg[2]};return;}
+    if(open){if(/^\s*\}/.test(ln)){rg=[null,open.label,open.body];at=open.line;open=null;}
+      else{open.body+=' '+ln;return;}}
+    if(!rg)return;
+    const r={label:rg[1],line:at!=null?at:i,opts:{},calls:[]};
+    rg[2].replace(/\}.*$/,'').split(';').map(s=>s.trim()).filter(Boolean).forEach(s=>{
+      const o=s.match(/^([a-z]+)\s*=\s*([a-z]+)$/);if(o){r.opts[o[1]]=o[2];return;}
+      const c=s.match(/^([a-z][a-z-]*)\((.*)\)$/);if(!c||!MOVES[c[1]])return;
+      const a=c[2];const kind=c[1];
+      const arg={rel:/partner/.test(a)?'partner':/neighbo/.test(a)?'neighbor':'',
+        places:Number((a.match(/places\s*=\s*(\d+)/)||[])[1]||3)};
+      const beats=Number((a.match(/beats\s*=\s*(\d+(?:\.\d+)?)/)||[])[1]
+        ||(kind===f.name?f.beats:DEFAULT_BEATS[kind]||8));
+      r.calls.push({kind,arg,beats,name:callName(kind,arg)});});
+    let fi=r.calls.findIndex(c=>c.kind===f.name);
+    if(fi<0){r.calls.unshift({kind:f.name,arg:{rel:'neighbor',places:3},beats:f.beats,
+      name:callName(f.name,{rel:'neighbor'})});fi=0;}
+    const pre=r.calls.slice(0,fi),post=r.calls.slice(fi+1),fig=r.calls[fi];
+    const segs=[];let start=0;
+    pre.forEach(c=>start-=Math.min(T,c.beats));
+    pre.forEach(c=>{const len=Math.min(T,c.beats);
+      segs.push({kind:c.kind,arg:c.arg,B:c.beats,tt0:c.beats-len,start,beats:len,name:c.name,line:r.line,side:true});
+      start+=len;});
+    segs.push({kind:fig.kind,arg:fig.arg,B:fig.beats,tt0:0,start:0,beats:fig.beats,name:fig.name,line:r.line,focus:true});
+    start=fig.beats;
+    post.forEach(c=>{const len=Math.min(T,c.beats);
+      segs.push({kind:c.kind,arg:c.arg,B:c.beats,tt0:0,start,beats:len,name:c.name,line:r.line,side:true});
+      start+=len;});
+    segs.forEach((s,k)=>s.index=k);
+    r.segs=segs;r.pre=-segs[0].start;r.L=start-segs[0].start;r.fig=Object.assign({line:r.line,index:0},fig);
+    r.nb=r.opts.at==='top'?[1]:r.opts.at==='bottom'?[-1]:[-1,1];
+    r.mirror=r.opts.side==='other';r.turn=r.opts.facing==='back';
+    r.drop=r.opts.across==='nobody'?['l2','r2']:[];
+    r.flaw=r.drop.length?'a hand reaches nobody':'';
+    r.sub=r.opts.at?'nobody '+(r.opts.at==='top'?'above':'below'):r.mirror?'mirrored':r.turn?'half a turn'
+      :fig.beats!==f.beats?fig.beats+' beats':pre.length?'after the '+pre[pre.length-1].kind
+      :post.length?'before the '+post[0].kind:r.drop.length?'the place is empty':'';
+    r.index=f.rigs.length;f.rigs.push(r);});
+  if(!f.rigs.length){                                 // the text names no rig: one card, the figure alone
+    const fig={kind:f.name,arg:{rel:'neighbor',places:3},beats:f.beats,name:callName(f.name,{rel:'neighbor'})};
+    f.rigs.push({label:'(no rig in the text)',line:f.line,opts:{},calls:[fig],index:0,
+      segs:[Object.assign({B:fig.beats,tt0:0,start:0,index:0,line:f.line,focus:true},fig)],
+      pre:0,L:fig.beats,fig:Object.assign({line:f.line,index:0},fig),nb:[-1,1],mirror:false,turn:false,drop:[],flaw:'',sub:''});}
+  return f;}
+
+/** A rig's four bodies at a beat of its own clock (the figure starts at 0). */
+function blendFrom(st,ps,w){for(const d of DANCERS){
+  st[d].hands.L=mixHand(ps[d].hands.L,st[d].hands.L,w);st[d].hands.R=mixHand(ps[d].hands.R,st[d].hands.R,w);
+  st[d].a=alerp(ps[d].a,st[d].a,w);st[d].p=mix(ps[d].p,st[d].p,w);st[d].lean=lerp(ps[d].lean||0,st[d].lean||0,w);}}
+function rigSeqAt(rig,b,defect){
+  const key='rig|'+rig.index+'|'+b+'|'+rig.L+'|'+(defect||'');
+  const hit=cache.get(key);if(hit)return hit;
+  const L=rig.L,o=-rig.pre;const t=o+(((b-o)%L)+L)%L;
+  const segs=rig.segs;let i=segs.length-1;while(i>0&&t<segs[i].start)i--;
+  const sg=segs[i];const tt=sg.tt0+(t-sg.start);
+  const st=MOVES[sg.kind](tt,sg.B,b,sg.arg);
+  const st2=MOVES[sg.kind](Math.min(tt+dt,sg.B),sg.B,b+dt,sg.arg);
+  if(t-sg.start<SEAM){const pv=segs[(i+segs.length-1)%segs.length];
+    const ps=MOVES[pv.kind](pv.tt0+pv.beats,pv.B,b-(t-sg.start),pv.arg);
+    blendFrom(st,ps,smooth((t-sg.start)/SEAM));}
+  finish(st,st2,sg,b);
+  if(defect)st[defect].p=add(st[defect].p,[0,1],3.2*Math.sin(TAU*b/8)+3.2);
+  cache.set(key,st);return st;}
+const rigDefect=rig=>APP.defect&&rig.index===1?'r2':null;
+function rigActors(rig,b){
+  let st=rigSeqAt(rig,b,rigDefect(rig));
+  if(rig.mirror)st=mirror(st);if(rig.turn)st=turn(st);
+  const out=[];
+  for(const d of DANCERS)if(!rig.drop.includes(d))out.push({p:faceOf(rig.turn?7:2,d),s:st[d],alpha:1});
+  for(const k of rig.nb)for(const d of DANCERS)out.push({p:faceOf(k>0?5:6,d),s:standing(d,k*PITCH,b),alpha:0.5});
+  return out;}
+const rigFlaw=rig=>rig.flaw?{what:rig.flaw,kind:'warn'}:rigDefect(rig)?{what:'r2 ends 2.8 px off place',kind:'bad'}:null;
+/** Every body in the hall at a beat of the dance. */
+function hallActors(b){
+  const {st}=stateAt(APP.plan,b,{defect:APP.defect?'r2':null});const out=[];
+  for(let k=0;k<SETS;k++){const dx=setX(k);
+    for(const d of DANCERS)out.push({p:faceOf(k,d),s:shiftSt(st[d],dx),alpha:1});}
+  out.push({p:faceOf(90,'l1'),s:standing('l1',setX(0)-PITCH,b),alpha:1});
+  out.push({p:faceOf(90,'r1'),s:standing('r1',setX(0)-PITCH,b),alpha:1});
+  out.push({p:faceOf(91,'l2'),s:standing('l2',setX(SETS-1)+PITCH,b),alpha:1});
+  out.push({p:faceOf(91,'r2'),s:standing('r2',setX(SETS-1)+PITCH,b),alpha:1});
+  return out;}
+
+// =========================================================== the app's state
+const ZOOM=2;                                        // never 4x, never 6x
+const APP={playing:true,bpm:112,wire:false,defect:false,
+  src:{dance:SOURCE,figure:FIG_SOURCE},plan:parse(SOURCE),fig:parseFigure(FIG_SOURCE)};
+const SCREENS=[];
+const views=[];                                     // {el,frame(),relayout?}
+const onStructure=[];
+const vis=new WeakSet();
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting)vis.add(e.target);else vis.delete(e.target);}),{rootMargin:'200px'});
+function view(el,frame,relayout){const v={el,frame,relayout};views.push(v);io.observe(el);
+  if(relayout)new ResizeObserver(()=>{relayout();frame();}).observe(el);
+  return v;}
+function restructure(){
+  APP.plan=parse(APP.src.dance);APP.fig=parseFigure(APP.src.figure);cache.clear();
+  SCREENS.forEach(s=>s.C.fix());
+  onStructure.forEach(f=>f());
+  views.forEach(v=>{if(v.relayout)v.relayout();v.frame();});}
+const redraw=()=>{cache.clear();views.forEach(v=>{if(vis.has(v.el))v.frame();});};
+
+/** One screen's clock: a dance's beats, or a rig's (the figure starts at 0). */
+function clock(mode){
+  const C={mode,beat:0,loop:false,loopMove:null,rig:0,focus:null};
+  C.rigOf=()=>APP.fig.rigs[Math.min(C.rig,APP.fig.rigs.length-1)];
+  C.length=()=>C.mode==='dance'?(APP.plan.length||64):C.rigOf().L;
+  C.origin=()=>C.mode==='dance'?0:-C.rigOf().pre;
+  C.wrap=b=>{const L=C.length(),o=C.origin();return o+(((b-o)%L)+L)%L;};
+  C.blocks=()=>C.mode==='dance'?APP.plan.moves:C.rigOf().segs;
+  C.current=()=>{const t=C.wrap(C.beat);const bs=C.blocks();let i=bs.length-1;while(i>0&&t<bs[i].start)i--;return bs[i];};
+  C.move=()=>C.mode==='dance'?((C.loop&&C.loopMove)||C.current()):C.rigOf().fig;
+  C.stateFor=b=>C.mode==='dance'?stateAt(APP.plan,b,{defect:APP.defect?'r2':null}).st
+    :rigSeqAt(C.rigOf(),b,rigDefect(C.rigOf()));
+  C.actors=b=>C.mode==='dance'?hallActors(b):rigActors(C.rigOf(),b);
+  C.seek=b=>{C.beat=C.wrap(b);};
+  C.fix=()=>{if(C.mode==='dance'&&C.loopMove)C.loopMove=APP.plan.moves[Math.min(C.loopMove.index,APP.plan.moves.length-1)];
+    C.rig=Math.min(C.rig,APP.fig.rigs.length-1);C.beat=C.wrap(C.beat);};
+  C.jump=n=>{
+    if(C.mode==='dance'){const ms=APP.plan.moves;const i=C.move().index;const m=ms[(i+n+ms.length)%ms.length];
+      C.loopMove=C.loop?m:null;C.seek(m.start+0.001);}
+    else{C.rig=(C.rig+n+APP.fig.rigs.length)%APP.fig.rigs.length;C.beat=C.wrap(C.beat);}
+    onStructure.forEach(f=>f());};
+  C.setLoop=(on,m)=>{C.loop=on;C.loopMove=on?(m||C.current()):null;if(on&&m)C.beat=m.start+0.001;
+    onStructure.forEach(f=>f());};
+  C.advance=dt=>{C.beat+=dt*APP.bpm/60;
+    if(C.mode==='dance'&&C.loop){const m=C.loopMove||C.current();C.loopMove=m;
+      if(C.beat<m.start||C.beat>=m.start+m.beats)C.beat=m.start+((C.beat-m.start)%m.beats+m.beats)%m.beats;}
+    else C.beat=C.wrap(C.beat);};
+  C.setMode=m=>{if(m===C.mode)return;C.mode=m;C.loop=false;C.loopMove=null;C.focus=null;
+    C.beat=C.mode==='dance'?APP.plan.moves[2].start+4.6:4.6;C.onMode&&C.onMode();onStructure.forEach(f=>f());};
+  /** The line of text the picture is at right now. */
+  C.litLine=()=>{
+    if(C.mode==='dance'){const l=C.move().line;return [l,l];}
+    const f=APP.fig;const cur=C.current();if(cur.side){const l=C.rigOf().line;return [l,l];}
+    const tt=C.wrap(C.beat);const B=cur.beats;
+    const ph=tt<1.2?f.pre:tt>B-1.5?f.post:f.body;return ph<0?[-1,-1]:ph;};
+  /** The problems the run reports, each pointing at a line, a beat, a card. */
+  C.problems=()=>{
+    const out=[];
+    if(C.mode==='dance'){
+      if(APP.defect){const hey=APP.plan.all.find(m=>m.kind==='hey');const ln=hey?hey.line:22;
+        out.push({kind:'bad',at:'butter.dance:'+(ln+1)+':5',what:'clearance: l1 and r2 pass 0.6 px apart at beat 41.5 (floor 3.0)',line:ln,beat:41.5});
+        out.push({kind:'bad',at:'butter.dance:'+(ln+1)+':5',what:'cap: r2’s hip runs 6.1 px/beat over beats 41–42 (cap 5.2)',line:ln,beat:41.2});}
+    } else APP.fig.rigs.forEach(r=>{const fl=rigFlaw(r);if(!fl)return;
+      out.push({kind:fl.kind,at:'swing.dance:'+(r.line+1)+':1',what:r.label+' — '+fl.what+(fl.kind==='warn'?' (r1’s left, the neighbour place is empty)':''),line:r.line,rig:r.index,beat:fl.kind==='bad'?7.6:3});});
+    return out;};
+  return C;}
+
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(0.12,(now-last)/1000);last=now;
+  cache.clear();
+  if(APP.playing)SCREENS.forEach(s=>s.C.advance(dt));
+  for(const v of views)if(vis.has(v.el))v.frame();
+  requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+
+// ============================================================ small builders
+const E=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;
+  if(txt!=null)n.textContent=txt;return n;};
+const btn=(txt,cls)=>E('button',cls||'',txt);
+const SVGNS='http://www.w3.org/2000/svg';
+const S=(tag,attrs)=>{const n=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)n.setAttribute(k,attrs[k]);return n;};
+
+// ------------------------------------------------------------- the code pane
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function colour(line){
+  let s=esc(line);
+  if(/^\s*\/\//.test(s))return '<span class="cm">'+s+'</span>';
+  s=s.replace(/("[^"]*")/g,"<span class='str'>$1</span>");
+  s=s.replace(/\b(fn|use|if|else|setup|card|phrase|let|rig|pre|body|post)\b/g,"<span class='kw'>$1</span>");
+  s=s.replace(/(^|[\s(])([a-z][a-z-]*)\(/g,"$1<span class='fn'>$2</span>(");
+  s=s.replace(/\b(partner|neighbor|Robin|Lark|MinorSet|MajorSet|Left|Right|top|bottom|other|nobody|back)\b/g,"<span class='rel'>$1</span>");
+  s=s.replace(/=\s*(\d+(?:\.\d+)?)/g,"= <span class='num'>$1</span>");
+  return s;}
+function codePane(C){
+  const wrap=E('div','code');const scroll=E('div','scroll');const pre=E('pre');
+  const ta=document.createElement('textarea');ta.spellcheck=false;
+  scroll.append(pre);wrap.append(scroll,ta,E('div','edit-tag','editable — the page re-times on every keystroke'));
+  let lit=-2,sel=-2,errs='';
+  const paint=()=>{
+    const L=(C.mode==='dance'?APP.plan:APP.fig).lines;const litLine=C.litLine();
+    const selLine=C.mode==='figure'?C.rigOf().line:-1;
+    const probs=C.problems();const key=probs.map(p=>p.kind+p.line).join();
+    pre.innerHTML=L.map((ln,i)=>{
+      const taken=C.mode==='dance'&&APP.plan.all.find(m=>m.line===i);
+      const pr=probs.find(p=>p.line===i);const on=i>=litLine[0]&&i<=litLine[1];
+      const cls='ln'+(taken&&!taken.taken?' dim':'')+(i===selLine?' sel':'')+(on?' lit':'')
+        +(pr&&!on?(pr.kind==='bad'?' err':' wrn'):'');
+      return "<span class='"+cls+"'>"+(colour(ln)||' ')+'</span>';}).join('');
+    lit=litLine.join();sel=selLine;errs=key;
+    const y=(litLine[0]+litLine[1])/2*17-wrap.clientHeight/2+40;
+    scroll.scrollTop=Math.max(0,y);ta.scrollTop=scroll.scrollTop;};
+  const load=()=>{if(ta.value!==APP.src[C.mode])ta.value=APP.src[C.mode];lit=-2;};
+  ta.addEventListener('input',()=>{APP.src[C.mode]=ta.value;restructure();});
+  ta.addEventListener('scroll',()=>{scroll.scrollTop=ta.scrollTop;});
+  onStructure.push(load);load();
+  view(wrap,()=>{if(C.litLine().join()!==lit||(C.mode==='figure'?C.rigOf().line:-1)!==sel
+    ||C.problems().map(p=>p.kind+p.line).join()!==errs)paint();});
+  paint();
+  return wrap;}
+
+// ----------------------------------------------------- problems, under the code
+function problems(C){
+  const el=E('div','problems');
+  const build=()=>{el.replaceChildren();const ps=C.problems();
+    if(!ps.length){const n=E('div','pl ok');n.append(E('span','at','clean'),E('span','what',''));el.append(n);return;}
+    ps.forEach(p=>{const n=E('div','pl '+p.kind);n.append(E('span','at',p.at),E('span','what',p.what));
+      n.title=p.what;
+      n.addEventListener('click',()=>{if(p.rig!=null)C.rig=p.rig;C.seek(p.beat);APP.playing=false;
+        onStructure.forEach(f=>f());redraw();});
+      el.append(n);});};
+  build();onStructure.push(build);
+  return el;}
+
+// -------------------------------------------------- the tape: modes, transport
+function ruler(C){
+  const r=E('div','ruler');let cells=[];
+  const build=()=>{r.replaceChildren();cells=C.blocks().map(m=>{
+    const c=E('div','mv'+(m.side?' side':''));c.style.setProperty('--w',m.beats);
+    const fill=E('div','fill');c.append(fill,E('b',null,m.name));
+    c.title=m.name+' — '+m.beats+' beats';
+    c.addEventListener('click',()=>{if(C.mode==='dance')C.loopMove=C.loop?m:null;C.seek(m.start+0.001);
+      onStructure.forEach(f=>f());});
+    r.append(c);return {c,fill,m};});};
+  build();onStructure.push(build);
+  return {el:r,frame(){const cur=C.move();const b=C.wrap(C.beat);
+    cells.forEach(x=>{const on=C.mode==='dance'?x.m===cur:b>=x.m.start&&b<x.m.start+x.m.beats;
+      x.c.classList.toggle('on',on);
+      x.fill.style.width=on?((b-x.m.start)/x.m.beats*100)+'%':'0';});}};}
+function tape(C){
+  const t=E('div','tape');
+  const modes=E('div','modes');const bD=btn('dance'),bF=btn('figure');modes.append(bD,bF);
+  const file=E('select');
+  const play=btn('▶','tbtn'),prev=btn('⏮','tbtn'),next=btn('⏭','tbtn');
+  const loop=btn('⟲');loop.title='loop the running call';
+  const beat=E('span','beat');
+  const rl=ruler(C);
+  const files=()=>{file.replaceChildren();
+    (C.mode==='dance'?['butter.dance','robins-on-a-wire.dance']:['swing.dance','chain.dance','hey.dance'])
+      .forEach(n=>{const o=document.createElement('option');o.textContent=n;file.append(o);});};
+  files();
+  bD.addEventListener('click',()=>C.setMode('dance'));
+  bF.addEventListener('click',()=>C.setMode('figure'));
+  play.addEventListener('click',()=>{APP.playing=!APP.playing;});
+  prev.addEventListener('click',()=>C.jump(-1));
+  next.addEventListener('click',()=>C.jump(1));
+  loop.addEventListener('click',()=>C.setLoop(!C.loop));
+  t.append(modes,file,prev,play,next,loop,rl.el,beat);
+  const frame=()=>{
+    bD.classList.toggle('on',C.mode==='dance');bF.classList.toggle('on',C.mode==='figure');
+    loop.hidden=C.mode!=='dance';
+    play.textContent=APP.playing?'❚❚':'▶';
+    loop.classList.toggle('on',C.loop);
+    const b=C.wrap(C.beat);
+    if(C.mode==='dance'){const m=C.move();beat.textContent='beat '+(b-m.start).toFixed(2)+' / '+m.beats;}
+    else{const r=C.rigOf();beat.textContent=(r.index+1)+'/'+APP.fig.rigs.length+' · beat '+b.toFixed(2)+' / '+r.fig.beats;}
+    rl.frame();};
+  onStructure.push(files);
+  return {el:t,frame};}
+
+// ---------------------------------------------- the hall strip (dance mode)
+function hallStrip(C){
+  const el=E('div','hallstrip');const cv=E('canvas');const tag=E('div','tag','2× · click a set');
+  el.append(cv,tag);
+  let W=400,H=58;
+  const relayout=()=>{W=Math.max(120,Math.floor((el.clientWidth-4)/ZOOM));el.style.height=(H*ZOOM+6)+'px';};
+  el.addEventListener('click',ev=>{const r=cv.getBoundingClientRect();
+    const x=(ev.clientX-r.left)/ZOOM-W/2;const k=Math.round(x/PITCH+(SETS-1)/2);
+    C.focus=(k>=0&&k<SETS&&C.focus!==k)?k:null;});
+  const frame=()=>{
+    renderHall(cv,W,H,ZOOM,C.actors(C.beat),{wire:APP.wire});
+    if(C.focus!=null){const g=cv.getContext('2d');g.strokeStyle='#e7b96b66';g.lineWidth=1;
+      g.strokeRect(Math.round(W/2+setX(C.focus)-22)+0.5,Math.round(H/2-27)+0.5,44,54);}
+    tag.textContent='2×'+(C.focus!=null?' · set '+(C.focus+1):'');};
+  relayout();
+  return {el,frame,relayout};}
+
+// ---------------------------------------------------- the cards (figure mode)
+function cards(C){
+  const el=E('div','cards');let cs=[];
+  const build=()=>{el.replaceChildren();
+    cs=APP.fig.rigs.map(r=>{
+      const c=E('div','card');const hold=E('div','hold');const cv=E('canvas');hold.append(cv);
+      const cap=E('div','cap');const b=E('b',null,r.label);const sub=E('span','sub',r.sub);cap.append(b,sub);
+      c.append(hold,cap);
+      c.addEventListener('click',()=>{C.rig=r.index;C.beat=C.wrap(C.beat);onStructure.forEach(f=>f());});
+      el.append(c);return {c,cv,hold,sub,r};});};
+  build();onStructure.push(build);
+  const frame=()=>{cs.forEach(x=>{const r=APP.fig.rigs[x.r.index];if(!r)return;
+    const W=Math.max(40,Math.floor((x.hold.clientWidth-2)/ZOOM)),H=56;
+    renderHall(x.cv,W,H,ZOOM,rigActors(r,C.beat),{wire:APP.wire});
+    x.c.classList.toggle('sel',r.index===C.rig);
+    const f=rigFlaw(r);x.sub.textContent=f?f.what:r.sub;x.sub.className='sub'+(f?' '+f.kind:'');});};
+  return {el,frame,relayout(){}};}
+
+// ------------------------------------------------ the 3d, dragged and preset
+const ANGLES=[['top',{yaw:0,elev:89}],['¾',{yaw:-34,elev:32}],['side',{yaw:0,elev:14}],
+  ['along',{yaw:90,elev:16}],['eye',{yaw:-34,elev:7}]];
+function view3(C){
+  const el=E('div','v3');const cv=E('canvas');const who=E('div','who');const ps=E('div','presets');
+  el.append(cv,who,ps);
+  const cam={yaw:-34,elev:32};let w=400,h=300;
+  const pbs=ANGLES.map(([n,a])=>{const b=btn(n);b.addEventListener('click',()=>{cam.yaw=a.yaw;cam.elev=a.elev;});ps.append(b);return {b,a};});
+  const hall=btn('hall');hall.title='the whole line';hall.addEventListener('click',()=>{C.focus=null;});ps.append(hall);
+  let drag=null;
+  el.addEventListener('pointerdown',ev=>{if(ev.target.tagName==='BUTTON')return;
+    drag={x:ev.clientX,y:ev.clientY,yaw:cam.yaw,elev:cam.elev};el.setPointerCapture(ev.pointerId);});
+  el.addEventListener('pointermove',ev=>{if(!drag)return;
+    cam.yaw=drag.yaw+(ev.clientX-drag.x)*0.4;
+    cam.elev=Math.max(4,Math.min(89,drag.elev-(ev.clientY-drag.y)*0.4));});
+  el.addEventListener('pointerup',()=>{drag=null;});
+  const relayout=()=>{w=Math.max(200,el.clientWidth);h=Math.max(120,el.clientHeight);};
+  const frame=()=>{
+    const dance=C.mode==='dance';const foc=dance&&C.focus!=null;
+    let acts=C.actors(C.beat);
+    if(foc){const cx=setX(C.focus);                   // the set alone, its neighbours a shade
+      acts=acts.filter(x=>Math.abs(x.s.p[0]-cx)<PITCH*1.4)
+        .map(x=>Math.abs(x.s.p[0]-cx)<PITCH*0.5?x:Object.assign({},x,{alpha:0.3}));}
+    render3d(cv,w,h,acts,{yaw:cam.yaw,elev:cam.elev,
+      radius:dance?(foc?60:190):50,radiusY:dance?30:24,centre:foc?setX(C.focus):0});
+    pbs.forEach(x=>x.b.classList.toggle('on',Math.abs(x.a.yaw-cam.yaw)<1&&Math.abs(x.a.elev-cam.elev)<1));
+    hall.hidden=!dance;hall.classList.toggle('on',dance&&!foc);
+    const r=C.rigOf();
+    who.innerHTML=dance?(foc?'<b>set '+(C.focus+1)+'</b> · '+C.move().name:'<b>the hall</b> · '+C.move().name)
+      :'<b>'+r.label+'</b>'+(r.sub?' · '+r.sub:'')+' · '+r.fig.name;};
+  relayout();
+  return {el,frame,relayout};}
+
+// ---------------------------------------- the one tabbed panel, and its fold
+function speedSeries(C){
+  const L=C.length(),o=C.origin();const n=192;const out={};DANCERS.forEach(d=>out[d]=[]);
+  for(let i=0;i<n;i++){const b=o+i/n*L;const a=C.stateFor(b-0.15),c=C.stateFor(b+0.15);
+    DANCERS.forEach(d=>out[d].push(Math.min(14,Math.hypot(c[d].p[0]-a[d].p[0],c[d].p[1]-a[d].p[1])/0.3)));}
+  return out;}
+function timelineTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto;width:100%;padding:3px';
+  const svg=S('svg',{class:'tl'});box.append(svg);
+  let cursor=null;
+  const build=()=>{
+    const w=Math.max(360,box.clientWidth-8);const pad=30,right=6;
+    const L=C.length(),o=C.origin();const dance=C.mode==='dance';const head=dance?24:8;
+    const rowH=Math.max(18,Math.min(48,Math.floor((box.clientHeight-head-22)/DANCERS.length)));
+    const h=head+DANCERS.length*rowH+14;
+    svg.setAttribute('width',w);svg.setAttribute('height',h);svg.replaceChildren();
+    const x=b=>pad+(b-o)/L*(w-pad-right);
+    if(dance)for(let p=0;p<L;p+=16){svg.append(S('rect',{x:x(p),y:2,width:Math.max(2,x(Math.min(p+16,L))-x(p)-2),
+      height:13,fill:'#e7b96b14',stroke:'#e7b96b33',rx:2}));
+      const lab=S('text',{x:x(p)+4,y:12,class:'phrase'});lab.textContent=['A1','A2','B1','B2'][p/16]||'';svg.append(lab);}
+    const step=L>24?4:1;
+    for(let b=Math.ceil(o);b<=o+L;b+=step){svg.append(S('line',{x1:x(b),y1:head,x2:x(b),y2:head+DANCERS.length*rowH,
+      class:'grid','stroke-opacity':b%(step*4)?0.5:1}));
+      if(b%(L>24?8:2)===0){const tx=S('text',{x:x(b)+2,y:h-4,class:'tick'});tx.textContent=b;svg.append(tx);}}
+    const blocks=C.blocks();
+    DANCERS.forEach((d,i)=>{const y=head+i*rowH;
+      const nm=S('text',{x:2,y:y+rowH-8,class:'rowname',fill:ROLE[ROLE_OF[d]]});nm.textContent=d;svg.append(nm);
+      blocks.forEach(m=>{
+        const out=m.kind==='chain'&&ROLE_OF[d]==='lark';
+        svg.append(S('rect',{x:x(m.start)+0.5,y:y+1,width:Math.max(2,x(m.start+m.beats)-x(m.start)-1.5),
+          height:rowH-3,rx:2,class:'blk'+(out?' wait':m.side?' side':''),'data-m':m.index}));
+        if(i===0){const tx=S('text',{x:x(m.start)+4,y:y+rowH-7,class:'callname'});
+          const room=x(m.start+m.beats)-x(m.start)-8;
+          tx.textContent=room>m.name.length*5.6?m.name:m.name.slice(0,Math.max(0,Math.floor(room/5.6)));
+          svg.append(tx);}});
+      if(i===0)blocks.forEach(m=>{if(m.start===o)return;
+        svg.append(S('line',{x1:x(m.start),y1:head,x2:x(m.start),y2:head+DANCERS.length*rowH,class:'seam'}));});});
+    cursor=S('line',{x1:pad,y1:head-2,x2:pad,y2:head+DANCERS.length*rowH+2,class:'cursor'});svg.append(cursor);
+    const hit=S('rect',{x:0,y:0,width:w,height:h,class:'hit'});svg.append(hit);
+    const seek=ev=>{const r=svg.getBoundingClientRect();
+      C.seek(o+(ev.clientX-r.left-pad)/(w-pad-right)*L);APP.playing=false;};
+    hit.addEventListener('pointerdown',ev=>{hit.setPointerCapture(ev.pointerId);seek(ev);});
+    hit.addEventListener('pointermove',ev=>{if(ev.buttons)seek(ev);});
+    svg._x=x;};
+  build();onStructure.push(build);
+  return {el:box,relayout:build,frame(){if(!cursor||!svg._x)return;const X=svg._x(C.wrap(C.beat));
+    cursor.setAttribute('x1',X);cursor.setAttribute('x2',X);
+    const cur=C.current();
+    svg.querySelectorAll('rect.blk').forEach(r=>r.classList.toggle('on',+r.dataset.m===cur.index));}};}
+function graphsTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;padding:4px;display:flex';
+  let cur=null,W=600,PAD=30;
+  const draw=()=>{const s=speedSeries(C);
+    const w=Math.max(360,box.clientWidth-8),h=Math.max(90,box.clientHeight-8);
+    const svg=S('svg',{width:w,height:h});
+    svg.append(S('rect',{x:0,y:0,width:w,height:h,fill:'#0c0a09'}));
+    const cap=5.2,max=14;const y=v=>h-14-v/max*(h-26);const x=i=>PAD+i*(w-PAD-6);
+    svg.append(S('line',{x1:PAD,y1:y(cap),x2:w,y2:y(cap),stroke:'#a8977f','stroke-dasharray':'3 3'}));
+    const lab=S('text',{x:2,y:y(cap)-3,class:'tick',fill:'#a8977f'});lab.textContent='hip cap 5.2';
+    svg.append(lab);
+    const L=C.length(),o=C.origin();const step=L>24?8:2;
+    for(let b=Math.ceil(o/step)*step;b<=o+L;b+=step){const g=x((b-o)/L);
+      svg.append(S('line',{x1:g,y1:4,x2:g,y2:h-12,class:'grid','stroke-opacity':b%(step*2)?0.4:0.9}));
+      const t=S('text',{x:g+2,y:h-3,class:'tick'});t.textContent=b;svg.append(t);}
+    DANCERS.forEach(d=>{const n=s[d].length;
+      const pts=s[d].map((v,i)=>x(i/(n-1)).toFixed(1)+','+y(v).toFixed(1)).join(' ');
+      svg.append(S('polyline',{points:pts,fill:'none',stroke:ROLE[ROLE_OF[d]],'stroke-width':1.3,
+        'stroke-opacity':0.8}));});
+    cur=S('line',{x1:PAD,y1:0,x2:PAD,y2:h-12,stroke:'#ebdfcd','stroke-width':1.3});svg.append(cur);
+    W=w;box.replaceChildren(svg);};
+  draw();onStructure.push(draw);
+  return {el:box,relayout:draw,frame(){if(!cur)return;
+    const x=(PAD+(C.wrap(C.beat)-C.origin())/C.length()*(W-PAD-6)).toFixed(1);
+    cur.setAttribute('x1',x);cur.setAttribute('x2',x);}};}
+function bindingsTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto';
+  const m=E('div','binds');box.append(m);
+  return {el:box,frame(){const c=C.move();const r=C.rigOf();const dance=C.mode==='dance';
+    const b=C.wrap(C.beat);
+    m.innerHTML=[
+      ['call',c.name+' · '+c.beats+' beats'],
+      ['at',dance?(C.focus!=null?'MinorSet('+(C.focus+1)+')':'every MinorSet'):'rig “'+r.label+'”'],
+      ['self','r1 · robin'],['partner','l1'],['neighbor',(!dance&&r.drop.length)?'nobody':'l2'],
+      ['group',(!dance&&r.drop.length)?'[ r1 l1 ] — 2 of 4':'[ l1 r1 l2 r2 ]'],
+      ['seat after',((!dance&&r.mirror)?'(+12, −16)':'(−12, +16)')+' facing '+((!dance&&r.mirror)?'90°':'270°')],
+      ['beat',(b-c.start).toFixed(2)+' of '+c.beats]
+    ].map(([k,v])=>'<div><span class="k">'+k+'</span><span class="v">'+v+'</span></div>').join('');}};}
+function infoTab(C){
+  const box=E('div');box.style.cssText='flex:1;min-height:0;overflow:auto';
+  const m=E('div','info');box.append(m);
+  const build=()=>{m.innerHTML=C.mode==='dance'
+    ?'<div><b>butter.dance</b> · '+APP.plan.moves.length+' moves · '+APP.plan.length+' beats · '+SETS+' sets · 26 dancers · '+APP.bpm+' bpm</div>'
+      +'<div>proof clean · no drift over 0.04 px · hip peak 4.1 px/beat (cap 5.2)</div>'
+      +'<div>MajorSet #1 — lines 2 · MinorSet #1…#'+SETS+' becket, provides partner, neighbor · out: 2 couples</div>'
+    :'<div><b>swing.dance</b> · fn '+APP.fig.name+' · '+APP.fig.beats+' beats · '+APP.fig.rigs.length+' rigs</div>'
+      +'<div>proof clean in '+(APP.fig.rigs.length-APP.fig.rigs.filter(rigFlaw).length)+' of '+APP.fig.rigs.length+' · hip peak 4.1 px/beat (cap 5.2)</div>';};
+  build();onStructure.push(build);
+  return {el:box,frame(){}};}
+const TABS={timeline:timelineTab,graphs:graphsTab,bindings:bindingsTab,info:infoTab};
+function deck(C,openTab){
+  const d=E('div','deck');const bar=E('div','tabbar');const body=E('div','body');
+  let cur=openTab||'timeline',held={};
+  const show=name=>{cur=name;
+    [...bar.children].forEach(c=>c.tagName==='BUTTON'&&c.classList.toggle('on',c.dataset.t===name));
+    body.hidden=!name;
+    if(!name)return;
+    if(!held[name]){const t=TABS[name](C);held[name]=t;
+      view(body,()=>{if(cur===name)t.frame();},t.relayout?()=>{if(cur===name)t.relayout();}:null);}
+    body.replaceChildren(held[name].el);
+    if(held[name].relayout)requestAnimationFrame(()=>{held[name].relayout();held[name].frame();});};
+  Object.keys(TABS).forEach(n=>{const b=btn(n);b.dataset.t=n;
+    b.addEventListener('click',()=>show(cur===n?'':n));bar.append(b);});
+  bar.append(E('span','sp'));
+  const hide=btn('▾');hide.title='fold the panel away';
+  hide.addEventListener('click',()=>{show(cur?'':(openTab||'timeline'));hide.textContent=cur?'▾':'▴';});bar.append(hide);
+  d.append(bar,body);
+  requestAnimationFrame(()=>show(cur));
+  return {el:d,show};}
+
+// ====================================================== the screen, one mode
+function screen(host,opt){
+  const C=clock(opt.mode);
+  const tp=tape(C);
+  const left=E('div','left');const right=E('div','right');
+  left.append(codePane(C),problems(C));
+  let main=null;const v3=view3(C);const dk=deck(C,opt.tab);
+  const build=()=>{
+    main=C.mode==='dance'?hallStrip(C):cards(C);
+    right.replaceChildren(main.el,v3.el,dk.el);
+    main.relayout();v3.relayout();};
+  C.onMode=build;
+  build();
+  host.append(tp.el,left,right);
+  const s={C,el:host};SCREENS.push(s);
+  view(host,()=>{tp.frame();main.frame();v3.frame();},()=>{main.relayout();v3.relayout();});
+  if(opt.beat!=null)C.beat=opt.beat;
+  if(opt.rig!=null)C.rig=opt.rig;
+  if(opt.focus!=null)C.focus=opt.focus;
+  if(opt.foldDeck)requestAnimationFrame(()=>dk.show(''));
+  return s;}
+
+const s1=screen(document.getElementById('s1'),{mode:'dance',tab:'timeline'});
+const s2=screen(document.getElementById('s2'),{mode:'figure',tab:'graphs',rig:4,foldDeck:true});
+s1.C.beat=APP.plan.moves[2].start+4.6;s1.C.focus=2;
+s2.C.beat=4.6;
+onStructure.forEach(f=>f());                            // the opening state, built once
+
+// ======================================================== the control strip
+(function controls(){
+  const c=document.getElementById('controls');
+  const grp=(label,...nodes)=>{const g=E('div','grp');if(label)g.append(E('span','l',label));
+    nodes.forEach(n=>g.append(n));c.append(g);return g;};
+  const play=btn('❚❚ pause all');play.addEventListener('click',()=>{APP.playing=!APP.playing;
+    play.textContent=APP.playing?'❚❚ pause all':'▶ play all';});
+  const prev=btn('⏮'),next=btn('⏭');
+  prev.addEventListener('click',()=>SCREENS.forEach(s=>s.C.jump(-1)));
+  next.addEventListener('click',()=>SCREENS.forEach(s=>s.C.jump(1)));
+  grp('',play,prev,next);
+  const tempo=E('div','grp');['88','112','132'].forEach(t=>{const b=btn(t+' bpm',t==='112'?'ghost on':'ghost');
+    b.addEventListener('click',()=>{APP.bpm=+t;[...tempo.querySelectorAll('button')]
+      .forEach(x=>x.classList.toggle('on',x===b));onStructure.forEach(f=>f());});tempo.append(b);});
+  tempo.prepend(E('span','l','tempo'));c.append(tempo);
+  const wire=btn('wire','ghost');wire.addEventListener('click',()=>{APP.wire=!APP.wire;
+    wire.classList.toggle('on',APP.wire);redraw();});
+  const bad=btn('inject a defect','ghost');bad.addEventListener('click',()=>{APP.defect=!APP.defect;
+    bad.classList.toggle('on',APP.defect);restructure();});
+  const reset=btn('reset the texts');reset.addEventListener('click',()=>{APP.src.dance=SOURCE;APP.src.figure=FIG_SOURCE;restructure();});
+  grp('',wire,bad,reset);
+  const tip=E('div','grp');
+  tip.append(E('span',null,'space plays · drag the 3d · click a set or a card · edit either text · zoom is 2× always'));
+  c.append(tip);
+  addEventListener('keydown',e=>{if(e.code==='Space'&&!(e.target instanceof HTMLTextAreaElement)){
+    e.preventDefault();APP.playing=!APP.playing;play.textContent=APP.playing?'❚❚ pause all':'▶ play all';}});
+})();
+window.spike={APP,SCREENS,restructure};                // a handle, for driving it headless
+</script>
+</body>
+</html>
