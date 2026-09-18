@@ -28,7 +28,8 @@ from the outside and `src/allowedImports.test.ts` from the inside.
 | `src/eval/`            | The two passes: `buildTree` lays the floor, `runDance` scripts a time, `runEvening` repeats it. |
 | `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                            |
 | `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`.      |
-| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — a stub until P4.                                                 |
+| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — one command over one file.                                       |
+| `playground/`          | A vite root: the six panes, dark, on 5178. Nothing else imports it.                             |
 
 ## The language in one screen
 
@@ -122,9 +123,15 @@ console.log(printTimeline(evening)); // events by beat, then a row per move
   it started (`0-1L`, `OT-1R`) and never changes; what the progression moves is
   which place holds it.
 - **The out couples are in the tree.** A dance's contract is the kinds it reads,
-  and a dancer whose path lacks one of them runs the formation's `out(length)` —
-  `wait-out(64)` for a time through of Butter — while still taking part in the
-  set-wide `progress()`.
+  and a dancer whose path lacks one of them runs the formation's `out(length)`
+  while still taking part in the set-wide `progress()`.
+- **Beat 0 is the top of the dance, and membership settles there.** The couple
+  the progression carries off the end stops where it stands and waits out the
+  rest; the couple waiting at the end enters on the same commit and dances that
+  time through, shift and all, so nobody is ever asked to swing somebody who is
+  waiting out. Whether a dance that progresses in the _middle_ should admit and
+  release dancers the same way is a G1 question, and the rule is deliberately
+  restricted to the beat-0 commit until it is answered.
 - **A commit is where the diagnostics live.** Two dancers in one place names the
   pair and the beat (`L102`); half a role swap is exactly that.
 
@@ -144,10 +151,67 @@ error[L007] no sigil: "$partner" has a sigil the language does not have
    = help: a relation is a member of a group and is read bare: write "partner"
 ```
 
+## `pnpm lang`
+
+One command, one file, three things to ask of it. It runs the sources
+directly (`scripts/ts-src-resolve.mjs`, the same loader `pnpm dance` uses), so
+there is nothing to build first, and it exits non-zero the moment anything is
+an error.
+
+```bash
+pnpm lang check packages/lang/dances/butter.dance
+pnpm lang tree  packages/lang/dances/becket.dance --minor-sets 4
+pnpm lang run   packages/lang/dances/butter.dance --times 7
+```
+
+| Command | What it prints                                                            |
+| ------- | ------------------------------------------------------------------------- |
+| `check` | the parse and check diagnostics, rustc-shaped (`renderText`), or `--json` |
+| `tree`  | `printTree` of what `setup` built                                         |
+| `run`   | `printTimeline` for every time through, then the diagnostics              |
+
+Options: `--dance <name>` (default: the first `fn` with a `setup` in the file),
+`--minor-sets <n>` (3), `--times <n>` (1), `--json`. A fixture under
+`dances/broken/` reads the formations one directory up, as the loader does.
+
+A **formation** file declares a floor and no dance — `becket.dance`,
+`improper.dance` — and `tree` and `run` still work on one: the CLI stands the
+file's root group up in a one-line dance of its own
+(`becket::MajorSet(1, minor-sets = …)`) and says so on stderr, so a pipe reads
+the tree alone.
+
+## The playground
+
+```bash
+pnpm --filter @caller/lang dev     # http://localhost:5178
+```
+
+Also `.claude/launch.json`'s `lang-playground`, and
+`pnpm --filter @caller/lang build`, which puts a static copy in
+`dist/playground/`. The `.dance` files are bundled as text, so the page reads
+no disk and every edit re-runs the whole pipeline.
+
+Six panes, one evaluation behind all of them:
+
+| Pane          | What it shows                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`      | every `.dance` in `dances/`, editable, re-evaluated as you type; the `use`d modules as chips                                                                               |
+| `tree`        | `printTree`: the floor, its frames, the dancer at each leaf                                                                                                                |
+| `events`      | every commit beat of the evening, `dancer: from → to`, with the path segments that did not change elided to `…`                                                            |
+| `timelines`   | a row per dancer across the evening's beats — moves as bars, commits as ticks; drag to scrub                                                                               |
+| `floor`       | the hall from above at the **last commit on or before the scrubber's beat**: positions at rest (D6), lark gold, robin red, a heading tick, an empty place as a hollow ring |
+| `diagnostics` | the same text `pnpm lang check` prints; click one and its span is selected in the source                                                                                   |
+
+Controls: the dance `fn`, `minor-sets`, `times`, and one scrubber over the
+whole evening. The floor never shows motion — the language says where a dancer
+stands between commits and nothing about the way there, so neither does the
+pane.
+
 ## Validation
 
 ```bash
 pnpm --filter @caller/lang test
 pnpm --filter @caller/lang typecheck
-pnpm lang check dances/butter.dance    # P4
+pnpm lang check packages/lang/dances/butter.dance
+pnpm lang run packages/lang/dances/butter.dance --times 7
 ```

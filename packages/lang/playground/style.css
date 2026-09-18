@@ -1,0 +1,397 @@
+/* The kinetics debugger's palette and weight: dark, monospace, no chrome the
+   content does not need. Role colours are the repo's invariant (AGENTS.md):
+   lark gold, robin red, and never blue or pink. */
+:root {
+  --bg: #141110;
+  --panel: #1e1917;
+  --panel2: #272019;
+  --ink: #ebdfcd;
+  --muted: #a8977f;
+  --accent: #e7b96b;
+  --line: #3c3128;
+  --floor: #0c0a09;
+  --lark: #e0a32e;
+  --robin: #c8362f;
+  --bad: #e07a7a;
+  --good: #9fd08a;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    13px/1.4 ui-monospace,
+    Menlo,
+    monospace;
+  overflow: hidden;
+}
+#app {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1.15fr 0.7fr;
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  height: 100%;
+  padding: 6px;
+}
+.transport {
+  grid-column: 1 / -1;
+}
+section[data-pane="source"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+section[data-pane="tree"] {
+  grid-column: 2;
+  grid-row: 2;
+}
+section[data-pane="events"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+section[data-pane="floor"] {
+  grid-column: 4;
+  grid-row: 2 / 4;
+}
+section[data-pane="timelines"] {
+  grid-column: 1 / 4;
+  grid-row: 3;
+}
+section[data-pane="diagnostics"] {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  max-height: 150px;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+.transport label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+.scrub {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.beat {
+  flex: none;
+  color: var(--accent);
+  min-width: 200px;
+  text-align: right;
+}
+.pick,
+.num {
+  background: var(--panel2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  padding: 2px 4px;
+}
+.num {
+  width: 48px;
+}
+
+section[data-pane] {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+section[data-pane] > h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  min-height: 24px;
+}
+section[data-pane] > h2 .fact {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+section[data-pane] > .body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 5px 7px;
+}
+.empty {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* ---- source -------------------------------------------------------------- */
+
+section[data-pane="source"] > .body {
+  padding: 5px 6px;
+  display: flex;
+  overflow: hidden;
+}
+.source-text {
+  flex: 1;
+  resize: none;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 5px 6px;
+  font: inherit;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+.uses {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.chip {
+  background: var(--panel2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* ---- tree ---------------------------------------------------------------- */
+
+.dump {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: pre;
+  color: var(--ink);
+}
+
+/* ---- events -------------------------------------------------------------- */
+
+.events {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.events .commit {
+  color: var(--accent);
+  margin-top: 4px;
+  cursor: pointer;
+}
+.events .commit.on {
+  background: var(--panel2);
+}
+.events .event {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.events .event:hover {
+  background: var(--panel2);
+}
+.events .who {
+  flex: none;
+  width: 44px;
+}
+.events .arrow {
+  color: var(--muted);
+}
+.events .same {
+  color: var(--muted);
+  opacity: 0.45;
+}
+.events .changed {
+  color: var(--ink);
+}
+.lark {
+  color: var(--lark);
+}
+.robin {
+  color: var(--robin);
+}
+
+/* ---- timelines ----------------------------------------------------------- */
+
+section[data-pane="timelines"] > .body {
+  padding: 0;
+  display: flex;
+  overflow: hidden;
+}
+.timelines {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.timelines .names {
+  flex: none;
+  border-right: 1px solid var(--line);
+  overflow: hidden;
+}
+.timelines .gap {
+  height: 16px;
+}
+.timelines .row-name {
+  height: 15px;
+  line-height: 15px;
+  font-size: 10px;
+  padding: 0 6px;
+}
+.timelines .track {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.timeline {
+  display: block;
+  cursor: col-resize;
+  user-select: none;
+}
+.timeline .grid {
+  stroke: var(--line);
+  opacity: 0.45;
+}
+.timeline .time-line {
+  stroke: var(--accent);
+  stroke-dasharray: 2 3;
+  opacity: 0.6;
+}
+.timeline .tick {
+  font-size: 9px;
+  fill: var(--accent);
+}
+.timeline .bar {
+  opacity: 0.3;
+}
+.timeline .bar.lark {
+  fill: var(--lark);
+}
+.timeline .bar.robin {
+  fill: var(--robin);
+}
+.timeline .bar.out {
+  opacity: 0.1;
+}
+.timeline .bar-name {
+  font-size: 9px;
+  fill: var(--ink);
+}
+.timeline .commit-tick {
+  stroke: var(--good);
+  stroke-width: 2;
+}
+.timeline .cursor {
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+/* ---- floor --------------------------------------------------------------- */
+
+section[data-pane="floor"] > .body {
+  padding: 4px;
+  background: var(--floor);
+  display: flex;
+}
+.floor {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.floor .empty-place {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 24;
+}
+.floor .dot.lark {
+  fill: var(--lark);
+}
+.floor .dot.robin {
+  fill: var(--robin);
+}
+.floor .heading {
+  stroke-width: 36;
+}
+.floor .heading.lark {
+  stroke: var(--lark);
+}
+.floor .heading.robin {
+  stroke: var(--robin);
+}
+.floor .who {
+  font-size: 170px;
+  fill: var(--muted);
+}
+.floor .axis {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 26;
+}
+.floor .axis-name {
+  font-size: 170px;
+  fill: var(--line);
+}
+
+/* ---- diagnostics --------------------------------------------------------- */
+
+.complaints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.complaint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: pre;
+  color: var(--muted);
+  border-left: 2px solid var(--bad);
+  padding-left: 6px;
+}
+.complaint.warning {
+  border-left-color: var(--accent);
+}
+.complaint.clickable {
+  cursor: pointer;
+}
+.complaint.clickable:hover {
+  background: var(--panel2);
+  color: var(--ink);
+}
