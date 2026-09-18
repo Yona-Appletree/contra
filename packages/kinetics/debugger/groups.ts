@@ -151,3 +151,55 @@ export function padHull(pts: readonly [number, number][], pad: number): [number,
     return [x + (dx / l) * pad, y + (dy / l) * pad];
   });
 }
+
+/** The minor sets' boxes at a seating, in the tree's order — the same order `minorSetIndex` counts in. */
+export const minorSetBoxes = (run: Run, beat: number): Box[] => {
+  const membership = membershipAt(run, beat);
+  if (membership === undefined) return [];
+  return boxesAt(run, membership, []).filter((box) => box.node.kind === SET_KIND);
+};
+
+/** The middle of a hull, in world px. */
+export const centroidOf = (pts: readonly [number, number][]): [number, number] => {
+  if (pts.length === 0) return [0, 0];
+  let x = 0;
+  let y = 0;
+  for (const [px, py] of pts) {
+    x += px;
+    y += py;
+  }
+  return [x / pts.length, y / pts.length];
+};
+
+/**
+ * Which minor set a point on the floor is in at this beat: the one whose
+ * padded hull holds it, else the nearest within a set's width, else none.
+ */
+export function minorSetAt(run: Run, beat: number, x: number, y: number): number | undefined {
+  const boxes = minorSetBoxes(run, beat);
+  const inside = boxes.findIndex((box) => contains(padHull(box.hullPx, 6), x, y));
+  if (inside >= 0) return inside;
+  let best: number | undefined;
+  let bestD = 30;
+  boxes.forEach((box, i) => {
+    const [cx, cy] = centroidOf(box.hullPx);
+    const d = Math.hypot(cx - x, cy - y);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** Point in polygon, by the even-odd rule; a hull of one or two points holds nothing. */
+const contains = (pts: readonly [number, number][], x: number, y: number): boolean => {
+  if (pts.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i] as [number, number];
+    const [xj, yj] = pts[j] as [number, number];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};

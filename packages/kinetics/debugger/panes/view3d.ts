@@ -1,7 +1,14 @@
 import type { DancerId } from "../../src/dialect/Dialect.js";
 import { sampleAt } from "../../src/motion/Trajectory.js";
 import type { Vec3 } from "../../src/motion/Vec3.js";
-import { boxesAt, membershipAt, padHull } from "../groups.js";
+import {
+  boxesAt,
+  centroidOf,
+  membershipAt,
+  minorSetBoxes,
+  minorSetIndex,
+  padHull,
+} from "../groups.js";
 import { boundsOf, centreOf, project, type Camera } from "../project.js";
 import {
   alphaOf,
@@ -18,31 +25,102 @@ import {
 const METRE_PX = 25;
 
 /**
+ * The angles that matter, as buttons (G2 round 3: *"the sliders aren't very
+ * helpful … presets for common angles"*). `x` is across the set and `y` runs
+ * down the hall (`project.ts`), so `side` looks across the two lines and
+ * `along` looks down them.
+ */
+const ANGLES: readonly { name: string; yaw: number; pitch: number }[] = [
+  { name: "top", yaw: 30, pitch: 89 },
+  { name: "¾", yaw: 30, pitch: 35 },
+  { name: "side", yaw: 90, pitch: 14 },
+  { name: "along", yaw: 0, pitch: 14 },
+  { name: "eye", yaw: 30, pitch: 8 },
+];
+
+/** The 3d pane, and the set it is turned to. */
+export interface View3dPane extends Pane {
+  setFocus(set: number | undefined): void;
+}
+
+/**
  * The bodies in three dimensions, drawn with an orthographic camera of our own
  * (DA13): a stick figure per dancer in their role colour, the hands as plates
  * turned the way their palms face, a nose tick along the head's yaw, and the
  * far dancer drawn first so the near one overlaps them.
+ *
+ * Dragged to turn; a button row for the angles that matter. Turned to one
+ * minor set when the strip above picked one (M9): that set's dancers whole,
+ * the next set either side a shade, anybody further off left out; `hall`
+ * brings the whole line back.
  */
-export function view3dPane(): Pane {
+export function view3dPane(onHall: () => void): View3dPane {
   const { section, head, body } = paneShell("3d");
   const canvas = el("canvas", "view3d");
   body.append(canvas);
 
-  const yaw = slider(head, "yaw", -180, 180, 30);
-  const pitch = slider(head, "pitch", 0, 90, 35);
+  const who = el("span", "who");
+  const presets = el("span", "presets");
+  const cam = { yaw: 30, pitch: 35 };
+  const angleButtons = ANGLES.map((angle) => {
+    const button = el("button", "preset", angle.name);
+    button.addEventListener("click", () => {
+      cam.yaw = angle.yaw;
+      cam.pitch = angle.pitch;
+      draw();
+    });
+    presets.append(button);
+    return { button, angle };
+  });
+  const hallButton = el("button", "preset hall", "hall");
+  hallButton.addEventListener("click", onHall);
+  presets.append(hallButton);
   const boxesToggle = el("input", "toggle");
   boxesToggle.type = "checkbox";
-  boxesToggle.checked = true;
+  boxesToggle.checked = false;
   boxesToggle.title = "groups";
   const boxesLabel = el("label", "toggle-label", "groups ");
   boxesLabel.append(boxesToggle);
-  head.append(boxesLabel);
+  head.append(who, presets, boxesLabel);
 
   let view: View | undefined;
   let centre: Vec3 = { x: 0, y: 0, z: 20 };
   let radius = 40;
   let lines: number[] = [];
   let beat = 0;
+  let focus: number | undefined;
+
+  // Drag to turn: yaw with the pointer's x, pitch with its y, never under the floor.
+  let drag: { x: number; y: number; yaw: number; pitch: number } | undefined;
+  canvas.addEventListener("pointerdown", (event) => {
+    drag = { x: event.clientX, y: event.clientY, yaw: cam.yaw, pitch: cam.pitch };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    cam.yaw = drag.yaw + (event.clientX - drag.x) * 0.4;
+    cam.pitch = Math.max(4, Math.min(89, drag.pitch + (event.clientY - drag.y) * 0.4));
+    draw();
+  });
+  canvas.addEventListener("pointerup", () => {
+    drag = undefined;
+  });
+
+  /** Where the camera looks and how far it sees: the set in focus, else the whole line. */
+  const frame = (): { centre: Vec3; radius: number; dim: ReadonlySet<DancerId> } => {
+    const none = new Set<DancerId>();
+    if (!view || focus === undefined) return { centre, radius, dim: none };
+    const { run } = view;
+    const box = minorSetBoxes(run, beat)[focus];
+    const membership = membershipAt(run, beat);
+    if (!box || !membership) return { centre, radius, dim: none };
+    const [x, y] = centroidOf(box.hullPx);
+    const dim = new Set<DancerId>();
+    for (const dancer of run.dialect?.dancers ?? []) {
+      if (minorSetIndex(run, membership, dancer) !== focus) dim.add(dancer);
+    }
+    return { centre: { x, y, z: 20 }, radius: 36, dim };
+  };
 
   const draw = (): void => {
     const context = canvas.getContext("2d");
@@ -57,16 +135,21 @@ export function view3dPane(): Pane {
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, w, h);
 
-    const cam: Camera = {
-      yawDeg: Number(yaw.value),
-      pitchDeg: Number(pitch.value),
-      scale: Math.min(w, h) / (2 * radius * 1.1),
-      centre,
+    const look = frame();
+    const camera: Camera = {
+      yawDeg: cam.yaw,
+      pitchDeg: cam.pitch,
+      scale: Math.min(w, h) / (2 * look.radius * 1.1),
+      centre: look.centre,
       width: w,
       height: h,
     };
+    for (const { button, angle } of angleButtons) {
+      button.classList.toggle("on", angle.yaw === cam.yaw && angle.pitch === cam.pitch);
+    }
+    hallButton.hidden = focus === undefined;
     const at = (p: Vec3): [number, number] => {
-      const q = project(cam, p);
+      const q = project(camera, p);
       return [q.x, q.y];
     };
     const line = (a: Vec3, b: Vec3, colour: string, width = 1): void => {
@@ -79,12 +162,11 @@ export function view3dPane(): Pane {
     };
 
     // The floor, a metre at a time.
-    context.strokeStyle = "#3c3128";
-    context.lineWidth = 1;
-    const from = Math.floor((centre.x - radius) / METRE_PX) * METRE_PX;
-    const to = Math.ceil((centre.x + radius) / METRE_PX) * METRE_PX;
-    const fromY = Math.floor((centre.y - radius) / METRE_PX) * METRE_PX;
-    const toY = Math.ceil((centre.y + radius) / METRE_PX) * METRE_PX;
+    const reach = look.radius * (focus === undefined ? 1 : 2.2);
+    const from = Math.floor((look.centre.x - reach) / METRE_PX) * METRE_PX;
+    const to = Math.ceil((look.centre.x + reach) / METRE_PX) * METRE_PX;
+    const fromY = Math.floor((look.centre.y - reach) / METRE_PX) * METRE_PX;
+    const toY = Math.ceil((look.centre.y + reach) / METRE_PX) * METRE_PX;
     for (let x = from; x <= to; x += METRE_PX) {
       line({ x, y: fromY, z: 0 }, { x, y: toY, z: 0 }, "#3c3128");
     }
@@ -94,7 +176,7 @@ export function view3dPane(): Pane {
 
     // The two long lines, where the set stands.
     for (const x of lines) {
-      line({ x, y: centre.y - radius, z: 0 }, { x, y: centre.y + radius, z: 0 }, "#5b4a3a", 1.2);
+      line({ x, y: fromY, z: 0 }, { x, y: toY, z: 0 }, "#5b4a3a", 1.2);
     }
 
     const { run, pick } = view;
@@ -122,16 +204,24 @@ export function view3dPane(): Pane {
 
     const solved = run.solved;
     if (!solved) return;
-    const order: { dancer: DancerId; depth: number }[] = [];
+    const order: { dancer: DancerId; depth: number; far: boolean }[] = [];
     for (const dancer of run.dialect?.dancers ?? []) {
       const hip = solved.trajectories[dancer]?.points.hip;
       const t = solved.trajectories[dancer];
       if (!hip || !t) continue;
-      order.push({ dancer, depth: project(cam, hip[sampleAt(t, beat)]!).depth });
+      const p = hip[sampleAt(t, beat)];
+      if (!p) continue;
+      // Beyond the next set either side, a dimmed body is only clutter.
+      const far =
+        focus !== undefined &&
+        look.dim.has(dancer) &&
+        Math.hypot(p.x - look.centre.x, p.y - look.centre.y) > look.radius * 2.4;
+      order.push({ dancer, depth: project(camera, p).depth, far });
     }
     order.sort((a, b) => b.depth - a.depth);
 
-    for (const { dancer } of order) {
+    for (const { dancer, far } of order) {
+      if (far) continue;
       const t = solved.trajectories[dancer];
       if (!t) continue;
       const i = sampleAt(t, beat);
@@ -144,7 +234,7 @@ export function view3dPane(): Pane {
       const neck: Vec3 = { x: (sl.x + sr.x) / 2, y: (sl.y + sr.y) / 2, z: (sl.z + sr.z) / 2 };
       const colour = colourOf(run, dancer);
       const skin = skinOf(run, dancer);
-      const alpha = alphaOf(run, dancer, picked, beat);
+      const alpha = alphaOf(run, dancer, picked, beat) * (look.dim.has(dancer) ? 0.3 : 1);
       context.globalAlpha = alpha;
 
       const bones: [Vec3 | undefined, Vec3 | undefined][] = [
@@ -172,7 +262,7 @@ export function view3dPane(): Pane {
           skin,
           1.4,
         );
-        dot(context, at(headPoint), skin, 5 * cam.scale);
+        dot(context, at(headPoint), skin, 5 * camera.scale);
       }
 
       for (const hand of ["left", "right"] as const) {
@@ -200,14 +290,12 @@ export function view3dPane(): Pane {
 
       for (const name of ["footL", "footR", "hip"]) {
         const q = p(name);
-        if (q) dot(context, at(q), colour, 2.5 * cam.scale);
+        if (q) dot(context, at(q), colour, 2.5 * camera.scale);
       }
       context.globalAlpha = 1;
     }
   };
 
-  yaw.addEventListener("input", draw);
-  pitch.addEventListener("input", draw);
   boxesToggle.addEventListener("change", draw);
   new ResizeObserver(draw).observe(body);
 
@@ -228,6 +316,11 @@ export function view3dPane(): Pane {
     },
     setBeat(next) {
       beat = next;
+      draw();
+    },
+    setFocus(set) {
+      focus = set;
+      who.textContent = set === undefined ? "the hall" : `set ${String(set + 1)}`;
       draw();
     },
   };
@@ -263,21 +356,4 @@ const basis = (normal: Vec3): [Vec3, Vec3] => {
   const up: Vec3 = Math.abs(n.z) > 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 0, z: 1 };
   const u = unit(cross(n, up));
   return [u, unit(cross(n, u))];
-};
-
-const slider = (
-  head: HTMLElement,
-  name: string,
-  min: number,
-  max: number,
-  value: number,
-): HTMLInputElement => {
-  const input = el("input", "slider");
-  input.type = "range";
-  input.min = String(min);
-  input.max = String(max);
-  input.value = String(value);
-  input.title = name;
-  head.append(input);
-  return input;
 };
