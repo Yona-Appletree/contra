@@ -71,17 +71,26 @@ describe("runEvening", () => {
       });
     });
 
-    it("gives everybody a place to be out in, for a whole time through", () => {
+    it("waits the couple the hall started at the ends with, for a whole time through", () => {
       const result = evening(fixtures(), "butter", 4, { "minor-sets": 3 });
       const waits = result.times.map((time) =>
         time.moves
-          .filter((move) => move.ir === "wait-out" && move.start === 0)
-          .map((move) => `${move.dancer} ${String(move.beats)}`),
+          .filter((move) => move.ir === "wait-out")
+          .map((move) => `${move.dancer} ${String(move.start)}+${String(move.beats)}`),
       );
-      expect(waits[0]).toEqual(["OT-1L 64", "OT-1R 64", "OB-2L 64", "OB-2R 64"]);
-      // The couple that went out at the top of time 2 is the couple waiting at
-      // the start of time 3, and it comes back in on time 3's own beat 0.
-      expect(waits[2]).toEqual(["0-2L 64", "0-2R 64", "2-1L 64", "2-1R 64"]);
+      // Time 1 does not progress, so the couples setup left at the ends have
+      // nothing to enter on and wait the whole of it.
+      expect(waits[0]).toEqual(["OT-1L 0+64", "OT-1R 0+64", "OB-2L 0+64", "OB-2R 0+64"]);
+      // From then on a couple goes out on the progression at beat 0 and waits
+      // what is left of that time, and comes back in on the next beat 0.
+      expect(waits[1]).toEqual(["0-2L 2+62", "0-2R 2+62", "2-1L 2+62", "2-1R 2+62"]);
+    });
+
+    it("dances the couple that enters on the progression, the time it enters", () => {
+      const result = evening(fixtures(), "butter", 4, { "minor-sets": 3 });
+      // 0-2 goes out at the top of time 2, waits the rest of it, and comes back
+      // in on time 3's own beat 0 — and then dances all sixty-four beats of
+      // time 3, shift and all, rather than watching it from a place it has left.
       expect(result.times[2]?.events.filter((event) => event.dancer === "0-2L")).toEqual([
         {
           dancer: "0-2L",
@@ -90,6 +99,29 @@ describe("runEvening", () => {
           to: "Station(In)/MinorSet(0)/Couple(Ones)/Role(Lark)",
         },
       ]);
+      expect(result.times[2]?.inDancers).toContain("0-2L");
+      expect(
+        result.times[2]?.moves.filter((move) => move.dancer === "0-2L").map((move) => move.ir),
+      ).toEqual(["shift", "circle", "swing", "long-lines", "chain", "hey", "balance", "swing"]);
+    });
+
+    it("never asks a dancer to swing somebody who is waiting out", () => {
+      const result = evening(fixtures(), "butter", 7, { "minor-sets": 3 });
+      for (const time of result.times) {
+        const waiting = new Set(time.outDancers);
+        const partnered = time.moves.flatMap((move) =>
+          move.args.filter((arg) => arg.name === "with" || arg.name === "to").map((a) => a.value),
+        );
+        // A dancer that went out mid-time may still have been named by the
+        // moves it danced before the progression; nobody may be named after it.
+        const asked = time.moves
+          .filter((move) => move.start >= 2)
+          .flatMap((move) =>
+            move.args.filter((arg) => arg.name === "with" || arg.name === "to").map((a) => a.value),
+          );
+        expect(partnered.length).toBeGreaterThan(0);
+        expect(asked.filter((name) => waiting.has(name))).toEqual([]);
+      }
     });
   });
 

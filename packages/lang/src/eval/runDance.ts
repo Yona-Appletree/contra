@@ -38,6 +38,14 @@ export interface RunOptions {
   maxBeats?: number;
 }
 
+/** Who the dance can address, and what to do about the ones it cannot. */
+interface Membership {
+  contract: ReadonlySet<string>;
+  /** Classed out at the top of the time, less anyone the beat-0 commit let in. */
+  waiting: Set<Dancer>;
+  enter: (dancer: Dancer) => Runner;
+}
+
 interface Pending {
   dancer: Dancer;
   to: Node;
@@ -99,14 +107,19 @@ export function runDance(
   };
 
   const contract = contractKinds(program, dance);
-  const inDancers: Dancer[] = [];
-  const outDancers: Dancer[] = [];
-  for (const dancer of tree.dancers)
-    (addresses(contract, dancer) ? inDancers : outDancers).push(dancer);
+  const runners: Runner[] = [];
+  const membership: Membership = {
+    contract,
+    waiting: new Set(),
+    enter: (dancer) => makeDanceRunner(run, dancer, dance, args),
+  };
+  for (const dancer of tree.dancers) {
+    if (addresses(contract, dancer)) runners.push(makeDanceRunner(run, dancer, dance, args));
+    else membership.waiting.add(dancer);
+  }
 
-  const runners = inDancers.map((dancer) => makeDanceRunner(run, dancer, dance, args));
   const maxBeats = options.maxBeats ?? DEFAULT_MAX_BEATS;
-  driveBeats(run, runners, maxBeats, contract);
+  driveBeats(run, runners, maxBeats, membership);
 
   // D4: a dance's length is what its dancers' cursors reached, and `out` runs
   // for exactly that, afterwards, on the same time through. A dancer the
@@ -114,7 +127,7 @@ export function runDance(
   const length = runners.reduce((max, runner) => Math.max(max, runner.script.cursor), 0);
   if (!run.stopped) {
     const waiting: { dancer: Dancer; from: number }[] = [
-      ...outDancers.map((dancer) => ({ dancer, from: 0 })),
+      ...[...membership.waiting].map((dancer) => ({ dancer, from: 0 })),
       ...runners
         .filter((runner) => runner.wentOut === true)
         .map((runner) => ({ dancer: runner.script.dancer, from: runner.script.cursor })),
@@ -130,11 +143,9 @@ export function runDance(
     firstTime: run.firstTime,
     lastTime: run.lastTime,
     length,
-    inDancers: inDancers
-      .filter((dancer) => !runners.some((r) => r.script.dancer === dancer && r.wentOut === true))
-      .map((dancer) => dancer.id),
+    inDancers: runners.filter((r) => r.wentOut !== true).map((r) => r.script.dancer.id),
     outDancers: [
-      ...outDancers.map((dancer) => dancer.id),
+      ...[...membership.waiting].map((dancer) => dancer.id),
       ...runners.filter((r) => r.wentOut === true).map((r) => r.script.dancer.id),
     ],
     moves: run.moves,
@@ -151,19 +162,23 @@ export function runDance(
 
 function driveBeats(
   run: Run,
-  runners: readonly Runner[],
+  runners: Runner[],
   maxBeats: number,
-  contract: ReadonlySet<string> | undefined,
+  membership: Membership | undefined,
 ): void {
   if (runners.length === 0) {
     commitBeat(run, 0);
-    return;
+    if (membership !== undefined && !run.stopped) admit(run, runners, membership, 0);
+    if (runners.length === 0) return;
   }
   for (let beat = 0; ; beat += 1) {
     run.memo.clear();
     for (const runner of runners) pump(run, runner, beat);
     commitBeat(run, beat);
-    if (contract !== undefined) reviewMembership(runners, contract);
+    if (membership !== undefined) {
+      reviewMembership(runners, membership.contract);
+      if (beat === 0 && !run.stopped) admit(run, runners, membership, beat);
+    }
     if (run.stopped) return;
     if (runners.every((runner) => runner.done)) return;
     if (beat > maxBeats) {
@@ -198,6 +213,35 @@ function reviewMembership(runners: readonly Runner[], contract: ReadonlySet<stri
     runner.wentOut = true;
     runner.done = true;
   }
+}
+
+/**
+ * The other half of the same rule: the couple waiting at the top **enters on
+ * the progression and dances that time through**, shift and all. The events of
+ * beat 0 are the top of the dance, so a dancer the beat-0 commit makes
+ * addressable joins the dance from beat 0 rather than watching a time through
+ * from a place it no longer stands in — otherwise an in-dancer would swing
+ * somebody who is waiting out.
+ *
+ * It is deliberately only the **beat-0** commit. A dance that progresses in the
+ * middle would be asking a different question (what does a dancer who joins at
+ * beat 32 dance?), and that is a G1 question, not a rule to guess at.
+ */
+function admit(run: Run, runners: Runner[], membership: Membership, beat: number): void {
+  const joining = [...membership.waiting].filter((dancer) =>
+    addresses(membership.contract, dancer),
+  );
+  if (joining.length === 0) return;
+  for (const dancer of joining) {
+    membership.waiting.delete(dancer);
+    const runner = membership.enter(dancer);
+    runners.push(runner);
+    pump(run, runner, beat);
+  }
+  // Anything the entrants issued on this beat commits with it; `progress()` is
+  // one trigger per beat (D5), so the re-run does not progress the set again.
+  commitBeat(run, beat);
+  reviewMembership(runners, membership.contract);
 }
 
 /** Can a dance that reads these kinds address this dancer (§5)? */
