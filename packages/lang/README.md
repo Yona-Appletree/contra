@@ -16,39 +16,74 @@ no renderer, no figures — a move's body is the name in its `ir`, and the
 kinematics are somebody else's problem (§7). `scripts/check-deps.mjs` says so
 from the outside and `src/allowedImports.test.ts` from the inside.
 
+## What is not there
+
+No formatter and no linter — round 2 shipped both; draft 3's grammar (trailing
+blocks, prefix modifiers, one pattern grammar in four places) needs its own
+before a `.dance` file can be held format-stable. No evening syntax — `× 7`,
+seating, dispersing are named in the design (§5) but the evening is a plain
+TypeScript function (`runEvening`), not a language. No moves' bodies — a move
+is `ir "swing"`, a name the kinematics reads; the motion behind it is
+somebody else's problem (§7), same as the geometry, the renderer and the
+figures this package does not import. Whether and how these join
+`packages/kinetics` is the overnight plan `docs/adr/
+2026-09-17-dance-language-groups-first-class.md` points at, not this one.
+
 ## What is here
 
-| Path                   | What                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/syntax/lexer.ts`  | Tokens. Casing is grammar: kebab names, TitleCase groups, types and enum members.               |
-| `src/syntax/parser.ts` | `parseFile(text, name)` — recursive descent to the tree, or one diagnostic.                     |
-| `src/syntax/ast.ts`    | The tree. Every node carries a `Span`; nothing is resolved.                                     |
-| `src/load.ts`          | `loadProgram(path)` — the prelude, the file, and every module it names.                         |
-| `src/check/check.ts`   | `check(program)` — the rules, as diagnostics; `checkProgram` also hands back the table.         |
-| `src/eval/`            | The two passes: `buildTree` lays the floor, `runDance` scripts a time, `runEvening` repeats it. |
-| `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                            |
-| `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`.      |
-| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — one command over one file.                                       |
-| `playground/`          | A vite root: the six panes, dark, on 5178. Nothing else imports it.                             |
+| Path                   | What                                                                                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/syntax/lexer.ts`  | Tokens. Casing is grammar: kebab names, TitleCase groups, types and enum members.                                                                                                           |
+| `src/syntax/parser.ts` | `parseFile(text, name)` — recursive descent to the tree, or one diagnostic.                                                                                                                 |
+| `src/syntax/ast.ts`    | The tree. Every node carries a `Span`; nothing is resolved.                                                                                                                                 |
+| `src/load.ts`          | `loadProgram(path)` — the prelude, the file, and every module it names. `loadAllTexts` is the same read with every file its own root, for `eval/loadForEval.ts` (below) and the playground. |
+| `src/check/check.ts`   | `check(program)` — the rules, as diagnostics; `checkProgram` also hands back the table.                                                                                                     |
+| `src/eval/`            | The two passes: `buildTree` lays the floor, `runDance` scripts a time, `runEvening` repeats it.                                                                                             |
+| `src/diagnostics/`     | `Diagnostic`, the codes, and rustc-shaped rendering — text and JSON.                                                                                                                        |
+| `dances/`              | The fixtures: the formations, Butter, a medley, and the deliberate errors under `broken/`.                                                                                                  |
+| `cli/lang.mjs`         | `pnpm lang check\|tree\|run` — one command over one file.                                                                                                                                   |
+| `playground/`          | A vite root: the six panes, dark, on 5178. Nothing else imports it.                                                                                                                         |
 
 ## The language in one screen
 
+A formation's shared parts — `contra.dance`, read by every fixture:
+
 ```text
 group Couple {
-  id: enum { Ones, Twos }          // the type of its ids
-  spacing: Length = 0.8m           // parameters
-  body {                           // once, for nobody, for the node being built
-    left(spacing / 2)  Role(Lark);
-    right(spacing / 2) Role(Robin);
+  id: enum { Ones, Twos }
+  seated: Bool = true
+  spacing: Length = 0.8m
+  body {
+    left(spacing / 2)  Role(Lark,  seated = seated);
+    right(spacing / 2) Role(Robin, seated = seated);
   }
-  partner = other(Role);           // a member: read by any dancer under the node
+  partner = other(Role);
 }
 
 fn swing(with: Role, beats: i32 = 8) { ir "swing"; }   // an `ir` makes it a move
+```
+
+And a dance on top of it — `butter.dance`, one phrase of four:
+
+```text
+use contra::{Phrase, phrase, shift, circle, swing, long-lines, chain, hey, balance};
+use becket::{MajorSet, MinorSet};
 
 fn butter(minor-sets: i32) {
   setup { MajorSet(1, minor-sets = minor-sets); }      // a `setup` makes it a dance
-  phrase(A1) { swing(neighbor, beats = 8); }
+  card "Butter";
+
+  phrase(A1) {
+    if (first-time) {
+      circle(MinorSet, Left, places = 3, beats = 8);
+    } else {
+      progress();                                   // the event, set-wide, at beat 0
+      shift(Left, beats = 2);                       // its motion
+      circle(MinorSet, Left, places = 3, beats = 6);
+    }
+    swing(neighbor, beats = 8);
+  }
+  // …A2, B1, B2 — see dances/butter.dance whole.
 }
 ```
 

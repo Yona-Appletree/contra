@@ -29,15 +29,17 @@ export type {
   Resolution,
 } from "./check/resolution.js";
 
-export { loadProgram, loadTexts, PRELUDE } from "./load.js";
+export { loadAllTexts, loadProgram, loadTexts, PRELUDE } from "./load.js";
 export type { LoadOptions, Module, ModuleFinder, Program } from "./load.js";
 
 /**
  * P3, the evaluator: `setup` once for nobody, then the script once per dancer,
- * and an evening that repeats one time through. Its own light module index
- * (`eval/loadForEval.ts`) is separate from {@link loadProgram} until the two
- * are converged, so its `Program` is exported from `./eval/index.js` rather
- * than from here.
+ * and an evening that repeats one time through. Its module index
+ * (`eval/loadForEval.ts`) reads on top of `./load.js`'s `loadAllTexts` — the
+ * same one place a `.dance` file is found and parsed — and adds the
+ * declaration tables the evaluator's own name lookups want; its `Program` is
+ * a different shape from {@link loadProgram}'s, so it is exported from
+ * `./eval/index.js` rather than from here.
  */
 export {
   buildTree,

@@ -1,10 +1,11 @@
 /**
  * One evaluation, as the panes read it.
  *
- * Two loaders again (see `cli/lang.mjs`): `loadTexts` + `checkProgram` for the
- * complaints, `loadForEval` + `runEvening` for the floor and the beats. Both
- * take the same array of texts, so an edit in the textarea reaches both, and
- * neither touches the disk — the `.dance` files arrive bundled.
+ * Two loaders again (see `cli/lang.mjs`), both `src/load.ts` underneath:
+ * `loadTexts` + `checkProgram` for the complaints, `loadForEval` + `runEvening`
+ * for the floor and the beats. Both take the same array of texts, so an edit
+ * in the textarea reaches both, and neither touches the disk — the `.dance`
+ * files arrive bundled.
  */
 import { checkProgram } from "../src/check/check.js";
 import type { Diagnostic, Source } from "../src/diagnostics/Diagnostic.js";

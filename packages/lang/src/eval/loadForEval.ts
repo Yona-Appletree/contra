@@ -3,11 +3,19 @@
  * module per file, its declarations indexed, and its `use` lines turned into a
  * map from a bare name to the module it came from.
  *
- * This is the evaluator's own light name resolution, written because P3 and
- * P2 were built side by side and the checker's tables were not there yet. It
- * is deliberately thin — it answers "which declaration does this name mean
- * here?" and nothing else — and the day the checker's `load.ts` lands, this
- * is the file that folds into it.
+ * The reading itself — text to a parsed module, `use` lines and qualified
+ * names followed, missing-module diagnostics — is `../load.js`'s job. It
+ * offers two shapes of that read: {@link loadProgram}/{@link loadTexts}
+ * follow one entry's transitive closure (the checker's and the CLI's
+ * `check`); {@link loadAllTexts} reads every given file as its own entry, for
+ * a caller that picks a dance out of a whole set of files **by name**, not by
+ * following one file's `use` lines to it. That is what `loadDanceDir` below
+ * wants — a dance in `square.dance` is found the same way as one in
+ * `butter.dance`, whichever file the run started from — so it is what this
+ * module builds on. `loadForEval` is a thin layer on top of that one loaded
+ * program: the declaration tables (`groups`, `fns`, `enums`) and the
+ * name-resolution helpers (`findGroup`, `findFn`, …) the evaluator reads
+ * instead of walking the AST itself.
  *
  * `prelude.dance` is read before every other file and imported by none, so
  * its enums (`Hand`, `Turn`, `Direction`, `Axis`) are in scope everywhere.
@@ -15,8 +23,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Diagnostic, Source } from "../diagnostics/Diagnostic.js";
+import { loadAllTexts } from "../load.js";
 import type { EnumDecl, FileNode, FnDecl, GroupDecl } from "../syntax/ast.js";
-import { moduleNameOf, parseFile } from "../syntax/parser.js";
 
 export interface Module {
   name: string;
@@ -42,29 +50,27 @@ export interface Program {
 export const PRELUDE = "prelude";
 
 /**
- * Parse a set of named texts into a program. A file that does not parse
- * contributes its diagnostic and no module, so a caller can run the files
- * that did.
+ * Read a set of named texts into a program, every one its own entry
+ * (`loadAllTexts`), then index each module's declarations. A file that does
+ * not parse contributes its diagnostic and no module, so a caller can run the
+ * files that did.
  */
 export function loadForEval(sources: readonly Source[]): Program {
-  const program: Program = {
-    modules: new Map(),
-    sources: [...sources],
-    diagnostics: [],
+  const loaded = loadAllTexts(sources);
+  const modules = new Map<string, Module>();
+  for (const module of loaded.modules)
+    modules.set(module.name, indexModule(module.name, module.ast));
+  return {
+    modules,
+    sources: [...loaded.sources],
+    diagnostics: [...loaded.diagnostics],
     preludeName: PRELUDE,
   };
-  for (const source of sources) {
-    const parsed = parseFile(source.text, source.name);
-    program.diagnostics.push(...parsed.diagnostics);
-    if (parsed.file === undefined) continue;
-    program.modules.set(moduleNameOf(source.name), indexModule(parsed.file));
-  }
-  return program;
 }
 
-function indexModule(file: FileNode): Module {
+function indexModule(name: string, file: FileNode): Module {
   const module: Module = {
-    name: file.module,
+    name,
     file,
     groups: new Map(),
     fns: new Map(),
@@ -74,7 +80,7 @@ function indexModule(file: FileNode): Module {
   };
   for (const use of file.uses) {
     if (use.names === undefined) module.globs.push(use.module);
-    else for (const name of use.names) module.imports.set(name.name, use.module);
+    else for (const named of use.names) module.imports.set(named.name, use.module);
   }
   for (const decl of file.decls) {
     if (decl.kind === "group") module.groups.set(decl.name, decl);
@@ -201,7 +207,10 @@ export const memberName = (member: GroupDecl["members"][number]): string => memb
  * program. The whole directory is read rather than the one file asked for,
  * because a dance stands on a formation which stands on `contra.dance`, and
  * following `use` lines one at a time would be a module system where a
- * directory listing does.
+ * directory listing does. The directory listing is this function's own — the
+ * loader has no notion of "everything under this path", only "a module by
+ * name" — but the listing's texts are then read the one way any text becomes
+ * a module (`loadForEval`, `../load.js` underneath it).
  */
 export function loadDanceDir(
   dir: string,

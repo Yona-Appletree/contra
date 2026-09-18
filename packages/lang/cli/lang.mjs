@@ -6,12 +6,15 @@
  *   tree  <file> [--dance name] [--minor-sets n]       what `setup` built
  *   run   <file> [--dance name] [--times n] […]        the timelines, then complaints
  *
- * Two loaders meet here, on purpose. `check` reads the file the way the
- * checker wants it — `loadProgram`, which follows `use` lines from the entry —
- * so its diagnostics carry the spans of exactly the modules the file names.
- * `tree` and `run` read the whole directory with the evaluator's own
- * `loadDanceDir`, because a dance stands on a formation which stands on
- * `contra.dance`. Converging the two is P5's job, not this command's.
+ * Two loaders meet here, on purpose — both built on `src/load.ts`'s one way
+ * of turning a `.dance` file into a parsed module. `check` reads the file the
+ * way the checker wants it — `loadProgram`, which follows `use` lines and
+ * qualified names from the entry — so its diagnostics carry the spans of
+ * exactly the modules the file names. `tree` and `run` read the whole
+ * directory with the evaluator's own `loadDanceDir`, because a dance is
+ * picked by name (`--dance`, or the first one found) rather than followed to,
+ * and a formation file such as `becket.dance` has no dance of its own to
+ * follow from at all.
  *
  * Every command exits non-zero when anything is an error, so CI and an agent
  * read the same answer as a person does.

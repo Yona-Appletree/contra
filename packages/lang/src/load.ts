@@ -9,7 +9,11 @@ import { moduleNameOf, parseFile } from "./syntax/parser.js";
  * Loading a program: **a file is a module and its name is the file's stem**
  * (§5). A run is the entry file, every module it names — by `use` or by a
  * qualified name, transitively — and `prelude.dance`, which is read before
- * every file and imports nothing.
+ * every file and imports nothing. {@link loadAllTexts} below is the same
+ * reading with every given file as its own entry, for a caller that wants a
+ * whole set of files indexed rather than one file's transitive closure — the
+ * evaluator's `loadDanceDir`, and the playground. This is the one place a
+ * `.dance` file turns into a parsed `Module`; nothing else reads one.
  *
  * Modules are looked for beside the entry file and one directory up, so a
  * fixture in `dances/broken/` reads the formations in `dances/` without
@@ -19,7 +23,7 @@ import { moduleNameOf, parseFile } from "./syntax/parser.js";
  */
 export function loadProgram(entryPath: string, options: LoadOptions = {}): Program {
   const find = options.find ?? fileFinder(entryPath);
-  return loadFrom(moduleNameOf(entryPath), find);
+  return loadFrom([moduleNameOf(entryPath)], find);
 }
 
 /** What a run is made of, once every module it names has been read and parsed. */
@@ -60,20 +64,48 @@ export type ModuleFinder = (module: string) => { file: string; text: string } | 
  * one unless it is named.
  */
 export function loadTexts(files: readonly Source[], entry?: string): Program {
+  const find = finderFor(files);
+  const last = files.at(-1);
+  const entryName = entry ?? (last === undefined ? "" : moduleNameOf(last.name));
+  return loadFrom([entryName], find);
+}
+
+/**
+ * The same load, with every file its own root — for a set of `.dance` files a
+ * dance is picked from **by name**, not followed to from one file's `use`
+ * lines (`@caller/lang`'s evaluator: a directory of fixtures, or the
+ * playground's bundle). Every file is read and its `use` lines and qualified
+ * names still checked, exactly as a single entry's are; nothing is left out
+ * because nothing happened to import it.
+ */
+export function loadAllTexts(files: readonly Source[]): Program {
+  return loadFrom(
+    files.map((f) => moduleNameOf(f.name)),
+    finderFor(files),
+  );
+}
+
+/** A finder over texts already in hand, keyed by the module name their file name gives them. */
+function finderFor(files: readonly Source[]): ModuleFinder {
   const byModule = new Map(files.map((f) => [moduleNameOf(f.name), f]));
-  const find: ModuleFinder = (module) => {
+  return (module) => {
     const found = byModule.get(module);
     return found === undefined ? undefined : { file: found.name, text: found.text };
   };
-  const last = files.at(-1);
-  const entryName = entry ?? (last === undefined ? "" : moduleNameOf(last.name));
-  return loadFrom(entryName, find);
 }
 
 /** The prelude every module reads, by name. */
 export const PRELUDE = "prelude";
 
-function loadFrom(entryName: string, find: ModuleFinder): Program {
+/**
+ * Read the prelude, then every name in `entryNames`, following `use` lines
+ * and qualified names as they turn up. One name is a single file's own load
+ * (`loadProgram`, `loadTexts`); every name in the set is `loadAllTexts`'s —
+ * either way, `read` is the one function that turns a module name into a
+ * parsed `Module` or a diagnostic, so there is exactly one way a file is
+ * found.
+ */
+function loadFrom(entryNames: readonly string[], find: ModuleFinder): Program {
   const diagnostics: Diagnostic[] = [];
   const modules = new Map<string, Module>();
   const sources: Source[] = [];
@@ -111,17 +143,20 @@ function loadFrom(entryName: string, find: ModuleFinder): Program {
     return module;
   };
 
-  const prelude = entryName === PRELUDE ? undefined : read(PRELUDE);
-  const entry = read(entryName);
-  if (entry === undefined && missing.has(entryName)) {
+  const prelude = read(PRELUDE);
+  for (const name of entryNames) read(name);
+
+  const primary = entryNames.at(-1);
+  const entry = primary === undefined ? undefined : modules.get(primary);
+  if (entry === undefined && primary !== undefined && missing.has(primary)) {
     diagnostics.push(
-      diagnostic("L010", "load", `there is no module called "${entryName}"`, {
+      diagnostic("L010", "load", `there is no module called "${primary}"`, {
         suggestion: "the entry of a run is a file, and its module name is the file's stem",
       }),
     );
   }
 
-  const ordered = [...modules.values()].sort((a, b) => order(a, entryName) - order(b, entryName));
+  const ordered = [...modules.values()].sort((a, b) => order(a, entryNames) - order(b, entryNames));
   return {
     ...(entry ? { entry } : {}),
     modules: ordered,
@@ -131,9 +166,9 @@ function loadFrom(entryName: string, find: ModuleFinder): Program {
   };
 }
 
-/** The prelude reads first and the entry last; the rest keep the order they were found in. */
-const order = (module: Module, entryName: string): number =>
-  module.name === PRELUDE ? -1 : module.name === entryName ? 1 : 0;
+/** The prelude reads first; a root name reads last; the rest keep the order they were found in. */
+const order = (module: Module, entryNames: readonly string[]): number =>
+  module.name === PRELUDE ? -1 : entryNames.includes(module.name) ? 1 : 0;
 
 /** The default finder: `<module>.dance` beside the entry, then one directory up. */
 function fileFinder(entryPath: string): ModuleFinder {
